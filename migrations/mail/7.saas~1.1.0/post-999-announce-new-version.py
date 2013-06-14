@@ -7,7 +7,7 @@ def migrate(cr, version):
     registry = RegistryManager.get(cr.dbname)
     IMD = registry['ir.model.data']
     try:
-        poster = IMD.get_object_reference(cr, SUPERUSER_ID, 'mail', 'group_all_employees')
+        poster = IMD.get_object(cr, SUPERUSER_ID, 'mail', 'group_all_employees')
     except ValueError:
         # Cannot found group, post the message on the wall of the admin
         poster = registry['res.users'].browse(cr, SUPERUSER_ID, SUPERUSER_ID)
