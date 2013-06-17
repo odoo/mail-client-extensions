@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from openerp import release, SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
+
+_logger = logging.getLogger(__name__)
 
 def migrate(cr, version):
     registry = RegistryManager.get(cr.dbname)
@@ -31,4 +34,7 @@ def migrate(cr, version):
         <p>Enjoy the new OpenERP Online!</p>
     """.format(version=release.version)
 
-    poster.message_post(message, type='notification', subtype='mail.mt_comment')
+    try:
+        poster.message_post(message, type='notification', subtype='mail.mt_comment')
+    except Exception:
+        _logger.warning('Cannot annouce new version', exc_info=True)
