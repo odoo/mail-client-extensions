@@ -16,5 +16,5 @@ phil_harkins
 brandon_light
 """.split()
     for u in users:
-        if not util.ref('training_base.%s' % u):
+        if not util.ref(cr, 'training_base.%s' % u):
             util.remove_record(cr, 'training_base.%s_res_partner' % u, deactivate=True)
