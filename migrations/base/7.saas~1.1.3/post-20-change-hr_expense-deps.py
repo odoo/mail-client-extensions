@@ -1,7 +1,7 @@
 
 def migrate(cr, version):
     # in march 2013, hr_expense got a new depend: account_accountant
-    states = ('installed', 'to install', 'to upgrade')
+    states = ('installed', 'to install', 'to upgrade', 'to remove')
     cr.execute("""UPDATE ir_module_module
                      SET state=%s
                    WHERE name=%s
