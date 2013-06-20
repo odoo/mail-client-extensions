@@ -16,5 +16,7 @@ phil_harkins
 brandon_light
 """.split()
     for u in users:
-        if not util.ref(cr, 'training_base.%s' % u):
+        login = u.split('_')[0] + '@openwood.com'
+        xmlid = 'training_base.' + u
+        if not util.ensure_xmlid_match_record(cr, xmlid, 'res.users', {'login': login}):
             util.remove_record(cr, 'training_base.%s_res_partner' % u, deactivate=True)
