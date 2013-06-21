@@ -6,6 +6,14 @@ def migrate(cr, version):
 
     MODULE = 'account_report_company'
 
+    # delete constraints and relations...
+    for table in ['constraint', 'relation']:
+        cr.execute("""DELETE FROM ir_model_%s
+                            WHERE module = (SELECT id
+                                              FROM ir_module_module
+                                             WHERE name=%%s)
+                   """ % table, (MODULE,))
+
     # remove module
     cr.execute("""
         DELETE FROM ir_module_module
