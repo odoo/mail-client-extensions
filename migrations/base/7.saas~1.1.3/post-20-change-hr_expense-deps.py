@@ -1,14 +1,6 @@
+# -*- coding: utf-8 -*-
+from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # in march 2013, hr_expense got a new depend: account_accountant
-    states = ('installed', 'to install', 'to upgrade', 'to remove')
-    cr.execute("""UPDATE ir_module_module
-                     SET state=%s
-                   WHERE name=%s
-                     AND state NOT IN %s
-                     AND EXISTS(SELECT id
-                                  FROM ir_module_module
-                                 WHERE name=%s
-                                   AND state IN %s
-                                )
-               """, ('to install', 'account_accountant', states, 'hr_expense', states))
+    util.new_module_dep(cr, 'hr_expense', 'account_accountant')
