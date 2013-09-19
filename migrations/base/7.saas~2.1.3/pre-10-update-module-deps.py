@@ -7,5 +7,7 @@ def migrate(cr, version):
 
     # new dependance
     util.new_module_dep(cr, 'l10n_be', 'l10n_multilang')
+    util.new_module_dep(cr, 'crm', 'web_kanban_sparkline')
     util.new_module_dep(cr, 'crm_partner_assign', 'portal')
+    util.new_module_dep(cr, 'sale_crm', 'web_kanban_gauge')
     util.new_module_dep(cr, 'google_base_account', 'base_setup')
