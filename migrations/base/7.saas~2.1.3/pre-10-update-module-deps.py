@@ -11,3 +11,17 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'crm_partner_assign', 'portal')
     util.new_module_dep(cr, 'sale_crm', 'web_kanban_gauge')
     util.new_module_dep(cr, 'google_base_account', 'base_setup')
+
+    # google_docs module is special case
+    # it's not a module rename but a replacement with similar functionality
+    cr.execute("""SELECT state
+                    FROM ir_module_module
+                   WHERE name=%s
+               """, ('google_docs',))
+    doc_state, = cr.fetchone() or ['uninstalled']
+    doc_state = {
+        'to remove': 'uninstalled',
+        'installed': 'to update',
+    }.get(doc_state, doc_state)
+    util.remove_module(cr, 'google_docs')
+    cr.execute('INSERT INTO ir_module_module(name, state) VALUES(%s,%s)', ('google_drive', doc_state))
