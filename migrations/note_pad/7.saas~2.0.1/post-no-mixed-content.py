@@ -2,7 +2,7 @@
 import urlparse
 def migrate(cr, version):
     cr.execute("SELECT pad_server FROM res_company WHERE pad_server LIKE %s GROUP BY pad_server", ('https://%',))
-    for cid, url in cr.fetchall():
+    for url in cr.fetchall():
         up = urlparse.urlsplit(url)
         match = urlparse.urlunsplit(('http',) + up[1:]).rstrip('/') + '/%'
         cr.execute("""UPDATE note_note
