@@ -2,8 +2,9 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    # deleted module
+    # deleted modules
     util.remove_module(cr, 'base_status')
+    util.remove_module(cr, 'base_partner_merge')    # only for custom/private
 
     # new dependance
     util.new_module_dep(cr, 'l10n_be', 'l10n_multilang')
