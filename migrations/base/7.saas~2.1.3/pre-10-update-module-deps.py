@@ -22,7 +22,8 @@ def migrate(cr, version):
     doc_state, = cr.fetchone() or ['uninstalled']
     doc_state = {
         'to remove': 'uninstalled',
-        'installed': 'to update',
+        'installed': 'to install',
+        'to upgrade': 'to install',
     }.get(doc_state, doc_state)
     util.remove_module(cr, 'google_docs')
     cr.execute('INSERT INTO ir_module_module(name, state) VALUES(%s,%s)', ('google_drive', doc_state))
