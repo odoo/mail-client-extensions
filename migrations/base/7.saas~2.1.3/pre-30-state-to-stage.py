@@ -101,17 +101,17 @@ def migrate(cr, version):
         },
         'project.task': {
             'draft': [('stage_id.sequence', '=', 1)],
-            'open': ['&', '&', '&', ('stage_id.sequence', '!=', 1), ('stage_id.fold', '=', False),
+            'open': ['&', '&', ('stage_id.sequence', '!=', 1),
                           ('stage_id.name', 'not ilike', 'done'), ('stage_id.name', 'not ilike', 'cancelled')],
-            'done': ['&', ('stage_id.fold', '=', False), ('stage_id.name', 'ilike', 'done')],
-            'cancelled': ['&', ('stage_id.fold', '=', False), ('stage_id.name', 'ilike', 'cancelled')],
+            'done': [('stage_id.name', 'ilike', 'done')],
+            'cancelled': [('stage_id.name', 'ilike', 'cancelled')],
         },
         'hr.applicant': {
             'draft': [('stage_id.sequence', '=', 1)],
             'open': [('stage_id.name', 'ilike', 'interview')],
             'pending': [('stage_id.name', 'ilike', 'proposed')],
             'done': [('stage_id.name', 'ilike', 'signed')],
-            'cancel': [('stage_id.fold', '=', False)],
+            'cancel': [('stage_id.name', 'ilike', 'refused')],
         },
 
     }
