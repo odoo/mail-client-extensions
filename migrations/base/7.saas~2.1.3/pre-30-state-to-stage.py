@@ -140,7 +140,6 @@ def migrate(cr, version):
                 final_dom.append(element)
                 continue
 
-            element = exp.normalize_leaf(element)
             left, operator, right = element = exp.normalize_leaf(element)
             if left not in ['state', 'stage_id.state']:
                 final_dom.append(element)
