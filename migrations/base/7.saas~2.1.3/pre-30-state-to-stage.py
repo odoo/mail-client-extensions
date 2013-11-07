@@ -85,29 +85,30 @@ def migrate(cr, version):
 
     models = {
         'crm.lead': {
-            'draft': ['&', ('stage_id.probability', '=', 0), ('stage_id.sequence', '=', 1)],
+            'draft': ['&', ('stage_id.probability', '=', 0), ('stage_id.sequence', '<=', 1)],
             'open': ['&', '&', ('stage_id.type', '=', 'opportunity'),
-                               ('stage_id.probability', '<', 0), ('stage_id.probability', '>', 100)],
+                               ('stage_id.probability', '>', 0), ('stage_id.probability', '<', 100)],
             'pending': ['&', '&', ('stage_id.type', '=', 'opportunity'),
-                                  ('stage_id.probability', '<', 0), ('stage_id.probability', '>', 100)],
-            'done': ['&', ('stage_id.probability', '=', 100), ('stage_id.on_change', '=', True)],
-            'cancel': ['&', ('stage_id.probability', '=', 0), ('stage_id.sequence', '>', 1)],
+                                  ('stage_id.probability', '>', 0), ('stage_id.probability', '<', 100)],  # same as open
+            'done': ['&', ('stage_id.probability', '=', 100), ('stage_id.fold', '=', True)],
+            'cancel': ['&', '&', ('stage_id.probability', '=', 0), ('stage_id.fold', '=', True),
+                            ('stage_id.sequence', '>', 1)],
         },
         'crm.claim': {
-            'draft': [('stage_id.sequence', '=', 1)],
+            'draft': [('stage_id.sequence', '<=', 1)],
             'open': [('stage_id.name', 'ilike', 'progress')],
             'done': [('stage_id.name', 'ilike', 'settled')],
             'cancel': [('stage_id.name', 'ilike', 'rejected')],
         },
         'project.task': {
-            'draft': [('stage_id.sequence', '=', 1)],
+            'draft': [('stage_id.sequence', '<=', 1)],
             'open': ['&', '&', ('stage_id.sequence', '!=', 1),
                           ('stage_id.name', 'not ilike', 'done'), ('stage_id.name', 'not ilike', 'cancelled')],
             'done': [('stage_id.name', 'ilike', 'done')],
             'cancelled': [('stage_id.name', 'ilike', 'cancelled')],
         },
         'hr.applicant': {
-            'draft': [('stage_id.sequence', '=', 1)],
+            'draft': [('stage_id.sequence', '<=', 1)],
             'open': [('stage_id.name', 'ilike', 'interview')],
             'pending': [('stage_id.name', 'ilike', 'proposed')],
             'done': [('stage_id.name', 'ilike', 'signed')],
