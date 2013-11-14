@@ -17,5 +17,6 @@ def migrate(cr, version):
         * Improvement management of marketing campaigns with bounce processing.
         * Better Google Doc integration, including new ``google_spreadsheet`` module.
         * Easier Server and Automated Actions configuration.
+        * Plus a ton of various performance improvements and small bugfixes.
     """
     util.announce(cr, message)
