@@ -55,7 +55,7 @@ def migrate(cr, v):
         cr.execute("""INSERT INTO email_template(model_id, subject, email_from, email_to, body_html)
                                           VALUES(%s, %s, %s, %s, %s)
                       RETURNING id
-                   """, (model_id, to_jinja(subject), email_from, email_to, to_jinja(message)))
+                   """, (model_id, to_jinja(subject or ''), email_from, email_to, to_jinja(message or '')))
 
         tpl_id, = cr.fetchone()
         cr.execute("UPDATE ir_act_server SET template_id=%s WHERE id=%s", (tpl_id, aid))
