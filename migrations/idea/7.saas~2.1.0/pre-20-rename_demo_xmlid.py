@@ -7,5 +7,5 @@ def migrate(cr, version):
         'idea_category_technical': 'idea_cat_2',
     }
 
-    for f, t in renames.values():
+    for f, t in renames.items():
         cr.execute("UPDATE ir_model_data SET name=%s WHERE module=%s AND name=%s", (t, 'idea', f))
