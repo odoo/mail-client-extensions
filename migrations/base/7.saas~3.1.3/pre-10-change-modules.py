@@ -6,5 +6,7 @@ def migrate(cr, version):
     util.rename_module(cr, 'google_base_account', 'google_account')
 
     util.new_module_dep(cr, 'calendar', 'web_calendar')
+    util.new_module_dep(cr, 'base_action_rule', 'resource')
+    util.new_module_dep(cr, 'hr_contract', 'base_action_rule')
 
     util.remove_module(cr, 'web_shortcuts')
