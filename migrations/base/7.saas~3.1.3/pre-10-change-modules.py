@@ -13,3 +13,6 @@ def migrate(cr, version):
 
     deps = ('hr_recruitment', 'document')
     util.new_module(cr, 'hr_applicant_document', deps)
+
+    util.new_module(cr, 'base_geolocalize')
+    util.new_module_dep(cr, 'crm_partner_assign', 'base_geolocalize')
