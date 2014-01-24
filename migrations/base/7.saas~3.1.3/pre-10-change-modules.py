@@ -20,9 +20,5 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'auth_signup', 'web')
 
     # delivery now depend on sale_stock instead of sale and stock
-    cr.execute("""DELETE FROM ir_module_module_dependency
-                        WHERE module_id = (SELECT id
-                                             FROM ir_module_module
-                                            WHERE name=%s)
-               """, ('delivery',))
+    util.remove_module_deps(cr, 'delivery', ('sale', 'stock', 'purchase'))
     util.new_model_dep(cr, 'delivery', 'sale_stock')
