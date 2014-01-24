@@ -16,3 +16,5 @@ def migrate(cr, version):
 
     util.new_module(cr, 'base_geolocalize')
     util.new_module_dep(cr, 'crm_partner_assign', 'base_geolocalize')
+
+    util.new_module_dep(cr, 'auth_signup', 'web')
