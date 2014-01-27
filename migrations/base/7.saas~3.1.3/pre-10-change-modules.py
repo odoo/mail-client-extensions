@@ -24,6 +24,8 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'delivery', ('sale', 'stock', 'purchase'))
     util.new_model_dep(cr, 'delivery', 'sale_stock')
 
+    util.new_module_dep(cr, 'event', 'marketing')
+
     # website !!
     util.new_module(cr, 'website')
     util.new_module(cr, 'website_mail')
