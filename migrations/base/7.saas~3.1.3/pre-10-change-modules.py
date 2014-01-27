@@ -10,6 +10,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'hr_contract', 'base_action_rule')
 
     util.remove_module(cr, 'web_shortcuts')
+    util.remove_module(cr, 'event_moodle')
 
     deps = ('hr_recruitment', 'document')
     util.new_module(cr, 'hr_applicant_document', auto_install_deps=deps)
