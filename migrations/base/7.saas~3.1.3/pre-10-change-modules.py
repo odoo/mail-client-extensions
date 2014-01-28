@@ -13,6 +13,7 @@ def migrate(cr, version):
     util.remove_module(cr, 'event_moodle')
     util.remove_module(cr, 'portal_anonymous')
     util.remove_module(cr, 'portal_hr_employees')
+    util.remove_module(cr, 'portal_crm')
 
     deps = ('hr_recruitment', 'document')
     util.new_module(cr, 'hr_applicant_document', auto_install_deps=deps)
