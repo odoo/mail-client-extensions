@@ -10,8 +10,8 @@ def migrate(cr, version):
         module, _, xname = old.partition('.')
 
         cr.execute("""UPDATE ir_model_data
-                         SET noupdate=%s
-                             module=%s
+                         SET noupdate=%s,
+                             module=%s,
                              name=%s
                        WHERE module=%s
                          AND name=%s
