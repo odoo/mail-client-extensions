@@ -25,7 +25,7 @@ def migrate(cr, version):
 
     # delivery now depend on sale_stock instead of sale and stock
     util.remove_module_deps(cr, 'delivery', ('sale', 'stock', 'purchase'))
-    util.new_model_dep(cr, 'delivery', 'sale_stock')
+    util.new_module_dep(cr, 'delivery', 'sale_stock')
 
     util.new_module_dep(cr, 'event', 'marketing')
 
@@ -34,7 +34,7 @@ def migrate(cr, version):
     util.new_module(cr, 'website_mail')
 
     util.rename_module(cr, 'document_page', 'website_blog')
-    util.new_model_dep(cr, 'website_blog', 'website_mail')
+    util.new_module_dep(cr, 'website_blog', 'website_mail')
 
     # update module deps to auto isntall website if website_mail is marked to
     # be installed if website_blog is installed (because document_page was)
