@@ -7,7 +7,7 @@ def migrate(cr, version):
                          image_medium = p.image_medium,
                          image_small = p.image_small
                     FROM product_product p
-                   WHERE p.product_template_id = id
+                   WHERE p.product_tmpl_id = id
                 """)
 
     util.remove_field(cr, 'product.product', 'image')
