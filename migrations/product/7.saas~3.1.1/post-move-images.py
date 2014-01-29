@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from openerp.addons.base.maintenance import util
+from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     cr.execute("""UPDATE product_template
