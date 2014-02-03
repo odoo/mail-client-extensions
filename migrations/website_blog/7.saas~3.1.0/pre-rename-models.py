@@ -6,8 +6,9 @@ def migrate(cr, version):
     util.rename_model(cr, 'document.page', 'blog.post')
 
     cr.execute("""CREATE TABLE blog_blog(
-                    id,
-                    name varchar
+                    id SERIAL NOT NULL,
+                    name varchar,
+                    PRIMARY KEY(id)
                   )
                 """)
 
