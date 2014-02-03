@@ -29,6 +29,8 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'event', 'marketing')
 
+    util.new_module_dep(cr, 'portal_sale', 'payment')
+
     # website !!
     util.new_module(cr, 'website')
     util.new_module(cr, 'website_mail')
