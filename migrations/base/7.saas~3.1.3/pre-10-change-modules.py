@@ -11,7 +11,6 @@ def migrate(cr, version):
 
     util.remove_module(cr, 'web_shortcuts')
     util.remove_module(cr, 'event_moodle')
-    util.remove_module(cr, 'portal_anonymous')
     util.remove_module(cr, 'portal_hr_employees')
     util.remove_module(cr, 'portal_crm')
 
