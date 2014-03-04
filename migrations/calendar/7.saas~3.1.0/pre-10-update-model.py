@@ -54,9 +54,8 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE crm_meeting DROP COLUMN _mig_event_id")
 
     # in <= saas-2, the link beween attendee and crm.meeting (now calendar.event) was a m2m
-    # in >= saas-3, it's a o2m. We need to deduplicate attendees to point to only one event
-    # On a side note, calendar.attendee have been cleaned up and now only contain a few
-    # fields.
+    # in >= saas-3, it's a o2m. We need to duplicate attendees to point to only one event.
+    # On a side note, calendar.attendee have been cleaned up and now only contains a few fields.
     cr.execute("""SELECT array_agg(event_id), attendee_id
                     FROM meeting_attendee_rel
                 GROUP BY attendee_id
@@ -83,6 +82,19 @@ def migrate(cr, version):
                      SET event_id=(SELECT event_id
                                      FROM meeting_attendee_rel
                                     WHERE attendee_id = a.id)""")
+
+    # now create an attendee for the user itself
+    cr.execute("""INSERT INTO calendar_attendee(event_id, partner_id, cn, email, availability, state)
+                       SELECT e.id, u.partner_id, p.name, p.email, 'busy',
+                              CASE WHEN e.state = 'draft' THEN 'tentative' ELSE 'accepted' END
+                         FROM crm_meeting e
+                         JOIN res_users u ON u.id = e.user_id
+                         JOIN res_partner p ON p.id = u.partner_id
+                        WHERE NOT EXISTS(SELECT id
+                                           FROM calendar_attendee
+                                          WHERE event_id = e.id
+                                            AND partner_id = u.partner_id)
+               """)
 
     cr.execute("DELETE FROM calendar_attendee WHERE event_id IS NULL")
 
