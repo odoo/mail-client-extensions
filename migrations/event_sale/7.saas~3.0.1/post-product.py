@@ -2,11 +2,11 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    cr.execute("""UPDATE product_template
+    cr.execute("""UPDATE product_template t
                      SET event_ok = p.event_ok,
                          event_type_id = p.event_type_id
                     FROM product_product p
-                   WHERE p.product_template_id = id
+                   WHERE p.product_tmpl_id = t.id
                 """)
 
     util.remove_field(cr, 'product.product', 'event_ok')
