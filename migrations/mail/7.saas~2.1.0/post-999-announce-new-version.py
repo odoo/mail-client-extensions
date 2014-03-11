@@ -23,11 +23,11 @@ def migrate(cr, version):
         * **Automated actions and Server Actions revamped**, with a drastically improved and simplified user interface.
         * Plus a ton of various performance improvements and smaller bugfixes...
     """
-    util.announce(cr, message)
+    util.announce(cr, '7.saas~2', message)
 
 if __name__ == '__main__':
     # openerp must be in PYTHONPATH
-    def echo(_cr, message):
+    def echo(_cr, version, message):
         print util.rst2html(message)
     util.announce = echo
     migrate(None, None)

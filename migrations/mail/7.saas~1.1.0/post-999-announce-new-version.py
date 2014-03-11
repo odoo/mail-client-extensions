@@ -32,7 +32,7 @@ def migrate(cr, version):
         </ul>
 
         <p>Enjoy the new OpenERP Online!</p>
-    """.format(version=release.version)
+    """.format(version='7.saas~1')
 
     try:
         poster.message_post(message, type='notification', subtype='mail.mt_comment')
