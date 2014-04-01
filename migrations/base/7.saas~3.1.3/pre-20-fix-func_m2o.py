@@ -26,6 +26,7 @@ def migrate(cr, version):
 
         # mass_mailing
         ('mail_mail_statistics', 'mass_mailing_campaign_id', 'mail_mass_mailing_campaign'),
+        ('mail_mail_statistics', 'template_id', 'email_template'),
 
         # point_of_sale
         ('pos_session', 'cash_register_id', 'account_bank_statement'),
