@@ -17,6 +17,7 @@ def migrate(cr, version):
 
         # hr_holidays
         ('hr_holidays', 'user_id', 'res_users'),
+        ('hr_holidays', 'department_id', 'hr_department'),
 
         # hr_timesheet_sheet
         ('hr_analytic_timesheet', 'sheet_id', 'hr_timesheet_sheet_sheet'),
