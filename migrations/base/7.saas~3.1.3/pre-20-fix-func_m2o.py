@@ -12,6 +12,9 @@ def migrate(cr, version):
         ('account_invoice_line', 'partner_id', 'res_partner'),
         ('account_invoice', 'commercial_partner_id', 'res_partner'),
 
+        # analytic
+        ('account_analytic_account', 'currency_id', 'res_currency'),
+
         # hr_holidays
         ('hr_holidays', 'user_id', 'res_users'),
 
