@@ -22,6 +22,7 @@ def migrate(cr, version):
         # hr_timesheet_sheet
         ('hr_analytic_timesheet', 'sheet_id', 'hr_timesheet_sheet_sheet'),
         ('hr_analytic_timesheet', 'partner_id', 'res_partner'),
+        ('hr_timesheet_sheet_sheet', 'user_id', 'res_users'),
 
         # mass_mailing
         ('mail_mail_statistics', 'mass_mailing_campaign_id', 'mail_mass_mailing_campaign'),
