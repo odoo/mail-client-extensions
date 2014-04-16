@@ -9,6 +9,6 @@ def migrate(cr, version):
                """, ('<script type="text/javascript" src="/website/static/lib/bootstrap/js/bootstrap.js"/>',
                      '',
                      ' src="/website/static/src/js/website.snippets.animation.js"/>',
-                     'src="/website/static/src/js/website.snippets.animation.js"><script>\n\
+                     ' src="/website/static/src/js/website.snippets.animation.js"><script>\n\
                       <script type="text/javascript" src="/web/static/lib/bootstrap/js/bootstrap.js"></script>',
                      view_id))
