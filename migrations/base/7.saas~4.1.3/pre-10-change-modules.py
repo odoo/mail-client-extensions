@@ -12,7 +12,18 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website_mail', 'email_template')
 
     util.new_module(cr, 'report', auto_install_deps=('base',))
-    for m in ['account', 'lunch', 'mrp', 'purchase', 'sale']:
+    reports_modules = """
+        account
+        hr_attendance
+        hr_expense
+        hr_payroll
+        hr_timesheet_invoice
+        lunch
+        mrp
+        purchase
+        sale
+    """.split()
+    for m in reports_modules:
         util.new_module_dep(cr, m, 'report')
 
     util.new_module(cr, 'website_report', auto_install_deps=('website', 'report'))
