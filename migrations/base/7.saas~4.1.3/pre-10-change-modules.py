@@ -21,3 +21,14 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'survey', 'website')
     util.new_module_dep(cr, 'survey', 'marketing')
     util.new_module(cr, 'survey_crm', auto_install_deps=('survey', 'crm'))
+
+    # marketing module is splitted with marketing_crm module
+    # if users have marketing, they need marketing_crm
+    cr.execute("""UPDATE ir_model_data
+                     SET module=%s
+                   WHERE module=%s
+                     AND name in %s
+               """, ('marketing_crm', 'marketing', ('view_crm_lead_form', 'view_crm_opportunity_form')))
+
+    util.remove_module_deps(cr, 'markering', ('crm',))
+    util.new_module(cr, 'marketing_crm', ('marketing', 'crm'))
