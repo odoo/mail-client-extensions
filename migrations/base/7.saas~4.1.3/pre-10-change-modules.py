@@ -2,6 +2,10 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+
+    util.remove_module(cr, 'idea')
+    util.remove_module(cr, 'crm_todo')
+
     util.new_module_dep(cr, 'auth_oauth', 'auth_signup')
     util.new_module_dep(cr, 'document', 'mail')
     util.new_module_dep(cr, 'hr_recruitment', 'web_kanban_gauge')
