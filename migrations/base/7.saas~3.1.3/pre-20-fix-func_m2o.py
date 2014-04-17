@@ -11,6 +11,7 @@ def migrate(cr, version):
         ('account_move', 'partner_id', 'res_partner'),
         ('account_invoice_line', 'partner_id', 'res_partner'),
         ('account_invoice', 'commercial_partner_id', 'res_partner'),
+        ('account_bank_statement_line', 'journal_id', 'account_journal'),
 
         # analytic
         ('account_analytic_account', 'currency_id', 'res_currency'),
