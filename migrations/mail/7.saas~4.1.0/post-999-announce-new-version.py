@@ -38,7 +38,7 @@ def migrate(cr, version):
   + New module `crm_project_issue` which allow creation of issues from leads.
 
 """
-    util.announce(cr, '7.saas~3', message)
+    util.announce(cr, '7.saas~4', message)
 
 if __name__ == '__main__':
     # openerp must be in PYTHONPATH
