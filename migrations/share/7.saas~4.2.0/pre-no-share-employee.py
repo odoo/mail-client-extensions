@@ -13,5 +13,12 @@ def migrate(cr, version):
                                        WHERE share=%s)
                 """, ('base', 'group_user', True))
 
-    # `share` is now a function field. force recomputation
-    util.remove_column(cr, 'res_users', 'share')
+    cr.execute("""UPDATE res_users u
+                     SET share = NOT EXISTS(SELECT 1
+                                              FROM res_groups_users_rel
+                                             WHERE gid=(SELECT res_id
+                                                          FROM ir_model_data
+                                                         WHERE module=%s
+                                                           AND name=%s)
+                                               AND uid = u.id)
+                """, ('base', 'group_user'))
