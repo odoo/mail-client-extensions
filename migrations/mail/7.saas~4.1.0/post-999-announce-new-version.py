@@ -24,18 +24,18 @@ def migrate(cr, version):
 
 - Mass Mailing: Better statistics about sent mails.
 
-- Survey: the survey module has completment been rewritten and is now fully
+- Survey: the survey module has completely been rewritten and is now fully
   integrated into the website.
 
 - New Reporting Engine: new reporting engine based on QWeb, allowing easier
-  customisation through the website. This new engine also has a better and
+  customization through the website. This new engine also has a better and
   faster PDF rendering. All accounting, sale, purchase, MRP and HR reports
   have been rewritten.
 
 - Misc improvements:
 
   + More language available for translation via gengo.
-  + New module `crm_project_issue` which allow creation of issues from leads.
+  + New module `crm_project_issue` which allows creation of issues from leads.
 
 """
     util.announce(cr, '7.saas~4', message)
