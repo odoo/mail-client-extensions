@@ -126,7 +126,9 @@ def migrate(cr, version):
 
     cr.execute("""UPDATE mail_mail_statistics s
                      SET scheduled = s.create_date,
-                         sent = m.date
+                         sent = m2.date
                     FROM mail_mail m
+                    JOIN mail_message m2
+                      ON m2.id = m.mail_message_id
                    WHERE m.id = s.mail_mail_id
                """)
