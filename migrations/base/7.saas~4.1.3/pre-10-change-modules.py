@@ -43,3 +43,6 @@ def migrate(cr, version):
 
     util.remove_module_deps(cr, 'markering', ('crm',))
     util.new_module(cr, 'marketing_crm', ('marketing', 'crm'))
+
+    util.new_module_dep(cr, 'mass_mailing', 'marketing')
+    util.new_module_dep(cr, 'mass_mailing', 'website_mail')
