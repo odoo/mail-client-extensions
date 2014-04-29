@@ -115,6 +115,12 @@ def migrate(cr, version):
                """)
 
     # update mail_mail_statistics
+    cr.execute("""UPDATE mail_mail_statistics s
+                     SET mail_mail_id = NULL
+                   WHERE NOT EXISTS(SELECT 1
+                                      FROM mail_mail
+                                     WHERE id = s.mail_mail_id)
+               """)
     util.create_column(cr, 'mail_mail_statistics', 'scheduled', 'timestamp without time zone')
     util.create_column(cr, 'mail_mail_statistics', 'sent', 'timestamp without time zone')
 
