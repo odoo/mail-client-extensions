@@ -1,7 +1,16 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    #Views delete
+    util.remove_record(cr, 'stock.view_picking_in_tree')
+    util.remove_record(cr, 'stock.view_picking_in_form')
+    util.remove_record(cr, 'stock.view_picking_in_calendar')
 
+    util.remove_record(cr, 'stock.view_picking_out_tree')
+    util.remove_record(cr, 'stock.view_picking_out_form')
+    util.remove_record(cr, 'stock.view_picking_out_calendar')
+
+    #Change stock.picking.in/out to stock.picking
     cr.execute("SELECT model, id FROM ir_model WHERE model IN %s",
                (('stock.picking', 'stock.picking.in', 'stock.picking.out'),)
     )
