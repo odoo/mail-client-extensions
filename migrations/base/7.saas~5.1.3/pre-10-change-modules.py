@@ -13,8 +13,9 @@ def migrate(cr, version):
         util.remove_module_deps(cr, depend, ('process',))
     
     
-    # Remove stock_location
+    # Remove stock_location and stock_no_auto_picking
     util.remove_module(cr, 'stock_location')
+    util.remove_module(cr, 'stock_no_auto_picking')
     
     # Inverse dependency of procurement from stock
     util.remove_module_deps(cr, 'procurement', ('stock',))

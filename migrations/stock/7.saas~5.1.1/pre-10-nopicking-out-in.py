@@ -1,6 +1,7 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+
     #Views delete
     util.remove_record(cr, 'stock.view_picking_in_tree')
     util.remove_record(cr, 'stock.view_picking_in_form')

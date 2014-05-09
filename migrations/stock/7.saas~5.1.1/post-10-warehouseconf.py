@@ -8,6 +8,7 @@ from openerp.tools.translate import _
 def migrate(cr, version):
     # 1 Migrates all warehouses and create sequences and picking types and routes for them
     # 2 Attribute correct picking type to pickings
+    # 3 Create XML ids for the picking types in the main warehouse (for tests, ...)
     registry = RegistryManager.get(cr.dbname)
     wh_obj = registry['stock.warehouse']
     location_obj = registry['stock.location']
@@ -18,8 +19,6 @@ def migrate(cr, version):
     for wh in wh_obj.browse(cr, SUPERUSER_ID, warehouses):
         vals = {}
         lot_stock = wh.lot_stock_id
-        lot_input = wh.lot_stock_id#wh.lot_input_id -> pre-migration?
-        lot_output = wh.lot_stock_id #wh.lot_output_id -> pre-migration?
         if wh.id == main_warehouse:
             vals['code'] = 'WH'
         else:
@@ -30,7 +29,6 @@ def migrate(cr, version):
         if lot_stock.location_id.id == phys_loc:
             # Create extra location as parent
             vals['view_location_id'] = location_obj.create(cr, SUPERUSER_ID, {'name':vals['code'], 'location_id': phys_loc})
-            # Change
             location_obj.write(cr, SUPERUSER_ID, [lot_stock.id], {'location_id': vals['view_location_id']})
         else:
             vals['view_location_id'] = lot_stock.location_id.id
@@ -41,18 +39,18 @@ def migrate(cr, version):
         delivery_steps = 'ship_only'
         # If different and no chained => can not know this -> but we can do a pre!
         vals_loc = {}
-        if lot_stock.id != lot_input.id:
+        if wh.wh_input_stock_loc_id:
             reception_steps = 'two_steps'
-            vals['wh_input_stock_loc_id'] = lot_input.id
+            vals['wh_input_stock_loc_id'] = wh.wh_input_stock_loc_id.id
         else:
             #Create an inactive input location
             vals_loc['active'] = False
             vals['wh_input_stock_loc_id'] = location_obj.create(cr, SUPERUSER_ID, {'name': _('Input'), 
                                                                'active': False, 
                                                                'location_id': vals['view_location_id'],}, context=context)
-        if lot_stock != lot_output:
+        if wh.wh_output_stock_loc_id:
             delivery_steps = 'pick_ship'
-            vals['wh_output_stock_loc_id'] = lot_output.id
+            vals['wh_output_stock_loc_id'] = wh.wh_output_stock_loc_id.id
         else:
             vals['wh_output_stock_loc_id'] = location_obj.create(cr, SUPERUSER_ID, {'name': _('Output'), 
                                                                                     'active': False, 
@@ -98,3 +96,39 @@ def migrate(cr, version):
             elif dest_usage == 'internal':
                 pick_type = warehouse.in_type_id.id
             pick_obj.write(cr, SUPERUSER_ID, pick.id, {'picking_type_id': pick_type})
+            
+            
+    
+    
+    #Create different XML ids (taken from yml files)
+    partner_obj = registry['res.partner']
+    mwhid = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.warehouse0')
+    main_warehouse = wh_obj.browse(cr, SUPERUSER_ID, mwhid, context=context)
+    mpid = mwhid = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'base.main_partner')
+    partner_obj.write(cr, SUPERUSER_ID, mpid, {'property_stock_customer':main_warehouse.lot_stock_id.id})
+    
+
+    #create xml ids for demo data that are widely used in tests or in other codes, for more convenience
+    xml_references = [
+        {'name': 'stock_location_stock', 'module': 'stock', 'model': 'stock.location', 'res_id': main_warehouse.lot_stock_id.id},
+        {'name': 'stock_location_company', 'module': 'stock', 'model': 'stock.location', 'res_id': main_warehouse.wh_input_stock_loc_id.id},
+        {'name':'stock_location_output','module':'stock', 'model':'stock.location','res_id':main_warehouse.wh_output_stock_loc_id.id},
+        {'name':'location_pack_zone','module':'stock', 'model':'stock.location','res_id':main_warehouse.wh_pack_stock_loc_id.id},
+        {'name':'picking_type_internal','module':'stock', 'model':'stock.picking.type','res_id':main_warehouse.int_type_id.id},
+        {'name':'picking_type_in','module':'stock', 'model':'stock.picking.type','res_id':main_warehouse.in_type_id.id},
+        {'name':'picking_type_out','module':'stock', 'model':'stock.picking.type','res_id':main_warehouse.out_type_id.id},
+    ]
+    for xml_record in xml_references:
+        xml_ids = mod_obj.search(cr, SUPERUSER_ID, [('module', '=', xml_record['module']), ('model', '=', xml_record['model']), ('name', '=', xml_record['name'])], context=context)
+        if xml_ids:
+            mod_obj.unlink(cr, SUPERUSER_ID, xml_ids) #Need to check this code further
+        mod_obj.create(cr, SUPERUSER_ID, xml_record, context=context)
+        #avoid the xml id and the associated resource being dropped by the orm by manually making a hit on it
+        mod_obj._update_dummy(cr, SUPERUSER_ID, xml_record['model'], xml_record['module'], xml_record['name'])
+# -
+#     company_obj = 
+#     #create the transit location for each company existing
+#     company_ids = self.search(cr, SUPERUSER_ID, [('internal_transit_location_id', '=', False)], context=context)
+#     for company in self.browse(cr, SUPERUSER_ID, company_ids, context=context):
+#         self.create_transit_location(cr, SUPERUSER_ID, company.id, company.name, context=context)
+#     )
