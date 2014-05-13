@@ -36,3 +36,5 @@ def migrate(cr, version):
     
     # Remove dependency of purchase from mrp
     util.remove_module_deps(cr, 'purchase', ('mrp',))
+    
+    

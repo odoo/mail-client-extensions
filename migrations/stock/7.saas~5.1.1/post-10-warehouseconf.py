@@ -132,3 +132,5 @@ def migrate(cr, version):
 #     for company in self.browse(cr, SUPERUSER_ID, company_ids, context=context):
 #         self.create_transit_location(cr, SUPERUSER_ID, company.id, company.name, context=context)
 #     )
+
+
