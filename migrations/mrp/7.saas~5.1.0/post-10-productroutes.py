@@ -6,7 +6,7 @@ from openerp.modules.registry import RegistryManager
 
 def migrate(cr, version):
     """
-        Need to link buy routes to products that had buy as procure method
+        Need to link mrp routes to products that had produce as procure method
     """
     registry = RegistryManager.get(cr.dbname)
     mod_obj = registry['ir.model.data']

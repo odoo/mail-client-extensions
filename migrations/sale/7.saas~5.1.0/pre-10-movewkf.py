@@ -1,12 +1,11 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    """
+    Adapt sale order workflow to be entirely in sale module instead of sale_stock
+    """
     cr.execute("update ir_model_data set module=%s where module=%s and model=%s", 
-               ('stock', 'sale_stock', 'workflow.activity',))
+               ('sale', 'sale_stock', 'workflow.activity',))
     cr.execute("update ir_model_data set module=%s where module=%s and model=%s", 
-               ('stock', 'sale_stock', 'workflow.transition',))
-    cr.execute("""DELETE from wkf_workitem w
-                   USING wkf_instance i WHERE w.inst_id = i.id
-                                          AND i.res_type=%s
-               """, ('sale.order',))
+               ('sale', 'sale_stock', 'workflow.transition',))
 

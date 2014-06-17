@@ -8,3 +8,8 @@ def migrate(cr, version):
     """
     util.remove_record(cr, 'procurement.product_template_form_view_procurement')
 
+    #Change model
+    #Rename procurement rule if stock location was installed
+    #Does not work if stock_location not installed??? -> need to be done in base?
+    #util.rename_model(cr, 'product_pulled_flow', 'procurement_rule')
+

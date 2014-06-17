@@ -1,8 +1,11 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-
-    #We should change warehouse config to check one-step/two-step input/output
+    """
+        In order to know whether a warehouse is one or two-step input/output, 
+        we check if the input / output location of the warehouse were different than stock
+        and if they were chained.  If not chained it can stay as location
+    """
     util.rename_field(cr, 'stock_warehouse', 'lot_input_id', 'wh_input_stock_loc_id')
     util.rename_field(cr, 'stock_warehouse', 'lot_output_id', 'wh_output_stock_loc_id')
     cr.execute("""ALTER TABLE stock_warehouse ALTER COLUMN wh_input_stock_loc_id DROP NOT NULL""")

@@ -4,8 +4,8 @@ from openerp.modules.registry import RegistryManager
 
 def migrate(cr, version):
     """
-    Puts cost price and methods in properties where price is not 0 and cost method does not equal 'standard'
-    It is doing this for company 1, but should do this for all companies?
+    Puts cost price and methods in properties where price is not 0 / cost method does not equal 'standard'
+    It is doing this only for company 1
     """
     registry = RegistryManager.get(cr.dbname)
     mod_obj = registry['ir.model.fields']

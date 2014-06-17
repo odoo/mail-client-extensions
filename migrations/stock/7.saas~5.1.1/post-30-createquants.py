@@ -4,7 +4,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     """
-        Get all stock moves and dp in
+        Get all stock moves ordered by execution date.  Find the correct quants and move them
     """
     print "*********** CREATE QUANTS ******************"
     registry = RegistryManager.get(cr.dbname)
