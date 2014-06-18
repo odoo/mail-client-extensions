@@ -36,3 +36,9 @@ def migrate(cr, version):
     
     # Remove dependency of purchase from mrp
     util.remove_module_deps(cr, 'purchase', ('mrp',))
+    
+    util.new_module_dep(cr, 'crm', 'sales_team')
+    util.new_module_dep(cr, 'sale', 'sales_team')
+    
+    cr.execute("update ir_model_data set module=%s where module=%s and model=%s", 
+               ('sales_team', 'crm', 'crm.case.section',))
