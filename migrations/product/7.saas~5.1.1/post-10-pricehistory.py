@@ -15,3 +15,8 @@ def migrate(cr, version):
     INSERT INTO product_price_history (cost, product_template_id, company_id, datetime)
     SELECT _standard_price_mig, id, 1, NOW() FROM product_template WHERE company_id IS NULL
     """)
+    
+    #All packages with the same measurements should be grouped more or less?
+#     cr.execute("""
+#     
+#     """)

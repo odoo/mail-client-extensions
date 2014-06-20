@@ -10,6 +10,7 @@ def migrate(cr, version):
         FROM mrp_production mrp, mrp_production_move_ids mrpmove
         WHERE mrpmove.move_id = stock_move.id AND mrpmove.production_id = mrp.id
     """)
+    # It is easiest to rebuild this report as the value field does not get well migrated
     util.delete_model(cr, 'report_mrp_inout', drop_table=False)
     cr.execute("""
     DROP VIEW report_mrp_inout
