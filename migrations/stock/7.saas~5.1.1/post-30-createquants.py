@@ -15,5 +15,12 @@ def migrate(cr, version):
                                                       prefered_domain_list=[], restrict_lot_id=move.restrict_lot_id.id)
         quant_obj.quants_move(cr, SUPERUSER_ID, quants, move, move.location_dest_id, lot_id=move.restrict_lot_id.id)
     
+    # Check assigned quants 
+#     pick_obj = registry['stock.picking']
+#     assigned_pickings = pick_obj.search(cr, uid, [('state', '=', 'assigned')])
     
+    # Assigned moves
+    moves = move_obj.search(cr, SUPERUSER_ID, [('state','=','assigned')])
+    move_obj.write(cr, SUPERUSER_ID, moves, {'state': 'confirmed'})
+    move_obj.action_assign(cr, SUPERUSER_ID, moves)
     

@@ -19,3 +19,8 @@ def migrate(cr, version):
                 FROM stock_location  
                 WHERE (stock_warehouse.wh_output_stock_loc_id = stock_location.id AND
                 stock_location.chained_auto_packing != 'manual') OR wh_output_stock_loc_id = lot_stock_id""")
+
+
+    # Create route for all pull push rules
+    #cr.execute("""INSERT INTO stock_location_route 
+    #""")

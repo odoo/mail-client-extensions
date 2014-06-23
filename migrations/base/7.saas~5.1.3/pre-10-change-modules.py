@@ -42,3 +42,5 @@ def migrate(cr, version):
     
     cr.execute("update ir_model_data set module=%s where module=%s and model=%s", 
                ('sales_team', 'crm', 'crm.case.section',))
+    
+    util.remove_record(cr, 'base.user_groups_view')
