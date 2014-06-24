@@ -30,3 +30,10 @@ def migrate(cr, version):
     SET state = 'running'
     WHERE po.state = 'waiting'
     """)
+    
+    # Migration of stock_location
+    util.rename_model(cr, 'product_pulled_flow', 'procurement_rule', rename_table = True)
+    util.rename_field(cr, 'procurement_rule', 'picking_type', '_picking_type')
+    util.rename_field(cr, 'procurement_rule', 'cancel_cascade', 'propagate')
+    util.rename_field(cr, 'procurement_rule', 'type_proc', 'action')
+    util.rename_field(cr, 'procurement_rule', 'product_id', '_product_id')

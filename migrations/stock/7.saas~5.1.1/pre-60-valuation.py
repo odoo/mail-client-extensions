@@ -3,10 +3,15 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     """
-    Puts cost price and methods in properties where price is not 0 and cost method does not equal 'standard'
-    It is doing this for company 1, but should do this for all companies?
+    Valuation field should be renamed in order to be reused later on
     """
     util.rename_field(cr, 'product_product', 'valuation', '_valuation_mig')
+    
+    
+    cr.execute("update ir_model_data set module='stock_account' where name='group_stock_inventory_valuation'")
+
+
+    # Create columns already for warehouse
     util.create_column(cr, 'stock_warehouse', 'mto_pull_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'pick_type_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'pack_type_id', 'int4')

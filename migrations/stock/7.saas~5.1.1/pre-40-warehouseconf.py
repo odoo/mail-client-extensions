@@ -24,3 +24,9 @@ def migrate(cr, version):
     # Create route for all pull push rules
     #cr.execute("""INSERT INTO stock_location_route 
     #""")
+    # Migration of stock_location module
+    util.rename_field(cr, 'stock_location_path', 'picking_type', '_picking_type')
+    util.rename_field(cr, 'stock_location_path', 'product_id', '_product_id')
+    util.rename_field(cr, 'stock_move', 'cancel_cascade', 'propagate')
+    
+    

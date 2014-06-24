@@ -14,9 +14,5 @@ def migrate(cr, version):
     INSERT INTO ir_property (create_uid, value_float, name, type, company_id, fields_id, res_id)
     SELECT 1, standard_price, 'standard_price','float', 1, %s, CONCAT('product.template,', product_template.id) FROM product_template WHERE standard_price <> 0.0
     """, (fields_id,))
-    fields_id = mod_obj.search(cr, SUPERUSER_ID, ['&', ('model', '=', 'product.template'), ('name', '=', 'cost_method')])[0]
-    cr.execute("""
-    INSERT INTO ir_property (create_uid, value_text, name, type, company_id, fields_id, res_id)
-    SELECT 1, cost_method, 'cost_method','selection', 1, %s, CONCAT('product.template,', product_template.id) FROM product_template WHERE cost_method <> 'standard'
-    """, (fields_id,))
-    util.rename_field(cr, 'product_template', 'standard_price', '_standard_price_mig')
+    util.rename_field(cr, 'product.template', 'cost_method', '_cost_method')
+    util.rename_field(cr, 'product.template', 'standard_price', '_standard_price_mig')
