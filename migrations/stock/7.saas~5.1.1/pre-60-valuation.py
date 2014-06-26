@@ -5,8 +5,7 @@ def migrate(cr, version):
     """
     Valuation field should be renamed in order to be reused later on
     """
-    util.rename_field(cr, 'product_product', 'valuation', '_valuation_mig')
-    
+    util.rename_field(cr, 'product.product', 'valuation', '_valuation_mig')
     
     cr.execute("update ir_model_data set module='stock_account' where name='group_stock_inventory_valuation'")
 

@@ -11,5 +11,5 @@ def migrate(cr, version):
     """)
     cr.execute("""UPDATE calendar_event SET stop_date = stop_datetime WHERE allday = 't'
     """)
-    util.rename_field(cr, 'calendar_event', 'end_date', 'final_date')
+    util.rename_field(cr, 'calendar.event', 'end_date', 'final_date')
     #TODO: if duration is null -> add datestop - datestart or datetime_stop - datetime_start

@@ -6,9 +6,17 @@ def migrate(cr, version):
     
     registry = RegistryManager.get(cr.dbname)
     mod_obj = registry['ir.model.fields']
-    #Search old field that will be updated -> is moved from product.product to product.template! (but is still on product.product here)
-    #Should in fact only be done if stock_account is installed, but stock_account does not do migration scripts apparently as it is a new module
-    fields_id = mod_obj.search(cr, SUPERUSER_ID, ['&', ('model', '=', 'product.product'), ('name', '=', 'valuation')])[0]
+    # Create a new field already in stock_account and make properties based on the renamed old field valuation (_valuation_mig)
+    # TODO: does work if stock_account is not to be installed?
+    mo_obj = registry['ir.model']
+    models = mo_obj.search(cr, SUPERUSER_ID, [('model', '=', 'product.template')])
+    fields_id = mod_obj.create(cr, SUPERUSER_ID, {'model': 'product.template', 
+                                                  'model_id': models[0], 
+                                                  'name': 'valuation', 
+                                                  'ttype': 'many2one', 
+                                                  'state': 'base'})
+    moddata_obj = registry['ir.model.data']
+    moddata_obj.create(cr, SUPERUSER_ID, {'name': 'valuation', 'module': 'stock.account', 'res_id': fields_id, 'model': 'ir.model.fields'})
     
     cr.execute("""
     INSERT INTO ir_property (create_uid, value_text, name, type, company_id, fields_id, res_id)

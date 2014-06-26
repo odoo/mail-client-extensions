@@ -15,7 +15,7 @@ def migrate(cr, version):
     cr.execute("""delete from procurement_order where procure_method='make_to_stock'""")
     
     #Rename column move_dest_id
-    util.rename_field(cr, 'procurement_order', 'move_id', 'move_dest_id')
+    util.rename_field(cr, 'procurement.order', 'move_id', 'move_dest_id')
     
     # Change states of procurements: 
     # draft, ready should be confirmed 
@@ -33,7 +33,7 @@ def migrate(cr, version):
     
     # Migration of stock_location
     util.rename_model(cr, 'product_pulled_flow', 'procurement_rule', rename_table = True)
-    util.rename_field(cr, 'procurement_rule', 'picking_type', '_picking_type')
-    util.rename_field(cr, 'procurement_rule', 'cancel_cascade', 'propagate')
-    util.rename_field(cr, 'procurement_rule', 'type_proc', 'action')
-    util.rename_field(cr, 'procurement_rule', 'product_id', '_product_id')
+    util.rename_field(cr, 'procurement.rule', 'picking_type', '_picking_type')
+    util.rename_field(cr, 'procurement.rule', 'cancel_cascade', 'propagate')
+    util.rename_field(cr, 'procurement.rule', 'type_proc', 'action')
+    util.rename_field(cr, 'procurement.rule', 'product_id', '_product_id')
