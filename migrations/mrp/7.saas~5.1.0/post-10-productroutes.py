@@ -15,3 +15,10 @@ def migrate(cr, version):
     INSERT INTO stock_route_product (product_id, route_id)
     select id, %s from product_template where supply_method = 'produce'
     """, (mrp_route,))
+    
+    
+    # Fields that moved from product_product to product_template
+    cr.execute("""
+        UPDATE product_template SET track_production = pp.track_production, produce_delay = pp.produce_delay
+        FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
+    """)

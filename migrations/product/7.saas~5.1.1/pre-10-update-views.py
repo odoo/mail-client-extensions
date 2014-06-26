@@ -10,4 +10,4 @@ def migrate(cr, version):
     util.remove_record(cr, 'product.product_category_form_view')
 
 
-    util.move_field_to_other_module(cr, 'product.template', 'track_production', 'mrp')
+    #util.move_field_to_other_module(cr, 'product.template', 'track_production', 'mrp')
