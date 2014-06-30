@@ -31,3 +31,7 @@ def migrate(cr, version):
     
     util.rename_model(cr, 'stock.picking.out', 'stock.picking', rename_table=False)
     util.rename_model(cr, 'stock.picking.in', 'stock.picking', rename_table=False)
+
+    # Some databases have a size on `state` field. Don't know where this from, but this will
+    # forbid to insert new state `partially_available` which is longer than 16 characters.
+    cr.execute("ALTER TABLE stock_picking ALTER COLUMN state TYPE character varying")
