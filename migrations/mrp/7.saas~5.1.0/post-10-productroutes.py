@@ -18,7 +18,8 @@ def migrate(cr, version):
     
     
     # Fields that moved from product_product to product_template
-    cr.execute("""
-        UPDATE product_template SET track_production = pp.track_production, produce_delay = pp.produce_delay
-        FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
-    """)
+    # We might need to move them.  (check saas-5 here)
+#     cr.execute("""
+#         UPDATE product_template SET track_production = pp.track_production, produce_delay = pp.produce_delay
+#         FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
+#     """)

@@ -4,7 +4,8 @@ from openerp.modules.registry import RegistryManager
 
 def migrate(cr, version):
     """
-        Previous standard price should be set as first product price history at that time
+        1 Previous standard price should be set as first product price history at that time
+        2 Change packaging: create product_ul for Pallets / Product to product_template
     """
     
     cr.execute("""
@@ -32,3 +33,5 @@ def migrate(cr, version):
     WHERE (_length > 0 or _width > 0 or _height > 0 or _weight_ul > 0) AND (_length = pu.length AND _width = pu.width 
     AND _height = pu.height AND _weight_ul = pu.weight)
     """)
+    
+    

@@ -32,8 +32,9 @@ def migrate(cr, version):
     """)
     
     # Migration of stock_location
-    util.rename_model(cr, 'product_pulled_flow', 'procurement_rule', rename_table = True)
-    util.rename_field(cr, 'procurement.rule', 'picking_type', '_picking_type')
-    util.rename_field(cr, 'procurement.rule', 'cancel_cascade', 'propagate')
-    util.rename_field(cr, 'procurement.rule', 'type_proc', 'action')
-    util.rename_field(cr, 'procurement.rule', 'product_id', '_product_id')
+    if util.table_exists(cr, 'product_pulled_flow'):
+        util.rename_model(cr, 'product_pulled_flow', 'procurement_rule', rename_table = True)
+        util.rename_field(cr, 'procurement.rule', 'picking_type', '_picking_type')
+        util.rename_field(cr, 'procurement.rule', 'cancel_cascade', 'propagate')
+        util.rename_field(cr, 'procurement.rule', 'type_proc', 'action')
+        util.rename_field(cr, 'procurement.rule', 'product_id', '_product_id')

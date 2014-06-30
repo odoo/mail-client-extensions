@@ -65,7 +65,7 @@ def migrate(cr, version):
         wh_obj.write(cr, SUPERUSER_ID, [wh.id], vals) #Maybe do write directly through ORM instead of changing write code
         wh.refresh()
         wh_obj.create_sequences_and_picking_types(cr, SUPERUSER_ID, wh)
-        
+        wh.refresh()
         #create routes and push/pull rules
         new_objects_dict = wh_obj.create_routes(cr, SUPERUSER_ID, wh.id, wh)
         wh_obj.write(cr, SUPERUSER_ID, wh.id, new_objects_dict)

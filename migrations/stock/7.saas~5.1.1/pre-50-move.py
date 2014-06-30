@@ -4,6 +4,7 @@ def migrate(cr, version):
     """
         As product_qty will become a function field, the old value should be in product_uom_qty
         The lots of a stock move can still be used with restrict_lot_id
+        Inventory and stock moves are related with a one2many instead of many2many in v8
     """
     util.rename_field(cr, 'stock.move', 'product_qty', 'product_uom_qty')
     util.rename_field(cr, 'stock.move', 'prodlot_id', 'restrict_lot_id')
