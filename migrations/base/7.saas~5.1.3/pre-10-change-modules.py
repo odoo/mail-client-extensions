@@ -2,38 +2,64 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    util.new_module_dep(cr, 'resource', 'base')     # was depending on "process" only
 
+    util.new_module_dep(cr, 'pad', 'web')
+    util.remove_module_deps(cr, 'pad', ('base',))
+
+    util.new_module_dep(cr, 'report', 'web')
     util.new_module_dep(cr, 'product', 'report')
 
-    util.remove_module(cr, 'process')
+    util.new_module_dep(cr, 'warning', 'sale_stock')
+    util.remove_module_deps(cr, 'warning', ('sale',))
 
-    # Remove stock_location and stock_no_auto_picking
-    util.remove_module(cr, 'stock_location')
-    util.remove_module(cr, 'stock_no_auto_picking')
+    util.rename_module(cr, 'mrp_jit', 'procurement_jit')
 
-    # Inverse dependency of procurement from stock
+    util.new_module(cr, 'stock_account', auto_install_deps=('stock', 'account'))
+
+    util.new_module_dep(cr, 'mrp', 'stock_account')
+    util.remove_module_deps(cr, 'mrp', ('stock', 'purchase'))
+
+    util.new_module_dep(cr, 'purchase', 'stock_account')
+    util.remove_module_deps(cr, 'purchase', ('stock', 'procurement'))
+
+    # invert stock and procurement dependency
     util.remove_module_deps(cr, 'procurement', ('stock',))
     util.new_module_dep(cr, 'stock', 'procurement')
 
-    # Add dependencies from stock on web modules
     util.new_module_dep(cr, 'stock', 'web_kanban_gauge')
     util.new_module_dep(cr, 'stock', 'web_kanban_sparkline')
-    # Rename module mrp_jit
-    util.rename_module(cr, 'mrp_jit', 'procurement_jit')
+    util.remove_module_deps(cr, 'stock', ('account',))
 
-    # Add stock_account moodule, automatically installed when stock and account are
-    util.new_module(cr, 'stock_account', auto_install_deps=('stock', 'account'))
-
-    # Sale stock should depend on stock_account
     util.new_module_dep(cr, 'sale_stock', 'stock_account')
+    util.remove_module_deps(cr, 'sale_stock', ('stock', 'procurement'))
 
-    # Remove dependency of purchase from mrp
-    util.remove_module_deps(cr, 'purchase', ('mrp',))
-
+    # sales & crm
+    util.new_module(cr, 'sales_team', auto_install_deps=('mail', 'web_kanban_sparkline'))
+    util.remove_module_deps(cr, 'crm', ('web_kanban_sparkline',))
     util.new_module_dep(cr, 'crm', 'sales_team')
+
     util.new_module_dep(cr, 'sale', 'sales_team')
+    util.new_module_dep(cr, 'sale', 'procurement')
 
-    cr.execute("update ir_model_data set module=%s where module=%s and model=%s",
-               ('sales_team', 'crm', 'crm.case.section',))
+    cr.execute("""UPDATE ir_model_data
+                     SET module=%s
+                   WHERE module=%s
+                     AND model=%s
+               """, ('sales_team', 'crm', 'crm.case.section',))
 
-    util.remove_record(cr, 'base.user_groups_view')
+    # just to be correct (I doubt anybody installed this module)
+    util.new_module_dep(cr, 'web_tests', 'web')
+    util.new_module_dep(cr, 'web_tests', 'web_kanban')
+
+    # remove old modules
+    util.remove_module(cr, 'process')
+    util.remove_module(cr, 'audittrail')
+    util.remove_module(cr, 'portal_project_long_term')
+    util.remove_module(cr, 'project_long_term')
+    util.remove_module(cr, 'product_manufacturer')
+    util.remove_module(cr, 'project_gtd')
+    util.remove_module(cr, 'stock_location')
+    util.remove_module(cr, 'stock_no_auto_picking')
+    util.remove_module(cr, 'web_hello')
+    util.remove_module(cr, 'website_sale_crm')
