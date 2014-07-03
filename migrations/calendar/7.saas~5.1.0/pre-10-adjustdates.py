@@ -11,7 +11,7 @@ def migrate(cr, version):
 
     cr.execute("""UPDATE calendar_event
                      SET start_date = start_datetime + interval '12 hours',
-                     SET stop_date = stop_datetime + interval '12 hours'
+                     stop_date = stop_datetime + interval '12 hours'
                    WHERE allday = 't'
                """)
     cr.execute("""UPDATE calendar_event
