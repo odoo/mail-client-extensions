@@ -42,11 +42,9 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'sale', 'sales_team')
     util.new_module_dep(cr, 'sale', 'procurement')
 
-    cr.execute("""UPDATE ir_model_data
-                     SET module=%s
-                   WHERE module=%s
-                     AND model=%s
-               """, ('sales_team', 'crm', 'crm.case.section',))
+    util.move_model(cr, 'crm.case.section', 'crm', 'sales_team', move_data=True)
+    util.move_field_to_other_module(cr, 'res.partner', 'section_id', 'sales_team')
+    util.move_field_to_other_module(cr, 'res.users', 'default_section_id', 'sales_team')
 
     # just to be correct (I doubt anybody installed this module)
     util.new_module_dep(cr, 'web_tests', 'web')
