@@ -8,4 +8,5 @@ def migrate(cr, version):
     if version and not version.startswith(('7.saas~3', '7.saas~4')):
         return
     if util.table_exists(cr, 'pos_category'):
-        util.rename_model(cr, 'pos.category', 'product.public.category', module='product')
+        util.rename_model(cr, 'pos.category', 'product.public.category')
+        util.move_model(cr, 'product.public.category', 'point_of_sale', 'product')
