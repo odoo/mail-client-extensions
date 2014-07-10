@@ -5,8 +5,6 @@ def migrate(cr, version):
     """
     Valuation field should be renamed in order to be reused later on
     """
-    util.rename_field(cr, 'product.product', 'valuation', '_valuation_mig')
-
     # Create columns already for warehouse
     util.create_column(cr, 'stock_warehouse', 'mto_pull_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'pick_type_id', 'int4')
