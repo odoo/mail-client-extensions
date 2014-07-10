@@ -12,6 +12,4 @@ def migrate(cr, version):
     """)
     # It is easiest to rebuild this report as the value field does not get well migrated
     util.delete_model(cr, 'report_mrp_inout', drop_table=False)
-    cr.execute("""
-    DROP VIEW report_mrp_inout
-    """)
+    cr.execute("DROP VIEW IF EXISTS report_mrp_inout")
