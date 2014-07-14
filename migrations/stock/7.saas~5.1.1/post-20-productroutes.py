@@ -79,7 +79,3 @@ def migrate(cr, version):
     locations = location_obj.search(cr, SUPERUSER_ID, ['&', ('location_id.usage', '!=', 'customer'), '&', ('usage', '=', 'customer'), '!', ('id', 'child_of', customer_loc)])
     location_obj.write(cr, SUPERUSER_ID, locations, {'location_id': customer_loc})
     
-    cr.execute("""
-        UPDATE product_template SET track_incoming = pp.track_incoming, track_outgoing = pp.track_outgoing
-        FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
-    """)

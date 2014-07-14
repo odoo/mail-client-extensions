@@ -125,12 +125,5 @@ def migrate(cr, version):
         mod_obj.create(cr, SUPERUSER_ID, xml_record, context=context)
         #avoid the xml id and the associated resource being dropped by the orm by manually making a hit on it
         mod_obj._update_dummy(cr, SUPERUSER_ID, xml_record['model'], xml_record['module'], xml_record['name'])
-# -
-#     company_obj = 
-#     #create the transit location for each company existing
-#     company_ids = self.search(cr, SUPERUSER_ID, [('internal_transit_location_id', '=', False)], context=context)
-#     for company in self.browse(cr, SUPERUSER_ID, company_ids, context=context):
-#         self.create_transit_location(cr, SUPERUSER_ID, company.id, company.name, context=context)
-#     )
 
 

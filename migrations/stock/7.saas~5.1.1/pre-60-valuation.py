@@ -3,7 +3,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     """
-    Valuation field should be renamed in order to be reused later on
+    Create fields at forehand
     """
     # Create columns already for warehouse
     util.create_column(cr, 'stock_warehouse', 'mto_pull_id', 'int4')
@@ -16,7 +16,7 @@ def migrate(cr, version):
     util.create_column(cr, 'stock_warehouse', 'reception_route_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'delivery_route_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'resupply_from_wh', 'boolean')
-    util.create_column(cr, 'stock_warehouse', 'code', 'char')
+    util.create_column(cr, 'stock_warehouse', 'code', 'char(5)')
     util.create_column(cr, 'stock_warehouse', 'reception_steps', 'char')
     util.create_column(cr, 'stock_warehouse', 'delivery_steps', 'char')
     util.create_column(cr, 'stock_warehouse', 'view_location_id', 'int4')

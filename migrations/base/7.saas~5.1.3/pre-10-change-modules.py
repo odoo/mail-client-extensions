@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     util.new_module_dep(cr, 'resource', 'base')     # was depending on "process" only
 
@@ -19,6 +20,8 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'mrp', 'stock_account')
     util.remove_module_deps(cr, 'mrp', ('stock', 'purchase'))
+    
+    util.move_field_to_module(cr, 'product.template', 'produce_delay', 'product', 'mrp')
 
     util.new_module_dep(cr, 'purchase', 'stock_account')
     util.remove_module_deps(cr, 'purchase', ('stock', 'procurement'))

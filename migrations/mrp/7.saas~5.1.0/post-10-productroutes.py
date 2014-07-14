@@ -2,7 +2,7 @@
 from openerp.addons.base.maintenance.migrations import util
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
-
+from openerp.release import series
 
 def migrate(cr, version):
     """
@@ -16,10 +16,8 @@ def migrate(cr, version):
     select id, %s from product_template where supply_method = 'produce'
     """, (mrp_route,))
     
-    
-    # Fields that moved from product_product to product_template
-    # We might need to move them.  (check saas-5 here)
-#     cr.execute("""
-#         UPDATE product_template SET track_production = pp.track_production, produce_delay = pp.produce_delay
-#         FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
-#     """)
+    #Changes to product_product 
+    if series != '8.0':
+        cr.execute("""UPDATE product_product SET produce_delay = pt.produce_delay
+                    FROM product_template pt
+                    WHERE pt.id = product_product.product_tmpl_id""")
