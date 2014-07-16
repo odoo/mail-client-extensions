@@ -17,8 +17,8 @@ def migrate(cr, version):
 
     util.new_module(cr, 'crm_mass_mailing', auto_install_deps=('crm', 'mass_mailing'))
 
-    util.mew_module(cr, 'website_instantclick')
-    util.mew_module(cr, 'website_sale_options')
+    util.new_module(cr, 'website_instantclick')
+    util.new_module(cr, 'website_sale_options')
 
     # new l10n modules
     for cc in 'ae hu sg'.split():
