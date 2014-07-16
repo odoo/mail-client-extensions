@@ -4,9 +4,15 @@ def migrate(cr, version):
     # to be successful, we need to drop views that depends on these fields
     # NOTE not all views are listed here, only the ones that forbid migration
     # NOTE some views are relics from 6.1
-    views = [
-        'report_files_partner',
-    ]
+    # please order them alphabetically, to ease seach
+    views = """
+        account_entries_report
+        analytic_entries_report
+        report_aged_receivable
+        report_files_partner
+        report_invoice_created
+        timesheet_report
+    """.split()
 
     for v in views:
         cr.execute('DROP VIEW IF EXISTS "%s"' % (v,))
