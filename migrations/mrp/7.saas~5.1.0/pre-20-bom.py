@@ -3,7 +3,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     '''
-        In 7.0: a BoM can have a Parent (also BoM) and can have children (bom_lines: also BoM)
+        In 7.0: a BoM can have a Parent (also BoM) and can have children (bom_lines: also BoM) (at the same time, does not need to pass through product apparently)
         In 8.0: a BoM has no parent but has BoM lines (mrp_bom_line) as children
         A BoM can also only have a product_tmpl_id instead of product_id (just need to set product_tmpl_id as it is required)
     '''
