@@ -9,7 +9,7 @@ def migrate(cr, version):
             FROM product_product pp
             WHERE product_template.id = pp.product_tmpl_id
         """)
-    cr.create_column(cr, 'product_template', 'track_production', 'boolean')
+    util.create_column(cr, 'product_template', 'track_production', 'boolean')
     cr.execute("""
         UPDATE product_template SET track_production = pp.track_production
         FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 

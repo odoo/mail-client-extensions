@@ -13,3 +13,12 @@ def migrate(cr, version):
         UPDATE stock_move SET priority = '2' 
         WHERE priority = '1'
     """)
+    
+    
+    #Valuation and product template
+    cr.execute("update ir_model_fields set model='product.template' where model='product.product' and name='valuation' returning id")
+    res = cr.fetchall()
+    cr.execute("""update ir_property ip set res_id = CONCAT('product.template,',p.product_tmpl_id) 
+                from product_product p where ip.res_id=CONCAT('product.product', p.id) and ip.fields_id = %s and ip.name='valuation'""", (res[0][0],)) #p.id=split_part(ip.res_id,',',2)::int
+    
+    #cr.execute("delete from ir_model_data where name='field_product_product_valuation' and model='ir.model.fields'")
