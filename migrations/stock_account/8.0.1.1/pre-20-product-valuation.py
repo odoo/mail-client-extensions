@@ -3,7 +3,7 @@
 def migrate(cr, version):
     # move "valuation" property field from product to template
     cr.execute("""UPDATE ir_model_data where
-                     SET name=
+                     SET name=%s
                    WHERE model=%s
                      AND name=%s
                """, ('field_product_template_valuation', 'ir.model.fields',
