@@ -17,7 +17,9 @@ def migrate(cr, version):
         util.move_model(cr, 'pos.category', 'product', 'point_of_sale')
         util.rename_field(cr, 'product.template', 'public_categ_id', 'pos_categ_id')
     else:
-        # copy values
+        # drop old index from product_public_category table (ORM will recreate it)
+        cr.execute("""DROP INDEX IF EXISTS pos_category_parent_id_index""")
+        # copy values:
         cr.execute("""CREATE TABLE pos_category(
                         id SERIAL NOT NULL,
                         name varchar,
@@ -34,7 +36,7 @@ def migrate(cr, version):
                                   image, image_medium, image_small
                              FROM product_public_category
                    """)
-        cr.execute("setval('pos_category_id_seq', (SELECT MAX(id) FROM pos_category))")
+        cr.execute("SELECT setval('pos_category_id_seq', (SELECT MAX(id) FROM pos_category))")
 
         util.create_column(cr, 'product_template', 'pos_categ_id', 'int4')
         cr.execute("UPDATE product_template SET pos_categ_id = public_categ_id")
