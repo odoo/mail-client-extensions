@@ -26,7 +26,7 @@ def migrate(cr, version):
                         image bytea,
                         image_medium bytea,
                         image_small bytea,
-                        PRIMARY KEY(id)
+                        PRIMARY KEY(id))
                    """)
         cr.execute("""INSERT INTO pos_category(id, name, parent_id, sequence,
                                                image, image_medium, image_small)
