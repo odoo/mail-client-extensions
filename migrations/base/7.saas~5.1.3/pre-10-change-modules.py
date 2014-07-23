@@ -47,7 +47,7 @@ def migrate(cr, version):
 
     util.move_model(cr, 'crm.case.section', 'crm', 'sales_team', move_data=True)
     util.move_field_to_module(cr, 'res.partner', 'section_id', 'crm', 'sales_team')
-    util.move_field_to_module(cr, 'res.users', 'default_section_id', 'crm', 'sales_team')
+    util.move_field_to_module(cr, 'res.users', 'default_section_id', 'sale_crm', 'sales_team')
 
     # just to be correct (I doubt anybody installed this module)
     util.new_module_dep(cr, 'web_tests', 'web')
