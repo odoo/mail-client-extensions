@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
+from lxml import etree
+
 
 def migrate(cr, version):
     # this views is auto-generated when updating res.groups
@@ -21,11 +23,10 @@ def migrate(cr, version):
         #util.remove_record(cr, 'website.footer_custom')
 
         # calendar event: renamed fields but they are used in a custom view (calendar_ps):
-        from lxml import etree
         cr.execute("select arch from ir_ui_view where id = 2789")
         arch_data, = cr.fetchone()
         arch = etree.fromstring(arch_data)
-        calendar = arch.xpath('/calendar')[0]
+        calendar = arch.xpath('//calendar')[0]
         calendar.attrib['date_start'] = 'start_datetime'
         calendar.attrib['date_stop'] = 'stop_datetime'
         new_arch = etree.tostring(arch)
