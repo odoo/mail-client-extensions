@@ -32,3 +32,15 @@ def migrate(cr, version):
         new_arch = etree.tostring(arch)
         cr.execute("update ir_ui_view set arch = %s where id = 2789", [new_arch])
 
+        # select arch from ir_ui_view where name = 'openerp.salesmen.invoices.odo'
+        cr.execute("delete from ir_ui_view where name = %s", ['openerp.salesmen.invoices.odo'])
+        """
+        <?xml version="1.0"?>
+        <!-- odo: show invoices to salesmen too, they need that to followup with their partners -->
+        <button string="Invoices" position="attributes">
+               <attribute name="groups">account.group_account_invoice,base.group_sale_salesman</attribute>
+               <attribute name="context">{'search_default_partner_id': active_id, 'default_partner_id': active_id, 'search_default_unpaid':1}</attribute>
+        </button>
+        """
+
+
