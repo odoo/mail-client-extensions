@@ -25,10 +25,22 @@ def migrate(cr, version):
     """)
     count = cr.fetchone()[0]
     if count:
-        util.announce(cr, version, 'Found %s stock.move entries with a Units of Measure incompatible with the default product UoM (different categories). Forcing them to the default product UoM' % count)
+        header = """
+        <p>Warning when upgrading Odoo to version {version}.</p>
+        <h2>Stock moves with incompatible unit of measure</h2>
+        """
+
+        footer = ""
+
+        msg = ("Found %s stock.move entries with a Units of Measure "
+               "incompatible with the default product UoM (different "
+               "categories). We have forced them to the default product "
+               "UoM""") % count
+        util.announce(cr, '8.0', msg, header=header, footer=footer)
         cr.execute("""
             UPDATE stock_move m SET product_uom = t.uom_id
                 FROM product_product p, product_template t, product_uom u1, product_uom u2
                 WHERE (m.product_id = p.id) AND (t.id=p.product_tmpl_id) AND (u1.id = m.product_uom) AND
                       (u2.id = t.uom_id) AND u1.category_id != u2.category_id;
         """)
+
