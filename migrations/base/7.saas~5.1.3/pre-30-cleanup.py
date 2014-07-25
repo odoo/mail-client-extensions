@@ -8,3 +8,26 @@ def migrate(cr, version):
     # this view contains deleted fields (gmail_user, ...)
     util.remove_record(cr, 'base.view_users_form')
 
+    # specific 'accounts':
+    cr.execute("select value from ir_config_parameter where key = 'database.uuid'")
+    dbuuid, = cr.fetchone()
+    if dbuuid == '8851207e-1ff9-11e0-a147-001cc0f2115e':
+        # these views prevents updating the modules:
+        util.remove_record(cr, 'website.editor_head')
+        util.remove_record(cr, 'report.html_container')
+        util.remove_record(cr, 'base.view_module_filter')
+
+        # cannot delete this view (noupdate='t'), that's why it's commented:
+        #util.remove_record(cr, 'website.footer_custom')
+
+        # calendar event: renamed fields but they are used in a custom view (calendar_ps):
+        from lxml import etree
+        cr.execute("select arch from ir_ui_view where id = 2789")
+        arch_data, = cr.fetchone()
+        arch = etree.fromstring(arch_data)
+        calendar = arch.xpath('/calendar')[0]
+        calendar.attrib['date_start'] = 'start_datetime'
+        calendar.attrib['date_stop'] = 'stop_datetime'
+        new_arch = etree.tostring(arch)
+        cr.execute("update ir_ui_view set arch = %s where id = 2789", [new_arch])
+
