@@ -7,8 +7,12 @@ def migrate(cr, version):
     # please order them alphabetically, to ease seach
     views = """
         account_entries_report
+        asset_asset_report
         analytic_entries_report
+        hr_holidays_remaining_leaves_user
+        project_vs_remaining_hours
         report_aged_receivable
+        report_document_user
         report_files_partner
         report_invoice_created
         timesheet_report
