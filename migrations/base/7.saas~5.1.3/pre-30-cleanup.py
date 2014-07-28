@@ -13,7 +13,7 @@ def migrate(cr, version):
     # specific 'accounts':
     cr.execute("select value from ir_config_parameter where key = 'database.uuid'")
     dbuuid, = cr.fetchone()
-    if dbuuid == '8851207e-1ff9-11e0-a147-001cc0f2115e':
+    if dbuuid in ('8851207e-1ff9-11e0-a147-001cc0f2115e', '05a64ced-5b98-488d-a833-a994f9b1dd80'):
         # these views prevents updating the modules:
         util.remove_record(cr, 'website.editor_head')
         util.remove_record(cr, 'report.html_container')
