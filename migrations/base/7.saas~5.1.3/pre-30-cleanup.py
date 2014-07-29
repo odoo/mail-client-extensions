@@ -10,6 +10,31 @@ def migrate(cr, version):
     # this view contains deleted fields (gmail_user, ...)
     util.remove_record(cr, 'base.view_users_form')
 
+    # calendar event: some fields were renamed but they are used in a some views
+    cr.execute("select id, arch from ir_ui_view where model = 'calendar.event'")
+    views = cr.fetchall()
+
+    map_fields = {
+        'date': 'start_datetime',
+        'date_deadline': 'stop_datetime',
+    }
+
+    for view_id, view_arch in views:
+        arch = etree.fromstring(view_arch)
+        root_tags = arch.xpath('//calendar|//gantt')
+        changed = False
+        for tag in root_tags:
+            for attr in ('date_start', 'date_stop'):
+                val = tag.attrib.get(attr)
+                new_val = map_fields.get(val)
+                if new_val:
+                    changed = True
+                    tag.attrib[attr] = new_val
+
+        if changed:
+            new_arch = etree.tostring(arch)
+            cr.execute("update ir_ui_view set arch = %s where id = %s", [new_arch, view_id])
+
     # specific 'accounts':
     cr.execute("select value from ir_config_parameter where key = 'database.uuid'")
     dbuuid, = cr.fetchone()
@@ -18,19 +43,6 @@ def migrate(cr, version):
         util.remove_record(cr, 'website.editor_head')
         util.remove_record(cr, 'report.html_container')
         util.remove_record(cr, 'base.view_module_filter')
-
-        # cannot delete this view (noupdate='t'), that's why it's commented:
-        #util.remove_record(cr, 'website.footer_custom')
-
-        # calendar event: renamed fields but they are used in a custom view (calendar_ps):
-        cr.execute("select arch from ir_ui_view where id = 2789")
-        arch_data, = cr.fetchone()
-        arch = etree.fromstring(arch_data)
-        calendar = arch.xpath('//calendar')[0]
-        calendar.attrib['date_start'] = 'start_datetime'
-        calendar.attrib['date_stop'] = 'stop_datetime'
-        new_arch = etree.tostring(arch)
-        cr.execute("update ir_ui_view set arch = %s where id = 2789", [new_arch])
 
         # select arch from ir_ui_view where name = 'openerp.salesmen.invoices.odo'
         cr.execute("select id, arch from ir_ui_view where name = %s", ['openerp.salesmen.invoices.odo'])
