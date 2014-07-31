@@ -31,31 +31,29 @@ def migrate(cr, version):
                      AND allday = 'f'
                """)
     cr.execute("""UPDATE calendar_event
-                  SET display_start = CASE WHEN allday = 't' THEN to_char(start_date,'YYYY-MM-DD') ELSE to_char(start_datetime, 'YYYY-MM-DD HH24:MI:SS') END,
-                  start = CASE WHEN allday = 't' THEN start_date ELSE start_datetime END,
-                  stop = CASE WHEN allday = 't' THEN stop_date ELSE stop_datetime END""")
+                     SET display_start = CASE WHEN allday = 't'
+                                              THEN to_char(start_date,'YYYY-MM-DD')
+                                              ELSE to_char(start_datetime, 'YYYY-MM-DD HH24:MI:SS')
+                                          END,
+                         start = CASE WHEN allday = 't' THEN start_date ELSE start_datetime END,
+                         stop = CASE WHEN allday = 't' THEN stop_date ELSE stop_datetime END
+               """)
 
-    # update views
-    cr.execute("select id, arch from ir_ui_view where model = 'calendar.event'")
-    views = cr.fetchall()
+    # force update event views
+    cr.execute("""UDPATE ir_model_data d
+                     SET noupdate=%s
+                    FROM ir_ui_view v
+                   WHERE d.model=%s
+                     AND d.res_id=v.id
+                     AND v.model=%s
+               """, (False, 'ir.ui.view', 'calendar.event'))
 
-    map_fields = {
-        'date': 'start_datetime',
-        'date_deadline': 'stop_datetime',
-    }
-
-    for view_id, view_arch in views:
-        arch = etree.fromstring(view_arch)
-        root_tags = arch.xpath('//calendar|//gantt')
-        changed = False
-        for tag in root_tags:
-            for attr in ('date_start', 'date_stop'):
-                val = tag.attrib.get(attr)
-                new_val = map_fields.get(val)
-                if new_val:
-                    changed = True
-                    tag.attrib[attr] = new_val
-
-        if changed:
-            new_arch = etree.tostring(arch)
-            cr.execute("update ir_ui_view set arch = %s where id = %s", [new_arch, view_id])
+    # update email templates
+    cr.execute("""UPDATE email_template
+                     SET xxx=REPLACE(REPLACE(xxx, %s, %s), %s, %s)
+                   WHERE model_id=(SELECT id FROM ir_model WHERE model=%s)
+               """, ("object.event_id.display_time",
+                     "object.event_id.get_display_time_tz(tz=object.partner_id.tz)",
+                     "object.event_id.date",
+                     "object.event_id.start",
+                     "calendar.attendee"))
