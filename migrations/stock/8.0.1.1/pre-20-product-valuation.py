@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 def migrate(cr, version):
+    # NOTE this script belong to `stock_account` module, but as this is a new module, when
+    #      migrating from < saas-5, the script will not be called. Force call by placing it here.
+
     # move "valuation" property field from product to template
     cr.execute("""UPDATE ir_model_data where
                      SET name=%s
@@ -18,7 +21,7 @@ def migrate(cr, version):
                      AND name=%s
                RETURNING id
                """, ('product.template', 'product.template', 'product.product', 'valuation'))
-    field_id = [cr.fetchone()]
+    [field_id] = cr.fetchone()
 
     cr.execute("""update ir_property ip
                      set res_id = CONCAT('product.template,', p.product_tmpl_id)
