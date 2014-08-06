@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from lxml import etree
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -50,7 +49,7 @@ def migrate(cr, version):
 
     # update email templates
     cr.execute("""UPDATE email_template
-                     SET xxx=REPLACE(REPLACE(xxx, %s, %s), %s, %s)
+                     SET body_html=REPLACE(REPLACE(body_html, %s, %s), %s, %s)
                    WHERE model_id=(SELECT id FROM ir_model WHERE model=%s)
                """, ("object.event_id.display_time",
                      "object.event_id.get_display_time_tz(tz=object.partner_id.tz)",
