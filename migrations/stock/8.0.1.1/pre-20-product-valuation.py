@@ -5,7 +5,7 @@ def migrate(cr, version):
     #      migrating from < saas-5, the script will not be called. Force call by placing it here.
 
     # move "valuation" property field from product to template
-    cr.execute("""UPDATE ir_model_data where
+    cr.execute("""UPDATE ir_model_data
                      SET name=%s
                    WHERE model=%s
                      AND name=%s
