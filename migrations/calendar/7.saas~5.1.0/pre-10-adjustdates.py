@@ -40,7 +40,7 @@ def migrate(cr, version):
                """)
 
     # force update event views
-    cr.execute("""UDPATE ir_model_data d
+    cr.execute("""UPDATE ir_model_data d
                      SET noupdate=%s
                     FROM ir_ui_view v
                    WHERE d.model=%s
