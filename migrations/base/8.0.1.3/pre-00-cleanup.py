@@ -11,7 +11,8 @@ def migrate(cr, version):
     for dest_model, res_model, _ in util.res_model_res_id(cr):
         if dest_model in ignore:
             continue
-        query = 'DELETE FROM "{0}" WHERE "{1}"=%s'.format(dest_model, res_model)
+        table = util.table_of_model(cr, dest_model)
+        query = 'DELETE FROM "{0}" WHERE "{1}"=%s'.format(table, res_model)
         for model in models:
             cr.execute(query, (model,))
         util.delete_model(cr, model)
