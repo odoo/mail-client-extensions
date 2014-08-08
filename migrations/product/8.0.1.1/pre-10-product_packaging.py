@@ -6,5 +6,5 @@ def migrate(cr, version):
     cr.execute("""UPDATE product_packaging pa
                      SET product_tmpl_id = pp.product_tmpl_id
                     FROM product_product pp
-                   WHERE pa.product_tmpl_id = pp.id
+                   WHERE pa.product_id = pp.id
                """)
