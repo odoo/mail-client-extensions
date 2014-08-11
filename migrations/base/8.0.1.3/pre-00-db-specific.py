@@ -14,7 +14,6 @@ def _db_openerp(cr, version):
     util.remove_record(cr, 'report.html_container')
     util.remove_record(cr, 'base.view_module_filter')
 
-    # select arch from ir_ui_view where name = 'openerp.salesmen.invoices.odo'
     cr.execute("select id, arch from ir_ui_view where name = %s", ['openerp.salesmen.invoices.odo'])
     view_id, arch_data = cr.fetchone()
     arch = etree.fromstring(arch_data)
@@ -25,6 +24,13 @@ def _db_openerp(cr, version):
     tag.attrib['expr'] = "//button[@id='invoice_button']"
     new_arch = etree.tostring(arch)
     cr.execute("update ir_ui_view set arch = %s where id = %s", [new_arch, view_id])
+
+    bad_view_id = 2789
+    cr.execute("SELECT arch from ir_ui_view where id=%s", (bad_view_id,))
+    arch = etree.fromstring(cr.fetchone()[0])
+    arch.attrib['date_start'] = 'start'
+    arch.attrib['date_stop'] = 'stop'
+    cr.execute("UPDATE ir_ui_view SET arch=%s WHERE id=%s", (etree.tostring(arch), bad_view_id))
 
 
 def migrate(cr, version):
