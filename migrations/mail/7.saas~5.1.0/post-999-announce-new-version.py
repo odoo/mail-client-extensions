@@ -6,7 +6,7 @@ def migrate(cr, version):
     if series[0] == '8':
         # pass from saas-4 to 8 directly, do not output saas-5 message (will
         # be included in 8.0 message)
-        continue
+        return
 
     # NOTE message is in RST
     message = """
