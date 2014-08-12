@@ -28,7 +28,17 @@ def migrate(cr, version):
     util.replace_record_references(cr, ('ir.model', id_in), ('ir.model', id_sp))
     util.replace_record_references(cr, ('ir.model', id_out), ('ir.model', id_sp))
     cr.execute("DELETE FROM ir_model WHERE id IN %s", ((id_in, id_out),))
-    
+
+    # remove duplicated mail_followers
+    cr.execute("""DELETE FROM mail_followers f
+                   WHERE f.res_model IN %s
+                     AND EXISTS(SELECT 1
+                                  FROM mail_followers p
+                                 WHERE p.res_model = %s
+                                   AND p.res_id = f.res_id
+                                   AND p.partner_id = f.partner_id)
+              """, [('stock.picking.in', 'stock.picking.out'), 'stock.picking'])
+
     util.rename_model(cr, 'stock.picking.out', 'stock.picking', rename_table=False)
     util.rename_model(cr, 'stock.picking.in', 'stock.picking', rename_table=False)
 
