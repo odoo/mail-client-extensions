@@ -14,17 +14,6 @@ def _db_openerp(cr, version):
     util.remove_record(cr, 'report.html_container')
     util.remove_record(cr, 'base.view_module_filter')
 
-    cr.execute("select id, arch from ir_ui_view where name = %s", ['openerp.salesmen.invoices.odo'])
-    view_id, arch_data = cr.fetchone()
-    arch = etree.fromstring(arch_data)
-    tag = arch.xpath("//button")[0]
-    tag.tag = 'xpath'
-    if 'string' in tag.attrib:
-        del tag.attrib['string']
-    tag.attrib['expr'] = "//button[@id='invoice_button']"
-    new_arch = etree.tostring(arch)
-    cr.execute("update ir_ui_view set arch = %s where id = %s", [new_arch, view_id])
-
     bad_view_id = 2789
     cr.execute("SELECT arch from ir_ui_view where id=%s", (bad_view_id,))
     arch = etree.fromstring(cr.fetchone()[0])
