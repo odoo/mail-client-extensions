@@ -15,6 +15,7 @@ def migrate(cr, version):
     <br />
 
 - New Warehouse Management System:
+
     Schedule your picking, packing, receptions and internal moves automatically with Odoo using
     your own routing rules. Define push and pull rules to organize a warehouse or to manage
     product moves between several warehouses. Track in detail all stock moves, not only in your
@@ -22,14 +23,17 @@ def migrate(cr, version):
     locations).
 - New Product Configurator
 - Documentation generation from website forum:
+
     New module to generate a documentation from questions and responses from your forum.
     The documentation manager can define a table of content and any user, depending their karma,
     can link a question to an entry of this TOC.
 - New kanban view of documents (resumes and letters in recruitement, project documents...)
 - E-Commerce:
+
     - Manage TIN in contact form for B2B.
     - Dedicated salesteam to easily manage leads and orders.
 - Improved User Interface:
+
     - Popups has changed to be more responsive on tablets and smartphones.
     - New Stat Buttons: Forms views have now dynamic buttons showing some statistics abouts linked models.
     - Color code to check in one look availability of components in an MRP order.
