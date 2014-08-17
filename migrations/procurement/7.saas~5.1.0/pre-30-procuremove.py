@@ -4,6 +4,8 @@ def migrate(cr, version):
     """
         1 Procurement method moved from procurements to stock moves
         2 Change states from procurements
+        
+        If product of type service and mto, it should get auto_create_task
     """
     util.create_column(cr, 'stock_move', 'procure_method', 'varchar')
     
@@ -38,3 +40,9 @@ def migrate(cr, version):
         util.rename_field(cr, 'procurement.rule', 'cancel_cascade', 'propagate')
         util.rename_field(cr, 'procurement.rule', 'type_proc', 'action')
         util.rename_field(cr, 'procurement.rule', 'product_id', '_product_id')
+    
+    util.create_column(cr, 'product_template', 'auto_create_task', 'boolean')
+    cr.execute("""
+    UPDATE product_template SET auto_create_task = 't'
+    WHERE product_template.type = 'service' AND product_template.procure_method='make_to_order'
+    """)
