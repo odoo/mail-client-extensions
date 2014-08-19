@@ -74,8 +74,8 @@ def migrate(cr, version):
     #Migrated pickings should be getting a picking type
     pick_obj = registry['stock.picking']
     picks = pick_obj.search(cr, SUPERUSER_ID, [])
-    
     main_wh = wh_obj.browse(cr, SUPERUSER_ID, main_warehouse)
+    pick_types_write = {}
     for pick in pick_obj.browse(cr, SUPERUSER_ID, picks):
         src_usage = pick.location_id.usage
         dest_usage = pick.location_dest_id.usage
@@ -100,7 +100,12 @@ def migrate(cr, version):
         else:
             # Use internal of main warehouse
             pick_type = main_wh.int_type_id.id
-        pick_obj.write(cr, SUPERUSER_ID, pick.id, {'picking_type_id': pick_type})
+        if not pick_types_write.get(pick_type):
+            pick_types_write[pick_type] = [pick.id]
+        else:
+            pick_types_write[pick_type] += [pick.id]
+    for pick_type in pick_types_write.keys():
+        pick_obj.write(cr, SUPERUSER_ID, pick_types_write[pick_type], {'picking_type_id': pick_type})
     
     
     #Create different XML ids (taken from yml files)
