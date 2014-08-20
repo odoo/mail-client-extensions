@@ -3,6 +3,10 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
 
+    util.remove_module(cr, 'plugin_outlook')
+    util.remove_module(cr, 'plugin_thunderbird')
+    util.remove_module(cr, 'plugin')
+
     util.new_module(cr, 'bus')
     util.rename_module(cr, 'im', 'im_chat')
     util.new_module_dep(cr, 'im_chat', 'bus')
