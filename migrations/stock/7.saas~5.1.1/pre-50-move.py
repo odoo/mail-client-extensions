@@ -5,6 +5,7 @@ def migrate(cr, version):
         As product_qty will become a function field, the old value should be in product_uom_qty
         The lots of a stock move can still be used with restrict_lot_id
         Inventory and stock moves are related with a one2many instead of many2many in v8
+        The invoice_state needs to be copied from the picking on the move
     """
     util.rename_field(cr, 'stock.move', 'product_qty', 'product_uom_qty')
     util.rename_field(cr, 'stock.move', 'prodlot_id', 'restrict_lot_id')
@@ -20,4 +21,10 @@ def migrate(cr, version):
     """)
     
     
-    
+    util.create_column(cr, 'stock_move', 'invoice_state', 'char(10)')
+    cr.execute("""
+        UPDATE stock_move 
+        SET invoice_state = pick.invoice_state 
+        FROM stock_picking pick
+        WHERE pick.id = stock_move.picking_id
+    """)

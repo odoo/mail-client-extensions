@@ -107,8 +107,14 @@ def migrate(cr, version):
     for pick_type in pick_types_write.keys():
         pick_obj.write(cr, SUPERUSER_ID, pick_types_write[pick_type], {'picking_type_id': pick_type})
     
+    # Set the picking types of the stock moves the picking type of its picking
+    cr.execute("""
+        update stock_move set picking_type_id = stock_picking.picking_type_id 
+        from stock_picking 
+        where stock_picking.id = stock_move.picking_id
+    """)
     
-    #Create different XML ids (taken from yml files)
+    # Create different XML ids (taken from yml files)
     partner_obj = registry['res.partner']
     mwhid = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.warehouse0')
     main_warehouse = wh_obj.browse(cr, SUPERUSER_ID, mwhid, context=context)
