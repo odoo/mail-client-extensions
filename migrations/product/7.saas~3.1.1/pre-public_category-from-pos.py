@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from openerp.release import series
+from openerp.release import serie as series
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):

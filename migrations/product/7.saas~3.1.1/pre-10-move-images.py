@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
-from openerp.release import series
+from openerp.release import serie as series
 
 def migrate(cr, version):
     util.create_column(cr, 'product_template', 'image', 'bytea')
