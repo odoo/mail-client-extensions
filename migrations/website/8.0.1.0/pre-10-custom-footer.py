@@ -2,9 +2,10 @@
 from openerp.addons.base.maintenance.migrations import util
 from lxml import etree
 
-
 def migrate(cr, version):
     footer_custom_view_id = util.ref(cr, 'website.footer_custom')
+    if not footer_custom_view_id:
+        return
     cr.execute(
         "select arch from ir_ui_view where id = %s",
         [footer_custom_view_id]
@@ -19,4 +20,3 @@ def migrate(cr, version):
         cr.execute(
             "update ir_ui_view set arch = %s where id = %s",
             [new_arch, footer_custom_view_id])
-
