@@ -5,6 +5,13 @@ def migrate(cr, version):
     """
     Create fields at forehand
     """
+    
+    util.create_column(cr, 'product_template', 'track_incoming', 'boolean')
+    util.create_column(cr, 'product_template', 'track_outgoing', 'boolean')
+    cr.execute("""
+        UPDATE product_template SET track_incoming = pp.track_incoming, track_outgoing = pp.track_outgoing
+        FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
+    """)
     # Create columns already for warehouse
     util.create_column(cr, 'stock_warehouse', 'mto_pull_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'pick_type_id', 'int4')
