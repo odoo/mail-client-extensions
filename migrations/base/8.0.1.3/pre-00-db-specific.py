@@ -51,7 +51,6 @@ def _lajs(cr, version):
 
 def _pipaillon(cr, version):
     util.remove_record(cr, 'website_sale.view_sales_config_website_sale')
-    util.remove_record(cr, 'website_sale.editor_head')
 
 def migrate(cr, version):
     cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('database.uuid',))
