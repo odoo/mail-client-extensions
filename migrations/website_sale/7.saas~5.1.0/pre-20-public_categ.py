@@ -2,7 +2,8 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    if not util.table_exists(cr, 'product_public_category'):
+    if not util.table_exists(cr, 'product_public_category') \
+       or if util.table_exists(cr, 'product_public_category_product_template_rel'):
         return  # nothing to migrate from
 
     util.move_model(cr, 'product.public.categ', 'product', 'website_sale')
