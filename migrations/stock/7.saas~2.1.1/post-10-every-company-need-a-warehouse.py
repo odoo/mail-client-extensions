@@ -17,7 +17,7 @@ def migrate(cr, version):
     for company_id, name, partner_id in cr.fetchall():
         Warehouse.create(cr, SUPERUSER_ID, {
             'name': name,
-            'code': name,
+            'code': name[0:3].upper(),
             'company_id': company_id,
             'partner_id': partner_id,
         })
