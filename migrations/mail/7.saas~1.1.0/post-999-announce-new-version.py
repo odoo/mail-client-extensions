@@ -19,7 +19,7 @@ def migrate(cr, version):
         return
 
     message = """
-        <p>OpenERP has been upgraded to version {version}.</p>
+        <p>Odoo has been upgraded to version {version}.</p>
         <h2>What&#39;s new in this upgrade?</h2>
 
         <ul>
@@ -31,7 +31,7 @@ def migrate(cr, version):
             <li>Plus a ton of various performance improvements and small bugfixes</li>
         </ul>
 
-        <p>Enjoy the new OpenERP Online!</p>
+        <p>Enjoy the new Odoo Online!</p>
     """.format(version='7.saas~1')
 
     try:
