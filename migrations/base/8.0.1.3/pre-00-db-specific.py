@@ -31,18 +31,23 @@ def _osnet(cr, version):
 def _lajs(cr, version):
     from lxml import etree
 
-    body = etree.fromstring(open('/tmp/current.xml', 'r').read())
-    res = body.xpath("//div[@id='wrapwrap']")
-    wrapwrap = res[0]
-    wrapwrap.insert(1, etree.SubElement(wrapwrap, 'header'))
+    website_aj_layout_view_id = util.ref(cr, 'website_aj.layout')
+    cr.execute("select arch from ir_ui_view where id = %s", [website_aj_layout_view_id ])
+    res = cr.fetchone()
+    if res:
+        body = etree.fromstring(res[0])
+        wrap_search = body.xpath("//div[@id='wrapwrap']")
+        if wrap_search:
+            wrap_div = wrap_search[0]
+            wrap_div.insert(1, etree.SubElement(wrap_div, 'header'))
 
-    header = wrapwrap.getchildren()[1]
-    for child in wrapwrap.getchildren():
-        if child.tag not in ('header', 'footer'):
-            header.append(child)
+            header = wrap_div.getchildren()[1]
+            for child in wrap_div.getchildren():
+                if child.tag not in ('header', 'footer'):
+                    header.append(child)
 
-    new_body = etree.tostring(body)
-    cr.execute("update ir_ui_view set arch = %s where id = %s", [new_body, util.ref(cr, 'website_aj.layout')])
+            new_body = etree.tostring(body)
+            cr.execute("update ir_ui_view set arch = %s where id = %s", [new_body, util.ref(cr, 'website_aj.layout')])
 
 def migrate(cr, version):
     cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('database.uuid',))
