@@ -7,14 +7,6 @@ def migrate(cr, version):
     # it must have at most one statement line per move.
     # Due to a bug in 7.0, the move was wrongly copied when duplicating a bank statement.
     # We need to keep only the generated move (we discrad the one with the lowest id)
-    # We fail if we found more than 2 (1 = normal situation, 2 = duplicated bank statement)
-    cr.execute("""SELECT 1
-                    FROM account_bank_statement_line_move_rel
-                GROUP BY move_id
-                  HAVING count(statement_line_id) > 2
-               """)
-    if cr.rowcount:
-        raise util.MigrationError("More than one bank statement line per move found")
 
     util.create_column(cr, 'account_bank_statement_line', 'journal_entry_id', 'int4')
 
