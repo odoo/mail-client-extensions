@@ -16,27 +16,42 @@ def migrate(cr, version):
 
 - New Warehouse Management System:
 
-    Schedule your picking, packing, receptions and internal moves automatically with Odoo using
-    your own routing rules. Define push and pull rules to organize a warehouse or to manage
-    product moves between several warehouses. Track in detail all stock moves, not only in your
-    warehouse but wherever else it's taken as well (customers, suppliers or manufacturing
-    locations).
-- New Product Configurator
+    Odoo 8.0 comes with a complete rewrite of the warehouse management system, including
+    a lot of new features.
+    Schedule your pickings, packings, receptions and internal moves automatically with Odoo using
+    your own routing rules. Define advanced push and pull routes to organize your warehouses and
+    procurements. Here are a few of the great features available with the new WMS system:
+
+       - Get full product traceability using the new quants inventory system
+       - Use the brand new barcode-scanner interface to quickly process stock operations
+       - Setup drop-shipping routes directly from suppliers to customer (see the Drop Shipping app)
+       - Manage landed costs and split them among you stock moves (see the Landed Costs app)
+       - Organize picking waves (see the WMS: Waves app)
+       - and much more...
+
+- New Product Configurator, allowing easy creation and management of product variants.
+
 - Documentation generation from website forum:
 
-    New module to generate a documentation from questions and responses from your forum.
-    The documentation manager can define a table of content and any user, depending their karma,
-    can link a question to an entry of this TOC.
-- New kanban view of documents (resumes and letters in recruitement, project documents...)
+    New App (Documentation) to create a full reference documentation based on questions and
+    answers from the forum.
+    The documentation manager defines the table of contents and any user (provided they have
+    achieved sufficient karma) can add a question to an entry of this TOC. The contents
+    can then be collaboratively improved.
+
+- New kanban view for documents (resumes and letters in recruitement, project documents...)
+
 - E-Commerce:
 
-    - Manage TIN in contact form for B2B.
-    - Dedicated salesteam to easily manage leads and orders.
+    - Support TIN input in contact forms for B2B.
+    - Dedicated sales team to easily manage leads and orders.
+
 - Improved User Interface:
 
-    - Popups has changed to be more responsive on tablets and smartphones.
-    - New Stat Buttons: Forms views have now dynamic buttons showing some statistics abouts linked models.
-    - Color code to check in one look availability of components in an MRP order.
+    - Popups have been improved to be more responsive on tablets and smartphones.
+    - New smart buttons: many forms views (e.g. on customers) now have dynamic buttons showing
+      statistics on related documents without having to click on them.
+    - Color codes are now used to display availability of manufacturing order components at a glance.
 """
     util.announce(cr, '7.saas~5', message)
 
