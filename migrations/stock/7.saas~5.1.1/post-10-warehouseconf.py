@@ -22,7 +22,7 @@ def migrate(cr, version):
         if wh.id == main_warehouse:
             vals['code'] = 'WH'
         else:
-            vals['code'] = wh.name[0:3].upper()
+            vals['code'] = "WH%03d" % wh.id
 
         # Make sure there is a separate view location for the warehouse.  If not, create one
         phys_loc = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.stock_location_locations')
