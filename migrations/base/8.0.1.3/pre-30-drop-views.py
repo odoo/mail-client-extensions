@@ -12,8 +12,10 @@ def migrate(cr, version):
         hr_holidays_remaining_leaves_user
         project_vs_hours
         project_vs_remaining_hours
+        purchase_report
         report_aged_receivable
         report_document_user
+        report_event_registration
         report_files_partner
         report_invoice_created
         timesheet_report
