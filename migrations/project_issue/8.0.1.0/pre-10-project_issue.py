@@ -6,6 +6,6 @@ def migrate(cr, version):
     cr.execute("""
 		UPDATE project_issue 
 		SET channel = cc.name
-		FROM crm_case_channel cc
+		FROM crm_tracking_medium cc
 		where project_issue.channel_id = cc.id
 	""")
