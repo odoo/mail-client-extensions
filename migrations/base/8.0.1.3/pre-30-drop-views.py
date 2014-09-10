@@ -10,6 +10,7 @@ def migrate(cr, version):
         asset_asset_report
         analytic_entries_report
         hr_holidays_remaining_leaves_user
+        mrp_workorder
         project_vs_hours
         project_vs_remaining_hours
         purchase_report
