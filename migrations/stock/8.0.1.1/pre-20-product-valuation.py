@@ -21,11 +21,14 @@ def migrate(cr, version):
                      AND name=%s
                RETURNING id
                """, ('product.template', 'product.template', 'product.product', 'valuation'))
-    [field_id] = cr.fetchone()
+    [field_id] = cr.fetchone() or [None]
 
-    cr.execute("""update ir_property ip
-                     set res_id = CONCAT('product.template,', p.product_tmpl_id)
-                    from product_product p
-                   where ip.res_id = CONCAT('product.product,', p.id)
-                     and ip.fields_id = %s
-               """, (field_id,))
+    # if migrating from a new database created in saas-5, the field will not be present, ignore
+    # (field was moved to stock_account in saas-5, which may not be installed)
+    if field_id:
+        cr.execute("""update ir_property ip
+                         set res_id = CONCAT('product.template,', p.product_tmpl_id)
+                        from product_product p
+                       where ip.res_id = CONCAT('product.product,', p.id)
+                         and ip.fields_id = %s
+                   """, (field_id,))
