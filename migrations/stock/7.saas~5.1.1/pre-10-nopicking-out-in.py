@@ -24,7 +24,7 @@ def migrate(cr, version):
         cr.execute("""UPDATE ir_model_fields in_out
                          SET model_id=%s
                        WHERE model_id=%s
-                         AND manual=true
+                         AND state='manual'
                          AND NOT EXISTS(
                             SELECT 1
                               FROM ir_model_fields sp
@@ -38,7 +38,7 @@ def migrate(cr, version):
                     FROM ir_model_fields io, ir_model_fields sp
                    WHERE io.model_id IN %s
                      AND sp.model_id = %s
-                     AND io.manual = true
+                     AND io.state = 'manual'
                      AND io.name = sp.name
                """, [(id_in, id_out), id_sp])
     for o, n in cr.fetchall():
