@@ -29,8 +29,6 @@ def _osnet(cr, version):
     util.remove_record(cr, 'sale_crm.account_invoice_groupby_inherit')
 
 def _lajs(cr, version):
-    from lxml import etree
-
     website_aj_layout_view_id = util.ref(cr, 'website_aj.layout')
     cr.execute("select arch from ir_ui_view where id = %s", [website_aj_layout_view_id ])
     res = cr.fetchone()
@@ -49,9 +47,6 @@ def _lajs(cr, version):
             new_body = etree.tostring(body)
             cr.execute("update ir_ui_view set arch = %s where id = %s", [new_body, util.ref(cr, 'website_aj.layout')])
 
-def _pipaillon(cr, version):
-    util.remove_record(cr, 'website_sale.view_sales_config_website_sale')
-
 def migrate(cr, version):
     cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('database.uuid',))
     [uuid] = cr.fetchone()
@@ -62,5 +57,5 @@ def migrate(cr, version):
         '8b833269-2a1e-4495-a50c-978434fe4187': _feuerwear,     # feuerwear
         'ab9b66f4-7cd9-11e2-aa3a-000c29d0cefb': _osnet,
         'db5c0cb1-5bb3-46af-b15f-50bf67bec24b': _lajs,
-        '4054b9c7-aa37-466a-82ee-c06df8020d97': _pipaillon,
     }.get(uuid, noop)(cr, version)
+
