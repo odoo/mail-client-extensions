@@ -45,7 +45,13 @@ def migrate(cr, version):
         DELETE FROM mrp_bom
          WHERE bom_id IS NOT NULL
            AND NOT EXISTS (SELECT 1 FROM mrp_bom b2 where b2.bom_id = mrp_bom.id)
+     RETURNING id
     """)
+
+    bom_ids = tuple(x[0] for x in cr.fetchall())
+    if bom_ids:
+        cr.execute('DELETE FROM ir_model_data WHERE model=%s AND res_id IN %s',
+                   ['mrp.bom', bom_ids])
 
     # Create extra field product_tmpl_id in mrp_bom and fill it in as the template of product_id
 
