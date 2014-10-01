@@ -28,7 +28,6 @@ def migrate(cr, version):
 - User signature is now in HTML format, allowing rich text.
 - Odoo 8.0 is now powered by a new API (application programming interface) that makes writing new Apps
   much simpler and quicker.
-- Removed support for Outlook and Thunderbird plugins
 """
 
     saas5_message = saas5_ui = ""
