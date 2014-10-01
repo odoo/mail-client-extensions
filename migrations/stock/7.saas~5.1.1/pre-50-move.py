@@ -20,8 +20,8 @@ def migrate(cr, version):
         WHERE invmove.move_id = stock_move.id AND invmove.inventory_id = inv.id
     """)
     
-    
-    util.create_column(cr, 'stock_move', 'invoice_state', 'char(10)')
+
+    util.create_column(cr, 'stock_move', 'invoice_state', 'varchar')
     cr.execute("""
         UPDATE stock_move 
         SET invoice_state = pick.invoice_state 
