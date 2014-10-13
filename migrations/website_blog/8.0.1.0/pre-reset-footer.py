@@ -9,3 +9,7 @@ def migrate(cr, version):
     # Theoretically it only adds a small "News" link in the footer,
     # so customizations are unlikely.
     util.force_noupdate(cr, 'website_blog.header_footer_custom', False)
+
+    # Pre-delete incompatible views, would be deleted anyway at the end
+    util.remove_record(cr, 'website_blog.opt_blog_post_complete_author')
+    util.remove_record(cr, 'website_blog.opt_blog_post_complete_blog')
