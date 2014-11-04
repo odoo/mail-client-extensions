@@ -13,6 +13,8 @@ def migrate(cr, version):
         loempia_module_search_last
         loempia_module_search
         mrp_workorder
+        payment_advice_report
+        payslip_report
         project_vs_hours
         project_vs_remaining_hours
         purchase_report
