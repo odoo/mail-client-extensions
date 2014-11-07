@@ -30,4 +30,10 @@ def migrate(cr, version):
                              name = name || ' (edited)'
                        WHERE id = %s
                    """, (u, rid))
+        cr.execute("""UPDATE ir_values
+                         SET name = name || ' (edited)'
+                       WHERE key = 'action'
+                         AND key2 = 'client_print_multi'
+                         AND value = %s
+                   """, ['ir.actions.report.xml,%s' % (rid,)])
         cr.execute("DELETE FROM ir_model_data WHERE id IN %s", (tuple(xids),))
