@@ -36,4 +36,13 @@ def migrate(cr, version):
                          AND key2 = 'client_print_multi'
                          AND value = %s
                    """, ['ir.actions.report.xml,%s' % (rid,)])
+        cr.execute("""UPDATE ir_translation
+                         SET src = src || ' (edited)',
+                             value = CASE WHEN COALESCE(value, '') != '' THEN
+                                        value || ' (edited)'
+                                     ELSE value END
+                       WHERE type = 'model'
+                         AND name = 'ir.actions.report.xml,name'
+                         AND res_id = %s
+                   """, [rid])
         cr.execute("DELETE FROM ir_model_data WHERE id IN %s", (tuple(xids),))
