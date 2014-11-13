@@ -46,7 +46,7 @@ def migrate(cr, version):
                          AND res_id = %s
                    """, [rid])
         cr.execute("""UPDATE ir_translation
-                         SET name = name || '.' || %s,
+                         SET name = name || '.' || %s
                        WHERE type in ('rml', 'xsl')
                          AND name = %s
                    """, [u, rname])
