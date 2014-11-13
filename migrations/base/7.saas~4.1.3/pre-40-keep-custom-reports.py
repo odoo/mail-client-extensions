@@ -14,7 +14,7 @@ def migrate(cr, version):
         sale
     """.split())
 
-    cr.execute("""SELECT r.id, array_agg(x.id) xids
+    cr.execute("""SELECT r.id, r.report_name, array_agg(x.id) xids
                     FROM ir_act_report_xml r
                     JOIN ir_model_data x
                       ON (x.model = 'ir.actions.report.xml' AND x.res_id = r.id)
@@ -23,7 +23,7 @@ def migrate(cr, version):
                      AND x.module IN %s
                 GROUP BY r.id
                 """, (reports_modules,))
-    for rid, xids in cr.fetchall():
+    for rid, rname, xids in cr.fetchall():
         u = str(uuid.uuid4()).split('-')[0]
         cr.execute("""UPDATE ir_act_report_xml
                          SET report_name = report_name || '.' || %s,
@@ -45,4 +45,9 @@ def migrate(cr, version):
                          AND name = 'ir.actions.report.xml,name'
                          AND res_id = %s
                    """, [rid])
+        cr.execute("""UPDATE ir_translation
+                         SET name = name || '.' || %s,
+                       WHERE type in ('rml', 'xsl')
+                         AND name = %s
+                   """, [u, rname])
         cr.execute("DELETE FROM ir_model_data WHERE id IN %s", (tuple(xids),))
