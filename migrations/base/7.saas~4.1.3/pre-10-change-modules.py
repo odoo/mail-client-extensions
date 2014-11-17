@@ -5,6 +5,7 @@ def migrate(cr, version):
 
     util.remove_module(cr, 'idea')
     util.remove_module(cr, 'crm_todo')
+    util.remove_module(cr, 'auth_oauth_signup')
 
     util.new_module_dep(cr, 'auth_oauth', 'auth_signup')
     util.new_module_dep(cr, 'document', 'mail')
