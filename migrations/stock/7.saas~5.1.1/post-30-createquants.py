@@ -27,8 +27,7 @@ def migrate(cr, version):
     WHERE sq.id = sqmr.quant_id AND sm.id = sqmr.move_id AND sm.state = 'done' AND sm.date is not null GROUP BY sq.id) AS qdate
     WHERE stock_quant.id = qdate.id
     """)
-    
-    
+
     # Assigned moves should be reassigned to give them to appropriate quants
     moves = move_obj.search(cr, SUPERUSER_ID, [('state','=','assigned')])
     move_obj.write(cr, SUPERUSER_ID, moves, {'state': 'confirmed'})

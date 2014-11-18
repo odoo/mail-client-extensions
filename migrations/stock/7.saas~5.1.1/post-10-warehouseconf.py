@@ -26,12 +26,14 @@ def migrate(cr, version):
 
         # Make sure there is a separate view location for the warehouse.  If not, create one
         phys_loc = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.stock_location_locations')
-        if lot_stock.location_id.id == phys_loc:
+        if lot_stock.location_id.id == phys_loc or not lot_stock.location_id.id:
             # Create extra location as parent
             vals['view_location_id'] = location_obj.create(cr, SUPERUSER_ID, {'name':vals['code'], 'location_id': phys_loc})
             location_obj.write(cr, SUPERUSER_ID, [lot_stock.id], {'location_id': vals['view_location_id']})
         else:
             vals['view_location_id'] = lot_stock.location_id.id
+            if lot_stock.location_id and lot_stock.location_id.usage != 'view':
+                location_obj.write(cr, SUPERUSER_ID, [lot_stock.location_id.id], {'usage': 'view'})
         
         loc_whs[vals['view_location_id']] = wh.id
         context = {'active_test': False}
