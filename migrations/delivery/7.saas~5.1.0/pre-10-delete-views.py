@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -6,5 +7,4 @@ def migrate(cr, version):
        applying the view inheritance. If the views use a deleted field,
        this raise an error. We delete it ourself to avoid this.
     """
-    util.remove_record(cr, 'product.product_normal_form_view')
-    util.remove_record(cr, 'product.product_category_form_view')
+    util.remove_record(cr, 'delivery.view_delivery_order_inherit_stock')
