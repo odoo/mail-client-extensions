@@ -10,6 +10,9 @@ def migrate(cr, version):
     # so customizations are unlikely.
     util.force_noupdate(cr, 'website_blog.header_footer_custom', False)
 
+    # force update of view
+    util.force_noupdate(cr, 'website_blog.blog_post_complete', False)
+
     # Pre-delete incompatible views, would be deleted anyway at the end
     util.remove_record(cr, 'website_blog.opt_blog_post_complete_author')
     util.remove_record(cr, 'website_blog.opt_blog_post_complete_blog')
