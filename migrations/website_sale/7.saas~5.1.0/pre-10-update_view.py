@@ -13,6 +13,8 @@ def migrate(cr, version):
 
     util.force_noupdate(cr, 'website_sale.product', False)
 
+    util.force_noupdate(cr, 'website_sale.product_description', False)
+
     util.force_noupdate(cr, 'website_sale.products', False)
     util.force_noupdate(cr, 'website_sale.categories_recursive', False)
     util.force_noupdate(cr, 'website_sale.products_categories', False)
