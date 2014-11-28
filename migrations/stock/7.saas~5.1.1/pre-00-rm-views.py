@@ -26,6 +26,7 @@ def migrate(cr, version):
 
                 mrp.product_product_normal_form_supply_view
                 project_mrp.product_product_normal_form_supply_view
+                sale_service.product_product_normal_form_supply_view
                 purchase.product_product_normal_form_procurement_help_view
                 purchase_requisition.product_normal_form_view_inherit
                 stock_no_autopicking.view_product_form_auto_pick
@@ -33,6 +34,7 @@ def migrate(cr, version):
             point_of_sale.product_normal_form_view
             product_expiry.view_product_form_expiry
             project_mrp.view_product_task_form
+            sale_service.view_product_task_form
         stock.view_normal_procurement_locations_form
 
         stock.view_normal_property_acc_form
