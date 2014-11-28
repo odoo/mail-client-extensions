@@ -15,7 +15,11 @@ def migrate(cr, version):
 
     util.force_noupdate(cr, 'website_sale.product_description', False)
 
+    # remove inherited views of 'website_sale.products'
+    for v in 'list_view products_categories products_attributes'.split():
+        util.remove_record(cr, 'website_sale.%s' % v)
+
     util.force_noupdate(cr, 'website_sale.products', False)
+
     util.force_noupdate(cr, 'website_sale.categories_recursive', False)
-    util.force_noupdate(cr, 'website_sale.products_categories', False)
     util.force_noupdate(cr, 'website_sale.search', False)
