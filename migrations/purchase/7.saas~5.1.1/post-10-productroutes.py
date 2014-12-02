@@ -15,3 +15,7 @@ def migrate(cr, version):
     INSERT INTO stock_route_product (product_id, route_id)
     select id, %s from product_template where supply_method = 'buy'
     """, (buy_route,))
+
+    wh_obj = registry['stock.warehouse']
+    whs = wh_obj.search(cr, SUPERUSER_ID, [])
+    wh_obj.write(cr, SUPERUSER_ID, whs, {'buy_to_resupply': True})

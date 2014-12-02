@@ -21,3 +21,7 @@ def migrate(cr, version):
         cr.execute("""UPDATE product_product SET produce_delay = pt.produce_delay
                     FROM product_template pt
                     WHERE pt.id = product_product.product_tmpl_id""")
+
+    wh_obj = registry['stock.warehouse']
+    whs = wh_obj.search(cr, SUPERUSER_ID, [])
+    wh_obj.write(cr, SUPERUSER_ID, whs, {'manufacture_to_resupply': True})
