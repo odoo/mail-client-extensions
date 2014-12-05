@@ -9,12 +9,8 @@ def migrate(cr, version):
     # we can't move_data because the demo data of website_sale
     # creates xmlids that belongs to product module
     util.move_model(cr, 'product.public.categ', 'product', 'website_sale', move_data=False)
-    # move the only one imd directly
-    cr.execute("""UPDATE ir_model_data
-                     SET module='website_sale'
-                   WHERE module='product'
-                     AND name='categ_others'
-              """)
+    # rename the only one imd directly
+    util.rename_xmlid(cr, 'product.categ_others', 'website_sale.categ_others')
 
     # convert field m2o => m2m
     cr.execute("""CREATE TABLE product_public_category_product_template_rel(
