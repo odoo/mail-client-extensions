@@ -1,6 +1,7 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    cr.execute("ALTER TABLE account_bank_statement_line ALTER COLUMN account_id DROP NOT NULL")
     pos = ""
     if util.column_exists(cr, 'account_bank_statement', 'pos_session_id'):
         # POS is installed, ignore bank statements linked to a pos session
