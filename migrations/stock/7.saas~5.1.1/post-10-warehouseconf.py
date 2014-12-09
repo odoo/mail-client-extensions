@@ -108,7 +108,10 @@ def migrate(cr, version):
             pick_types_write[pick_type] += [pick.id]
     for pick_type in pick_types_write.keys():
         pick_obj.write(cr, SUPERUSER_ID, pick_types_write[pick_type], {'picking_type_id': pick_type})
-    
+
+    # force not-null constraint (may not have been set by orm)
+    cr.execute('ALTER TABLE "stock_picking" ALTER COLUMN "picking_type_id" SET NOT NULL')
+
     # Set the picking types of the stock moves the picking type of its picking
     cr.execute("""
         update stock_move set picking_type_id = stock_picking.picking_type_id 
