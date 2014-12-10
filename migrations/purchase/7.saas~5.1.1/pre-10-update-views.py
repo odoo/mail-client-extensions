@@ -7,4 +7,4 @@ def migrate(cr, version):
        this raise an error. We delete it ourself to avoid this.
     """
     util.remove_record(cr, 'purchase.stock_picking_in_inherit_purchase')
-    util.remove_record(cr, 'purchase.view_picking_in_search_picking_inherit')
+    util.remove_view(cr, 'purchase.view_picking_in_search_picking_inherit')

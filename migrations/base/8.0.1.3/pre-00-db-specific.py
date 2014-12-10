@@ -12,7 +12,7 @@ def _db_openerp(cr, version):
     # these views prevents updating the modules:
     util.remove_record(cr, 'website.editor_head')
     util.remove_record(cr, 'report.html_container')
-    util.remove_record(cr, 'base.view_module_filter')
+    util.remove_view(cr, 'base.view_module_filter')
 
     bad_view_id = 2789
     cr.execute("SELECT arch from ir_ui_view where id=%s", (bad_view_id,))
@@ -25,7 +25,7 @@ def _feuerwear(cr, version):
     cr.execute("DELETE FROM ir_ui_view WHERE id = 1008")
 
 def _osnet(cr, version):
-    util.remove_record(cr, 'project_mrp.view_project_mrp_inherit_form2')
+    util.remove_view(cr, 'project_mrp.view_project_mrp_inherit_form2')
     util.remove_record(cr, 'sale_crm.account_invoice_groupby_inherit')
 
 def _lajs(cr, version):

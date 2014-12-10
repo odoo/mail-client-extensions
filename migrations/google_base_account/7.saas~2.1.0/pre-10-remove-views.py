@@ -7,4 +7,4 @@ def migrate(cr, version):
        this raise an error. We delete it ourself to avoid this.
     """
     # also this view xmlid is ... misspelt
-    util.remove_record(cr, 'google_base_account.view_users_gogole_form')
+    util.remove_view(cr, 'google_base_account.view_users_gogole_form')

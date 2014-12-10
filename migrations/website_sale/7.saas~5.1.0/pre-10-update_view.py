@@ -2,7 +2,7 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.remove_record(cr, 'website_sale.view_sales_config_website_sale')
+    util.remove_view(cr, 'website_sale.view_sales_config_website_sale')
 
     # Shop templates need to be reset - they're not compatible anymore
     cr.execute("""UPDATE ir_model_data

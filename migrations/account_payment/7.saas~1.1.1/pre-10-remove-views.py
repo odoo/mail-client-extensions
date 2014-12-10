@@ -7,4 +7,4 @@ def migrate(cr, version):
        this raise an error. We delete it ourself to avoid this.
     """
     util.remove_record(cr, 'account_payment.invoice_supplier_form')
-    util.remove_record(cr, 'account_payment.view_move_line_form')
+    util.remove_view(cr, 'account_payment.view_move_line_form')

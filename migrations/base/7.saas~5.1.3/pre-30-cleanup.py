@@ -6,4 +6,4 @@ def migrate(cr, version):
     util.remove_record(cr, 'base.user_groups_view')
 
     # this view contains deleted fields (gmail_user, ...)
-    util.remove_record(cr, 'base.view_users_form')
+    util.remove_view(cr, 'base.view_users_form')

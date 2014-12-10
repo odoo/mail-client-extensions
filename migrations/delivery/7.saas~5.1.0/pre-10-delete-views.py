@@ -7,4 +7,4 @@ def migrate(cr, version):
        applying the view inheritance. If the views use a deleted field,
        this raise an error. We delete it ourself to avoid this.
     """
-    util.remove_record(cr, 'delivery.view_delivery_order_inherit_stock')
+    util.remove_view(cr, 'delivery.view_delivery_order_inherit_stock')
