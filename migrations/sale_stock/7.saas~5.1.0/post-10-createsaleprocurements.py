@@ -20,6 +20,7 @@ def migrate(cr, version):
     sol_obj = registry['sale.order.line']
     so_obj = registry['sale.order']
     proc_obj = registry['procurement.order']
+    rule_obj = registry['procurement.rule']
     cr.execute("""SELECT sm.sale_line_id, sm.id FROM stock_move sm, sale_order_line sol, sale_order so, product_product pp, product_template pt WHERE so.shipped = False
     and so.state not in ('done', 'cancel') and pp.product_tmpl_id = pt.id
     and pt.type <> 'service' and pp.id = sol.product_id and so.id = sol.order_id and sm.sale_line_id = sol.id 
@@ -30,6 +31,10 @@ def migrate(cr, version):
             sol_dict[item[0]] = [item[1]]
         else:
             sol_dict[item[0]] += [item[1]]
+
+    #Search a rule we can assign so it will do the check on the procurement
+    rules = rule_obj.search(cr, SUPERUSER_ID, [('action', '=', 'move'), ('picking_type_id.code', '=', 'outgoing')])
+    rule = rules and rules[0] or False
     for line in sol_obj.browse(cr, SUPERUSER_ID, sol_dict.keys()):
         order = line.order_id
         if not order.procurement_group_id:
@@ -41,8 +46,7 @@ def migrate(cr, version):
         vals = so_obj._prepare_order_line_procurement(cr, SUPERUSER_ID, line.order_id, line, group_id=group_id)
         # Search related moves
         related_moves = sol_dict[line.id]
-        vals.update({'move_ids': [(6, 0, related_moves)]})
-        vals.update({'state': 'running'})
+        vals.update({'move_ids': [(6, 0, related_moves)], 'state': 'running', 'rule_id': rule})
         proc_id = proc_obj.create(cr, SUPERUSER_ID, vals)
         proc_obj.check(cr, SUPERUSER_ID, [proc_id])
         move_obj.write(cr, SUPERUSER_ID, related_moves, {'group_id': group_id})
