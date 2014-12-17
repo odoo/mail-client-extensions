@@ -10,8 +10,10 @@ def migrate(cr, version):
     """
     for view in ('stock.view_picking_in_tree',
                  'stock.view_picking_in_form',
+                 'stock.view_picking_in_search',
                  'stock.view_picking_out_tree',
                  'stock.view_picking_out_form',
+                 'stock.view_picking_out_search',
                  'stock.view_normal_procurement_locations_form',
                  'stock.view_normal_property_acc_form',
                  'stock.view_category_property_form'):
