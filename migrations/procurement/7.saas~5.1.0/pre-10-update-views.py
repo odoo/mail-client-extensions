@@ -7,6 +7,7 @@ def migrate(cr, version):
        this raise an error. We delete it ourself to avoid this.
     """
     util.remove_view(cr, 'procurement.product_template_form_view_procurement')
+    util.remove_view(cr, 'procurement.product_form_view_procurement_button')
 
     #Change model
     #Rename procurement rule if stock location was installed
