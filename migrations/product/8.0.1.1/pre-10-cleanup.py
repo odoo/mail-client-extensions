@@ -7,4 +7,4 @@ def migrate(cr, version):
        applying the view inheritance. If the views use a deleted field,
        this raise an error. We delete it ourself to avoid this.
     """
-    util.remove_record(cr, 'product.product_template_form_view_variant_button')
+    util.remove_view(cr, 'product.product_template_form_view_variant_button')

@@ -6,7 +6,7 @@ def migrate(cr, version):
        applying the view inheritance. If the views use a deleted field,
        this raise an error. We delete it ourself to avoid this.
     """
-    util.remove_record(cr, 'procurement.product_template_form_view_procurement')
+    util.remove_view(cr, 'procurement.product_template_form_view_procurement')
 
     #Change model
     #Rename procurement rule if stock location was installed
