@@ -6,3 +6,5 @@ def migrate(cr, version):
     util.rename_xmlid(cr, 'procurement.sequence_mrp_op_type', 'stock.sequence_mrp_op_type')
     util.rename_xmlid(cr, 'procurement.product_form_view_procurement_button',
                                 'stock.product_form_view_procurement_button')
+    util.rename_xmlid(cr, 'procurement.view_warehouse_orderpoint_form',
+                                'stock.view_warehouse_orderpoint_form')
