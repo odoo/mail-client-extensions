@@ -23,6 +23,30 @@ def migrate(cr, version):
     skip_raise = [rec.strip() for rec in res[0].split(',')] if res else []
     fails = {}
 
+    # check if a given location is not linked to 2 or more wharehouses:
+    sql_check_location = """
+        select wh.{field} as loc_id, loc.name, count(*), array_agg(wh.id) as wh_ids
+        from stock_warehouse wh
+            inner join stock_location loc
+                on wh.{field}=loc.id
+        group by wh.{field}, loc.name
+        having count(*)  > 1"""
+
+    loc_uniq_msgs = []
+    for field in ['lot_input_id', 'lot_output_id', 'lot_stock_id']:
+        cr.execute(sql_check_location.format(field=field))
+        checks = cr.dictfetchall()
+        for check in checks:
+            loc_uniq_msgs.append(
+                ("Stock location '{name}' (id={loc_id}) is linked to more than " \
+                "one warehouse (ids={wh_ids}). This is not allowed in Odoo version 8.0.\n" \
+                "table: 'stock_warehouse', field: '{field}'").format(field=field, **check))
+
+    if loc_uniq_msgs:
+        msg = '\n'.join(loc_uniq_msgs)
+        _logger.error(msg)
+        raise util.MigrationError(msg)
+
     # check if some product uom have a rounding of 0:
     cr.execute("""
         select
@@ -45,7 +69,9 @@ def migrate(cr, version):
                        for re in res]),
         ]
         # no skip here because the update will fail anyway:
-        raise util.MigrationError('\n'.join(msgs))
+        msg = '\n'.join(msgs)
+        _logger.error(msg)
+        raise util.MigrationError(msg)
 
     # Check if reconverting the rounding to the default UoM and back to the
     # original UoM will give errors on stock moves
@@ -56,7 +82,7 @@ def migrate(cr, version):
           m.product_qty as product_qty,
           m.product_uom as move_uom,
           t.uom_id as default_uom,
-          ut.factor as ur_factor,
+          ut.factor as ut_factor,
           um.factor as um_factor,
           ut.rounding as ut_rounding,
           um.rounding as um_rounding,
@@ -178,4 +204,5 @@ def migrate(cr, version):
     if fails:
         msg = '\n'.join(
             ["check '{}': {}".format(k, v) for k, v in fails.items()])
+        _logger.error(msg)
         raise util.MigrationError(msg)
