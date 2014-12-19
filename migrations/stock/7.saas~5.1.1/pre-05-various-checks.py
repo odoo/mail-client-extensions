@@ -88,12 +88,12 @@ def migrate(cr, version):
           um.rounding as um_rounding,
           um.factor/ut.factor*(
            round(m.product_qty*ut.factor/um.factor,
-                 round(-log(ut.rounding))::integer )) as computed_qty,
+                 ceil(-log(ut.rounding))::integer )) as computed_qty,
           round(
            um.factor/ut.factor*(round(
                m.product_qty*ut.factor/um.factor,
-               round(-log(ut.rounding))::integer )),
-           round(-log(um.rounding))::integer) as rounded_computed_qty
+               ceil(-log(ut.rounding))::integer )),
+           ceil(-log(um.rounding))::integer) as rounded_computed_qty
         from
           stock_move m
             inner join product_template t
@@ -108,8 +108,8 @@ def migrate(cr, version):
           m.product_qty != round(
             um.factor/ut.factor*(round(
                 m.product_qty*ut.factor/um.factor,
-                round(-log(ut.rounding))::integer )),
-            round(-log(um.rounding))::integer)
+                ceil(-log(ut.rounding))::integer )),
+            ceil(-log(um.rounding))::integer)
         order by m.product_id, m.id;""")
     res = cr.dictfetchall()
     if res:
@@ -158,13 +158,13 @@ def migrate(cr, version):
         select
           sm.id,
           sm.product_qty,
-          trunc(product_qty, round(-log(um.rounding))::integer)
+          trunc(product_qty, ceil(-log(um.rounding))::integer)
             as truncated_product_qty,
           um.rounding
         from stock_move sm, product_uom um
         where um.id = sm.product_uom
           and state not in ('draft', 'cancel')
-          and trunc(product_qty, round(-log(um.rounding))::integer) - product_qty != 0
+          and trunc(product_qty, ceil(-log(um.rounding))::integer) - product_qty != 0
         order by sm.id
     """)
 
