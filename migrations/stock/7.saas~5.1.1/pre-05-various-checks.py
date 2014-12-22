@@ -45,8 +45,7 @@ def migrate(cr, version):
     if loc_uniq_msgs:
         msg = '\n'.join(loc_uniq_msgs)
         _logger.error(msg)
-        util.announce(
-            cr, 'saas-5', '', recipient=None, header=msg, format='text', footer='')
+        raise util.MigrationError(msg)
 
     # check if some product uom have a rounding of 0:
     cr.execute("""
