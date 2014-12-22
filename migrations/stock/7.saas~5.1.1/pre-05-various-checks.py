@@ -11,10 +11,10 @@ _logger = logging.getLogger('openerp.addons.base.maintenance.migrations.stock.sa
 def migrate(cr, version):
     # Check if an ir.config_parameter exists which would not raise an exception
     # if it does not fulfill the 2 checks below
-    # available check overrides: uom2uom, move2uom
+    # available check overrides: uom2uom
     # if you want to skip errors:
     #   insert into ir_config_parameter (key, value)
-    #   values ('migration.skip_rounding_error', 'uom2uom, move2uom');
+    #   values ('migration.skip_rounding_error', 'uom2uom');
     cr.execute("""
         select value from ir_config_parameter where key = 'migration.skip_rounding_error'
         """)
@@ -23,7 +23,7 @@ def migrate(cr, version):
     skip_raise = [rec.strip() for rec in res[0].split(',')] if res else []
     fails = {}
 
-    # check if a given location is not linked to 2 or more wharehouses:
+    # 1. check if a given location is not linked to 2 or more wharehouses
     sql_check_location = """
         select wh.{field} as loc_id, loc.name, count(*), array_agg(wh.id) as wh_ids
         from stock_warehouse wh
@@ -47,34 +47,29 @@ def migrate(cr, version):
         _logger.error(msg)
         raise util.MigrationError(msg)
 
-    # check if some product uom have a rounding of 0:
+    # 2. Automatically fix UoM with rounding = 0
     cr.execute("""
-        select
-            u.id as u_id,
-            u.name as uom_name,
-            c.name as cat_name,
-            u.uom_type
-        from product_uom u
-            inner join product_uom_categ c
-                on c.id=u.category_id
-        where u.rounding = 0
-        order by u.id""")
+        SELECT
+            u.id AS id,
+            u.name AS name,
+            coalesce(pow(10, -max(
+                char_length(split_part(trim(both '0' from product_qty::varchar), '.', 2)))), 1)
+                    AS new_rounding
+        FROM        product_uom u
+        LEFT JOIN   stock_move sm
+            ON      sm.product_uom = u.id
+        WHERE       u.rounding = 0
+        GROUP BY    u.id
+        """)
+    for uom_id, uom_name, new_rounding in cr.fetchall():
+        _logger.warn("Product UoM %s (id %s) has a rounding of 0, setting " \
+                     "it up to %s.", uom_name, uom_id, new_rounding)
+        cr.execute("""
+            UPDATE product_uom SET rounding = %s WHERE id = %s
+        """, [new_rounding, uom_id])
 
-    res = cr.fetchall()
-    if res:
-        msgs = [
-            "Some product UoM have a rounding=0",
-            "We cannot perform an update. List of UoM:",
-            '\n'.join([u'''Uom {re[0]}: name="{re[1]}", category="{re[2]}", type="{re[3]}"'''.format(re=re)
-                       for re in res]),
-        ]
-        # no skip here because the update will fail anyway:
-        msg = '\n'.join(msgs)
-        _logger.error(msg)
-        raise util.MigrationError(msg)
-
-    # Check if reconverting the rounding to the default UoM and back to the
-    # original UoM will give errors on stock moves
+    # 3. Check if reconverting the rounding to the default UoM and back to the
+    #    original UoM will give errors on stock moves
     cr.execute("""
         select
           m.id as move_id,
@@ -152,54 +147,49 @@ def migrate(cr, version):
             fails['uom2uom'] = "Quantities on certain stock moves converted " \
                 "to the default UoM cannot be reconverted to the same value"
 
-    # Check if there are stock moves with UoMs that have more digits than would
-    # be expected of the UoM's rounding
+    # 4. Automatically fix UoM used by stock moves that need better precison
     cr.execute("""
-        select
-          sm.id,
-          sm.product_qty,
-          trunc(product_qty, ceil(-log(um.rounding))::integer)
-            as truncated_product_qty,
-          um.rounding
-        from stock_move sm, product_uom um
-        where um.id = sm.product_uom
-          and state not in ('draft', 'cancel')
-          and trunc(product_qty, ceil(-log(um.rounding))::integer) - product_qty != 0
-        order by sm.id
+        SELECT
+            array_agg(sm.id) AS move_ids,
+            um.id AS id,
+            um.name AS name,
+            um.rounding AS rounding,
+            pow(10, -max(
+                char_length(split_part(trim(both '0' from product_qty::varchar), '.', 2))))
+                    AS new_rounding
+        FROM        stock_move sm, product_uom um
+        WHERE       um.id = sm.product_uom
+        AND         state NOT IN ('draft', 'cancel')
+        AND         NOT mod(product_qty, um.rounding) = 0
+        GROUP BY    um.id
     """)
-
-    res = cr.fetchall()
-    if res:
-        msgs = []
-        for re in res:
-            msg = "Move {re[0]}: actual qty: {re[1]}, expected qty: " \
-                "{re[2]} using 'rounding'={re[3]}".format(re=re)
-            _logger.warning(msg)
-            msgs.append(msg)
+    if cr.rowcount:
         header = """
         <p>Warning when upgrading Odoo to version {version}.</p>
         <h2>Stock moves should not have more digits specified than the rounding
             of the UoM would expect</h2>
 
-        <p>We have checked that the stock move quantities do not have more
-           digits than the rounding of the UoM would expect.<br />
-           This is not the case.<br />
-           Here is the list of wrong stock moves:
-        </p>"""
-        msg = [
-            "<ul>",
-            '\n  '.join(["<li>%s</li>" % m for m in msgs]),
-            "</ul>",
-        ]
-        header += '\n'.join(msg)
-        footer = ""
-        util.announce(
-            cr, 'saas-5', '', recipient=None, header=header, footer=footer)
+        <p>Some stock moves have been stored using a unit of measure not
+           precise enough to store the quantity required. To resolve the issue,
+           the rounding of the following units of measure got to be updated:
+        </p>
 
-        if 'move2uom' not in skip_raise:
-            fails['move2uom'] = "Quantities on certain stock moves should " \
-                "not have more digits specified than the rounding of the " \
-                "UoM would expect"
+        <ul>
+        """
+        for move_ids, uom_id, uom_name, rounding, new_rounding \
+                in cr.fetchall():
+            msg = "Unit of measure %s (id=%s) has now a rounding of %s " \
+                  "(was %s) in order to store the quantities of " \
+                  "move's ids: %s" % (uom_name, uom_id, new_rounding, rounding,
+                                      move_ids)
+            _logger.warning(msg)
+            header += "<li>%s</li>\n" % msg
+            cr.execute("""
+                UPDATE product_uom SET rounding = %s WHERE id = %s
+            """, [new_rounding, uom_id])
+        header += "</ul>\n"
+        util.announce(
+            cr, 'saas-5', '', recipient=None, header=header, footer='')
 
     if fails:
         msg = '\n'.join(
