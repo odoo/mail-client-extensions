@@ -50,7 +50,7 @@ def migrate(cr, version):
             vals['wh_input_stock_loc_id'] = location_obj.create(cr, SUPERUSER_ID, {'name': _('Input'), 
                                                                'active': False, 
                                                                'location_id': vals['view_location_id'],}, context=context)
-        if wh.wh_output_stock_loc_id:
+        if wh.wh_output_stock_loc_id and wh.wh_output_stock_loc_id.location_id.id == vals['view_location_id']:
             delivery_steps = 'pick_ship'
             vals['wh_output_stock_loc_id'] = wh.wh_output_stock_loc_id.id
         else:

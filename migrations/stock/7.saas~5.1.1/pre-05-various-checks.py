@@ -33,7 +33,7 @@ def migrate(cr, version):
         having count(*)  > 1"""
 
     loc_uniq_msgs = []
-    for field in ['lot_input_id', 'lot_output_id', 'lot_stock_id']:
+    for field in ['lot_input_id', 'lot_stock_id']:
         cr.execute(sql_check_location.format(field=field))
         checks = cr.dictfetchall()
         for check in checks:
