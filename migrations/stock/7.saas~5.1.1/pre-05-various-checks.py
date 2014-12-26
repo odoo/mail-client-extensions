@@ -1,27 +1,15 @@
 # -*- coding: utf-8 -*-
+# performs various checks and try to fix the errors automatically
 
-# performs various checks and displays warnings (or raises exceptions) based on
-# the result of these checks
+import logging
 
 from openerp.addons.base.maintenance.migrations import util
 
-import logging
 _logger = logging.getLogger('openerp.addons.base.maintenance.migrations.stock.saas-5.checks')
 
-def migrate(cr, version):
-    # Check if an ir.config_parameter exists which would not raise an exception
-    # if it does not fulfill the 2 checks below
-    # available check overrides: uom2uom
-    # if you want to skip errors:
-    #   insert into ir_config_parameter (key, value)
-    #   values ('migration.skip_rounding_error', 'uom2uom');
-    cr.execute("""
-        select value from ir_config_parameter where key = 'migration.skip_rounding_error'
-        """)
-    res = cr.fetchone()
 
-    skip_raise = [rec.strip() for rec in res[0].split(',')] if res else []
-    fails = {}
+def fix_moves(cr):
+    fixed_moves = 0
 
     # 1. check if a given location is not linked to 2 or more wharehouses
     sql_check_location = """
@@ -50,33 +38,126 @@ def migrate(cr, version):
     # 2. Automatically fix UoM with rounding = 0
     cr.execute("""
         SELECT
-            u.id AS id,
-            u.name AS name,
+            uom.id AS id,
             coalesce(pow(10, -max(
-                char_length(split_part(trim(both '0' from product_qty::varchar), '.', 2)))), 1)
-                    AS new_rounding
-        FROM        product_uom u
-        LEFT JOIN   stock_move sm
-            ON      sm.product_uom = u.id
-        WHERE       u.rounding = 0
-        GROUP BY    u.id
+                char_length(split_part(trim(both '0'
+                                            from product_qty::varchar),
+                                       '.', 2)))), 1) AS new_rounding
+        FROM        product_uom uom
+        LEFT JOIN   stock_move move
+            ON      move.product_uom = uom.id
+        WHERE       uom.rounding = 0
+        GROUP BY    uom.id
         """)
-    for uom_id, uom_name, new_rounding in cr.fetchall():
-        _logger.warn("Product UoM %s (id %s) has a rounding of 0, setting " \
-                     "it up to %s.", uom_name, uom_id, new_rounding)
-        cr.execute("""
-            UPDATE product_uom SET rounding = %s WHERE id = %s
-        """, [new_rounding, uom_id])
+    for uom_id, new_rounding in cr.fetchall():
+        _logger.warn("[UoM %s rounding adjusted to %s] rounding was 0",
+                     uom_id, new_rounding)
+        cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
+                   [new_rounding, uom_id])
 
-    # 3. Check if reconverting the rounding to the default UoM and back to the
-    #    original UoM will give errors on stock moves
+    # 3.1 check for multiple inconsistencies in stock moves, cfr comments
+    #     in the query
+    cr.execute("""
+        SELECT  array_agg(move.id) AS moves
+        ,       least(pow(10, -max(char_length(
+                          split_part(trim(both '0' from move.product_qty::varchar),
+                               '.', 2)))),
+                      move_uom.rounding) AS new_rounding
+        ,       move_uom.id AS move_uom
+        ,       temp_uom.category_id AS temp_uom_cat
+        FROM    stock_move move
+        JOIN    product_uom move_uom ON move_uom.id = move.product_uom
+        JOIN    product_product prod ON prod.id = move.product_id
+        JOIN    product_template temp ON temp.id = prod.product_tmpl_id
+        JOIN    product_uom temp_uom ON temp_uom.id = temp.uom_id
+        -- check that a move doesn't use a UoM that lacks of precision to
+        -- store the quantity
+        WHERE   mod(move.product_qty, move_uom.rounding) != 0
+        -- check move's UoM category
+        OR      move_uom.category_id != temp_uom.category_id
+        GROUP BY move_uom.id, temp_uom.category_id
+        """)
+    for moves, rounding, move_uom, temp_uom_cat in cr.fetchall():
+        _logger.warn("[UoM created based on UoM %s "
+                     "(rounding=%s, factor=%s, category=%s)] "
+                     "bad UoM's category or rounding for %s stock moves: %s",
+                     move_uom, rounding, rounding, temp_uom_cat,
+                     len(moves), ", ".join(map(str, moves)))
+        cr.execute("""
+            SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s;
+            UPDATE  temp_uom
+            SET     category_id = %s
+            ,       rounding = %s
+            ,       active = false
+            ,       id = nextval('product_uom_id_seq'::regclass);
+            WITH new_uom AS (
+                INSERT INTO product_uom (SELECT * FROM temp_uom) RETURNING *
+            )
+            UPDATE  stock_move
+            SET     product_uom = (SELECT id FROM new_uom)
+            WHERE   id = ANY(%s);
+            DROP TABLE temp_uom;
+            """, [move_uom, temp_uom_cat, rounding, moves])
+        fixed_moves += len(moves)
+
+    # 4. Check if the precision of the UoM of the stock moves is enough
+    #    (assert the previous fix)
+    cr.execute("""
+        SELECT
+            array_agg(sm.id) AS move_ids,
+            um.id AS uom,
+            um.name AS name,
+            um.rounding AS rounding,
+            pow(10, -max(
+                char_length(split_part(trim(both '0' from product_qty::varchar), '.', 2))))
+                    AS new_rounding
+        FROM        stock_move sm, product_uom um
+        WHERE       um.id = sm.product_uom
+        AND         state NOT IN ('draft', 'cancel')
+        AND         NOT mod(product_qty, um.rounding) = 0
+        GROUP BY    um.id
+        """)
+    assert cr.rowcount == 0
+
+    # 3.2 check that stock move's quantity can be converted to product template
+    #     quantity without losing precision
+    cr.execute("""
+        SELECT  array_agg(move.id) AS moves
+        ,       temp_uom.id AS uom
+        ,       pow(10, -max(char_length(
+                    split_part(trim(both '0' from
+                               (move.product_qty / move_uom.factor
+                                * temp_uom.factor)::varchar),
+                               '.', 2)))) AS new_rounding
+        FROM    stock_move move
+        JOIN    product_uom move_uom ON move_uom.id = move.product_uom
+        JOIN    product_product prod ON prod.id = move.product_id
+        JOIN    product_template temp ON temp.id = prod.product_tmpl_id
+        JOIN    product_uom temp_uom ON temp_uom.id = temp.uom_id
+        WHERE   mod((move.product_qty / move_uom.factor * temp_uom.factor),
+                    temp_uom.rounding) != 0
+        GROUP BY temp_uom.id
+        """)
+    for moves, uom, rounding in cr.fetchall():
+        _logger.warn("[UoM %s rounding adjusted to %s] not enough precision "
+                     "to store quantity of %s stock moves: %s",
+                     uom, rounding, len(moves), ", ".join(map(str, moves)))
+        cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
+                   [rounding, uom])
+        fixed_moves += len(moves)
+
+    # assert the previous fix
+
+    # 3.3 Check if reconverting the rounding to the default UoM and back to the
+    #     original UoM will give errors on stock moves
     cr.execute("""
         select
           m.id as move_id,
-          m.product_id as product_id,
           m.product_qty as product_qty,
           m.product_uom as move_uom,
+          um.category_id as move_uom_category,
           t.uom_id as default_uom,
+          ut.category_id as default_uom_category,
           ut.factor as ut_factor,
           um.factor as um_factor,
           ut.rounding as ut_rounding,
@@ -91,6 +172,9 @@ def migrate(cr, version):
            ceil(-log(um.rounding))::integer) as rounded_computed_qty
         from
           stock_move m
+            -- NOTE: this is bad, it should be join with the product.product
+            --       and then the product template. But according to JCO, it's
+            --       okay since they have the same id
             inner join product_template t
               on t.id=m.product_id
             inner join product_uom um
@@ -105,94 +189,34 @@ def migrate(cr, version):
                 m.product_qty*ut.factor/um.factor,
                 ceil(-log(ut.rounding))::integer )),
             ceil(-log(um.rounding))::integer)
-        order by m.product_id, m.id;""")
+        order by m.product_id, m.id;
+        """)
     res = cr.dictfetchall()
     if res:
-        msgs = []
         for re in res:
-            msg = (
-                "Move {move_id}: qty: {product_qty} &lt;-&gt; {computed_qty} "
+            _logger.warn(
+                "Move {move_id}: qty: {product_qty} != {computed_qty} "
                 "default UoM: {default_uom}, move UoM: {move_uom}, "
-                "roundings:({ut_rounding}/{um_rounding})"
-            ).format(**re)
+                "roundings: {ut_rounding}/{um_rounding}, "
+                "factors: {ut_factor}/{um_factor}".format(**re))
+        raise util.MigrationError("That was a bad move.")
 
-            msgs.append(msg)
-            _logger.warning(msg)
+    return fixed_moves
 
-        header = """
-        <p>Warning when upgrading Odoo to version {version}.</p>
-        <h2>Stock moves that cannot be converted back to their default UoM</h2>
+def migrate(cr, version):
+    # count moves
+    cr.execute("SELECT count(*) FROM stock_move")
+    moves_count, = cr.fetchone()
+    if not moves_count:
+        return
 
-        <p>We have checked that converting a quantity to the default UoM
-           and then back to the original UoM will give the same result.<br />
-           This is not the case.<br />
-           You'll find the list of wrong stock moves further down.
-        </p>
-        <p>Each line is formated as:<br />
-          Move <move id>: qty: <product qty> &lt;-&gt; <computed and
-          rounded qty> default UoM: <default uom of the product> UoM:
-          <move uom> (<rounding of product UoM>/<rounding of move UoM>)
-        </p>"""
+    # fix moves
+    fixed_moves = fix_moves(cr)
 
-        msg = [
-            "<ul>",
-            '\n  '.join(["<li>%s</li>" % m for m in msgs]),
-            "</ul>",
-        ]
-        header += '\n'.join(msg)
-        footer = ""
-        util.announce(
-            cr, 'saas-5', '', recipient=None, header=header, footer=footer)
-        if 'uom2uom' not in skip_raise:
-            fails['uom2uom'] = "Quantities on certain stock moves converted " \
-                "to the default UoM cannot be reconverted to the same value"
+    # allow 1% of error, maybe it should be increased
+    if (float(fixed_moves) / float(moves_count)) > 0.01:
+        raise util.MigrationError("There is probably something wrong with"
+                                  "the stock moves of the databases. "
+                                  "Bad stock moves: %s" % fixed_moves)
 
-    # 4. Automatically fix UoM used by stock moves that need better precison
-    cr.execute("""
-        SELECT
-            array_agg(sm.id) AS move_ids,
-            um.id AS id,
-            um.name AS name,
-            um.rounding AS rounding,
-            pow(10, -max(
-                char_length(split_part(trim(both '0' from product_qty::varchar), '.', 2))))
-                    AS new_rounding
-        FROM        stock_move sm, product_uom um
-        WHERE       um.id = sm.product_uom
-        AND         state NOT IN ('draft', 'cancel')
-        AND         NOT mod(product_qty, um.rounding) = 0
-        GROUP BY    um.id
-    """)
-    if cr.rowcount:
-        header = """
-        <p>Warning when upgrading Odoo to version {version}.</p>
-        <h2>Stock moves should not have more digits specified than the rounding
-            of the UoM would expect</h2>
-
-        <p>Some stock moves have been stored using a unit of measure not
-           precise enough to store the quantity required. To resolve the issue,
-           the rounding of the following units of measure got to be updated:
-        </p>
-
-        <ul>
-        """
-        for move_ids, uom_id, uom_name, rounding, new_rounding \
-                in cr.fetchall():
-            msg = "Unit of measure %s (id=%s) has now a rounding of %s " \
-                  "(was %s) in order to store the quantities of " \
-                  "move's ids: %s" % (uom_name, uom_id, new_rounding, rounding,
-                                      move_ids)
-            _logger.warning(msg)
-            header += "<li>%s</li>\n" % msg
-            cr.execute("""
-                UPDATE product_uom SET rounding = %s WHERE id = %s
-            """, [new_rounding, uom_id])
-        header += "</ul>\n"
-        util.announce(
-            cr, 'saas-5', '', recipient=None, header=header, footer='')
-
-    if fails:
-        msg = '\n'.join(
-            ["check '{}': {}".format(k, v) for k, v in fails.items()])
-        _logger.error(msg)
-        raise util.MigrationError(msg)
+    assert fix_moves(cr) == 0, "The code of fix_moves() is probably broken. "
