@@ -211,8 +211,10 @@ def migrate(cr, version):
 
     # allow 1% of error, maybe it should be increased
     if (float(fixed_moves) / float(moves_count)) > 0.01:
-        raise util.MigrationError("There is probably something wrong with"
-                                  "the stock moves of the databases. "
-                                  "Bad stock moves: %s" % fixed_moves)
+        raise util.MigrationError(
+            "There is probably something wrong with the stock moves of the "
+            "databases. Bad stock moves: %d/%d (%d%%)"
+            % (fixed_moves, moves_count,
+               (float(fixed_moves) / float(moves_count) * 100.0)))
 
     assert fix_moves(cr) == 0, "The code of fix_moves() is probably broken. "
