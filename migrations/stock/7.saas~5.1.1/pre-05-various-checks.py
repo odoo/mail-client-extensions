@@ -55,6 +55,33 @@ def fix_moves(cr):
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
                    [new_rounding, uom_id])
 
+    # 3.2 check that stock move's quantity can be converted to product template
+    #     quantity without losing precision
+    cr.execute("""
+        SELECT  array_agg(move.id) AS moves
+        ,       temp_uom.id AS uom
+        ,       pow(10, -max(char_length(
+                    split_part(trim(both '0' from
+                               (move.product_qty / move_uom.factor
+                                * temp_uom.factor)::varchar),
+                               '.', 2)))) AS new_rounding
+        FROM    stock_move move
+        JOIN    product_uom move_uom ON move_uom.id = move.product_uom
+        JOIN    product_product prod ON prod.id = move.product_id
+        JOIN    product_template temp ON temp.id = prod.product_tmpl_id
+        JOIN    product_uom temp_uom ON temp_uom.id = temp.uom_id
+        WHERE   mod((move.product_qty / move_uom.factor * temp_uom.factor),
+                    temp_uom.rounding) != 0
+        GROUP BY temp_uom.id
+        """)
+    for moves, uom, rounding in cr.fetchall():
+        _logger.warn("[UoM %s rounding adjusted to %s] not enough precision "
+                     "to store quantity of %s stock moves: %s",
+                     uom, rounding, len(moves), ", ".join(map(str, moves)))
+        cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
+                   [rounding, uom])
+        fixed_moves += len(moves)
+
     # 3.1 check for multiple inconsistencies in stock moves, cfr comments
     #     in the query
     cr.execute("""
@@ -98,52 +125,6 @@ def fix_moves(cr):
             WHERE   id = ANY(%s);
             DROP TABLE temp_uom;
             """, [move_uom, temp_uom_cat, rounding, moves])
-        fixed_moves += len(moves)
-
-    # 4. Check if the precision of the UoM of the stock moves is enough
-    #    (assert the previous fix)
-    cr.execute("""
-        SELECT
-            array_agg(sm.id) AS move_ids,
-            um.id AS uom,
-            um.name AS name,
-            um.rounding AS rounding,
-            pow(10, -max(
-                char_length(split_part(trim(both '0' from product_qty::varchar), '.', 2))))
-                    AS new_rounding
-        FROM        stock_move sm, product_uom um
-        WHERE       um.id = sm.product_uom
-        AND         state NOT IN ('draft', 'cancel')
-        AND         NOT mod(product_qty, um.rounding) = 0
-        GROUP BY    um.id
-        """)
-    assert cr.rowcount == 0
-
-    # 3.2 check that stock move's quantity can be converted to product template
-    #     quantity without losing precision
-    cr.execute("""
-        SELECT  array_agg(move.id) AS moves
-        ,       temp_uom.id AS uom
-        ,       pow(10, -max(char_length(
-                    split_part(trim(both '0' from
-                               (move.product_qty / move_uom.factor
-                                * temp_uom.factor)::varchar),
-                               '.', 2)))) AS new_rounding
-        FROM    stock_move move
-        JOIN    product_uom move_uom ON move_uom.id = move.product_uom
-        JOIN    product_product prod ON prod.id = move.product_id
-        JOIN    product_template temp ON temp.id = prod.product_tmpl_id
-        JOIN    product_uom temp_uom ON temp_uom.id = temp.uom_id
-        WHERE   mod((move.product_qty / move_uom.factor * temp_uom.factor),
-                    temp_uom.rounding) != 0
-        GROUP BY temp_uom.id
-        """)
-    for moves, uom, rounding in cr.fetchall():
-        _logger.warn("[UoM %s rounding adjusted to %s] not enough precision "
-                     "to store quantity of %s stock moves: %s",
-                     uom, rounding, len(moves), ", ".join(map(str, moves)))
-        cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
-                   [rounding, uom])
         fixed_moves += len(moves)
 
     # assert the previous fix
@@ -200,6 +181,21 @@ def fix_moves(cr):
                 "roundings: {ut_rounding}/{um_rounding}, "
                 "factors: {ut_factor}/{um_factor}".format(**re))
         raise util.MigrationError("That was a bad move.")
+
+    # 4. Check if the precision of the UoM of the stock moves is enough
+    #    (assert the previous fix)
+    cr.execute("""
+        SELECT  array_agg(sm.id) AS move_ids
+        ,       um.id AS uom
+        ,       um.name AS name
+        ,       um.rounding AS rounding
+        FROM    stock_move sm, product_uom um
+        WHERE   um.id = sm.product_uom
+        AND     state NOT IN ('draft', 'cancel')
+        AND     NOT mod(product_qty, um.rounding) = 0
+        GROUP BY um.id
+        """)
+    assert cr.rowcount == 0
 
     return fixed_moves
 
