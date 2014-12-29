@@ -24,10 +24,6 @@ def _db_openerp(cr, version):
 def _feuerwear(cr, version):
     cr.execute("DELETE FROM ir_ui_view WHERE id = 1008")
 
-def _osnet(cr, version):
-    util.remove_view(cr, 'project_mrp.view_project_mrp_inherit_form2')
-    util.remove_record(cr, 'sale_crm.account_invoice_groupby_inherit')
-
 def _lajs(cr, version):
     website_aj_layout_view_id = util.ref(cr, 'website_aj.layout')
     cr.execute("select arch from ir_ui_view where id = %s", [website_aj_layout_view_id ])
@@ -55,7 +51,6 @@ def migrate(cr, version):
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,    # prod
         '8b833269-2a1e-4495-a50c-978434fe4187': _feuerwear,     # feuerwear
-        'ab9b66f4-7cd9-11e2-aa3a-000c29d0cefb': _osnet,
         'db5c0cb1-5bb3-46af-b15f-50bf67bec24b': _lajs,
     }.get(uuid, noop)(cr, version)
 
