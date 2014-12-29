@@ -153,11 +153,10 @@ def fix_moves(cr):
            ceil(-log(um.rounding))::integer) as rounded_computed_qty
         from
           stock_move m
-            -- NOTE: this is bad, it should be join with the product.product
-            --       and then the product template. But according to JCO, it's
-            --       okay since they have the same id
+            inner join product_product p
+              on p.id=m.product_id
             inner join product_template t
-              on t.id=m.product_id
+              on t.id=p.product_tmpl_id
             inner join product_uom um
               on um.id=m.product_uom
             inner join product_uom ut
