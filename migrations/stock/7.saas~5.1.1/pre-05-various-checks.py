@@ -70,7 +70,9 @@ def fix_moves(cr):
         JOIN    product_product prod ON prod.id = move.product_id
         JOIN    product_template temp ON temp.id = prod.product_tmpl_id
         JOIN    product_uom temp_uom ON temp_uom.id = temp.uom_id
-        WHERE   mod((move.product_qty / move_uom.factor * temp_uom.factor),
+        WHERE   move_uom.id != temp_uom.id
+        AND     mod(round((move.product_qty / move_uom.factor
+                           * temp_uom.factor), 15),
                     temp_uom.rounding) != 0
         GROUP BY temp_uom.id
         """)
