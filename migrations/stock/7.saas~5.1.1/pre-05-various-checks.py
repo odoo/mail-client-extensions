@@ -70,8 +70,12 @@ def fix_moves(cr):
         JOIN    product_product prod ON prod.id = move.product_id
         JOIN    product_template temp ON temp.id = prod.product_tmpl_id
         JOIN    product_uom temp_uom ON temp_uom.id = temp.uom_id
-        WHERE   move_uom.id != temp_uom.id
-        AND     mod(round((move.product_qty / move_uom.factor
+        -- NOTE: it's important to check also the moves that have the same UoM
+        --       than the product template because it is possible that the next
+        --       step will create a new UoM based on original UoM and they will
+        --       have the same factor. If the original UoM lacks of precision,
+        --       it will be a problem.
+        WHERE   mod(round((move.product_qty / move_uom.factor
                            * temp_uom.factor), 15),
                     temp_uom.rounding) != 0
         GROUP BY temp_uom.id
@@ -79,7 +83,8 @@ def fix_moves(cr):
     for moves, uom, rounding in cr.fetchall():
         _logger.warn("[UoM %s rounding adjusted to %s] not enough precision "
                      "to store quantity of %s stock moves: %s",
-                     uom, rounding, len(moves), ", ".join(map(str, moves)))
+                     uom, rounding, len(moves),
+                     ", ".join(map(str, sorted(moves))))
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
                    [rounding, uom])
         fixed_moves += len(moves)
@@ -108,10 +113,10 @@ def fix_moves(cr):
         """)
     for moves, rounding, move_uom, temp_uom_cat in cr.fetchall():
         _logger.warn("[UoM created based on UoM %s "
-                     "(rounding=%s, factor=%s, category=%s)] "
+                     "(rounding=%s, category=%s)] "
                      "bad UoM's category or rounding for %s stock moves: %s",
-                     move_uom, rounding, rounding, temp_uom_cat,
-                     len(moves), ", ".join(map(str, moves)))
+                     move_uom, rounding, temp_uom_cat,
+                     len(moves), ", ".join(map(str, sorted(moves))))
         cr.execute("""
             SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s;
             UPDATE  temp_uom
