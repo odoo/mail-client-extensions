@@ -67,6 +67,8 @@ def fix_moves(cr):
         GROUP BY    uom.id
         """)
     for uom_id, new_rounding in cr.fetchall():
+        assert new_rounding >= 1e-06, "UoM's rounding adjustment too small, " \
+                                      "manual check required"
         _logger.warn("[UoM %s rounding adjusted to %s] rounding was 0",
                      uom_id, new_rounding)
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
