@@ -35,6 +35,23 @@ def fix_moves(cr):
         _logger.error(msg)
         raise util.MigrationError(msg)
 
+    # 1. Fix stock moves with a precision greater than 15 because they probably
+    #    come from a bad calculation and also because this can't be handled
+    #    properly anyway
+    cr.execute("""
+        UPDATE  stock_move
+        SET     product_uos_qty = round(product_uos_qty, 15)
+        ,       product_qty = round(product_qty, 15)
+        WHERE   mod(product_uos_qty, 1e-15) != 0
+        OR      mod(product_qty, 1e-15) != 0
+        RETURNING id
+        """)
+    if cr.rowcount:
+        fixed_moves += cr.rowcount
+        _logger.warn("[Quantities of %s stock moves adjusted] precision "
+                     "required greater than 15 decimals",
+                     cr.rowcount)
+
     # 2. Automatically fix UoM with rounding = 0
     cr.execute("""
         SELECT
