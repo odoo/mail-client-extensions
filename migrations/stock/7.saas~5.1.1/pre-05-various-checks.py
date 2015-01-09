@@ -137,21 +137,23 @@ def fix_moves(cr):
                      "bad UoM's category or rounding for %s stock moves: %s",
                      move_uom, rounding, temp_uom_cat,
                      len(moves), ", ".join(map(str, sorted(moves))))
+        cr.execute("SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s", [move_uom])
         cr.execute("""
-            SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s;
             UPDATE  temp_uom
             SET     category_id = %s
             ,       rounding = %s
             ,       active = false
             ,       id = nextval('product_uom_id_seq'::regclass);
+        """, [temp_uom_cat, rounding])
+        cr.execute("""
             WITH new_uom AS (
                 INSERT INTO product_uom (SELECT * FROM temp_uom) RETURNING *
             )
             UPDATE  stock_move
             SET     product_uom = (SELECT id FROM new_uom)
-            WHERE   id = ANY(%s);
-            DROP TABLE temp_uom;
-            """, [move_uom, temp_uom_cat, rounding, moves])
+            WHERE   id IN %s
+        """, [tuple(moves)])
+        cr.execute("DROP TABLE temp_uom")
         fixed_moves += len(moves)
 
     # assert the previous fix
