@@ -1,39 +1,11 @@
-# -*- coding: utf-8 -*-
-# performs various checks and try to fix the errors automatically
-
 import logging
 
 from openerp.addons.base.maintenance.migrations import util
 
-_logger = logging.getLogger('openerp.addons.base.maintenance.migrations.stock.saas-5.checks')
+_logger = logging.getLogger(__name__)
 
-
-def fix_moves(cr):
+def sanitize_moves(cr):
     fixed_moves = 0
-
-    # 1. check if a given location is not linked to 2 or more wharehouses
-    sql_check_location = """
-        select wh.{field} as loc_id, loc.name, count(*), array_agg(wh.id) as wh_ids
-        from stock_warehouse wh
-            inner join stock_location loc
-                on wh.{field}=loc.id
-        group by wh.{field}, loc.name
-        having count(*)  > 1"""
-
-    loc_uniq_msgs = []
-    for field in ['lot_input_id', 'lot_stock_id']:
-        cr.execute(sql_check_location.format(field=field))
-        checks = cr.dictfetchall()
-        for check in checks:
-            loc_uniq_msgs.append(
-                ("Stock location '{name}' (id={loc_id}) is linked to more than " \
-                "one warehouse (ids={wh_ids}). This is not allowed in Odoo version 8.0.\n" \
-                "table: 'stock_warehouse', field: '{field}'").format(field=field, **check))
-
-    if loc_uniq_msgs:
-        msg = '\n'.join(loc_uniq_msgs)
-        _logger.error(msg)
-        raise util.MigrationError(msg)
 
     # 1. Fix stock moves with a precision greater than 15 because they probably
     #    come from a bad calculation and also because this can't be handled
@@ -74,7 +46,7 @@ def fix_moves(cr):
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
                    [new_rounding, uom_id])
 
-    # 3.2 check that stock move's quantity can be converted to product template
+    # 3.1 check that stock move's quantity can be converted to product template
     #     quantity without losing precision
     cr.execute("""
         SELECT  array_agg(move.id) AS moves
@@ -109,7 +81,7 @@ def fix_moves(cr):
                    [rounding, uom])
         fixed_moves += len(moves)
 
-    # 3.1 check for multiple inconsistencies in stock moves, cfr comments
+    # 3.2 check for multiple inconsistencies in stock moves, cfr comments
     #     in the query
     cr.execute("""
         SELECT  array_agg(move.id) AS moves
@@ -137,29 +109,28 @@ def fix_moves(cr):
                      "bad UoM's category or rounding for %s stock moves: %s",
                      move_uom, rounding, temp_uom_cat,
                      len(moves), ", ".join(map(str, sorted(moves))))
-        cr.execute("SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s", [move_uom])
         cr.execute("""
+            SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s;
             UPDATE  temp_uom
             SET     category_id = %s
             ,       rounding = %s
             ,       active = false
             ,       id = nextval('product_uom_id_seq'::regclass);
-        """, [temp_uom_cat, rounding])
-        cr.execute("""
             WITH new_uom AS (
                 INSERT INTO product_uom (SELECT * FROM temp_uom) RETURNING *
             )
             UPDATE  stock_move
             SET     product_uom = (SELECT id FROM new_uom)
-            WHERE   id IN %s
-        """, [tuple(moves)])
-        cr.execute("DROP TABLE temp_uom")
+            WHERE   id = ANY(%s);
+            DROP TABLE temp_uom;
+            """, [move_uom, temp_uom_cat, rounding, moves])
         fixed_moves += len(moves)
 
-    # assert the previous fix
+    return fixed_moves
 
-    # 3.3 Check if reconverting the rounding to the default UoM and back to the
-    #     original UoM will give errors on stock moves
+def check_moves(cr):
+    # 1. Check if reconverting the rounding to the default UoM and back to the
+    #    original UoM will give errors on stock moves
     cr.execute("""
         select
           m.id as move_id,
@@ -210,7 +181,7 @@ def fix_moves(cr):
                 "factors: {ut_factor}/{um_factor}".format(**re))
         raise util.MigrationError("That was a bad move.")
 
-    # 4. Check if the precision of the UoM of the stock moves is enough
+    # 2. Check if the precision of the UoM of the stock moves is enough
     #    (assert the previous fix)
     cr.execute("""
         SELECT  array_agg(sm.id) AS move_ids
@@ -223,11 +194,12 @@ def fix_moves(cr):
         AND     NOT mod(product_qty, um.rounding) = 0
         GROUP BY um.id
         """)
-    assert cr.rowcount == 0
-
-    return fixed_moves
+    assert cr.rowcount == 0, repr(cr.dictfetchall())
 
 def migrate(cr, version):
+    """
+    performs various checks and try to fix the errors automatically
+    """
     # count moves
     cr.execute("SELECT count(*) FROM stock_move")
     moves_count, = cr.fetchone()
@@ -235,14 +207,15 @@ def migrate(cr, version):
         return
 
     # fix moves
-    fixed_moves = fix_moves(cr)
+    fixed_moves = sanitize_moves(cr)
+    check_moves(cr)
+    assert sanitize_moves(cr) == 0, \
+        "The code of fix_moves() is probably broken."
 
-    # allow 1% of error, maybe it should be increased
+    # allow 1.5% of error, maybe we should increase
     if (float(fixed_moves) / float(moves_count)) > 0.015:
         raise util.MigrationError(
             "There is probably something wrong with the stock moves of the "
             "databases. Bad stock moves: %d/%d (%d%%)"
             % (fixed_moves, moves_count,
                (float(fixed_moves) / float(moves_count) * 100.0)))
-
-    assert fix_moves(cr) == 0, "The code of fix_moves() is probably broken. "
