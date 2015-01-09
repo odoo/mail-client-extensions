@@ -203,7 +203,7 @@ def fix_moves(cr):
     res = cr.dictfetchall()
     if res:
         for re in res:
-            _logger.warn(
+            _logger.error(
                 "Move {move_id}: qty: {product_qty} != {computed_qty} "
                 "default UoM: {default_uom}, move UoM: {move_uom}, "
                 "roundings: {ut_rounding}/{um_rounding}, "
