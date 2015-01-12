@@ -18,7 +18,7 @@ class SelfPrint(object):
         s = []
         for a in args:
             s.append(repr(a))
-        for k, v in kwargs:
+        for k, v in kwargs.items():
             s.append('%s=%r' % (k, v))
         return SelfPrint('%r(%s)' % (self, ', '.join(s)))
 
