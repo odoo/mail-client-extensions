@@ -1,23 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from openerp import release, SUPERUSER_ID
-from openerp.modules.registry import RegistryManager
+from openerp.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger(__name__)
 
 def migrate(cr, version):
-    registry = RegistryManager.get(cr.dbname)
-    IMD = registry['ir.model.data']
-    try:
-        poster = IMD.get_object(cr, SUPERUSER_ID, 'mail', 'group_all_employees')
-    except ValueError:
-        # Cannot found group, post the message on the wall of the admin
-        poster = registry['res.users'].browse(cr, SUPERUSER_ID, SUPERUSER_ID)
-
-    if not poster.exists():
-        return
-
     message = """
         <p>Odoo has been upgraded to version {version}.</p>
         <h2>What&#39;s new in this upgrade?</h2>
@@ -34,7 +22,4 @@ def migrate(cr, version):
         <p>Enjoy the new Odoo Online!</p>
     """.format(version='7.saas~1')
 
-    try:
-        poster.message_post(message, type='notification', subtype='mail.mt_comment')
-    except Exception:
-        _logger.warning('Cannot annouce new version', exc_info=True)
+    util.announce(cr, '7.saas~1', message, format='html', header=None, footer=None)
