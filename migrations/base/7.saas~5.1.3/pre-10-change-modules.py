@@ -61,7 +61,7 @@ def migrate(cr, version):
     util.remove_module(cr, 'product_manufacturer')
     util.remove_module(cr, 'project_gtd')
     util.remove_module(cr, 'stock_location')
-    util.remove_module(cr, 'stock_no_auto_picking')
+    util.remove_module(cr, 'stock_no_autopicking')
     util.remove_module(cr, 'web_hello')
     util.remove_module(cr, 'website_sale_crm')
     util.remove_module(cr, 'document_ftp')
