@@ -6,7 +6,8 @@ import logging
 import openerp
 from openerp.addons.base.maintenance.migrations import util
 
-_logger = logging.getLogger(__name__)
+NS = 'openerp.addons.base.maintenance.migrations.purchase.saas-5.'
+_logger = logging.getLogger(NS + __name__)
 
 def sanitize_pickings_from_warehouse(cr):
     registry = openerp.modules.registry.RegistryManager.get(cr.dbname)
@@ -14,7 +15,7 @@ def sanitize_pickings_from_warehouse(cr):
     picking_type = registry['stock.picking.type']
 
     # NOTE: column purchase.lot_input_id created in:
-    #       stock/7.saas~5/pre-05-various-checks.py
+    #       stock/7.saas~5/pre-30-sanitize-warehouse.py
 
     # 1. create picking type based on main warehouse picking type but change
     #    the destination location to match the warehouse input location that

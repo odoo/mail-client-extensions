@@ -2,7 +2,8 @@ import logging
 
 from openerp.addons.base.maintenance.migrations import util
 
-_logger = logging.getLogger(__name__)
+NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
+_logger = logging.getLogger(NS + __name__)
 
 def sanitize_warehouses(cr):
     cr.execute("""
