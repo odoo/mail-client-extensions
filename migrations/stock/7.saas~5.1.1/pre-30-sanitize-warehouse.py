@@ -16,18 +16,42 @@ def sanitize_warehouses(cr):
         HAVING count(wh.id) > 1
         """)
     for warehouses, partners, lot_inputs, main_wh in cr.fetchall():
-        if not len(set(lot_inputs)) == len(lot_inputs):
-            raise util.MigrationError(
-                "Warehouses %s have identical input, output and stock "
-                "locations, cannot continue."
-                % (", ".join(map(str, warehouses))))
         if len(set(filter(None, partners))) > 1:
             raise util.MigrationError(
-                "Warehouses %s have the same output and stock locations "
-                "but different input location. This could be fixed if "
-                "they were all using the same partner. Can not continue."
+                "Warehouses %s have the same output and stock locations. "
+                "This could be fixed if they were all using the same "
+                "partner. Can not continue."
                 % (", ".join(map(str, warehouses))))
         warehouses_to_delete = list(set(warehouses) - set([main_wh]))
+        cr.execute("""
+            SELECT id FROM stock_warehouse_orderpoint
+                WHERE warehouse_id = ANY(%s)
+            """, [warehouses_to_delete])
+        if cr.rowcount:
+            raise util.MigrationError(
+                "There are order points linked to the warehouses I'm willing "
+                "to delete. This is probably wrong. Order points: %s"
+                % ", ".join(str(x) for x, in cr.fetchall()))
+        if util.table_exists(cr, 'sale_order') and \
+           util.column_exists(cr, 'sale_order', 'warehouse_id'):
+            cr.execute("""
+                SELECT id FROM sale_order WHERE warehouse_id = ANY(%s)
+                """, [warehouses_to_delete])
+            if cr.rowcount:
+                raise util.MigrationError(
+                    "There are order points linked to the warehouses I'm willing "
+                    "to delete. This is probably wrong. Sale orders: %s"
+                    % ", ".join(str(x) for x, in cr.fetchall()))
+        if util.table_exists(cr, 'sale_shop'):
+            cr.execute("""
+                SELECT id FROM sale_shop WHERE warehouse_id = ANY(%s)
+                """, [warehouses_to_delete])
+            if cr.rowcount:
+                raise util.MigrationError(
+                    "There are sale's shops linked to the warehouses I'm "
+                    "willing to delete. This is probably wrong. "
+                    "Sale shop: %s"
+                    % ", ".join(str(x) for x, in cr.fetchall()))
         if util.table_exists(cr, 'purchase_order'):
             cr.execute("""
                 ALTER TABLE purchase_order ADD COLUMN lot_input_id integer;
