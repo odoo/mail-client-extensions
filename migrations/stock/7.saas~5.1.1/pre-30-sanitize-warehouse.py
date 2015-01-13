@@ -52,7 +52,7 @@ def sanitize_warehouses(cr):
         #       the unique one from the warehouses that going to be deleted
         cr.execute("""
             UPDATE stock_warehouse SET partner_id = %s WHERE id = %s
-            """, [filter(None, partners)[0], main_wh])
+            """, [sorted(partners).pop(), main_wh])
         cr.execute("""
             DELETE FROM stock_warehouse WHERE id = ANY(%s) RETURNING id
             """, [warehouses_to_delete])
