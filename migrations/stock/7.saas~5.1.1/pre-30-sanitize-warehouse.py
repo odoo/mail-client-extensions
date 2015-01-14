@@ -39,7 +39,7 @@ def sanitize_warehouses(cr):
                 """, [warehouses_to_delete])
             if cr.rowcount:
                 raise util.MigrationError(
-                    "There are order points linked to the warehouses I'm willing "
+                    "There are sale orders linked to the warehouses I'm willing "
                     "to delete. This is probably wrong. Sale orders: %s"
                     % ", ".join(str(x) for x, in cr.fetchall()))
         if util.table_exists(cr, 'sale_shop'):
