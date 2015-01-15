@@ -12,7 +12,7 @@ def sanitize_warehouses(cr):
         ,       array_agg(wh.lot_input_id) AS lot_inputs
         ,       min(wh.id) AS main_wh
         FROM    stock_warehouse wh
-        GROUP BY wh.lot_output_id, wh.lot_stock_id
+        GROUP BY wh.company_id, wh.lot_output_id, wh.lot_stock_id
         HAVING count(wh.id) > 1
         """)
     for warehouses, partners, lot_inputs, main_wh in cr.fetchall():
@@ -92,7 +92,7 @@ def check_warehouses(cr):
         from stock_warehouse wh
             inner join stock_location loc
                 on wh.{field}=loc.id
-        group by wh.{field}, loc.name
+        group by wh.{field}, wh.company_id
         having count(*)  > 1"""
 
     loc_uniq_msgs = []
