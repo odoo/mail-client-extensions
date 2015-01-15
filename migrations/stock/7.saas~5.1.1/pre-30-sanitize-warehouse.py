@@ -92,7 +92,7 @@ def check_warehouses(cr):
         from stock_warehouse wh
             inner join stock_location loc
                 on wh.{field}=loc.id
-        group by wh.{field}, wh.company_id
+        group by wh.{field}, loc.name, wh.company_id
         having count(*)  > 1"""
 
     loc_uniq_msgs = []
