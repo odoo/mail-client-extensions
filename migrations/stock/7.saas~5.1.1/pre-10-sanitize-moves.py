@@ -7,6 +7,7 @@ _logger = logging.getLogger(NS + __name__)
 
 def sanitize_moves(cr):
     fixed_moves = 0
+    product_product_uom_unit = util.ref(cr, 'product.product_uom_unit')
 
     # 1. Fix stock moves with a precision greater than 15 because they probably
     #    come from a bad calculation and also because this can't be handled
@@ -83,7 +84,8 @@ def sanitize_moves(cr):
                      ", ".join(map(str, sorted(moves))))
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
                    [rounding, uom])
-        fixed_moves += len(moves)
+        if not uom == product_product_uom_unit:
+            fixed_moves += len(moves)
 
     # 3.2 check for multiple inconsistencies in stock moves, cfr comments
     #     in the query
