@@ -67,8 +67,11 @@ def sanitize_moves(cr):
         --       step will create a new UoM based on original UoM and they will
         --       have the same factor. If the original UoM lacks of precision,
         --       it will be a problem.
-        WHERE   move_uom.category_id = temp_uom.category_id
-        AND     mod(round((move.product_qty / move_uom.factor
+        -- NOTE: it's *also* important to check the moves that have different
+        --       UoM's category than the product template because the category
+        --       will be fixed in the second section/fix anyway and they still
+        --       need to be convertible to the product's UoM.
+        WHERE   mod(round((move.product_qty / move_uom.factor
                            * temp_uom.factor), 15),
                     temp_uom.rounding) != 0
         GROUP BY temp_uom.id
