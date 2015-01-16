@@ -5,6 +5,8 @@ from openerp.addons.base.maintenance.migrations import util
 NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
 _logger = logging.getLogger(NS + __name__)
 
+MINIMUM_ROUNDING = 1e-06
+
 def sanitize_moves(cr):
     fixed_moves = 0
     product_product_uom_unit = util.ref(cr, 'product.product_uom_unit')
@@ -41,10 +43,10 @@ def sanitize_moves(cr):
         GROUP BY    uom.id
         """)
     for uom_id, new_rounding in cr.fetchall():
-        assert new_rounding >= 1e-06, "UoM's rounding adjustment too small, " \
-                                      "manual check required"
         _logger.warn("[UoM %s rounding adjusted to %s] rounding was 0",
                      uom_id, new_rounding)
+        assert new_rounding >= MINIMUM_ROUNDING, \
+            "UoM's rounding adjustment too small, manual check required"
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
                    [new_rounding, uom_id])
 
@@ -82,6 +84,8 @@ def sanitize_moves(cr):
                      "to store quantity of %s stock moves: %s",
                      uom, rounding, len(moves),
                      ", ".join(map(str, sorted(moves))))
+        assert new_rounding >= MINIMUM_ROUNDING, \
+            "UoM's rounding adjustment too small, manual check required"
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
                    [rounding, uom])
         if not uom == product_product_uom_unit:
@@ -115,6 +119,8 @@ def sanitize_moves(cr):
                      "bad UoM's category or rounding for %s stock moves: %s",
                      move_uom, rounding, temp_uom_cat,
                      len(moves), ", ".join(map(str, sorted(moves))))
+        assert new_rounding >= MINIMUM_ROUNDING, \
+            "UoM's rounding adjustment too small, manual check required"
         cr.execute("""
             SELECT * INTO TEMP temp_uom FROM product_uom WHERE id = %s;
             UPDATE  temp_uom
