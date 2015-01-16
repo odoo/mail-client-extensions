@@ -79,15 +79,15 @@ def sanitize_moves(cr):
                     temp_uom.rounding) != 0
         GROUP BY temp_uom.id
         """)
-    for moves, uom, rounding in cr.fetchall():
+    for moves, uom, new_rounding in cr.fetchall():
         _logger.warn("[UoM %s rounding adjusted to %s] not enough precision "
                      "to store quantity of %s stock moves: %s",
-                     uom, rounding, len(moves),
+                     uom, new_rounding, len(moves),
                      ", ".join(map(str, sorted(moves))))
         assert new_rounding >= MINIMUM_ROUNDING, \
             "UoM's rounding adjustment too small, manual check required"
         cr.execute("UPDATE product_uom SET rounding = %s WHERE id = %s",
-                   [rounding, uom])
+                   [new_rounding, uom])
         if not uom == product_product_uom_unit:
             fixed_moves += len(moves)
 
@@ -113,11 +113,11 @@ def sanitize_moves(cr):
         OR      move_uom.category_id != temp_uom.category_id
         GROUP BY move_uom.id, temp_uom.category_id
         """)
-    for moves, rounding, move_uom, temp_uom_cat in cr.fetchall():
+    for moves, new_rounding, move_uom, temp_uom_cat in cr.fetchall():
         _logger.warn("[UoM created based on UoM %s "
                      "(rounding=%s, category=%s)] "
                      "bad UoM's category or rounding for %s stock moves: %s",
-                     move_uom, rounding, temp_uom_cat,
+                     move_uom, new_rounding, temp_uom_cat,
                      len(moves), ", ".join(map(str, sorted(moves))))
         assert new_rounding >= MINIMUM_ROUNDING, \
             "UoM's rounding adjustment too small, manual check required"
@@ -135,7 +135,7 @@ def sanitize_moves(cr):
             SET     product_uom = (SELECT id FROM new_uom)
             WHERE   id = ANY(%s);
             DROP TABLE temp_uom;
-            """, [move_uom, temp_uom_cat, rounding, moves])
+            """, [move_uom, temp_uom_cat, new_rounding, moves])
         fixed_moves += len(moves)
 
     return fixed_moves
