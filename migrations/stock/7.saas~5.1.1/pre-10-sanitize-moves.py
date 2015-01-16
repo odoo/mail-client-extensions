@@ -219,7 +219,8 @@ def migrate(cr, version):
         "The code of fix_moves() is probably broken."
 
     # allow 1.5% of error, maybe we should increase
-    if (float(fixed_moves) / float(moves_count)) > 0.015:
+    # if less than 50 moves in the database, accept all changes...
+    if moves_count > 50 and (float(fixed_moves) / float(moves_count)) > 0.015:
         raise util.MigrationError(
             "There is probably something wrong with the stock moves of the "
             "databases. Bad stock moves: %d/%d (%d%%)"
