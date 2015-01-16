@@ -9,7 +9,7 @@ def migrate(cr, version):
     # NOTE: these data are conflicting because they are both using the
     #       code "DM" but crm.crm_case_section_3 exists only if the demo data
     #       are installed.
-    if util.ref('crm.crm_case_section_3'):
+    if util.ref(cr, 'crm.crm_case_section_3'):
         # remove duplicate record related sales_team
         cr.execute("""DELETE FROM ir_model_data
                                 WHERE  model = 'crm.case.section'
