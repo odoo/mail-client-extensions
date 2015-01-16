@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 from openerp.addons.base.maintenance.migrations import util
 from openerp.osv import fields, osv
 from openerp.tools.translate import _
+
+NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
+_logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
     # 1 Migrates all warehouses and create sequences and picking types and routes for them
@@ -29,6 +34,10 @@ def migrate(cr, version):
         if not lot_stock.location_id.id or lot_stock.location_id.id == phys_loc or lot_stock.location_id.usage != 'view':
             # Create extra location as parent
             vals['view_location_id'] = location_obj.create(cr, SUPERUSER_ID, {'name':vals['code'], 'location_id': lot_stock.location_id.id or phys_loc, 'usage':'view'})
+            _logger.info("Created new stock location %s with parent %s, and "
+                         "linking it to %s as parent.",
+                         vals['view_location_id'],
+                         (lot_stock.location_id.id or phys_loc), lot_stock.id)
             location_obj.write(cr, SUPERUSER_ID, [lot_stock.id], {'location_id': vals['view_location_id']})
         else:
             vals['view_location_id'] = lot_stock.location_id.id
