@@ -88,24 +88,24 @@ def sanitize_warehouses(cr):
 
 def check_warehouses(cr):
     sql_check_location = """
-        select wh.{field} as loc_id, loc.name, count(*), array_agg(wh.id) as wh_ids
+        select wh.lot_input_id as loc_id, loc.name, count(*), array_agg(wh.id) as wh_ids
         from stock_warehouse wh
             inner join stock_location loc
-                on wh.{field}=loc.id
-        group by wh.{field}, loc.name, wh.company_id
-        having count(*)  > 1"""
+                on wh.lot_input_id=loc.id
+        group by wh.lot_input_id, loc.name, wh.company_id, wh.lot_stock_id
+        having count(*)  > 1
+        """
 
     loc_uniq_msgs = []
-    for field in ['lot_input_id', 'lot_stock_id']:
-        cr.execute(sql_check_location.format(field=field))
+    if cr.rowcount:
+        cr.execute(sql_check_location)
         checks = cr.dictfetchall()
         for check in checks:
             loc_uniq_msgs.append(
                 ("Stock location '{name}' (id={loc_id}) is linked to more than " \
                 "one warehouse (ids={wh_ids}). This is not allowed in Odoo version 8.0.\n" \
-                "table: 'stock_warehouse', field: '{field}'").format(field=field, **check))
+                "table: 'stock_warehouse', field: lot_input_id").format(**check))
 
-    if loc_uniq_msgs:
         msg = '\n'.join(loc_uniq_msgs)
         _logger.error(msg)
         raise util.MigrationError(msg)
