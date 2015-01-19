@@ -16,8 +16,8 @@ def sanitize_moves(cr):
     #    properly anyway
     cr.execute("""
         UPDATE  stock_move
-        SET     product_uos_qty = round(product_uos_qty, 15)
-        ,       product_qty = round(product_qty, 15)
+        SET     product_uos_qty = product_uos_qty::double precision
+        ,       product_qty = product_qty::double precision
         WHERE   mod(product_uos_qty, 1e-15) != 0
         OR      mod(product_qty, 1e-15) != 0
         RETURNING id
@@ -57,8 +57,9 @@ def sanitize_moves(cr):
         ,       temp_uom.id AS uom
         ,       pow(10, -max(char_length(
                     split_part(trim(both '0' from
-                               (move.product_qty / move_uom.factor
-                                * temp_uom.factor)::varchar),
+                                    (move.product_qty / move_uom.factor
+                                           * temp_uom.factor)
+                                    ::double precision::varchar),
                                '.', 2)))) AS new_rounding
         FROM    stock_move move
         JOIN    product_uom move_uom ON move_uom.id = move.product_uom
@@ -74,9 +75,8 @@ def sanitize_moves(cr):
         --       UoM's category than the product template because the category
         --       will be fixed in the second section/fix anyway and they still
         --       need to be convertible to the product's UoM.
-        WHERE   mod(round((move.product_qty / move_uom.factor
-                           * temp_uom.factor), 15),
-                    temp_uom.rounding) != 0
+        WHERE   mod((move.product_qty / move_uom.factor * temp_uom.factor)
+                    ::double precision::numeric, temp_uom.rounding) != 0
         GROUP BY temp_uom.id
         """)
     for moves, uom, new_rounding in cr.fetchall():
