@@ -229,6 +229,6 @@ def migrate(cr, version):
     if moves_count > 50 and (float(fixed_moves) / float(moves_count)) > 0.015:
         raise util.MigrationError(
             "There is probably something wrong with the stock moves of the "
-            "databases. Bad stock moves: %d/%d (%d%%)"
+            "databases. Bad stock moves: %d/%d (%.01f%%)"
             % (fixed_moves, moves_count,
                (float(fixed_moves) / float(moves_count) * 100.0)))
