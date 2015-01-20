@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 from openerp.addons.base.maintenance.migrations import util
+
+NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
+_logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
     """
@@ -156,4 +160,6 @@ def migrate(cr, version):
     location_obj = registry['stock.location']
     customer_loc = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.stock_location_customers')
     locations = location_obj.search(cr, SUPERUSER_ID, ['&', ('location_id.usage', '!=', 'customer'), '&', ('usage', '=', 'customer'), '!', ('id', 'child_of', customer_loc)])
+    _logger.info("Linking location %s as parent of locations: %s",
+                 customer_loc, ", ".join(map(str, locations)))
     location_obj.write(cr, SUPERUSER_ID, locations, {'location_id': customer_loc})
