@@ -11,6 +11,56 @@ def sanitize_moves(cr):
     fixed_moves = 0
     product_product_uom_unit = util.ref(cr, 'product.product_uom_unit')
 
+    # 0. Change stock moves with location_dest_id or location_id that target a
+    #    location of type 'view' to a new location based on the original but
+    #    with type 'internal' and name "Interim Location" and that have the
+    #    original location for parent
+    cr.execute("""
+        DROP TABLE IF EXISTS temp_location;
+        ALTER TABLE stock_location DROP COLUMN IF EXISTS complete_name;
+        -- find and create new locations when the condition match
+        SELECT  loc.*
+        INTO TEMP temp_location
+        FROM    stock_location loc
+        JOIN    stock_move move
+        ON      move.location_dest_id = loc.id OR move.location_id = loc.id
+        WHERE   loc.usage = 'view'
+        GROUP BY loc.id;
+        UPDATE  temp_location
+        SET     id = nextval('stock_location_id_seq'::regclass)
+        ,       location_id = id
+        ,       usage = 'internal'
+        ,       name = 'Interim Location';
+        INSERT INTO stock_location SELECT * FROM temp_location
+            RETURNING id;
+        """)
+    # update every stock move that use these locations as destination location
+    cr.execute("""
+        UPDATE  stock_move
+        SET     location_dest_id = location.id
+        FROM    temp_location location
+        WHERE   stock_move.location_dest_id = location.location_id
+        RETURNING stock_move.id;
+        """)
+    if cr.rowcount:
+        _logger.warn(
+            "[Bad stock moves need a new \"Interim Location\" as destination "
+            "location] %s stock moves updated: %s",
+            cr.rowcount, ", ".join([str(x) for x, in cr.fetchall()]))
+    # update every stock move that use these locations as source location
+    cr.execute("""
+        UPDATE  stock_move
+        SET     location_id = location.id
+        FROM    temp_location location
+        WHERE   stock_move.location_id = location.location_id
+        RETURNING stock_move.id;
+        """)
+    if cr.rowcount:
+        _logger.warn(
+            "[Bad stock moves need a new \"Interim Location\" as source "
+            "location] %s stock moves updated: %s",
+            cr.rowcount, ", ".join([str(x) for x, in cr.fetchall()]))
+
     # 1. Fix stock moves with a precision greater than 15 because they probably
     #    come from a bad calculation and also because this can't be handled
     #    properly anyway
