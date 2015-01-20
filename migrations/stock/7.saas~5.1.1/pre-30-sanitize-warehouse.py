@@ -87,18 +87,16 @@ def sanitize_warehouses(cr):
                      ", ".join(str(x) for x, in cr.fetchall()))
 
 def check_warehouses(cr):
-    sql_check_location = """
+    cr.execute("""
         select wh.lot_input_id as loc_id, loc.name, count(*), array_agg(wh.id) as wh_ids
         from stock_warehouse wh
             inner join stock_location loc
                 on wh.lot_input_id=loc.id
         group by wh.lot_input_id, loc.name, wh.company_id, wh.lot_stock_id
         having count(*)  > 1
-        """
-
-    loc_uniq_msgs = []
+        """)
     if cr.rowcount:
-        cr.execute(sql_check_location)
+        loc_uniq_msgs = []
         checks = cr.dictfetchall()
         for check in checks:
             loc_uniq_msgs.append(
