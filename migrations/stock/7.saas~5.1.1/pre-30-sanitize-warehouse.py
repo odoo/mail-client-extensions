@@ -23,6 +23,8 @@ def sanitize_warehouses(cr):
                 "partner. Can not continue."
                 % (", ".join(map(str, warehouses))))
         warehouses_to_delete = list(set(warehouses) - set([main_wh]))
+        if not warehouses_to_delete:
+            continue
         cr.execute("""
             SELECT id FROM stock_warehouse_orderpoint
                 WHERE warehouse_id = ANY(%s)
