@@ -47,7 +47,7 @@ def migrate(cr, version):
                    """, [rid])
         cr.execute("""UPDATE ir_translation
                          SET name = name || '.' || %s
-                       WHERE type in ('rml', 'xsl')
+                       WHERE type in ('report', 'rml', 'xsl')
                          AND name = %s
                    """, [u, rname])
         cr.execute("DELETE FROM ir_model_data WHERE id IN %s", (tuple(xids),))
