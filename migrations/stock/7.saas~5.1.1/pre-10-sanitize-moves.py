@@ -186,7 +186,8 @@ def sanitize_moves(cr):
             WHERE   id = ANY(%s);
             DROP TABLE temp_uom;
             """, [move_uom, temp_uom_cat, new_rounding, moves])
-        fixed_moves += len(moves)
+        if move_uom != product_product_uom_unit:
+            fixed_moves += len(moves)
 
     return fixed_moves
 
