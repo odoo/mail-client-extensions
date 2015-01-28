@@ -18,9 +18,12 @@ def migrate(cr, version):
     wh_obj = registry['stock.warehouse']
     location_obj = registry['stock.location']
     mod_obj = registry['ir.model.data']
-    warehouses = wh_obj.search(cr, SUPERUSER_ID, [])
-    main_warehouse = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.warehouse0')
     loc_whs = {}
+    warehouses_already = wh_obj.search(cr, SUPERUSER_ID, [('view_location_id', '!=', False)])
+    for wh in wh_obj.browse(cr, SUPERUSER_ID, warehouses_already):
+        loc_whs[wh.view_location_id.id] = wh.id
+    warehouses = wh_obj.search(cr, SUPERUSER_ID, [('view_location_id','=',False)])
+    main_warehouse = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.warehouse0')
     for wh in wh_obj.browse(cr, SUPERUSER_ID, warehouses):
         vals = {}
         lot_stock = wh.lot_stock_id
