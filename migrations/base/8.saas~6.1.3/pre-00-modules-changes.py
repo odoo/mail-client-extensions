@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from openerp import tools
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -62,3 +63,21 @@ def migrate(cr, version):
         util.new_module_dep(cr, m, 'web_tip')
 
     util.new_module(cr, 'mail_tip', auto_install_deps=('mail', 'web_tip'))
+
+    util.new_module(cr, 'utm')
+    util.new_module_dep(cr, 'utm', 'marketing')
+    for m in 'crm hr_recruitment mass_mailing'.split():
+        util.new_module_dep(cr, 'crm', 'utm')
+
+    # `utm` module need a migration script to steal models from `crm` module
+    # you may think this is clever hack, but I'm just an asshole that want the
+    # migration script to be in a specific file instead of a method above...
+    cr.execute("""UPDATE ir_module_module
+                     SET state='to upgrade'
+                   WHERE name='utm'
+                     AND state='to install'
+               RETURNING id""")
+    if cr.rowcount:
+        # force module in `init` mode beside its state is forced to `to upgrade`
+        # see openerp/modules/loading.py:161 (in saas-6)
+        tools.config['init']['utm'] = "oh yeah!"
