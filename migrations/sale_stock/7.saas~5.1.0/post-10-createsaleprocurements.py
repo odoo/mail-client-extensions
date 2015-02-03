@@ -35,7 +35,7 @@ def migrate(cr, version):
     #Search a rule we can assign so it will do the check on the procurement
     rules = rule_obj.search(cr, SUPERUSER_ID, [('action', '=', 'move'), ('picking_type_id.code', '=', 'outgoing')])
     rule = rules and rules[0] or False
-    for line in sol_obj.browse(cr, SUPERUSER_ID, sol_dict.keys()):
+    for index, line in enumerate(sol_obj.browse(cr, SUPERUSER_ID, sol_dict.keys())):
         order = line.order_id
         if not order.procurement_group_id:
             vals = so_obj._prepare_procurement_group(cr, SUPERUSER_ID, order)
@@ -54,3 +54,6 @@ def migrate(cr, version):
         proc_id = proc_obj.create(cr, SUPERUSER_ID, vals)
         proc_obj.check(cr, SUPERUSER_ID, [proc_id])
         move_obj.write(cr, SUPERUSER_ID, related_moves, {'group_id': group_id})
+        if (index % 200) == 0:
+            # flush transaction to free PG memory and speed up
+            cr.commit()
