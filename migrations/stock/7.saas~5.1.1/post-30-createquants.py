@@ -1,6 +1,27 @@
+import logging
+import datetime
+
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 from openerp.addons.base.maintenance.migrations import util
+from itertools import chain, takewhile, islice, count
+
+NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
+_logger = logging.getLogger(NS + __name__)
+
+
+def chunk_and_wrap(func, it, size):
+    """
+    split the iterable 'it' into chunks of size 'size' and wrap each chunk
+    using function 'func'
+    """
+    return chain.from_iterable(takewhile(bool,
+        (func(islice(it, size)) for _ in count())))
+
+def commit_invalidate_and_browse(model, cr, uid, ids, context=None):
+    cr.commit()
+    model.invalidate_cache(cr, uid)
+    return model.browse(cr, uid, list(ids), context=context)
 
 def migrate(cr, version):
     """
@@ -14,13 +35,25 @@ def migrate(cr, version):
     move_obj = registry['stock.move']
     quant_obj = registry['stock.quant']
     moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done')], order='date')
-    for index, move in enumerate(move_obj.browse(cr, SUPERUSER_ID, moves)):
+    t1 = datetime.datetime.now()
+    t0 = t1
+    for index, move in enumerate(chunk_and_wrap(
+            lambda ids: commit_invalidate_and_browse(move_obj, cr, SUPERUSER_ID, ids),
+            iter(moves), 200)):
         quants = quant_obj.quants_get_prefered_domain(cr, SUPERUSER_ID, move.location_id, move.product_id, move.product_qty, domain=[('qty', '>', 0.0)], 
                                                       prefered_domain_list=[], restrict_lot_id=move.restrict_lot_id.id)
         quant_obj.quants_move(cr, SUPERUSER_ID, quants, move, move.location_dest_id, lot_id=move.restrict_lot_id.id)
-        if (index % 200) == 0:
-            # flush transaction to free PG memory and speed up
-            cr.commit()
+        t2 = datetime.datetime.now()
+        if (t2 - t1).total_seconds() > 60:
+            t1 = datetime.datetime.now()
+            _logger.info(
+                "[%.02f%%] %d/%d stock moves processed in %s "
+                "(TOTAL estimated time: %s)",
+                (float(index) / float(len(moves)) * 100.0),
+                index, len(moves), (t2 - t0),
+                datetime.timedelta(
+                    seconds=((t2 - t0).total_seconds()
+                             * float(len(moves)) / float(index))))
     
     #Take in_date as first date of stock_move
     cr.execute("""
