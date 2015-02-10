@@ -25,3 +25,5 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'web_tip', 'web')
     for m in 'account crm event hr project purchase website_quote'.split():
         util.new_module_dep(cr, m, 'web_tip')
+
+    util.new_module(cr, 'mail_tip', auto_install_deps=('mail', 'web_tip'))
