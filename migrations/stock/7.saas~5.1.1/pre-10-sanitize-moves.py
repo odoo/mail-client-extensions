@@ -127,6 +127,7 @@ def sanitize_moves(cr):
         --       need to be convertible to the product's UoM.
         WHERE   mod((move.product_qty / move_uom.factor * temp_uom.factor)
                     ::double precision::numeric, temp_uom.rounding) != 0
+        AND     mod(temp_uom.factor, 1e-14) = 0
         GROUP BY temp_uom.id
         """)
     for moves, uom, new_rounding in cr.fetchall():
@@ -232,6 +233,8 @@ def check_moves(cr):
                 m.product_qty*ut.factor/um.factor,
                 ceil(-log(ut.rounding))::integer )),
             ceil(-log(um.rounding))::integer)
+            and
+          mod(ut.factor, 1e-14) = 0
         order by m.product_id, m.id;
         """)
     res = cr.dictfetchall()
