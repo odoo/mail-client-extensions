@@ -8,11 +8,11 @@ _logger = logging.getLogger(NS + __name__)
 def fix_uom_factor_lack_precision(cr):
     cr.execute("""
         UPDATE  product_uom
-        SET     factor = 1.0 / round(1.0 / factor, 2)
+        SET     factor = 1.0 / round(1.0 / factor, 4)
         WHERE   factor != 0
-        AND     round(1.0 / factor, 2) != 0
-        AND     abs((1.0 / round(1.0 / factor, 2)) - factor) != 0
-        AND     abs((1.0 / round(1.0 / factor, 2)) - factor) < 0.000001
+        AND     round(1.0 / factor, 4) != 0
+        AND     abs((1.0 / round(1.0 / factor, 4)) - factor) != 0
+        AND     abs((1.0 / round(1.0 / factor, 4)) - factor) < 1e-06
         RETURNING id, name, factor;
         """, [])
     for id, name, factor in cr.fetchall():
