@@ -2,8 +2,21 @@ from openerp.addons.base.maintenance.migrations import util
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 from openerp.osv import fields, osv
+from itertools import chain, takewhile, islice, count
 
 
+def chunk_and_wrap(func, it, size):
+    """
+    split the iterable 'it' into chunks of size 'size' and wrap each chunk
+    using function 'func'
+    """
+    return chain.from_iterable(takewhile(bool,
+        (func(islice(it, size)) for _ in count())))
+
+def commit_invalidate_and_browse(model, cr, uid, ids, context=None):
+    cr.commit()
+    model.invalidate_cache(cr, uid)
+    return model.browse(cr, uid, list(ids), context=context)
 
 def migrate(cr, version):
     """
@@ -35,7 +48,9 @@ def migrate(cr, version):
     #Search a rule we can assign so it will do the check on the procurement
     rules = rule_obj.search(cr, SUPERUSER_ID, [('action', '=', 'move'), ('picking_type_id.code', '=', 'outgoing')])
     rule = rules and rules[0] or False
-    for index, line in enumerate(sol_obj.browse(cr, SUPERUSER_ID, sol_dict.keys())):
+    for line in chunk_and_wrap(
+            lambda ids: commit_invalidate_and_browse(sol_obj, cr, SUPERUSER_ID, ids),
+            iter(sol_dict.keys()), 200):
         order = line.order_id
         if not order.procurement_group_id:
             vals = so_obj._prepare_procurement_group(cr, SUPERUSER_ID, order)
@@ -54,6 +69,3 @@ def migrate(cr, version):
         proc_id = proc_obj.create(cr, SUPERUSER_ID, vals)
         proc_obj.check(cr, SUPERUSER_ID, [proc_id])
         move_obj.write(cr, SUPERUSER_ID, related_moves, {'group_id': group_id})
-        if (index % 200) == 0:
-            # flush transaction to free PG memory and speed up
-            cr.commit()
