@@ -68,8 +68,10 @@ def sanitize_moves(cr):
         UPDATE  stock_move
         SET     product_uos_qty = product_uos_qty::double precision
         ,       product_qty = product_qty::double precision
-        WHERE   mod(product_uos_qty, 1e-14) != 0
-        OR      mod(product_qty, 1e-14) != 0
+        WHERE   product_uos_qty :: double precision :: numeric
+                    != product_uos_qty
+        OR      product_qty :: double precision :: numeric
+                    != product_qty
         RETURNING id
         """)
     if cr.rowcount:
