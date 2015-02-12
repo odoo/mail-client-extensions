@@ -1,8 +1,24 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
+from openerp.tools.parse_version import parse_version
 
 def migrate(cr, version):
-    if not util.table_exists(cr, 'product_public_category'):
+    # save POS category from being deleted
+    util.force_noupdate(cr, 'point_of_sale.categ_others', True)
+
+    if parse_version(version) <= parse_version('7.saas~2'):
+        # copy category from product to template
+        util.create_column(cr, 'product_template', 'pos_categ_id', 'int4')
+        cr.execute("""UPDATE product_template t
+                    SET pos_categ_id = (SELECT pos_categ_id
+                                        FROM product_product
+                                        WHERE product_tmpl_id = t.id
+                                        ORDER BY id
+                                        LIMIT 1
+                                        )
+                   """)
+        return
+    elif not util.table_exists(cr, 'product_public_category'):
         return  # nothing to migrate from
 
     cr.execute("""SELECT id
