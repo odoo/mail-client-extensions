@@ -41,3 +41,6 @@ def migrate(cr, version):
     # be installed if website_blog is installed (because document_page was)
     util.new_module_dep(cr, 'website_mail', 'website')
     util.new_module_dep(cr, 'website', 'web')
+
+    # 'ir.actions.wizard' model is deprecated
+    util.delete_model(cr, 'ir.actions.wizard')
