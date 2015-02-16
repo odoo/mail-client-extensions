@@ -14,6 +14,9 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'mass_mailing', ('web_kanban_sparkline',))
     util.remove_module_deps(cr, 'sales_team', ('web_kanban_sparkline',))
 
+    util.remove_module_deps(cr, 'project_timesheet', ('hr_timesheet_sheet',))
+    util.new_module_dep(cr, 'project_timesheet', 'hr_timesheet')
+
     util.new_module(cr, 'barcodes')
     util.new_module_dep(cr, 'barcodes', 'web')
     util.new_module_dep(cr, 'point_of_sale', 'barcodes')
