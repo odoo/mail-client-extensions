@@ -17,6 +17,14 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'project_timesheet', ('hr_timesheet_sheet',))
     util.new_module_dep(cr, 'project_timesheet', 'hr_timesheet')
 
+    util.new_module(cr, 'account_bank_statement_import')
+    util.new_module_dep(cr, 'account_bank_statement_import', 'account')
+    util.new_module(cr, 'account_bank_statement_import_ofx')
+    util.new_module_dep(cr, 'account_bank_statement_import_ofx', 'account_bank_statement_import')
+    util.new_module(cr, 'account_bank_statement_import_qif')
+    util.new_module_dep(cr, 'account_bank_statement_import_qif', 'account_bank_statement_import')
+    util.new_module_dep(cr, 'l10n_be_coda', 'account_bank_statement_import')
+
     util.new_module(cr, 'barcodes')
     util.new_module_dep(cr, 'barcodes', 'web')
     util.new_module_dep(cr, 'point_of_sale', 'barcodes')
