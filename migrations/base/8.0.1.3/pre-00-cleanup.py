@@ -22,3 +22,12 @@ def migrate(cr, version):
                     UPDATE "%s" SET write_uid = 1 WHERE NOT EXISTS
                         (SELECT 1 FROM res_users WHERE id = "%s".write_uid)
                    """ % (table, table))
+
+    # make sure the column name is actually filled everywhere before applying
+    # not null
+    for table in ('ir_act_client', 'ir_act_url', 'ir_act_window',
+                  'ir_act_report_xml', 'ir_act_server'):
+        cr.execute("""
+            UPDATE "%s" SET name = id WHERE name = NULL OR name = '';
+            ALTER TABLE "%s" ALTER COLUMN name DROP DEFAULT;
+            """ % (table, table))
