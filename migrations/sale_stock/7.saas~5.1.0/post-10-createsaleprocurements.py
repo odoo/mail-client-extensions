@@ -3,6 +3,11 @@ from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 from openerp.osv import fields, osv
 from itertools import chain, takewhile, islice, count
+import datetime
+import logging
+
+NS = 'openerp.addons.base.maintenance.migrations.sale_stock.saas-5.'
+_logger = logging.getLogger(NS + __name__)
 
 
 def chunk_and_wrap(func, it, size):
@@ -34,10 +39,17 @@ def migrate(cr, version):
     so_obj = registry['sale.order']
     proc_obj = registry['procurement.order']
     rule_obj = registry['procurement.rule']
+
+    # if this key is set, we'll only create procurement groups from 'still running' sale orders
+    # this will prevent some databases from taking days to be migrated
+    cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('migration.stock.create-proc-only-running',))
+    only_running, = cr.fetchone() or [False]
+
+    where_state = ('done', 'cancel', 'draft') if only_running else ('cancel', 'draft')
     cr.execute("""SELECT sm.sale_line_id, sm.id FROM stock_move sm, sale_order_line sol, sale_order so, product_product pp, product_template pt WHERE
-    so.state not in ('cancel') and pp.product_tmpl_id = pt.id
-    and pt.type <> 'service' and pp.id = sol.product_id and so.id = sol.order_id and sm.sale_line_id = sol.id 
-    """)
+    so.state not in %s and pp.product_tmpl_id = pt.id
+    and pt.type <> 'service' and pp.id = sol.product_id and so.id = sol.order_id and sm.sale_line_id = sol.id
+    """, [where_state])
     sol_dict = {}
     for item in cr.fetchall():
         if not sol_dict.get(item[0]):
@@ -45,12 +57,15 @@ def migrate(cr, version):
         else:
             sol_dict[item[0]] += [item[1]]
 
+    t1 = datetime.datetime.now()
+    t0 = t1
+
     #Search a rule we can assign so it will do the check on the procurement
     rules = rule_obj.search(cr, SUPERUSER_ID, [('action', '=', 'move'), ('picking_type_id.code', '=', 'outgoing')])
     rule = rules and rules[0] or False
-    for line in chunk_and_wrap(
+    for index, line in enumerate(chunk_and_wrap(
             lambda ids: commit_invalidate_and_browse(sol_obj, cr, SUPERUSER_ID, ids),
-            iter(sol_dict.keys()), 200):
+            iter(sol_dict.keys()), 200)):
         order = line.order_id
         if not order.procurement_group_id:
             vals = so_obj._prepare_procurement_group(cr, SUPERUSER_ID, order)
@@ -61,11 +76,25 @@ def migrate(cr, version):
         vals = so_obj._prepare_order_line_procurement(cr, SUPERUSER_ID, line.order_id, line, group_id=group_id)
         # Search related moves
         related_moves = sol_dict[line.id]
-        vals.update({'move_ids': [(6, 0, related_moves)], 'rule_id': rule})
-        if order.shipped or order.state == 'done':
-            vals.update({'state': 'done'})
-        else:
-            vals.update({'state': 'running'})
+        proc_state = 'done' if order.shipped or order.state == 'done' else 'running'
+        vals.update({
+            'move_ids': [(6, 0, related_moves)],
+            'rule_id': rule,
+            'state': proc_state})
+
         proc_id = proc_obj.create(cr, SUPERUSER_ID, vals)
         proc_obj.check(cr, SUPERUSER_ID, [proc_id])
         move_obj.write(cr, SUPERUSER_ID, related_moves, {'group_id': group_id})
+
+        t2 = datetime.datetime.now()
+        if (t2 - t1).total_seconds() > 60:
+            t1 = datetime.datetime.now()
+            _logger.info(
+                "[%.02f%%] %d/%d sale order lines processed in %s "
+                "(TOTAL estimated time: %s)",
+                (float(index) / float(len(sol_dict.keys())) * 100.0),
+                index, len(sol_dict.keys()), (t2 - t0),
+                datetime.timedelta(
+                    seconds=((t2 - t0).total_seconds()
+                             * float(len(sol_dict.keys())) / float(index))))
+
