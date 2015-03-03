@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # specific changes per db...
+import re
 from openerp.addons.base.maintenance.migrations import util
 
 def _db_openerp(cr, version):
@@ -51,6 +52,27 @@ def _db_openerp(cr, version):
     # `openerp_enterprise` module
     cr.execute("DELETE FROM ir_ui_view WHERE id=2261")
 
+def _fonteyne(cr, version):
+    util.rename_field(cr, 'barcode.rule', 'priority', 'sequence')
+
+    def conv(code):
+        code = code.rstrip('*').replace('*', '.*').replace('x', '.')
+        code = re.sub(r'([ND]+)', r'{\1}', code)
+        return code
+
+    cr.execute("SELECT id, pattern FROM barcode_rule")
+    for id_, pat in cr.fetchall():
+        cr.execute("UPDATE barcode_rule SET pattern=%s WHERE id=%s", [conv(pat), id_])
+
+    # update view `sale.order.list.select.portal.nel`
+    with util.skippable_cm(), util.edit_view(cr, view_id=1277) as arch:
+        node = arch.find('.//field[@name="section_id"]')
+        if node is not None:
+            node.attrib['name'] = 'team_id'
+
+    # remove view `product.template.inherit_gde` which is not needed anymore
+    cr.execute("DELETE FROM ir_ui_view WHERE id=1135")
+
 def migrate(cr, version):
     cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('database.uuid',))
     [uuid] = cr.fetchone()
@@ -58,4 +80,5 @@ def migrate(cr, version):
     {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,    # prod
+        '81ee5e9e-0c23-11e4-85df-0025902241ca': _fonteyne,
     }.get(uuid, noop)(cr, version)
