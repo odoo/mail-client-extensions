@@ -32,6 +32,10 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'procurement_jit', 'stock')
 
+    util.new_module(cr, 'rating')
+    util.new_module_dep(cr, 'rating', 'mail')
+    util.new_module_dep(cr, 'im_livechat', 'rating')
+
     util.merge_module(cr, 'email_template', 'mail')
 
     util.new_module(cr, 'theme_bootswatch')
