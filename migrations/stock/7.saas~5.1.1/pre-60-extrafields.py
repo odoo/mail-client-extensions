@@ -32,3 +32,9 @@ def migrate(cr, version):
     util.create_column(cr, 'stock_warehouse', 'wh_output_stock_loc_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'wh_pack_stock_loc_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'default_resupply_wh_id', 'int4')
+
+    # theoretical quantity on stock.inventory.line becomes a computed field in 8.0
+    # and the computation can fail due to mismatching UoM. Plus it makes
+    # no sense to re-compute it now for old inventories.
+    # Bootstrap it with NULL values
+    util.create_column(cr, 'stock_inventory_line', 'theoretical_qty', 'numeric')
