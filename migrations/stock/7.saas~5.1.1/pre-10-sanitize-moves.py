@@ -243,7 +243,7 @@ def check_moves(cr):
     if res:
         for re in res:
             _logger.error(
-                "Move {move_id}: qty: {product_qty} != {computed_qty} "
+                "Move {move_id}: qty: {product_qty} != {rounded_computed_qty} "
                 "default UoM: {default_uom}, move UoM: {move_uom}, "
                 "roundings: {ut_rounding}/{um_rounding}, "
                 "factors: {ut_factor}/{um_factor}".format(**re))
