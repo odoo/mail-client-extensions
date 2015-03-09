@@ -36,7 +36,11 @@ def migrate(cr, version):
         phys_loc = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.stock_location_locations')
         if not lot_stock.location_id.id or lot_stock.location_id.id == phys_loc or lot_stock.location_id.usage != 'view':
             # Create extra location as parent
-            vals['view_location_id'] = location_obj.create(cr, SUPERUSER_ID, {'name':vals['code'], 'location_id': lot_stock.location_id.id or phys_loc, 'usage':'view'})
+            vals['view_location_id'] = location_obj.create(
+                cr, SUPERUSER_ID, {'name':vals['code'],
+                                   'location_id': lot_stock.location_id.id or phys_loc,
+                                   'usage':'view',
+                                   'company_id': wh.company_id.id})
             _logger.info("Created new stock location %s with parent %s, and "
                          "linking it to %s as parent.",
                          vals['view_location_id'],
