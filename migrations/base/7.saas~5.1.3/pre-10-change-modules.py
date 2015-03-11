@@ -20,7 +20,7 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'mrp', 'stock_account')
     util.remove_module_deps(cr, 'mrp', ('stock', 'purchase'))
-    
+
     util.move_field_to_module(cr, 'product.template', 'produce_delay', 'product', 'mrp')
 
     util.new_module_dep(cr, 'purchase', 'stock_account')
@@ -29,6 +29,10 @@ def migrate(cr, version):
     # invert stock and procurement dependency
     util.remove_module_deps(cr, 'procurement', ('stock',))
     util.new_module_dep(cr, 'stock', 'procurement')
+
+    util.move_model(cr, 'stock.move.consume', 'stock', 'mrp', delete=True)
+    util.move_model(cr, 'mrp.property', 'procurement', 'mrp', move_data=True, delete=True)
+    util.move_model(cr, 'mrp.property.group', 'procurement', 'mrp', move_data=True, delete=True)
 
     util.new_module_dep(cr, 'stock', 'web_kanban_gauge')
     util.new_module_dep(cr, 'stock', 'web_kanban_sparkline')
