@@ -2,6 +2,7 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    util.drop_depending_views(cr, 'event_registration', 'state')
 
     util.remove_field(cr, 'res.partner', 'speaker')
     util.remove_view(cr, 'event.view_event_partner_info_form')

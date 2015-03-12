@@ -5,8 +5,7 @@ def migrate(cr, version):
 
     # as ORM will try to remove size of `priority` field via ALTER COLUM query we need to
     # drop depending views
-    for v in util.get_depending_views(cr, 'crm_lead', 'priority'):
-        cr.execute("DROP VIEW IF EXISTS " + v)
+    util.drop_depending_views(cr, 'crm_lead', 'priority')
 
     cr.execute("""UPDATE crm_lead SET priority=
       CASE

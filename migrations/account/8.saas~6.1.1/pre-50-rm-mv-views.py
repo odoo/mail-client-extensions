@@ -9,3 +9,7 @@ def migrate(cr, version):
     }
     for f, t in renames.items():
         util.rename_xmlid(cr, 'account.' + f, 'account.' + t)
+
+    # and sql views
+    util.drop_depending_views(cr, 'account_account', 'type')
+    util.drop_depending_views(cr, 'account_invoice', 'state')

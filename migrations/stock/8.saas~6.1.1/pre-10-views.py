@@ -10,5 +10,4 @@ def migrate(cr, version):
 
     # as ORM will try to remove size of `stock_move.state` field via ALTER COLUM query we need to
     # drop depending views
-    for v in util.get_depending_views(cr, 'stock_move', 'state'):
-        cr.execute("DROP VIEW IF EXISTS " + v)
+    util.drop_depending_views(cr, 'stock_move', 'state')

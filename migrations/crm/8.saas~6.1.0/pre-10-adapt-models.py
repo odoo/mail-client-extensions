@@ -54,6 +54,9 @@ def _new_m2m(cr, old_m2m, new_m2m, col1, old_col2, new_col2, new_table):
 
 
 def migrate(cr, version):
+    util.drop_depending_views(cr, 'crm_stage', 'type')
+    util.drop_depending_views(cr, 'crm_phonecall', 'priority')
+
     util.rename_model(cr, 'crm.case.stage', 'crm.stage')
     util.delete_model(cr, 'crm.payment.mode')
     util.delete_model(cr, 'crm.segmentation')
