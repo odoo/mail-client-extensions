@@ -109,3 +109,15 @@ def sanitize_pickings_from_warehouse(cr):
 def migrate(cr, version):
     if util.column_exists(cr, 'purchase_order', 'lot_input_id'):
         sanitize_pickings_from_warehouse(cr)
+    else:
+        # In case no warehouses were merged, we still want to put the correct
+        # picking type corresponding to the correct company_id/warehouse_id
+        cr.execute("""
+            UPDATE  purchase_order
+            SET     picking_type_id = main_picking_type.id
+            FROM    purchase_order purchase
+            JOIN    stock_picking_type main_picking_type
+            ON      main_picking_type.warehouse_id = purchase.warehouse_id
+            AND     main_picking_type.code = 'incoming'
+            WHERE   purchase.id = purchase_order.id
+            """)
