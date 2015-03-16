@@ -18,12 +18,15 @@ def migrate(cr, version):
     wh_obj = registry['stock.warehouse']
     location_obj = registry['stock.location']
     mod_obj = registry['ir.model.data']
+    user_obj = registry['res.users']
     loc_whs = {}
     warehouses_already = wh_obj.search(cr, SUPERUSER_ID, [('view_location_id', '!=', False)])
     for wh in wh_obj.browse(cr, SUPERUSER_ID, warehouses_already):
         loc_whs[wh.view_location_id.id] = wh.id
     warehouses = wh_obj.search(cr, SUPERUSER_ID, [('view_location_id','=',False)])
     main_warehouse = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.warehouse0')
+    # Backup superuser's company_id
+    old_company_id = user_obj.read(cr, SUPERUSER_ID, SUPERUSER_ID, ['company_id'])['company_id']
     for wh in wh_obj.browse(cr, SUPERUSER_ID, warehouses):
         vals = {}
         lot_stock = wh.lot_stock_id
@@ -34,6 +37,10 @@ def migrate(cr, version):
 
         # Make sure there is a separate view location for the warehouse.  If not, create one
         phys_loc = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.stock_location_locations')
+        # Update user company by setting warehouse company for creating sequence from stock_picking_type, also for creating routes.
+        cr.execute("""
+            UPDATE res_users SET company_id = %s WHERE id = %s
+            """, [wh.company_id.id, SUPERUSER_ID])
         if not lot_stock.location_id.id or lot_stock.location_id.id == phys_loc or lot_stock.location_id.usage != 'view':
             # Create extra location as parent
             vals['view_location_id'] = location_obj.create(
@@ -85,8 +92,10 @@ def migrate(cr, version):
         #create routes and push/pull rules
         new_objects_dict = wh_obj.create_routes(cr, SUPERUSER_ID, wh.id, wh)
         wh_obj.write(cr, SUPERUSER_ID, wh.id, new_objects_dict)
-        
-        
+
+    # Reset original default company in user
+    user_obj.write(cr, SUPERUSER_ID, [SUPERUSER_ID], {'company_id': old_company_id[0]})
+
     #Migrated pickings should be getting a picking type
     pick_obj = registry['stock.picking']
     picks = pick_obj.search(cr, SUPERUSER_ID, [])
