@@ -28,6 +28,6 @@ def migrate(cr, version):
     for table in ('ir_act_client', 'ir_act_url', 'ir_act_window',
                   'ir_act_report_xml', 'ir_act_server'):
         cr.execute("""
-            UPDATE "%s" SET name = id WHERE name = NULL OR name = '';
+            UPDATE "%s" SET name = id WHERE name IS NULL OR name = '';
             ALTER TABLE "%s" ALTER COLUMN name DROP DEFAULT;
             """ % (table, table))
