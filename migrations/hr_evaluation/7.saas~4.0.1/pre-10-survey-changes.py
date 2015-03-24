@@ -42,9 +42,9 @@ def migrate(cr, version):
 
     cr.execute("""select s.create_uid, s.create_date, s.write_date, s.date_deadline,
                 s.write_uid, u.partner_id, s.survey_id, s.email, s.id
-                from survey_request s, res_users u
-                where s.user_id = u.id
-                and s.response is null""")
+                from survey_request s left outer join res_users u
+                on s.user_id = u.id
+                where s.response is null""")
     new_inputs = cr.dictfetchall()
     import uuid
     for input in new_inputs:
