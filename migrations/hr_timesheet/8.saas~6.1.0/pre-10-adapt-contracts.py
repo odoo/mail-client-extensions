@@ -6,11 +6,7 @@ def migrate(cr, version):
                               'account_analytic_analysis', 'hr_timesheet')
     util.create_column(cr, 'account_analytic_account', 'invoice_on_timesheets', 'boolean')
 
-    cr.execute("UPDATE account_analytic_account SET invoice_on_timesheets = use_timesheets")
-
-    if util.column_exists(cr, 'account_analytic_account', 'to_invoice'):
-        # force value to false for contract without invoicing ratio
-        cr.execute("""UPDATE account_analytic_account
-                         SET invoice_on_timesheets = false
-                       WHERE to_invoice IS NULL
-                   """)
+    cr.execute("""UPDATE account_analytic_account
+                     SET invoice_on_timesheets = true
+                   WHERE use_timesheets = true
+               """)
