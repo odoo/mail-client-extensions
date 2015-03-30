@@ -10,6 +10,20 @@ def migrate(cr, version):
                 (just need to set product_tmpl_id as it is required)
     '''
 
+    # rename m2m between mrp_bom and mrp_property
+    cr.execute("ALTER TABLE mrp_bom_property_rel RENAME TO mrp_bom_mrp_property_rel")
+    cr.execute("ALTER TABLE mrp_bom_mrp_property_rel RENAME COLUMN bom_id RENAME TO mrp_bom_id")
+    cr.execute("ALTER TABLE mrp_bom_mrp_property_rel RENAME COLUMN property_id RENAME TO mrp_property_id")
+
+    # NOTE for already migrated databases, you can copy data with the following query:
+    """
+    INSERT INTO mrp_bom_mrp_property_rel(mrp_bom_id, mrp_property_id)
+                 SELECT bom_id, property_id FROM mrp_bom_property_rel o
+                  WHERE NOT EXISTS(SELECT 1 FROM mrp_bom_mrp_property_rel n
+                                    WHERE n.mrp_bom_id = o.bom_id
+                                      AND n.mrp_property_id = o.property_id);
+    """
+
     if not util.table_exists(cr, 'mrp_bom_line'):
         cr.execute("""CREATE TABLE mrp_bom_line(
                         id SERIAL NOT NULL,
