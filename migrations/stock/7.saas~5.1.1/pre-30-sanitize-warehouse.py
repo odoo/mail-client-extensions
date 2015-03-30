@@ -65,16 +65,17 @@ def sanitize_warehouses(cr):
                 WHERE   purchase.id = purchase_order.id
                 AND     purchase.warehouse_id = ANY(%s);
                 """, [warehouses_to_delete])
-        cr.execute("""
-            UPDATE  purchase_order
-            SET     warehouse_id = %s
-            WHERE   warehouse_id = ANY(%s)
-            RETURNING id
-            """, [main_wh, warehouses_to_delete])
-        _logger.warn("[%s purchase order's warehouse set to %s] "
-                     "because their warehouse is going to be deleted: %s",
-                     cr.rowcount, main_wh,
-                     ", ".join(str(x) for x, in cr.fetchall()))
+            cr.execute("""
+                UPDATE  purchase_order
+                SET     warehouse_id = %s
+                WHERE   warehouse_id = ANY(%s)
+                RETURNING id
+                """, [main_wh, warehouses_to_delete])
+            _logger.warn("[%s purchase order's warehouse set to %s] "
+                         "because their warehouse is going to be deleted: %s",
+                         cr.rowcount, main_wh,
+                         ", ".join(str(x) for x, in cr.fetchall()))
+
         # NOTE: just in case the main warehouse doesn't have a partner_id, pick
         #       the unique one from the warehouses that going to be deleted
         cr.execute("""
