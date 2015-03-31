@@ -12,8 +12,8 @@ def migrate(cr, version):
 
     # rename m2m between mrp_bom and mrp_property
     cr.execute("ALTER TABLE mrp_bom_property_rel RENAME TO mrp_bom_mrp_property_rel")
-    cr.execute("ALTER TABLE mrp_bom_mrp_property_rel RENAME COLUMN bom_id RENAME TO mrp_bom_id")
-    cr.execute("ALTER TABLE mrp_bom_mrp_property_rel RENAME COLUMN property_id RENAME TO mrp_property_id")
+    cr.execute("ALTER TABLE mrp_bom_mrp_property_rel RENAME COLUMN bom_id TO mrp_bom_id")
+    cr.execute("ALTER TABLE mrp_bom_mrp_property_rel RENAME COLUMN property_id TO mrp_property_id")
 
     # NOTE for already migrated databases, you can copy data with the following query:
     """
