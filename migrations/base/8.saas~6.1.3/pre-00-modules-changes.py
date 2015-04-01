@@ -41,18 +41,22 @@ def migrate(cr, version):
 
     util.new_module(cr, 'theme_bootswatch')
     util.new_module_dep(cr, 'theme_bootswatch', 'website')
+    themes = tuple("""theme_amelia theme_cerulean theme_cosmo
+                      theme_cyborg theme_flatly theme_journal
+                      theme_readable theme_simplex theme_slate
+                      theme_spacelab theme_united theme_yeti
+    """.split())
     cr.execute("""SELECT 1
                     FROM ir_ui_view v
                     JOIN ir_model_data d ON (d.model='ir.ui.view' AND v.id=d.res_id)
                    WHERE d.module='website'
-                     AND d.name IN ('theme_amelia', 'theme_cerulean', 'theme_cosmo',
-                                    'theme_cyborg', 'theme_flatly', 'theme_journal',
-                                    'theme_readable', 'theme_simplex', 'theme_slate',
-                                    'theme_spacelab', 'theme_united', 'theme_yeti')
+                     AND d.name IN %s
                      AND v.active=true
-               """)
+               """, [themes])
     if cr.rowcount:
         util.force_install_module(cr, 'theme_bootswatch')
+        for t in themes:
+            util.rename_xmlid(cr, 'website.' + t, 'theme_bootswatch.' + t)
 
     util.new_module(cr, 'website_links')
     util.new_module_dep(cr, 'mass_mailing', 'website_links')
