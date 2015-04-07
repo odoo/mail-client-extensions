@@ -1,5 +1,7 @@
 import logging
 
+from openerp import SUPERUSER_ID
+from openerp.modules.registry import RegistryManager
 from openerp.addons.base.maintenance.migrations import util
 
 NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
@@ -274,11 +276,21 @@ def migrate(cr, version):
     if not moves_count:
         return
 
+    # option to skip this test
+    # NOTE: this option must NEVER been used by the migration team level 1,
+    #       this is for extreme cases after analyze in level 2
+    registry = RegistryManager.get(cr.dbname)
+    ignore_sanitize_moves = registry['ir.config_parameter'].get_param(
+        cr, SUPERUSER_ID, 'migration_ignore_sanitize_moves')
+
     # fix moves
-    fixed_moves = sanitize_moves(cr)
-    check_moves(cr)
-    assert sanitize_moves(cr) == 0, \
-        "The code of fix_moves() is probably broken."
+    if not ignore_sanitize_moves:
+        fixed_moves = sanitize_moves(cr)
+        check_moves(cr)
+        assert sanitize_moves(cr) == 0, \
+            "The code of fix_moves() is probably broken."
+    else:
+        fixed_moves = 0
 
     # allow 1.5% of error, maybe we should increase
     # if less than 50 moves in the database, accept all changes...
