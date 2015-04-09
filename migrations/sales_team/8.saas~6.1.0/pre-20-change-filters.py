@@ -9,3 +9,9 @@ def migrate(cr, version):
                                         '\ysection_id\y', 'team_id', 'g'),
                                         '\ydefault_section_id\y', 'default_section_id', 'g')
     """)
+
+    # do the same on ir.exports.line
+    cr.execute("""
+        UPDATE ir_exports_line
+           SET name = regexp_replace(name, '\ysection_id\y', 'team_id', 'g')
+    """)
