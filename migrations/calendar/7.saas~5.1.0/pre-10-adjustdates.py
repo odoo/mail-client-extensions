@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
+from openerp.release import series
+from openerp.tools.parse_version import parse_version as pv
 
 def migrate(cr, version):
     util.rename_field(cr, 'calendar.event', 'end_date', 'final_date')
@@ -48,11 +50,13 @@ def migrate(cr, version):
                """, (False, 'ir.ui.view', 'calendar.event'))
 
     # update email templates
-    cr.execute("""UPDATE email_template
+    table = "mail_template" if pv(series) >= pv("8.saas~6") else "email_template"
+    cr.execute("""UPDATE {table}
                      SET body_html=REPLACE(REPLACE(body_html, %s, %s), %s, %s)
                    WHERE model_id=(SELECT id FROM ir_model WHERE model=%s)
-               """, ("object.event_id.display_time",
-                     "object.event_id.get_display_time_tz(tz=object.partner_id.tz)",
-                     "object.event_id.date",
-                     "object.event_id.start",
-                     "calendar.attendee"))
+               """.format(table=table),
+               ("object.event_id.display_time",
+                "object.event_id.get_display_time_tz(tz=object.partner_id.tz)",
+                "object.event_id.date",
+                "object.event_id.start",
+                "calendar.attendee"))

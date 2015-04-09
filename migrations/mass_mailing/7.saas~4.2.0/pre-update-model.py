@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
+from openerp.release import series
+from openerp.tools.parse_version import parse_version as pv
 
 def _create_stages(cr):
     stages = 'Schedule Design Sent'.split()
@@ -58,14 +60,15 @@ def migrate(cr, version):
     util.create_column(cr, 'mail_mass_mailing', 'reply_to_mode', 'varchar')
     util.create_column(cr, 'mail_mass_mailing', 'reply_to', 'varchar')
 
+    table = "mail_template" if pv(series) >= pv("8.saas~6") else "email_template"
     cr.execute("""UPDATE mail_mass_mailing
                      SET email_from = t.email_from,
                          mailing_model = t.model,
                          body_html = t.body_html,
                          reply_to = t.reply_to
-                    FROM email_template t
+                    FROM {table} t
                    WHERE t.id = template_id
-               """)
+               """.format(table=table))
 
     default_from = """
             SELECT CASE WHEN a.alias_name IS NOT NULL AND c.value IS NOT NULL
