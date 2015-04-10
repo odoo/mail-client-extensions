@@ -3,6 +3,11 @@ from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 
 def migrate(cr, version):
+    # NOTE: customers don't understand why we create useless warehouses for
+    #       companies they might only use for accounting. On the other hand, we
+    #       don't really remember why we did this script.
+    return
+
     # Ensure every company have a warehouse
     registry = RegistryManager.get(cr.dbname)
     Warehouse = registry['stock.warehouse']
