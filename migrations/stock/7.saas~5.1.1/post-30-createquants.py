@@ -34,7 +34,7 @@ def migrate(cr, version):
     registry = RegistryManager.get(cr.dbname)
     move_obj = registry['stock.move']
     quant_obj = registry['stock.quant']
-    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done')], order='date')
+    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done'),('product_qty', '>', 0.0)], order='date')
     t1 = datetime.datetime.now()
     t0 = t1
     for index, move in enumerate(chunk_and_wrap(
