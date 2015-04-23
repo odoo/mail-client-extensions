@@ -27,13 +27,23 @@ def migrate(cr, version):
     main_warehouse = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.warehouse0')
     # Backup superuser's company_id
     old_company_id = user_obj.read(cr, SUPERUSER_ID, SUPERUSER_ID, ['company_id'])['company_id']
+    cr.execute("SELECT max(id) FROM stock_warehouse;")
+    biggest_wh_id, = cr.fetchone()
+    if biggest_wh_id < 1000:
+        wh_format = "WH%03d"
+    elif biggest_wh_id < 10000:
+        wh_format = "W%04d"
+    elif biggest_wh_id < 0x10000:
+        wh_format = "W%04x"
+    else:
+        raise Exception("Too much warehouses")
     for wh in wh_obj.browse(cr, SUPERUSER_ID, warehouses):
         vals = {}
         lot_stock = wh.lot_stock_id
         if wh.id == main_warehouse:
             vals['code'] = 'WH'
         else:
-            vals['code'] = "WH%03d" % wh.id
+            vals['code'] = wh_format % wh.id
 
         # Make sure there is a separate view location for the warehouse.  If not, create one
         phys_loc = mod_obj.xmlid_to_res_id(cr, SUPERUSER_ID, 'stock.stock_location_locations')
