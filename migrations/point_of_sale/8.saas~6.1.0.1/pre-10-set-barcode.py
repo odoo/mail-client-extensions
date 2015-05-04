@@ -43,12 +43,13 @@ def migrate(cr, version):
         else:
             # convert to rules
             def conv(code):
-                code = code.rstrip('*').replace('*', '.*').replace('x', '.')
+                code = code.replace('x', '.')
+                code = re.sub(r'\*+', r'.*', code.rstrip('*'))
                 code = re.sub(r'([ND]+)', r'{\1}', code)
                 return code
 
             cr.execute("""INSERT INTO barcode_nomenclature (name, upc_ean_conv) VALUES(
-                             'Nomenclature #' || (SELECT COUNT(1) + 1 FROM barcode_nomenclature),
+                             'Auto nomenclature #' || (SELECT COUNT(1) + 1 FROM barcode_nomenclature),
                              'always')
                           RETURNING id
                        """)
