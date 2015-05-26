@@ -14,4 +14,6 @@ def migrate(cr, version):
                          FROM pos_order_line pol
                    INNER JOIN product_product p ON (p.id = pol.product_id)
                    INNER JOIN product_taxes_rel pt ON (pt.prod_id = p.product_tmpl_id)
+                   INNER JOIN account_tax t ON (t.id = pt.tax_id)
+                        WHERE t.company_id = pol.company_id
                """)
