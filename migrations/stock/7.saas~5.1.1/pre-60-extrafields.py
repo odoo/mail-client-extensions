@@ -12,6 +12,10 @@ def migrate(cr, version):
         UPDATE product_template SET track_incoming = pp.track_incoming, track_outgoing = pp.track_outgoing
         FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
     """)
+
+    # procurement group will be bootstrapped by sale_stock
+    util.create_column(cr, 'stock_picking', 'group_id', 'int4')
+
     # Create columns already for warehouse
     util.create_column(cr, 'stock_warehouse', 'mto_pull_id', 'int4')
     util.create_column(cr, 'stock_warehouse', 'pick_type_id', 'int4')
