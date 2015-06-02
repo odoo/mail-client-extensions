@@ -85,3 +85,13 @@ def migrate(cr, version):
         # force module in `init` mode beside its state is forced to `to upgrade`
         # see openerp/modules/loading.py:161 (in saas-6)
         tools.config['init']['utm'] = "oh yeah!"
+
+    util.new_module(cr, 'website_portal')
+    util.new_module_dep(cr, 'website_portal', 'sale')
+    util.new_module_dep(cr, 'website_portal', 'website')
+
+    util.new_module_dep(cr, 'website_sale', 'website_portal')
+    util.new_module_dep(cr, 'website_payment', 'website_portal')
+
+    util.new_module_dep(cr, 'website_quote', 'payment')
+    util.new_module_dep(cr, 'website_quote', 'website_portal')
