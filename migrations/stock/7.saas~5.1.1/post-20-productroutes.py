@@ -63,7 +63,7 @@ def migrate(cr, version):
                                                         'partner_address_id': key[6],
                                                         'propagate': key[7]})
             # Connect route with product templates
-            templates = [x.product_tmpl_id.id for x in product_var.browse(cr, SUPERUSER_ID, value)]
+            templates = list(set(x.product_tmpl_id.id for x in product_var.browse(cr, SUPERUSER_ID, value)))
             product_obj.write(cr, SUPERUSER_ID, templates, {'route_ids': [(4, route_id)]})
 
         cr.execute("""
