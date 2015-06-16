@@ -12,7 +12,7 @@ def migrate(cr, version):
     if util.table_exists(cr, 'audittrail_log_line'):
         cr.execute("""
             ALTER TABLE audittrail_log_line
-                DROP CONSTRAINT audittrail_log_line_field_id_fkey;
+                DROP CONSTRAINT IF EXISTS audittrail_log_line_field_id_fkey;
             ALTER TABLE audittrail_log_line
                 ADD CONSTRAINT audittrail_log_line_field_id_fkey
                 FOREIGN KEY (field_id)
