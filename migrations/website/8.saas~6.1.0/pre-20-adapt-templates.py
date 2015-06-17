@@ -11,10 +11,14 @@ def migrate(cr, version):
         assets_editor
         snippets
         publish_short
+        theme_customize
     """)
     for x in xids:
         util.force_noupdate(cr, 'website.' + x, False)
 
+    util.rename_xmlid(cr, 'website.editor_head', 'website.layout_editor')
+
+    util.remove_view(cr, 'website.theme')
     util.remove_view(cr, 'website.themes')
 
     # footers now attach to #footer
@@ -33,16 +37,3 @@ def migrate(cr, version):
     with util.skippable_cm(), util.edit_view(cr, 'website.aboutus') as arch:
         for node in arch.xpath('//section[@data-snipet-id]'):
             del node.attrib['data-snippet-id']
-
-    # ensure themes (beside they moved to another module) are loaded last
-    cr.execute("""UPDATE ir_ui_view v
-                     SET priority=24
-                    FROM ir_model_data d
-                   WHERE d.model='ir.ui.view'
-                     AND v.id=d.res_id
-                     AND d.module='website'
-                     AND d.name IN ('theme_amelia', 'theme_cerulean', 'theme_cosmo',
-                                    'theme_cyborg', 'theme_flatly', 'theme_journal',
-                                    'theme_readable', 'theme_simplex', 'theme_slate',
-                                    'theme_spacelab', 'theme_united', 'theme_yeti')
-               """)

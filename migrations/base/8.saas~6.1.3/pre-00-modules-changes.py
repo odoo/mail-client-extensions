@@ -39,6 +39,8 @@ def migrate(cr, version):
 
     util.merge_module(cr, 'email_template', 'mail')
 
+    util.new_module(cr, 'theme_default')
+    util.new_module_dep(cr, 'theme_default', 'website')
     util.new_module(cr, 'theme_bootswatch')
     util.new_module_dep(cr, 'theme_bootswatch', 'website')
     themes = tuple("""theme_amelia theme_cerulean theme_cosmo
@@ -57,6 +59,32 @@ def migrate(cr, version):
         util.force_install_module(cr, 'theme_bootswatch')
         for t in themes:
             util.rename_xmlid(cr, 'website.' + t, 'theme_bootswatch.' + t)
+            util.force_noupdate(cr, 'theme_bootswatch.' + t, False)
+
+    else:
+        for t in themes:
+            util.remove_view(cr, 'website.' + t)
+
+        # other themes installed?
+        cr.execute("""
+            WITH RECURSIVE cats (id) AS (
+                SELECT id
+                  FROM ir_module_category
+                 WHERE parent_id IS NULL
+                   AND lower(name) in ('theme', 'themes')
+               UNION
+                SELECT m.id
+                  FROM ir_module_category m
+                  JOIN cats c ON (m.parent_id = c.id)
+            )
+            SELECT name, state
+              FROM ir_module_module
+             WHERE category_id IN (SELECT id FROM cats)
+               AND state IN %s
+
+        """, [tools._INSTALLED_MODULE_STATES])
+        if not cr.rowcount:
+            util.force_install_module(cr, 'theme_default')
 
     util.new_module(cr, 'website_links')
     util.new_module_dep(cr, 'mass_mailing', 'website_links')
