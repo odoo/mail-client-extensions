@@ -51,6 +51,12 @@ def migrate(cr, version):
             # Put the rule in a separate route, for which you need the id to add to the corresponding products
             location = key[4] + ": " + (key[1] and loc_obj.browse(cr, SUPERUSER_ID, key[1]).name or '') + ' -> ' + loc_obj.browse(cr, SUPERUSER_ID, key[0]).name
             route_id = route_obj.create(cr, SUPERUSER_ID, {'name': location})
+            
+            # modules (mrp, purchase, ...) that extend this selection field are
+            # not already installed when this script is run
+            pull_rule._fields['action'].selection = [
+                (item, item) for item in
+                ('buy', 'manufacture', 'produce', 'move')]            
 
             key_betw = (route_id, location) + key
             pull_rule.create(cr, SUPERUSER_ID, {'name': location, 'route_id': route_id,
