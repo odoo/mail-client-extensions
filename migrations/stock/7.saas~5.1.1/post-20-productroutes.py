@@ -80,18 +80,20 @@ def migrate(cr, version):
         stock_move = registry['stock.move']
         type_obj = registry['stock.picking.type']
         for rule in pull_rule.browse(cr, SUPERUSER_ID, rules):
-            src_loc = rule.location_src_id
-            dest_loc = rule.location_id
-            code = stock_move.get_code_from_locs(cr, SUPERUSER_ID, False, src_loc, dest_loc)
-            if code == 'outgoing':
-                check_loc = src_loc
+            if rule.action in ('produce','buy'):
+                if rule.action in ('produce'):
+                    rule.write({'action': 'manufacture'})
+                types = [False]
             else:
-                check_loc = dest_loc
-            wh = loc_obj.get_warehouse(cr, SUPERUSER_ID, check_loc)
-            domain = [('code', '=', code)]
-            if wh:
-                domain += [('warehouse_id', '=', wh)]
-            types = type_obj.search(cr, SUPERUSER_ID, domain)
+                src_loc = rule.location_src_id
+                dest_loc = rule.location_id
+                code = stock_move.get_code_from_locs(cr, SUPERUSER_ID, False, src_loc, dest_loc)
+                check_loc = src_loc if code == 'outgoing' else dest_loc
+                wh = loc_obj.get_warehouse(cr, SUPERUSER_ID, check_loc)
+                domain = [('code', '=', code)]
+                if wh:
+                    domain += [('warehouse_id', '=', wh)]
+                types = type_obj.search(cr, SUPERUSER_ID, domain)
             if types and types[0]:
                 pull_rule.write(cr, SUPERUSER_ID, [rule.id], {'picking_type_id': types[0]})
 
