@@ -82,7 +82,7 @@ def migrate(cr, version):
              WHERE category_id IN (SELECT id FROM cats)
                AND state IN %s
 
-        """, [tools._INSTALLED_MODULE_STATES])
+        """, [util._INSTALLED_MODULE_STATES])
         if not cr.rowcount:
             util.force_install_module(cr, 'theme_default')
 
