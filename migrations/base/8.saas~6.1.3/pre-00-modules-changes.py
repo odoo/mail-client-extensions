@@ -32,6 +32,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'stock', 'barcodes')
 
     util.new_module_dep(cr, 'procurement_jit', 'stock')
+    util.remove_module(cr, 'procurement_jit_stock')
 
     util.new_module(cr, 'rating')
     util.new_module_dep(cr, 'rating', 'mail')
