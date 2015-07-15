@@ -1,6 +1,6 @@
+from openerp.addons.base.maintenance.migrations import util
+
 # -*- coding: utf-8 -*-
 def migrate(cr, version):
     """Delete procurement order wkf """
-
-    cr.execute("""DELETE FROM wkf WHERE osv=%s
-               """, ('procurement.order',))
+    util.drop_workflow(cr, 'procurement.order')
