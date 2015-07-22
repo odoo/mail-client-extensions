@@ -10,5 +10,5 @@ def migrate(cr, version):
     util.remove_record(cr, 'survey.menu_define_survey')
 
     # remove unused actions
-    util.remove_view(cr, 'survey.action_view_survey_question_message')
+    util.remove_record(cr, 'survey.action_view_survey_question_message')
 
