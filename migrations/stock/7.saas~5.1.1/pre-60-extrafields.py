@@ -42,3 +42,19 @@ def migrate(cr, version):
     # no sense to re-compute it now for old inventories.
     # Bootstrap it with NULL values
     util.create_column(cr, 'stock_inventory_line', 'theoretical_qty', 'numeric')
+
+    # changing type of a column using ALTER TABLE .. ALTER COLUMN .. TYPE
+    # is way faster and use less resources than using UPDATE.
+    # We do that on the table stock_move because it can potentially be huge.
+    cr.execute("""
+        ALTER TABLE stock_move ALTER COLUMN price_unit TYPE double precision;
+        """)
+
+    # again, doing an update on a huge table cost a lot. But here, some views
+    # depend on this column: we drop them because they can be re-created
+    # without expensive cost.
+    cr.execute("""
+        -- this view is re-created by the module mrp later
+        DROP VIEW IF EXISTS report_mrp_inout;
+        ALTER TABLE stock_move ALTER COLUMN state TYPE varchar;
+        """)
