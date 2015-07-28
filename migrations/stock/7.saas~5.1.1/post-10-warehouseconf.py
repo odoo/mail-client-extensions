@@ -111,7 +111,7 @@ def migrate(cr, version):
     picks = pick_obj.search(cr, SUPERUSER_ID, [])
     main_wh = wh_obj.browse(cr, SUPERUSER_ID, main_warehouse)
     pick_types_write = {}
-    for pick in pick_obj.browse(cr, SUPERUSER_ID, picks):
+    for pick in util.iter_browse(pick_obj, cr, SUPERUSER_ID, picks):
         src_usage = pick.location_id.usage
         dest_usage = pick.location_dest_id.usage
         check_loc = (src_usage == 'internal') and pick.location_id or pick.location_dest_id
