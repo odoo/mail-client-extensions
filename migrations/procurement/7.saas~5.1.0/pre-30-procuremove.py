@@ -14,23 +14,27 @@ def migrate(cr, version):
     SET procure_method = p.procure_method
     FROM procurement_order p WHERE p.move_id = move.id
     """)
-    cr.execute("""
-        ALTER TABLE sale_order_line
-            DROP CONSTRAINT sale_order_line_procurement_id_fkey;
-        WITH deleted_procurements AS (
-            DELETE FROM procurement_order
-                WHERE procure_method='make_to_stock' RETURNING id
-        )
-        UPDATE sale_order_line SET procurement_id = NULL WHERE EXISTS (
-            SELECT 1 FROM deleted_procurements
-                WHERE deleted_procurements.id = sale_order_line.procurement_id
-        );
-        ALTER TABLE sale_order_line
-            ADD CONSTRAINT sale_order_line_procurement_id_fkey
-            FOREIGN KEY (procurement_id)
-            REFERENCES procurement_order(id)
-            ON DELETE SET NULL;
-        """)
+
+    if util.table_exists(cr, 'sale_order_line'):
+        cr.execute("""
+            ALTER TABLE sale_order_line
+                DROP CONSTRAINT sale_order_line_procurement_id_fkey;
+            WITH deleted_procurements AS (
+                DELETE FROM procurement_order
+                    WHERE procure_method='make_to_stock' RETURNING id
+            )
+            UPDATE sale_order_line SET procurement_id = NULL WHERE EXISTS (
+                SELECT 1 FROM deleted_procurements
+                    WHERE deleted_procurements.id = sale_order_line.procurement_id
+            );
+            ALTER TABLE sale_order_line
+                ADD CONSTRAINT sale_order_line_procurement_id_fkey
+                FOREIGN KEY (procurement_id)
+                REFERENCES procurement_order(id)
+                ON DELETE SET NULL;
+            """)
+    else:
+        cr.execute("""delete from procurement_order where procure_method='make_to_stock'""")
     
     #Rename column move_dest_id
     util.rename_field(cr, 'procurement.order', 'move_id', 'move_dest_id')
