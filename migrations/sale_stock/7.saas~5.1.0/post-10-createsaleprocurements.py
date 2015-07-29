@@ -2,26 +2,12 @@ from openerp.addons.base.maintenance.migrations import util
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 from openerp.osv import fields, osv
-from itertools import chain, takewhile, islice, count
 import datetime
 import logging
 
 NS = 'openerp.addons.base.maintenance.migrations.sale_stock.saas-5.'
 _logger = logging.getLogger(NS + __name__)
 
-
-def chunk_and_wrap(func, it, size):
-    """
-    split the iterable 'it' into chunks of size 'size' and wrap each chunk
-    using function 'func'
-    """
-    return chain.from_iterable(takewhile(bool,
-        (func(islice(it, size)) for _ in count())))
-
-def commit_invalidate_and_browse(model, cr, uid, ids, context=None):
-    cr.commit()
-    model.invalidate_cache(cr, uid)
-    return model.browse(cr, uid, list(ids), context=context)
 
 def migrate(cr, version):
     """
@@ -63,9 +49,8 @@ def migrate(cr, version):
     #Search a rule we can assign so it will do the check on the procurement
     rules = rule_obj.search(cr, SUPERUSER_ID, [('action', '=', 'move'), ('picking_type_id.code', '=', 'outgoing')])
     rule = rules and rules[0] or False
-    for index, line in enumerate(chunk_and_wrap(
-            lambda ids: commit_invalidate_and_browse(sol_obj, cr, SUPERUSER_ID, ids),
-            iter(sol_dict.keys()), 200)):
+    for index, line in enumerate(util.iter_browse(sol_obj, cr, SUPERUSER_ID,
+                                                  sol_dict.keys())):
         order = line.order_id
         if not order.procurement_group_id:
             vals = so_obj._prepare_procurement_group(cr, SUPERUSER_ID, order)
