@@ -7,6 +7,7 @@ def migrate(cr, version):
     util.remove_module(cr, 'base_report_designer')
     util.remove_module(cr, 'crm_mass_mailing')
     util.remove_module(cr, 'crm_profiling')     # FIXME convert to a survey?
+    util.remove_module(cr, 'l10n_fr_rib')
     util.remove_module(cr, 'portal_claim')
     util.remove_module(cr, 'portal_project_issue')
     util.remove_module(cr, 'web_graph')
