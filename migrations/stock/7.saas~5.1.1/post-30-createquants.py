@@ -20,13 +20,13 @@ def migrate(cr, version):
     registry = RegistryManager.get(cr.dbname)
     move_obj = registry['stock.move']
     quant_obj = registry['stock.quant']
-    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done'),('product_qty', '>', 0.0)], order='date')
+    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done'),('product_qty', '>', 0.0)], order='company_id, date')
     t1 = datetime.datetime.now()
     t0 = t1
     for index, move in enumerate(util.iter_browse(move_obj, cr, SUPERUSER_ID,
                                                   moves)):
         quants = quant_obj.quants_get_prefered_domain(cr, SUPERUSER_ID, move.location_id, move.product_id, move.product_qty, domain=[('qty', '>', 0.0)], 
-                                                      prefered_domain_list=[], restrict_lot_id=move.restrict_lot_id.id)
+                                                      prefered_domain_list=[], restrict_lot_id=move.restrict_lot_id.id, context={'force_company': move.company_id.id})
         quant_obj.quants_move(cr, SUPERUSER_ID, quants, move, move.location_dest_id, lot_id=move.restrict_lot_id.id)
         t2 = datetime.datetime.now()
         if (t2 - t1).total_seconds() > 60:
