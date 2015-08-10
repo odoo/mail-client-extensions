@@ -125,3 +125,7 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'website_quote', 'payment')
     util.new_module_dep(cr, 'website_quote', 'website_portal')
+
+    cr.execute(
+        "UPDATE ir_module_module SET demo=(SELECT demo FROM ir_module_module WHERE name='base')"
+    )
