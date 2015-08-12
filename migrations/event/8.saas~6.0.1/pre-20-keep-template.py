@@ -12,7 +12,7 @@ def migrate(cr, version):
     if not modified:
         # force update of current template
         util.force_noupdate(cr, 'event.confirmation_registration', False)
-        util.renane_xmlid(cr, 'event.confirmation_registration', 'event.event_subscription')
+        util.rename_xmlid(cr, 'event.confirmation_registration', 'event.event_subscription')
         return
 
     for table, fk, _, act in util.get_fk(cr, 'mail_template'):
