@@ -7,7 +7,6 @@ def _db_openerp(cr, version):
     # some cleanup
     util.remove_module(cr, 'plugin')
     util.remove_module(cr, 'document_ftp')
-    util.remove_module(cr, 'marketing_crm')
 
     util.new_module(cr, 'openerp_livechat', ('im_livechat', 'openerp_enterprise'))
     util.force_install_module(cr, 'openerp_livechat')
