@@ -65,6 +65,10 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE section_stage_rel RENAME TO crm_team_stage_rel")
     cr.execute("ALTER TABLE crm_team_stage_rel RENAME COLUMN section_id TO team_id")
 
+    # force update message subtypes that use `section_id`
+    for suffix in ['', '_stage', '_won', '_lost']:
+        util.force_noupdate(cr, 'crm.mt_salesteam_lead' + suffix, False)
+
     reports = 'categ2 stage categ.stage categ.categ2'.split()
     for r in reports:
         old = 'report.crm.case.section.' + r
