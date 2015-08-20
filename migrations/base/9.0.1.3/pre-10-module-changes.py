@@ -200,7 +200,8 @@ def migrate(cr, version):
         contacts
         edi
         hr_applicant_document       # feature move to hr_recruitment
-        im_chat
+
+        # im_chat       # data need to be converted. see mail/9.0.1.0/post-10-im_chat.py
         knowledge
         planner_crm
         portal_project
