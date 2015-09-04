@@ -25,8 +25,11 @@ def migrate(cr, version):
     t0 = t1
     for index, move in enumerate(util.iter_browse(move_obj, cr, SUPERUSER_ID,
                                                   moves)):
+        preferred_domain = []
+        if move.move_orig_ids:
+            preferred_domain = [[('history_ids', 'in', [x.id for x in move.move_orig_ids])],[('history_ids', 'not in', [x.id for x in move.move_orig_ids])]]
         quants = quant_obj.quants_get_prefered_domain(cr, SUPERUSER_ID, move.location_id, move.product_id, move.product_qty, domain=[('qty', '>', 0.0)], 
-                                                      prefered_domain_list=[], restrict_lot_id=move.restrict_lot_id.id, context={'force_company': move.company_id.id})
+                                                      prefered_domain_list=preferred_domain, restrict_lot_id=move.restrict_lot_id.id, context={'force_company': move.company_id.id})
         quant_obj.quants_move(cr, SUPERUSER_ID, quants, move, move.location_dest_id, lot_id=move.restrict_lot_id.id)
         t2 = datetime.datetime.now()
         if (t2 - t1).total_seconds() > 60:
