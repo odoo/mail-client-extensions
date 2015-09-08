@@ -46,48 +46,49 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'theme_default', 'website')
     util.new_module(cr, 'theme_bootswatch')
     util.new_module_dep(cr, 'theme_bootswatch', 'website')
-    themes = tuple("""theme_amelia theme_cerulean theme_cosmo
-                      theme_cyborg theme_flatly theme_journal
-                      theme_readable theme_simplex theme_slate
-                      theme_spacelab theme_united theme_yeti
-    """.split())
-    cr.execute("""SELECT 1
-                    FROM ir_ui_view v
-                    JOIN ir_model_data d ON (d.model='ir.ui.view' AND v.id=d.res_id)
-                   WHERE d.module='website'
-                     AND d.name IN %s
-                     AND v.active=true
-               """, [themes])
-    if cr.rowcount:
-        util.force_install_module(cr, 'theme_bootswatch')
-        for t in themes:
-            util.rename_xmlid(cr, 'website.' + t, 'theme_bootswatch.' + t)
-            util.force_noupdate(cr, 'theme_bootswatch.' + t, False)
+    if util.module_installed(cr, 'website'):
+        themes = tuple("""theme_amelia theme_cerulean theme_cosmo
+                          theme_cyborg theme_flatly theme_journal
+                          theme_readable theme_simplex theme_slate
+                          theme_spacelab theme_united theme_yeti
+        """.split())
+        cr.execute("""SELECT 1
+                        FROM ir_ui_view v
+                        JOIN ir_model_data d ON (d.model='ir.ui.view' AND v.id=d.res_id)
+                       WHERE d.module='website'
+                         AND d.name IN %s
+                         AND v.active=true
+                   """, [themes])
+        if cr.rowcount:
+            util.force_install_module(cr, 'theme_bootswatch')
+            for t in themes:
+                util.rename_xmlid(cr, 'website.' + t, 'theme_bootswatch.' + t)
+                util.force_noupdate(cr, 'theme_bootswatch.' + t, False)
 
-    else:
-        for t in themes:
-            util.remove_view(cr, 'website.' + t)
+        else:
+            for t in themes:
+                util.remove_view(cr, 'website.' + t)
 
-        # other themes installed?
-        cr.execute("""
-            WITH RECURSIVE cats (id) AS (
-                SELECT id
-                  FROM ir_module_category
-                 WHERE parent_id IS NULL
-                   AND lower(name) in ('theme', 'themes')
-               UNION
-                SELECT m.id
-                  FROM ir_module_category m
-                  JOIN cats c ON (m.parent_id = c.id)
-            )
-            SELECT name, state
-              FROM ir_module_module
-             WHERE category_id IN (SELECT id FROM cats)
-               AND state IN %s
+            # other themes installed?
+            cr.execute("""
+                WITH RECURSIVE cats (id) AS (
+                    SELECT id
+                      FROM ir_module_category
+                     WHERE parent_id IS NULL
+                       AND lower(name) in ('theme', 'themes')
+                   UNION
+                    SELECT m.id
+                      FROM ir_module_category m
+                      JOIN cats c ON (m.parent_id = c.id)
+                )
+                SELECT name, state
+                  FROM ir_module_module
+                 WHERE category_id IN (SELECT id FROM cats)
+                   AND state IN %s
 
-        """, [util._INSTALLED_MODULE_STATES])
-        if not cr.rowcount:
-            util.force_install_module(cr, 'theme_default')
+            """, [util._INSTALLED_MODULE_STATES])
+            if not cr.rowcount:
+                util.force_install_module(cr, 'theme_default')
 
     util.new_module(cr, 'website_links')
     util.new_module_dep(cr, 'mass_mailing', 'website_links')
