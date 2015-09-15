@@ -1,0 +1,162 @@
+# -*- coding: utf-8 -*-
+from openerp.addons.base.maintenance.migrations import util
+
+def migrate(cr, version):
+    # before 9.0, rules (items) was deactivable through pricelist.versions
+    # Now that the whole pricelist that should be deactivated.
+    # duplicate the pricelist to include all deactivated versions
+    cr.execute("SELECT 1 FROM product_pricelist_version WHERE active=false")
+    if cr.rowcount:
+        columns, p_columns = util.get_columns(cr, 'product_pricelist', ('id', 'active'), ['p'])
+        util.create_column(cr, 'product_pricelist', '_tmp', 'integer')
+        cr.execute("""
+            WITH n AS (
+                INSERT INTO product_pricelist(_tmp, active, {columns})
+                     (SELECT p.id, false, {p_columns}
+                       FROM product_pricelist p
+                      WHERE p.id IN (SELECT pricelist_id as id
+                                       FROM product_pricelist_version
+                                      WHERE active = false
+                                   GROUP BY pricelist_id)
+                      )
+                RETURNING _tmp as old, id as new
+            )
+            UPDATE product_pricelist_version v
+               SET pricelist_id = n.new
+              FROM n
+             WHERE v.pricelist_id = n.old
+        """.format(columns=', '.join(columns), p_columns=', '.join(p_columns)))
+
+        util.remove_column(cr, 'product_pricelist', '_tmp')
+
+    # adapt product.pricelist.item
+    cr.execute('ALTER TABLE product_pricelist_item RENAME COLUMN "base" TO "_base"')
+    util.create_column(cr, 'product_pricelist_item', 'pricelist_id', 'integer')
+    util.create_column(cr, 'product_pricelist_item', 'date_start', 'date')
+    util.create_column(cr, 'product_pricelist_item', 'date_end', 'date')
+    util.create_column(cr, 'product_pricelist_item', 'applied_on', 'varchar')
+    util.create_column(cr, 'product_pricelist_item', 'base', 'varchar')
+    util.create_column(cr, 'product_pricelist_item', 'compute_price', 'varchar')
+    util.create_column(cr, 'product_pricelist_item', 'fixed_price', 'numeric')
+
+    cr.execute("DELETE FROM product_price_type WHERE field='list_price' RETURNING id")
+    list_price_ids = [-2] + [x[0] for x in cr.fetchall()]
+
+    cr.execute("DELETE FROM product_price_type WHERE field='standard_price' RETURNING id")
+    standard_price_ids = [x[0] for x in cr.fetchall()]
+
+    cr.execute("""UPDATE product_pricelist_item i
+                     SET pricelist_id = v.pricelist_id,
+                         date_start = v.date_start,
+                         date_end = v.date_end,
+                         applied_on = CASE WHEN i.product_id IS NOT NULL THEN '0_product_variant'
+                                           WHEN i.product_tmpl_id IS NOT NULL THEN '1_product'
+                                           WHEN i.categ_id IS NOT NULL THEN '2_product_category'
+                                           ELSE '3_global'
+                                       END,
+                         base = CASE WHEN i._base = -1 THEN 'pricelist'
+                                     WHEN i._base = ANY(%s) THEN 'list_price'
+                                     WHEN i._base = ANY(%s) THEN 'standard_price'
+                                     ELSE 'standard_price'
+                                 END,
+                         compute_price = CASE WHEN i._base = ANY(%s) THEN 'formula'
+                                              ELSE 'fixed'
+                                          END
+                    FROM product_pricelist_version v
+                   WHERE v.id = i.price_version_id
+               """, [list_price_ids, standard_price_ids,
+                     [-1] + list_price_ids + standard_price_ids,
+                     ])
+
+    # The rules that used "pricetype" should be set as "fixed".
+    # Create a rule per product that match the configuration
+    ppt = {}
+    cr.execute("""SELECT t.id, t.field, MIN(c.table_name)
+                    FROM product_price_type t,
+                         information_schema.columns c
+                   WHERE c.column_name = t.field
+                     AND c.table_name IN ('product_product', 'product_template')
+                GROUP BY t.id, t.field, t.currency_id
+    """)
+    for pptid, field, table in cr.fetchall():
+        ppt[pptid] = {
+            'field': field,
+            'table': table,
+        }
+
+    columns, i_columns = util.get_columns(cr, 'product_pricelist_item',
+                                          ('id', 'product_id', 'product_tmpl_id', 'categ_id',
+                                           'fixed_price', 'applied_on'), ['i'])
+
+    cr.execute("""SELECT id, _base, product_id, product_tmpl_id, categ_id
+                    FROM product_pricelist_item
+                   WHERE compute_price = 'fixed'
+               """)
+
+    for rid, base, pid, tid, cid in cr.fetchall():
+        if base not in ppt:
+            # unknown pricetype, cannot get the fixed price => delete the rule
+            cr.execute("DELETE FROM product_pricelist_item WHERE id=%s", [rid])
+            continue
+
+        if pid:
+            product_filter = '= %s'
+            params = [pid]
+        elif tid:
+            product_filter = 'IN (SELECT id FROM product_product WHERE product_tmpl_id=%s)'
+            params = [tid]
+        elif cid:
+            product_filter = """IN(SELECT pp.id
+                                     FROM product_product pp
+                                     JOIN product_template pt ON (pt.id=pp.product_tmpl_id)
+                                     JOIN product_category pc ON (pc.id = pt.categ_id),
+                                     product_category pc_ref
+                                    WHERE pc_ref.id = %s
+                                      AND pc.parent_left < pc_ref.parent_right
+                                      AND pc.parent_left >= pc_ref.parent_left
+                                  )
+                             """
+            params = [cid]
+        else:
+            # all products
+            product_filter = 'IS NOT NULL'
+            params = []
+
+        t = 'p' if ppt[base]['table'] == 'product_product' else 't'
+        cr.execute("""SELECT COALESCE({t}.{field}, 0), array_agg(p.id)
+                        FROM product_product p
+                        JOIN product_template t ON (t.id = p.product_tmpl_id)
+                       WHERE p.id {product_filter}
+                       GROUP BY 1
+                       ORDER BY array_length(array_agg(p.id), 1)
+                   """.format(t=t, field=ppt[base]['field'], product_filter=product_filter), params)
+        data = cr.fetchall()
+        if data:
+            price, pids = data[0]
+            # update current rule
+            cr.execute("""UPDATE product_pricelist_item
+                             SET fixed_price=%s,
+                             product_id=%s, product_tmpl_id=NULL, categ_id=NULL,
+                             applied_on='0_product_variant'
+                           WHERE id=%s
+                       """, [price, pids[0], rid])
+            pids.pop(0)
+            if not pids:
+                data.pop(0)
+
+        # copy the rest
+        for price, pids in data:
+            cr.execute("""
+                INSERT INTO product_pricelist_item({columns}, fixed_price, product_id, applied_on)
+                SELECT {i_columns}, %s, unnest(%s), '0_product_variant'
+                  FROM product_pricelist_item i
+                 WHERE i.id = %s
+                       """.format(columns=','.join(columns), i_columns=','.join(i_columns)),
+                       [price, pids, rid])
+
+    # cleanup
+    util.remove_column(cr, 'product_pricelist_item', 'name')    # now a computed field
+    util.remove_field(cr, 'product.pricelist.item', 'price_version_id')
+    util.delete_model(cr, 'product.price.type')
+    util.delete_model(cr, 'product.pricelist.type')
+    util.delete_model(cr, 'product.pricelist.version')
