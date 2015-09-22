@@ -3,9 +3,6 @@ from openerp.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    # There is a relevant xkcd for everything: https://xkcd.com/1172/
-    util.drop_workflow(cr, 'sale.order')
-
     # seems wrong, but it's not. Column name has been fixed
     cr.execute("""
         ALTER TABLE sale_order_line_invoice_rel RENAME COLUMN invoice_id TO invoice_line_id

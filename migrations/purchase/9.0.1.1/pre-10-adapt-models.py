@@ -2,9 +2,6 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    # There is a relevant xkcd for everything: https://xkcd.com/1172/
-    util.drop_workflow(cr, 'purchase.order')
-
     # Easier to let the ORM to recreate the whole table instead of droping the bunch of
     # boolean fields that have been converted to 0/1 selection fields.
     cr.execute("DROP TABLE purchase_config_settings")
