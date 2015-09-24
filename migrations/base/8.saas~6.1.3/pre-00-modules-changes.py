@@ -40,6 +40,12 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'rating', 'mail')
     util.new_module_dep(cr, 'im_livechat', 'rating')
 
+    util.new_module(cr, 'planner', auto_install_deps=('web',))
+    util.new_module_dep(cr, 'planner', 'web')
+    util.new_module(cr, 'planner_crm', auto_install_deps=('planner', 'crm'))
+    util.new_module_dep(cr, 'planner_crm', 'planner')
+    util.new_module_dep(cr, 'planner_crm', 'crm')
+
     util.merge_module(cr, 'email_template', 'mail')
 
     util.new_module(cr, 'theme_default')
