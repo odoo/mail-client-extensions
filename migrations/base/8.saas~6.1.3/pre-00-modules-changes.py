@@ -114,15 +114,7 @@ def migrate(cr, version):
     # `utm` module need a migration script to steal models from `crm` module
     # you may think this is clever hack, but I'm just an asshole that want the
     # migration script to be in a specific file instead of a method above...
-    cr.execute("""UPDATE ir_module_module
-                     SET state='to upgrade'
-                   WHERE name='utm'
-                     AND state='to install'
-               RETURNING id""")
-    if cr.rowcount:
-        # force module in `init` mode beside its state is forced to `to upgrade`
-        # see openerp/modules/loading.py:161 (in saas-6)
-        tools.config['init']['utm'] = "oh yeah!"
+    util.force_migration_of_fresh_module(cr, 'utm')
 
     util.new_module(cr, 'website_portal')
     util.new_module_dep(cr, 'website_portal', 'sale')
