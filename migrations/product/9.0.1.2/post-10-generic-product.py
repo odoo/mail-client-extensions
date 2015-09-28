@@ -11,7 +11,7 @@ def migrate(cr, version):
         cr.execute("SELECT count(1) FROM {t} WHERE product_id IS NULL".format(t=t))
         return cr.fetchone()[0]
 
-    tables = ['sale_order_line', 'purchase_order_line']
+    tables = ['sale_order_line', 'purchase_order_line', 'hr_expense_line', 'account_analytic_line']
     if any(count(t) for t in tables):
         env = util.env(cr)
         categ_id = util.ref(cr, 'product.product_category_all')
