@@ -2,6 +2,9 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    if not util.table_exists(cr, 'project_issue'):
+        # fresh install for crm_helpdesk migration
+        return
     cr.execute("UPDATE project_issue SET kanban_state='normal' WHERE kanban_state IS NULL")
 
     # categories -> tags
