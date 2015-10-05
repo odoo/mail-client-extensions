@@ -32,15 +32,10 @@ def _move_categ(cr, src_model, new_model, update_m2o):
     for o, n in cr.fetchall():
         util.replace_record_references(cr, ('crm.case.categ', o), (new_model, n))
 
-def _new_m2m(cr, old_m2m, new_m2m, col1, old_col2, new_col2, new_table):
+def _new_m2m(cr, old_m2m, new_m2m, tbl1, col1, old_col2, new_col2, new_table):
     if not util.table_exists(cr, old_m2m):
         return
-    cr.execute("""
-        CREATE TABLE {m2m}(
-            {col1} integer,
-            {col2} integer
-        )
-    """.format(m2m=new_m2m, col1=col1, col2=new_col2))
+    util.create_m2m(cr, new_m2m, tbl1, new_table, col1, new_col2)
     cr.execute("""
         INSERT INTO {new_m2m}({col1}, {new_col2})
              SELECT o.{col1}, n.id
@@ -111,10 +106,10 @@ def migrate(cr, version):
     # crm.case.categ has been split in multiple specific tables
     _move_categ(cr, 'crm.lead', 'crm.lead.tag', {})
     _new_m2m(cr, 'crm_lead_category_rel', 'crm_lead_tag_rel',
-             'lead_id', 'category_id', 'tag_id', 'crm_lead_tag')
+             'crm_lead', 'lead_id', 'category_id', 'tag_id', 'crm_lead_tag')
     # m2m from `sale_crm` module
     _new_m2m(cr, 'sale_order_category_rel', 'sale_order_tag_rel',
-             'order_id', 'category_id', 'tag_id', 'crm_lead_tag')
+             'sale_order', 'order_id', 'category_id', 'tag_id', 'crm_lead_tag')
 
     _move_categ(cr, 'crm.phonecall', 'crm.phonecall.category', {
         'crm_phonecall': 'categ_id',

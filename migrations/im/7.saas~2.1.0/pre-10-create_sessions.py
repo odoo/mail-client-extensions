@@ -6,11 +6,7 @@ def migrate(cr, version):
         return
 
     cr.execute("CREATE TABLE im_session (id SERIAL NOT NULL, create_uid integer, PRIMARY KEY(id))")
-    cr.execute("""CREATE TABLE im_session_im_user_rel(
-                    im_session_id integer,
-                    im_user_id integer
-                  )
-               """)
+    util.create_m2m(cr, "im_session_im_user_rel", "im_session", "im_user")
 
     util.create_column(cr, 'im_message', 'session_id', 'int4')
 

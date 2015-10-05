@@ -3,11 +3,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     if not util.table_exists(cr, 'account_tax_pos_order_line_rel'):
-        cr.execute("""CREATE TABLE account_tax_pos_order_line_rel(
-                        pos_order_line_id integer,
-                        account_tax_id integer
-                      )
-                   """)
+        util.create_m2m(cr, 'account_tax_pos_order_line_rel', 'pos_order_line', 'account_tax')
 
     cr.execute("""INSERT INTO account_tax_pos_order_line_rel(pos_order_line_id, account_tax_id)
                        SELECT pol.id, pt.tax_id

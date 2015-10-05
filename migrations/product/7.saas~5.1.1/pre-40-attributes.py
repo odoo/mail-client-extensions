@@ -40,11 +40,11 @@ def _create_tables(cr):
                     PRIMARY KEY(id)
                   )
                """)
-    cr.execute("""CREATE TABLE product_attribute_value_product_product_rel(
-                    att_id int, prod_id int)""")
-    cr.execute("""CREATE TABLE product_attribute_line_product_attribute_value_rel(
-                    line_id int, val_id int)""")
 
+    util.create_m2m(cr, 'product_attribute_value_product_product_rel',
+                    'product_attribute_value', 'product_product', 'att_id', 'prod_id')
+    util.create_m2m(cr, 'product_attribute_line_product_attribute_value_rel',
+                    'product_attribute_line', 'product_attribute_value', 'line_id', 'val_id')
 
 def _migrate_tables(cr):
     _create_tables(cr)

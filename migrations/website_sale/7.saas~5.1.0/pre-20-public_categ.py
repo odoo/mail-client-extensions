@@ -13,11 +13,9 @@ def migrate(cr, version):
     util.rename_xmlid(cr, 'product.categ_others', 'website_sale.categ_others')
 
     # convert field m2o => m2m
-    cr.execute("""CREATE TABLE product_public_category_product_template_rel(
-                    product_template_id int,
-                    product_public_category_id int
-                  )
-               """)
+    util.create_m2m(cr, 'product_public_category_product_template_rel',
+                    'product_template', 'product_public_category')
+
     cr.execute("""INSERT INTO product_public_category_product_template_rel(
                                                 product_template_id, product_public_category_id)
                        SELECT id, public_categ_id
