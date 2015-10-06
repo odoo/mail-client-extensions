@@ -127,6 +127,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website_hr_recruitment', 'website_form')
 
     util.new_module_dep(cr, 'website_links', 'link_tracker')
+    util.force_migration_of_fresh_module(cr, 'link_tracker')
 
     # in saas-6, the website part was directly in mass_mailing module
     util.new_module(cr, 'website_mass_mailing', auto_install_deps=('mass_mailing',))
