@@ -2,7 +2,8 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.delete_model(cr, 'project.task.work')
+    if not util.module_installed(cr, 'project_timesheet'):
+        util.delete_model(cr, 'project.task.work')
     util.delete_model(cr, 'project.task.delegate')
     cr.execute("DROP VIEW IF EXISTS report_project_task_user")
 
