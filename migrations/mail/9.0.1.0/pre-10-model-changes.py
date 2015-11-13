@@ -50,6 +50,8 @@ def migrate(cr, version):
     cr.execute("UPDATE mail_message SET type='email' WHERE type IS NULL AND message_id IS NOT NULL")
     cr.execute("UPDATE mail_message SET type='comment' WHERE type IS NULL")
 
+    util.update_field_references(cr, 'message_follower_ids', 'message_partner_ids')
+
     util.rename_model(cr, 'mail.group', 'mail.channel')
     cr.execute(
         'ALTER TABLE mail_group_res_group_rel RENAME COLUMN mail_group_id TO mail_channel_id')

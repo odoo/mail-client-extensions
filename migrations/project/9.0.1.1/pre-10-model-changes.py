@@ -30,6 +30,8 @@ def migrate(cr, version):
                     RENAME TO project_tags_project_task_rel""")
     cr.execute("""ALTER TABLE project_tags_project_task_rel
                 RENAME COLUMN project_category_id TO project_tags_id""")
+    util.update_field_references(cr, 'categ_ids', 'tag_ids',
+                                 only_models=('project.project', 'project.task'))
 
     # force recreate columns of config wizard
     cr.execute("DROP TABLE project_config_settings")

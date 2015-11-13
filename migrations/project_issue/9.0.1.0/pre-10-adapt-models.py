@@ -12,6 +12,8 @@ def migrate(cr, version):
                     RENAME TO project_issue_project_tags_rel""")
     cr.execute("""ALTER TABLE project_issue_project_tags_rel
                 RENAME COLUMN project_category_id TO project_tags_id""")
+    util.update_field_references(cr, 'categ_ids', 'tag_ids',
+                                 only_models=('project.issue',))
 
     cr.execute("""
         INSERT INTO project_tags(name)
