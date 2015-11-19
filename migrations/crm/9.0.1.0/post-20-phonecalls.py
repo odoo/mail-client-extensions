@@ -24,7 +24,7 @@ def migrate(cr, version):
 
 Your phonecalls have been converted to comments on the related lead/opportunities.
 If you are using these phonecalls as a call center, you may want to install the [VOIP](/web#id=%d&view_type=form&model=ir.module.module) Application.
-[Contact us](mailto:online@odoo.com) if you want to avoid the convertion to comments.
+[Contact us](mailto:online@odoo.com) if you want to avoid the conversion to comments.
 """ % voip_id
 
         util.announce(cr, '9.0', message, format='md', header=None)
