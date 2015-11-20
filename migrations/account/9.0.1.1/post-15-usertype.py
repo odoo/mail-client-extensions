@@ -72,6 +72,11 @@ def migrate(cr, version):
     cr.execute("""DELETE FROM account_account_type
         WHERE id NOT IN %s
         """, (tuple(types_to_keep),))
+    cr.execute("""DELETE FROM ir_model_data
+        WHERE
+            res_id NOT IN %s
+            AND model = 'account.account.type'
+        """, (tuple(types_to_keep),))
 
     """
         Compute related field internal_type
