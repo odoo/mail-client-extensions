@@ -46,11 +46,20 @@ def migrate(cr, version):
         SET amount = 100 * amount
         """)
 
+    cr.execute("""UPDATE account_tax
+                    SET type_tax_use = 'none'
+                    WHERE parent_id IS NOT NULL""")
+
+    cr.execute("""UPDATE account_tax
+                    SET type = 'group',
+                        amount = '0'
+                    WHERE id IN (SELECT DISTINCT(t.parent_id) FROM account_tax t where t.parent_id is not null)""")
+
     util.create_m2m(cr, 'account_tax_filiation_rel',
                     'account_tax', 'account_tax', 'parent_tax', 'child_tax')
 
-    cr.execute("""INSERT INTO account_tax_filiation_rel
-        SELECT id, parent_id
+    cr.execute("""INSERT INTO account_tax_filiation_rel(parent_tax, child_tax)
+        SELECT parent_id, id
         FROM account_tax
         WHERE parent_id IS NOT NULL
         """)
