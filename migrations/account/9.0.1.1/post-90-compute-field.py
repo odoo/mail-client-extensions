@@ -48,7 +48,7 @@ def migrate(cr, version):
                     WHERE c.id = inv.company_id and c.currency_id != inv.currency_id
                 """)
     inv_ids = [row[0] for row in cr.fetchall()]
-    invoices = env['account.invoice'].browse(ids)
+    invoices = env['account.invoice'].browse(inv_ids)
     for name in ('amount_total_company_signed', 'amount_total_signed', 'amount_untaxed_signed'):
         field = invoices._fields[name]
         invoices._recompute_todo(field)
