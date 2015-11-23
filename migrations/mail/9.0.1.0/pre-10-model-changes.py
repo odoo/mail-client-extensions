@@ -45,6 +45,7 @@ def migrate(cr, version):
     util.remove_view(cr, 'mail.view_users_form_mail')
 
     util.force_noupdate(cr, 'mail.mail_followers_read_write_others', False)
+    util.force_noupdate(cr, 'mail.mail_followers_read_write_own', False)
 
     util.drop_depending_views(cr, 'mail_message', 'model')
     cr.execute("UPDATE mail_message SET type='email' WHERE type IS NULL AND message_id IS NOT NULL")
