@@ -72,7 +72,7 @@ def migrate(cr, version):
         move_obj.write(cr, SUPERUSER_ID, related_moves, {'group_id': group_id})
 
         t2 = datetime.datetime.now()
-        if (t2 - t1).total_seconds() > 60:
+        if index and (t2 - t1).total_seconds() > 60:
             t1 = datetime.datetime.now()
             _logger.info(
                 "[%.02f%%] %d/%d sale order lines processed in %s "
