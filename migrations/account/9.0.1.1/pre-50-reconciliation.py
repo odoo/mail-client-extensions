@@ -143,3 +143,11 @@ def migrate(cr, version):
     # After having filled the new table, execute an analyze on it to increase performance for further query
     # (lot of computed field use this table)
     cr.execute("""ANALYZE account_partial_reconcile""")
+
+    #Rename table account.statement.operation.template to account.operation.template
+
+    util.rename_model(cr, 'account.statement.operation.template', 'account.operation.template')
+    cr.execute("""UPDATE account_operation_template
+                    SET amount_type = 'percentage'
+                    WHERE amount_type in ('percentage_of_total', 'percentage_of_balance')
+                """)
