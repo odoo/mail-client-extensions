@@ -7,8 +7,12 @@ def migrate(cr, version):
 
     for prop in ['input', 'output']:
         util.rename_field(cr, 'product.category',
-                        'property_stock_account_%s_categ' % prop,
-                        'property_stock_account_%s_categ_id' % prop)
+                          'property_stock_account_%s_categ' % prop,
+                          'property_stock_account_%s_categ_id' % prop)
+        util.rename_xmlid(cr,
+                          'stock_account.property_stock_account_%s_categ' % prop,
+                          'stock_account.property_stock_account_%s_categ_id' % prop
+                          )
 
     util.create_column(cr, 'stock_inventory', 'accounting_date', 'timestamp without time zone')
     cr.execute("""
