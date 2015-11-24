@@ -13,7 +13,13 @@ def migrate(cr, version):
             cr.execute("""INSERT into account_journal_inbound_payment_method_rel(journal_id, inbound_payment_method)
                             VALUES (%s, %s)
                         """, (record['journal_id'], record['payment_method_id']))
+            cr.execute("""UPDATE account_journal
+                            SET at_least_one_inbound = %s
+                            WHERE id = %s""", (True, record['journal_id']))
         else:
             cr.execute("""INSERT into account_journal_outbound_payment_method_rel(journal_id, outbound_payment_method)
                             VALUES (%s, %s)
                         """, (record['journal_id'], record['payment_method_id']))
+            cr.execute("""UPDATE account_journal
+                            SET at_least_one_outbound = %s
+                            WHERE id = %s""", (True, record['journal_id']))
