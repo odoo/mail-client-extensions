@@ -20,7 +20,7 @@ def migrate(cr, version):
 
     env = util.env(cr)
 
-    for parent_tax in env['account.tax'].search([]):
+    for parent_tax in env['account.tax'].search([('amount_type', '=', 'group')]):
         childs = parent_tax.children_tax_ids.filtered(lambda t: t.active)
         if len(childs) == 1:
             parent_tax.amount_type = 'percent'
