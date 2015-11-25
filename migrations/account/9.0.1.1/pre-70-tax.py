@@ -6,6 +6,11 @@ def migrate(cr, version):
     """
         Migrate account.tax
     """
+    cr.execute("""UPDATE account_tax
+        SET type_tax_use = 'none'
+        WHERE id IN (SELECT DISTINCT(t.id) FROM account_tax t WHERE t.parent_id IS NOT NULL)
+        """)
+
     cr.execute("""INSERT INTO account_tax (name, sequence, amount, active, type, account_collected_id, account_paid_id, include_base_amount, company_id, description, price_include, applicable_type, python_compute, python_applicable, type_tax_use)
         SELECT name || ' purchase', sequence, amount, active, type, account_collected_id, account_paid_id, include_base_amount, company_id, description, price_include, applicable_type, python_compute, python_applicable, 'purchase'
         FROM account_tax
