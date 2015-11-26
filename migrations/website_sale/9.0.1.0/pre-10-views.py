@@ -2,5 +2,6 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.force_noupdate(cr, 'website_sale.cart', False)
-    util.force_noupdate(cr, 'website_sale.total', False)
+    views = "cart total product_item product extra_info reduction_code checkout payment".split()
+    for v in views:
+        util.force_noupdate(cr, 'website_sale.' + v, False)
