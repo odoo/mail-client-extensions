@@ -27,6 +27,7 @@ def migrate(cr, version):
     util.new_module(cr, 'account_bank_statement_import_qif')
     util.new_module_dep(cr, 'account_bank_statement_import_qif', 'account_bank_statement_import')
     util.new_module_dep(cr, 'l10n_be_coda', 'account_bank_statement_import')
+    util.new_module_dep(cr, 'analytic', 'report')
 
     util.new_module(cr, 'barcodes')
     util.new_module_dep(cr, 'barcodes', 'web')
