@@ -8,6 +8,8 @@ def migrate(cr, version):
     )
     product_id = product.id or None
 
+    util.rename_field(cr, 'product.template', 'hr_expense_ok', 'can_be_expensed')
+
     util.rename_field(cr, 'hr.expense.line', 'date_value', 'date')
     util.rename_field(cr, 'hr.expense.line', 'analytic_account', 'analytic_account_id')
     util.rename_field(cr, 'hr.expense.line', 'uom_id', 'product_uom_id')
