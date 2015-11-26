@@ -49,10 +49,6 @@ def migrate(cr, version):
         """)
 
     cr.execute("""UPDATE account_tax
-                    SET type_tax_use = 'none'
-                    WHERE parent_id IS NOT NULL""")
-
-    cr.execute("""UPDATE account_tax
                     SET type = 'group',
                         amount = '0'
                     WHERE id IN (SELECT DISTINCT(t.parent_id) FROM account_tax t where t.parent_id is not null)""")
