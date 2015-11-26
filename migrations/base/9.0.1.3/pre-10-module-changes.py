@@ -41,6 +41,9 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'crm', 'web_planner')  # TODO move data from delete module planner_crm
 
+    util.remove_module_deps(cr, 'event_sale', ('sale_crm',))
+    util.new_module_dep(cr, 'event_sale', 'sale')
+
     util.new_module_dep(cr, 'hr', 'web_kanban')
     util.new_module_dep(cr, 'hr_expense', 'hr_contract')
     util.new_module_dep(cr, 'hr_recruitment', 'document')
