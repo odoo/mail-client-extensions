@@ -14,6 +14,12 @@ def migrate(cr, version):
                """)
     cr.execute("UPDATE project_project SET state='cancelled' WHERE state='template'")
     util.create_column(cr, 'project_project', 'user_id', 'int4')
+    cr.execute("""
+        UPDATE project_project
+        SET user_id = a.user_id
+        FROM account_analytic_account a
+        WHERE analytic_account_id = a.id""")
+
     for c in 'planned_hours effective_hours total_hours progress_rate'.split():
         util.remove_field(cr, 'project.project', c)
 
