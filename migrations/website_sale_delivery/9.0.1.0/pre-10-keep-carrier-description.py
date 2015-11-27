@@ -11,4 +11,4 @@ def migrate(cr, version):
            AND t.description_sale IS NULL
            AND c.website_description IS NOT NULL
     """)
-    util.remove_columns(cr, 'delivery_carrier', 'website_description')
+    util.remove_column(cr, 'delivery_carrier', 'website_description')
