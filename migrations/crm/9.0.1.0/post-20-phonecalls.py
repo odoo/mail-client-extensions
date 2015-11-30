@@ -97,9 +97,7 @@ If you are using these phonecalls as a call center, you may want to install the 
         INSERT INTO mail_message(model, res_id, date, message_type, body, subtype_id)
         SELECT 'crm.lead', opportunity_id, date, 'comment',
                concat('Phonecall (',
-                      replace(format('%%2s', trunc(duration)::varchar), ' ', '0'),
-                      ':',
-                      coalesce(lpad(trunc(60 * (duration::decimal %% 1))::varchar, 2, '0'), '00'),
+                      to_char(to_timestamp((coalesce(duration, 0)) * 60), 'MI:SS'),
                       ' min): ',
                       name),
                %s
