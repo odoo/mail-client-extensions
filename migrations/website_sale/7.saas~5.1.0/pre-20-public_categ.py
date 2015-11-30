@@ -19,7 +19,7 @@ def migrate(cr, version):
     cr.execute("""INSERT INTO product_public_category_product_template_rel(
                                                 product_template_id, product_public_category_id)
                        SELECT id, public_categ_id
-                         FROM product_template
+                         FROM product_template WHERE public_categ_id IS NOT NULL
                """)
     # note: do not remove field public_categ_id, `point_of_sale` migration script will need it
     # util.remove_field(cr, 'product.template', 'public_categ_id')
