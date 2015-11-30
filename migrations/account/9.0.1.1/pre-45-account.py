@@ -6,5 +6,5 @@ def migrate(cr, version):
     util.create_column(cr, 'account_account', 'deprecated', 'boolean')
 
     cr.execute("""UPDATE account_account
-        SET deprecated = NOT active
+        SET deprecated = CASE WHEN type = 'closed' THEN true ELSE NOT active END
         """)
