@@ -282,6 +282,8 @@ def migrate(cr, version):
     registry = RegistryManager.get(cr.dbname)
     ignore_sanitize_moves = registry['ir.config_parameter'].get_param(
         cr, SUPERUSER_ID, 'migration_ignore_sanitize_moves')
+    ignore_sanitize_check = registry['ir.config_parameter'].get_param(
+        cr, SUPERUSER_ID, 'migration_ignore_sanitize_check')
 
     # fix moves
     if not ignore_sanitize_moves:
@@ -294,7 +296,7 @@ def migrate(cr, version):
 
     # allow 1.5% of error, maybe we should increase
     # if less than 50 moves in the database, accept all changes...
-    if moves_count > 50 and (float(fixed_moves) / float(moves_count)) > 0.015:
+    if not ignore_sanitize_check and moves_count > 50 and (float(fixed_moves) / float(moves_count)) > 0.015:
         raise util.MigrationError(
             "There is probably something wrong with the stock moves of the "
             "databases. Bad stock moves: %d/%d (%.01f%%)"
