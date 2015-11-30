@@ -9,6 +9,7 @@ def migrate(cr, version):
     util.remove_view(cr, 'purchase.view_purchase_config')
     util.remove_view(cr, 'purchase.purchase_order_2_stock_picking')
     util.remove_view(cr, 'purchase.view_product_normal_purchase_buttons_from')
+    util.remove_view(cr, 'purchase.purchase_order_line_form')
     
     # po_line tax relation table uses the standard table & columns names from now on
     cr.execute("""
