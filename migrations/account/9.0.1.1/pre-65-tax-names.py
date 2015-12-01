@@ -4,7 +4,7 @@
 def migrate(cr, version):
 
     cr.execute("""ALTER TABLE account_tax
-        DROP CONSTRAINT account_tax_name_company_uniq
+        DROP CONSTRAINT IF EXISTS account_tax_name_company_uniq
         """)
 
     mapping_table = [
