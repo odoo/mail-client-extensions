@@ -175,6 +175,16 @@ def migrate(cr, version):
             util.new_module(cr, 'l10n_' + l10n + '_reports', auto_install_deps=('l10n_' + l10n,))
             util.new_module_dep(cr, 'l10n_%s_reports' % l10n, 'l10n_' + l10n)
 
+        util.new_module(cr, 'currency_rate_live', auto_install_deps=('accounts',))
+        util.new_module_dep(cr, 'currency_rate_live', 'account')
+
+        util.new_module(cr, 'hr_holidays_gantt', auto_install_deps=('hr_holidays', 'web_gantt'))
+        util.new_module_dep(cr, 'hr_holidays_gantt', 'hr_holidays')
+        util.new_module_dep(cr, 'hr_holidays_gantt', 'web_gantt')
+
+        util.new_module(cr, 'website_enterprise', auto_install_deps=('website',))
+        util.new_module_dep(cr, 'website_enterprise', 'website')
+
     # some cleanup
     removed_modules = util.splitlines("""
         # salespocalypse
