@@ -121,6 +121,8 @@ def migrate(cr, version):
                    """, (tmpl_id, att_id))
         [line_id] = cr.fetchone()
 
+        attribute_value_ids_added_to_line = []
+
         for (product_id, price, variant) in attrs:
             if not variant:
                 variant = "/"   # wtf?
@@ -142,6 +144,10 @@ def migrate(cr, version):
             cr.execute("""INSERT INTO product_attribute_value_product_product_rel(att_id, prod_id)
                                VALUES (%s, %s)
                        """, (value_id, product_id))
-            cr.execute("""INSERT INTO product_attribute_line_product_attribute_value_rel(line_id, val_id)
-                                VALUES (%s, %s)
-                       """, (line_id, value_id))
+
+            if value_id not in attribute_value_ids_added_to_line:
+                cr.execute("""INSERT INTO product_attribute_line_product_attribute_value_rel(line_id, val_id)
+                                   VALUES (%s, %s)
+                           """, (line_id, value_id))
+
+                attribute_value_ids_added_to_line.append(value_id)
