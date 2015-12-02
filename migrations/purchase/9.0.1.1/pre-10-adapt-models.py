@@ -10,7 +10,7 @@ def migrate(cr, version):
     util.remove_view(cr, 'purchase.purchase_order_2_stock_picking')
     util.remove_view(cr, 'purchase.view_product_normal_purchase_buttons_from')
     util.remove_view(cr, 'purchase.purchase_order_line_form')
-    
+
     # po_line tax relation table uses the standard table & columns names from now on
     cr.execute("""
         ALTER TABLE purchase_order_taxe RENAME COLUMN ord_id TO purchase_order_line_id
@@ -35,3 +35,15 @@ def migrate(cr, version):
     # I'll do the migration as intended since we'll fix this is saas-7 (probably)
     # and we might be happy to have kept this info
     cr.execute("UPDATE purchase_order_line SET state=po.state FROM purchase_order AS po WHERE po.id=order_id")  # field is now related
+
+    # deassociate invoice lines from purchase order line with differents uoms
+    # if uoms are differents, the stored computed field `qty_invoiced` cannot be computed.
+    cr.execute("""UPDATE account_invoice_line i
+                     SET purchase_line_id = NULL
+                    FROM purchase_order_line o
+                   WHERE o.id = i.purchase_line_id
+                     AND i.uos_id != o.product_uom
+               """)
+
+    # remove old m2m between purchase_order_line and account_invoice_line
+    cr.execute("DROP TABLE IF EXISTS purchase_order_line_invoice_rel")
