@@ -42,7 +42,7 @@ def migrate(cr, version):
                      SET purchase_line_id = NULL
                     FROM purchase_order_line o
                    WHERE o.id = i.purchase_line_id
-                     AND i.uos_id != o.product_uom
+                     AND i.uom_id != o.product_uom
                """)
 
     # remove old m2m between purchase_order_line and account_invoice_line
