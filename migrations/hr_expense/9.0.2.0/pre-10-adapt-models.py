@@ -66,6 +66,12 @@ def migrate(cr, version):
             """.format(**locals()))
 
     util.remove_column(cr, 'hr_expense_line', 'expense_id')
+
+    # drop obsolete record rules - force re-creation
+    util.remove_record(cr, 'hr_expense.property_rule_expense_manager')
+    util.remove_record(cr, 'hr_expense.property_rule_expense_employee')
+    util.remove_record(cr, 'hr_expense.hr_expense_comp_rule')
+
     util.delete_model(cr, 'hr.expense.expense')
     util.rename_model(cr, 'hr.expense.line', 'hr.expense')
 
