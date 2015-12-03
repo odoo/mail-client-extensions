@@ -87,6 +87,7 @@ def _db_openerp(cr, version):
         bad.getparent().remove(bad)
 
     cr.execute("DELETE FROM ir_filters WHERE id=11151")
+    cr.execute("DELETE FROM ir_rule WHERE id=260")
     # FORGOT HISTORY
     cr.execute("TRUNCATE im_chat_message")
 
