@@ -50,16 +50,17 @@ def migrate(cr, version):
     for dest_model, res_model, res_id in util.res_model_res_id(cr):
         if dest_model == 'ir.actions.act_window' or dest_model.startswith('ir.model'):
             continue
+        table = util.table_of_model(cr, dest_model)
         if not res_id:
             cr.execute("UPDATE {0} SET {1}='hr.expense' WHERE {1}='hr.expense.expense'"
-                       .format(dest_model, res_model))
+                       .format(table, res_model))
         else:
-            cols, o_cols = map(', '.join, util.get_columns(cr, dest_model,
+            cols, o_cols = map(', '.join, util.get_columns(cr, table,
                                                            ('id', res_model, res_id), ['o']))
             cr.execute("""
-                INSERT INTO {dest_model} ({res_model}, {res_id}, {cols})
+                INSERT INTO {table} ({res_model}, {res_id}, {cols})
                 SELECT 'hr.expense', l.id, {o_cols}
-                  FROM {dest_model} o, hr_expense_line l
+                  FROM {table} o, hr_expense_line l
                  WHERE o.{res_model} = 'hr.expense.expense'
                    AND o.{res_id} = l.expense_id
             """.format(**locals()))
