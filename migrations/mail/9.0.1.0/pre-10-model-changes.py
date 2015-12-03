@@ -36,6 +36,7 @@ def migrate(cr, version):
     removes = util.splitlines("""
         mail_group_public_and_joined
         mail_followers_read_write_others
+        mail_followers_read_write_own
         mail_message_read_partner_or_author
         action_client_messaging_menu
     """)
@@ -43,9 +44,6 @@ def migrate(cr, version):
         util.remove_record(cr, 'mail.' + rem)
 
     util.remove_view(cr, 'mail.view_users_form_mail')
-
-    util.force_noupdate(cr, 'mail.mail_followers_read_write_others', False)
-    util.force_noupdate(cr, 'mail.mail_followers_read_write_own', False)
 
     util.drop_depending_views(cr, 'mail_message', 'model')
     cr.execute("UPDATE mail_message SET type='email' WHERE type IS NULL AND message_id IS NOT NULL")
