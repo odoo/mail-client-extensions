@@ -15,7 +15,8 @@ def migrate(cr, version):
 
     cr.execute("""UPDATE account_tax
         SET active = false
-        WHERE amount = 0 AND amount_type = 'percent' AND id in (SELECT child_tax from account_tax_filiation_rel where parent_tax IS NOT NULL)
+        WHERE amount = 0 AND amount_type = 'percent' AND id in 
+            (SELECT child_tax from account_tax_filiation_rel where parent_tax IS NOT NULL)
         """)
 
     env = util.env(cr)
@@ -29,3 +30,23 @@ def migrate(cr, version):
         if len(childs) == 0:
             parent_tax.amount_type = 'percent'
             parent_tax.amount = 0
+
+    # Since we moved some tax to their parent and set them as inactive, we need to change those on the account_move_line for
+    # The field tax_line_id and tax_line_ids
+    cr.execute("""UPDATE account_move_line aml
+                    SET tax_line_id = tax.parent_id
+                    FROM account_tax tax
+                    WHERE tax.id = aml.tax_line_id 
+                        AND tax.active = false 
+                        AND tax.amount_type = 'percent' 
+                        AND tax.parent_id IS NOT NULL
+                """)
+
+    cr.execute("""UPDATE account_move_line_account_tax_rel a
+                    SET account_tax_id = tax.parent_id
+                    FROM account_tax tax
+                    WHERE tax.id = a.account_tax_id 
+                        AND tax.active = false 
+                        AND tax.amount_type = 'percent' 
+                        AND tax.parent_id IS NOT NULL
+                """)
