@@ -45,31 +45,24 @@ def migrate(cr, version):
          WHERE e.id = l.expense_id
     """, [product_id])
 
-    cr.execute("""
-        INSERT INTO mail_followers (res_model, res_id, partner_id)
-        SELECT 'hr.expense.line', l.id, f.partner_id
-          FROM mail_followers f, hr_expense_line l
-         WHERE f.res_model = 'hr.expense.expense'
-           AND f.res_id = l.expense_id
-    """)
-
-    cols, m_cols = map(', '.join, util.get_columns(cr, 'mail_message',
-                                                   ('id', 'model', 'res_id'), ['m']))
-
-    cr.execute("""
-        INSERT INTO mail_message (model, res_id, {cols})
-        SELECT 'hr.expense.line', l.id, {m_cols}
-          FROM mail_message m, hr_expense_line l
-         WHERE m.model = 'hr.expense.expense'
-           AND m.res_id = l.expense_id
-    """.format(cols=cols, m_cols=m_cols))
-
     util.drop_workflow(cr, 'hr.expense.expense')
 
-    cr.execute("""UPDATE mail_message_subtype
-                     SET res_model='hr.expense'
-                   WHERE res_model='hr.expense.expense'
-               """)
+    for dest_model, res_model, res_id in util.res_model_res_id(cr):
+        if dest_model == 'ir.actions.act_window' or dest_model.startswith('ir.model'):
+            continue
+        if not res_id:
+            cr.execute("UPDATE {0} SET {1}='hr.expense' WHERE {1}='hr.expense.expense'"
+                       .format(dest_model, res_model))
+        else:
+            cols, o_cols = map(', '.join, util.get_columns(cr, dest_model,
+                                                           ('id', res_model, res_id), ['o']))
+            cr.execute("""
+                INSERT INTO {dest_model} ({res_model}, {res_id}, {cols})
+                SELECT 'hr.expense', l.id, {o_cols}
+                  FROM {dest_model} o, hr_expense_line l
+                 WHERE o.{res_model} = 'hr.expense.expense'
+                   AND o.{res_id} = l.expense_id
+            """.format(**locals()))
 
     util.remove_column(cr, 'hr_expense_line', 'expense_id')
     util.delete_model(cr, 'hr.expense.expense')
