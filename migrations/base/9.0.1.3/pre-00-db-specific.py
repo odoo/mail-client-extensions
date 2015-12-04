@@ -91,6 +91,11 @@ def _db_openerp(cr, version):
     # FORGOT HISTORY
     cr.execute("TRUNCATE im_chat_message")
 
+    # fix some custom server actions
+    cr.execute("UPDATE ir_act_server SET code=replace(code, 'message.type', 'message.message_type') WHERE id in (2265, 2378)")
+    cr.execute("UPDATE ir_act_server SET code=replace(code, 'type', 'message_type') WHERE id=2278")
+
+
 def _andrew(cr, version):
     # remove views inheriting deprecated view:
     views = (
