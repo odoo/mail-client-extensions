@@ -30,15 +30,6 @@ def convert(cr, model, field):
     util.remove_column(cr, table, field)
 
 def migrate(cr, version):
-    if version != 'force':
-        cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('database.uuid',))
-        [uuid] = cr.fetchone()
-        if uuid in util.splitlines("""
-            05a64ced-5b98-488d-a833-a994f9b1dd80    # test
-            8851207e-1ff9-11e0-a147-001cc0f2115e    # prod
-        """):
-            _logger.info("Skip!")
-            return
 
     convert(cr, 'ir.ui.menu', 'web_icon_data')
     convert(cr, 'res.country', 'image')
