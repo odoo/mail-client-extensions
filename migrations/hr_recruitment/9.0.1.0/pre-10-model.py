@@ -9,7 +9,7 @@ def migrate(cr, version):
         INSERT INTO job_stage_rel(job_id, stage_id)
         SELECT j.id, s.id
           FROM hr_job j
-          JOIN hr_recruitment_stage s ON (s.department_id = j.department_id)
+          JOIN hr_recruitment_stage s ON (s.department_id = j.department_id OR s.department_id IS NULL)
     """)
 
     # keep stages in case they are actually used
