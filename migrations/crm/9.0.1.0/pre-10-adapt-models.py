@@ -8,6 +8,15 @@ def migrate(cr, version):
     util.create_column(cr, 'res_users', 'target_sales_done', 'int4')
     util.create_column(cr, 'res_users', 'target_sales_won', 'int4')
 
+    # link default stages
+    cr.execute("""
+        INSERT INTO crm_team_stage_rel(stage_id, team_id)
+        SELECT s.id, t.id
+          FROM crm_stage s, crm_team t
+         WHERE s.case_default = true
+           AND NOT EXISTS(SELECT 1 FROM crm_team_stage_rel WHERE stage_id=s.id AND team_id=t.id)
+    """)
+
     # rename some xmlids
     cr.execute("""
         DELETE FROM ir_model_data

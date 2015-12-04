@@ -25,6 +25,15 @@ def migrate(cr, version):
 
     cr.execute("DROP TABLE project_user_rel")   # old m2m
 
+    # link default stages
+    cr.execute("""
+        INSERT INTO project_task_type_rel(type_id, project_id)
+        SELECT t.id, p.id
+          FROM project_task_type t, project_project p
+         WHERE t.case_default = true
+           AND NOT EXISTS(SELECT 1 FROM project_task_type_rel WHERE type_id=t.id AND project_id=p.id)
+    """)
+
     # tasks
     cr.execute("UPDATE project_task SET kanban_state='normal' WHERE kanban_state IS NULL")
     for c in 'effective_hours total_hours delay_hours progress'.split():
