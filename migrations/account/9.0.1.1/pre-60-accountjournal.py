@@ -116,6 +116,8 @@ def migrate(cr, version):
 
     # We also have to create a dedicated refund_sequence_id for all the sale/purchase journal that does not have one after migration
     # This is to prevent numerotation error in their invoices in case they do not use a dedicated refund_sequence
+    cr.execute("""SELECT id FROM account_journal WHERE type IN ('sale', 'purchase') AND refund_sequence_id IS NULL""")
+    list_journals = cr.dictfetchall()
     for journal in list_journals:
         seq_id = create_sequence(cr, journal, True)
         cr.execute("""UPDATE account_journal SET 
