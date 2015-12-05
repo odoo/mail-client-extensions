@@ -12,16 +12,15 @@ def clean(cr, table, model_col='res_model', id_col='res_id'):
         adj = ''
         target_table = util.table_of_model(cr, model)
         if util.table_exists(cr, target_table):
-            cr.execute("""
-                WITH not_there AS (
-                    SELECT t.id
-                      FROM {table} t
-                 LEFT JOIN {target_table} g ON (g.id=t.{id_col})
-                     WHERE t.{model_col}=%s
-                       AND g.id IS NULL
-                )
-                DELETE FROM {table} t USING not_there n WHERE t.id = n.id
-            """.format(**locals()), [model])
+            query = """
+                DELETE FROM {table} t
+                      WHERE t.{model_col}=%s
+                      AND NOT EXISTS(
+                        SELECT 1 FROM {target_table} g
+                                WHERE g.id=t.{id_col});
+            """
+            cr.execute(query.format(**locals()), [model])
+
         else:
             adj = ' unexisting'
             cr.execute("DELETE FROM {table} WHERE {model_col}=%s".format(**locals()), [model])
