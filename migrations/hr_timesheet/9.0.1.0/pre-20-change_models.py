@@ -20,8 +20,9 @@ def migrate(cr, version):
     for model, res_model, res_id in util.res_model_res_id(cr):
         if res_id and model != 'ir.values':
             continue
+        table = util.table_of_model(cr, model)
         cr.execute("UPDATE {0} SET {1}='account.analytic.line' WHERE {1}='hr.analytic.timesheet'"
-                   .format(model, res_model))
+                   .format(table, res_model))
 
     # only on real many2one that may be changes
     if util.column_exists(cr, 'base_action_rule', 'model_id'):
