@@ -18,7 +18,7 @@ def migrate(cr, version):
     #                                   ('account.analytic.line', lid))
 
     for model, res_model, res_id in util.res_model_res_id(cr):
-        if res_id and model != 'ir.values':
+        if (res_id and model != 'ir.values') or model.startswith('ir.model'):
             continue
         table = util.table_of_model(cr, model)
         cr.execute("UPDATE {0} SET {1}='account.analytic.line' WHERE {1}='hr.analytic.timesheet'"
