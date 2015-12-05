@@ -35,6 +35,9 @@ def migrate(cr, version):
         aal, hat = [x[0] for x in cr.fetchall()]
         cr.execute("UPDATE base_action_rule SET model_id=%s WHERE model_id=%s", [aal, hat])
 
-    util.delete_model(cr, 'hr.analytic.timesheet')
+    # can't delete it here - project_timesheet and project_issue_sheet both require the data
+    # during migration
+    #util.delete_model(cr, 'hr.analytic.timesheet')
+
     util.delete_model(cr, 'hr.sign.out.project')
     util.delete_model(cr, 'hr.sign.in.project')
