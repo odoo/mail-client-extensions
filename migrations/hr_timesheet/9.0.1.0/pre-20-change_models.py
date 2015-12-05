@@ -10,11 +10,12 @@ def migrate(cr, version):
            SET is_timesheet = EXISTS(SELECT 1 FROM hr_analytic_timesheet WHERE line_id=l.id)
     """)
 
-    cr.execute("SELECT id, line_id FROM hr_analytic_timesheet")
-    for tid, lid in cr.fetchall():
-        util.replace_record_references(cr,
-                                       ('hr.analytic.timesheet', tid),
-                                       ('account.analytic.line', lid))
+    # flabgastingly slow and useless - disabled
+    #cr.execute("SELECT id, line_id FROM hr_analytic_timesheet")
+    #for tid, lid in cr.fetchall():
+    #    util.replace_record_references(cr,
+    #                                   ('hr.analytic.timesheet', tid),
+    #                                   ('account.analytic.line', lid))
 
     for model, res_model, res_id in util.res_model_res_id(cr):
         if res_id and model != 'ir.values':
