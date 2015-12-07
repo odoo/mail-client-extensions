@@ -5,9 +5,8 @@ def migrate(cr, version):
 
     cr.execute("DROP VIEW IF EXISTS im_livechat_report")
 
+    util.remove_record(cr, 'im_livechat.action_client_livechat_menu')
     renames = {
-        'action_client_livechat_menu': ('ir_action_client_open_livechat_menu', True),
-
         'im_livechat_rating_0': ('mail_shortcode_rating_0', False),
         'im_livechat_rating_5': ('mail_shortcode_rating_5', False),
         'im_livechat_rating_10': ('mail_shortcode_rating_10', False),
