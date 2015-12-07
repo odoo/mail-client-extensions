@@ -103,12 +103,10 @@ def migrate(cr, version):
     util.create_m2m(cr, 'mail_message_res_partner_starred_rel', 'mail_message', 'res_partner')
     cr.execute("""
         INSERT INTO mail_message_res_partner_starred_rel(mail_message_id, res_partner_id)
-             SELECT m.id, n.partner_id
-               FROM mail_message m
-               JOIN mail_notification n
-                 ON n.message_id = m.id
-              WHERE n.starred = true
-           GROUP BY m.id, n.partner_id
+             SELECT message_id, partner_id
+               FROM mail_notification
+              WHERE starred = true
+           GROUP BY message_id, partner_id
     """)
     util.create_m2m(cr, 'mail_message_res_partner_needaction_rel', 'mail_message', 'res_partner')
     cr.execute("""
@@ -118,6 +116,7 @@ def migrate(cr, version):
                JOIN mail_notification n
                  ON n.message_id = m.id
               WHERE n.is_read = false
+                AND m.model != 'mail.channel'
            GROUP BY m.id, n.partner_id
     """)
 
