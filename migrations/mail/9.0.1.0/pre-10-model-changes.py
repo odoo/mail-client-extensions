@@ -61,6 +61,9 @@ def migrate(cr, version):
     for chan, in cr.fetchall():
         cr.execute('UPDATE mail_channel SET "uuid"=%s WHERE id=%s', [str(uuid4()), chan])
 
+    util.create_column(cr, 'mail_channel', 'email_send', 'boolean')
+    cr.execute("UPDATE mail_channel SET email_send=true")
+
     cr.execute("DELETE FROM ir_ui_menu WHERE id IN (SELECT menu_id FROM mail_channel)")
     cr.execute("ALTER TABLE mail_channel DROP COLUMN menu_id")
 
