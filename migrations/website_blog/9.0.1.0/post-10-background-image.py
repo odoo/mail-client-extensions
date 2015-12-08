@@ -6,7 +6,7 @@ def migrate(cr, version):
     # /website/image is not a valid route anymore
     cr.execute("""
         UPDATE blog_post
-           SET cover_properties = concat('{"resize_class": "cover cover-full", "background-color": "oe_none", "background-image": "', encode(background_image, 'escape'), '"}')
+           SET cover_properties = concat('{"resize_class": "cover cover-full", "background-color": "oe_none", "background-image": "url(', encode(background_image, 'escape'), ')"}')
          WHERE background_image IS NOT NULL
     """)
 
