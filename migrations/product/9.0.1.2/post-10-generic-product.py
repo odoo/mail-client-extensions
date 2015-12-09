@@ -16,7 +16,7 @@ def migrate(cr, version):
         env = util.env(cr)
         categ_id = util.ref(cr, 'product.product_category_all')
         uom_id = util.ref(cr, 'product.product_uom_unit')
-        env['product.product'].create({
+        product = env['product.product'].create({
             'name': 'Generic Product',
             'default_code': 'GEN_ODOO9_MIG',
             'list_price': 0.0,
@@ -27,3 +27,4 @@ def migrate(cr, version):
             'description_sale': 'Generic product created automatically during the migration to Odoo 9 due to new constraints.',
             'active': False,
         })
+        product.product_tmpl_id.active = False
