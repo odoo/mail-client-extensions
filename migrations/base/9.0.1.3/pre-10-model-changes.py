@@ -51,6 +51,14 @@ def migrate(cr, version):
     """)
     util.remove_column(cr, 'res_users', 'login_date')       # field still exists (now a related)
 
+    util.create_column(cr, 'ir_attachment', 'public', 'boolean')
+    cr.execute("""
+        UPDATE ir_attachment
+           SET public = true
+         WHERE res_model = 'ir.ui.view'
+           AND coalesce(res_id, 0) = 0
+    """)
+
     # ir.model.data index cleanup
     cr.execute("""
       DROP INDEX IF EXISTS ir_model_data_module_name_index;
