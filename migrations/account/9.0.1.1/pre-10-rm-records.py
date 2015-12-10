@@ -18,6 +18,12 @@ def migrate(cr, version):
                     WHERE type in ('view', 'consolidation')
                 """)
 
+    # We don't have the state field on aml anymore, and aml with state draft have no reason to exists so we delete them
+    # If we don't, some reports will be wrong
+    cr.execute("""DELETE FROM account_move_line
+                    WHERE state = 'draft'
+                """)
+
     # Delete some view(s) that are not used anymore
     util.remove_view(cr, xml_id="account.view_account_journal_1")
     util.remove_view(cr, xml_id="account.partner_view_button_journal_item_count")
