@@ -70,6 +70,10 @@ def migrate(cr, version):
                     WHERE c.id = inv.company_id and c.currency_id = inv.currency_id
                 """)
 
+    cr.execute("""UPDATE account_invoice 
+                    SET move_name = internal_number 
+                    WHERE move_name='/' AND internal_number IS NOT NULL""")
+
     util.create_column(cr, 'account_move', 'amount', 'numeric')
     util.create_column(cr, 'account_move', 'matched_percentage', 'numeric')
     util.create_column(cr, 'account_move', 'currency_id', 'int4')
