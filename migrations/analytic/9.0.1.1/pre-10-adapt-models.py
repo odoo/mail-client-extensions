@@ -39,3 +39,9 @@ def migrate(cr, version):
 
     for model in models:
         util.delete_model(cr, model)
+
+    #Reintroduced account_type cancelled in commit f6d6762dc7150076b5463b09480222db813b2cf1 so we need to migrate them
+    util.create_column(cr, 'account_analytic_account', 'account_type', 'varchar')
+    cr.execute("""UPDATE account_analytic_account
+                    SET account_type = CASE WHEN state IN ('close', 'cancelled') THEN 'closed' ELSE 'normal' END
+                """)
