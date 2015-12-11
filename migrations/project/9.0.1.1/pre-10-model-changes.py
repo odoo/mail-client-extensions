@@ -57,6 +57,7 @@ def migrate(cr, version):
         util.rename_xmlid(cr, 'project.project_category_0%d' % (i + 1,),
                           'project.project_tags_0%d' % i)
         util.force_noupdate(cr, 'project.project_stage_%d' % i, True)
+    util.force_noupdate(cr, 'project.view_project_project_filter', False)
 
     # cleanup filters
     cr.execute("""
