@@ -5,8 +5,9 @@ def migrate(cr, version):
 
     # Delete all account_move_line whose period has the flag 'special' (opening and closing period) set to True
     cr.execute("""DELETE FROM account_move_line
-                    WHERE id IN (SELECT aml.id FROM account_move_line AS aml, account_period AS p WHERE p.id = aml.period_id
-                        AND p.special = True)
+                    WHERE id IN (SELECT aml.id FROM account_move_line AS aml, account_period AS p, account_journal AS j
+                       WHERE p.id = aml.period_id AND aml.journal_id = j.id
+                        AND p.special = True AND j.type = 'situation')
                 """)
 
     # Delete account of type = view and consolidation
