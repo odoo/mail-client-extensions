@@ -49,9 +49,9 @@ If you are using these phonecalls as a call center, you may want to install the 
     team_col = 'team_id' if util.column_exists(cr, 'crm_phonecall', 'team_id') else 'section_id'
     cr.execute("""
       WITH new_leads AS (
-        INSERT INTO crm_lead(name, partner_id, team_id, user_id, description, priority,
+        INSERT INTO crm_lead(create_date, create_uid, name, partner_id, team_id, user_id, description, priority,
                              phone, mobile, active, type,stage_id, message_bounce)
-             SELECT 'Phonecall', partner_id, {0}, user_id, description, priority,
+             SELECT create_date, create_uid, 'Phonecall', partner_id, {0}, user_id, description, priority,
                     partner_phone, partner_mobile, active,
                     case when state = 'done' then 'opportunity' else 'lead' end,
                     case when state = 'done' then %s when state = 'cancel' then %s else %s end,
@@ -94,8 +94,8 @@ If you are using these phonecalls as a call center, you may want to install the 
     """)
 
     cr.execute("""
-        INSERT INTO mail_message(model, res_id, date, message_type, body, subtype_id)
-        SELECT 'crm.lead', opportunity_id, date, 'comment',
+        INSERT INTO mail_message(create_date, create_uid, model, res_id, date, message_type, body, subtype_id)
+        SELECT create_date, create_uid, 'crm.lead', opportunity_id, date, 'comment',
                concat('Phonecall (',
                       to_char(to_timestamp((coalesce(duration, 0)) * 60), 'MI:SS'),
                       ' min): ',
