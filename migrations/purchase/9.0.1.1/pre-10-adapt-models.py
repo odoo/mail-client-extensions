@@ -34,7 +34,7 @@ def migrate(cr, version):
     # the state field of purchase.order.line should have been stored, but a typo in the code prevented that
     # I'll do the migration as intended since we'll fix this is saas-7 (probably)
     # and we might be happy to have kept this info
-    cr.execute("UPDATE purchase_order_line SET state=po.state FROM purchase_order AS po WHERE po.id=order_id")  # field is now related
+    cr.execute("UPDATE purchase_order_line pol SET state=po.state FROM purchase_order AS po WHERE po.id=pol.order_id")  # field is now related
 
     # deassociate invoice lines from purchase order line with differents uoms
     # if uoms are differents, the stored computed field `qty_invoiced` cannot be computed.
