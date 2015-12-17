@@ -20,6 +20,9 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'project_timesheet', ('hr_timesheet_sheet',))
     util.new_module_dep(cr, 'project_timesheet', 'hr_timesheet')
 
+    util.remove_module_deps(cr, 'account_asset', ('account',))
+    util.new_module_dep(cr, 'account_asset', 'account_accountant')
+
     util.new_module(cr, 'account_bank_statement_import')
     util.new_module_dep(cr, 'account_bank_statement_import', 'account')
     util.new_module(cr, 'account_bank_statement_import_ofx')
