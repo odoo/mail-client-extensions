@@ -46,8 +46,8 @@ def migrate(cr, version):
         dt_stop = datetime.datetime.strptime(date_stop, DEFAULT_SERVER_DATE_FORMAT)
         if dt_start <= datetime.datetime.utcnow() <= dt_stop:
             cr.execute("""UPDATE ir_sequence m
-                             SET prefix=replace(s.prefix, date_part('year', now())::varchar, '%%(year)s'),
-                                 suffix=replace(s.suffix, date_part('year', now())::varchar, '%%(year)s'),
+                             SET prefix=replace(s.prefix, date_part('year', now())::varchar, '%%(range_year)s'),
+                                 suffix=replace(s.suffix, date_part('year', now())::varchar, '%%(range_year)s'),
                                  padding=s.padding
                             FROM ir_sequence s
                            WHERE m.id = %s
@@ -60,5 +60,13 @@ def migrate(cr, version):
         cr.execute("DELETE FROM account_sequence_fiscalyear WHERE id=%s", [asf_id])
         util.replace_record_references(cr, ('ir.sequence', seq_id), ('ir.sequence', main_seq_id))
         cr.execute("DELETE FROM ir_sequence WHERE id=%s", [seq_id])
+
+    # convert all specifiers when use_date_range is set
+    for spec in ('year', 'month', 'day', 'y', 'doy', 'woy', 'weekday'):
+        cr.execute("""
+            UPDATE ir_sequence SET prefix = replace(prefix, '(%(spec)s)s', '(range_%(spec)s)s'),
+                                   suffix = replace(suffix, '(%(spec)s)s', '(range_%(spec)s)s')
+            WHERE use_date_range = true
+        """ % locals())
 
     util.delete_model(cr, 'account.sequence.fiscalyear')
