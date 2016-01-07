@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
-def migrate(cr, version):
+def get_template(cr):
     tid = util.ref(cr, 'event.confirmation_registration')
     cr.execute("""SELECT 1
                     FROM mail_template
@@ -9,10 +9,16 @@ def migrate(cr, version):
                      AND coalesce(write_date, create_date) - create_date > interval '1 hour'
                """, [tid])
     modified = cr.rowcount != 0
+    return tid, modified
+
+def migrate(cr, version):
+    tid, modified = get_template(cr)
     if not modified:
-        # force update of current template
+        # As the the new template is defined in a noupdate section,
+        # only the presence of the xid is check, not it noupdate value.
+        # So, let the system create a new template,
+        # we will reassign record references in related post script.
         util.force_noupdate(cr, 'event.confirmation_registration', False)
-        util.rename_xmlid(cr, 'event.confirmation_registration', 'event.event_subscription')
         return
 
     for table, fk, _, act in util.get_fk(cr, 'mail_template'):
