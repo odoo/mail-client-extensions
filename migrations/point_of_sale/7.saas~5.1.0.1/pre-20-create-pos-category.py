@@ -9,13 +9,11 @@ def migrate(cr, version):
     if parse_version(version) <= parse_version('7.saas~2'):
         # copy category from product to template
         util.create_column(cr, 'product_template', 'pos_categ_id', 'int4')
+
         cr.execute("""UPDATE product_template t
-                    SET pos_categ_id = (SELECT pos_categ_id
-                                        FROM product_product
-                                        WHERE product_tmpl_id = t.id
-                                        ORDER BY id
-                                        LIMIT 1
-                                        )
+                      SET pos_categ_id = pp.pos_categ_id
+                      FROM product_product pp
+                        WHERE product_tmpl_id = t.id
                    """)
         return
     elif not util.table_exists(cr, 'product_public_category'):
