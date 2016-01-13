@@ -17,6 +17,18 @@ def migrate(cr, version):
            AND NOT EXISTS(SELECT 1 FROM crm_team_stage_rel WHERE stage_id=s.id AND team_id=t.id)
     """)
 
+    # deactivate lost/dead leads
+    # same heuristic as case_makr_lost method in 8.0 (and saas-6): https://git.io/vzZo8
+    cr.execute("""
+        UPDATE crm_lead l
+          FROM active = false, probability = 0
+         USING crm_stage s
+         WHERE s.id = l.stage_id
+           AND s.probability = 0
+           AND s.on_change = true
+           AND s.sequence > 1
+    """)
+
     # rename some xmlids
     cr.execute("""
         DELETE FROM ir_model_data
