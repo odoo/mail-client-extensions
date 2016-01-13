@@ -32,18 +32,10 @@ def migrate(cr, version):
         WHERE type = 'none' or type = 'balance'
         """)  # needs to be done manually
 
-    cr.execute("""SELECT count(*)
-        FROM account_tax
-        WHERE type = 'code'
+    cr.execute("""UPDATE account_tax
+        SET python_applicable = 'result = True'
+        WHERE python_applicable IS NULL
         """)
-
-    if cr.fetchone()[0] > 0:
-        util.force_install_module(cr, 'account_tax_python')
-
-        cr.execute("""UPDATE account_tax
-            SET python_applicable = 'result = True'
-            WHERE python_applicable IS NULL
-            """)
 
     cr.execute("""UPDATE account_tax
         SET amount = 100 * amount
