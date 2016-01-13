@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
 from openerp.addons.base.maintenance.migrations import util
+
+NS = 'openerp.addons.base.maintenance.migrations.account.9.0.'
+_logger = logging.getLogger(NS + __name__)
+
 
 def migrate(cr, version):
 
@@ -15,6 +20,16 @@ def migrate(cr, version):
     cr.execute("""ALTER TABLE account_account DROP CONSTRAINT IF EXISTS
                     "account_account_parent_id_fkey"
                 """)
+
+    cr.execute("""DELETE FROM account_tax AS t
+                        USING account_account AS a
+                        WHERE (t.account_collected_id = a.id OR t.account_paid_id = a.id)
+                          AND a.type IN ('view', 'consolidation')
+                    RETURNING t.name
+    """)
+    for tax_name in cr.fetchall():
+        _logger.info("deleted unusable tax %s", tax_name)
+
     cr.execute("""DELETE FROM account_account
                     WHERE type in ('view', 'consolidation')
                 """)
