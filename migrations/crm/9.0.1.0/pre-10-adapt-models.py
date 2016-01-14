@@ -21,8 +21,8 @@ def migrate(cr, version):
     # same heuristic as case_makr_lost method in 8.0 (and saas-6): https://git.io/vzZo8
     cr.execute("""
         UPDATE crm_lead l
-          FROM active = false, probability = 0
-         USING crm_stage s
+           SET active = false, probability = 0
+          FROM crm_stage s
          WHERE s.id = l.stage_id
            AND s.probability = 0
            AND s.on_change = true
