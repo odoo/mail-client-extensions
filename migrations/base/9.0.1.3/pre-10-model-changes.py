@@ -14,6 +14,22 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE ir_model_fields DROP COLUMN select_level")
     util.rename_field(cr, 'ir.model.fields', 'select_level', 'index')
 
+    # set the correct m2m table for manual fields
+    cr.execute("""
+        UPDATE ir_model_fields
+           SET relation_table=substring(
+                                 concat('x_',
+                                        replace(relation, '.', '_'), '_',
+                                        replace(model, '.', '_'), '_',
+                                        name,
+                                        '_rel')
+                                 for 63)  -- default max identifier length: http://bit.ly/1TXH2EJ
+               , column1='id1'
+               , column2='id2'
+         WHERE ttype='many2many'
+           AND state='manual'
+    """)
+
     util.move_field_to_module(cr, 'res.group', 'share', 'share', 'base')
     util.move_field_to_module(cr, 'res.users', 'share', 'share', 'base')
 
