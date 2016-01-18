@@ -21,15 +21,27 @@ def migrate(cr, version):
 
     env = util.env(cr)
 
+    ids_to_get_account = []
     for parent_tax in env['account.tax'].search([('amount_type', '=', 'group')]):
         childs = parent_tax.children_tax_ids.filtered(lambda t: t.active)
         if len(childs) == 1:
             parent_tax.amount_type = 'percent'
             parent_tax.amount = childs.amount
+            parent_tax.account_id = childs.account_id
+            parent_tax.refund_account_id = childs.refund_account_id
             childs.active = False
         if len(childs) == 0:
             parent_tax.amount_type = 'percent'
             parent_tax.amount = 0
+            ids_to_get_account.append(parent_tax.id)
+    if ids_to_get_account:
+        cr.execute("""UPDATE account_tax t
+                        SET account_id = t2.account_id,
+                            refund_account_id = t2.refund_account_id
+                        FROM account_tax t2
+                        WHERE t2.parent_id = t.id 
+                            AND t.id IN %s
+                    """, (tuple(ids_to_get_account),))
 
     # Since we moved some tax to their parent and set them as inactive, we need to change those on the account_move_line for
     # The field tax_line_id and tax_line_ids
