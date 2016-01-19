@@ -49,7 +49,7 @@ def migrate(cr, version):
                         AND tax_code_id IS NOT NULL 
                         AND tax_amount IS NOT NULL""")
 
-    move_ids = cr.dictfetchall()
+    move_ids = [row[0] for row in cr.fetchall()]
     tax_line_ids_to_update = []
     tax_line_id_to_update = []
     for move in env['account.move'].browse(move_ids):
