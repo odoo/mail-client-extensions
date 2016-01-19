@@ -1,34 +1,51 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
-def findline(move, linezero=False, tax_amount=0.0):
-    for line in move.line_ids:
-        if linezero and line.debit == line.credit: #only case where it happens is when debit=credit=0
-            return line
-        elif not linezero and line.tax_amount == tax_amount:
-            return line
-    return False
+def findline(cr, move, tax_amount):
+    cr.execute("""SELECT id, tax_line_id, tax_code_id
+                    FROM account_move_line
+                    WHERE move_id = %s AND tax_amount = %s
+                """, (move, tax_amount))
+    return cr.dictfetchone()
 
-def findtax(code1, code2, base=True):
+def findtax(cr, code1, code2, base=True):
     code = [code1, code2]
-    cr.execute("""SELECT parent_id 
-                    FROM (SELECT parent_id, count(*) 
-                        FROM account_tax 
-                        WHERE parent_id IS NOT NULL
-                            AND %s in %s) AS e
-                    WHERE e.count > 1
-                """, ('base_code_id' if base else 'tax_code_id', tuple(code)))
+    if base:
+        cr.execute("""SELECT parent_id 
+                        FROM (SELECT parent_id, count(*) 
+                            FROM account_tax 
+                            WHERE parent_id IS NOT NULL
+                                AND base_code_id in %s GROUP BY parent_id) AS e
+                        WHERE e.count > 1
+                    """, (tuple(code),))
+    else:
+        cr.execute("""SELECT parent_id 
+                        FROM (SELECT parent_id, count(*) 
+                            FROM account_tax 
+                            WHERE parent_id IS NOT NULL
+                                AND tax_code_id in %s GROUP BY parent_id) AS e
+                        WHERE e.count > 1
+                    """, (tuple(code),))
     tax = cr.dictfetchone()
     if tax:
         return tax['parent_id']
     # Try finding for a refund instead
-    r.execute("""SELECT parent_id 
-                    FROM (SELECT parent_id, count(*) 
-                        FROM account_tax 
-                        WHERE parent_id IS NOT NULL
-                            AND %s in %s) AS e
-                    WHERE e.count > 1
-                """, ('ref_base_code_id' if base else 'ref_tax_code_id', tuple(code)))
+    if base:
+        cr.execute("""SELECT parent_id 
+                        FROM (SELECT parent_id, count(*) 
+                            FROM account_tax 
+                            WHERE parent_id IS NOT NULL
+                                AND ref_base_code_id in %s GROUP BY parent_id) AS e
+                        WHERE e.count > 1
+                    """, (tuple(code),))
+    else:
+        cr.execute("""SELECT parent_id 
+                        FROM (SELECT parent_id, count(*) 
+                            FROM account_tax 
+                            WHERE parent_id IS NOT NULL
+                                AND ref_tax_code_id in %s GROUP BY parent_id) AS e
+                        WHERE e.count > 1
+                    """, (tuple(code),))
     tax = cr.dictfetchone()
     if tax:
         return tax['parent_id']
@@ -42,31 +59,29 @@ def migrate(cr, version):
     # if one of the line (line0) in an account_move has a debit=credit=0, take the tax_amount of that line, find the other
     # line in that account_move with the same tax_amount, if that line has a tax_line_id: the tax referenced by that should 
     # be a tax with 2 children, one with base/tax_code_id = line.tax_code_id and the other with base/tax_code_id = line0.tax_code_id
-    cr.execute("""SELECT DISTINCT(move_id) AS id 
+    cr.execute("""SELECT move_id, tax_amount, tax_code_id  
                     FROM account_move_line 
                     WHERE debit = 0 
                         AND credit = 0 
                         AND tax_code_id IS NOT NULL 
                         AND tax_amount IS NOT NULL""")
 
-    move_ids = [row[0] for row in cr.fetchall()]
     tax_line_ids_to_update = []
     tax_line_id_to_update = []
-    for move in env['account.move'].browse(move_ids):
-        line0 = findline(move, linezero=True)
-        line = findline(move, line0.tax_amount)
+    for move in cr.dictfetchall():
+        line = findline(cr, move['move_id'], move['tax_amount'])
         if not line:
             continue
         #Update tax_line_id
-        if line.tax_line_id:
-            tax = findtax(line.tax_code_id, line0.tax_code_id, base=False)
+        if line['tax_line_id']:
+            tax = findtax(cr, line['tax_code_id'], move['tax_code_id'], base=False)
             if tax:
-                tax_line_id_to_update.append((line.id, tax))
+                tax_line_id_to_update.append((line['id'], tax))
         #Update tax_line_ids
         else:
-            tax = findtax(line.tax_code_id, line0.tax_code_id, base=True)
+            tax = findtax(cr, line['tax_code_id'], move['tax_code_id'], base=True)
             if tax:
-                tax_line_ids_to_update.append((line.id, tax))
+                tax_line_ids_to_update.append((line['id'], tax))
 
     for tuple_update in tax_line_ids_to_update:
         cr.execute("""UPDATE account_move_line_account_tax_rel
