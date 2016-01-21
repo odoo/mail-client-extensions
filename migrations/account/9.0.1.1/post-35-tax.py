@@ -59,7 +59,7 @@ def migrate(cr, version):
     # if one of the line (line0) in an account_move has a debit=credit=0, take the tax_amount of that line, find the other
     # line in that account_move with the same tax_amount, if that line has a tax_line_id: the tax referenced by that should 
     # be a tax with 2 children, one with base/tax_code_id = line.tax_code_id and the other with base/tax_code_id = line0.tax_code_id
-    cr.execute("""SELECT move_id, tax_amount, tax_code_id  
+    cr.execute("""SELECT move_id, tax_amount, tax_code_id, tax_line_id  
                     FROM account_move_line 
                     WHERE debit = 0 
                         AND credit = 0 
