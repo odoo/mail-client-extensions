@@ -181,7 +181,7 @@ def migrate(cr, version):
     for k,v in not_mapped.items():
         if not mapped.get(k, False):
             cr.execute("""UPDATE account_move_line SET tax_line_id = %s WHERE id = %s AND tax_line_id IS NULL
-                            """, (k, v))
+                            """, (v, k))
 
     # delete index
     cr.execute("""drop index account_move_line_tax_line_idx""")
