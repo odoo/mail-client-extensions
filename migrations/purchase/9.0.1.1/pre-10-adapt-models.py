@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
-from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # Easier to let the ORM to recreate the whole table instead of droping the bunch of
     # boolean fields that have been converted to 0/1 selection fields.
     cr.execute("DROP TABLE purchase_config_settings")
-
-    util.remove_view(cr, 'purchase.view_purchase_config')
-    util.remove_view(cr, 'purchase.purchase_order_2_stock_picking')
-    util.remove_view(cr, 'purchase.view_product_normal_purchase_buttons_from')
-    util.remove_view(cr, 'purchase.purchase_order_line_form')
 
     # po_line tax relation table uses the standard table & columns names from now on
     cr.execute("""

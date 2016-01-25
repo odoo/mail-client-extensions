@@ -48,6 +48,9 @@ def migrate(cr, version):
     util.force_noupdate(cr, 'account.invoice_form', False)
     util.force_noupdate(cr, 'account.view_account_invoice_filter', False)
 
+    util.force_noupdate(cr, 'account.report_invoice', False)
+    util.force_noupdate(cr, 'account.report_invoice_document', False)
+
     # remove all element related to template, they will be recreated with the localization
     cr.execute("""
        DELETE FROM account_fiscal_position_tax_template;
