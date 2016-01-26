@@ -55,6 +55,10 @@ def migrate(cr, version):
     for m in l10n:
         util.new_module_dep(cr, 'l10n_' + m, 'account')
 
+    util.new_module_dep(cr, 'l10n_ca', 'report')
+    util.new_module_dep(cr, 'l10n_ca', 'l10n_multilang')
+    util.new_module_dep(cr, 'l10n_us', 'report')
+
     util.new_module(cr, 'l10n_generic_coa')
     util.new_module_dep(cr, 'l10n_generic_coa', 'account')
     util.new_module_dep(cr, 'l10n_us', 'l10n_generic_coa')
@@ -121,6 +125,9 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website', 'web_editor')
     util.new_module_dep(cr, 'website', 'web_planner')
     util.remove_module_deps(cr, 'website', ('mail',))
+
+    util.new_module(cr, 'website_theme_install', auto_install_deps=('website',))
+    util.new_module_dep(cr, 'website_theme_install', 'website')
 
     util.new_module(cr, 'website_form')
     util.new_module_dep(cr, 'website_form', 'website')
