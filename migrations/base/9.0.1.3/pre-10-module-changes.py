@@ -83,6 +83,9 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'mrp_repair', 'stock')
     util.remove_module_deps(cr, 'mrp_repair', ('mrp',))
 
+    util.remove_module_deps(cr, 'procurement_jit', ('procurement', 'stock'))
+    util.new_module_dep(cr, 'procurement_jit', 'sale_stock')
+
     util.new_module(cr, 'product_uos')
     util.new_module_dep(cr, 'product_uos', 'sale')
     if util.module_installed(cr, 'sale'):
