@@ -37,6 +37,10 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'point_of_sale', 'barcodes')
     util.new_module_dep(cr, 'stock', 'barcodes')
 
+    if util.module_installed(cr, 'procurement_jit') and not util.module_installed(cr, 'stock'):
+        # procurement_jit was already useless without stock. Do not force stock installation
+        cr.execute("UPDATE ir_module_module SET state='to remove' WHERE name='procurement_jit'")
+
     util.new_module_dep(cr, 'procurement_jit', 'stock')
     util.remove_module(cr, 'procurement_jit_stock')
 
