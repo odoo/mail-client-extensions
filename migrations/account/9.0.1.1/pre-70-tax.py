@@ -132,7 +132,8 @@ def migrate(cr, version):
         else:
             invoices_mapping[invoice['move_id']] = [invoice['tax_id']]
 
-    cr.execute("""SELECT a.id, a.debit, a.credit, a.account_id, t.id AS tax_id, t.name, a.move_id 
+    cr.execute("""SELECT a.id, a.debit, a.credit, a.account_id, t.id AS tax_id, t.parent_id as parent_tax_id, 
+                        t.name, a.move_id 
                     FROM account_move_line a, account_tax t 
                     WHERE (t.base_code_id = a.tax_code_id OR t.ref_base_code_id = a.tax_code_id) 
                         AND a.tax_code_id IS NOT NULL AND a.tax_amount != 0 AND t.company_id = a.company_id
@@ -143,13 +144,18 @@ def migrate(cr, version):
     not_mapped = {}
     for aml in cr.dictfetchall():
         if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
-            if not invoices_mapping.get(aml['move_id'], False) or aml['tax_id'] not in invoices_mapping.get(aml['move_id']):
+            tax_id = False
+            if invoices_mapping.get(aml['move_id'], False):
+                tax_id = aml['tax_id'] in invoices_mapping.get(aml['move_id']) and aml['tax_id'] \
+                        or aml['parent_tax_id'] in invoices_mapping.get(aml['move_id']) and aml['parent_tax_id']\
+                        or False
+            if not tax_id:
                 not_mapped[aml['id']] = aml['tax_id']
             else:
                 cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id) 
                                 VALUES(%s, %s)
-                            """, (aml['id'], aml['tax_id']))
-                mapped[aml['id']] = aml['tax_id']
+                            """, (aml['id'], tax_id))
+                mapped[aml['id']] = tax_id
 
     for k,v in not_mapped.items():
         if not mapped.get(k, False):
@@ -157,7 +163,8 @@ def migrate(cr, version):
                                 VALUES(%s, %s)
                             """, (k, v))
 
-    cr.execute("""SELECT aml.id, aml.debit, aml.credit, aml.account_id, tax.id AS tax_id, tax.name, aml.move_id 
+    cr.execute("""SELECT aml.id, aml.debit, aml.credit, aml.account_id, tax.id AS tax_id, tax.parent_id as parent_tax_id,
+                     tax.name, aml.move_id 
                     FROM account_move_line aml, account_tax tax
                     WHERE (tax.tax_code_id = aml.tax_code_id OR tax.ref_tax_code_id = aml.tax_code_id)
                         AND aml.tax_code_id IS NOT NULL AND aml.tax_amount != 0  AND tax.company_id = aml.company_id
@@ -171,12 +178,17 @@ def migrate(cr, version):
     not_mapped = {}
     for aml in cr.dictfetchall():
         if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
-            if not invoices_mapping.get(aml['move_id'], False) or aml['tax_id'] not in invoices_mapping.get(aml['move_id']):
+            tax_id = False
+            if invoices_mapping.get(aml['move_id'], False):
+                tax_id = aml['tax_id'] in invoices_mapping.get(aml['move_id']) and aml['tax_id'] \
+                        or aml['parent_tax_id'] in invoices_mapping.get(aml['move_id']) and aml['parent_tax_id']\
+                        or False
+            if not tax_id:
                 not_mapped[aml['id']] = aml['tax_id']
             else:
                 cr.execute("""UPDATE account_move_line SET tax_line_id = %s WHERE id = %s AND tax_line_id IS NULL
-                            """, (aml['tax_id'], aml['id']))
-                mapped[aml['id']] = aml['tax_id']
+                            """, (tax_id, aml['id']))
+                mapped[aml['id']] = tax_id
 
     for k,v in not_mapped.items():
         if not mapped.get(k, False):
