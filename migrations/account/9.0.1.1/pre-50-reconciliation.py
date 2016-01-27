@@ -3,11 +3,11 @@ from openerp.addons.base.maintenance.migrations import util
 from openerp.tools import float_round
 
 def create_new_reconciliation_entry(cr, values):
-    cr.execute("""INSERT INTO account_partial_reconcile(debit_move_id, credit_move_id,
+    cr.execute("""INSERT INTO account_partial_reconcile(create_date, debit_move_id, credit_move_id,
                         amount, amount_currency, currency_id, company_currency_id, company_id)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                        (values['debit_move_id'], values['credit_move_id'], values['amount'], values['amount_currency'],
-                        values.get('currency_id', None), values['company_currency_id'], values['company_id']))
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                        (values['create_date'], values['debit_move_id'], values['credit_move_id'], values['amount'], 
+                        values['amount_currency'], values.get('currency_id', None), values['company_currency_id'], values['company_id']))
 
 def find_pair(debit_move_lines, credit_move_lines):
     debit_move = debit_move_lines[0]
@@ -32,7 +32,7 @@ def compute_amount_currency(cr, amount, currency_id, company_id, date):
     res = cr.dictfetchone()
     return float_round(amount * res['rate'], precision_rounding=res['rounding'])
 
-def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currency):
+def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currency, create_date):
     while(True):
         #Find lowest debit move lines and credit move lines and create a reconciliation entry for the both of them
         #if we could not find any, exit loop it means we've reconciled everyhting we could
@@ -50,6 +50,7 @@ def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currenc
                 'credit_move_id': credit_move['id'],
                 'amount': amount,
                 'amount_currency': 0,
+                'create_date': create_date,
                 # 'currency_id': 'NULL',
                 'company_currency_id': debit_move['company_currency_id'],
                 'company_id': debit_move['company_id']}
@@ -104,6 +105,7 @@ def migrate(cr, version):
 
     cr.execute("""CREATE TABLE IF NOT EXISTS account_partial_reconcile(
                     id SERIAL NOT NULL PRIMARY KEY,
+                    create_date timestamp without time zone,
                     debit_move_id integer,
                     credit_move_id integer,
                     amount numeric,
@@ -116,10 +118,14 @@ def migrate(cr, version):
 
     # What to do with reconcile object that has the flag opening_reconciliation set to True?
     # Nothing since we already deleted aml that belong to an opening/closing period
-    cr.execute("""SELECT id FROM account_move_reconcile""")
+
+    # Aged partner balance needs create_date on account_partial_reconcile, so we copy the one from previous
+    # model account_move_reconcile
+    cr.execute("""SELECT id, create_date FROM account_move_reconcile""")
 
     answers = cr.dictfetchall()
     for element in answers:
+        create_date = element['create_date']
         cr.execute("""SELECT aml.id, aml.debit, aml.credit, aml.currency_id, aml.date,
                             abs(aml.amount_currency) AS remaining_currency, aml.company_id, abs(aml.debit - aml.credit) AS remaining, 
                             c.currency_id AS company_currency_id
@@ -138,7 +144,7 @@ def migrate(cr, version):
                     debit_move_lines.append(element)
                 else:
                     credit_move_lines.append(element)
-            migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currency)
+            migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currency, create_date)
 
     # After having filled the new table, execute an analyze on it to increase performance for further query
     # (lot of computed field use this table)
