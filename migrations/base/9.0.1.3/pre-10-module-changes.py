@@ -183,6 +183,7 @@ def migrate(cr, version):
             cr.execute("SELECT count(1) FROM account_tax WHERE type='code'")
             if cr.fetchone()[0]:
                 util.force_install_module(cr, 'account_tax_python')
+                util.force_migration_of_fresh_module(cr, 'account_tax_python')
 
         util.new_module(cr, 'account_reports', auto_install_deps=('account',))
         util.new_module_dep(cr, 'account_reports', 'account')
