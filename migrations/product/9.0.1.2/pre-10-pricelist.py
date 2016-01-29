@@ -62,7 +62,8 @@ def migrate(cr, version):
                                  END,
                          compute_price = CASE WHEN i._base = ANY(%s) THEN 'formula'
                                               ELSE 'fixed'
-                                          END
+                                          END,
+                         price_discount = i.price_discount * -100
                     FROM product_pricelist_version v
                    WHERE v.id = i.price_version_id
                """, [list_price_ids, standard_price_ids,
