@@ -31,6 +31,7 @@ def migrate(cr, version):
 
     # adapt product.pricelist.item
     cr.execute('ALTER TABLE product_pricelist_item RENAME COLUMN "base" TO "_base"')
+    util.create_column(cr, 'product_pricelist_item', 'currency_id', 'integer')
     util.create_column(cr, 'product_pricelist_item', 'pricelist_id', 'integer')
     util.create_column(cr, 'product_pricelist_item', 'date_start', 'date')
     util.create_column(cr, 'product_pricelist_item', 'date_end', 'date')
@@ -68,6 +69,11 @@ def migrate(cr, version):
                      [-1] + list_price_ids + standard_price_ids,
                      ])
 
+    cr.execute("""UPDATE product_pricelist_item i
+                     SET currency_id = p.currency_id
+                    FROM product_pricelist p
+                   WHERE i.pricelist_id = p.id
+    """)
     # The rules that used "pricetype" should be set as "fixed".
     # Create a rule per product that match the configuration
     ppt = {}
