@@ -58,7 +58,7 @@ def migrate(cr, version):
                       DROP CONSTRAINT IF EXISTS account_sequence_fiscalyear_main_id""")
         # we need to delete the record ourself to avoid integrity constraint violation
         cr.execute("DELETE FROM account_sequence_fiscalyear WHERE id=%s", [asf_id])
-        util.replace_record_references(cr, ('ir.sequence', seq_id), ('ir.sequence', main_seq_id))
+        util.replace_record_references(cr, ('ir.sequence', seq_id), ('ir.sequence', main_seq_id), False)
         cr.execute("DELETE FROM ir_sequence WHERE id=%s", [seq_id])
 
     # convert all specifiers when use_date_range is set

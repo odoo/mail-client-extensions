@@ -6,4 +6,4 @@ def migrate(cr, version):
     tid, modified = pre.get_template(cr)
     if not modified:
         nid = util.ref(cr, 'event.event_subscription')
-        util.replace_record_references(cr, ('mail.template', tid), ('mail.template', nid))
+        util.replace_record_references(cr, ('mail.template', tid), ('mail.template', nid), False)

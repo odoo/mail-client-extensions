@@ -34,7 +34,7 @@ def migrate(cr, version):
                      AND io.name = sp.name
                """, [(id_in, id_out), id_sp])
     for o, n in cr.fetchall():
-        util.replace_record_references(cr, ('ir.model.fields', o), ('ir.model.fields', n))
+        util.replace_record_references(cr, ('ir.model.fields', o), ('ir.model.fields', n), False)
 
     cr.execute("DELETE FROM ir_model_fields WHERE model_id IN %s RETURNING id", ((id_in, id_out),))
     fields_ids = tuple(x[0] for x in cr.fetchall())
