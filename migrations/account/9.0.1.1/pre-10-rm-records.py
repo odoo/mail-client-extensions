@@ -21,14 +21,26 @@ def migrate(cr, version):
                     "account_account_parent_id_fkey"
                 """)
 
-    cr.execute("""DELETE FROM account_tax AS t
-                        USING account_account AS a
-                        WHERE (t.account_collected_id = a.id OR t.account_paid_id = a.id)
-                          AND a.type IN ('view', 'consolidation')
-                    RETURNING t.name
+    cr.execute("""
+        WITH bad_taxes AS (
+            SELECT t.id
+              FROM account_tax t
+              JOIN account_account a ON (t.account_collected_id = a.id OR t.account_paid_id = a.id)
+             WHERE a.type IN ('view', 'consolidation')
+        ),
+        _del_fp AS (
+            DELETE FROM account_fiscal_position_tax fp
+                  USING bad_taxes b
+                  WHERE fp.tax_dest_id = t.id
+                     OR fp.tax_src_id = t.id
+        )
+        DELETE FROM account_tax t
+              USING bad_taxes b
+              WHERE b.id = t.id
+          RETURNING t.name
     """)
-    for tax_name in cr.fetchall():
-        _logger.info("deleted unusable tax %s", tax_name)
+    bad_taxes = ', '.join(t[0] for t in cr.fetchall())
+    _logger.info("deleted unusable tax %s", bad_taxes)
 
     cr.execute("""DELETE FROM account_account
                     WHERE type in ('view', 'consolidation')
