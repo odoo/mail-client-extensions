@@ -31,8 +31,8 @@ def migrate(cr, version):
         _del_fp AS (
             DELETE FROM account_fiscal_position_tax fp
                   USING bad_taxes b
-                  WHERE fp.tax_dest_id = t.id
-                     OR fp.tax_src_id = t.id
+                  WHERE fp.tax_dest_id = b.id
+                     OR fp.tax_src_id = b.id
         )
         DELETE FROM account_tax t
               USING bad_taxes b
