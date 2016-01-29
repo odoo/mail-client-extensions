@@ -39,6 +39,7 @@ def migrate(cr, version):
     util.create_column(cr, 'product_pricelist_item', 'base', 'varchar')
     util.create_column(cr, 'product_pricelist_item', 'compute_price', 'varchar')
     util.create_column(cr, 'product_pricelist_item', 'fixed_price', 'numeric')
+    util.create_column(cr, 'product_pricelist_item', 'percent_price', 'numeric')
 
     cr.execute("DELETE FROM product_price_type WHERE field='list_price' RETURNING id")
     list_price_ids = [-2] + [x[0] for x in cr.fetchall()]
@@ -160,6 +161,32 @@ def migrate(cr, version):
                  WHERE i.id = %s
                        """.format(columns=','.join(columns), i_columns=','.join(i_columns)),
                        [price, pids, rid])
+
+    # convert simple "100%" discount with surchage formula to "fixed" rule
+    cr.execute("""
+        UPDATE product_pricelist_item i
+           SET compute_price = 'fixed',
+               fixed_price = price_surcharge,
+               price_surcharge = 0,
+               price_discount = 0
+         WHERE compute_price = 'formula'
+           AND price_discount = 100
+           AND price_round = 0
+           AND price_min_margin = 0
+           AND price_max_margin = 0
+    """)
+    # and simple discount formula to "percentage" rule
+    cr.execute("""
+        UPDATE product_pricelist_item i
+           SET compute_price = 'percentage',
+               percent_price = price_discount,
+               price_discount = 0
+         WHERE compute_price = 'formula'
+           AND price_surchage = 0
+           AND price_round = 0
+           AND price_min_margin = 0
+           AND price_max_margin = 0
+    """)
 
     # cleanup
     util.remove_column(cr, 'product_pricelist_item', 'name')    # now a computed field
