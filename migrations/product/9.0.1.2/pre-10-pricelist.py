@@ -182,7 +182,7 @@ def migrate(cr, version):
                percent_price = price_discount,
                price_discount = 0
          WHERE compute_price = 'formula'
-           AND price_surchage = 0
+           AND price_surcharge = 0
            AND price_round = 0
            AND price_min_margin = 0
            AND price_max_margin = 0
