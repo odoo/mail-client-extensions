@@ -42,6 +42,39 @@ def migrate(cr, version):
     bad_taxes = ', '.join(t[0] for t in cr.fetchall())
     _logger.info("deleted unusable tax %s", bad_taxes)
 
+    cr.execute("""
+        UPDATE account_account a
+           SET type = 'other'
+         WHERE a.type IN ('view', 'consolidation')
+           AND EXISTS (
+                SELECT 1
+                  FROM account_invoice_tax t
+                  JOIN account_invoice i ON (i.id = t.invoice_id)
+                 WHERE i.state IN ('paid', 'open')
+                   AND t.account_id = a.id
+                 UNION
+                SELECT 1
+                  FROM account_invoice_line
+                 WHERE account_id = a.id
+           )
+    """)
+    cr.execute("""
+        UPDATE account_account a
+           SET type = CASE WHEN i.type IN ('out_invoice', 'in_refund') THEN 'receivable'
+                           ELSE 'payable'
+                      END
+          FROM account_invoice i
+         WHERE i.account_id = a.id
+           AND a.type IN ('view', 'consolidation')
+    """)
+
+    cr.execute("""
+        DELETE FROM account_invoice_tax AS t
+              USING account_account AS a
+              WHERE t.account_id = a.id
+                AND a.type IN ('view', 'consolidation')
+    """)
+
     cr.execute("""DELETE FROM account_account
                     WHERE type in ('view', 'consolidation')
                 """)
