@@ -2,5 +2,17 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.delete_model(cr, 'document.directory')
+    cr.execute("ALTER TABLE ir_attachment DROP CONSTRAINT IF EXISTS ir_attachment_filename_unique")
+    util.remove_field(cr, 'ir.attachment', 'user_id')
+    util.remove_field(cr, 'ir.attachment', 'parent_id')
+    util.remove_field(cr, 'ir.attachment', 'partner_id')
 
+    models = util.splitlines("""
+        directory
+        directory.dctx
+        directory.content
+        directory.content.type
+        storage
+    """)
+    for model in models:
+        util.delete_model(cr, 'document.' + model)
