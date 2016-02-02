@@ -17,7 +17,7 @@ def migrate(cr, version):
             etree.SubElement(node, 'div', name='company_address')
 
     with util.skippable_cm(), util.edit_view(cr, 'report.external_layout_footer') as arch:
-        new_node = etree.fromsting("""
+        new_node = etree.fromstring("""
             <ul t-if="not company.custom_footer" class="list-inline" name="financial_infos">
                 <li t-if="company.vat">TIN: <span t-field="company.vat"/></li>
             </ul>
