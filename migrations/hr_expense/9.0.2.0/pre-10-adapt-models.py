@@ -74,5 +74,3 @@ def migrate(cr, version):
 
     util.delete_model(cr, 'hr.expense.expense')
     util.rename_model(cr, 'hr.expense.line', 'hr.expense')
-
-    util.force_noupdate(cr, 'hr_expense.report_expense', False)
