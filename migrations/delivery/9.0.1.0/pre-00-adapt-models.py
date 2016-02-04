@@ -3,6 +3,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
 
+    util.create_column(cr, 'sale_order', 'delivery_price', 'double precision')
     util.create_column(cr, 'sale_order', 'invoice_shipping_on_delivery', 'boolean')
     cr.execute("""UPDATE sale_order o
                      SET invoice_shipping_on_delivery = NOT EXISTS(
