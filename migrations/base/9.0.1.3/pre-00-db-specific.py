@@ -13,62 +13,9 @@ def _db_openerp(cr, version):
                                    WHERE name IN ('contacts', 'hr_applicant_document', 'im_chat')
                                  )
     """)
-
-    """
-        Journal id=12: "Note de crédits sur ventes" is used from two different sale journal
-        (id=1 "Journal des Ventes" and id=96 "Journal de ventes SAAS"). Thus we need to 
-        associate the refund to one of these two journal, in our case it was a human mistake,
-        we should have created two different refund journal at the time but we didn't. So we
-        will associate the refund to journal id=1 and create another refund sequence for journal id=96
-    """
-
-    util.create_column(cr, 'account_journal', 'refund_sequence_id', 'integer')
-    util.create_column(cr, 'account_journal', 'refund_sequence', 'bool')
-    cr.execute("""UPDATE account_journal
-                    SET refund_sequence_id = 35,
-                    refund_sequence = true
-                    WHERE id = 1
-                """)
-
-    #Create new refund sequence for journal id=96
-    cr.execute("""INSERT INTO ir_sequence(name, implementation, prefix, padding, number_increment, number_next, use_date_range, company_id)
-                     VALUES ('Journal de ventes SAAS', 'no_gap', 'RSAAS/%(year)s/', 4, 1, 1, true, 1)
-                     RETURNING id""")
-    seq_id = cr.fetchone()
-    cr.execute("""UPDATE account_journal SET 
-                    refund_sequence = true,
-                    refund_sequence_id = %s
-                    WHERE id = 96""", 
-                    (seq_id,))
     
     # we have some invoices with incorrect type so we must correct them first
     cr.execute("""UPDATE account_invoice set type='out_refund' WHERE type = 'out_invoice' AND journal_id in (12, 15, 16)""")
-
-    # Update journal reference
-    TABLES = ['account_move_line', 'account_move', 'account_invoice']
-    for table in TABLES:
-        cr.execute("""UPDATE %s
-                        SET journal_id = 1
-                        WHERE journal_id = 12
-                        """ % (table,))
-
-    # Delete journalid=12
-    cr.execute("""DELETE FROM account_journal WHERE id=12""")
-    
-    # change journal id=97 (Notes de crédit sur ventes (Rect.)) that is only used for correction, rename it correction
-    # and create a new sequence for it.
-    cr.execute("""INSERT INTO ir_sequence(name, implementation, prefix, padding, number_increment, number_next, use_date_range, company_id)
-                     VALUES ('Corrections', 'no_gap', 'CORR/%(year)s/', 4, 1, 1, true, 1)
-                     RETURNING id""")
-    seq_id = cr.fetchone()
-    cr.execute("""UPDATE account_journal SET
-                    name = 'Corrections',
-                    type = 'sale',
-                    sequence_id = %s,
-                    refund_sequence = true,
-                    refund_sequence_id = 175
-                    WHERE id = 97""", 
-                    (seq_id,))
 
     # theses records have already been deleted in prod database, but local copies may still have them
     cr.execute("DELETE FROM account_tax WHERE id IN (1377, 1379, 1380, 1381)")
