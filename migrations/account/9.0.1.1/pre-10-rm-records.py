@@ -90,6 +90,7 @@ def migrate(cr, version):
     util.remove_view(cr, xml_id="account.partner_view_button_journal_item_count")
     util.remove_view(cr, xml_id="account.view_bank_statement_form2")
     util.remove_view(cr, xml_id="account.view_account_period_form")
+    util.remove_view(cr, xml_id="account.view_tax_code_form")
     util.force_noupdate(cr, 'account.invoice_form', False)
     util.force_noupdate(cr, 'account.view_account_invoice_filter', False)
 

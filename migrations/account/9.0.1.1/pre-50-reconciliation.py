@@ -157,3 +157,5 @@ def migrate(cr, version):
                     SET amount_type = 'percentage'
                     WHERE amount_type in ('percentage_of_total', 'percentage_of_balance')
                 """)
+    for v in 'form tree search'.split():
+        util.rename_xmlid(cr, 'account.view_account_statement_operation_template_' + v, 'account.view_account_operation_template_' + v)
