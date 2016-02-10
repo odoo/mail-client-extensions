@@ -55,8 +55,8 @@ def sanitize_warehouses(cr):
                     "Sale shop: %s"
                     % ", ".join(str(x) for x, in cr.fetchall()))
         if util.table_exists(cr, 'purchase_order'):
+            util.create_column(cr, 'purchase_order', 'lot_input_id', 'int')
             cr.execute("""
-                ALTER TABLE purchase_order ADD COLUMN lot_input_id integer;
                 UPDATE  purchase_order
                 SET     lot_input_id = wh.lot_input_id
                 FROM    purchase_order purchase
