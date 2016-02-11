@@ -52,7 +52,7 @@ def migrate(cr, version):
     # In case, no property exists for this product template, we simply fallback to lst_price
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = coalesce(t.lst_price, 0)
+           SET price = coalesce(t.list_price, 0)
           FROM product_template t
          WHERE t.id = i.product_tmpl_id
            AND i.price IS NULL
