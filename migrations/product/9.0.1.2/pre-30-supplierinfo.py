@@ -2,9 +2,6 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    cr.execute("""DELETE FROM product_supplierinfo i
-                   WHERE NOT EXISTS(SELECT 1 FROM pricelist_partnerinfo WHERE suppinfo_id=i.id)
-               """)
     util.create_column(cr, 'product_supplierinfo', 'price', 'numeric')
     util.create_column(cr, 'product_supplierinfo', 'currency_id', 'int4')
 
@@ -24,6 +21,42 @@ def migrate(cr, version):
             updated_si.add(sid)
             cr.execute("UPDATE product_supplierinfo SET price=%s, min_qty=%s WHERE id=%s",
                        [price, qty, sid])
+
+    # for the one without pricelist_partnerinfo, get the standard price from product
+    cr.execute("""
+        SELECT id FROM ir_model_fields WHERE model='product.template' AND name='standard_price'
+    """)
+    [fields_id] = cr.fetchone()
+    cr.execute("""
+        UPDATE product_supplierinfo i
+           SET price = p.value_float
+          FROM ir_property p, product_template t
+         WHERE t.id = i.product_tmpl_id
+           AND p.fields_id = %s
+           AND p.company_id = coalesce(i.company_id, t.company_id)
+           AND p.res_id = 'product.template,' || t.id
+           AND i.price IS NULL
+    """, [fields_id])
+    # check for all-companies properties
+    cr.execute("""
+        UPDATE product_supplierinfo i
+           SET price = p.value_float
+          FROM ir_property p
+         WHERE p.fields_id = %s
+           AND p.company_id IS NULL
+           AND p.res_id = 'product.template,' || i.product_tmpl_id
+           AND i.price IS NULL
+    """, [fields_id])
+
+    # Due to default values, company_id of supplier info should not be NULL
+    # In case, no property exists for this product template, we simply fallback to lst_price
+    cr.execute("""
+        UPDATE product_supplierinfo i
+           SET price = coalesce(t.lst_price, 0)
+          FROM product_template t
+         WHERE t.id = i.product_tmpl_id
+           AND i.price IS NULL
+    """)
 
     # set currency to the coalesce(company of self, company of template, main company)
     cr.execute("""
