@@ -13,6 +13,7 @@ def migrate(cr, version):
     util.remove_module(cr, 'portal_project_issue')
     util.remove_module(cr, 'web_graph')
     util.remove_module(cr, 'website_instantclick')
+    util.remove_module(cr, 'website_less')
 
     util.remove_module_deps(cr, 'mass_mailing', ('web_kanban_sparkline',))
     util.remove_module_deps(cr, 'sales_team', ('web_kanban_sparkline',))
