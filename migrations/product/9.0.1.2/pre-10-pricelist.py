@@ -25,6 +25,7 @@ def migrate(cr, version):
                SET pricelist_id = n.new
               FROM n
              WHERE v.pricelist_id = n.old
+               AND v.active = false
         """.format(columns=', '.join(columns), p_columns=', '.join(p_columns)))
 
         util.remove_column(cr, 'product_pricelist', '_tmp')
@@ -190,6 +191,7 @@ def migrate(cr, version):
 
     # cleanup
     util.remove_column(cr, 'product_pricelist_item', 'name')    # now a computed field
+    util.remove_column(cr, 'product_pricelist_item', '_base')
     util.remove_field(cr, 'product.pricelist.item', 'price_version_id')
     util.delete_model(cr, 'product.price.type')
     util.delete_model(cr, 'product.pricelist.type')
