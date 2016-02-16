@@ -100,6 +100,31 @@ def migrate(cr, version):
 
     util.remove_column(cr, 'delivery_carrier', '_tmp')
 
+    # Carriers change from "HAS A" product to "IS A" product (now use _inherits)
+    # Create a different product per carrier to avoid user confusion.
+    Product = util.env(cr)['product.product']
+    cr.execute("SELECT id, name FROM delivery_carrier")
+    carrier_names = dict(cr.fetchall())
+    cr.execute("""
+        SELECT product_id, array_agg(id)
+          FROM delivery_carrier
+      GROUP BY product_id
+    """)
+    for product_id, carrier_ids in cr.fetchall():
+        if len(carrier_ids) == 1:
+            cr.execute("""
+                UPDATE product_template t
+                   SET name = (SELECT name FROM delivery_carrier WHERE id=%s)
+                  FROM product_product p
+                 WHERE t.id = p.product_tmpl_id
+                   AND p.id = %s
+            """, [carrier_ids[0], product_id])
+        else:
+            for carrier_id in carrier_ids:
+                new_product = Product.browse(product_id).copy(dict(name=carrier_names[carrier_id]))
+                cr.execute("UPDATE delivery_carrier SET product_id=%s WHERE id=%s",
+                           [new_product.id, carrier_id])
+
     # line -> rule
     util.rename_model(cr, 'delivery.grid.line', 'delivery.price.rule')
     util.rename_field(cr, 'delivery.price.rule', 'type', 'variable')
