@@ -128,7 +128,7 @@ def migrate(cr, version):
     invoices_mapping = {}
     for invoice in cr.dictfetchall():
         if invoices_mapping.get(invoice['move_id'], False):
-            invoices_mapping[invoice['move_id']] = invoices_mapping[invoice['move_id']].append(invoice['tax_id'])
+            invoices_mapping[invoice['move_id']].append(invoice['tax_id'])
         else:
             invoices_mapping[invoice['move_id']] = [invoice['tax_id']]
 
