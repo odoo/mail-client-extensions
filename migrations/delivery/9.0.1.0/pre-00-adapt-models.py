@@ -125,6 +125,14 @@ def migrate(cr, version):
                 cr.execute("UPDATE delivery_carrier SET product_id=%s WHERE id=%s",
                            [new_product.id, carrier_id])
 
+    # now use active field of product
+    cr.execute("""
+        UPDATE product_product p
+           SET active = c.active
+          FROM delivery_carrier c
+         WHERE p.id = c.product_id
+    """)
+
     # line -> rule
     util.rename_model(cr, 'delivery.grid.line', 'delivery.price.rule')
     util.rename_field(cr, 'delivery.price.rule', 'type', 'variable')
