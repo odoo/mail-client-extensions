@@ -5,8 +5,10 @@ def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
 
-- Generic: spellchecking in many apps
-- Generic: improved support for default non-english language
+* Generic:
+  - spellchecking in many apps
+  - improved support for default non-english language
+  - support for adding "computed" custom fields
 - Emails: default email templates cleaned up and improved
 - Survey: archival of completed surveys is now available
 
