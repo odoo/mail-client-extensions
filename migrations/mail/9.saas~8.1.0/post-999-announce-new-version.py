@@ -7,7 +7,6 @@ def migrate(cr, version):
 
 - Emails can now be scheduled to send after a given date.
 - CRM: stages can only be restricted to a specific sales team.
-- Better default icon for invoicing and delivery addresses.
 - Can now get user avatar through gravatar.com service.
 """
 
