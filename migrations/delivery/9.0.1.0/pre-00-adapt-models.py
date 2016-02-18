@@ -69,7 +69,8 @@ def migrate(cr, version):
         cr.execute("DELETE FROM delivery_grid WHERE id=ANY(%s)", [todel])
 
     columns, c_columns = map(','.join, util.get_columns(cr, 'delivery_carrier',
-                                                        ('id', 'zip_from', 'zip_to'), ['c']))
+                                                        ('id', 'zip_from', 'zip_to', 'name'),
+                                                        ['c']))
 
     util.create_column(cr, 'delivery_carrier', '_tmp', 'int4')
     cr.execute("""SELECT carrier_id, array_agg(id)
@@ -77,19 +78,23 @@ def migrate(cr, version):
                 GROUP BY carrier_id     -- only by carrier_id
                """)
     for cid, grids in cr.fetchall():
+        first_grid = grids.pop(0)
+        # copy grid name if more than one grid available
+        get_grid_name = ', name = g.name' if grids else ''
         cr.execute("""UPDATE delivery_carrier c
                          SET zip_from=g.zip_from,
                              zip_to=g.zip_to
+                             {get_grid_name}
                         FROM delivery_grid g
                        WHERE c.id=%s
                          AND g.id=%s
-                   """, [cid, grids[0]])
-        grids.pop(0)
+                   """.format(get_grid_name=get_grid_name),
+                   [cid, first_grid])
         if grids:
             # duplicate carrier (1 per grid)
             cr.execute("""
-                INSERT INTO delivery_carrier({columns}, zip_from, zip_to, _tmp)
-                SELECT {c_columns}, g.zip_from, g.zip_to, g.id
+                INSERT INTO delivery_carrier({columns}, name, zip_from, zip_to, _tmp)
+                SELECT {c_columns}, g.name, g.zip_from, g.zip_to, g.id
                   FROM delivery_carrier c, delivery_grid g
                  WHERE c.id=%s
                    AND g.id=ANY(%s)
