@@ -5,10 +5,10 @@ def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
 
-- Lot of typo have been fixed in Apps.
-- Cleaner default email templates.
-- Surveys can now be archived.
-- Better languages management.
+- Generic: spellchecking in many apps
+- Generic: improved support for default non-english language
+- Emails: default email templates cleaned up and improved
+- Survey: archival of completed surveys is now available
 
 """
 

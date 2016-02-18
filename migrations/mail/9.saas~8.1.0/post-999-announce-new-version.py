@@ -5,9 +5,9 @@ def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
 
-- Emails can now be scheduled to send after a given date.
-- CRM: stages can only be restricted to a specific sales team.
-- Can now get user avatar through gravatar.com service.
+ - Emails: scheduling is possible for future email delivery
+ - CRM stages: Sales teams now choose between global stages or per-team stages
+ - Generic: gravatar.com icon automatically retrieved when setting customer email
 """
 
     util.announce(cr, '9.saas~8', message, format='md')

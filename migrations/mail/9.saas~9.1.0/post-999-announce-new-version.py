@@ -5,9 +5,9 @@ def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
 
-- Delivery: Handle [HS Code](https://en.wikipedia.org/wiki/Harmonized_System) for supported carriers.
-- HR Recruitment: Stages can be restricted to a specific job position.
-- Expense: Can specify account on which the expense should be applied.
+- Delivery: [Harmonized System (HS) Codes](https://en.wikipedia.org/wiki/Harmonized_System) supported for compatible carriers.
+- Recruitment: choose between global stages or per-job-position stages
+- Expenses: support for forcing the P&L account to use for each expense
 """
 
     util.announce(cr, '9.saas~9', message, format='md')
