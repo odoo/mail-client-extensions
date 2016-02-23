@@ -9,7 +9,7 @@ def migrate(cr, version):
     util.delete_model(cr, 'account.fiscalyear')
     # util.delete_model(cr, 'account.period')
     util.delete_model(cr, 'account.journal.period')
-    util.delete_model(cr, 'account.move.reconcile')
+    # util.delete_model(cr, 'account.move.reconcile')
     util.delete_model(cr, 'account.installer')
     util.delete_model(cr, 'account.automatic.reconcile')
     util.delete_model(cr, 'account.move.line.reconcile.select')
