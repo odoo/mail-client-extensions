@@ -5,9 +5,11 @@ def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
 
- - Emails: scheduling is possible for future email delivery
- - CRM stages: Sales teams now choose between global stages or per-team stages
- - Generic: gravatar.com icon automatically retrieved when setting customer email
+ * Emails: scheduling is possible for future email delivery
+ * CRM stages: Sales teams now choose between global stages or per-team stages
+ * Generic:
+     - gravatar.com icon automatically retrieved when setting customer email
+     - support for adding "computed" custom fields
 """
 
     util.announce(cr, '9.saas~8', message, format='md')

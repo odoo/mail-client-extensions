@@ -8,9 +8,8 @@ def migrate(cr, version):
 * Generic:
   - spellchecking in many apps
   - improved support for default non-english language
-  - support for adding "computed" custom fields
-- Emails: default email templates cleaned up and improved
-- Survey: archival of completed surveys is now available
+* Emails: default email templates cleaned up and improved
+* Survey: archival of completed surveys is now available
 
 """
 
