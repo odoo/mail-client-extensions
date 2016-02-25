@@ -21,3 +21,6 @@ def migrate(cr, version):
            AND imd.res_id = v.id
            AND v."type" = 'qweb'
     """)
+
+    # will also works for product.product
+    util.update_field_references(cr, 'ean13', 'barcode')
