@@ -19,5 +19,5 @@ def migrate(cr, version):
         util.create_column(cr, 'res_company', 'anglo_saxon_accounting', 'boolean')
         cr.execute("UPDATE res_company SET anglo_saxon_accounting = true")
 
-        # uninstall module
-        util.remove_module(cr, 'account_anglo_saxon')
+    # remove module
+    util.remove_module(cr, 'account_anglo_saxon')
