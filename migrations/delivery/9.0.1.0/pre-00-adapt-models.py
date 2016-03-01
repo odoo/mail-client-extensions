@@ -105,6 +105,22 @@ def migrate(cr, version):
 
     util.remove_column(cr, 'delivery_carrier', '_tmp')
 
+    util.create_m2m(cr, 'delivery_carrier_country_rel', 'delivery_carrier', 'res_country', 'carrier_id', 'country_id')
+    cr.execute("""
+        INSERT INTO delivery_carrier_country_rel(carrier_id, country_id)
+          SELECT g.carrier_id, rel.country_id
+               from delivery_grid g, delivery_grid_country_rel rel
+               where g.id = rel.grid_id
+    """)
+
+    util.create_m2m(cr, 'delivery_carrier_state_rel', 'delivery_carrier', 'res_country_state', 'carrier_id', 'state_id')
+    cr.execute("""
+        INSERT INTO delivery_carrier_state_rel(carrier_id, state_id)
+          SELECT g.carrier_id, rel.state_id
+               from delivery_grid g, delivery_grid_state_rel rel
+               where g.id = rel.grid_id
+    """)
+
     # Carriers change from "HAS A" product to "IS A" product (now use _inherits)
     # Create a different product per carrier to avoid user confusion.
     Product = util.env(cr)['product.product']
