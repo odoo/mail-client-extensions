@@ -14,3 +14,5 @@ def migrate(cr, version):
                                     ELSE NULL
                                 END
                """)
+
+    cr.execute("UPDATE mail_mass_mailing SET state='draft' WHERE state='test'")
