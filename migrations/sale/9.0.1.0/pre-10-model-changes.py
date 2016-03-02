@@ -34,7 +34,10 @@ def migrate(cr, version):
     util.create_column(cr, 'sale_order_line', 'invoice_status', 'varchar')
     util.create_column(cr, 'sale_order_line', 'qty_invoiced', 'float8')
     util.create_column(cr, 'sale_order_line', 'qty_to_invoice', 'float8')
+    util.create_column(cr, 'sale_order_line', 'qty_delivered', 'float8')
     util.create_column(cr, 'sale_order_line', 'currency_id', 'int4')
+    util.create_column(cr, 'product_template', 'invoice_policy', 'varchar')
+
     cr.execute("""
         UPDATE sale_order_line
             SET qty_invoiced = sign_qty.qty
@@ -61,13 +64,54 @@ def migrate(cr, version):
           JOIN product_pricelist p ON (p.id = o.pricelist_id)
          WHERE o.id = l.order_id
     """)
+
+    if util.table_exists(cr, 'stock_move'):
+        cr.execute("""
+            UPDATE sale_order_line SET
+                qty_delivered = query.sum
+                FROM (
+                    SELECT sol.id, sum(mv.product_qty)
+                    FROM stock_move AS mv,
+                         stock_location AS loc,
+                         procurement_order AS proc,
+                         sale_order_line AS sol
+                    WHERE mv.location_dest_id=loc.id AND
+                          mv.state='done' AND
+                          loc.usage='customer' AND
+                          loc.scrap_location='f' AND
+                          mv.procurement_id=proc.id AND
+                          proc.sale_line_id=sol.id
+                    GROUP BY sol.id) AS query
+                WHERE query.id = sale_order_line.id;
+            """)
+    else:
+        cr.execute("UPDATE sale_order_line SET qty_delivered=0")
+
+    env = util.env(cr)
+    order_policy = env['ir.values'].get_default('sale.order', 'order_policy')
     cr.execute("""
-        UPDATE sale_order_line
-            SET invoice_status = CASE
-                WHEN "state" NOT IN ('sale', 'done') THEN 'no'
-                WHEN "qty_to_invoice" != 0 THEN 'to invoice'
-                WHEN "qty_invoiced" > "product_uom_qty" THEN 'upselling'
-                WHEN "qty_invoiced" > "product_uom_qty" THEN 'invoiced'
+        UPDATE product_template
+           SET invoice_policy = CASE
+                WHEN %s = 'picking' AND type IN ('product', 'consu') THEN 'delivery'
+                ELSE 'order'
+                END
+    """, [order_policy])
+
+    # compute invoice_status field: https://git.io/v2MWu
+    # XXX maybe we should let the ORM compute it itself
+    cr.execute("""
+        UPDATE sale_order_line l
+           SET invoice_status = CASE
+                WHEN state NOT IN ('sale', 'done') THEN 'no'
+                WHEN qty_to_invoice != 0 THEN 'to invoice'
+                WHEN (    state = 'sale'
+                      AND EXISTS(SELECT 1
+                                   FROM product_product p
+                                   JOIN product_template t ON (t.id = p.product_tmpl_id)
+                                  WHERE p.id = l.product_id
+                                    AND t.invoice_policy = 'order')
+                      AND qty_delivered > product_uom_qty) THEN 'upselling'
+                WHEN qty_invoiced >= product_uom_qty THEN 'invoiced'
                 ELSE 'no'
                 END
         """)
