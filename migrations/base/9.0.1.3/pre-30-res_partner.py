@@ -18,6 +18,20 @@ def migrate(cr, version):
     cr.execute("DELETE FROM res_partner_title WHERE domain='partner'")
 
     cr.execute("UPDATE res_partner SET type='contact' WHERE type='default'")
+    cr.execute("""
+        UPDATE res_partner
+           SET type='other'
+         WHERE type='contact'
+           AND parent_id IS NOT NULL
+           AND use_parent_address = false
+           AND (street IS NOT NULL
+             OR street2 IS NOT NULL
+             OR zip IS NOT NULL
+             OR city IS NOT NULL
+             OR state_id IS NOT NULL
+             OR country_id IS NOT NULL
+           )
+    """)
 
     util.create_column(cr, 'res_partner', 'company_type', 'varchar')
     cr.execute("""UPDATE res_partner
