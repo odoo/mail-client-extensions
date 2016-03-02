@@ -9,6 +9,7 @@ def migrate(cr, version):
           FROM hr_department d
           JOIN hr_employee e ON (e.id = d.manager_id)
           JOIN resource_resource r ON (r.id = e.resource_id)
+         WHERE r.user_id IS NOT NULL
     """)
     for dep_id, user_id in cr.fetchall():
         Dep.browse(dep_id).message_subscribe_users(user_ids=[user_id])
