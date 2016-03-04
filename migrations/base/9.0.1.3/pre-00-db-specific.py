@@ -64,12 +64,41 @@ def _andrew(cr, version):
     )
     cr.execute("UPDATE ir_ui_view SET active=false WHERE name IN %s", [views])
 
+def _mckay(cr, version):
+    util.remove_module(cr, 'statement_voucher_killer')
+
+def _anc2systems(cr, version):
+    cr.execute("DELETE FROM ir_values WHERE name='supplier_taxes_id' AND key='default'")
+
+def _irisob(cr, version):
+    for v in [1370, 1377, 1409, 1406, 1413]:
+        util.remove_view(cr, view_id=v)
+    cr.execute("DELETE FROM ir_act_window_view WHERE id=102")
+
+    with util.skippable_cm(), util.edit_view(cr, 'sale.report_saleorder_document') as arch:
+        node = arch.find('.//div[@class="page"]')
+        util.lxml.etree.SubElement(node, 'p', id='fiscal_position_remark')
+
+    with util.skippable_cm(), util.edit_view(cr, view_id=1035) as arch:
+        node = arch.find('./field[@name="fiscal_position"]')
+        node.attrib['name'] = 'fiscal_position_id'
+
+    with util.skippable_cm(), util.edit_view(cr, view_id=1408) as arch:
+        for node in arch.xpath('//field[@name="payment_term"]'):
+            node.attrib['name'] = 'payment_term_id'
+
+    with util.skippable_cm(), util.edit_view(cr, view_id=1045) as arch:
+        node = arch.find('.//field[@name="minimum_planned_date"]')
+        node.getparent().remove(node)
+
+
 def migrate(cr, version):
-    cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('database.uuid',))
-    [uuid] = cr.fetchone()
-    {
+    util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,    # prod
         '0950c4ec-5bda-11e5-816e-002590a742c0': _andrew,        # andrew-alliance-sept
         '1231bd5a-4d59-11e3-80e6-f23c91dbe612': _andrew,        # andrew-alliance
-    }.get(uuid, lambda *a: None)(cr, version)
+        'bb7ddc42-1065-11e5-9445-b083fec18343': _mckay,
+        '481d7a23-7e5e-4bf5-80bf-57e3ef74c435': _anc2systems,
+        '9d923224-1dcf-4819-ae76-5079c2718598': _irisob,
+    })
