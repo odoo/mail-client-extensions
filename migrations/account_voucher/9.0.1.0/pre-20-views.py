@@ -10,6 +10,8 @@ def migrate(cr, version):
         view_voucher_form
         view_invoice_customer
         view_invoice_supplier
+        view_vendor_receipt_dialog_form
+        view_low_priority_payment_form
     """)
     for view in view_list:
         util.remove_view(cr, "account_voucher." + view)
