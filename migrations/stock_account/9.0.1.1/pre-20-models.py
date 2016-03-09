@@ -2,8 +2,8 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.rename_field(cr, 'product_template', 'valuation', 'property_valuation')
-    util.rename_field(cr, 'product_template', 'cost_method', 'property_cost_method')
+    util.rename_field(cr, 'product.template', 'valuation', 'property_valuation')
+    util.rename_field(cr, 'product.template', 'cost_method', 'property_cost_method')
 
     for prop in ['input', 'output']:
         util.rename_field(cr, 'product.category',
