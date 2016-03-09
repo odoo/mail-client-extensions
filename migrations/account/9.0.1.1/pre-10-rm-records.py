@@ -75,6 +75,37 @@ def migrate(cr, version):
                 AND a.type IN ('view', 'consolidation')
     """)
 
+    # clean wizards
+    for table in util.splitlines("""
+        account_common_report
+            accounting_report
+            account_vat_declaration
+
+            account_common_account_report
+                account_balance_report
+                account_report_general_ledger
+
+            account_common_journal_report
+                account_central_journal
+                account_general_journal
+                account_print_journal
+
+            account_common_partner_report
+                account_aged_trial_balance
+                account_partner_ledger
+                account_partner_balance
+
+
+        account_addtmpl_wizard
+        reconcile_account_rel
+        account_automatic_reconcile
+
+        account_move_line_reconcile_select
+        account_move_line_unreconcile_select
+        account_move_line_reconcile_writeoff
+    """):
+        cr.execute("DELETE FROM " + table)
+
     cr.execute("""DELETE FROM account_account
                     WHERE type in ('view', 'consolidation')
                 """)
