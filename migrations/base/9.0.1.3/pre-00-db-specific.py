@@ -91,6 +91,18 @@ def _irisob(cr, version):
         node = arch.find('.//field[@name="minimum_planned_date"]')
         node.getparent().remove(node)
 
+def _electronics123(cr, version):
+    cr.execute("""
+        INSERT INTO ir_model_fields(
+            model, model_id, select_level, name, field_description, ttype, state, translate,
+            readonly, selectable, required)
+        VALUES('product.template', 180, 0, 'x_product_case', 'Case', 'char', 'manual', false,
+               false, true, false);
+    """)
+    cr.execute("ALTER TABLE product_template RENAME loc_case TO x_product_case")
+
+    util.update_field_references(cr, 'seller_id', 'seller_ids',
+                                 ('product.template', 'product.product'))
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
@@ -101,4 +113,5 @@ def migrate(cr, version):
         'bb7ddc42-1065-11e5-9445-b083fec18343': _mckay,
         '481d7a23-7e5e-4bf5-80bf-57e3ef74c435': _anc2systems,
         '9d923224-1dcf-4819-ae76-5079c2718598': _irisob,
+        '885e1afc-694e-41c6-b496-a08d6a34c360': _electronics123,
     })
