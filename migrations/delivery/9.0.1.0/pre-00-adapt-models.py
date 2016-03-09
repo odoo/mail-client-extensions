@@ -17,7 +17,7 @@ def migrate(cr, version):
     util.create_column(cr, 'delivery_carrier', 'zip_to', 'varchar')
     cr.execute("""
         UPDATE delivery_carrier
-           SET delivery_type=CASE WHEN coalesce(fixed_price, 0) = 0 THEN 'base_on_rule'
+           SET delivery_type=CASE WHEN use_detailed_pricelist THEN 'base_on_rule'
                                   ELSE 'fixed'
                               END
          WHERE coalesce(delivery_type, 'grid') = 'grid'
