@@ -75,14 +75,15 @@ def migrate(cr, version):
            AND name IN %s
     """, [tuple(xids)])
 
-    # activities m2m
-    util.create_m2m(cr, 'crm_activity_rel', 'crm_activity', 'crm_activity',
-                    'activity_id', 'recommended_id')
-    cr.execute("""
-        INSERT INTO crm_activity_rel(activity_id, recommended_id)
-             SELECT id, activity_1_id FROM crm_activity WHERE activity_1_id IS NOT NULL
-             UNION
-             SELECT id, activity_2_id FROM crm_activity WHERE activity_2_id IS NOT NULL
-             UNION
-             SELECT id, activity_3_id FROM crm_activity WHERE activity_3_id IS NOT NULL
-    """)
+    if util.table_exists(cr, 'crm_activity'):
+        # activities m2m
+        util.create_m2m(cr, 'crm_activity_rel', 'crm_activity', 'crm_activity',
+                        'activity_id', 'recommended_id')
+        cr.execute("""
+            INSERT INTO crm_activity_rel(activity_id, recommended_id)
+                 SELECT id, activity_1_id FROM crm_activity WHERE activity_1_id IS NOT NULL
+                 UNION
+                 SELECT id, activity_2_id FROM crm_activity WHERE activity_2_id IS NOT NULL
+                 UNION
+                 SELECT id, activity_3_id FROM crm_activity WHERE activity_3_id IS NOT NULL
+        """)
