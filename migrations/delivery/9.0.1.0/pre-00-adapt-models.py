@@ -158,11 +158,18 @@ def migrate(cr, version):
     util.rename_model(cr, 'delivery.grid.line', 'delivery.price.rule')
     util.rename_field(cr, 'delivery.price.rule', 'type', 'variable')
     util.create_column(cr, 'delivery_price_rule', 'carrier_id', 'int4')
+    util.create_column(cr, 'delivery_price_rule', 'list_base_price', 'numeric')
     cr.execute("""UPDATE delivery_price_rule r
                      SET carrier_id=g.carrier_id
                     FROM delivery_grid g
                    WHERE g.id = r.grid_id
                """)
+    cr.execute("""
+        UPDATE delivery_price_rule
+           SET list_base_price = list_price,
+               list_price = 0
+         WHERE price_type = 'fixed'
+    """)
 
     util.delete_model(cr, 'delivery.grid')
     util.remove_field(cr, 'delivery.price.rule', 'grid_id')
