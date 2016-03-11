@@ -104,6 +104,11 @@ def _electronics123(cr, version):
     util.update_field_references(cr, 'seller_id', 'seller_ids',
                                  ('product.template', 'product.product'))
 
+def _apps(cr, version):
+    cr.execute("DELETE FROM ir_translation WHERE lang IN ('bs_BS', 'ur_PK')")
+    cr.execute("UPDATE res_lang SET code='bs_BA', iso_code='bs_BA' WHERE code='bs_BS'")
+    cr.execute("DELETE FROM res_lang WHERE code='ur_PK'")
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -114,4 +119,5 @@ def migrate(cr, version):
         '481d7a23-7e5e-4bf5-80bf-57e3ef74c435': _anc2systems,
         '9d923224-1dcf-4819-ae76-5079c2718598': _irisob,
         '885e1afc-694e-41c6-b496-a08d6a34c360': _electronics123,
+        'a0a30d16-6095-11e2-9c70-002590a17fd8': _apps,
     })
