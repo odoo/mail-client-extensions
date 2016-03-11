@@ -214,7 +214,7 @@ def migrate(cr, version):
         cur_t = Currency.browse(currency_id).with_context(company_id=company_id, date=order_date)
         total = 0.0
         cr.execute("""
-            SELECT amount_total, currency_id, invoice_date, company_id
+            SELECT amount_total, currency_id, date_invoice, company_id
               FROM account_invoice
              WHERE id IN %s
                AND state = 'paid'
