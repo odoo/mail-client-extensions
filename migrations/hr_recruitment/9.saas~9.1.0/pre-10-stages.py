@@ -32,6 +32,16 @@ def migrate(cr, version):
           FROM job_stage_rel
       GROUP BY 1
         HAVING array_agg(job_id order by job_id) != (SELECT array_agg(id order by id) FROM hr_job)
+
+    ----%<----
+    ) SELECT * FROM stage_jobs
+    """)
+    shared_stages = cr.fetchall()
+    if shared_stages:
+        raise util.MigrationError("Shared Stages found: %r", shared_stages)
+    ("""
+    ---->%----
+
     ),
     _upd AS (
       UPDATE hr_recruitment_stage s

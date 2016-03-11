@@ -26,13 +26,22 @@ def migrate(cr, version):
     """)
 
     cr.execute("""
-
     WITH stage_teams AS (
         SELECT stage_id, array_agg(team_id order by team_id) as teams
           FROM crm_team_stage_rel
       GROUP BY 1
         HAVING array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team WHERE active)
            AND array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team)
+
+    ----%<----
+    ) SELECT * FROM stage_teams
+    """)
+    shared_stages = cr.fetchall()
+    if shared_stages:
+        raise util.MigrationError("Shared Stages found: %r", shared_stages)
+    ("""
+    ---->%----
+
     ),
     _upd AS (
       UPDATE crm_stage s
