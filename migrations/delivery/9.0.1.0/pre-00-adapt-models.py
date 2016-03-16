@@ -173,10 +173,16 @@ def migrate(cr, version):
     # now that we reset list_price, implicit order is now lost.
     # Resequence rules to keep a valid order.
     cr.execute("""
-        UPDATE delivery_price_rule
-           SET sequence = row_number()
-                          over(partition by carrier_id
-                                   order by sequence, list_price, variable_factor, max_value)
+        WITH upd AS (
+           SELECT id, row_number()
+                      over(PARTITION BY carrier_id
+                               ORDER BY sequence, list_price, variable_factor, max_value) AS seq
+             FROM delivery_price_rule
+        )
+        UPDATE delivery_price_rule r
+           SET sequence = upd.seq
+          FROM upd
+         WHERE r.id = upd.id
     """)
 
     util.delete_model(cr, 'delivery.grid')
