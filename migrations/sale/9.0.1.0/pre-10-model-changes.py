@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
-
 def migrate(cr, version):
     # seems wrong, but it's not. Column name has been fixed
     cr.execute("""
@@ -30,6 +29,16 @@ def migrate(cr, version):
         """)
     cr.execute("UPDATE sale_order_line SET state=so.state FROM sale_order AS so WHERE so.id=order_id")  # field is now related
 
+    env = util.env(cr)
+    order_policy = env['ir.values'].get_default('sale.order', 'order_policy')
+    cr.execute("""
+        UPDATE product_template
+           SET invoice_policy = CASE
+                WHEN %s = 'picking' AND type IN ('product', 'consu') THEN 'delivery'
+                ELSE 'order'
+                END
+    """, [order_policy])
+
     # bootstrap some new computed fields
     util.create_column(cr, 'sale_order_line', 'invoice_status', 'varchar')
     util.create_column(cr, 'sale_order_line', 'qty_invoiced', 'numeric')
@@ -45,6 +54,12 @@ def migrate(cr, version):
           JOIN product_pricelist p ON (p.id = o.pricelist_id)
          WHERE o.id = l.order_id
     """)
+
+    _update_lines(cr)
+
+
+def _update_lines(cr):
+    # update sale order lines fields qty_invoiced, qty_delivered, qty_to_invoice
     cr.execute("""
         UPDATE sale_order_line l
            SET qty_invoiced = round(sign_qty.qty, ceil(-log(uom.rounding))::integer)
@@ -98,16 +113,6 @@ def migrate(cr, version):
     else:
         cr.execute("UPDATE sale_order_line SET qty_delivered=0")
         all_moves_done = "false"
-
-    env = util.env(cr)
-    order_policy = env['ir.values'].get_default('sale.order', 'order_policy')
-    cr.execute("""
-        UPDATE product_template
-           SET invoice_policy = CASE
-                WHEN %s = 'picking' AND type IN ('product', 'consu') THEN 'delivery'
-                ELSE 'order'
-                END
-    """, [order_policy])
 
     cr.execute("""
         UPDATE sale_order_line l
@@ -249,3 +254,31 @@ def migrate(cr, version):
                                                             FROM account_invoice_line
                                                            WHERE invoice_id = il.invoice_id))
     """)
+
+
+def main(cr, version):
+    # main function, to be called on already migrated databases
+    cr.execute("UPDATE sale_order_line SET qty_invoiced=NULL")
+    _update_lines(cr)
+    cr.execute("""
+        UPDATE sale_order o
+           SET invoice_status =
+                CASE WHEN state NOT IN ('sale', 'done') THEN 'no'
+                     WHEN EXISTS(SELECT 1
+                                   FROM sale_order_line
+                                  WHERE order_id=o.id
+                                    AND invoice_status='to invoice') THEN 'to invoice'
+                    WHEN NOT EXISTS(SELECT 1
+                                      FROM sale_order_line
+                                     WHERE order_id=o.id
+                                       AND invoice_status != 'invoiced') THEN 'invoiced'
+                    WHEN NOT EXISTS(SELECT 1
+                                      FROM sale_order_line
+                                     WHERE order_id=o.id
+                                       AND invoice_status NOT IN ('invoiced', 'upselling')) THEN 'upselling'
+                    ELSE 'no'
+                    END
+    """)
+
+if __name__ == '__main__':
+    util.main(main)
