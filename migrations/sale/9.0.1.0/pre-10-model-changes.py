@@ -29,6 +29,14 @@ def migrate(cr, version):
         """)
     cr.execute("UPDATE sale_order_line SET state=so.state FROM sale_order AS so WHERE so.id=order_id")  # field is now related
 
+    # bootstrap some new computed fields
+    util.create_column(cr, 'sale_order_line', 'invoice_status', 'varchar')
+    util.create_column(cr, 'sale_order_line', 'qty_invoiced', 'numeric')
+    util.create_column(cr, 'sale_order_line', 'qty_to_invoice', 'numeric')
+    util.create_column(cr, 'sale_order_line', 'qty_delivered', 'numeric')
+    util.create_column(cr, 'sale_order_line', 'currency_id', 'int4')
+    util.create_column(cr, 'product_template', 'invoice_policy', 'varchar')
+
     env = util.env(cr)
     order_policy = env['ir.values'].get_default('sale.order', 'order_policy')
     cr.execute("""
@@ -38,14 +46,6 @@ def migrate(cr, version):
                 ELSE 'order'
                 END
     """, [order_policy])
-
-    # bootstrap some new computed fields
-    util.create_column(cr, 'sale_order_line', 'invoice_status', 'varchar')
-    util.create_column(cr, 'sale_order_line', 'qty_invoiced', 'numeric')
-    util.create_column(cr, 'sale_order_line', 'qty_to_invoice', 'numeric')
-    util.create_column(cr, 'sale_order_line', 'qty_delivered', 'numeric')
-    util.create_column(cr, 'sale_order_line', 'currency_id', 'int4')
-    util.create_column(cr, 'product_template', 'invoice_policy', 'varchar')
 
     cr.execute("""
         UPDATE sale_order_line l
