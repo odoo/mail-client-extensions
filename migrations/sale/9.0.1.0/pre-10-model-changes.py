@@ -123,8 +123,8 @@ def _update_lines(cr):
                               JOIN product_template t ON (t.id = p.product_tmpl_id)
                              WHERE p.id = l.product_id
                                AND t.invoice_policy = 'order')
-                THEN round(product_uom_qty - qty_invoiced, ceil(-log(uom.rounding))::integer)
-                ELSE round(qty_delivered - qty_invoiced, ceil(-log(uom.rounding))::integer)
+                THEN round(product_uom_qty - coalesce(qty_invoiced, 0), ceil(-log(uom.rounding))::integer)
+                ELSE round(qty_delivered - coalesce(qty_invoiced, 0), ceil(-log(uom.rounding))::integer)
                 END
           FROM product_uom uom
          WHERE uom.id = l.product_uom
