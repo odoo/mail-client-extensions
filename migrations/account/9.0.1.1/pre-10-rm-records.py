@@ -56,6 +56,10 @@ def migrate(cr, version):
                 SELECT 1
                   FROM account_invoice_line
                  WHERE account_id = a.id
+                 UNION
+                SELECT 1
+                  FROM account_analytic_line
+                 WHERE general_account_id = a.id
            )
     """)
     cr.execute("""
