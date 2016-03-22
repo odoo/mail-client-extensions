@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -25,47 +26,55 @@ def migrate(cr, version):
          WHERE s.id = o.stage_id
     """)
 
-    cr.execute("""
-    WITH stage_teams AS (
-        SELECT stage_id, array_agg(team_id order by team_id) as teams
-          FROM crm_team_stage_rel
-      GROUP BY 1
-        HAVING array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team WHERE active)
-           AND array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team)
+    act = os.environ.get('ODOO_MIG_S8_CRM_STAGE', 'check')
+    # 3 valid values: 'check', 'dup', 'share'
 
-    ----%<----
-    ) SELECT * FROM stage_teams
-    """)
-    shared_stages = cr.fetchall()
-    if shared_stages:
-        raise util.MigrationError("Shared Stages found: %r", shared_stages)
-    ("""
-    ---->%----
+    if act == 'check':
+        cr.execute("""
+            SELECT stage_id, array_agg(team_id order by team_id) as teams
+              FROM crm_team_stage_rel
+          GROUP BY 1
+            HAVING array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team WHERE active)
+               AND array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team)
+        """)
+        shared_stages = cr.fetchall()
+        if shared_stages:
+            raise util.MigrationError("Shared Stages found: %r", shared_stages)
 
-    ),
-    _upd AS (
-      UPDATE crm_stage s
-         SET team_id = t.teams[1]
-        FROM stage_teams t
-       WHERE t.stage_id = s.id
-    ),
-    new_stages AS (
-        INSERT INTO crm_stage({cols}, team_id, _tmp)
-             SELECT {s_cols}, unnest(t.teams[2:array_length(t.teams, 1)]), s.id
-               FROM crm_stage s
-               JOIN stage_teams t ON (s.id = t.stage_id)
-          RETURNING id, team_id, _tmp
-    )
+    elif act == 'dup':
+        cr.execute("""
+            WITH stage_teams AS (
+                SELECT stage_id, array_agg(team_id order by team_id) as teams
+                  FROM crm_team_stage_rel
+              GROUP BY 1
+                HAVING array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team WHERE active)
+                   AND array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team)
+            ),
+            _upd AS (
+              UPDATE crm_stage s
+                 SET team_id = t.teams[1]
+                FROM stage_teams t
+               WHERE t.stage_id = s.id
+            ),
+            new_stages AS (
+                INSERT INTO crm_stage({cols}, team_id, _tmp)
+                     SELECT {s_cols}, unnest(t.teams[2:array_length(t.teams, 1)]), s.id
+                       FROM crm_stage s
+                       JOIN stage_teams t ON (s.id = t.stage_id)
+                  RETURNING id, team_id, _tmp
+            )
 
-    -- reassign lead to correct stage depending on team
-    -- users may seen duplicated stage in kanban view depending on lead team
-    UPDATE crm_lead l
-       SET stage_id = n.id
-      FROM new_stages n
-     WHERE l.stage_id = n._tmp
-       AND l.team_id = n.team_id
+            -- reassign lead to correct stage depending on team
+            -- users may seen duplicated stage in kanban view depending on lead team
+            UPDATE crm_lead l
+               SET stage_id = n.id
+              FROM new_stages n
+             WHERE l.stage_id = n._tmp
+               AND l.team_id = n.team_id
+        """.format(**locals()))
 
-    """.format(**locals()))
+    elif act != 'share':
+        raise util.MigrationError('Invalid environment variable: $ODOO_MIG_S8_CRM_STAGE=%s' % act)
 
     util.remove_column(cr, 'crm_stage', '_tmp')
 

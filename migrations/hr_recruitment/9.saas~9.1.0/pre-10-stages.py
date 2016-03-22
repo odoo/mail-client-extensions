@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -25,53 +26,59 @@ def migrate(cr, version):
          WHERE s.id = o.stage_id
     """)
 
-    cr.execute("""
+    act = os.environ.get('ODOO_MIG_S9_JOB_STAGE', 'check')
+    # 3 valid values: 'check', 'dup', 'share'
 
-    WITH stage_jobs AS (
-        SELECT stage_id, array_agg(job_id order by job_id) as jobs
-          FROM job_stage_rel
-      GROUP BY 1
-        HAVING array_agg(job_id order by job_id) != (SELECT array_agg(id order by id) FROM hr_job)
+    if act == 'check':
+        cr.execute("""
+            SELECT stage_id, array_agg(job_id order by job_id) as jobs
+              FROM job_stage_rel
+          GROUP BY 1
+            HAVING array_agg(job_id order by job_id) != (SELECT array_agg(id order by id) FROM hr_job)
+        """)
+        shared_stages = cr.fetchall()
+        if shared_stages:
+            raise util.MigrationError("Shared Stages found: %r", shared_stages)
 
-    ----%<----
-    ) SELECT * FROM stage_jobs
-    """)
-    shared_stages = cr.fetchall()
-    if shared_stages:
-        raise util.MigrationError("Shared Stages found: %r", shared_stages)
-    ("""
-    ---->%----
+    elif act == 'dup':
+        cr.execute("""
+            WITH stage_jobs AS (
+                SELECT stage_id, array_agg(job_id order by job_id) as jobs
+                  FROM job_stage_rel
+              GROUP BY 1
+                HAVING array_agg(job_id order by job_id) != (SELECT array_agg(id order by id) FROM hr_job)
+            ),
+            _upd AS (
+              UPDATE hr_recruitment_stage s
+                 SET job_id = t.jobs[1]
+                FROM stage_jobs t
+               WHERE t.stage_id = s.id
+            ),
+            new_stages AS (
+                INSERT INTO hr_recruitment_stage({cols}, job_id, _tmp)
+                     SELECT {s_cols}, unnest(t.jobs[2:array_length(t.jobs, 1)]), s.id
+                       FROM hr_recruitment_stage s
+                       JOIN stage_jobs t ON (s.id = t.stage_id)
+                  RETURNING id, job_id, _tmp
+            ),
 
-    ),
-    _upd AS (
-      UPDATE hr_recruitment_stage s
-         SET job_id = t.jobs[1]
-        FROM stage_jobs t
-       WHERE t.stage_id = s.id
-    ),
-    new_stages AS (
-        INSERT INTO hr_recruitment_stage({cols}, job_id, _tmp)
-             SELECT {s_cols}, unnest(t.jobs[2:array_length(t.jobs, 1)]), s.id
-               FROM hr_recruitment_stage s
-               JOIN stage_jobs t ON (s.id = t.stage_id)
-          RETURNING id, job_id, _tmp
-    ),
+            -- reassign applicants to correct stage depending on job
+            -- users may seen duplicated stage in kanban view depending on applicant job
+            _upd_applicant_stage AS (
+                UPDATE hr_applicant l
+                   SET stage_id = n.id
+                  FROM new_stages n
+                 WHERE l.stage_id = n._tmp
+                   AND l.job_id = n.job_id
+            )
+            UPDATE hr_applicant l
+               SET last_stage_id = n.id
+              FROM new_stages n
+             WHERE l.last_stage_id = n._tmp
+               AND l.job_id = n.job_id
+        """.format(**locals()))
 
-    -- reassign applicants to correct stage depending on job
-    -- users may seen duplicated stage in kanban view depending on applicant job
-    _upd_applicant_stage AS (
-        UPDATE hr_applicant l
-           SET stage_id = n.id
-          FROM new_stages n
-         WHERE l.stage_id = n._tmp
-           AND l.job_id = n.job_id
-    )
-    UPDATE hr_applicant l
-       SET last_stage_id = n.id
-      FROM new_stages n
-     WHERE l.last_stage_id = n._tmp
-       AND l.job_id = n.job_id
-
-    """.format(**locals()))
+    elif act != 'share':
+        raise util.MigrationError('Invalid environment variable: $ODOO_MIG_S9_JOB_STAGE=%s' % act)
 
     util.remove_column(cr, 'hr_recruitment_stage', '_tmp')
