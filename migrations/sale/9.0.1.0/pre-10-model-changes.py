@@ -60,6 +60,24 @@ def migrate(cr, version):
 
 def _update_lines(cr):
     # update sale order lines fields qty_invoiced, qty_delivered, qty_to_invoice
+
+    # try match order lines to invoice lines with same product (and qty)
+    # note: invoice line may receive a discount, so we can't match on it.
+    cr.execute("""
+        INSERT INTO sale_order_line_invoice_rel(order_line_id, invoice_line_id)
+             SELECT ol.id, il.id
+               FROM sale_order_line ol
+               JOIN sale_order_invoice_rel r ON (r.order_id = ol.order_id)
+               JOIN account_invoice_line il ON (r.invoice_id = il.invoice_id)
+              WHERE NOT EXISTS(SELECT 1
+                                 FROM sale_order_line_invoice_rel
+                                WHERE order_line_id = ol.id)
+                AND ol.product_id IS NOT NULL
+                AND ol.product_id = il.product_id
+                AND ol.product_uom_qty = il.quantity
+                AND ol.product_uom = il.uom_id
+    """)
+
     cr.execute("""
         UPDATE sale_order_line l
            SET qty_invoiced = round(sign_qty.qty, ceil(-log(uom.rounding))::integer)
@@ -249,10 +267,7 @@ def _update_lines(cr):
                JOIN account_invoice_line il ON (r.invoice_id = il.invoice_id)
               WHERE NOT EXISTS(SELECT 1
                                  FROM sale_order_line_invoice_rel
-                                WHERE order_line_id = ol.id
-                                  AND invoice_line_id IN (SELECT id
-                                                            FROM account_invoice_line
-                                                           WHERE invoice_id = il.invoice_id))
+                                WHERE order_line_id = ol.id)
     """)
 
 
