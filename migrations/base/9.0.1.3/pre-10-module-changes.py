@@ -39,6 +39,9 @@ def migrate(cr, version):
     util.new_module(cr, 'account_check_printing', auto_install_deps=('account_check_writing',))
     util.new_module_dep(cr, 'account_check_printing', 'account')
 
+    util.new_module(cr, 'account_full_reconcile', auto_install_deps=('account',))
+    util.new_module_dep(cr, 'account_full_reconcile', 'account')
+
     util.new_module_dep(cr, 'crm', 'web_planner')  # TODO move data from delete module planner_crm
 
     util.remove_module_deps(cr, 'event_sale', ('sale_crm',))
