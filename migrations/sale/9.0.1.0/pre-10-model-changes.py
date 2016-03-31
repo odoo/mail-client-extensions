@@ -141,7 +141,8 @@ def _update_lines(cr):
         UPDATE sale_order_line l
            SET qty_to_invoice = CASE
                 WHEN state NOT IN ('sale', 'done') THEN 0
-                WHEN price_subtotal = 0 THEN 0
+                -- price_subtotal will be computed and stored by ORM later...
+                WHEN (product_uom_qty * price_unit * (1 - coalesce(discount, 0) / 100)) = 0 THEN 0
                 WHEN EXISTS(SELECT 1
                               FROM product_product p
                               JOIN product_template t ON (t.id = p.product_tmpl_id)
@@ -159,7 +160,7 @@ def _update_lines(cr):
         UPDATE sale_order_line l
            SET invoice_status = CASE
                 WHEN state NOT IN ('sale', 'done') THEN 'no'
-                WHEN qty_to_invoice = 0 AND price_subtotal = 0 THEN 'invoiced'
+                WHEN qty_to_invoice = 0 AND (product_uom_qty * price_unit * (1 - coalesce(discount, 0) / 100)) = 0 THEN 'invoiced'
                 WHEN qty_invoiced IS NULL THEN NULL
                 WHEN qty_to_invoice != 0 THEN 'to invoice'
                 WHEN (    state = 'sale'
