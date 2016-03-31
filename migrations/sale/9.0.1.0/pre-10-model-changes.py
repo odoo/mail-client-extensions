@@ -81,38 +81,43 @@ def _update_lines(cr):
     cr.execute("""
         UPDATE sale_order_line l
            SET qty_invoiced = round(sign_qty.qty, ceil(-log(uom.rounding))::integer)
-          FROM (SELECT sol.id as sol_id,SUM(il.quantity*(CASE WHEN inv.type='out_invoice' THEN 1 ELSE -1 END)) AS qty
-                    FROM sale_order_line AS sol,
-                         sale_order_line_invoice_rel as rel,
-                         account_invoice_line as il,
-                         account_invoice as inv
-                    WHERE sol.id=rel.order_line_id
-                        AND il.id=rel.invoice_line_id
-                        AND inv.id=il.invoice_id
-                        AND inv.state != 'cancel'
-                    GROUP BY sol.id) as sign_qty,
+          FROM (SELECT sol.id as sol_id,
+                       SUM(il.quantity / il_uom.factor * sol_uom.factor * (CASE WHEN inv.type='out_invoice' THEN 1 ELSE -1 END)) AS qty
+                  FROM sale_order_line AS sol
+                  JOIN sale_order_line_invoice_rel rel ON (rel.order_line_id = sol.id)
+                  JOIN account_invoice_line il ON (il.id = rel.invoice_line_id)
+                  JOIN account_invoice inv ON (inv.id = il.invoice_id)
+                  JOIN product_uom sol_uom ON (sol_uom.id = sol.product_uom)
+                  JOIN product_uom il_uom ON (il_uom.id = il.uom_id)
+                 WHERE inv.state != 'cancel'
+                   AND sol_uom.category_id = il_uom.category_id
+              GROUP BY sol.id
+              ) as sign_qty,
                product_uom uom
          WHERE sign_qty.sol_id = l.id
            AND uom.id = l.product_uom
         """)
 
     if util.table_exists(cr, 'stock_move'):
+        # sale_mrp explode the BOM and check the quantity of each products (of kit).
+        # Reimplementing bom exploding in sql is madness.
+        # Also, as bom can change over time, we can't trust them.
+        # We will just believe the procurement state...
+
         cr.execute("""
             UPDATE sale_order_line l
-               SET qty_delivered = round(query.sum, ceil(-log(uom.rounding))::integer)
+               SET qty_delivered =
+               round(query.sum, ceil(-log(uom.rounding))::integer)
               FROM (
-                    SELECT sol.id, sum(mv.product_qty)
-                      FROM stock_move AS mv,
-                           stock_location AS loc,
-                           procurement_order AS proc,
-                           sale_order_line AS sol
-                     WHERE mv.location_dest_id=loc.id AND
-                           mv.state='done' AND
-                           loc.usage='customer' AND
-                           loc.scrap_location='f' AND
-                           mv.procurement_id=proc.id AND
-                           proc.sale_line_id=sol.id
-                  GROUP BY sol.id) AS query,
+                    SELECT l.id, SUM(p.product_qty / pu.factor * su.factor)
+                      FROM procurement_order p
+                      JOIN sale_order_line l ON (l.id = p.sale_line_id)
+                      JOIN product_uom su ON (su.id = l.product_uom)
+                      JOIN product_uom pu ON (pu.id = p.product_uom)
+                     WHERE p.state='done'
+                       AND su.category_id = pu.category_id
+                  GROUP BY l.id
+                  ) AS query,
                    product_uom uom
              WHERE query.id = l.id
                AND uom.id = l.product_uom
@@ -136,6 +141,7 @@ def _update_lines(cr):
         UPDATE sale_order_line l
            SET qty_to_invoice = CASE
                 WHEN state NOT IN ('sale', 'done') THEN 0
+                WHEN price_subtotal = 0 THEN 0
                 WHEN EXISTS(SELECT 1
                               FROM product_product p
                               JOIN product_template t ON (t.id = p.product_tmpl_id)
@@ -153,6 +159,7 @@ def _update_lines(cr):
         UPDATE sale_order_line l
            SET invoice_status = CASE
                 WHEN state NOT IN ('sale', 'done') THEN 'no'
+                WHEN qty_to_invoice = 0 AND price_subtotal = 0 THEN 'invoiced'
                 WHEN qty_invoiced IS NULL THEN NULL
                 WHEN qty_to_invoice != 0 THEN 'to invoice'
                 WHEN (    state = 'sale'
