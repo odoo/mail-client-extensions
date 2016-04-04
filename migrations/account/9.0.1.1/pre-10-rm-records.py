@@ -132,19 +132,19 @@ def migrate(cr, version):
     util.force_noupdate(cr, 'account.report_invoice', False)
     util.force_noupdate(cr, 'account.report_invoice_document', False)
 
-    # remove all element related to template, they will be recreated with the localization
-    cr.execute("""
-       DELETE FROM account_fiscal_position_tax_template;
-       DELETE FROM account_fiscal_position_account_template;
-       DELETE FROM account_fiscal_position_template;
-       DELETE FROM account_tax_template;
-       DELETE FROM account_account_template;
-    """)
-    cr.execute("""
-        DELETE FROM ir_model_data
-              WHERE model IN ('account.fiscal.position.tax.template',
-                              'account.fiscal.position.account.template',
-                              'account.fiscal.position.template',
-                              'account.tax.template',
-                              'account.account.template')
-    """)
+    # # remove all element related to template, they will be recreated with the localization
+    # cr.execute("""
+    #    DELETE FROM account_fiscal_position_tax_template;
+    #    DELETE FROM account_fiscal_position_account_template;
+    #    DELETE FROM account_fiscal_position_template;
+    #    DELETE FROM account_tax_template;
+    #    DELETE FROM account_account_template;
+    # """)
+    # cr.execute("""
+    #     DELETE FROM ir_model_data
+    #           WHERE model IN ('account.fiscal.position.tax.template',
+    #                           'account.fiscal.position.account.template',
+    #                           'account.fiscal.position.template',
+    #                           'account.tax.template',
+    #                           'account.account.template')
+    # """)

@@ -14,3 +14,8 @@ def migrate(cr, version):
     cr.execute("""UPDATE res_company
         SET chart_template_id = %s
         """, (id,))
+
+    # force deletion of parent_id field.
+    # For some reason ORM keep it (with its "on delete cascade" constraint) which forbid cleaning
+    # of existing records in l10n_* modules
+    util.remove_field(cr, 'account_account_template', 'parent_id')
