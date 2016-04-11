@@ -18,7 +18,12 @@ def migrate(cr, version):
         return
 
     env = util.env(cr)
-    project = env['project.project'].create({'name': 'Helpdesk'})    # XXX translation?
+    project = env['project.project'].create({
+        'name': 'Helpdesk',
+        'use_tasks': False,
+        'use_issues': True,
+        'label_issues': 'Helpdesk Cases',
+    })
 
     def create_stage(name, seq, fold):
         return env['project.task.type'].create({
