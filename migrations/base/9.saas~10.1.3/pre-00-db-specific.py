@@ -4,6 +4,7 @@ from openerp.addons.base.maintenance.migrations import util
 def _db_openerp(cr, version):
     util.force_noupdate(cr, 'openerp_website.odoo_blog_sidebar_blogs', False)
     util.remove_view(cr, view_id=8816)      # custom inherited view now builtin
+    util.remove_view(cr, view_id=8978)      # please define xmlids when creating views manually...
 
 
 def migrate(cr, version):
