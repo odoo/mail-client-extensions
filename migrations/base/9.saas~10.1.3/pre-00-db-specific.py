@@ -6,6 +6,17 @@ def _db_openerp(cr, version):
     util.remove_view(cr, view_id=8816)      # custom inherited view now builtin
     util.remove_view(cr, view_id=8978)      # please define xmlids when creating views manually...
 
+    # replace classes in website pages
+    cr.execute(r"""
+        UPDATE ir_ui_view
+           SET arch_db = regexp_replace(regexp_replace(regexp_replace(arch_db,
+                                E'\\yo_bg_dark\\y', E'bg-gray-lighter', 'g'),
+                                E'\\yo_bg_(\\w+)', E'bg-\\1', 'g'),
+                                E'\\ycolor-(\\w+)', E'text-\\1', 'g')
+
+        WHERE type='qweb'
+          AND page=true
+    """)
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
