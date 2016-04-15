@@ -69,13 +69,14 @@ def _update_lines(cr):
                FROM sale_order_line ol
                JOIN sale_order_invoice_rel r ON (r.order_id = ol.order_id)
                JOIN account_invoice_line il ON (r.invoice_id = il.invoice_id)
+               JOIN product_uom ol_uom ON (ol_uom.id = ol.product_uom)
+               JOIN product_uom il_uom ON (il_uom.id = il.uom_id)
               WHERE NOT EXISTS(SELECT 1
                                  FROM sale_order_line_invoice_rel
                                 WHERE order_line_id = ol.id)
                 AND ol.product_id IS NOT NULL
                 AND ol.product_id = il.product_id
-                AND ol.product_uom_qty = il.quantity
-                AND ol.product_uom = il.uom_id
+                AND ol_uom.category_id = il_uom.category_id
     """)
 
     cr.execute("""
@@ -102,20 +103,25 @@ def _update_lines(cr):
         # sale_mrp explode the BOM and check the quantity of each products (of kit).
         # Reimplementing bom exploding in sql is madness.
         # Also, as bom can change over time, we can't trust them.
-        # We will just believe the procurement state...
+        # We will just believe the stock moves...
 
         cr.execute("""
             UPDATE sale_order_line l
                SET qty_delivered =
                round(query.sum, ceil(-log(uom.rounding))::integer)
               FROM (
-                    SELECT l.id, SUM(p.product_qty / pu.factor * su.factor)
-                      FROM procurement_order p
+                    SELECT l.id, SUM(m.product_uom_qty / mu.factor * su.factor)
+                      FROM stock_move m
+                      JOIN procurement_order p ON (p.id = m.procurement_id)
                       JOIN sale_order_line l ON (l.id = p.sale_line_id)
                       JOIN product_uom su ON (su.id = l.product_uom)
-                      JOIN product_uom pu ON (pu.id = p.product_uom)
-                     WHERE p.state='done'
-                       AND su.category_id = pu.category_id
+                      JOIN product_uom mu ON (mu.id = m.product_uom)
+                      JOIN stock_location sl ON (sl.id = m.location_dest_id)
+                     WHERE m.state='done'
+                       AND p.state='done'
+                       AND sl.usage='customer'
+                       AND sl.scrap_location=false
+                       AND su.category_id = mu.category_id
                   GROUP BY l.id
                   ) AS query,
                    product_uom uom
@@ -143,13 +149,24 @@ def _update_lines(cr):
                 WHEN state NOT IN ('sale', 'done') THEN 0
                 -- price_subtotal will be computed and stored by ORM later...
                 WHEN (product_uom_qty * price_unit * (1 - coalesce(discount, 0) / 100)) = 0 THEN 0
+                -- if the sale is done and the linked invoice is open/paid (if any),
+                -- consider that there is nothing to invoice anymore
+                WHEN     state = 'done'
+                     AND EXISTS(SELECT 1 FROM sale_order_line_invoice_rel WHERE order_line_id = l.id)
+                     AND NOT EXISTS(SELECT 1
+                                      FROM sale_order_line_invoice_rel r
+                                      JOIN account_invoice_line il ON (r.invoice_line_id = il.id)
+                                      JOIN account_invoice i ON (il.invoice_id = i.id)
+                                     WHERE r.order_line_id = l.id
+                                       AND i.state NOT IN ('open', 'paid', 'cancel'))
+                THEN 0
                 WHEN EXISTS(SELECT 1
                               FROM product_product p
                               JOIN product_template t ON (t.id = p.product_tmpl_id)
                              WHERE p.id = l.product_id
                                AND t.invoice_policy = 'order')
-                THEN round(product_uom_qty - coalesce(qty_invoiced, 0), ceil(-log(uom.rounding))::integer)
-                ELSE round(qty_delivered - coalesce(qty_invoiced, 0), ceil(-log(uom.rounding))::integer)
+                THEN GREATEST(0, round(product_uom_qty - coalesce(qty_invoiced, 0), ceil(-log(uom.rounding))::integer))
+                ELSE GREATEST(0, round(qty_delivered - coalesce(qty_invoiced, 0), ceil(-log(uom.rounding))::integer))
                 END
           FROM product_uom uom
          WHERE uom.id = l.product_uom
@@ -205,18 +222,18 @@ def _update_lines(cr):
         ),
         _upd AS (
             UPDATE sale_order_line l
-               SET invoice_status = 'invoiced'
+               SET invoice_status = 'invoiced', qty_to_invoice = 0
               FROM sol_inv s
              WHERE s.id = l.id
                AND NOT EXISTS(
                     SELECT 1
                       FROM account_invoice
                      WHERE id = ANY(s.invoices)
-                       AND (state NOT IN ('paid', 'cancel') OR currency_id != s.currency_id)
+                       AND (state NOT IN ('open', 'paid', 'cancel') OR currency_id != s.currency_id)
                )
                AND s.amount_total <= (SELECT SUM(amount_total)
                                         FROM account_invoice
-                                       WHERE state = 'paid'
+                                       WHERE state IN ('open', 'paid')
                                          AND currency_id = s.currency_id
                                          AND id = ANY(s.invoices))
         )
@@ -228,13 +245,13 @@ def _update_lines(cr):
                 SELECT 1
                   FROM account_invoice
                  WHERE id = ANY(s.invoices)
-                   AND state NOT IN ('paid', 'cancel')
+                   AND state NOT IN ('open', 'paid', 'cancel')
            )
            AND EXISTS(
                 SELECT 1
                   FROM account_invoice
                  WHERE id = ANY(s.invoices)
-                   AND state = 'paid'
+                   AND state IN ('open', 'paid')
                    AND currency_id != s.currency_id)
 
     """)
@@ -248,7 +265,7 @@ def _update_lines(cr):
             SELECT amount_total, currency_id, date_invoice, company_id
               FROM account_invoice
              WHERE id IN %s
-               AND state = 'paid'
+               AND state = ('open', 'paid')
         """, [tuple(invoice_ids)])
         for inv_total, inv_currency_id, inv_date, inv_company_id in cr.fetchall():
             if inv_currency_id == currency_id:
