@@ -78,6 +78,14 @@ def migrate(cr, version):
             AND model = 'account.account.type'
         """, (tuple(types_to_keep),))
 
+    # compute related field on account_move_line
+    cr.execute("""
+        UPDATE account_move_line aml
+           SET user_type_id = acc.user_type_id
+          FROM account_account acc
+         WHERE aml.account_id = acc.id
+    """)
+
     """
         Compute related field internal_type
     """
