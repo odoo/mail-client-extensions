@@ -47,6 +47,10 @@ def migrate(cr, version):
                 END
     """, [order_policy])
 
+    # set default order policy
+    if order_policy == 'picking':
+        env['ir.values'].set_default('product.template', 'invoice_policy', 'delivery')
+
     cr.execute("""
         UPDATE sale_order_line l
            SET currency_id = p.currency_id
