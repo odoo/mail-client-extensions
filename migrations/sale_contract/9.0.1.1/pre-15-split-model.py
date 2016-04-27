@@ -32,6 +32,9 @@ def migrate(cr, version):
                         FROM account_analytic_account
                         WHERE (type = 'contract' AND recurring_invoices = 't') OR type = 'template')
         """)
+
+    cr.execute("UPDATE sale_subscription SET state='cancel' WHERE state='cancelled'")
+
     # keep relation between contracts and templates since all ids have changed when switching tables
     cr.execute("""
         UPDATE sale_subscription
