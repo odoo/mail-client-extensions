@@ -168,11 +168,12 @@ def migrate(cr, version):
                     FROM account_move_line aml, account_tax tax
                     WHERE (tax.tax_code_id = aml.tax_code_id OR tax.ref_tax_code_id = aml.tax_code_id)
                         AND aml.tax_code_id IS NOT NULL AND aml.tax_amount != 0  AND tax.company_id = aml.company_id
-                        AND aml.id NOT IN (
-                            SELECT DISTINCT(a.id) 
-                            FROM account_move_line a, account_tax t 
-                            WHERE (t.base_code_id = a.tax_code_id OR t.ref_base_code_id = a.tax_code_id) 
-                                AND a.tax_code_id IS NOT NULL AND a.tax_amount != 0  AND t.company_id = a.company_id)
+                        AND NOT EXISTS (
+                           SELECT 1
+                             FROM account_tax t
+                            WHERE (t.base_code_id = aml.tax_code_id OR t.ref_base_code_id = aml.tax_code_id)
+                              AND t.company_id = aml.company_id)
+
                 """)
     mapped = {}
     not_mapped = {}
