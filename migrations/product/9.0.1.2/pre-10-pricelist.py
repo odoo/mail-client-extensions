@@ -176,7 +176,7 @@ def migrate(cr, version):
            AND price_min_margin = 0
            AND price_max_margin = 0
     """)
-    # and simple discount formula to "percentage" rule
+    # and simple discount formula (not based on another pricelist) to "percentage" rule
     cr.execute("""
         UPDATE product_pricelist_item i
            SET compute_price = 'percentage',
@@ -187,6 +187,7 @@ def migrate(cr, version):
            AND price_round = 0
            AND price_min_margin = 0
            AND price_max_margin = 0
+           AND base != 'pricelist'
     """)
 
     # cleanup
