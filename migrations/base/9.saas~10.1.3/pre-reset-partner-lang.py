@@ -17,5 +17,5 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE res_partner
            SET lang = %s
-         WHERE lang NOT IN (SELECT lang FROM res_lang WHERE active)
+         WHERE lang NOT IN (SELECT code FROM res_lang WHERE active)
     """, [root_lang])
