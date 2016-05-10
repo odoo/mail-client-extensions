@@ -16,10 +16,9 @@ def migrate(cr, version):
     util.remove_module(cr, 'portal_event')
 
     deps = ('hr_recruitment', 'document')
-    util.new_module(cr, 'hr_applicant_document', auto_install_deps=deps)
+    util.new_module(cr, 'hr_applicant_document', deps=deps, auto_install=True)
 
-    util.new_module(cr, 'base_geolocalize')
-    util.new_module_dep(cr, 'base_geolocalize', 'crm')
+    util.new_module(cr, 'base_geolocalize', deps=('crm',))
     util.new_module_dep(cr, 'crm_partner_assign', 'base_geolocalize')
     util.force_migration_of_fresh_module(cr, 'base_geolocalize')
 

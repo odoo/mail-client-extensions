@@ -19,14 +19,12 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'project_issue', ('crm',))
     util.new_module_dep(cr, 'project_issue', 'sales_team')
 
-    util.new_module(cr, 'crm_mass_mailing', auto_install_deps=('crm', 'mass_mailing'))
+    util.new_module(cr, 'crm_mass_mailing', deps=('crm', 'mass_mailing'), auto_install=True)
 
-    util.new_module(cr, 'website_instantclick')
-    util.new_module(cr, 'website_sale_options')
+    util.new_module(cr, 'website_instantclick', deps=('website',))
+    util.new_module(cr, 'website_sale_options', deps=('website_sale',))
 
     # new l10n modules
     for cc in 'ae hu sg'.split():
         l10n = 'l10n_' + cc
-        util.new_module(cr, l10n)
-        util.new_module_dep(cr, l10n, 'account')
-        util.new_module_dep(cr, l10n, 'account_chart')
+        util.new_module(cr, l10n, deps=('account', 'account_chart'))

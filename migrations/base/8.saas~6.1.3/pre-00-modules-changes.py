@@ -49,11 +49,8 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'rating', 'mail')
     util.new_module_dep(cr, 'im_livechat', 'rating')
 
-    util.new_module(cr, 'planner', auto_install_deps=('web',))
-    util.new_module_dep(cr, 'planner', 'web')
-    util.new_module(cr, 'planner_crm', auto_install_deps=('planner', 'crm'))
-    util.new_module_dep(cr, 'planner_crm', 'planner')
-    util.new_module_dep(cr, 'planner_crm', 'crm')
+    util.new_module(cr, 'planner', deps=('web',), auto_install=True)
+    util.new_module(cr, 'planner_crm', deps=('planner', 'crm'), auto_install=True)
 
     util.merge_module(cr, 'email_template', 'mail')
 
@@ -113,7 +110,7 @@ def migrate(cr, version):
     for m in 'account crm event hr project purchase website_quote'.split():
         util.new_module_dep(cr, m, 'web_tip')
 
-    util.new_module(cr, 'mail_tip', auto_install_deps=('mail', 'web_tip'))
+    util.new_module(cr, 'mail_tip', deps=('mail', 'web_tip'), auto_install=True)
 
     util.new_module(cr, 'utm')
     util.new_module_dep(cr, 'utm', 'marketing')

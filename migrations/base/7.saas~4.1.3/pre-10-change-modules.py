@@ -12,7 +12,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'hr_recruitment', 'web_kanban_gauge')
     util.new_module_dep(cr, 'website_mail', 'email_template')
 
-    util.new_module(cr, 'report', auto_install_deps=('base',))
+    util.new_module(cr, 'report', deps=('base',))
     reports_modules = """
         account
         hr_attendance
@@ -27,12 +27,12 @@ def migrate(cr, version):
     for m in reports_modules:
         util.new_module_dep(cr, m, 'report')
 
-    util.new_module(cr, 'website_report', auto_install_deps=('website', 'report'))
+    util.new_module(cr, 'website_report', deps=('website', 'report'), auto_install=True)
 
     util.new_module_dep(cr, 'survey', 'email_template')
     util.new_module_dep(cr, 'survey', 'website')
     util.new_module_dep(cr, 'survey', 'marketing')
-    util.new_module(cr, 'survey_crm', auto_install_deps=('survey', 'crm'))
+    util.new_module(cr, 'survey_crm', deps=('survey', 'crm'), auto_install=True)
 
     # marketing module is splitted with marketing_crm module
     # if users have marketing, they need marketing_crm
@@ -43,7 +43,7 @@ def migrate(cr, version):
                """, ('marketing_crm', 'marketing', ('view_crm_lead_form', 'view_crm_opportunity_form')))
 
     util.remove_module_deps(cr, 'markering', ('crm',))
-    util.new_module(cr, 'marketing_crm', ('marketing', 'crm'))
+    util.new_module(cr, 'marketing_crm', deps=('marketing', 'crm'), auto_install=True)
 
     util.new_module_dep(cr, 'mass_mailing', 'marketing')
     util.new_module_dep(cr, 'mass_mailing', 'website_mail')

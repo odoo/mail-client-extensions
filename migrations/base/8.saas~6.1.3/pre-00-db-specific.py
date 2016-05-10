@@ -8,7 +8,7 @@ def _db_openerp(cr, version):
     util.remove_module(cr, 'plugin')
     util.remove_module(cr, 'document_ftp')
 
-    util.new_module(cr, 'openerp_livechat', ('im_livechat', 'openerp_enterprise'))
+    util.new_module(cr, 'openerp_livechat', deps=('im_livechat', 'openerp_enterprise'))
     util.force_install_module(cr, 'openerp_livechat')
     rxids = util.splitlines("""
         assets_backend

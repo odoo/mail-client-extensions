@@ -16,7 +16,7 @@ def migrate(cr, version):
 
     util.rename_module(cr, 'mrp_jit', 'procurement_jit')
 
-    util.new_module(cr, 'stock_account', auto_install_deps=('stock', 'account'))
+    util.new_module(cr, 'stock_account', deps=('stock', 'account'), auto_install=True)
 
     util.new_module_dep(cr, 'mrp', 'stock_account')
     util.remove_module_deps(cr, 'mrp', ('stock', 'purchase'))
@@ -46,7 +46,7 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'sale_stock', ('stock', 'procurement'))
 
     # sales & crm
-    util.new_module(cr, 'sales_team', auto_install_deps=('mail', 'web_kanban_sparkline'))
+    util.new_module(cr, 'sales_team', deps=('mail', 'web_kanban_sparkline'), auto_install=True)
     util.remove_module_deps(cr, 'crm', ('web_kanban_sparkline',))
     util.new_module_dep(cr, 'crm', 'sales_team')
 

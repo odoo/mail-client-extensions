@@ -36,14 +36,12 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'account', 'web_planner')
 
-    util.new_module(cr, 'account_check_printing', auto_install_deps=('account_check_writing',))
-    util.new_module_dep(cr, 'account_check_printing', 'account')
+    util.new_module(cr, 'account_check_printing', deps=('account',),
+                    auto_install=util.modules_installed(cr, 'account_check_writing'))
 
-    util.new_module(cr, 'account_full_reconcile', auto_install_deps=('account',))
-    util.new_module_dep(cr, 'account_full_reconcile', 'account')
+    util.new_module(cr, 'account_full_reconcile', deps=('account',), auto_install=True)
 
-    util.new_module(cr, 'account_extra_reports', auto_install_deps=('account',))
-    util.new_module_dep(cr, 'account_extra_reports', 'account_accountant')
+    util.new_module(cr, 'account_extra_reports', deps=('account_accountant',), auto_install=True)
     util.force_migration_of_fresh_module(cr, 'account_extra_reports')
 
     util.new_module_dep(cr, 'crm', 'web_planner')  # TODO move data from delete module planner_crm
@@ -78,8 +76,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'link_tracker', 'marketing')
     util.new_module_dep(cr, 'link_tracker', 'utm')
 
-    util.new_module(cr, 'web_editor', auto_install_deps=('web',))
-    util.new_module_dep(cr, 'web_editor', 'web')
+    util.new_module(cr, 'web_editor', deps=('web',), auto_install=True)
 
     util.new_module_dep(cr, 'mail', 'bus')
 
@@ -115,9 +112,7 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'sale_service', ('procurement', 'procurement_jit'))
     util.new_module_dep(cr, 'sale_service', 'project_timesheet')
 
-    util.new_module(cr, 'sale_timesheet', auto_install_deps=('sale', 'hr_timesheet'))
-    util.new_module_dep(cr, 'sale_timesheet', 'sale')
-    util.new_module_dep(cr, 'sale_timesheet', 'hr_timesheet')
+    util.new_module(cr, 'sale_timesheet', deps=('sale', 'hr_timesheet'), auto_install=True)
     util.new_module_dep(cr, 'project_timesheet', 'sale_timesheet')
     util.new_module_dep(cr, 'sale_service', 'sale_timesheet')
 
@@ -136,8 +131,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website', 'web_planner')
     util.remove_module_deps(cr, 'website', ('mail',))
 
-    util.new_module(cr, 'website_theme_install', auto_install_deps=('website',))
-    util.new_module_dep(cr, 'website_theme_install', 'website')
+    util.new_module(cr, 'website_theme_install', deps=('website',), auto_install=True)
 
     util.new_module(cr, 'website_form')
     util.new_module_dep(cr, 'website_form', 'website')
@@ -150,24 +144,21 @@ def migrate(cr, version):
     util.force_migration_of_fresh_module(cr, 'link_tracker')
 
     # in saas-6, the website part was directly in mass_mailing module
-    util.new_module(cr, 'website_mass_mailing', auto_install_deps=('mass_mailing',))
+    # force `website` install if mass_mailing was installed to keep saas-6 behavior
+    util.new_module(cr, 'website_mass_mailing', deps=('mass_mailing',), auto_install=True)
     util.new_module_dep(cr, 'website_mass_mailing', 'website')
-    util.new_module_dep(cr, 'website_mass_mailing', 'mass_mailing')
 
     util.remove_module_deps(cr, 'website_portal', ('sale',))
 
-    util.new_module(cr, 'website_portal_sale', auto_install_deps=('website_portal',))
-    util.new_module_dep(cr, 'website_portal_sale', 'sale')
-    util.new_module_dep(cr, 'website_portal_sale', 'website_portal')
+    util.new_module(cr, 'website_portal_sale', deps=('website_portal', 'sale'), auto_install=True)
     util.new_module_dep(cr, 'website_portal_sale', 'website_payment')
 
     util.remove_module_deps(cr, 'website_project_issue', ('website', 'portal'))
     util.new_module_dep(cr, 'website_project_issue', 'website_portal')
 
     util.new_module(cr, 'website_project_issue_sheet',
-                    auto_install_deps=('website_project_issue', 'project_issue_sheet'))
-    util.new_module_dep(cr, 'website_project_issue_sheet', 'website_project_issue')
-    util.new_module_dep(cr, 'website_project_issue_sheet', 'project_issue_sheet')
+                    deps=('website_project_issue', 'project_issue_sheet'),
+                    auto_install=True)
 
     util.remove_module_deps(cr, 'website_quote', ('website_portal',))   # still indirect
     util.new_module_dep(cr, 'website_quote', 'website_portal_sale')
@@ -192,23 +183,16 @@ def migrate(cr, version):
                 util.force_install_module(cr, 'account_tax_python')
                 util.force_migration_of_fresh_module(cr, 'account_tax_python')
 
-        util.new_module(cr, 'account_reports', auto_install_deps=('account',))
-        util.new_module_dep(cr, 'account_reports', 'account')
-        util.new_module(cr, 'account_extension', auto_install_deps=('account',))
-        util.new_module_dep(cr, 'account_extension', 'account')
+        util.new_module(cr, 'account_reports', deps=('account',), auto_install=True)
+        util.new_module(cr, 'account_extension', deps=('account',), auto_install=True)
         for l10n in ['ar', 'at', 'be', 'bo', 'cr', 'ch', 'cl', 'co', 'do', 'es', 'et', 'fr', 'gr', 'hr', 'hu', 'in', 'jp', 'lu', 'ma', 'nl', 'no', 'pl', 'ro', 'sg', 'si', 'th', 'uk', 'uy', 'vn']:
-            util.new_module(cr, 'l10n_' + l10n + '_reports', auto_install_deps=('l10n_' + l10n,))
-            util.new_module_dep(cr, 'l10n_%s_reports' % l10n, 'l10n_' + l10n)
+            util.new_module(cr, 'l10n_' + l10n + '_reports', deps=('l10n_' + l10n,), auto_install=True)
 
-        util.new_module(cr, 'currency_rate_live', auto_install_deps=('accounts',))
-        util.new_module_dep(cr, 'currency_rate_live', 'account')
+        util.new_module(cr, 'currency_rate_live', deps=('accounts',), auto_install=True)
 
-        util.new_module(cr, 'hr_holidays_gantt', auto_install_deps=('hr_holidays', 'web_gantt'))
-        util.new_module_dep(cr, 'hr_holidays_gantt', 'hr_holidays')
-        util.new_module_dep(cr, 'hr_holidays_gantt', 'web_gantt')
+        util.new_module(cr, 'hr_holidays_gantt', deps=('hr_holidays', 'web_gantt'), auto_install=True)
 
-        util.new_module(cr, 'website_enterprise', auto_install_deps=('website',))
-        util.new_module_dep(cr, 'website_enterprise', 'website')
+        util.new_module(cr, 'website_enterprise', deps=('website',), auto_install=True)
 
     # some cleanup
     removed_modules = util.splitlines("""
@@ -256,12 +240,3 @@ def migrate(cr, version):
     """)
     for m in removed_modules:
         util.remove_module(cr, m)
-
-    # new_modules = {
-    #     'account_tax_cash_basis': ['account'],
-    #     'account_tax_python': ['account'],
-    # }
-    # for mod, deps in new_modules.items():
-    #     util.new_module(cr, mod)
-    #     for dep in deps:
-    #         util.new_module_dep(cr, mod, dep)
