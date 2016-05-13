@@ -13,16 +13,17 @@ def migrate(cr, version):
     """)
 
     # use the project of the task/issue if set
-    cr.execute("""
-        UPDATE account_analytic_line l
-           SET project_id = t.project_id
-          FROM project_task t
-         WHERE t.id = l.task_id
-           AND l.project_id IS NULL
-           AND l.is_timesheet
-    """)
+    if util.column_exists(cr, 'account_analytic_line', 'task_id'):
+        cr.execute("""
+            UPDATE account_analytic_line l
+               SET project_id = t.project_id
+              FROM project_task t
+             WHERE t.id = l.task_id
+               AND l.project_id IS NULL
+               AND l.is_timesheet
+        """)
 
-    if util.column_exists(cr, 'account_analytic_line', 'issue_id') and util.table_exists(cr, 'project_issue'):
+    if util.column_exists(cr, 'account_analytic_line', 'issue_id'):
         cr.execute("""
             UPDATE account_analytic_line l
                SET project_id = i.project_id
