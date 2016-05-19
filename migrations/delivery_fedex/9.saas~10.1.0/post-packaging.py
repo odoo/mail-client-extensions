@@ -5,7 +5,7 @@ def migrate(cr, version):
     pkg = 'FEDEX_BOX FEDEX_10KG_BOX FEDEX_25KG_BOX FEDEX_ENVELOPE FEDEX_PAK FEDEX_TUBE YOUR_PACKAGING'.split()
 
     case = 'CASE ' + ' '.join(
-        cr.mogrify('WHEN fedex_package_type=%s THEN %s',
+        cr.mogrify('WHEN fedex_packaging_type=%s THEN %s',
                    [p, util.ref(cr, 'delivery_fedex.fedex_packaging_' + p)])
         for p in pkg
     ) + ' ELSE NULL END'
