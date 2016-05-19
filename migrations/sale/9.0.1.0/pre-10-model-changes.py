@@ -269,7 +269,7 @@ def _update_lines(cr):
             SELECT amount_total, currency_id, date_invoice, company_id
               FROM account_invoice
              WHERE id IN %s
-               AND state = ('open', 'paid')
+               AND state IN ('open', 'paid')
         """, [tuple(invoice_ids)])
         for inv_total, inv_currency_id, inv_date, inv_company_id in cr.fetchall():
             if inv_currency_id == currency_id:
