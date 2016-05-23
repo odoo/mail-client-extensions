@@ -5,17 +5,25 @@ def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
 
-- Claims: Claims have been converted to Project issues.
-- Delivery:
-    * Allow to mark carriers' credentials as production/test ready.
-    * Handle carrier margin percentage on shipping price.
-    * More packaging attributes: height, width, length, max weight...
-- Mail: handle inline images in incomming emails.
+- Timesheets: entries now recorded and managed directly per project or task (formerly per analytic account)
 - Project:
-    * Allow to specify a mail template which will be send when a task or an issue enter a stage.
-    * Users can now favorite projects.
-- Timesheet: Now linked to projects.
-- Backend: New Multi-Company switcher.
+    + Dashboard is now based on your favorite projects.
+      Be sure to star some projects to see them.
+    + Stages can now be configured with automatic mail notifications (templates)
+- Generic:
+    + new multi-company switcher in top bar
+    + terminology changes (a.o. Supplier -> Vendor)
+- POS: fiscal position automatically set on customers
+- CRM: claims have been converted to project issues
+- Stock: option to manage multiple locations without multiple warehouses
+- Sales:
+    + dedicated search views for quotations and orders
+    + sales analysis per product category
+- Delivery:
+    + Allow to mark carriers' credentials as production/test ready.
+    + Multiple improvements in cost management/rating
+- Accounting: multi-level hierarchy in trial balance
+- Mail: better handling of inline images in incoming emails
 
 """
 
