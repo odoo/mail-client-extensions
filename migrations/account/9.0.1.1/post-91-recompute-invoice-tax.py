@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from operator import itemgetter
 from openerp.addons.base.maintenance.migrations import util
 
 def update_invoice_taxes(cr):
@@ -13,7 +14,9 @@ def update_invoice_taxes(cr):
             account_invoice_tax for those does not have any effect (except if user cancel invoice and then reset to draft)
     """
     env = util.env(cr)
-    invoices = env['account.invoice'].search([])
+    cr.execute("SELECT id FROM account_invoice")
+    ids = map(itemgetter(0), cr.fetchall())
+    invoices = util.iter_browse(env['account.invoice'], ids)
     for invoice in invoices:
         invoice._onchange_invoice_line_ids()
 
