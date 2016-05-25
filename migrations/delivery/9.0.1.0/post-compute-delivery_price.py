@@ -17,8 +17,5 @@ def migrate(cr, version):
         # there are still modules to upgrade
         return
 
-    env = util.env(cr)
-    cr.execute("SELECT id FROM sale_order")
-    orders = env['sale.order'].browse([x[0] for x in cr.fetchall()])
-    orders._recompute_todo(orders._fields['delivery_price'])
-    orders.recompute()
+    # working on one record at a time seems faster... Maybe it should not work in chunks...
+    util.recompute_fields(cr, 'sale.order', ['delivery_price'], chunk_size=1)
