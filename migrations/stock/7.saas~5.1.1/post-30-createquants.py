@@ -1,5 +1,4 @@
 import logging
-import datetime
 
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
@@ -20,32 +19,18 @@ def migrate(cr, version):
     registry = RegistryManager.get(cr.dbname)
     move_obj = registry['stock.move']
     quant_obj = registry['stock.quant']
-    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done'),('product_qty', '>', 0.0)], order='company_id, date')
-    t1 = datetime.datetime.now()
-    t0 = t1
-    for index, move in enumerate(util.iter_browse(move_obj, cr, SUPERUSER_ID,
-                                                  moves)):
+    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done'), ('product_qty', '>', 0.0)], order='company_id, date')
+    for move in util.iter_browse(move_obj, cr, SUPERUSER_ID, moves, logger=_logger):
         preferred_domain = []
         if move.move_orig_ids:
-            preferred_domain = [[('history_ids', 'in', [x.id for x in move.move_orig_ids])],[('history_ids', 'not in', [x.id for x in move.move_orig_ids])]]
-        quants = quant_obj.quants_get_prefered_domain(cr, SUPERUSER_ID, move.location_id, move.product_id, move.product_qty, domain=[('qty', '>', 0.0)], 
+            preferred_domain = [[('history_ids', 'in', [x.id for x in move.move_orig_ids])], [('history_ids', 'not in', [x.id for x in move.move_orig_ids])]]
+        quants = quant_obj.quants_get_prefered_domain(cr, SUPERUSER_ID, move.location_id, move.product_id, move.product_qty, domain=[('qty', '>', 0.0)],
                                                       prefered_domain_list=preferred_domain, restrict_lot_id=move.restrict_lot_id.id, context={'force_company': move.company_id.id})
         quant_obj.quants_move(cr, SUPERUSER_ID, quants, move, move.location_dest_id, lot_id=move.restrict_lot_id.id)
-        t2 = datetime.datetime.now()
-        if (t2 - t1).total_seconds() > 60:
-            t1 = datetime.datetime.now()
-            _logger.info(
-                "[%.02f%%] %d/%d stock moves processed in %s "
-                "(TOTAL estimated time: %s)",
-                (float(index) / float(len(moves)) * 100.0),
-                index, len(moves), (t2 - t0),
-                datetime.timedelta(
-                    seconds=((t2 - t0).total_seconds()
-                             * float(len(moves)) / float(index))))
-    
+
     #Take in_date as first date of stock_move
     cr.execute("""
-    UPDATE stock_quant SET in_date = qdate.date 
+    UPDATE stock_quant SET in_date = qdate.date
     FROM
     (SELECT sq.id as id, MIN(sm.date) as date FROM stock_quant sq, stock_quant_move_rel sqmr, stock_move sm
     WHERE sq.id = sqmr.quant_id AND sm.id = sqmr.move_id AND sm.state = 'done' AND sm.date is not null GROUP BY sq.id) AS qdate
@@ -53,6 +38,6 @@ def migrate(cr, version):
     """)
 
     # Assigned moves should be reassigned to give them to appropriate quants
-    moves = move_obj.search(cr, SUPERUSER_ID, [('state','=','assigned')])
+    moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'assigned')])
     move_obj.write(cr, SUPERUSER_ID, moves, {'state': 'confirmed'})
     move_obj.action_assign(cr, SUPERUSER_ID, moves)

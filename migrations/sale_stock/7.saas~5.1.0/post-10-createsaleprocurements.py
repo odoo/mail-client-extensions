@@ -1,8 +1,6 @@
 from openerp.addons.base.maintenance.migrations import util
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
-from openerp.osv import fields, osv
-import datetime
 import logging
 
 NS = 'openerp.addons.base.maintenance.migrations.sale_stock.saas-5.'
@@ -11,10 +9,10 @@ _logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
     """
-        For all sale orders that are not delivered yet, create procurements 
+        For all sale orders that are not delivered yet, create procurements
         to these lines
     """
-    
+
     # Check all related moves to sale order lines where the sales order is not done and not shipped and not cancelled
     # Create a procurement group for every sales order related, create a procurement in customers and
     # create a procurement in
@@ -43,14 +41,10 @@ def migrate(cr, version):
         else:
             sol_dict[item[0]] += [item[1]]
 
-    t1 = datetime.datetime.now()
-    t0 = t1
-
     #Search a rule we can assign so it will do the check on the procurement
     rules = rule_obj.search(cr, SUPERUSER_ID, [('action', '=', 'move'), ('picking_type_id.code', '=', 'outgoing')])
     rule = rules and rules[0] or False
-    for index, line in enumerate(util.iter_browse(sol_obj, cr, SUPERUSER_ID,
-                                                  sol_dict.keys())):
+    for line in util.iter_browse(sol_obj, cr, SUPERUSER_ID, sol_dict.keys(), logger=_logger):
         order = line.order_id
         if not order.procurement_group_id:
             vals = so_obj._prepare_procurement_group(cr, SUPERUSER_ID, order)
@@ -70,16 +64,3 @@ def migrate(cr, version):
         proc_id = proc_obj.create(cr, SUPERUSER_ID, vals)
         proc_obj.check(cr, SUPERUSER_ID, [proc_id])
         move_obj.write(cr, SUPERUSER_ID, related_moves, {'group_id': group_id})
-
-        t2 = datetime.datetime.now()
-        if index and (t2 - t1).total_seconds() > 60:
-            t1 = datetime.datetime.now()
-            _logger.info(
-                "[%.02f%%] %d/%d sale order lines processed in %s "
-                "(TOTAL estimated time: %s)",
-                (float(index) / float(len(sol_dict.keys())) * 100.0),
-                index, len(sol_dict.keys()), (t2 - t0),
-                datetime.timedelta(
-                    seconds=((t2 - t0).total_seconds()
-                             * float(len(sol_dict.keys())) / float(index))))
-
