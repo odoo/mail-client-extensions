@@ -63,12 +63,14 @@ def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currenc
             line_info['currency_id'] = same_currency
 
         if same_currency is False:  # != None
+            date = debit_move_lines[debit_move_index]['date']
             if debit_move_lines[debit_move_index]['currency_id']:
+                date = credit_move_lines[credit_move_index]['date']
                 line_info['currency_id'] = debit_move_lines[debit_move_index]['currency_id']
             else:
                 line_info['currency_id'] = credit_move_lines[credit_move_index]['currency_id']
             if line_info['currency_id'] and line_info['currency_id'] != debit_move_lines[debit_move_index]['company_currency_id']:
-                line_info['amount_currency'] = compute_amount_currency(cr, amount, line_info['currency_id'], debit_move_lines[debit_move_index]['company_id'], debit_move_lines[debit_move_index]['date'])
+                line_info['amount_currency'] = compute_amount_currency(cr, amount, line_info['currency_id'], debit_move_lines[debit_move_index]['company_id'], date)
             else:
                 line_info['amount_currency'] = 0
 
@@ -140,7 +142,7 @@ def migrate(cr, version):
             for element in reconcile_moves:
                 if element['currency_id'] != same_currency:
                     same_currency = False
-                if element['debit'] > 0:
+                if element['debit'] > 0 or (element['debit']==element['credit'] and element['remaining_currency'] > 0):
                     debit_move_lines.append(element)
                 else:
                     credit_move_lines.append(element)
