@@ -10,7 +10,6 @@ def migrate(cr, version):
     """
     cr.execute("""UPDATE wkf_transition SET condition='False and reconciled' WHERE condition = 'reconciled'""")
     cr.execute("""UPDATE wkf_transition SET condition='False and not reconciled' WHERE condition = 'not reconciled'""")
-    
     # Compute matched_percentage on account_move
     cr.execute("""UPDATE account_move m 
                     SET matched_percentage = CASE WHEN t2.total_amount = 0 THEN 1.0 ELSE t2.total_reconciled/t2.total_amount END
@@ -56,6 +55,37 @@ def migrate(cr, version):
     aml.recompute()
 
     # aml field will trigger the computation of residual field on invoice
+    """ In some case, it is possible that we have some entries that were not reconcile correctly due to them being in different currency
+        (change error). In this case, we just create an entry with debit=credit=0 and amount_currency being the inverse of what remains to reconcile
+        and we reconcile this line with the one that should have been reconciled """
+    env = util.env(cr)
+    cr.execute("""SELECT id FROM account_move_line WHERE reconcile_id is NOT NULL and reconciled = false""")
+    ids = [row[0] for row in cr.fetchall()]
+    amls = env['account.move.line'].browse(ids)
+    cr.execute("""SELECT id, period_lock_date, fiscalyear_lock_date from res_company""")
+    info_period = cr.dictfetchall()
+    cr.execute("""UPDATE res_company set period_lock_date = '1990-01-01', fiscalyear_lock_date = '1990-01-01'""")
+    cr.execute("""CREATE TABLE account_move_line_reconcile_temp AS table account_move_line WITH NO DATA""")
+
+    for aml in amls:
+        if aml.amount_residual_currency:
+            cr.execute("""INSERT INTO account_move_line_reconcile_temp
+                (SELECT * FROM account_move_line where id = %s)""",
+                [aml.id])
+            cr.execute("""UPDATE account_move_line_reconcile_temp
+                SET id = nextval('account_move_line_id_seq'), credit = 0, debit = 0, amount_currency = %s, amount_residual_currency = %s
+                WHERE id = %s RETURNING id""",
+                [-aml.amount_residual_currency, -aml.amount_residual_currency, aml.id])
+            aml_copy_id, = cr.fetchone()
+            cr.execute("""INSERT INTO account_move_line (SELECT * FROM account_move_line_reconcile_temp where id = %s)""",
+            [aml_copy_id])
+            aml_copy = env['account.move.line'].browse(aml_copy_id)
+            (aml+aml_copy).reconcile()
+    for el in info_period:
+        cr.execute("""UPDATE res_company 
+                        SET period_lock_date = %s, fiscalyear_lock_date = %s 
+                        WHERE id = %s""", [el['period_lock_date'], el['fiscalyear_lock_date'], el['id']])
+    cr.execute("""DROP TABLE account_move_line_reconcile_temp""")
 
     cr.execute("""UPDATE wkf_transition SET condition='reconciled' WHERE condition = 'False and reconciled'""")
     cr.execute("""UPDATE wkf_transition SET condition='not reconciled' WHERE condition = 'False and not reconciled'""")

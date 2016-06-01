@@ -20,6 +20,11 @@ def find_pair(debit_move_lines, credit_move_lines):
             credit_move = el
     return (debit_move, credit_move)
 
+def find_pair_currency(debit_move_lines, credit_move_lines):
+    debit_move = debit_move_lines[0]
+    credit_move = credit_move_lines[0]
+    return (debit_move, credit_move)
+
 def compute_amount_currency(cr, amount, currency_id, company_id, date):
     cr.execute("""SELECT r.rate, c.rounding FROM res_currency_rate r
                    LEFT JOIN res_currency c ON c.id = r.currency_id
@@ -33,11 +38,20 @@ def compute_amount_currency(cr, amount, currency_id, company_id, date):
     return float_round(amount * res['rate'], precision_rounding=res['rounding'])
 
 def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currency, create_date):
+    debit_aml_currency = []
+    credit_aml_currency = []
+    if same_currency:
+        for aml in debit_move_lines + credit_move_lines:
+            if aml['amount_currency'] > 0:
+                debit_aml_currency.append(aml)
+            if aml['amount_currency'] < 0:
+                credit_aml_currency.append(aml)
+
     while(True):
         #Find lowest debit move lines and credit move lines and create a reconciliation entry for the both of them
         #if we could not find any, exit loop it means we've reconciled everyhting we could
         if not len(debit_move_lines) or not len(credit_move_lines):
-            return True
+            break
         debit_move, credit_move = find_pair(debit_move_lines, credit_move_lines)
         amount = min(debit_move['remaining'], credit_move['remaining'])
         debit_move_index = debit_move_lines.index(debit_move)
@@ -51,15 +65,10 @@ def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currenc
                 'amount': amount,
                 'amount_currency': 0,
                 'create_date': create_date,
-                # 'currency_id': 'NULL',
                 'company_currency_id': debit_move['company_currency_id'],
                 'company_id': debit_move['company_id']}
 
-        if same_currency and same_currency is not None and same_currency != debit_move_lines[debit_move_index]['company_currency_id']:
-            amount_currency = min(debit_move['remaining_currency'], credit_move['remaining_currency'])
-            debit_move_lines[debit_move_index]['remaining_currency'] -= amount_currency
-            credit_move_lines[credit_move_index]['remaining_currency'] -= amount_currency
-            line_info['amount_currency'] = amount_currency
+        if same_currency:
             line_info['currency_id'] = same_currency
 
         if same_currency is False:  # != None
@@ -80,6 +89,31 @@ def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currenc
             credit_move_lines.remove(credit_move)
 
         create_new_reconciliation_entry(cr, line_info)
+
+    while(True):
+        #Do the same as above for amount_currency
+        if not len(debit_aml_currency) or not len(credit_aml_currency):
+            break
+        debit_move, credit_move = find_pair_currency(debit_aml_currency, credit_aml_currency)
+        amount = min(debit_move['amount_currency'], abs(credit_move['amount_currency']))
+        #change remaining value and remove from list the move that has remaining value at 0
+        debit_aml_currency[0]['amount_currency'] -= amount
+        credit_aml_currency[0]['amount_currency'] += amount
+        line_info = {'debit_move_id': debit_move['id'],
+                'credit_move_id': credit_move['id'],
+                'amount': 0,
+                'amount_currency': amount,
+                'currency_id': same_currency,
+                'create_date': create_date,
+                'company_currency_id': debit_move['company_currency_id'],
+                'company_id': debit_move['company_id']}
+        if debit_aml_currency[0]['amount_currency'] == 0:
+            debit_aml_currency.remove(debit_move)
+        if credit_aml_currency[0]['amount_currency'] == 0:
+            credit_aml_currency.remove(credit_move)
+
+        create_new_reconciliation_entry(cr, line_info)
+    return True
 
 def migrate(cr, version):
     """
@@ -105,6 +139,56 @@ def migrate(cr, version):
         WHERE company_id = c.id and l.currency_id = c.currency_id
         """)
 
+    # fix wrong account move lines:
+    #   if credit is > 0, amount_currency should be < 0
+    #   if debit is > 0, amount_currency should be > 0
+    cr.execute("""SELECT * INTO wrong_account_move_line_temp
+        FROM account_move_line WHERE (credit > 0 AND amount_currency > 0) OR (debit > 0 AND amount_currency < 0)""")
+    cr.execute("""ALTER TABLE wrong_account_move_line_temp ADD COLUMN copied_from_id integer""")
+    cr.execute("""ALTER TABLE account_move_line ADD COLUMN copied_from_id integer""")
+    cr.execute("""UPDATE wrong_account_move_line_temp SET copied_from_id = id, id = nextval('account_move_line_id_seq')""")
+    cr.execute("""INSERT INTO account_move_line (SELECT * FROM wrong_account_move_line_temp)
+        RETURNING id AS new_id, copied_from_id AS original_id;
+    """)
+
+    for line in cr.dictfetchall():
+        cr.execute("""UPDATE account_move_line SET amount_currency = 0 WHERE id = %s""",
+        [line['original_id']])
+        cr.execute("""UPDATE account_move_line SET debit = 0, credit = 0 WHERE id = %s""",
+        [line['new_id']])
+    cr.execute("""ALTER TABLE account_move_line DROP COLUMN copied_from_id""")
+    cr.execute("""DROP TABLE wrong_account_move_line_temp""")
+
+    # create write-off lines for lines with full_reconcile_id where sum(amount_currency) is != 0
+    # copy a line and write the difference
+    cr.execute("""CREATE TABLE new_account_move_line_temp AS table account_move_line WITH NO DATA""")
+    cr.execute("""ALTER TABLE new_account_move_line_temp ADD COLUMN copied_from_id integer""")
+    cr.execute("""ALTER TABLE account_move_line ADD COLUMN copied_from_id integer""")
+
+    cr.execute("""SELECT reconcile_id, sum(amount_currency)
+        FROM account_move_line
+        WHERE reconcile_id IS NOT NULL
+        GROUP BY reconcile_id HAVING sum(amount_currency) != 0""")
+
+    for reconciliation in cr.dictfetchall():
+        cr.execute("""SELECT id, amount_currency, currency_id, name from account_move_line where reconcile_id = %s""",
+        [reconciliation['reconcile_id']])
+        lines = cr.dictfetchall()
+        possible_line_id = ([rec['id'] for rec in lines if rec['name'] == 'Write-off']
+            or [rec['id'] for rec in lines if rec['amount_currency'] == 0]
+            or [rec['id'] for rec in lines])[0]
+        currency_id = list(set([rec['currency_id'] for rec in lines if rec['currency_id']]))
+        if len(currency_id) != 1: # will be handled in 'post'
+            continue
+        cr.execute("""INSERT INTO new_account_move_line_temp
+            (SELECT * FROM account_move_line where id = %s)""",
+            [possible_line_id])
+        cr.execute("""UPDATE new_account_move_line_temp
+            SET id = nextval('account_move_line_id_seq'), credit = 0, debit = 0, amount_currency = %s, currency_id = %s
+            WHERE id = %s""",
+            [-reconciliation['sum'], currency_id[0], possible_line_id])
+
+    cr.execute("""INSERT INTO account_move_line (SELECT * FROM new_account_move_line_temp)""")
     cr.execute("""CREATE TABLE IF NOT EXISTS account_partial_reconcile(
                     id SERIAL NOT NULL PRIMARY KEY,
                     create_date timestamp without time zone,
@@ -117,6 +201,7 @@ def migrate(cr, version):
                     company_id integer
                     )
                 """)
+    cr.execute("""DROP TABLE new_account_move_line_temp""")
 
     # What to do with reconcile object that has the flag opening_reconciliation set to True?
     # Nothing since we already deleted aml that belong to an opening/closing period
@@ -129,20 +214,24 @@ def migrate(cr, version):
     for element in answers:
         create_date = element['create_date']
         cr.execute("""SELECT aml.id, aml.debit, aml.credit, aml.currency_id, aml.date,
-                            abs(aml.amount_currency) AS remaining_currency, aml.company_id, abs(aml.debit - aml.credit) AS remaining, 
+                            abs(aml.amount_currency) AS remaining_currency, aml.company_id, abs(aml.debit - aml.credit) AS remaining,
+                            aml.amount_currency as amount_currency,
                             c.currency_id AS company_currency_id
-                        FROM account_move_line aml, res_company c 
+                        FROM account_move_line aml, res_company c
                         WHERE c.id = aml.company_id AND (reconcile_id = %s OR reconcile_partial_id = %s)""", (element['id'], element['id']))
         reconcile_moves = cr.dictfetchall()
 
         if reconcile_moves:
             debit_move_lines = []
             credit_move_lines = []
-            same_currency = reconcile_moves[0]['currency_id']
+            same_currency = None
             for element in reconcile_moves:
-                if element['currency_id'] != same_currency:
-                    same_currency = False
-                if element['debit'] > 0 or (element['debit']==element['credit'] and element['remaining_currency'] > 0):
+                if element['currency_id']:
+                    if same_currency is None:
+                        same_currency = element['currency_id']
+                    elif element['currency_id'] != same_currency:
+                        same_currency = False
+                if element['debit'] > 0 or (element['debit'] == element['credit'] and element['amount_currency'] > 0):
                     debit_move_lines.append(element)
                 else:
                     credit_move_lines.append(element)
