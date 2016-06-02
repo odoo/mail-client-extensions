@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
+from openerp.tools import float_round
+
 
 def migrate(cr, version):
     # before 9.0, rules (items) was deactivable through pricelist.versions
@@ -93,16 +95,31 @@ def migrate(cr, version):
             'table': table,
         }
 
+    def apply_formula(price, discount, round_, surcharge, min_margin, max_margin):
+        price_limit = price
+        price = (price - (price * (discount / 100))) or 0.0
+        if round_:
+            price = float_round(price, precision_rounding=round_)
+        if surcharge:
+            price += surcharge
+        if min_margin:
+            price = max(price, price_limit + min_margin)
+        if max_margin:
+            price = min(price, price_limit + max_margin)
+        return price
+
     columns, i_columns = util.get_columns(cr, 'product_pricelist_item',
                                           ('id', 'product_id', 'product_tmpl_id', 'categ_id',
                                            'fixed_price', 'applied_on'), ['i'])
 
-    cr.execute("""SELECT id, _base, product_id, product_tmpl_id, categ_id
+    cr.execute("""SELECT id, _base, product_id, product_tmpl_id, categ_id,
+                         ARRAY [price_discount::float8, price_round::float8, price_surcharge::float8,
+                                price_min_margin::float8, price_max_margin::float8] AS formula
                     FROM product_pricelist_item
                    WHERE compute_price = 'fixed'
                """)
 
-    for rid, base, pid, tid, cid in cr.fetchall():
+    for rid, base, pid, tid, cid, formula in cr.fetchall():
         if base not in ppt:
             # unknown pricetype, cannot get the fixed price => delete the rule
             cr.execute("DELETE FROM product_pricelist_item WHERE id=%s", [rid])
@@ -142,6 +159,7 @@ def migrate(cr, version):
         data = cr.fetchall()
         if data:
             price, pids = data[0]
+            price = apply_formula(price, *formula)
             # update current rule
             cr.execute("""UPDATE product_pricelist_item
                              SET fixed_price=%s,
@@ -155,6 +173,7 @@ def migrate(cr, version):
 
         # copy the rest
         for price, pids in data:
+            price = apply_formula(price, *formula)
             cr.execute("""
                 INSERT INTO product_pricelist_item({columns}, fixed_price, product_id, applied_on)
                 SELECT {i_columns}, %s, unnest(%s), '0_product_variant'
