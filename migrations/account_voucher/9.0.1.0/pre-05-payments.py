@@ -16,7 +16,11 @@ def migrate(cr, version):
 
         SELECT id,
                create_uid, create_date, write_uid, write_date,
-               CASE WHEN amount < 0 THEN 'outbound' ELSE 'inbound' END,
+               CASE WHEN type = 'receipt' AND amount < 0 THEN 'outbound'
+                    WHEN type = 'receipt' AND amount >= 0 THEN 'inbound'
+                    WHEN type = 'payment' AND amount < 0 THEN 'inbound'
+                    WHEN type = 'payment' AND amount >= 0 THEN 'outbound'
+                    END,
                COALESCE(number, name),
                CASE WHEN state != 'posted' THEN 'draft'
                     WHEN EXISTS(SELECT 1
