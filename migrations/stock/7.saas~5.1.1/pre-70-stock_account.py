@@ -20,7 +20,8 @@ def migrate(cr, version):
 
     util.convert_field_to_property(
         cr, 'product.product', 'valuation', 'char', default_value='manual_periodic',
-        default_value_ref='stock_account.default_valuation', company_field='NULL',
+        default_value_ref='stock_account.default_valuation',
+        company_field='SELECT company_id FROM product_template WHERE id=t.product_tmpl_id',
     )
     util.move_field_to_module(cr, 'product.product', 'valuation', 'stock', 'stock_account')
 
