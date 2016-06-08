@@ -38,7 +38,7 @@ def migrate(cr, version):
         """)
 
     cr.execute("""UPDATE account_tax
-        SET amount = 100 * amount
+        SET amount = 100 * amount where type = 'percent'
         """)
 
     cr.execute("""UPDATE account_tax
