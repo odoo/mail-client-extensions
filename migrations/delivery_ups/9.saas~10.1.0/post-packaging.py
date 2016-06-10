@@ -5,7 +5,7 @@ def migrate(cr, version):
     pkg = '01 02 03 04 21 24 25 30 2a 2b 2c'.split()
 
     case = 'CASE ' + ' '.join(
-        cr.mogrify('WHEN ups_package_type=%s THEN %s',
+        cr.mogrify('WHEN ups_default_packaging_type=%s THEN %s',
                    [p, util.ref(cr, 'delivery_ups.ups_packaging_' + p)])
         for p in pkg
     ) + ' ELSE NULL END'

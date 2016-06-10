@@ -11,7 +11,7 @@ def migrate(cr, version):
     pkg['Unpackage or N/A'] = util.ref(cr, 'delivery_temando.temando_packaging_Unpackage')
 
     case = 'CASE ' + ' '.join(
-        cr.mogrify('WHEN temando_package_type=%s THEN %s',
+        cr.mogrify('WHEN temando_default_packaging_type=%s THEN %s',
                    [p, r])
         for p, r in pkg.items()
     ) + ' ELSE NULL END'
