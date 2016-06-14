@@ -185,8 +185,11 @@ def migrate(cr, version):
 
         util.new_module(cr, 'account_reports', deps=('account',), auto_install=True)
         util.new_module(cr, 'account_extension', deps=('account',), auto_install=True)
-        for l10n in ['ar', 'at', 'be', 'bo', 'cr', 'ch', 'cl', 'co', 'do', 'es', 'et', 'fr', 'gr', 'hr', 'hu', 'in', 'jp', 'lu', 'ma', 'nl', 'no', 'pl', 'ro', 'sg', 'si', 'th', 'uk', 'uy', 'vn']:
-            util.new_module(cr, 'l10n_' + l10n + '_reports', deps=('l10n_' + l10n,), auto_install=True)
+
+        l10n = 'ar at be bo br ch cl co de_skr03 de_skr04 do es et fr gr hr hu in jp lu ma nl no pl ro sg si th uk uy vn'.split()
+        for l in l10n:
+            util.new_module(cr, 'l10n_' + l + '_reports', deps=('l10n_' + l, 'account_reports'),
+                            auto_install=True)
 
         util.new_module(cr, 'currency_rate_live', deps=('accounts',), auto_install=True)
 

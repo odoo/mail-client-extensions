@@ -23,3 +23,8 @@ def migrate(cr, version):
     util.remove_module(cr, 'claim_from_delivery')
     util.remove_module(cr, 'web_view_editor')
     util.remove_module(cr, 'website_crm_claim')
+
+    if util.has_enterprise():
+        l10n = 'ar at be bo br ch cl co de_skr03 de_skr04 do es et fr gr hr hu in jp lu ma nl no pl ro sg si th uk uy vn'.split()
+        for l in l10n:
+            util.new_module_dep(cr, 'l10n_' + l + '_reports', 'account_reports')
