@@ -101,6 +101,32 @@ def _electronics123(cr, version):
     """)
     cr.execute("ALTER TABLE product_template RENAME loc_case TO x_product_case")
 
+    # update view `report_picking_lah`
+    with util.skippable_cm(), util.edit_view(cr, view_id=942) as arch:
+        for x in arch.xpath('//xpath[contains(@expr, "[3]")]'):
+            arch.remove(x)
+        span = arch.find('.//span')
+        span.attrib['t-field'] = 'pack_operation.product_id.loc_case'
+
+    # and view `lah_product_form`
+    cr.execute("UPDATE ir_ui_view SET arch=%s WHERE id=976", ["""
+<data>
+<group name="group_standard_price" position="inside">
+  <field name="x_lah_amazon"/>
+  <field name="x_rohs"/>
+  <field name="x_skilllevel"/>
+  <field name="x_datasheet"/>
+</group>
+<xpath expr="//group[@name='inventory']/group" position="inside">
+  <field name="x_product_case"/>
+</xpath>
+</data>
+    """])
+
+    # and ... (you get it)
+    with util.skippable_cm(), util.edit_view(cr, view_id=972) as arch:
+        arch.attrib['expr'] = "//field[@name='property_account_position_id']"
+
     util.update_field_references(cr, 'seller_id', 'seller_ids',
                                  ('product.template', 'product.product'))
 
