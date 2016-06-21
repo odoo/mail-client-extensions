@@ -73,7 +73,7 @@ def migrate(cr, version):
                 (SELECT * FROM account_move_line where id = %s)""",
                 [aml.id])
             cr.execute("""UPDATE account_move_line_reconcile_temp
-                SET id = nextval('account_move_line_id_seq'), credit = 0, debit = 0, amount_currency = %s, amount_residual_currency = %s
+                SET id = nextval('account_move_line_id_seq'), credit = 0, debit = 0, balance = 0, amount_currency = %s, amount_residual_currency = %s
                 WHERE id = %s RETURNING id""",
                 [-aml.amount_residual_currency, -aml.amount_residual_currency, aml.id])
             aml_copy_id, = cr.fetchone()
@@ -120,3 +120,4 @@ def migrate(cr, version):
                 msg_unrecs=msg_unrecs,
             )
         raise util.MigrationError(msg)
+
