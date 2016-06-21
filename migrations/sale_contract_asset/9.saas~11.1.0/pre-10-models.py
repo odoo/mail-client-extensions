@@ -12,10 +12,11 @@ def migrate(cr, version):
 
     # create the needed ir_model_field
     cr.execute("""
-        INSERT INTO ir_model_fields(model, model_id, name, ttype, relation, state)
+        INSERT INTO ir_model_fields(model, model_id, name, ttype, relation, state, field_description)
              VALUES ('sale.subscription',
                      (SELECT id FROM ir_model WHERE model='sale.subscription'),
-                     'template_asset_category_id', 'many2one', 'account.asset.category', 'base')
+                     'template_asset_category_id', 'many2one', 'account.asset.category', 'base',
+                     'Deferred Revenue Category')
     """)
 
     comp_query = 'SELECT company_id FROM account_analytic_account WHERE id=t.analytic_account_id'
