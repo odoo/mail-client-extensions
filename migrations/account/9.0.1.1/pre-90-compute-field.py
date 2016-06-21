@@ -47,6 +47,7 @@ def migrate(cr, version):
                         reconciled = true
                     FROM account_account acc, account_invoice inv
                     WHERE aml.account_id = acc.id AND aml.move_id = inv.move_id AND acc.reconcile = true AND inv.state != 'open'
+                        AND aml.reconcile_id IS NOT NULL
                 """)
 
     util.create_column(cr, 'account_invoice', 'residual_company_signed', 'numeric')
