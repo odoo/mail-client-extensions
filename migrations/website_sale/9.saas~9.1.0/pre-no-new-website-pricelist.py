@@ -11,7 +11,9 @@ def migrate(cr, version):
     website = util.ref(cr, 'website.default_website')
     cr.execute("""
         INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
-            SELECT 'website_sale', 'wlist0', 'website_pricelist', min(id), true
+            SELECT 'website_sale', 'wlist0', 'website_pricelist', id, true
               FROM website_pricelist
              WHERE website_id=%s
+          ORDER BY id
+             LIMIT 1
     """, [website])
