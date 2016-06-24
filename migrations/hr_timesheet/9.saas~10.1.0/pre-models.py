@@ -51,8 +51,8 @@ def migrate(cr, version):
         _new_aliases AS (
             INSERT INTO mail_alias(alias_name, alias_contact, alias_defaults,
                                    alias_model_id, alias_parent_model_id, alias_parent_thread_id)
-            SELECT 'project-' || regexp_replace(lower(name), '\W+', '-', 'g'), 'followers', '{}',
-                   %s, %s, id
+            SELECT 'project-' || regexp_replace(lower(name), '\W+', '-', 'g') || '-' || id,
+                   'followers', '{}', %s, %s, id
               FROM no_project
          RETURNING id, alias_parent_thread_id
         ),
