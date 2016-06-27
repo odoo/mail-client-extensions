@@ -34,25 +34,23 @@ def migrate(cr, version):
             """)
 
     # Compute other fields via ORM
-
-    env = util.env(cr)
     cr.execute("""SELECT id FROM account_move_line WHERE amount_residual IS NULL""")
     ids = [row[0] for row in cr.fetchall()]
-    aml = env['account.move.line'].browse(ids)
-    for name in ('amount_residual', 'amount_residual_currency', 'reconciled'):
-        field = aml._fields[name]
-        aml._recompute_todo(field)
+    util.recompute_fields(
+        cr, 'account.move.line',
+        fields=('amount_residual', 'amount_residual_currency', 'reconciled'),
+        ids=ids,
+    )
 
     cr.execute("""SELECT inv.id FROM account_invoice inv, res_company c
                     WHERE c.id = inv.company_id and c.currency_id != inv.currency_id
                 """)
     inv_ids = [row[0] for row in cr.fetchall()]
-    invoices = env['account.invoice'].browse(inv_ids)
-    for name in ('amount_total_company_signed', 'amount_total_signed', 'amount_untaxed_signed'):
-        field = invoices._fields[name]
-        invoices._recompute_todo(field)
-
-    aml.recompute()
+    util.recompute_fields(
+        cr, 'account.invoice',
+        fields=('amount_total_company_signed', 'amount_total_signed', 'amount_untaxed_signed'),
+        ids=inv_ids,
+    )
 
     # aml field will trigger the computation of residual field on invoice
     """ In some case, it is possible that we have some entries that were not reconcile correctly due to them being in different currency
