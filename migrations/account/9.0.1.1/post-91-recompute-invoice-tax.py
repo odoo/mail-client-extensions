@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from operator import itemgetter
+import os
 from openerp.addons.base.maintenance.migrations import util
 
 def update_invoice_taxes(cr):
@@ -12,9 +13,15 @@ def update_invoice_taxes(cr):
             If this file is to slow to migrate, it is possible to speed it up by just recomputing the account_invoice_tax
             for all invoices that are in draft,proforma2 format. The other ones already have their account move and recomputing
             account_invoice_tax for those does not have any effect (except if user cancel invoice and then reset to draft)
+            To do so, set the environment variable ODOO_MIG_9_LIMIT_INVOICE_TAX_RECOMPUTE
     """
     env = util.env(cr)
-    cr.execute("SELECT id FROM account_invoice")
+
+    filter_ = ''
+    if os.environ.get('ODOO_MIG_9_LIMIT_INVOICE_TAX_RECOMPUTE'):
+        filter_ = " WHERE state IN ('draft', 'proforma2', 'proforma')"
+
+    cr.execute("SELECT id FROM account_invoice" + filter_)
     ids = map(itemgetter(0), cr.fetchall())
     invoices = util.iter_browse(env['account.invoice'], ids)
     for invoice in invoices:
