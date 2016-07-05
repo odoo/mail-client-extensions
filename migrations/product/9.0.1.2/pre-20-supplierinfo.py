@@ -2,6 +2,8 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    cr.execute("UPDATE product_template SET uom_po_id=uom_id WHERE uom_po_id IS NULL")
+
     util.create_column(cr, 'product_supplierinfo', 'price', 'numeric')
     util.create_column(cr, 'product_supplierinfo', 'currency_id', 'int4')
 
@@ -29,9 +31,12 @@ def migrate(cr, version):
     [fields_id] = cr.fetchone()
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = p.value_float
-          FROM ir_property p, product_template t
+           SET price = round(p.value_float::numeric * uom.factor / uom_po.factor,
+                             ceil(-log(uom_po.rounding))::integer)
+          FROM ir_property p, product_template t, product_uom uom, product_uom uom_po
          WHERE t.id = i.product_tmpl_id
+           AND uom.id = t.uom_id
+           AND uom_po.id = t.uom_po_id
            AND p.fields_id = %s
            AND p.company_id = coalesce(i.company_id, t.company_id)
            AND p.res_id = 'product.template,' || t.id
@@ -40,9 +45,13 @@ def migrate(cr, version):
     # check for all-companies properties
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = p.value_float
-          FROM ir_property p
-         WHERE p.fields_id = %s
+           SET price = round(p.value_float::numeric * uom.factor / uom_po.factor,
+                             ceil(-log(uom_po.rounding))::integer)
+          FROM ir_property p, product_template t, product_uom uom, product_uom uom_po
+         WHERE t.id = i.product_tmpl_id
+           AND uom.id = t.uom_id
+           AND uom_po.id = t.uom_po_id
+           AND p.fields_id = %s
            AND p.company_id IS NULL
            AND p.res_id = 'product.template,' || i.product_tmpl_id
            AND i.price IS NULL
@@ -52,9 +61,12 @@ def migrate(cr, version):
     # In case, no property exists for this product template, we simply fallback to lst_price
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = coalesce(t.list_price, 0)
-          FROM product_template t
+           SET price = round(coalesce(t.list_price, 0)::numeric * uom.factor / uom_po.factor,
+                             ceil(-log(uom_po.rounding))::integer)
+          FROM product_template t, product_uom uom, product_uom uom_po
          WHERE t.id = i.product_tmpl_id
+           AND uom.id = t.uom_id
+           AND uom_po.id = t.uom_po_id
            AND i.price IS NULL
     """)
 
