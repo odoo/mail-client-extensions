@@ -31,8 +31,7 @@ def migrate(cr, version):
     [fields_id] = cr.fetchone()
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = round(p.value_float::numeric * uom.factor / uom_po.factor,
-                             ceil(-log(uom_po.rounding))::integer)
+           SET price = p.value_float * uom.factor / uom_po.factor
           FROM ir_property p, product_template t, product_uom uom, product_uom uom_po
          WHERE t.id = i.product_tmpl_id
            AND uom.id = t.uom_id
@@ -45,8 +44,7 @@ def migrate(cr, version):
     # check for all-companies properties
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = round(p.value_float::numeric * uom.factor / uom_po.factor,
-                             ceil(-log(uom_po.rounding))::integer)
+           SET price = p.value_float * uom.factor / uom_po.factor
           FROM ir_property p, product_template t, product_uom uom, product_uom uom_po
          WHERE t.id = i.product_tmpl_id
            AND uom.id = t.uom_id
@@ -61,8 +59,7 @@ def migrate(cr, version):
     # In case, no property exists for this product template, we simply fallback to lst_price
     cr.execute("""
         UPDATE product_supplierinfo i
-           SET price = round(coalesce(t.list_price, 0)::numeric * uom.factor / uom_po.factor,
-                             ceil(-log(uom_po.rounding))::integer)
+           SET price = coalesce(t.list_price, 0) * uom.factor / uom_po.factor
           FROM product_template t, product_uom uom, product_uom uom_po
          WHERE t.id = i.product_tmpl_id
            AND uom.id = t.uom_id
