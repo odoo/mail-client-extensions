@@ -30,6 +30,7 @@ def migrate(cr, version):
     cr.execute("UPDATE sale_order_line SET state=so.state FROM sale_order AS so WHERE so.id=order_id")  # field is now related
 
     # bootstrap some new computed fields
+    util.create_column(cr, 'sale_order', 'invoice_status', 'varchar')
     util.create_column(cr, 'sale_order_line', 'invoice_status', 'varchar')
     util.create_column(cr, 'sale_order_line', 'qty_invoiced', 'numeric')
     util.create_column(cr, 'sale_order_line', 'qty_to_invoice', 'numeric')
@@ -299,30 +300,30 @@ def _update_lines(cr):
                                 WHERE order_line_id = ol.id)
     """)
 
+    # compute `invoice_status` of `sale_order`
+    cr.execute("""
+        WITH s AS (
+            SELECT so.id,
+                   CASE WHEN so.state NOT IN ('done', 'sale') THEN 'no'
+                        WHEN 'to invoice' = any(array_agg(line.invoice_status)) THEN 'to invoice'
+                        WHEN 'invoiced' = all(array_agg(line.invoice_status)) THEN 'invoiced'
+                        WHEN array_agg(line.invoice_status)::text[] <@ ARRAY['invoiced', 'upselling'] THEN 'upselling'
+                        ELSE 'no'
+                   END AS state
+              FROM sale_order so
+              JOIN sale_order_line line ON (so.id = line.order_id)
+          GROUP BY so.id
+        )
+        UPDATE sale_order so
+           SET invoice_status = s.state
+          FROM s
+         WHERE s.id = so.id
+    """)
 
 def main(cr, version):
     # main function, to be called on already migrated databases
     cr.execute("UPDATE sale_order_line SET qty_invoiced=NULL")
     _update_lines(cr)
-    cr.execute("""
-        UPDATE sale_order o
-           SET invoice_status =
-                CASE WHEN state NOT IN ('sale', 'done') THEN 'no'
-                     WHEN EXISTS(SELECT 1
-                                   FROM sale_order_line
-                                  WHERE order_id=o.id
-                                    AND invoice_status='to invoice') THEN 'to invoice'
-                    WHEN NOT EXISTS(SELECT 1
-                                      FROM sale_order_line
-                                     WHERE order_id=o.id
-                                       AND invoice_status != 'invoiced') THEN 'invoiced'
-                    WHEN NOT EXISTS(SELECT 1
-                                      FROM sale_order_line
-                                     WHERE order_id=o.id
-                                       AND invoice_status NOT IN ('invoiced', 'upselling')) THEN 'upselling'
-                    ELSE 'no'
-                    END
-    """)
 
 if __name__ == '__main__':
     util.main(main)
