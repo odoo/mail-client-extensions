@@ -12,7 +12,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'hr_recruitment', 'web_kanban_gauge')
     util.new_module_dep(cr, 'website_mail', 'email_template')
 
-    util.new_module(cr, 'report', deps=('base',))
+    util.new_module(cr, 'report', deps=('base',), auto_install=True)
     reports_modules = """
         account
         hr_attendance
