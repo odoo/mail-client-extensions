@@ -6,7 +6,7 @@ def migrate(cr, version):
     # so let's create the product here if needed and use it in the right module
 
     def count(t):
-        if not util.table_exists(cr, t):
+        if not util.column_exists(cr, t, 'product_id'):
             return 0
         cr.execute("SELECT count(1) FROM {t} WHERE product_id IS NULL".format(t=t))
         return cr.fetchone()[0]
