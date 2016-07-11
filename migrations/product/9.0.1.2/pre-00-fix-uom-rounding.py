@@ -36,10 +36,11 @@ def migrate(cr, version):
          WHERE {uom} IS NOT NULL
            AND {qty} IS NOT NULL
     """
-    uom_usages = ' UNION '.join(query.format(tbl=tbl, uom=uom, qty=qty)
-                                for tbl, uom, qty in uom_refs
-                                if util.table_exists(cr, tbl)
-                                )
+    uom_usages = ' UNION '.join(
+        query.format(tbl=tbl, uom=uom, qty=qty)
+        for tbl, uom, qty in uom_refs
+        if util.column_exists(cr, tbl, uom) and util.column_exists(cr, tbl, qty)
+    )
 
     cr.execute("""
         WITH uom_usages AS (
