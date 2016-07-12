@@ -12,6 +12,27 @@ def gen_case(cr, column, d, default=None):
     case = ['WHEN {c}={k} THEN {v}'.format(c=column, k=to_sql(k), v=v) for k, v in d.items()]
     return 'CASE ' + ' '.join(case) + ' ELSE ' + default + ' END'
 
+def _get_matching_columns(cr, model1, model2, ignored=()):
+    table1 = util.table_of_model(cr, model1)
+    table2 = util.table_of_model(cr, model2)
+    ignored = tuple(set(['id'] + ignored))
+    cr.execute("""
+         SELECT f.name
+           FROM ir_model_fields f
+           JOIN information_schema.columns c
+             ON (    c.column_name = f.name
+                 and c.table_name = CASE WHEN f.model=%(model1)s THEN %(table1)s
+                                         WHEN f.model=%(model2)s THEN %(table2)s
+                                         ELSE NULL END
+                 )
+          WHERE f.store = true
+            AND f.model IN (%(model1)s, %(model2)s)
+            AND f.name NOT IN %(ignored)s
+       GROUP BY f.name, f.ttype, f.relation, f.relation_field
+         HAVING count(f.id) = 2
+    """, locals())
+    return [c[0] for c in cr.fetchall()]
+
 def migrate(cr, version):
     pre = util.import_script('base/9.saas~10.1.3/pre-20-crm_claim.py')
     if not pre.is_claims_used(cr):
@@ -46,13 +67,7 @@ def migrate(cr, version):
 
     util.create_column(cr, 'project_issue', '_tmp', 'int4')
 
-    cols = ', '.join('''
-        create_date create_uid write_date write_uid
-        name active
-        date date_deadline date_closed
-        partner_id team_id user_id company_id
-        email_cc email_from priority
-    '''.split())
+    cols = ','.join(_get_matching_columns(cr, 'crm.claim', 'project.issue', ignored=['description']))
 
     cr.execute("""
         INSERT INTO project_issue(_tmp, project_id, kanban_state, {cols}, stage_id, description)
@@ -84,7 +99,4 @@ def migrate(cr, version):
 
     util.remove_column(cr, 'project_task_type', '_tmp')
     util.remove_column(cr, 'project_issue', '_tmp')
-    util.delete_model(cr, 'crm.claim')
-    util.delete_model(cr, 'crm.claim.stage')
-    util.delete_model(cr, 'crm.claim.category')
     util.remove_module(cr, 'crm_claim')
