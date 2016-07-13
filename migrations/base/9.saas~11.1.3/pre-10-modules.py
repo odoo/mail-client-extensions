@@ -13,8 +13,8 @@ def migrate(cr, version):
 
         util.new_module_dep(cr, 'crm_voip', 'web_enterprise')
 
-        util.new_module(cr, 'grid', deps=('web',))
-        util.new_module(cr, 'timesheet_grid', deps=('grid', 'hr_timesheet'))
+        util.new_module(cr, 'grid', deps=('web',), auto_install=True)
+        util.new_module(cr, 'timesheet_grid', deps=('grid', 'hr_timesheet'), auto_install=True)
         util.new_module(cr, 'hr_timesheet_sheet_timesheet_grid',
                         deps=('hr_timesheet_sheet', 'timesheet_grid'), auto_install=True)
         util.new_module(cr, 'timesheet_grid_sale',
