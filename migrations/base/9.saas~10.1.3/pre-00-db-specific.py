@@ -8,7 +8,9 @@ def _db_openerp(cr, version):
 
 def _db_natural_fresh(cr, version):
     cr.execute("DELETE FROM ir_model_fields WHERE id=5754")
-    util.remove_view(cr, view_id=818)
+    cr.execute("select id from ir_ui_view where arch_db like '%x\_claim\_ids%'")
+    for vid, in cr.fetchall():
+        util.remove_view(cr, view_id=vid)
 
 
 def migrate(cr, version):
