@@ -156,5 +156,7 @@ def migrate(cr, version):
                 )
                 VALUES """ + values_str,
                 values_args)
+
     # we prevented deletion in analytic for this module, set it free now
     util.delete_model(cr, 'account.analytic.journal')
+    util.delete_model(cr, 'hr_timesheet_invoice.factor')

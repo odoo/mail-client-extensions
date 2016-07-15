@@ -197,6 +197,18 @@ def migrate(cr, version):
 
         util.new_module(cr, 'website_enterprise', deps=('website',), auto_install=True)
 
+    # keep some tables used by other migration scripts
+    # note: `remove_module` will call `delete_model` of found ir.model xmlids
+    if util.modules_installed(cr, 'sale_contract'):
+        cr.execute("""
+            DELETE FROM ir_model_data
+                  WHERE module='hr_timesheet_invoice'
+                    AND model='ir.model'
+                    AND res_id=(SELECT id
+                                  FROM ir_model
+                                 WHERE model='hr_timesheet_invoice.factor')
+        """)
+
     # some cleanup
     removed_modules = util.splitlines("""
         # salespocalypse
