@@ -42,8 +42,12 @@ def _db_openerp(cr, version):
     ADD FOREIGN KEY (database_id) REFERENCES openerp_enterprise_database ON DELETE cascade
     """.format(column=column))
 
+def _altamotors_remove_specific_view(cr, version):
+    util.remove_view(cr, view_id=918)
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,
+        'a79ed906-32e4-406b-ab62-6bba74d96994': _altamotors_remove_specific_view,
+        '8e24f066-fd2e-44a4-8962-dc73d793fc96': _altamotors_remove_specific_view, #Backup alta (jco)
     })
