@@ -3,10 +3,11 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     cr.execute("""SELECT model
-                    FROM ir_model_fields
+                    FROM ir_model_fields f
                    WHERE name=%s
                      AND ttype=%s
                      AND relation=%s
+                     AND EXISTS(SELECT 1 FROM mail_message WHERE model = f.model)
                """, ('message_ids', 'one2many', 'mail.message'))
 
     for model, in cr.fetchall():
