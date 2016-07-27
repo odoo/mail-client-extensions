@@ -2,6 +2,7 @@ from openerp.addons.base.maintenance.migrations import util
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 import logging
+import os
 
 NS = 'openerp.addons.base.maintenance.migrations.sale_stock.saas-5.'
 _logger = logging.getLogger(NS + __name__)
@@ -12,6 +13,8 @@ def migrate(cr, version):
         For all sale orders that are not delivered yet, create procurements
         to these lines
     """
+    if os.environ.get('ODOO_MIG_S5_SKIP_PROCUREMENTS_CREATION'):
+        return
 
     # Check all related moves to sale order lines where the sales order is not done and not shipped and not cancelled
     # Create a procurement group for every sales order related, create a procurement in customers and

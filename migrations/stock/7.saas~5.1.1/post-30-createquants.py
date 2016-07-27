@@ -1,4 +1,5 @@
 import logging
+import os
 
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
@@ -16,6 +17,9 @@ def migrate(cr, version):
         This should all be done with standard cost and no real-time valuation
         as we will assign these properties afterwards
     """
+    if os.environ.get('ODOO_MIG_S5_SKIP_QUANTS_CREATION'):
+        return
+
     registry = RegistryManager.get(cr.dbname)
     move_obj = registry['stock.move']
     quant_obj = registry['stock.quant']
