@@ -13,7 +13,7 @@ def _db_openerp(cr, version):
                                    WHERE name IN ('contacts', 'hr_applicant_document', 'im_chat')
                                  )
     """)
-    
+
     # we have some invoices with incorrect type so we must correct them first
     cr.execute("""UPDATE account_invoice set type='out_refund' WHERE type = 'out_invoice' AND journal_id in (12, 15, 16)""")
 
@@ -135,6 +135,32 @@ def _apps(cr, version):
     cr.execute("UPDATE res_lang SET code='bs_BA', iso_code='bs_BA' WHERE code='bs_BS'")
     cr.execute("DELETE FROM res_lang WHERE code='ur_PK'")
 
+def _duck_food(cr, version):
+    cr.execute(""" update ir_ui_view set arch = '<xpath expr="//tree" position="attributes"><attribute name="toolbar"/></xpath>' where id=920; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, '<filter string="Country" position="after">', '<group name="group_by" position="inside">') where id=830; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, '</filter>', '</group>') where id=830; """)
+    cr.execute(""" update ir_ui_view set active=false where id = 1036; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, '<group string="Bank Accounts" position="after">', '<group name="account_grp" position="after">') where id=934; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, '<group string="Group By"', '<xpath expr="//group[1]"') where id=1213; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, '</group', '</xpath') where id=1213; """)
+    cr.execute(""" update ir_ui_view set arch = regexp_replace(arch, '<button string="Transfer".*</button>', '<xpath expr="//button[@name=''do_new_transfer'']" position="attributes"><attribute name="groups">stock.group_stock_manager</attribute></xpath><xpath expr="//button[@name=''do_new_transfer'']" position="after"><button states="assigned,partially_available" string="Pallet Transfer" groups="stock.group_stock_user" type="action" name="703" class="oe_highlight"/></xpath>', 's') where id=974; """)
+    cr.execute(""" update ir_ui_view set inherit_id=null where id = 1401; """)
+    cr.execute(""" update ir_ui_view set inherit_id=null,mode='primary' where id  in (1355,1247,1147,821,1070,920); """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, 'line_id', 'line_ids') where id = 1268; """)
+    cr.execute(""" update ir_ui_view set arch=regexp_replace(arch, '<xpath expr="//field\[@name=''journal_id.*</xpath>', '', 's') where id = 1268; """)
+    cr.execute(""" delete from ir_ui_view where id in (1312,1425); """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, 'fiscal_position', 'fiscal_position_id') where id = 1293; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, 'fiscal_position', 'fiscal_position_id') where id = 1167; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, 'invoice_line', 'invoice_line_ids') where id = 1167; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, '<field name="portal_payment_options" position="replace"/>', '') where id = 1167; """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, 'expr="//page[@string=''Payments'']" position="after"', 'expr="//notebook" position="inside"') where id=1062; """)
+    cr.execute(""" update ir_ui_view set arch=regexp_replace(arch, '<field name="categ_id.*?</field>', '', 's') where id in (1054); """)
+    cr.execute(""" update ir_ui_view set arch=replace(arch, 'categ_id', 'name') where id in (1054); """)
+    cr.execute(""" update ir_ui_view set arch=regexp_replace(arch, '<field name="categ_id.*?</field>', '', 's') where id=1051; """)
+    cr.execute(""" update ir_ui_view set arch=regexp_replace(arch, '<field name="loc_rack.*?</field>', '<group name="group_lots_and_weight" position="inside"><field name="x_pick_volgorde"/></group>', 's') where id=1051; """)
+    cr.execute(""" delete from ir_ui_view where in (1247,1355); """)
+    cr.execute(""" update ir_ui_view set arch='<data><field name="phone" position="before"><field name="issued_total" sum="Overdue Amount"/></field></data>' where id=1260; """)
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -146,4 +172,5 @@ def migrate(cr, version):
         '9d923224-1dcf-4819-ae76-5079c2718598': _irisob,
         '885e1afc-694e-41c6-b496-a08d6a34c360': _electronics123,
         'a0a30d16-6095-11e2-9c70-002590a17fd8': _apps,
+        '2b0cac2f-79f1-4a1c-8263-ada77758b100': _duck_food,
     })
