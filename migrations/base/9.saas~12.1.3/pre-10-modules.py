@@ -24,6 +24,8 @@ def migrate(cr, version):
     util.merge_module(cr, 'account_tax_adjustments', 'account')
 
     util.new_module(cr, 'contacts', deps=('base',))
+    util.force_install_module(cr, 'contacts')
+    util.force_migration_of_fresh_module(cr, 'contacts')
 
     if util.module_installed(cr, 'crm_partner_assign'):
         util.force_install_module(cr, 'website_crm_partner_assign')
