@@ -161,6 +161,11 @@ def _duck_food(cr, version):
     cr.execute(""" delete from ir_ui_view where in (1247,1355); """)
     cr.execute(""" update ir_ui_view set arch='<data><field name="phone" position="before"><field name="issued_total" sum="Overdue Amount"/></field></data>' where id=1260; """)
 
+def _ephyla(cr, version):
+    cr.execute(""" UPDATE ir_ui_view
+        SET arch_db = replace(arch_db, 'property_account_position', 'property_account_position_id')
+        WHERE id=1024; """)
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -173,4 +178,5 @@ def migrate(cr, version):
         '885e1afc-694e-41c6-b496-a08d6a34c360': _electronics123,
         'a0a30d16-6095-11e2-9c70-002590a17fd8': _apps,
         '2b0cac2f-79f1-4a1c-8263-ada77758b100': _duck_food,
+        '62f0a964-2e5e-47bb-be99-0a7579b0b27f': _ephyla,
     })
