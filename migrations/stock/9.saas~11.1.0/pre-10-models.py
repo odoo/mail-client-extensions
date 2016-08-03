@@ -19,3 +19,7 @@ def migrate(cr, version):
     cr.execute("UPDATE stock_location_path SET auto='manual' WHERE auto='auto'")
 
     util.rename_field(cr, 'stock.pack.operation', 'processed_boolean', 'is_done')
+
+    # related fields without type set -> default to float, which worked.
+    cr.execute("ALTER TABLE procurement_rule ALTER COLUMN route_sequence TYPE integer")
+    cr.execute("ALTER TABLE stock_location_path ALTER COLUMN route_sequence TYPE integer")
