@@ -163,7 +163,7 @@ def _duck_food(cr, version):
 
 def _ephyla(cr, version):
     cr.execute(""" UPDATE ir_ui_view
-        SET arch_db = replace(arch_db, 'property_account_position', 'property_account_position_id')
+        SET arch = replace(arch, 'property_account_position', 'property_account_position_id')
         WHERE id=1024; """)
 
 def migrate(cr, version):
