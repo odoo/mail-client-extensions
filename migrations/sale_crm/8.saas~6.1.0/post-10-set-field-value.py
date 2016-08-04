@@ -5,6 +5,6 @@ def migrate(cr, version):
         UPDATE sale_order so
            SET opportunity_id = l.id
           FROM crm_lead l
-         WHERE l.ref = 'sale.order,' || so.id
+         WHERE l.ref = 'sale.order,' || so.id or l.ref2 = 'sale.order,' || so.id
            AND so.opportunity_id IS NULL
     """)
