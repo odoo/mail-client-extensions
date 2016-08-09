@@ -4,7 +4,19 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
 
     if util.has_enterprise():
-        pass
+        util.new_module(cr, 'account_taxcloud', deps=('account',))
+        util.new_module(cr, 'event_barcode', deps=('barcodes', 'event'))
+        util.new_module(cr, 'mrp_account', deps=('mrp', 'account'), auto_install=True)
+        util.new_module(cr, 'mrp_workorder', deps=('mrp',), auto_install=True)
+        util.new_module(cr, 'mrp_maintenance', deps=('mrp_workorder', 'maintenance'))
+        util.new_module(cr, 'mrp_mps', deps=('mrp',))
+        util.new_module(cr, 'mrp_plm', deps=('mrp',))
+        util.new_module(cr, 'project_forecast_grid', deps=('project_forecast', 'grid'))
+        util.new_module(cr, 'project_forecast_sale', deps=('project_forecast', 'sale_timesheet'),
+                        auto_install=True)
+        util.new_module(cr, 'quality', deps=('stock',))
+        util.new_module(cr, 'quality_mrp', deps=('quality', 'mrp_workorder'), auto_install=True)
+        util.new_module_dep(cr, 'voip', 'sales_team')
 
     util.rename_xmlid(cr,
                       'account_tax_adjustments.menu_action_account_form',
