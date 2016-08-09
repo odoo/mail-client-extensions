@@ -1,0 +1,44 @@
+# -*- coding: utf-8 -*-
+from openerp.addons.base.maintenance.migrations import util
+
+def migrate(cr, version):
+
+    util.move_field_to_module(cr, 'product.template', 'expense_policy', 'sale_expense', 'sale')
+    util.create_column(cr, 'product_template', 'expense_policy', 'varchar')
+
+    IrV = util.env(cr)['ir.values']
+    ip = IrV.get_default('product.template', 'invoice_policy')
+    if ip == 'cost':
+        IrV.set_default('product.template', 'invoice_policy', 'delivery')
+
+    cr.execute("""
+        UPDATE product_template
+           SET expense_policy = 'cost',
+               invoice_policy = 'delivery'
+         WHERE invoice_policy = 'cost'
+    """)
+    cr.execute("UPDATE product_template SET expense_policy = 'no' WHERE expense_policy IS NULL")
+
+    # sale order line
+    cr.execute("ALTER TABLE sale_order_line RENAME COLUMN price_reduce TO price_reduce_taxecl")
+    util.create_column(cr, 'sale_order_line', 'price_reduce', 'numeric')
+    util.create_column(cr, 'sale_order_line', 'price_reduce_taxinc', 'numeric')
+    cr.execute("""
+        UPDATE sale_order_line
+           SET price_reduce = COALESCE(price_unit, 0) * (1.0 - COALESCE(discount, 0) / 100.0),
+               price_reduce_taxinc = CASE WHEN COALESCE(product_uom_qty, 0) = 0 THEN 0
+                                          ELSE price_total / product_uom_qty
+                                      END
+    """)
+
+    # account invoice
+    util.create_column(cr, 'account_invoice', 'comment', 'text')
+    util.create_column(cr, 'account_invoice', 'partner_shipping_id', 'int4')
+    cr.execute("""
+        UPDATE account_invoice i
+           SET "comment" = c.sale_note
+          FROM res_company c
+         WHERE c.id = i.company_id
+           AND i.type = 'out_invoice'
+    """)
+    cr.execute("UPDATE account_invoice SET partner_shipping_id = partner_id")
