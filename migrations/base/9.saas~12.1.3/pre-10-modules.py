@@ -62,6 +62,7 @@ def migrate(cr, version):
     util.new_module(cr, 'web_tour', deps=('web',), auto_install=True)
     for mod in 'account_accountant crm hr_expense hr_recruitment mail sale'.split():
         util.new_module_dep(cr, mod, 'web_tour')
+    util.force_migration_of_fresh_module(cr, 'web_tour')
 
     util.remove_module_deps(cr, 'website_portal_sale', ('sale',))
     util.new_module_dep(cr, 'website_portal_sale', 'portal_sale')
