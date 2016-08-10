@@ -166,6 +166,19 @@ def _ephyla(cr, version):
         SET arch = replace(arch, 'property_account_position', 'property_account_position_id')
         WHERE id=1024; """)
 
+def _icus(cr, version):
+    cr.execute(""" UPDATE account_account a
+                       SET type = 'other'
+                       WHERE a.type IN ('view', 'consolidation')
+                             AND EXISTS (SELECT 1
+                                             FROM account_fiscal_position_account
+                                             WHERE account_src_id = a.id
+                                         UNION
+                                         SELECT 1
+                                             FROM account_fiscal_position_account
+                                         WHERE account_dest_id = a.id)
+                       RETURNING id; """)
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -179,4 +192,5 @@ def migrate(cr, version):
         'a0a30d16-6095-11e2-9c70-002590a17fd8': _apps,
         '2b0cac2f-79f1-4a1c-8263-ada77758b100': _duck_food,
         '62f0a964-2e5e-47bb-be99-0a7579b0b27f': _ephyla,
+        '058fa140-7b35-4150-8b2b-06b310a2b7b9': _icus,
     })
