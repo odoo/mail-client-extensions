@@ -19,16 +19,29 @@ def migrate(cr, version):
         cr.execute("""
             ALTER TABLE sale_order_line
                 DROP CONSTRAINT sale_order_line_procurement_id_fkey;
+            ALTER TABLE stock_warehouse_orderpoint
+                DROP CONSTRAINT stock_warehouse_orderpoint_procurement_id_fkey;
             WITH deleted_procurements AS (
                 DELETE FROM procurement_order
                     WHERE procure_method='make_to_stock' RETURNING id
+            ),
+            _updated_sale_order_line AS (
+              UPDATE sale_order_line SET procurement_id = NULL WHERE EXISTS (
+                  SELECT 1 FROM deleted_procurements
+                      WHERE deleted_procurements.id = sale_order_line.procurement_id
+              )
             )
-            UPDATE sale_order_line SET procurement_id = NULL WHERE EXISTS (
+            UPDATE stock_warehouse_orderpoint SET procurement_id = NULL WHERE EXISTS (
                 SELECT 1 FROM deleted_procurements
-                    WHERE deleted_procurements.id = sale_order_line.procurement_id
+                    WHERE deleted_procurements.id = stock_warehouse_orderpoint.procurement_id
             );
             ALTER TABLE sale_order_line
                 ADD CONSTRAINT sale_order_line_procurement_id_fkey
+                FOREIGN KEY (procurement_id)
+                REFERENCES procurement_order(id)
+                ON DELETE SET NULL;
+            ALTER TABLE stock_warehouse_orderpoint
+                ADD CONSTRAINT stock_warehouse_orderpoint_procurement_id_fkey
                 FOREIGN KEY (procurement_id)
                 REFERENCES procurement_order(id)
                 ON DELETE SET NULL;
