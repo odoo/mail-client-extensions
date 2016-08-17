@@ -1,0 +1,26 @@
+# -*- coding: utf-8 -*-
+from openerp.addons.base.maintenance.migrations import util
+
+def _db_openerp(cr, version):
+    util.remove_view(cr, 'openerp_website.openerp_website_change_pack')
+    util.remove_view(cr, view_id=7341)
+
+    cr.execute("""
+        UPDATE res_country_state SET name='Victoria' WHERE id=246;
+        UPDATE res_country_state SET name='Distrito Federal' WHERE id=144;
+        UPDATE res_country_state SET name='Tasmania', code='TAS' WHERE id=370;
+        UPDATE res_country_state SET name='New South Wales', code='NSW' WHERE id=375;
+        UPDATE res_country_state SET code='42' WHERE id=410;
+        UPDATE res_country_state SET code='31' WHERE id=381;
+        UPDATE res_country_state SET code='32' WHERE id=311;
+        UPDATE res_country_state SET name='Shandong', code='37' WHERE id IN (328, 494);
+        UPDATE res_country_state SET name='Guangdong', code='44' WHERE id IN (309, 320, 405);
+        UPDATE res_country_state SET name='Jawa Timur', code='JI' WHERE id IN (277, 279);
+
+        UPDATE res_country_state SET name='Hong Kong', code='HK' WHERE country_id = 92;
+    """)
+
+def migrate(cr, version):
+    util.dispatch_by_dbuuid(cr, version, {
+        '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,
+    })
