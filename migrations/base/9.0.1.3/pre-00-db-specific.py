@@ -178,6 +178,10 @@ def _icus(cr, version):
                                              FROM account_fiscal_position_account
                                          WHERE account_dest_id = a.id)
                        RETURNING id; """)
+    cr.execute(""" UPDATE res_partner
+                   SET title = NULL
+                   WHERE title = 1; """)
+
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
