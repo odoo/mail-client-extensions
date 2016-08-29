@@ -19,7 +19,7 @@ def migrate(cr, version):
         res_partner_category
     """)
     for table in tag_tables:
-        if util.table_exists(cr, table):
+        if util.column_exists(cr, table, 'color'):
             cr.execute("""
                 UPDATE {0}
                    SET color=CASE WHEN color = 0 THEN 10
