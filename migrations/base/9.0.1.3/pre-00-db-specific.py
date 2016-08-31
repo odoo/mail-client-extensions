@@ -182,6 +182,19 @@ def _icus(cr, version):
                    SET title = NULL
                    WHERE title = 1; """)
 
+def _metalpros(cr, version):
+    cr.execute(""" UPDATE account_account a
+                       SET type = 'other'
+                       WHERE a.type IN ('view', 'consolidation')
+                             AND EXISTS (SELECT 1
+                                             FROM account_fiscal_position_account
+                                             WHERE account_src_id = a.id
+                                         UNION
+                                         SELECT 1
+                                             FROM account_fiscal_position_account
+                                         WHERE account_dest_id = a.id)
+                       RETURNING id; """)
+
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
@@ -197,4 +210,5 @@ def migrate(cr, version):
         '2b0cac2f-79f1-4a1c-8263-ada77758b100': _duck_food,
         '62f0a964-2e5e-47bb-be99-0a7579b0b27f': _ephyla,
         '058fa140-7b35-4150-8b2b-06b310a2b7b9': _icus,
+        '8f4ad700-f69a-4ab3-b24a-4792c1f629f8': _metalpros,
     })
