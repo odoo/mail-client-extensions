@@ -197,6 +197,7 @@ def _metalpros(cr, version):
 
 def _moebius(cr, version):
     cr.execute(""" delete from ir_model_fields where model='sale.report' and name='date_confirm' """)
+    cr.execute(""" update ir_filters set context = replace(context, 'date_confirm', 'date') where id=42 """)
 
 
 def migrate(cr, version):
