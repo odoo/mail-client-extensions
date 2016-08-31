@@ -195,6 +195,9 @@ def _metalpros(cr, version):
                                          WHERE account_dest_id = a.id)
                        RETURNING id; """)
 
+def _moebius(cr, version):
+    cr.execute(""" delete from ir_model_fields where model='sale.report' and name='date_confirm' """)
+
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
@@ -211,4 +214,5 @@ def migrate(cr, version):
         '62f0a964-2e5e-47bb-be99-0a7579b0b27f': _ephyla,
         '058fa140-7b35-4150-8b2b-06b310a2b7b9': _icus,
         '8f4ad700-f69a-4ab3-b24a-4792c1f629f8': _metalpros,
+        '2c03b0fe-1bc2-42ed-be3e-d2c9ec056839': _moebius,
     })
