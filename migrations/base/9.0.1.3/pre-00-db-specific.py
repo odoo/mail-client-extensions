@@ -196,6 +196,9 @@ def _metalpros(cr, version):
                        RETURNING id; """)
     # these f... ir_values prevent the creation of new products, by example when you import xml data
     cr.execute(""" delete from ir_values where id in (425,426) """)
+    cr.execute("""delete from account_fiscal_position_tax_template""")
+    cr.execute("""delete from account_tax_template where chart_template_id=3""")
+    cr.execute("""delete from ir_ui_view where id=1684""")
 
 def _moebius(cr, version):
     cr.execute(""" delete from ir_model_fields where model='sale.report' and name='date_confirm' """)
