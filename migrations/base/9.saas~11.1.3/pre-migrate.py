@@ -11,14 +11,18 @@ _logger = logging.getLogger(NS + __name__)
 def migrate(cr, version):
     cr.execute("DROP TABLE ir_autovacuum")   # should always have been a abstract model
 
-    # adapt crons running server actions
-    # function should be @api.model
-    cr.execute("""
-        UPDATE ir_cron
-           SET function='_run_actions'
-         WHERE model='ir.actions.server'
-           AND function='run'
-    """)
+    # adapt crons methods to be `@api.model`
+    crons_to_adapt = [
+        ('ir.actions.server', 'run', '_run_actions'),
+        ('subscription.subscription', 'model_copy', '_cron_model_copy'),
+    ]
+    for model, oldf, newf in crons_to_adapt:
+        cr.execute("""
+            UPDATE ir_cron
+               SET function=%s
+             WHERE model=%s
+               AND function=%s
+        """, [newf, model, oldf])
 
     if os.environ.get('ODOO_MIG_S12_CRONS_VALID'):
         return
@@ -26,8 +30,9 @@ def migrate(cr, version):
     cr.execute("""
         SELECT id, model, function, args
           FROM ir_cron
-         WHERE model != 'ir.actions.server'
-    """)
+         WHERE ARRAY[model, function]::text[] NOT IN %s
+    """, [tuple([m, f] for m, _, f in crons_to_adapt)])
+
     matches = False
     for cid, model, func, args in cr.fetchall():
         args_eval = str2tuple(args)
