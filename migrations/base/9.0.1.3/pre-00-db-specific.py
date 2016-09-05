@@ -160,6 +160,16 @@ def _duck_food(cr, version):
     cr.execute(""" update ir_ui_view set arch=regexp_replace(arch, '<field name="loc_rack.*?</field>', '<group name="group_lots_and_weight" position="inside"><field name="x_pick_volgorde"/></group>', 's') where id=1051; """)
     cr.execute(""" delete from ir_ui_view where in (1247,1355); """)
     cr.execute(""" update ir_ui_view set arch='<data><field name="phone" position="before"><field name="issued_total" sum="Overdue Amount"/></field></data>' where id=1260; """)
+    cr.execute("""update ir_ui_view set active=true,mode='extension',model='sale.order',inherit_id=1632 where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'fiscal_position', 'fiscal_position_id') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'payment_term', 'payment_term_id') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'button name="cancel"', 'button name="action_cancel"') where id=843""")
+    cr.execute("""update ir_ui_view set arch=regexp_replace(arch, '<button name="copy_quotation.*?</button>', '', 's') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, '<field name="portal_payment_options" position="replace"/>','') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_fiscal_position_id(fiscal_position_id, order_line, context)', '') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_partner_id(partner_id, context)"', '') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_delivery_id(company_id, partner_id, partner_shipping_id, fiscal_position_id)"', '') where id=843""")
+
 
 def _ephyla(cr, version):
     cr.execute(""" UPDATE ir_ui_view
