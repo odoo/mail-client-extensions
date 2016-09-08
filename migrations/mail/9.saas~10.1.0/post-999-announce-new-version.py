@@ -27,7 +27,7 @@ def migrate(cr, version):
 
 """
 
-    util.announce(cr, '9.saas~10', message, format='md')
+    util.announce(cr, '9.saas~10', message, format='md', pluses_for_enterprise=False)
 
 if __name__ == '__main__':
     # odoo must be in PYTHONPATH

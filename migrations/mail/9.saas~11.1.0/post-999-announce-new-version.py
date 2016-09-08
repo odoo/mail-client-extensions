@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import re
 from openerp.addons.base.maintenance.migrations import util     # noqa
 
 def migrate(cr, version):
-    # NOTE message is in Markdown \o/
-    # NOTE `+` points are for enterprise only
     message = """
 
 - Discuss:
@@ -40,10 +37,6 @@ def migrate(cr, version):
     + Keyboard shortcuts detailed on the top right menu from the home page.
     - Many performance improvements.
 """
-
-    plus_re = r'^(\s*)\+ (.+)\n'
-    replacement = r'\1- \2\n' if util.has_enterprise() else ''
-    message = re.sub(plus_re, replacement, message, flags=re.M)
 
     util.announce(cr, '9.saas~11', message, format='md')
 
