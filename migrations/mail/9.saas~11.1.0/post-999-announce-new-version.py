@@ -34,7 +34,6 @@ def migrate(cr, version):
       the `warning` module, which required installing `sale`, `purchase`, `account` and `stock` modules.
 
 - Usability:
-    - New main menu: Products.
     - WMS: picking form improvement, changes in delivery slips.
     - Onboarding for Subscription app.
     + Type something in the home page and get a quick search bar to find menu you are looking for.
