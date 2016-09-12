@@ -20,6 +20,29 @@ def _db_openerp(cr, version):
         UPDATE res_country_state SET name='Hong Kong', code='HK' WHERE country_id = 92;
     """)
 
+    # add missing fk + cleaning what should have been nullified or deleted
+    for column in 'create_uid write_uid user_id'.split():
+        cr.execute("""
+            UPDATE openerp_enterprise_database_user du
+               SET {column} = NULL
+             WHERE {column} IS NOT NULL
+               AND NOT EXISTS(SELECT 1 FROM res_users WHERE id = du.{column})
+        """.format(column=column))
+        cr.execute("""
+            ALTER TABLE openerp_enterprise_database_user
+        ADD FOREIGN KEY ({column}) REFERENCES res_users ON DELETE set null
+        """.format(column=column))
+
+    cr.execute("""
+        DELETE FROM openerp_enterprise_database_user du
+              WHERE NOT EXISTS(SELECT 1 FROM openerp_enterprise_database WHERE id = du.database_id)
+    """)
+    cr.execute("""
+        ALTER TABLE openerp_enterprise_database_user
+    ADD FOREIGN KEY (database_id) REFERENCES openerp_enterprise_database ON DELETE cascade
+    """.format(column=column))
+
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,
