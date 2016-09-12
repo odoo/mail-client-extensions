@@ -58,6 +58,7 @@ If you are using these phonecalls as a call center, you may want to install the 
                     id
                FROM crm_phonecall
               WHERE opportunity_id IS NULL
+              ORDER BY id
           RETURNING id, message_bounce as call_id
       ),
       _1 AS (
