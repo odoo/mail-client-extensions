@@ -1,17 +1,5 @@
 # -*- coding: utf-8 -*-
-import re
 from openerp.addons.base.maintenance.migrations import util
-
-def expand_braces(s):
-    # expand braces (a la bash)
-    # only handle one expension of a 2 parts (because we don't need more)
-    r = re.compile(r'(.*){([^},]*?,[^},]*?)}(.*)')
-    m = r.search(s)
-    if not m:
-        raise ValueError('no braces to expand')
-    head, match, tail = m.groups()
-    a, b = match.split(',')
-    return [head + a + tail, head + b + tail]
 
 def migrate(cr, version):
     for model in 'medium campaign source mixin'.split():
@@ -43,4 +31,4 @@ def migrate(cr, version):
     """.strip().split())
 
     for m in xids:
-        util.rename_xmlid(cr, *expand_braces('utm.' + m))
+        util.rename_xmlid(cr, *util.expand_braces('utm.' + m))
