@@ -39,6 +39,12 @@ def migrate(cr, version):
     model_project = util.ref(cr, 'project.model_project_project')
 
     # create inactive private missing projects
+    project_cols = project_vals = ''
+    if util.column_exists(cr, 'project_project', 'state'):
+        # field deleted in saas~12
+        project_cols = ', state'
+        project_vals = ", 'open'"
+
     cr.execute("""
         WITH no_project AS (
             SELECT a.id, a.name
@@ -52,14 +58,14 @@ def migrate(cr, version):
             INSERT INTO mail_alias(alias_name, alias_contact, alias_defaults,
                                    alias_model_id, alias_parent_model_id, alias_parent_thread_id)
             SELECT 'project-' || regexp_replace(lower(name), '\W+', '-', 'g') || '-' || id,
-                   'followers', '{}', %s, %s, id
+                   'followers', '{{}}', %s, %s, id
               FROM no_project
          RETURNING id, alias_parent_thread_id
         ),
         _new_projects AS (
             INSERT INTO project_project(analytic_account_id, alias_id, alias_model,
-                                        privacy_visibility, label_tasks, state, active)
-            SELECT a.alias_parent_thread_id, a.id, 'project.task', 'followers', 'Tasks', 'open', false
+                                        privacy_visibility, label_tasks, active {0})
+            SELECT a.alias_parent_thread_id, a.id, 'project.task', 'followers', 'Tasks', false {1}
               FROM _new_aliases a
          RETURNING id
         ),
@@ -78,7 +84,7 @@ def migrate(cr, version):
                AND l.project_id IS NULL
         )
         SELECT id FROM _new_projects
-    """, [model_task, model_project])
+    """.format(project_cols, project_vals), [model_task, model_project])
 
     new_project_ids = map(itemgetter(0), cr.fetchall())
     # weird limitation of CTE: we can't update records created in the same CTE query
