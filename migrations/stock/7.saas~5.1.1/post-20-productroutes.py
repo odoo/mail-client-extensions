@@ -171,3 +171,4 @@ def migrate(cr, version):
     _logger.info("Linking location %s as parent of locations: %s",
                  customer_loc, ", ".join(map(str, locations)))
     location_obj.write(cr, SUPERUSER_ID, locations, {'location_id': customer_loc})
+    util.remove_module(cr, 'stock_location')
