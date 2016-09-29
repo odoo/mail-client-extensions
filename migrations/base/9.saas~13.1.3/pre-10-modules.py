@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -21,6 +22,17 @@ def migrate(cr, version):
         util.move_field_to_module(cr, 'account.financial.html.report', 'tax_report',
                                   'account_tax_exigible_enterprise', 'account_reports')
         util.remove_module(cr, 'account_tax_exigible_enterprise')
+
+        if os.environ.get('OE_SAAS_MIGRATION'):
+            # Theme changes
+            util.new_module_dep(cr, 'snippet_latest_posts', 'theme_common')
+            util.remove_module_deps(cr, 'snippet_latest_posts', ('website',))
+
+            for theme in 'avantgarde graphene'.split():
+                util.remove_module_deps(cr, 'theme_' + theme, ('snippet_latest_posts',))
+                util.new_module(cr, 'theme_' + theme + '_blog',
+                                deps=('theme_' + theme, 'website_blog', 'snippet_latest_posts'),
+                                auto_install=True)
 
     util.ENVIRON['tax_exigible_intalled'] = util.module_installed(cr, 'account_tax_exigible')
     # beside behavior has been moved to `account_tax_cash_basis` module, fields have been moved
