@@ -25,8 +25,7 @@ def _get_matching_columns(cr, model1, model2, ignored=()):
                                          WHEN f.model=%(model2)s THEN %(table2)s
                                          ELSE NULL END
                  )
-          WHERE f.store = true
-            AND f.model IN (%(model1)s, %(model2)s)
+          WHERE f.model IN (%(model1)s, %(model2)s)
             AND f.name NOT IN %(ignored)s
        GROUP BY f.name, f.ttype, f.relation, f.relation_field
          HAVING count(f.id) = 2
