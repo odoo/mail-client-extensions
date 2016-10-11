@@ -51,6 +51,9 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'hr_timesheet_sheet', ('hr_attendance',))
     util.new_module_dep(cr, 'hr_timesheet_attendance', 'hr_timesheet_sheet')
     util.remove_module_deps(cr, 'hr_timesheet_attendance', ('hr_timesheet',))
+    if util.module_installed(cr, 'hr_timesheet_sheet'):
+        # hr_timesheet_attendance was just a report. Now attendance logic is in this module.
+        util.force_install_module(cr, 'hr_timesheet_attendance')
 
     util.new_module_dep(cr, 'pad', 'base_setup')
 
