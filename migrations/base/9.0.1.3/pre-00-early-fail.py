@@ -19,7 +19,11 @@ def migrate(cr, version):
              AND v.active = true
     """.format(arch_col=arch_col))
     for vid, arch_xml in cr.fetchall():
-        arch = etree.fromstring(encode(arch_xml))
+        try:
+            arch = etree.fromstring(encode(arch_xml))
+        except etree.XMLSyntaxError:
+            msgs.append('Invalid XML arch for view %d' % vid)
+            continue
         for node in arch.xpath('//*[@position]'):
             # inheritance may not use a translated attribute as selector
             if node.tag == 'xpath':
