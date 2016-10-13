@@ -166,7 +166,7 @@ def _duck_food(cr, version):
     cr.execute("""update ir_ui_view set arch=replace(arch, 'button name="cancel"', 'button name="action_cancel"') where id=843""")
     cr.execute("""update ir_ui_view set arch=regexp_replace(arch, '<button name="copy_quotation.*?</button>', '', 's') where id=843""")
     cr.execute("""update ir_ui_view set arch=replace(arch, '<field name="portal_payment_options" position="replace"/>','') where id=843""")
-    cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_fiscal_position_id(fiscal_position_id, order_line, context)', '') where id=843""")
+    cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_fiscal_position_id(fiscal_position_id, order_line, context)"', '') where id=843""")
     cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_partner_id(partner_id, context)"', '') where id=843""")
     cr.execute("""update ir_ui_view set arch=replace(arch, 'on_change="onchange_delivery_id(company_id, partner_id, partner_shipping_id, fiscal_position_id)"', '') where id=843""")
 
