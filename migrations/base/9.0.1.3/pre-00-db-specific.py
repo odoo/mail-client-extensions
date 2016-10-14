@@ -109,7 +109,7 @@ def _electronics123(cr, version):
         span.attrib['t-field'] = 'pack_operation.product_id.loc_case'
 
     # and view `lah_product_form`
-    cr.execute("UPDATE ir_ui_view SET arch=%s WHERE id=976", ["""
+    cr.execute("UPDATE ir_ui_view SET arch_db=%s WHERE id=976", ["""
 <data>
 <group name="group_standard_price" position="inside">
   <field name="x_lah_amazon"/>
@@ -160,7 +160,7 @@ def _duck_food(cr, version):
     cr.execute(""" update ir_ui_view set arch=regexp_replace(arch, '<field name="loc_rack.*?</field>', '<group name="group_lots_and_weight" position="inside"><field name="x_pick_volgorde"/></group>', 's') where id=1051; """)
     cr.execute(""" delete from ir_ui_view where id in (1247,1355); """)
     cr.execute(""" update ir_ui_view set arch='<data><field name="phone" position="before"><field name="issued_total" sum="Overdue Amount"/></field></data>' where id=1260; """)
-    cr.execute("""update ir_ui_view set active=true,mode='extension',model='sale.order',inherit_id=1632 where id=843""")
+    cr.execute("""update ir_ui_view set active=false,mode='primary',model='sale.order',inherit_id=null where id=843""")
     cr.execute("""update ir_ui_view set arch=replace(arch, 'fiscal_position', 'fiscal_position_id') where id=843""")
     cr.execute("""update ir_ui_view set arch=replace(arch, 'payment_term', 'payment_term_id') where id=843""")
     cr.execute("""update ir_ui_view set arch=replace(arch, 'button name="cancel"', 'button name="action_cancel"') where id=843""")
