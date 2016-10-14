@@ -129,6 +129,7 @@ def _electronics123(cr, version):
 
     util.update_field_references(cr, 'seller_id', 'seller_ids',
                                  ('product.template', 'product.product'))
+    cr.execute('''update ir_ui_view set arch_db=replace(arch_db,'loc_case','x_product_case') where id=1343;''')
 
 def _apps(cr, version):
     cr.execute("DELETE FROM ir_translation WHERE lang IN ('bs_BS', 'ur_PK')")
