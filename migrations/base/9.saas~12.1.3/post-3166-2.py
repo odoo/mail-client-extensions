@@ -93,6 +93,9 @@ def migrate(cr, version):
                                                    replace_xmlid=False,
                                                    )
                     break
+    if todel:
+        util.env(cr)['res.country.state'].browse(todel).unlink()
+    todel = []
 
     # search duplicates
     cr.execute("""
