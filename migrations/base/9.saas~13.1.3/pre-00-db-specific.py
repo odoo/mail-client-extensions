@@ -14,6 +14,7 @@ def _db_openerp(cr, version):
             10001                           -- extra check_in from jan 2012
         )
     """)
+    util.remove_view(cr, 'openerp_website.openerp_editor_head')
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
