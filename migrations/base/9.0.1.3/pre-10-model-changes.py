@@ -87,3 +87,6 @@ def migrate(cr, version):
       CREATE UNIQUE INDEX ir_model_data_module_name_index ON ir_model_data (module, name);
       CREATE INDEX ir_model_data_model_res_id_index ON ir_model_data (model, res_id);
     """)
+
+    util.delete_model(cr, 'ir.default')
+    util.delete_model(cr, 'multi_company.default')
