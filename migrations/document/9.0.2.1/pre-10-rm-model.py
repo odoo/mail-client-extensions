@@ -13,6 +13,10 @@ def migrate(cr, version):
         directory.content
         directory.content.type
         storage
+        configuration
     """)
     for model in models:
         util.delete_model(cr, 'document.' + model)
+
+    util.delete_model(cr, 'report.document.user')
+    util.delete_model(cr, 'report.document.file')
