@@ -37,7 +37,10 @@ def migrate(cr, version):
     if res:
         draft_mos = mo_obj.browse([x[0] for x in res])
         draft_mos._generate_moves()
+        cr.execute("""UPDATE mrp_production SET state='confirmed' WHERE state='draft'""")
     # Confirmed, Ready -> confirmed
     cr.execute("""UPDATE mrp_production SET state='confirmed' WHERE state = 'ready'""")
-    #in_production -> progress
+    # in_production -> progress
     cr.execute("""UPDATE mrp_production SET state='progress' WHERE state = 'in_production'""")
+    mos_planned = mo_obj.search([('workorder_ids', '!=', []), ('state', 'not in', ('done', 'cancel'))])
+    mos_planned.write({'state': 'planned'})

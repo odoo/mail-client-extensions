@@ -3,12 +3,6 @@ from openerp.addons.base.maintenance.migrations import util
 from openerp.addons.base.maintenance.migrations.util import MigrationError
 
 def migrate(cr, version):
-    
-    cr.execute("""SELECT COUNT(*) FROM mrp_production WHERE state NOT IN ('done', 'cancel') LIMIT 1""")
-    res = cr.fetchone()
-    if res and res[0] > 0:
-        raise MigrationError('The migration does not support open production orders for the moment. There are %s' % res)
-    
     util.remove_view(cr, 'mrp.mrp_production_reorder_form_view')
     util.remove_view(cr, 'mrp.mrp_production_form_inherit_view')
     util.remove_view(cr, 'mrp.mrp_production_form_inherit_view2')
@@ -21,3 +15,19 @@ def migrate(cr, version):
     util.drop_workflow(cr, 'mrp.production')
 
     # Do not remove scheduled products table for the moment as it might be used to calculate unit_factor
+    
+    # Date_planned on mrp_operation has been renamed
+    util.move_field_to_module(cr, 'mrp.workorder', 'date_planned', 'mrp_operations', 'mrp')
+    util.rename_field(cr, 'mrp.workorder', 'date_planned', 'date_planned_start')
+    
+    # As the product_efficiency field disappears on the BoM / BoM line, we incorporate it in the product_qty of the bom_line immediately
+    cr.execute("""
+        UPDATE mrp_bom_line bl
+        SET product_qty = bl.product_qty / b.product_efficiency
+        FROM mrp_bom b
+        WHERE bl.bom_id = b.id AND b.product_efficiency != 1.0 AND b.product_efficiency > 0.0
+    """)
+    cr.execute("""
+        UPDATE mrp_bom_line SET product_qty = product_qty / product_efficiency
+        WHERE product_efficiency != 1.0 AND product_efficiency > 0.0
+    """)
