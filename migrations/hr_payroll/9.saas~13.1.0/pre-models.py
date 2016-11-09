@@ -2,4 +2,5 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.split_group(cr, 'base.group_light_multi_company', 'base.group_multi_company')
+    util.drop_workflow(cr, 'hr.payslip')
+    util.delete_model(cr, 'report.hr_payroll.report_payslip')

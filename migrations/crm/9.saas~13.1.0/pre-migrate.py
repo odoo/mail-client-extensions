@@ -2,4 +2,4 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.split_group(cr, 'base.group_light_multi_company', 'base.group_multi_company')
+    util.remove_field(cr, 'crm.lead.lost', 'lead_id')

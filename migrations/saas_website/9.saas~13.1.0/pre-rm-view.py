@@ -2,4 +2,4 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.split_group(cr, 'base.group_light_multi_company', 'base.group_multi_company')
+    util.remove_view(cr, 'saas_website.header_footer')

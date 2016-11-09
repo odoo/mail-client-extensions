@@ -2,4 +2,5 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.split_group(cr, 'base.group_light_multi_company', 'base.group_multi_company')
+    # cron now part of ir.autovacuum
+    util.remove_record(cr, 'survey.ir_cron_clean_empty_surveys')

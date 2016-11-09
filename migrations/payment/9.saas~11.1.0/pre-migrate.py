@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from lxml import etree
 from openerp.addons.base.maintenance.migrations import util
-from openerp.modules.module import get_module_resource
+from openerp.modules.module import get_resource_path
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 def migrate(cr, version):
     util.create_column(cr, 'payment_acquirer', 'module_id', 'int4')
@@ -12,17 +16,24 @@ def migrate(cr, version):
     case_query = ""
     case_params = []
 
-    with open(get_module_resource('payment', 'data', 'payment_acquirer.xml')) as fp:
-        tree = etree.parse(fp)
-        for node in tree.xpath('//field[@name="description"]'):
-            xid = node.getparent().get('id')
-            acq = xid[len('payment_acquirer_'):]
+    files = ['payment_acquirer_data.xml', 'payment_acquirer.xml']
+    for f in files:
+        file_path = get_resource_path('payment', 'data', f)  # return False if not found
+        if file_path:
+            with open(file_path) as fp:
+                tree = etree.parse(fp)
+                for node in tree.xpath('//field[@name="description"]'):
+                    xid = node.getparent().get('id')
+                    acq = xid[len('payment_acquirer_'):]
 
-            util.rename_xmlid(cr, '{0}.{1}'.format(acq, xid), 'payment.{0}'.format(xid))
+                    util.rename_xmlid(cr, '{0}.{1}'.format(acq, xid), 'payment.{0}'.format(xid))
 
-            desc = ''.join(map(etree.tostring, node.iterchildren()))
-            case_query += "WHEN provider=%s THEN %s "
-            case_params.extend([acq, desc])
+                    desc = ''.join(map(etree.tostring, node.iterchildren()))
+                    case_query += "WHEN provider=%s THEN %s "
+                    case_params.extend([acq, desc])
+
+    if not case_params: # file not found
+        _logger.warning('Cannot find file: %s' % ' or '.join(files))
 
     cr.execute("""
         UPDATE payment_acquirer
