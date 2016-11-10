@@ -18,6 +18,5 @@ def migrate(cr, version):
           FROM stages s, project_task_type_rel r
          WHERE p.id = r.project_id
            AND r.type_id = s.id
-        )
     """)
     cr.execute("UPDATE project_project SET rating_status = 'no' WHERE rating_status IS NULL")
