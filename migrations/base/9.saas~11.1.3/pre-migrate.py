@@ -24,8 +24,14 @@ def migrate(cr, version):
                AND function=%s
         """, [newf, model, oldf])
 
-    if os.environ.get('ODOO_MIG_S12_CRONS_VALID'):
+    if os.environ.get('ODOO_MIG_S11_CRONS_VALID'):
         return
+
+    # some cron does not need to be changed but take an int as first parameter without being an id
+    crons_to_adapt += [
+        ('base.gengo.translations', '', '_sync_request'),
+        ('base.gengo.translations', '', '_sync_response'),
+    ]
 
     cr.execute("""
         SELECT id, model, function, args
