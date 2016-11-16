@@ -7,7 +7,14 @@ def migrate(cr, version):
     util.remove_view(cr, 'account_full_reconcile.view_move_line_form')
     util.merge_module(cr, 'account_full_reconcile', 'account', tolerant=True)
 
-    util.remove_view(cr, 'project_timesheet.view_account_analytic_line_tree_inherit_account_id')
+    view_list = util.splitlines("""
+        view_account_analytic_line_tree_inherit_account_id
+        view_account_analytic_line_form_inherit_account_id
+        view_account_analytic_line_search_account_inherit
+        view_config_settings
+    """)
+    for view in view_list:
+        util.remove_view(cr, "project_timesheet." + view)
     util.merge_module(cr, 'project_timesheet', 'hr_timesheet')
 
     util.remove_module_deps(cr, 'hr_timesheet', ('base', 'hr_attendance'))
