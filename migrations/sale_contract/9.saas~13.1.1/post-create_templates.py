@@ -62,6 +62,13 @@ def migrate(cr, version):
               WHERE analytic_account_id IN (SELECT _sss_id FROM sale_subscription_template)
     """)
 
+    cr.execute("""
+        UPDATE sale_subscription s
+           SET template_id = t.id
+          FROM sale_subscription_template t
+         WHERE t._sss_id = s._tmpl_id
+    """)
+
     if util.module_installed(cr, 'website_contract'):
         # XXX ideally this should be in a script in `website_contract` module
         util.rename_model(cr, 'sale.subscription.line.option', 'sale.subscription.template.option')
@@ -79,12 +86,15 @@ def migrate(cr, version):
         """)
         util.remove_field(cr, 'sale.subscription.template.option', 'analytic_account_id')
 
-    cr.execute("""
-        UPDATE sale_subscription s
-           SET template_id = t.id
-          FROM sale_subscription_template t
-         WHERE t._sss_id = s._tmpl_id
-    """)
+        util.create_m2m(cr, 'sale_subscription_template_tag_rel',
+                        'sale_subscription_template', 'account_analytic_tag',
+                        'template_id', 'tag_id')
+        cr.execute("""
+            INSERT INTO sale_subscription_template_tag_rel(template_id, tag_id)
+                 SELECT s.template_id, r.tag_id
+                   FROM sale_subscription s
+                   JOIN account_analytic_account_tag_rel r ON (r.account_id = s.analytic_account_id)
+        """)
 
     # handle `website_contract` module
     for table in ['sale_order', 'sale_quote_template']:
