@@ -15,7 +15,7 @@ def migrate(cr, version):
                             )
          WHERE a.action = 'sign_in'
     """)
-    cr.execute("DELETE FROM hr_attendance WHERE action='sign_out'")
+    cr.execute("DELETE FROM hr_attendance WHERE action != 'sign_in'")
     cr.execute("""
         UPDATE hr_attendance
            SET worked_hours = date_part('hour', check_out - check_in) +
