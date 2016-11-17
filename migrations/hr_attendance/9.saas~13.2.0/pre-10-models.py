@@ -54,4 +54,11 @@ def migrate(cr, version):
     util.delete_model(cr, 'hr.action.reason')
 
     util.delete_model(cr, 'report.hr_attendance.report_attendanceerrors')
-    util.remove_view(cr, 'hr_attendance.report_attendanceerrors')
+    view_list = util.splitlines("""
+        report_attendanceerrors
+        view_attendance_who
+        view_attendance_form
+    """)
+    for view in view_list:
+        util.remove_view(cr, "hr_attendance." + view)
+    util.rename_xmlid(cr, 'hr_attendance.view_hr_attendance_filter', 'hr_attendance.hr_attendance_view_filter')
