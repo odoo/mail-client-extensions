@@ -59,6 +59,6 @@ def migrate(cr, version):
     """)
     for m in models:
         # not all models have all view types, but it does matter.
-        for v in 'form tree search kanban graph pivot':
+        for v in 'form tree search kanban graph pivot'.split():
             rename('fleet_{0}_{1}'.format(m, v), 'fleet_{0}_view_{1}'.format(m, v))
         rename('fleet_{0}_act'.format(m), 'fleet_{0}_action'.format(m))
