@@ -91,8 +91,9 @@ def migrate(cr, version):
                         'template_id', 'tag_id')
         cr.execute("""
             INSERT INTO sale_subscription_template_tag_rel(template_id, tag_id)
-                 SELECT s.template_id, r.tag_id
-                   FROM sale_subscription s
+                 SELECT t.id, r.tag_id
+                   FROM sale_subscription_template t
+                   JOIN sale_subscription s ON (s.id = t._sss_id)
                    JOIN account_analytic_account_tag_rel r ON (r.account_id = s.analytic_account_id)
         """)
 
