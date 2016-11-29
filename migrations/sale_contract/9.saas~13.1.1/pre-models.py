@@ -6,6 +6,8 @@ def migrate(cr, version):
 
     cr.execute("UPDATE sale_subscription SET user_id=manager_id WHERE user_id IS NULL")
     util.remove_field(cr, 'sale.subscription', 'manager_id')
+    util.update_field_references(cr, 'manager_id', 'user_id',
+                                 only_models=('sale.subscription', 'sale.subscription.report'))
 
     # pricelist is now required
     PL = util.env(cr)['product.pricelist']
