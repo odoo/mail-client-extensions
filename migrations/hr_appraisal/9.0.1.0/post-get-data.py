@@ -127,12 +127,11 @@ def migrate(cr, version):
               JOIN hr_employee e ON (a.employee_id = e.parent_id)
              WHERE collaborators_appraisal = true
         )
-        SELECT 42
+        SELECT _evid, id FROM appr
     """)
 
-    cr.execute("SELECT _evid, id FROM hr_appraisal")
     for e, a in cr.fetchall():
-        util.replace_record_references(cr, ('hr.evaluation.evaluation', e), ('hr.appraisal', a))
+        util.replace_record_references(cr, ('hr_evaluation.evaluation', e), ('hr.appraisal', a))
 
     # cleanup
     util.remove_column(cr, 'hr_appraisal', '_evid')
