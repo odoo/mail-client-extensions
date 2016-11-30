@@ -130,6 +130,10 @@ def migrate(cr, version):
         SELECT 42
     """)
 
+    cr.execute("SELECT _evid, id FROM hr_appraisal")
+    for e, a in cr.fetchall():
+        util.replace_record_references(cr, ('hr.evaluation.evaluation', e), ('hr.appraisal', a))
+
     # cleanup
     util.remove_column(cr, 'hr_appraisal', '_evid')
     util.delete_model(cr, 'hr_evaluation.plan')
