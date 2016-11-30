@@ -194,7 +194,7 @@ def migrate(cr, version):
         util.new_module(cr, 'currency_rate_live', deps=('accounts',), auto_install=True)
 
         util.new_module(cr, 'hr_holidays_gantt', deps=('hr_holidays', 'web_gantt'), auto_install=True)
-
+        util.new_module(cr, 'mass_mailing_themes', deps=('mass_mailing',), auto_install=True)
         util.new_module(cr, 'website_enterprise', deps=('website',), auto_install=True)
 
     # keep some tables used by other migration scripts
