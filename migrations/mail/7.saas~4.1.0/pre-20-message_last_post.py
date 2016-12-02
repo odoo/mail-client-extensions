@@ -16,9 +16,14 @@ def migrate(cr, version):
             continue
 
         util.create_column(cr, table, 'message_last_post', 'timestamp without time zone')
-        cr.execute("""UPDATE "{table}" t
-                         SET message_last_post = (SELECT MAX(date)
-                                                    FROM mail_message
-                                                   WHERE model = %s
-                                                     AND res_id = t.id)
-                   """.format(table=table), (model,))
+        cr.execute("""
+            WITH sel AS (
+                SELECT res_id as id, MAX(date) AS last_post
+                  FROM mail_message
+                 WHERE model = %s
+                 GROUP BY res_id)
+            UPDATE {table} t
+                SET message_last_post = sel.last_post
+                FROM sel
+                WHERE t.id = sel.id
+        """.format(table=table), (model,))
