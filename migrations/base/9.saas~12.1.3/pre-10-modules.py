@@ -21,7 +21,7 @@ def migrate(cr, version):
     util.rename_xmlid(cr,
                       'account_tax_adjustments.menu_action_account_form',
                       'account.menu_action_tax_adjustment')     # will avoid duplicated xmild
-    util.merge_module(cr, 'account_tax_adjustments', 'account')
+    util.merge_module(cr, 'account_tax_adjustments', 'account', tolerant=True)
 
     util.new_module(cr, 'contacts', deps=('base',))
     util.force_install_module(cr, 'contacts')
@@ -44,7 +44,7 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'mrp', ('procurement', 'stock_account', 'report'))
     util.new_module_dep(cr, 'mrp', 'stock')
     util.new_module(cr, 'purchase_mrp', deps=('purchase', 'mrp'), auto_install=True)
-    util.merge_module(cr, 'mrp_operations', 'mrp')       # FIXME confirm with jco
+    util.merge_module(cr, 'mrp_operations', 'mrp', tolerant=True)       # FIXME confirm with jco
     # <<<
 
     util.remove_module_deps(cr, 'product_extended', ('product', 'purchase', 'sale'))    # Wut?
