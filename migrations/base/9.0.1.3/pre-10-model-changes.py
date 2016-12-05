@@ -32,6 +32,17 @@ def migrate(cr, version):
 
     util.move_field_to_module(cr, 'res.group', 'share', 'share', 'base')
     util.move_field_to_module(cr, 'res.users', 'share', 'share', 'base')
+    if not util.column_exists(cr, 'res_users', 'share'):
+        # module `share` wasn't installed, compute column value in sql to speedup migration.
+        # (Also, this field is required for migrating directly to v10 (saas-13 actually))
+        util.create_column(cr, 'res_users', 'share', 'boolean')
+        gid = util.ref(cr, 'base.group_user')
+        cr.execute("""UPDATE res_users u
+                         SET share = NOT EXISTS(SELECT 1
+                                                  FROM res_groups_users_rel
+                                                 WHERE gid = %s
+                                                   AND uid = u.id)
+                    """, (gid,))
 
     util.create_column(cr, 'ir_ui_menu', 'action', 'varchar')
 
