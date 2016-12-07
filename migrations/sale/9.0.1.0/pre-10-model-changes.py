@@ -81,6 +81,7 @@ def _update_lines(cr):
                                 WHERE order_line_id = ol.id)
                 AND ol.product_id IS NOT NULL
                 AND ol.product_id = il.product_id
+                AND ol.invoiced = 't'
                 AND ol_uom.category_id = il_uom.category_id
     """)
 
