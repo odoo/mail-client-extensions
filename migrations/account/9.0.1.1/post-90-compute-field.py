@@ -78,7 +78,15 @@ def migrate(cr, version):
             cr.execute("""INSERT INTO account_move_line (SELECT * FROM account_move_line_reconcile_temp where id = %s)""",
             [aml_copy_id])
             aml_copy = env['account.move.line'].browse(aml_copy_id)
-            (aml+aml_copy).reconcile()
+            cr.execute("""
+                INSERT INTO account_partial_reconcile (
+                    debit_move_id, credit_move_id, amount, amount_currency, company_id, currency_id)
+                VALUES (
+                    %s, %s, %s, %s, %s, %s)""",
+                (aml.id, aml_copy.id, 0, aml.amount_residual_currency, aml.company_id.id, aml.currency_id.id))
+            cr.execute("""
+                UPDATE account_move_line set amount_residual = 0, amount_residual_currency = 0, reconciled=true WHERE id in %s""",
+                [tuple([aml.id, aml_copy.id])])
     for el in info_period:
         cr.execute("""UPDATE res_company 
                         SET period_lock_date = %s, fiscalyear_lock_date = %s 
