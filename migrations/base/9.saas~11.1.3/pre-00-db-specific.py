@@ -39,6 +39,14 @@ def _db_tvpaint(cr, version):
 def _db_houtmerk(cr, version):
     cr.execute("UPDATE ir_ui_view SET inherit_id=633 WHERE id=2491")
 
+def _db_neptis(cr, version):
+    with util.edit_view(cr, view_id=916) as arch:
+        xp = arch.find('.//xpath')
+        xp.attrib['expr'] = "//field[@name='integration_level']"
+
+def _db_lmponline(cr, version):
+    cr.execute("UPDATE ir_ui_view SET priority=42 WHERE id=1014")
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -46,4 +54,6 @@ def migrate(cr, version):
         '3dc91671-94e5-4018-9f14-6251c822e93b': _db_watermark_collection,
         '454555a6-d931-47a9-bc25-bbc11dab3a67': _db_tvpaint,
         'ce2bbc1f-5d81-4140-909e-1204e9f743b7': _db_houtmerk,
+        'f16a6f02-97c9-4851-8c58-80662919c781': _db_neptis,
+        '3c489dc7-2ddc-44ef-b43b-eb5141474697': _db_lmponline,
     })
