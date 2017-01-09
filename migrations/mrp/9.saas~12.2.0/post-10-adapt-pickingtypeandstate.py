@@ -42,5 +42,5 @@ def migrate(cr, version):
     cr.execute("""UPDATE mrp_production SET state='confirmed' WHERE state = 'ready'""")
     # in_production -> progress
     cr.execute("""UPDATE mrp_production SET state='progress' WHERE state = 'in_production'""")
-    mos_planned = mo_obj.search([('workorder_ids', '!=', []), ('state', 'not in', ('done', 'cancel'))])
-    mos_planned.write({'state': 'planned'})
+    cr.execute("""UPDATE mrp_production SET state='planned' WHERE state NOT IN ('done', 'cancel') AND
+                      EXISTS (SELECT id FROM mrp_workorder WHERE production_id = mrp_production.id) """)
