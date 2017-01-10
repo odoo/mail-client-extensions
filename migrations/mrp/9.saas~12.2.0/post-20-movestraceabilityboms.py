@@ -84,6 +84,8 @@ def migrate(cr, version):
         product_categories = env['product.category'].search([('parent_id', '=', False)])
         product_categories.write({'route_ids': [(4, route.id)]})
     picking_type_int = env['stock.picking.type'].search([('code', '=', 'internal')], limit=1)
+    if not picking_type_int:
+        picking_type_int = env['stock.picking.type'].with_context(active_test=False).search([('code', '=', 'internal')], limit=1)
     for source_location_id, location_id in res:
         # Customer location
         prod_loc = env.ref('stock.location_production')
