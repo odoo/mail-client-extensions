@@ -2,4 +2,5 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.remove_view(cr, 'theme_loftspace.font_size')
+    for t in 'anelusia kea loftspace monglia'.split():
+        util.remove_view(cr, 'theme_%s.font_size' % t)
