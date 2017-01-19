@@ -25,3 +25,6 @@ def migrate(cr, version):
         # only the presence of the xid is check, not it noupdate value.
         # rename xmlid to force creation of new one (references will be replaced in post-script)
         util.rename_xmlid(cr, xid, xid + '_old')
+
+    # update other views
+    util.force_noupdate(cr, 'account.report_invoice_document', False)
