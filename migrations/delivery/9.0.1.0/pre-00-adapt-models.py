@@ -164,12 +164,7 @@ def migrate(cr, version):
                     FROM delivery_grid g
                    WHERE g.id = r.grid_id
                """)
-    cr.execute("""
-        UPDATE delivery_price_rule
-           SET list_base_price = list_price,
-               list_price = 0
-         WHERE price_type = 'fixed'
-    """)
+
     # now that we reset list_price, implicit order is now lost.
     # Resequence rules to keep a valid order.
     cr.execute("""
@@ -183,6 +178,13 @@ def migrate(cr, version):
            SET sequence = upd.seq
           FROM upd
          WHERE r.id = upd.id
+    """)
+
+    cr.execute("""
+        UPDATE delivery_price_rule
+           SET list_base_price = list_price,
+               list_price = 0
+         WHERE price_type = 'fixed'
     """)
 
     util.delete_model(cr, 'delivery.grid')
