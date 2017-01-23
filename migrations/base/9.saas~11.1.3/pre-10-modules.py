@@ -55,3 +55,18 @@ def migrate(cr, version):
 
     util.ENVIRON['warning_installed'] = util.module_installed(cr, 'warning')
     util.remove_module(cr, 'warning')
+
+    # fix missing xmlids for some ir.module.module
+    # a module with no xml id base.module_machintruc will likely crash later in the migration process
+    cr.execute("""INSERT INTO ir_model_data (noupdate,module,model,res_id,name)
+                  (SELECT TRUE,
+                          'base',
+                          'ir.module.module',
+                          m.id,
+                          'module_' || m.name
+                   FROM ir_module_module m
+                   LEFT OUTER JOIN
+                     (SELECT *
+                      FROM ir_model_data
+                      WHERE model='ir.module.module') AS x ON m.id = x.res_id
+                   WHERE x.module IS NULL);""")
