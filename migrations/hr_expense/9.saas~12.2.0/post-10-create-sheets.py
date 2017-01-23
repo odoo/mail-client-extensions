@@ -14,6 +14,12 @@ def migrate(cr, version):
          WHERE m.id = e.account_move_id
            AND accounting_date IS NULL
     """)
+    cr.execute("""
+        UPDATE account_move a
+           SET ref = e.name
+          FROM hr_expense e
+         WHERE a.id = e.account_move_id
+    """)
 
     util.create_column(cr, 'hr_expense_sheet', '_tmp', 'int4')
     cr.execute("""
