@@ -116,7 +116,9 @@ def migrate(cr, version):
         else:
             msg_unrecs = (
                 "\nNo invoices were set on unreconciliable accounts. You need "
-                "to search in another direction.")
+                "to search in another direction."
+                "\neg: - no account move line for this invoice"
+                "\n    - invoice on an opening/closing period that has been removed")
         msg = (
             "{count_inv} invoices have not been correctly computed. please "
             "check them as it probably means a huge user mistake that needs "
