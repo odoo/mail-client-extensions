@@ -112,7 +112,7 @@ def migrate(cr, version):
             cs = states[i]
             j = len(states) - 1
             while j > i:
-                if distance(cs, states[j]) > MIN_DISTANCE_LEVEL:
+                if distance(cs, states[j]) > MIN_DISTANCE_LEVEL or (states[j].lower() == code.lower()):
                     todel.append(ids[j])
                     util.replace_record_references(cr,
                                                    ('res.country.state', ids[j]),
