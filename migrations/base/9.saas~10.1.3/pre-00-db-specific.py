@@ -13,15 +13,8 @@ def _db_natural_fresh(cr, version):
         util.remove_view(cr, view_id=vid)
 
 def _boldom(cr, version):
-    util.rename_model(cr, 'crm.claim.stage', 'helpdesk.stage')
-    util.rename_model(cr, 'crm.claim', 'helpdesk.ticket')
-    util.rename_model(cr, 'crm.claim.category', 'helpdesk.tag')
     cr.execute('''UPDATE ir_ui_view SET inherit_id=NULL,mode='primary',model='helpdesk.ticket',name='[MIG] CRM Claims form' WHERE id=604;''')
-    # hack to make the script pass
-    cr.execute('''create table crm_claim (id serial);''')
-
     cr.execute('''delete from ir_config_parameter where key='mail.bounce.alias';''')
-
     cr.execute("DELETE FROM ir_server_object_lines WHERE id=403")
     cr.execute("UPDATE ir_ui_view SET arch_db=%s WHERE id=837",
                ["""<xpath expr="//field[@name='fax']/.."><group/></xpath>"""])
