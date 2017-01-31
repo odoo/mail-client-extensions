@@ -16,7 +16,11 @@ def _db_openerp(cr, version):
     """)
     util.remove_view(cr, 'openerp_website.openerp_editor_head')
 
+def _boldom(cr, version):
+    util.force_install_module(cr, 'helpdesk')
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,
+        '39b15f26-b737-4420-94bb-156191526fbf': _boldom,
     })
