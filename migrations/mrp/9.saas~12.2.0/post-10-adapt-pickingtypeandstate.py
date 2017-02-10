@@ -44,3 +44,4 @@ def migrate(cr, version):
     cr.execute("""UPDATE mrp_production SET state='progress' WHERE state = 'in_production'""")
     cr.execute("""UPDATE mrp_production SET state='planned' WHERE state NOT IN ('done', 'cancel') AND
                       EXISTS (SELECT id FROM mrp_workorder WHERE production_id = mrp_production.id) """)
+    mo_obj.invalidate_cache(['state'])
