@@ -15,6 +15,8 @@ def _db_openerp(cr, version):
               WHERE partner_id = (SELECT partner_id FROM res_users WHERE id = 1)
     """)
 
+    util.force_install_module(cr, 'fleet')
+    util.force_install_module(cr, 'hr_appraisal')
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
