@@ -36,6 +36,3 @@ def migrate(cr, version):
 
     util.remove_field(cr, 'account.online.journal', 'account_id')
     util.remove_field(cr, 'account.online.journal', 'site_account_id')
-
-    online_sync = util.import_script('account_online_sync/9.saas~13.2.0/pre-10-models.py')
-    online_sync.cleanup(cr)
