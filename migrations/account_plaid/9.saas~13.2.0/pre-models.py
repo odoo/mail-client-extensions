@@ -9,18 +9,22 @@ def migrate(cr, version):
               FROM online_institution i
              WHERE i.id = j.institution_id
                AND lower(i.type) = 'plaid'
-         RETURNING j.id, j.institution_id, j.token
+         RETURNING j.id, j.institution_id, j.token, j.last_sync
         )
         INSERT INTO account_online_provider(
-                name, provider_type, provider_account_identifier, provider_identifier, company_id
+            name, provider_type, provider_account_identifier,
+            provider_identifier, last_refresh, company_id
         )
         SELECT i.name, 'plaid', p.token, i.online_id,
+               COALESCE(p.last_sync, now() at time zone 'UTC'),
                (SELECT company_id
                   FROM account_journal
                  WHERE account_online_journal_id = ANY(p.journal_ids)
                  LIMIT 1)
           FROM (SELECT token,
-                       array_agg(id) as journal_ids, array_agg(institution_id) as inst_ids
+                       array_agg(id) as journal_ids,
+                       array_agg(institution_id) as inst_ids,
+                       max(last_sync) as last_sync
                   FROM plaid
               GROUP BY token
                 ) p
