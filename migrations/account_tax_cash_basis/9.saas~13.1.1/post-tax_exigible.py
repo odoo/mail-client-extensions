@@ -39,7 +39,7 @@ def migrate(cr, version):
                 move_to_fix = Move.search([('tax_cash_basis_rec_id', '=', partial_rec.id)])[0]
                 amount = (l.debit - l.credit) * matched_percentage
 
-                MoveLine.create({
+                MoveLine.with_context(apply_taxes=False).create({
                     'name': '/',
                     'debit': amount > 0 and amount or 0.0,
                     'credit': amount < 0 and -amount or 0.0,
@@ -48,7 +48,7 @@ def migrate(cr, version):
                     'tax_ids': l.tax_ids and [(6, 0, l.tax_ids.ids)] or [],
                     'tax_exigible': True,
                     'move_id': move_to_fix.id,
-                }, apply_taxes=False)
+                })
 
                 MoveLine.create({
                     'name': '/',
