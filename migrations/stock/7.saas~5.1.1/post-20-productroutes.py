@@ -20,17 +20,17 @@ def migrate(cr, version):
     """, (mto_route,))
 
 
-    if util.column_exists(cr, 'procurement_rule', '_product_id'): #When stock_location was installed
+    if util.column_exists(cr, 'procurement_rule', 'product_id'): #When stock_location was installed
         # Let's create routes per product if there are pull/push related to this product
         # Might work more efficiently if we create an in between column on the route
 
 
         # Find procument rules with same products
         cr.execute("""
-        SELECT _product_id, id, location_id, location_src_id, invoice_state, procure_method, action, company_id,
-        partner_address_id, propagate, _picking_type FROM procurement_rule WHERE _product_id is not null
+        SELECT product_id, id, location_id, location_src_id, invoice_state, procure_method, action, company_id,
+        partner_address_id, propagate, picking_type FROM procurement_rule WHERE product_id is not null
         ORDER BY location_id, location_src_id, invoice_state, procure_method, action, company_id, partner_address_id,
-        propagate, _picking_type
+        propagate, picking_type
         """)
         res = cr.fetchall()
         previous_line = []
@@ -73,7 +73,7 @@ def migrate(cr, version):
             product_obj.write(cr, SUPERUSER_ID, templates, {'route_ids': [(4, route_id)]})
 
         cr.execute("""
-        DELETE FROM procurement_rule WHERE _product_id IS NOT NULL
+        DELETE FROM procurement_rule WHERE product_id IS NOT NULL
         """)
 
         rules = pull_rule.search(cr, SUPERUSER_ID, [('picking_type_id', '=', False)])
@@ -104,10 +104,10 @@ def migrate(cr, version):
 
         # Find push rules with same products
         cr.execute("""
-        SELECT _product_id, id, location_dest_id, location_from_id, invoice_state, company_id,
-        propagate, delay, _picking_type FROM stock_location_path WHERE _product_id is not null
+        SELECT product_id, id, location_dest_id, location_from_id, invoice_state, company_id,
+        propagate, delay, picking_type FROM stock_location_path WHERE product_id is not null
         ORDER BY location_dest_id, location_from_id, invoice_state, company_id,
-        propagate, delay, _picking_type
+        propagate, delay, picking_type
         """)
         res = cr.fetchall()
         previous_line = []
@@ -140,7 +140,7 @@ def migrate(cr, version):
             product_obj.write(cr, SUPERUSER_ID, templates, {'route_ids': [(4, route_id)]})
 
         cr.execute("""
-        DELETE FROM stock_location_path WHERE _product_id IS NOT NULL
+        DELETE FROM stock_location_path WHERE product_id IS NOT NULL
         """)
 
         rules = push_rule.search(cr, SUPERUSER_ID, [('picking_type_id', '=', False)])
@@ -172,3 +172,9 @@ def migrate(cr, version):
                  customer_loc, ", ".join(map(str, locations)))
     location_obj.write(cr, SUPERUSER_ID, locations, {'location_id': customer_loc})
     util.remove_module(cr, 'stock_location')
+
+    # cleanup old fields
+    util.remove_field(cr, 'stock.location.path', 'picking_type')
+    util.remove_field(cr, 'stock.location.path', 'product_id')
+    util.remove_field(cr, 'procurement.rule', 'picking_type')
+    util.remove_field(cr, 'procurement.rule', 'product_id')

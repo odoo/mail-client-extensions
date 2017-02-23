@@ -65,15 +65,13 @@ def migrate(cr, version):
     SET state = 'running'
     WHERE po.state = 'waiting'
     """)
-    
+
     # Migration of stock_location
     if util.table_exists(cr, 'product_pulled_flow'):
-        util.rename_model(cr, 'product.pulled.flow', 'procurement.rule', rename_table = True)
-        util.rename_field(cr, 'procurement.rule', 'picking_type', '_picking_type')
+        util.rename_model(cr, 'product.pulled.flow', 'procurement.rule', rename_table=True)
         util.rename_field(cr, 'procurement.rule', 'cancel_cascade', 'propagate')
         util.rename_field(cr, 'procurement.rule', 'type_proc', 'action')
-        util.rename_field(cr, 'procurement.rule', 'product_id', '_product_id')
-    
+
     util.create_column(cr, 'product_template', 'auto_create_task', 'boolean')
     cr.execute("""
     UPDATE product_template SET auto_create_task = 't'

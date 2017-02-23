@@ -21,6 +21,4 @@ def migrate(cr, version):
                 stock_location.chained_auto_packing != 'manual') OR wh_output_stock_loc_id = lot_stock_id""")
 
     # Migration of stock_location module
-    util.rename_field(cr, 'stock.location.path', 'picking_type', '_picking_type')
-    util.rename_field(cr, 'stock.location.path', 'product_id', '_product_id')
     util.rename_field(cr, 'stock.move', 'cancel_cascade', 'propagate')
