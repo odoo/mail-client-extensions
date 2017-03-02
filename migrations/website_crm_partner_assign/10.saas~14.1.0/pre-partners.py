@@ -15,6 +15,7 @@ def migrate(cr, version):
           FROM implementors i
          WHERE i.id = p.id
     """)
+    cr.execute('UPDATE res_partner SET implemented_count=0 WHERE implemented_count IS NULL')
 
     util.create_column(cr, 'res_partner', 'grade_sequence', 'int4')
     cr.execute("""
