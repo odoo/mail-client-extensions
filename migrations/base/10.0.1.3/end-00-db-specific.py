@@ -18,7 +18,27 @@ def _db_origenip(cr, version):
     cr.execute("UPDATE ir_ui_view SET arch_db=%s, inherit_id=%s WHERE id=2389",
                [arch, util.ref(cr, 'website_portal.portal_layout')])
 
+def _db_plantadvancesa(cr, version):
+    util.remove_view(cr, '__custo__.hr_expense_qweb_plant')
+    cr.execute("UPDATE hr_expense SET reference = x_ref")
+    cr.execute("""
+        UPDATE hr_expense_sheet s
+           SET responsible_id = e.x_user_valid_id
+          FROM hr_expense e
+         WHERE e.sheet_id = s.id
+    """)
+    util.remove_field(cr, 'hr.expense', 'x_ref')
+    util.remove_field(cr, 'hr.expense', 'x_user_valid_id')
+
+    arch = dedent("""
+        <field name="tax_ids" position="before">
+          <field name="x_partner_ids" widget="many2many_tags"/>
+        </field>
+    """)
+    cr.execute("UPDATE ir_ui_view SET arch_db=%s WHERE id=2356", [arch])
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '1fc2da31-468a-4812-a8b9-feb9229a9a8d': _db_origenip,
+        '4a0cd30d-ac94-4769-9e1e-21d8279c7870': _db_plantadvancesa,
     })
