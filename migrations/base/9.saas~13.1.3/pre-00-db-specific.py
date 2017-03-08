@@ -22,7 +22,7 @@ def _boldom(cr, version):
 def _ngpinc(cr, version):
     cr.execute("""
         UPDATE ir_ui_view
-           SET arch = '<?xml version="1.0"?>
+           SET arch_db = '<?xml version="1.0"?>
 <data>
   <xpath expr="//group/group" position="inside">
     <field name="x_notes"/>
@@ -31,6 +31,12 @@ def _ngpinc(cr, version):
          WHERE id=903
     """)
     cr.execute("UPDATE ir_ui_view SET mode='primary' WHERE id=403")
+    cr.execute("""
+        UPDATE ir_model_fields
+           SET depends = 'product_id,procurement_group_id',
+               compute = replace(compute, 'move_prod_id.', 'procurement_')
+         WHERE id=5794
+    """)
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {

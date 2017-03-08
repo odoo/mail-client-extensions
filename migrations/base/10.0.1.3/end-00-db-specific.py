@@ -36,6 +36,15 @@ def _db_plantadvancesa(cr, version):
         </field>
     """)
     cr.execute("UPDATE ir_ui_view SET arch_db=%s WHERE id=2356", [arch])
+    util.env(cr)['ir.ui.view'].create({
+        'name': 'hr.expense.sheet.custo.mig',
+        'inherit_id': util.ref(cr, 'hr.expense.sheet.form'),
+        'arch': """
+            <field name='responsible_id' position='attributes'>
+                <attribute name='invisible'>0</attribute>
+            </field>
+        """
+    })
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
