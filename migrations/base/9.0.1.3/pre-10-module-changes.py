@@ -201,12 +201,14 @@ def migrate(cr, version):
     # note: `remove_module` will call `delete_model` of found ir.model xmlids
     if util.modules_installed(cr, 'sale_contract'):
         cr.execute("""
-            DELETE FROM ir_model_data
-                  WHERE module='hr_timesheet_invoice'
-                    AND model='ir.model'
-                    AND res_id=(SELECT id
-                                  FROM ir_model
-                                 WHERE model='hr_timesheet_invoice.factor')
+            DELETE
+            FROM ir_model_data
+            WHERE module='hr_timesheet_invoice'
+              AND (model='ir.model'
+                   AND res_id=(SELECT id
+                               FROM ir_model
+                               WHERE model = 'hr_timesheet_invoice.factor'))
+              OR (model='hr_timesheet_invoice.factor')
         """)
 
     # some cleanup
