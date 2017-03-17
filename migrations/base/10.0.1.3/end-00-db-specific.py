@@ -38,13 +38,18 @@ def _db_plantadvancesa(cr, version):
     cr.execute("UPDATE ir_ui_view SET arch_db=%s WHERE id=2356", [arch])
     util.env(cr)['ir.ui.view'].create({
         'name': 'hr.expense.sheet.custo.mig',
-        'inherit_id': util.ref(cr, 'hr.expense.sheet.form'),
+        'model': 'hr.expense.sheet',
+        'mode': 'extension',
+        'inherit_id': util.ref(cr, 'hr_expense.view_hr_expense_sheet_form'),
         'arch': """
             <field name='responsible_id' position='attributes'>
                 <attribute name='invisible'>0</attribute>
             </field>
         """
     })
+    with util.edit_view(cr, view_id=1823) as arch:
+        node = arch.xpath('//xpath[last()]')[0]
+        node.attrib['expr'] = "//button[@name='action_invoice_open']"
 
 def _db_live(cr, version):      # aka bodybuildpro
     util.remove_view(cr, view_id=1807)
