@@ -11,12 +11,20 @@ def migrate(cr, version):
     if ip == 'cost':
         IrV.set_default('product.template', 'invoice_policy', 'delivery')
 
+    # NOTE: sql-fix for wrongly migrated databases:
+    #  update product_template set expense_policy = 'no' where coalesce(can_be_expensed, false) = false and expense_policy != 'no';
+
+    ep = "'no'"
+    if util.column_exists(cr, 'product_template', 'can_be_expensed'):
+        # FIXME handle databases < 9.0 (field renamed in 9.0)
+        ep = "CASE WHEN can_be_expensed = true THEN 'cost' ELSE 'no' END"
+
     cr.execute("""
         UPDATE product_template
-           SET expense_policy = 'cost',
+           SET expense_policy = {0},
                invoice_policy = 'delivery'
          WHERE invoice_policy = 'cost'
-    """)
+    """.format(ep))
     cr.execute("UPDATE product_template SET expense_policy = 'no' WHERE expense_policy IS NULL")
 
     # sale order line
