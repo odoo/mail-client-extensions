@@ -47,6 +47,7 @@ def migrate(cr, version):
            SET "comment" = c.sale_note
           FROM res_company c
          WHERE c.id = i.company_id
+           AND i.comment is null
            AND i.type = 'out_invoice'
     """)
     cr.execute("UPDATE account_invoice SET partner_shipping_id = partner_id")
