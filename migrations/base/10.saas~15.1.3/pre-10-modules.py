@@ -8,6 +8,12 @@ def migrate(cr, version):
 
     util.new_module(cr, 'base_sparse_field', ('base',), auto_install=has_sparse_fields)
 
+    if has_sparse_fields:
+        util.move_field_to_module(cr, 'ir.model.fields', 'serialization_field_id',
+                                  'base', 'base_sparse_field')
+    else:
+        util.remove_field(cr, 'ir.model.fields', 'serialization_field_id')
+
     util.remove_module_deps(cr, 'hr_holidays', ('product',))
     util.remove_module_deps(cr, 'hr_recruitment', ('decimal_precision', 'web_kanban_gauge'))
 
