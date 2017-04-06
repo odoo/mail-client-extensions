@@ -62,9 +62,6 @@ def migrate(cr, version):
         util.remove_module_deps(cr, 'project_forecast_sale', ('sale_timesheet',))
         util.new_module_dep(cr, 'project_forecast_sale', ('sale',))
 
-        util.remove_module_deps(cr, 'project_timesheet_synchro', ('hr_timesheet_sheet',))
-        util.new_module_dep(cr, 'project_timesheet_synchro', 'hr_timesheet')
-
         # removed modules
         util.remove_module(cr, 'delivery_temando')
         util.remove_module(cr, 'website_portal_followup')
