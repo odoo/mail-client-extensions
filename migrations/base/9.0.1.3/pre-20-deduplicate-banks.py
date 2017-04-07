@@ -8,9 +8,10 @@ def migrate(cr, version):
                """)
 
     todel = []
+    # XXX what if duplicated are not linked to the same partner?
     cr.execute("""SELECT array_agg(id ORDER BY coalesce(write_date, create_date) DESC)
                     FROM res_partner_bank
-                GROUP BY acc_number
+                GROUP BY sanitized_acc_number
                   HAVING count(id) > 1
                 """)
     for ids, in cr.fetchall():
