@@ -54,9 +54,15 @@ def _db_plantadvancesa(cr, version):
 def _db_live(cr, version):      # aka bodybuildpro
     util.remove_view(cr, view_id=1807)
 
+def _db_scratchmusicgroup(cr, version):
+    with util.edit_view(cr, view_id=1137) as arch:
+        arch.attrib['name'] = 'action_invoice_open'
+
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '1fc2da31-468a-4812-a8b9-feb9229a9a8d': _db_origenip,
         '4a0cd30d-ac94-4769-9e1e-21d8279c7870': _db_plantadvancesa,
         'e4fc0190-6b16-4547-a427-e175b11ecbd3': _db_live,
+        '7f28f9fe-bd35-4df2-8dc9-906577375e43': _db_scratchmusicgroup,
     })
