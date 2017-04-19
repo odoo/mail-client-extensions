@@ -21,7 +21,7 @@ def migrate(cr, version):
                    WHERE (report_rml_content_data IS NOT NULL
                       OR  report_sxw_content_data IS NOT NULL)
                      AND x.module IN %s
-                GROUP BY r.id
+                GROUP BY r.id, r.report_name
                 """, (reports_modules,))
     for rid, rname, xids in cr.fetchall():
         u = str(uuid.uuid4()).split('-')[0]
