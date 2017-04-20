@@ -17,6 +17,7 @@ def migrate(cr, version):
     for m in 'equipment request'.split():
         model = 'maintenance.' + m
         table = util.table_of_model(cr, model)
+        util.rename_field(cr, model, 'user_id', 'technician_user_id')
         util.create_column(cr, table, 'owner_user_id', 'int4')
         util.move_field_to_module(cr, model, 'employee_id', 'maintenance', 'hr_maintenance')
         util.move_field_to_module(cr, model, 'department_id', 'maintenance', 'hr_maintenance')
