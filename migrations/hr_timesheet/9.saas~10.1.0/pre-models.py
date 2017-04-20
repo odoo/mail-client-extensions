@@ -67,7 +67,7 @@ def migrate(cr, version):
                                         privacy_visibility, label_tasks, active {0})
             SELECT a.alias_parent_thread_id, a.id, 'project.task', 'followers', 'Tasks', false {1}
               FROM _new_aliases a
-         RETURNING id
+         RETURNING id, analytic_account_id
         ),
         _upd_aaa AS (
             UPDATE account_analytic_account a
@@ -78,7 +78,7 @@ def migrate(cr, version):
         _upd_aal AS (
             UPDATE account_analytic_line l
                SET project_id = p.id
-              FROM project_project p
+              FROM _new_projects p
              WHERE p.analytic_account_id = l.account_id
                AND l.is_timesheet
                AND l.project_id IS NULL
