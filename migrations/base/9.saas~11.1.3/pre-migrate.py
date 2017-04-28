@@ -2,11 +2,14 @@
 import logging
 import os
 
-from openerp.addons.base.ir.ir_cron import str2tuple
 from openerp.addons.base.maintenance.migrations import util
+from openerp.tools.safe_eval import safe_eval
 
 NS = 'openerp.addons.base.maintenance.migrations.base.saas~11.'
 _logger = logging.getLogger(NS + __name__)
+
+def str2tuple(s):
+    return safe_eval('tuple(%s)' % (s or ''))
 
 def migrate(cr, version):
     cr.execute("DROP TABLE ir_autovacuum")   # should always have been a abstract model
