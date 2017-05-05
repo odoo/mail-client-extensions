@@ -19,14 +19,14 @@ def migrate(cr, version):
 
     cr.execute("""
         INSERT INTO purchase_order_stock_picking_rel(purchase_order_id, stock_picking_id)
-    SELECT DISTINCT m.purchase_line_id,
+    SELECT DISTINCT l.order_id,
                     unnest(array_remove(array_cat(ARRAY[m.picking_id], array_agg(r.picking_id)), NULL))
               FROM stock_move m
+              JOIN purchase_order_line l ON (l.id = m.purchase_line_id)
          LEFT JOIN stock_move r ON (r.origin_returned_move_id = m.id)
              WHERE m.state != 'cancel'
                AND coalesce(r.state, '') != 'cancel'
-               AND m.purchase_line_id IS NOT NULL
-          GROUP BY m.picking_id, m.purchase_line_id
+          GROUP BY m.picking_id, l.order_id
 
     """)
 
