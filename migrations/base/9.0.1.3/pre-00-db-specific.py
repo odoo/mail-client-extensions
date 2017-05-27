@@ -215,6 +215,8 @@ def _moebius(cr, version):
     cr.execute(""" delete from ir_model_fields where model='sale.report' and name='date_confirm' """)
     cr.execute(""" update ir_filters set context = replace(context, 'date_confirm', 'date') where id=42 """)
 
+def _megamanhk(cr, version):
+    util.force_install_module(cr, 'project_issue')
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
@@ -232,4 +234,5 @@ def migrate(cr, version):
         '058fa140-7b35-4150-8b2b-06b310a2b7b9': _icus,
         '8f4ad700-f69a-4ab3-b24a-4792c1f629f8': _metalpros,
         '2c03b0fe-1bc2-42ed-be3e-d2c9ec056839': _moebius,
+        '16a70f1b-893a-4411-aa2a-d939171fac7d': _megamanhk,
     })

@@ -47,6 +47,9 @@ def _db_neptis(cr, version):
 def _db_lmponline(cr, version):
     cr.execute("UPDATE ir_ui_view SET priority=42 WHERE id=1014")
 
+def _megamanhk(cr, version):
+    cr.execute("""UPDATE ir_ui_view SET active=FALSE WHERE id=794;""")
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -56,4 +59,5 @@ def migrate(cr, version):
         'ce2bbc1f-5d81-4140-909e-1204e9f743b7': _db_houtmerk,
         'f16a6f02-97c9-4851-8c58-80662919c781': _db_neptis,
         '3c489dc7-2ddc-44ef-b43b-eb5141474697': _db_lmponline,
+        '16a70f1b-893a-4411-aa2a-d939171fac7d': _megamanhk,
     })

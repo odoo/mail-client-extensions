@@ -58,6 +58,54 @@ def _db_scratchmusicgroup(cr, version):
     with util.edit_view(cr, view_id=1137) as arch:
         arch.attrib['name'] = 'action_invoice_open'
 
+def _megamanhk(cr, version):
+    cr.execute("""UPDATE ir_ui_view SET active=TRUE WHERE id=794;""")
+    util.env(cr)['ir.ui.view'].create({
+        'name': 'project.issue.form.custom',
+        'model': 'project.issue',
+        'priority': 99,
+        'mode': 'extension',
+        'type': 'form',
+        'inherit_id': util.ref(cr, 'project_issue.project_issue_form_view'),
+        'arch': """
+<data>
+  <xpath expr="//field[@name='tag_ids']" position="before">
+    <field name="x_claim_no"/>
+    <field name="x_old_ref_no"/>
+  </xpath>
+  <xpath expr="//page[@name='extra_info']" position="before">
+    <page string="Information">
+      <group>
+        <field name="x_Lot"/>
+        <field name="x_QtyInstalled"/>
+        <field name="x_QtyFailed"/>
+        <field name="x_Ambient_Temp"/>
+        <field name="x_Voltage_Supplied"/>
+        <field name="x_Install_Date"/>
+        <field name="x_Install_Height"/>
+        <field name="x_Supply_Condition"/>
+        <field name="x_Worked_Hours"/>
+        <field name="x_Duty_Cycle"/>
+      </group>
+    </page>
+  </xpath>
+</data>
+        """
+    })
+    util.env(cr)['ir.ui.view'].create({
+        'name': 'project.issue.searc.custom',
+        'model': 'project.issue',
+        'priority': 99,
+        'mode': 'extension',
+        'type': 'search',
+        'inherit_id': util.ref(cr, 'project_issue.view_project_issue_filter'),
+        'arch': """
+<xpath expr="//field[@name='id']" position="after">
+  <field name="x_claim_no"/>
+</xpath>
+        """
+    })
+
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
@@ -65,4 +113,5 @@ def migrate(cr, version):
         '4a0cd30d-ac94-4769-9e1e-21d8279c7870': _db_plantadvancesa,
         'e4fc0190-6b16-4547-a427-e175b11ecbd3': _db_live,
         '7f28f9fe-bd35-4df2-8dc9-906577375e43': _db_scratchmusicgroup,
+        '16a70f1b-893a-4411-aa2a-d939171fac7d': _megamanhk,
     })
