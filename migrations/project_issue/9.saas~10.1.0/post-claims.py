@@ -66,7 +66,7 @@ def migrate(cr, version):
 
     util.create_column(cr, 'project_issue', '_tmp', 'int4')
 
-    cols = ','.join(_get_matching_columns(cr, 'crm.claim', 'project.issue', ignored=['description']))
+    cols = ','.join(['"%s"' % c for c in _get_matching_columns(cr, 'crm.claim', 'project.issue', ignored=['description'])])
 
     cr.execute("""
         INSERT INTO project_issue(_tmp, project_id, kanban_state, {cols}, stage_id, description)
