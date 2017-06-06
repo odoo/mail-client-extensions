@@ -59,6 +59,16 @@ def _db_scratchmusicgroup(cr, version):
         arch.attrib['name'] = 'action_invoice_open'
 
 def _megamanhk(cr, version):
+    util.env(cr)['ir.model.fields'].create({
+        'name': 'x_phone',
+        'field_description': 'Phone',
+        'model': 'project.issue',
+        'model_id': util.ref(cr, 'project_issue.model_project_issue'),
+        'ttype': 'char',
+        'store': False,
+        'related': 'partner_id.phone',
+        'state': 'manual'
+    })
     cr.execute("""UPDATE ir_ui_view SET active=TRUE WHERE id=794;""")
     util.env(cr)['ir.ui.view'].create({
         'name': 'project.issue.form.custom',
@@ -70,12 +80,18 @@ def _megamanhk(cr, version):
         'arch': """
 <data>
   <xpath expr="//field[@name='tag_ids']" position="before">
+    <field name="create_date" readonly="1"/>
+    <field name="date_deadline"/>
     <field name="x_claim_no"/>
     <field name="x_old_ref_no"/>
+  </xpath>
+  <xpath expr="//field[@name='partner_id']" position="after">
+    <field name="x_phone"/>
   </xpath>
   <xpath expr="//page[@name='extra_info']" position="before">
     <page string="Information">
       <group>
+        <field name="ref"/>
         <field name="x_Lot"/>
         <field name="x_QtyInstalled"/>
         <field name="x_QtyFailed"/>
@@ -89,11 +105,15 @@ def _megamanhk(cr, version):
       </group>
     </page>
   </xpath>
+  <xpath expr="//field[@name='task_id']" position="replace"/>
+  <xpath expr="//field[@name='user_id']" position="attributes">
+      <attribute name="context">{'default_user_id': user_id}</attribute>
+  </xpath>
 </data>
         """
     })
     util.env(cr)['ir.ui.view'].create({
-        'name': 'project.issue.searc.custom',
+        'name': 'project.issue.search.custom',
         'model': 'project.issue',
         'priority': 99,
         'mode': 'extension',

@@ -25,6 +25,23 @@ def _megamanhk(cr, version):
                     FROM ir_model
                    WHERE model='project.issue' ''')
     model_project_issue_id = cr.fetchone()[0]
+
+    cr.execute('''UPDATE crm_claim SET create_date=date;''')
+
+    util.create_column(cr, 'project_issue', 'ref', 'varchar')
+    cr.execute('''
+    INSERT INTO ir_model_fields(model, model_id, name, field_description, ttype, state, store, copy, selection)
+    VALUES ('project.issue',
+            %d,
+            'ref',
+            'Reference',
+            'reference',
+            'manual',
+            TRUE,
+            TRUE,
+            '((''res.partner'',''Partner''),(''product.product'',''Product''),(''account.invoice'',''Invoice''),(''account.voucher'',''Voucher''),(''sale.order'',''Sales Order''))');
+    ''' % model_project_issue_id)
+
     util.create_column(cr, 'project_issue', 'x_claim_no', 'varchar')
     util.create_column(cr, 'project_issue', 'x_old_ref_no', 'varchar')
     util.create_column(cr, 'project_issue', 'x_Lot', 'varchar')
@@ -52,6 +69,7 @@ def _megamanhk(cr, version):
                store
           FROM ir_model_fields
          WHERE model='crm.claim' AND state='manual' AND ttype!='many2many'; ''' % model_project_issue_id)
+
     # migrate old crm_claim tags to project_tags
     cr.execute('''
         INSERT INTO project_tags(create_uid,create_date,write_uid,write_date,name)
@@ -73,6 +91,7 @@ def _megamanhk(cr, version):
                   FROM crm_claim c
                   JOIN x_x_claim_tag_crm_claim_x_tags_rel r ON r.id1 = c.id
                   JOIN x_claim_tag t ON t.id = r.id2; ''')
+
     # migration of custom BAR from crm_claim to project_issue
     cr.execute('''UPDATE base_action_rule
                      SET model_id=%d
