@@ -80,6 +80,24 @@ def migrate(cr, version):
           FROM crm_claim
     """.format(cols=cols, stages=stages_case, project=project.id))
 
+    # migrate messages and followers
+    cr.execute("""
+        UPDATE mail_message m
+        SET model = 'project.issue',
+            res_id = i.id
+        FROM project_issue i
+        WHERE m.res_id = i._tmp
+        AND m.model='crm.claim';
+    """)
+    cr.execute("""
+        UPDATE mail_followers f
+        SET res_model = 'project.issue',
+            res_id = i.id
+        FROM project_issue i
+        WHERE f.res_id = i._tmp
+        AND f.res_model='crm.claim';
+    """)
+
     cr.execute("""
         INSERT INTO project_tags(name)
              SELECT c.name
