@@ -17,7 +17,7 @@ def _get_matching_columns(cr, model1, model2, ignored=()):
     table2 = util.table_of_model(cr, model2)
     ignored = tuple(set(['id'] + ignored))
     cr.execute("""
-         SELECT f.name
+         SELECT quote_ident(f.name)
            FROM ir_model_fields f
            JOIN information_schema.columns c
              ON (    c.column_name = f.name
@@ -66,7 +66,7 @@ def migrate(cr, version):
 
     util.create_column(cr, 'project_issue', '_tmp', 'int4')
 
-    cols = ','.join(['"%s"' % c for c in _get_matching_columns(cr, 'crm.claim', 'project.issue', ignored=['description'])])
+    cols = ','.join(_get_matching_columns(cr, 'crm.claim', 'project.issue', ignored=['description']))
 
     cr.execute("""
         INSERT INTO project_issue(_tmp, project_id, kanban_state, {cols}, stage_id, description)
