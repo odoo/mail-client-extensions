@@ -18,7 +18,9 @@ def migrate(cr, version):
                     auto_install=True)
 
     util.merge_module(cr, 'portal_gamification', 'gamification')
+    util.remove_view(cr, 'web_kanban.assets_backend')
     util.merge_module(cr, 'web_kanban', 'web')
+    util.remove_view(cr, 'web_calendar.assets_backend')
     util.merge_module(cr, 'web_calendar', 'web')
 
     util.remove_module_deps(cr, 'account_bank_statement_import', ('account',))
