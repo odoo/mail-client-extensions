@@ -8,3 +8,5 @@ def migrate(cr, version):
 
     util.force_noupdate(cr, 'website.view_website_config_settings', False)
     util.force_noupdate(cr, 'website.layout', False)
+    # with layout updated, some inherited views cannot apply anymore
+    util.remove_view(cr, 'website.user_navbar')
