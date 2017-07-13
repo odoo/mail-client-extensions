@@ -10,10 +10,14 @@ def migrate(cr, version):
     # TODO: need to set also maybe if consumed_for was False (consume only case -> detail)
     cr.execute("""
         INSERT INTO stock_quant_consume_rel (consume_quant_id, produce_quant_id)
-            (SELECT s1.quant_id, s2.quant_id
-            FROM stock_move move, stock_quant_move_rel s1, stock_quant_move_rel s2
-            WHERE s1.move_id = move.id AND s2.move_id = move.consumed_for
-                AND consumed_for is not null);
+             SELECT s1.quant_id, s2.quant_id
+               FROM stock_move move,
+                    stock_quant_move_rel s1,
+                    stock_quant_move_rel s2
+              WHERE s1.move_id = move.id
+                AND s2.move_id = move.consumed_for
+                AND consumed_for is not null
+           GROUP BY s1.quant_id, s2.quant_id
     """)
 
     # Create stock.move.lots (will be one for every stock move)
