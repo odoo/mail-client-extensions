@@ -17,5 +17,4 @@ def migrate(cr, version):
            AND il.quantity = pl.product_qty
            AND coalesce(il.product_id, 0) = coalesce(pl.product_id, 0)
            AND coalesce(il.uos_id, 0) = coalesce(pl.product_uom, 0)
-           AND coalesce(il.account_analytic_id, 0) = coalesce(pl.account_analytic_id, 0)
     """)
