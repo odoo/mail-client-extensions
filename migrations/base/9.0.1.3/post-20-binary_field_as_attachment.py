@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-import logging
 from openerp.addons.base.maintenance.migrations import util
 
-NS = 'openerp.addons.base.maintenance.migrations.base.9.'
-_logger = logging.getLogger(NS + __name__)
-
-def convert(cr, model, field):
+def convert(cr, model, field, encoded=True):
     table = util.table_of_model(cr, model)
     if not util.column_exists(cr, table, field):
         return
@@ -16,9 +12,12 @@ def convert(cr, model, field):
     for rid, data in cr.fetchall():
         # we can't save create the attachment with res_model & res_id as it will fail computing
         # `res_name` field for non-loaded models. Store it naked and change it via SQL after.
+        data = str(data)
+        if not encoded:
+            data = data.encode('base64')
         att = A.create({
             'name': att_name % rid,
-            'datas': str(data),
+            'datas': data,
             'type': 'binary',
         })
         cr.execute("""UPDATE ir_attachment
@@ -82,6 +81,7 @@ def migrate(cr, version):
     convert(cr, 'slide.slide', 'image')
     convert(cr, 'slide.slide', 'image_medium')
     convert(cr, 'slide.slide', 'image_thumb')   # WTF?
+
 
 if __name__ == '__main__':
     util.main(migrate, 'force')

@@ -3,4 +3,4 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     imp = util.import_script('base/9.0.1.3/post-20-binary_field_as_attachment.py')
-    imp.convert(cr, 'pos.cache', 'cache')
+    imp.convert(cr, 'pos.cache', 'cache', encoded=False)
