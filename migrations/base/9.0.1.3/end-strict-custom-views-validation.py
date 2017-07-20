@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-from odoo.tools import ustr
-from odoo.tools.misc import str2bool
-from odoo.addons.base.maintenance.migrations import util
+from openerp.tools import ustr
+from openerp.tools.misc import str2bool
+from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     if not str2bool(os.environ.get('ODOO_MIG_STRICT_CUSTOM_VIEWS_VALIDATION'), default='on') or \
