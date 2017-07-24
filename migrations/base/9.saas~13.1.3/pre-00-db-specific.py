@@ -38,9 +38,22 @@ def _ngpinc(cr, version):
          WHERE id=5794
     """)
 
+def _national_equipment_corporation(cr, version):
+    cr.execute("""
+        UPDATE ir_model_data
+           SET module = '__export__'
+         WHERE concat(module, '.', name) IN (
+           'account.report_invoice_paid',
+           'account.report_invoice_document_paid',
+           'sale.report_invoice_layouted_paid',
+           'sale_stock.report_invoice_document_inherit_sale_stock_paid'
+         )
+    """)
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '8851207e-1ff9-11e0-a147-001cc0f2115e': _db_openerp,
         '39b15f26-b737-4420-94bb-156191526fbf': _boldom,
         'b23805af-ead8-4e0e-9254-c82a2845e971': _ngpinc,
+        'a262570e-e3dd-42ba-bb91-064a02532221': _national_equipment_corporation,
     })
