@@ -9,7 +9,7 @@ def migrate(cr, version):
         if cover.get('background-color') != 'oe_none':
             cover['opacity'] = '0.6'
         else:
-            cover['opacity'] = '%.2f' % (1.0 - float(cover['opacity']),)
+            cover['opacity'] = '%.2f' % (1.0 - float(cover.get('opacity') or 0.4),)
 
         cr.execute("UPDATE blog_post SET cover_properties=%s WHERE id=%s",
                    [json.dumps(cover), post_id])
