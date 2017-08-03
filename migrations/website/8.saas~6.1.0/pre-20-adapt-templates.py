@@ -22,7 +22,7 @@ def migrate(cr, version):
     util.remove_view(cr, 'website.themes')
 
     # footers now attach to #footer
-    with util.skippable_cm(), util.edit_view(cr, 'website.footer_custom') as arch:
+    with util.edit_view(cr, 'website.footer_custom', skip_if_not_noupdate=False) as arch:
         for node in arch.xpath("//xpath[contains(@expr, 'footer_container')]"):  # xpathception!
             node.attrib['expr'] = node.attrib['expr'].replace('footer_container', 'footer')
 
@@ -30,10 +30,10 @@ def migrate(cr, version):
         if node:
             del node.attrib['data-snippet-id']
 
-    with util.skippable_cm(), util.edit_view(cr, 'website.footer_default') as arch:
+    with util.edit_view(cr, 'website.footer_default', skip_if_not_noupdate=False) as arch:
         node = arch.find('.//div')
         node.attrib['id'] = "footer"
 
-    with util.skippable_cm(), util.edit_view(cr, 'website.aboutus') as arch:
+    with util.edit_view(cr, 'website.aboutus', skip_if_not_noupdate=False) as arch:
         for node in arch.xpath('//section[@data-snipet-id]'):
             del node.attrib['data-snippet-id']
