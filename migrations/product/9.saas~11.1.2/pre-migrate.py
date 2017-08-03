@@ -6,4 +6,4 @@ def migrate(cr, version):
                       'product.product_template_action_all')
 
     # column change type: remove it to let the ORM recreate it correctly
-    cr.execute("ALTER TABLE base_config_settings DROP COLUMN group_product_variant")
+    cr.execute("ALTER TABLE base_config_settings DROP COLUMN IF EXISTS group_product_variant")
