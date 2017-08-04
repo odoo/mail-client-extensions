@@ -218,6 +218,11 @@ def _moebius(cr, version):
 def _megamanhk(cr, version):
     util.force_install_module(cr, 'project_issue')
 
+def _bunkerit(cr, version):
+    with util.skippable_cm(), util.edit_view(cr, 'sale.report_saleorder_document') as arch:
+        node = arch.find('.//div[@class="page"]')
+        util.lxml.etree.SubElement(node, 'p', id='fiscal_position_remark')
+
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
         '05a64ced-5b98-488d-a833-a994f9b1dd80': _db_openerp,    # test
@@ -235,4 +240,5 @@ def migrate(cr, version):
         '8f4ad700-f69a-4ab3-b24a-4792c1f629f8': _metalpros,
         '2c03b0fe-1bc2-42ed-be3e-d2c9ec056839': _moebius,
         '16a70f1b-893a-4411-aa2a-d939171fac7d': _megamanhk,
+        'c98c9b75-88e5-44c5-a203-11891f5adfef': _bunkerit,
     })
