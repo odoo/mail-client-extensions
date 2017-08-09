@@ -18,6 +18,16 @@ def migrate(cr, version):
         ALTER TABLE sale_order_tax RENAME TO account_tax_sale_order_line_rel
         """)
 
+    util.rename_field(cr, 'sale.order', 'payment_term', 'payment_term_id')
+    util.rename_field(cr, 'sale.order', 'fiscal_position', 'fiscal_position_id')
+    report = util.ref(cr, 'sale.report_saleorder_document')
+    if report:
+        cr.execute("""
+            UPDATE ir_ui_view
+               SET arch_db = replace(arch_db, 'o.payment_term', 'o.payment_term_id')
+             WHERE id = %s
+        """, [report])
+
     # Easier to let the ORM to recreate the whole table instead of droping the bunch of
     # boolean fields that have been converted to 0/1 selection fields.
     cr.execute("DROP TABLE sale_config_settings")
