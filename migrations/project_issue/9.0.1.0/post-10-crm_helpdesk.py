@@ -61,6 +61,17 @@ def migrate(cr, version):
           FROM crm_helpdesk h
     """.format(cols=cols, team_col=team_col, stages=stages_case, project=project.id))
 
+    for model, res_model, res_id in util.res_model_res_id(cr):
+        if not res_id:
+            continue
+        cr.execute("""
+            UPDATE {0} t
+               SET {1}='project.issue', {2}=i.id
+              FROM project_issue i
+             WHERE t.{2} = i._tmp
+               AND t.{1} = 'crm.helpdesk'
+        """.format(util.table_of_model(cr, model), res_model, res_id))
+
     cr.execute("""
         INSERT INTO project_tags(name)
              SELECT c.name
