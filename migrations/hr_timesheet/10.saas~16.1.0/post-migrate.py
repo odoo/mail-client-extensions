@@ -6,19 +6,12 @@ def migrate(cr, version):
     gmng = util.ref(cr, 'hr_timesheet.group_timesheet_manager')
     gemp = util.ref(cr, 'base.group_user')
 
-    # users are actually mangagers
-    cr.execute("""
-        INSERT INTO res_groups_users_rel
-             SELECT uid, %(gmng)s
-               FROM res_groups_users_rel
-              WHERE gid = %(gusr)s
-             EXCEPT
-             SELECT uid, gid
-               FROM res_groups_users_rel
-              WHERE gid = %(gmng)s
-    """, locals())
+    # correct implied_id on gmng (use orm to handle users)
+    util.env(cr)['res.users'].browse(gmng).write({
+        'implied_ids': [(6, 0, [gusr])],
+    })
 
-    # employees are also users
+    # employees are users
     cr.execute("""
         INSERT INTO res_groups_users_rel
              SELECT uid, %(gusr)s

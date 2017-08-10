@@ -17,10 +17,11 @@ def migrate(cr, version):
          WHERE r.user_id = l.user_id
     """)
 
-    gid = util.ref(cr, 'hr_timesheet.group_hr_timesheet_user')
+    gid = util.rename_xmlid(
+        cr, 'hr_timesheet.group_hr_timesheet_user', 'hr_employee.group_timesheet_manager')
     # Now in noupdate=1 => manual update
     if gid:
-        cr.execute("UPDATE res_groups SET name='User' WHERE id=%s", [gid])
+        cr.execute("UPDATE res_groups SET name='Manager' WHERE id=%s", [gid])
         cr.execute("""
             DELETE FROM ir_translation
              WHERE type='model'
