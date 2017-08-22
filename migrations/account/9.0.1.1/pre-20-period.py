@@ -35,3 +35,9 @@ def migrate(cr, version):
                     FROM account_period p
                     WHERE p.id = a.period_id AND ((a.date_invoice NOT BETWEEN p.date_start AND p.date_stop) OR a.date_invoice IS NULL)
                 """)
+
+    #Set the date on account_invoice related 'date_invoice' is not null
+    cr.execute("""UPDATE account_invoice
+                    SET date = date_invoice
+                    WHERE date_invoice is not null AND date is null AND state not in ('draft','cancel');
+                """)
