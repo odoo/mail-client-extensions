@@ -8,7 +8,24 @@ _logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
     env = util.env(cr)
+    l = _logger.info if version is None else lambda *a: None       # noqa
 
+    if version is None:
+        l('Reset timesheet_revenue to 0')
+        cr.execute("UPDATE account_analytic_line SET timesheet_revenue=0")
+
+    l('link timesheet_invoice_id')
+    cr.execute("""
+         UPDATE account_analytic_line A
+            SET timesheet_invoice_id = ail.invoice_id
+           FROM sale_order_line sol
+           JOIN sale_order_line_invoice_rel so_invoice_line ON so_invoice_line.order_line_id = sol.id
+           JOIN account_invoice_line ail ON so_invoice_line.invoice_line_id = ail.id
+          WHERE A.project_id IS NOT NULL
+            AND A.so_line = sol.id
+    """)
+
+    l('compute timesheet_invoice_type')
     cr.execute("""
         UPDATE account_analytic_line l
            SET timesheet_invoice_type =
@@ -34,25 +51,36 @@ def migrate(cr, version):
     """)
 
     # compute revenue for line with same currency for account and so
+    l('compute revenue')
     cr.execute("""
         UPDATE account_analytic_line l
            SET timesheet_revenue =
              CASE WHEN sol.currency_id != a.currency_id THEN NULL
-                  ELSE round((l.unit_amount * sol.price_unit * (1 - sol.discount))::numeric,
+                  ELSE round((l.unit_amount * sol.price_unit * (1 - (sol.discount / 100)))::numeric,
                              ceil(-log(c.rounding))::integer)
+                      / CASE WHEN u_sol.category_id = u_aal.category_id
+                             THEN u_sol.factor * u_aal.factor
+                             ELSE 1         -- no uom conversion
+                         END
+
               END
          FROM sale_order_line sol,
               account_analytic_account a,
-              res_currency c
+              res_currency c,
+              product_uom u_sol,
+              product_uom u_aal
         WHERE sol.id = l.so_line
           AND a.id = l.account_id
-          AND a.currency_id = c.id
+          AND c.id = a.currency_id
+          AND u_sol.id = sol.product_uom
+          AND u_aal.id = l.product_uom_id
           AND l.timesheet_invoice_type IN ('billable_time', 'billable_fixed')
     """)
 
     # for billable_fixed, sum should not be greater than the soline total
+    l('avoid revenue > soline total')
     cr.execute("""
-        SELECT (sol.product_uom_qty * sol.price_unit * (1 - sol.discount)) as total,
+        SELECT (sol.product_uom_qty * sol.price_unit * (1 - (sol.discount / 100))) as total,
                array_agg(l.id ORDER BY l.id),
                array_agg(l.timesheet_revenue::float8 ORDER BY l.id)
           FROM account_analytic_line l
@@ -61,7 +89,7 @@ def migrate(cr, version):
          WHERE l.timesheet_invoice_type = 'billable_fixed'
            AND sol.currency_id = a.currency_id
       GROUP BY l.so_line, total
-        HAVING sum(l.timesheet_revenue) > (sol.product_uom_qty * sol.price_unit * (1 - sol.discount))
+        HAVING sum(l.timesheet_revenue) > (sol.product_uom_qty * sol.price_unit * (1 - (sol.discount / 100)))
     """)
     for total, ids, revenues in cr.fetchall():
         sum_ = 0.0
@@ -72,6 +100,7 @@ def migrate(cr, version):
                            [val, lid])
             sum_ += revenue
 
+    l('compute revenue for other AAL')
     cr.execute("SELECT id FROM account_analytic_line WHERE timesheet_revenue IS NULL ORDER BY id")
     ids = map(itemgetter(0), cr.fetchall())
 
@@ -116,3 +145,9 @@ def migrate(cr, version):
 
     for invoices in util.iter_browse(INV, ids, logger=_logger):
         invoices._compute_timesheet_revenue()
+
+
+if __name__ == '__builtin__':
+    env = env   # noqa
+    migrate(env.cr, None)
+    env.cr.commit()
