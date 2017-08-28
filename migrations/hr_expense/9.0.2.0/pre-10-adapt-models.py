@@ -25,6 +25,7 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE hr_expense_line l
            SET name=concat(e.name, ': ', l.name),
+               description=concat_ws('\n\n---\n\n', e.note, l.description),
                payment_mode='own_account',
                employee_id=e.employee_id,
                department_id=e.department_id,
