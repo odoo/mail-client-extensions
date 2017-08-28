@@ -108,19 +108,19 @@ def migrate(cr, version):
         """)
 
     # Mapping between invoice_id and list of tax on those invoices
-    cr.execute("""SELECT i.move_id, t.tax_id FROM account_invoice i, account_invoice_line l, account_invoice_line_tax t
+    cr.execute("""SELECT i.move_id, t.tax_id, l.name FROM account_invoice i, account_invoice_line l, account_invoice_line_tax t
                     WHERE l.invoice_id = i.id AND t.invoice_line_id = l.id
             """)
     
     invoices_mapping = {}
     for invoice in cr.dictfetchall():
         if invoices_mapping.get(invoice['move_id'], False):
-            invoices_mapping[invoice['move_id']].append(invoice['tax_id'])
+            invoices_mapping[invoice['move_id']].append((invoice['tax_id'], invoice['name']))
         else:
-            invoices_mapping[invoice['move_id']] = [invoice['tax_id']]
+            invoices_mapping[invoice['move_id']] = [(invoice['tax_id'], invoice['name'])]
 
     cr.execute("""SELECT a.id, a.debit, a.credit, a.account_id, t.id AS tax_id, t.parent_id as parent_tax_id, 
-                        t.name, a.move_id 
+                        t.name, a.move_id, a.ref 
                     FROM account_move_line a, account_tax t 
                     WHERE (t.base_code_id = a.tax_code_id OR t.ref_base_code_id = a.tax_code_id) 
                         AND a.tax_code_id IS NOT NULL AND a.tax_amount != 0 AND t.company_id = a.company_id
@@ -132,9 +132,19 @@ def migrate(cr, version):
     for aml in cr.dictfetchall():
         if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
             tax_id = False
-            if invoices_mapping.get(aml['move_id'], False):
-                tax_id = aml['tax_id'] in invoices_mapping.get(aml['move_id']) and aml['tax_id'] \
-                        or aml['parent_tax_id'] in invoices_mapping.get(aml['move_id']) and aml['parent_tax_id']\
+            invoice_tax_list = invoices_mapping.get(aml['move_id'], False)
+            if invoice_tax_list:
+                tax_id = False
+                # Check if one of the invoice line has the same name and value as tax_id
+                # If yes, keep that one
+                if ((aml['tax_id'], aml['ref']) in invoice_tax_list):
+                    tax_id = aml['tax_id']
+                elif ((aml['parent_tax_id'], aml['ref']) in invoice_tax_list):
+                    tax_id = aml['parent_tax_id']
+                else:
+                    taxes_id = [t[0] for t in invoice_tax_list]
+                    tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
+                        or aml['parent_tax_id'] in taxes_id and aml['parent_tax_id']\
                         or False
             if not tax_id:
                 not_mapped[aml['id']] = aml['tax_id']
