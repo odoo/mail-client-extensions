@@ -126,6 +126,31 @@ def _megamanhk(cr, version):
         """
     })
 
+def _moebius(cr, version):
+    cr.execute(""" DELETE FROM ir_ui_menu
+                         WHERE parent_id IS NULL AND name IN ('Test', 'testvente'); """)
+    cr.execute(""" UPDATE account_journal
+                      SET sequence=2
+                    WHERE id IN (3,4); """)
+    cr.execute(""" UPDATE mail_channel_partner
+                      SET is_minimized = FALSE; """)
+    cr.execute(""" UPDATE project_project
+                      SET active=TRUE; """)
+    cr.execute(""" UPDATE project_task
+                      SET active=TRUE; """)
+    cr.execute(""" DELETE FROM ir_ui_view_custom; """)
+    cr.execute(""" INSERT INTO ir_ui_menu (name, sequence, active, parent_id, action)
+                   SELECT 'Imprimer Sales/Purchases Journal' AS name,
+                          99 AS sequence,
+                          TRUE,
+                          imd1.res_id,
+                          imd2.model || ',' || imd2.res_id AS action
+                     FROM ir_model_data imd1,
+                          ir_model_data imd2
+                    WHERE imd1.module='account'
+                      AND imd1.name='menu_finance_reports'
+                      AND imd2.module='account'
+                      AND imd2.name='action_account_print_journal_menu'; """)
 
 def migrate(cr, version):
     util.dispatch_by_dbuuid(cr, version, {
@@ -134,4 +159,5 @@ def migrate(cr, version):
         'e4fc0190-6b16-4547-a427-e175b11ecbd3': _db_live,
         '7f28f9fe-bd35-4df2-8dc9-906577375e43': _db_scratchmusicgroup,
         '16a70f1b-893a-4411-aa2a-d939171fac7d': _megamanhk,
+        '2c03b0fe-1bc2-42ed-be3e-d2c9ec056839': _moebius,
     })

@@ -212,8 +212,18 @@ def _metalpros(cr, version):
     cr.execute("""delete from ir_ui_view where id=1684""")
 
 def _moebius(cr, version):
-    cr.execute(""" delete from ir_model_fields where model='sale.report' and name='date_confirm' """)
-    cr.execute(""" update ir_filters set context = replace(context, 'date_confirm', 'date') where id=42 """)
+    cr.execute(""" DELETE FROM ir_model_fields
+                         WHERE model='sale.report' AND name='date_confirm'; """)
+    cr.execute(""" UPDATE ir_filters
+                      SET context = replace(context, 'date_confirm', 'date')
+                    WHERE id=42; """)
+    cr.execute(""" UPDATE account_tax
+                      SET description = 'VAT-OUT-21-S'
+                    WHERE name = 'VAT 21% - Services'; """)
+    cr.execute(""" UPDATE account_tax t
+                      SET name = att.name
+                     FROM account_tax_template att
+                    WHERE t.description = att.description AND t.name != att.name; """)
 
 def _megamanhk(cr, version):
     util.force_install_module(cr, 'project_issue')
