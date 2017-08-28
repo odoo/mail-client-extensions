@@ -66,12 +66,14 @@ def migrate(cr, version):
                    AND o.{res_id} = l.expense_id
             """.format(**locals()))
 
-    util.remove_column(cr, 'hr_expense_line', 'expense_id')
+    # rename column, will be used for migration to 10.0
+    cr.execute("ALTER TABLE hr_expense_line RENAME COLUMN expense_id TO sheet_id")
+    cr.execute("ALTER TABLE hr_expense_line DROP CONSTRAINT hr_expense_line_expense_id_fkey")
 
     # drop obsolete record rules - force re-creation
     util.remove_record(cr, 'hr_expense.property_rule_expense_manager')
     util.remove_record(cr, 'hr_expense.property_rule_expense_employee')
     util.remove_record(cr, 'hr_expense.hr_expense_comp_rule')
 
-    util.delete_model(cr, 'hr.expense.expense')
+    util.delete_model(cr, 'hr.expense.expense', drop_table=False)   # keep table for 10.0
     util.rename_model(cr, 'hr.expense.line', 'hr.expense')
