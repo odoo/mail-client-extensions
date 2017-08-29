@@ -1,7 +1,0 @@
-The purpose of this repository is to contains the migration script written to pass from version 7.0 to version 8.0
-They are written incrementally as we deploy snapshots to the SaaS plateform.
-
-To use these migration scripts against saas~* versions, you have to symlink this directory to
-    $OPENERP_SERVER/openerp/addons/base/maintenance
-
-
