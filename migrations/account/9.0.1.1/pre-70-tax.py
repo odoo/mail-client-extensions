@@ -129,6 +129,7 @@ def migrate(cr, version):
                 """)
     mapped = {}
     not_mapped = {}
+    invoiced_mapped = {}
     for aml in cr.dictfetchall():
         if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
             tax_id = False
@@ -143,9 +144,11 @@ def migrate(cr, version):
                     tax_id = aml['parent_tax_id']
                 else:
                     taxes_id = [t[0] for t in invoice_tax_list]
-                    tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
+                    temp_tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
                         or aml['parent_tax_id'] in taxes_id and aml['parent_tax_id']\
                         or False
+                    if temp_tax_id and not invoiced_mapped.get(aml['id'], False):
+                        invoiced_mapped[aml['id']] = temp_tax_id
             if not tax_id:
                 not_mapped[aml['id']] = aml['tax_id']
             else:
@@ -153,6 +156,13 @@ def migrate(cr, version):
                                 VALUES(%s, %s)
                             """, (aml['id'], tax_id))
                 mapped[aml['id']] = tax_id
+
+    for k,v in invoiced_mapped.items():
+        if not mapped.get(k, False):
+            cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id) 
+                                VALUES(%s, %s)
+                            """, (k, v))
+            mapped[k] = v
 
     for k,v in not_mapped.items():
         if not mapped.get(k, False):
@@ -174,6 +184,7 @@ def migrate(cr, version):
                 """)
     mapped = {}
     not_mapped = {}
+    invoiced_mapped = {}
     for aml in cr.dictfetchall():
         if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
             tax_id = False
@@ -188,15 +199,23 @@ def migrate(cr, version):
                     tax_id = aml['parent_tax_id']
                 else:
                     taxes_id = [t[0] for t in invoice_tax_list]
-                    tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
+                    temp_tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
                         or aml['parent_tax_id'] in taxes_id and aml['parent_tax_id']\
                         or False
+                    if temp_tax_id and not invoiced_mapped.get(aml['id'], False):
+                        invoiced_mapped[aml['id']] = temp_tax_id
             if not tax_id:
                 not_mapped[aml['id']] = aml['tax_id']
             else:
                 cr.execute("""UPDATE account_move_line SET tax_line_id = %s WHERE id = %s AND tax_line_id IS NULL
                             """, (tax_id, aml['id']))
                 mapped[aml['id']] = tax_id
+
+    for k,v in invoiced_mapped.items():
+        if not mapped.get(k, False):
+            cr.execute("""UPDATE account_move_line SET tax_line_id = %s WHERE id = %s AND tax_line_id IS NULL
+                            """, (v, k))
+            mapped[k] = v
 
     for k,v in not_mapped.items():
         if not mapped.get(k, False):
