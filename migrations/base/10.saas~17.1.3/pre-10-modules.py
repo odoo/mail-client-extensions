@@ -32,7 +32,8 @@ def migrate(cr, version):
 
     util.rename_module(cr, 'stock_picking_wave', 'stock_picking_batch')
 
-    util.new_module(cr, 'website_account', deps={'account', 'website_portal', 'website_payment'})
+    util.new_module(cr, 'website_account', deps={'account', 'website_portal', 'website_payment'},
+                    auto_install=util.module_installed(cr, 'website_portal_sale'))
     util.rename_xmlid(cr, *eb('website_{portal_sale,account}.portal_my_home_menu_invoice'), False)
     util.rename_xmlid(cr, *eb('website_{portal_sale,account}.portal_my_home_invoice'), False)
     util.rename_xmlid(cr, *eb('website_{portal_sale,account}.portal_my_invoices'), False)
@@ -78,6 +79,7 @@ def migrate(cr, version):
                               minus={'website_sale', 'website_quote', 'sale_subscription_dashboard'})
 
     util.force_migration_of_fresh_module(cr, 'sale_payment')
+    util.force_migration_of_fresh_module(cr, 'website_account')
 
     # farewell ...
     util.remove_module(cr, 'hr_timesheet_sheet')        # XXX merged into hr_timesheet?
