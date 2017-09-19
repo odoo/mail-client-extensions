@@ -309,6 +309,7 @@ def _update_lines(cr):
               WHERE NOT EXISTS(SELECT 1
                                  FROM sale_order_line_invoice_rel
                                 WHERE order_line_id = ol.id)
+                AND ol.invoiced = true
     """)
 
     # compute `invoice_status` of `sale_order`
