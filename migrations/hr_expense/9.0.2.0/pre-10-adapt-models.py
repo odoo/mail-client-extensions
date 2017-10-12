@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
+import uuid
+
 from openerp.addons.base.maintenance.migrations import util
+from openerp.release import series
+from openerp.tools.misc import str2bool
+from openerp.tools.parse_version import parse_version as pv
 
 def migrate(cr, version):
 
@@ -48,10 +54,21 @@ def migrate(cr, version):
 
     util.drop_workflow(cr, 'hr.expense.expense')
 
+    keep_sheets = (pv(series) >= pv('9.saas~12') or
+                   str2bool(os.environ.get('ODOO_MIG_9_EXPENSES_KEEP_SHEETS', 'yes')))
+    keep_refs = []
+    temp_name = str(uuid.uuid4())
+
     for dest_model, res_model, res_id in util.res_model_res_id(cr):
         if dest_model == 'ir.actions.act_window' or dest_model.startswith('ir.model'):
             continue
         table = util.table_of_model(cr, dest_model)
+        if keep_sheets and dest_model in ['ir.attachment', 'mail.followers', 'mail.message']:
+            keep_refs.append((table, res_model))
+            # avoid linked data to be removed by `delete_model`
+            cr.execute("UPDATE {0} SET {1}=%s WHERE {1}='hr.expense.expense'"
+                       .format(table, res_model), [temp_name])
+
         if not res_id:
             cr.execute("UPDATE {0} SET {1}='hr.expense' WHERE {1}='hr.expense.expense'"
                        .format(table, res_model))
@@ -66,14 +83,22 @@ def migrate(cr, version):
                    AND o.{res_id} = l.expense_id
             """.format(**locals()))
 
-    # rename column, will be used for migration to 10.0
-    cr.execute("ALTER TABLE hr_expense_line RENAME COLUMN expense_id TO sheet_id")
-    cr.execute("ALTER TABLE hr_expense_line DROP CONSTRAINT hr_expense_line_expense_id_fkey")
+    if keep_sheets:
+        # rename column, will be used for migration to 10.0
+        cr.execute("ALTER TABLE hr_expense_line RENAME COLUMN expense_id TO sheet_id")
+        cr.execute("ALTER TABLE hr_expense_line DROP CONSTRAINT hr_expense_line_expense_id_fkey")
+    else:
+        util.remove_field(cr, 'hr.expense.line', 'expense_id')
+
+    util.delete_model(cr, 'hr.expense.expense', drop_table=not keep_sheets)
+    util.rename_model(cr, 'hr.expense.line', 'hr.expense')
+
+    if keep_sheets:
+        for table, res_model in keep_refs:
+            cr.execute("UPDATE {0} SET {1}='hr.expense.expense' WHERE {1}=%s"
+                       .format(table, res_model), [temp_name])
 
     # drop obsolete record rules - force re-creation
     util.remove_record(cr, 'hr_expense.property_rule_expense_manager')
     util.remove_record(cr, 'hr_expense.property_rule_expense_employee')
     util.remove_record(cr, 'hr_expense.hr_expense_comp_rule')
-
-    util.delete_model(cr, 'hr.expense.expense', drop_table=False)   # keep table for 10.0
-    util.rename_model(cr, 'hr.expense.line', 'hr.expense')
