@@ -60,6 +60,8 @@ def migrate(cr, version):
 
     util.merge_module(cr, 'website_portal_purchase', 'purchase')
     util.merge_module(cr, 'website_portal_sale', 'sale')
+
+    util.remove_view(cr, 'website_project.my_projects')
     util.merge_module(cr, 'website_project', 'project')
     util.merge_module(cr, 'website_project_issue', 'project')
 
