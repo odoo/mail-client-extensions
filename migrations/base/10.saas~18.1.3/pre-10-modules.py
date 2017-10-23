@@ -75,6 +75,9 @@ def migrate(cr, version):
         util.remove_module(cr, 'marketing_campaign')
         util.remove_module(cr, 'account_accountant')
 
+    util.rename_xmlid(cr, *util.expand_braces('rating_project{,_issue}.mt_issue_rating'))
+    util.rename_xmlid(cr, *util.expand_braces('rating_project{,_issue}.mt_project_issue_rating'))
+
     removed_modules = util.splitlines("""
         marketing_campaign_crm_demo
 
