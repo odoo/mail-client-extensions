@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import psycopg2
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -23,6 +24,9 @@ def migrate(cr, version):
         l10n_eu_service
         l10n_fr_fec
         test_main_flows
+
+        # enterprise modules
+        account_reports_followup
     """)
     for m in accountant_deps:
         util.module_deps_diff(cr, m, plus={'account'}, minus={'account_accountant'})
@@ -70,6 +74,39 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.rename_module(cr, 'marketing_campaign', 'marketing_automation')
+        util.module_deps_diff(cr, 'marketing_automation', plus={'mass_mailing'},
+                              minus={'document', 'mail', 'decimal_precision'})
+        util.merge_module(cr, 'crm_voip', 'voip')
+        util.merge_module(cr, 'website_subscription', 'sale_subscription')
+        util.new_module(cr, 'account_sepa_direct_debit', deps={'account', 'base_iban'})
+        util.new_module(cr, 'helpdesk_timesheet', deps={'helpdesk', 'hr_timesheet'})
+        util.new_module(cr, 'helpdesk_sale_timesheet',
+                        deps={'helpdesk_timesheet', 'sale_timesheet'},
+                        auto_install=True)
+        try:
+            with util.savepoint(cr):
+                util.new_module(cr, 'event_barcode_mobile',
+                                deps={'event_barcode', 'web_mobile'},
+                                auto_install=True)
+        except psycopg2.Error:
+            pass
+
+        util.new_module(cr, 'l10n_de_reports', deps={'l10n_de', 'account_reports'}, auto_install=True)
+
+        util.module_deps_diff(cr, 'helpdesk', plus={'resource', 'portal'})
+        util.module_deps_diff(cr, 'l10n_mx_edi',
+                              plus={'account_invoicing', 'account_cancel', 'document', 'base_address_city'},
+                              minus={'account'})
+        util.module_deps_diff(cr, 'mrp_maintenance', plus={'quality_mrp'}, minus={'mrp_workorder'})
+        util.new_module_dep(cr, 'mrp_mps', 'purchase')
+        util.module_deps_diff(cr, 'sale_subscription', plus={'portal', 'sale_payment'})
+
+        util.module_deps_diff(cr, 'voip', plus={'mail', 'phone_validation'}, minus={'sales_team'})
+        util.new_module(cr, 'voip_onsip', deps={'voip'})
+        util.new_module_dep(cr, 'web_studio', 'web_enterprise')
+        util.module_deps_diff(cr, 'website_helpdesk', plus={'website'}, minus={'portal', 'website_form_editor'})
+        util.new_module_dep(cr, 'website_helpdesk_form', 'website_form_editor')
+        util.new_module_dep(cr, 'website_sign', 'portal')
     else:
         # you're screw...
         util.remove_module(cr, 'marketing_campaign')
@@ -87,6 +124,12 @@ def migrate(cr, version):
 
         stock_calendar  # merge somewhere?
         website_project_timesheet
+
+        # enterprise modules
+        l10n_de_skr03_reports
+        l10n_de_skr04_reports
+        mrp_barcode
     """)
+
     for m in removed_modules:
         util.remove_module(cr, m)
