@@ -206,7 +206,7 @@ def migrate(cr, version):
            AND price_round = 0
            AND price_min_margin = 0
            AND price_max_margin = 0
-           AND base != 'pricelist'
+           AND base = 'list_price'
     """)
 
     # cleanup
