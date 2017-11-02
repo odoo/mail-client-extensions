@@ -17,9 +17,6 @@ def migrate(cr, version):
     for field in fields:
         util.remove_field(cr, 'account.move', field)
 
-    cr.execute("DELETE FROM mail_message WHERE model='account.move'")
-    cr.execute("DELETE FROM mail_followers WHERE res_model='account.move'")
-
     util.create_column(cr, 'account_move_line', 'tax_base_amount', 'numeric')
     cr.execute("""
         WITH line_taxes(id, taxes) AS (
