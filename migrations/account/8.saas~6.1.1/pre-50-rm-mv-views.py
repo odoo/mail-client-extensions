@@ -8,7 +8,11 @@ def migrate(cr, version):
         'view_account_invoice_report_graph': 'view_account_invoice_report_pivot',
     }
     for f, t in renames.items():
-        util.rename_xmlid(cr, 'account.' + f, 'account.' + t)
+        res_id = util.rename_xmlid(cr, 'account.' + f, 'account.' + t)
+
+        if res_id:
+            cr.execute("UPDATE ir_ui_view SET type = %s WHERE id = %s",
+                       ('pivot', res_id))
 
     # and sql views
     util.drop_depending_views(cr, 'account_account', 'type')
