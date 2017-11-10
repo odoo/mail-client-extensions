@@ -3,11 +3,12 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.create_column(cr, 'sale_order_line', 'subscription_id', 'int4')
+    col = 'analytic_account_id' if util.version_gte('10.saas~18') else 'project_id'
     cr.execute("""
         WITH so_sub(so, sub) AS (
             SELECT o.id as so, s.id as sub
               FROM sale_order o
-              JOIN sale_subscription s ON (o.project_id = s.analytic_account_id)
+              JOIN sale_subscription s ON (o.{col} = s.analytic_account_id)
         ),
         recurring_products(id) AS (
             SELECT p.id
@@ -20,7 +21,7 @@ def migrate(cr, version):
           FROM so_sub s, recurring_products p
          WHERE s.so = l.order_id
            AND p.id = l.product_id
-    """)
+    """.format(col=col))
 
     util.create_column(cr, 'account_invoice_line', 'subscription_id', 'int4')
     cr.execute("""
