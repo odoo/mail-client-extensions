@@ -5,11 +5,13 @@ def migrate(cr, version):
     util.create_column(cr, 'sale_subscription', 'name', 'varchar')
     util.create_column(cr, 'sale_subscription', 'code', 'varchar')
     util.create_column(cr, 'sale_subscription', 'partner_id', 'int4')
+    util.create_column(cr, 'sale_subscription', 'company_id', 'int4')
     cr.execute("""
         UPDATE sale_subscription s
            SET name = a.name,
                code = a.code,
-               partner_id = a.partner_id
+               partner_id = a.partner_id,
+               company_id = a.company_id
           FROM account_analytic_account a
          WHERE a.id = s.analytic_account_id
     """)
