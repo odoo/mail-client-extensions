@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 from odoo.addons.base.maintenance.migrations import util
 
-def migrate(cr, version):
+def migrate(cr, version, module='website_subscription'):
+    fqn = partial('{}.{}'.format, module)
+
     renames = util.splitlines("""
         email_%s_open
         %s_portal
@@ -16,7 +19,7 @@ def migrate(cr, version):
         email_%s_open
     """)
     for x in renames:
-        x = 'website_subscription.' + x
+        x = fqn(x)
         util.rename_xmlid(cr, x % 'contract', x % 'subscription')
         util.force_noupdate(cr, x % 'subscription', False)
 
@@ -40,21 +43,18 @@ def migrate(cr, version):
         sale_subscription_template_view_form_inherit_sale_contract
     """)
     for v in old_views:
-        util.remove_view(cr, 'website_subscription.' + v)
+        util.remove_view(cr, fqn(v))
 
     if util.module_installed(cr, 'website_quote_subscription'):
-        util.rename_xmlid(cr,
-                          'website_subscription.contract_pricing',
-                          'website_quote_subscription.subscription_pricing'
-                          )
+        util.rename_xmlid(cr, fqn('contract_pricing'),
+                          'website_quote_subscription.subscription_pricing')
         util.force_noupdate(cr, 'website_quote_subscription.subscription_pricing')
-        util.rename_xmlid(cr,
-                          'website_subscription.order_line_row',
+        util.rename_xmlid(cr, fqn('order_line_row'),
                           'website_quote_subscription.order_line_row')
         util.force_noupdate(cr, 'website_quote_subscription.order_line_row')
     else:
-        util.remove_view(cr, 'website_subscription.contract_pricing')
-        util.remove_view(cr, 'website_subscription.order_line_row')
+        util.remove_view(cr, fqn('contract_pricing'))
+        util.remove_view(cr, fqn('order_line_row'))
 
     util.remove_field(cr, 'sale.order', 'contract_template')
     util.remove_field(cr, 'sale.order.line', 'force_price')
