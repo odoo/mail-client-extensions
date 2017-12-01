@@ -73,9 +73,19 @@ def migrate(cr, version):
                     deps={'website_sale_stock', 'website_sale_options'}, auto_install=True)
 
     if util.has_enterprise():
-        util.rename_module(cr, 'marketing_campaign', 'marketing_automation')
-        util.module_deps_diff(cr, 'marketing_automation', plus={'mass_mailing'},
-                              minus={'document', 'mail', 'decimal_precision'})
+        has_workitems = False
+        if util.table_exists(cr, 'marketing_campaign_workitem'):
+            cr.execute("SELECT COUNT(*) FROM marketing_campaign_workitem")
+            has_workitems = cr.fetchone()[0] > 0
+        if has_workitems:
+            util.rename_module(cr, 'marketing_campaign', 'marketing_automation')
+            util.module_deps_diff(cr, 'marketing_automation', plus={'mass_mailing'},
+                                  minus={'document', 'mail', 'decimal_precision'})
+        else:
+            util.new_module(cr, 'marketing_automation', deps={'mass_mailing'},
+                            auto_install=util.module_installed(cr, 'marketing_campaign'))
+            util.remove_module(cr, 'marketing_campaign')
+
         util.merge_module(cr, 'crm_voip', 'voip')
         util.merge_module(cr, 'website_subscription', 'sale_subscription')
         util.new_module(cr, 'account_sepa_direct_debit', deps={'account', 'base_iban'})
