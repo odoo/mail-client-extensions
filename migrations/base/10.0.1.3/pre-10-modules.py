@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import psycopg2
 from openerp.addons.base.maintenance.migrations import util
+from openerp.tools.misc import ignore
 
 def migrate(cr, version):
     if util.has_enterprise():
@@ -9,3 +11,8 @@ def migrate(cr, version):
                         auto_install=True)
         util.new_module(cr, 'hr_expense_sepa', deps=('account_sepa', 'hr_expense'),
                         auto_install=True)
+
+    with ignore(psycopg2.Error), util.savepoint(cr):
+        util.new_module(cr, 'l10n_fr_certification', deps={'l10n_fr'})
+        util.new_module(cr, 'l10n_fr_sale_closing', deps={'l10n_fr_certification'}, auto_install=True)
+        util.new_module(cr, 'l10n_fr_pos_cert', deps={'l10n_fr_sale_closing', 'point_of_sale'})

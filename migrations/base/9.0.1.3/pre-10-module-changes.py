@@ -68,6 +68,10 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'l10n_generic_coa', 'account')
     util.new_module_dep(cr, 'l10n_us', 'l10n_generic_coa')
 
+    util.new_module(cr, 'l10n_fr_certification', deps={'l10n_fr'})
+    util.new_module(cr, 'l10n_fr_sale_closing', deps={'l10n_fr_certification'}, auto_install=True)
+    util.new_module(cr, 'l10n_fr_pos_cert', deps={'l10n_fr_sale_closing', 'point_of_sale'})
+
     util.new_module_dep(cr, 'lunch', 'web')
     util.new_module_dep(cr, 'lunch', 'decimal_precision')
     util.remove_module_deps(cr, 'lunch', ('report',))
