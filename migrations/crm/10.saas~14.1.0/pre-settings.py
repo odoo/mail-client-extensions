@@ -6,8 +6,9 @@ def migrate(cr, version):
     util.remove_field(cr, 'sale.config.settings', 'group_use_lead')
 
     # wrongly default values' model (see https://github.com/odoo/odoo/pull/15385)
-    cr.execute("""
-        UPDATE ir_values
-           SET model = 'sale.config.settings'
-         WHERE model = 'sales.config.settings'
-    """)
+    if util.table_exists(cr, 'ir_values'):
+        cr.execute("""
+            UPDATE ir_values
+               SET model = 'sale.config.settings'
+             WHERE model = 'sales.config.settings'
+        """)

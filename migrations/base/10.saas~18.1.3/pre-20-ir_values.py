@@ -28,6 +28,11 @@ def migrate(cr, version):
     """.format(col))
 
     # default
+    pv = util.parse_version
+    if pv(version) < pv('10.saas~14'):
+        crm = util.import_script('crm/10.saas~14.1.0/pre-settings.py')
+        crm.migrate(cr, version)
+
     cr.execute("DROP TABLE IF EXISTS ir_default")       # just in case
     cr.execute("""
         CREATE TABLE ir_default (
