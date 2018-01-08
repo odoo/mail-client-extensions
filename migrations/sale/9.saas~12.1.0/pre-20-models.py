@@ -6,10 +6,16 @@ def migrate(cr, version):
     util.move_field_to_module(cr, 'product.template', 'expense_policy', 'sale_expense', 'sale')
     util.create_column(cr, 'product_template', 'expense_policy', 'varchar')
 
-    IrV = util.env(cr)['ir.values']
-    ip = IrV.get_default('product.template', 'invoice_policy')
+    env = util.env(cr)
+    if 'ir.values' in env:
+        get_default = env['ir.values'].get_default
+        set_default = env['ir.values'].set_default
+    else:
+        get_default = env['ir.default'].get
+        get_default = env['ir.default'].set
+    ip = get_default('product.template', 'invoice_policy')
     if ip == 'cost':
-        IrV.set_default('product.template', 'invoice_policy', 'delivery')
+        set_default('product.template', 'invoice_policy', 'delivery')
 
     # NOTE: sql-fix for wrongly migrated databases:
     #  update product_template set expense_policy = 'no' where coalesce(can_be_expensed, false) = false and expense_policy != 'no';
