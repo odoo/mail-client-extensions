@@ -78,9 +78,11 @@ def migrate(cr, version):
     # if this key is set, we'll not create sale orders from contracts
     # this will prevent some databases from creating completely purposeless SOs
     cr.execute("SELECT value FROM ir_config_parameter WHERE key=%s", ('migration.sale_contract.no-create-sale-orders',))
-    create_orders = cr.fetchone() or False
+    no_create_orders = cr.fetchone() or False
 
-    if not create_orders:
+    if not no_create_orders:
+        util.import_script('hr_timesheet_invoice/8.saas~6.1.0/pre-set-to_invoice.py').migrate(cr, version)
+
         # standard and prepaid contracts become sales orders (EVERYTHING is a sales order as from v9)
         env = util.env(cr)
         cr.execute("""
@@ -159,4 +161,4 @@ def migrate(cr, version):
 
     # we prevented deletion in analytic for this module, set it free now
     util.delete_model(cr, 'account.analytic.journal')
-    util.delete_model(cr, 'hr_timesheet_invoice.factor')
+    util.remove_module(cr, 'hr_timesheet_invoice')
