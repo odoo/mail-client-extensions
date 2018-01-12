@@ -26,11 +26,15 @@ def migrate(cr, version):
     """)
 
     l('compute timesheet_invoice_type')
+    if util.version_gte('10.saas~18'):
+        ts = "t.service_type='timesheet' AND t.service_tracking='task_new_project'"
+    else:
+        ts = "t.track_service='task'"
     cr.execute("""
         UPDATE account_analytic_line l
            SET timesheet_invoice_type =
              CASE WHEN t.invoice_policy = 'delivery' THEN 'billable_time'
-                  WHEN t.invoice_policy = 'order' AND t.track_service = 'task' THEN 'billable_fixed'
+                  WHEN t.invoice_policy = 'order' AND {} THEN 'billable_fixed'
                   ELSE NULL
               END
          FROM sale_order_line sol,
@@ -41,7 +45,7 @@ def migrate(cr, version):
           AND p.id = sol.product_id
           AND t.type = 'service'
           AND l.project_id IS NOT NULL
-    """)
+    """.format(ts))
 
     cr.execute("""
         UPDATE account_analytic_line
@@ -102,7 +106,7 @@ def migrate(cr, version):
 
     l('compute revenue for other AAL')
     cr.execute("SELECT id FROM account_analytic_line WHERE timesheet_revenue IS NULL ORDER BY id")
-    ids = map(itemgetter(0), cr.fetchall())
+    ids = list(map(itemgetter(0), cr.fetchall()))
 
     AAL = env['account.analytic.line']
 
@@ -139,7 +143,7 @@ def migrate(cr, version):
       ORDER BY i.id
     """)
 
-    ids = map(itemgetter(0), cr.fetchall())
+    ids = list(map(itemgetter(0), cr.fetchall()))
 
     INV = env['account.invoice']
 
