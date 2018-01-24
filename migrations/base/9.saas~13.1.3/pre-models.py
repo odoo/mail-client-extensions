@@ -13,6 +13,8 @@ def migrate(cr, version):
                  VALUES ('base', 'TJS', 'res.currency', %s, true)
         """, [tjs])
 
+    cr.execute("UPDATE res_currency SET symbol='¤' WHERE symbol IS NULL")
+
     util.create_column(cr, 'res_partner', 'partner_share', 'boolean')
     cr.execute("""
         WITH partshare AS (
