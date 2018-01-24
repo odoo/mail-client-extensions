@@ -8,7 +8,9 @@ def migrate(cr, version):
         ('ir.model.fields', util.ref(cr, 'hr.field_hr_employee_name_related')),
         replace_xmlid=False,
     )
-    util.remove_record(cr, 'hr.field_hr_employee_name')
+    cr.execute("SELECT id FROM ir_model_fields WHERE model='hr.employee' AND name='name'")
+    if cr.rowcount:
+        util.remove_record(cr, ('ir.model.fields', cr.fetchone()[0]))
     util.rename_field(cr, 'hr.employee', 'name_related', 'name')
 
     util.remove_field(cr, 'hr.employee', 'login')
