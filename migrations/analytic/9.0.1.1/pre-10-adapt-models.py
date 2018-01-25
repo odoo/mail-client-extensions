@@ -17,7 +17,7 @@ def migrate(cr, version):
               WHERE id IN (SELECT id FROM tmplvw)
     """)
 
-    models = util.splitlines("""
+    models = list(util.splitlines("""
         account.analytic.balance
 
         report.account.report_analyticbalance
@@ -30,7 +30,7 @@ def migrate(cr, version):
         account.analytic.cost.ledger
         account.analytic.inverted.balance
         account.analytic.journal.report
-    """)
+    """))
 
     # we need analytic journals in the sale_contract migration
     # we'll delete the model there if it's installed
