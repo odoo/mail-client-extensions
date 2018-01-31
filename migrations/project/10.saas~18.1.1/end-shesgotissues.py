@@ -15,7 +15,7 @@ def migrate(cr, version):
 
     nosplit = os.environ.get('ODOO_MIG_S18_NOSPLIT_PROJECTS', '')
     if nosplit:
-        project_filter = 'AND p.id IN %s'
+        project_filter = 'AND p.id NOT IN %s'
         params = [tuple(int(s) for s in nosplit.split(','))]
     else:
         project_filter, params = '', []
