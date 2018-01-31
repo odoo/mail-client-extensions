@@ -6,6 +6,9 @@ def migrate(cr, version):
         util.move_field_to_module(cr, 'ir.model', 'mail_thread', 'web_studio', 'mail')
         util.rename_field(cr, 'ir.model', 'mail_thread', 'is_mail_thread')
         util.move_field_to_module(cr, 'ir.model.fields', 'track_visibility', 'web_studio', 'mail')
+        util.rename_xmlid(cr, 'web_studio.model_form_view','mail.model_form_view')
+        util.rename_xmlid(cr, 'web_studio.model_search_view','mail.model_search_view')
+        util.rename_xmlid(cr, 'web_studio.field_form_view','mail.field_form_view')
 
     util.create_column(cr, 'res_users', 'notification_type', 'varchar')
     cr.execute("""
