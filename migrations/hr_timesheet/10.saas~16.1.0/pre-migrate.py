@@ -18,7 +18,7 @@ def migrate(cr, version):
     """)
 
     gid = util.rename_xmlid(
-        cr, 'hr_timesheet.group_hr_timesheet_user', 'hr_employee.group_timesheet_manager')
+        cr, 'hr_timesheet.group_hr_timesheet_user', 'hr_timesheet.group_timesheet_manager')
     # Now in noupdate=1 => manual update
     if gid:
         cr.execute("UPDATE res_groups SET name='Manager' WHERE id=%s", [gid])
