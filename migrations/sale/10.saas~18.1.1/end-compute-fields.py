@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
-from odoo.addons.base.maintenance.migrations import util
-
-NS = 'odoo.addons.base.maintenance.migrations.sale.saas-18.'
-_logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
-    util.recompute_fields(cr, 'account.invoice.line', ['price_total'], logger=_logger)
     cr.execute("""
         WITH invoice_totals AS (
             SELECT rel.order_line_id as id, SUM(il.price_total) as total
