@@ -95,6 +95,9 @@ def migrate(cr, version):
             ('mail.message.subtype', util.ref(cr, 'project.mt_project_task_' + mt)),
         )
 
+    model_issue = env['ir.model']._get_id('project.issue')
+    model_task = env['ir.model']._get_id('project.task')
+
     # as issues (tasks) have change project,
     # we need to reassign aliases and rating to the correct parent record
     cr.execute("""
@@ -107,6 +110,9 @@ def migrate(cr, version):
            AND p.model = 'project.project'
            AND t.id = a.alias_force_thread_id
     """)
+    cr.execute("UPDATE mail_alias SET alias_model_id=%s WHERE alias_model_id=%s",
+               [model_task, model_issue])
+
     if util.table_exists(cr, 'rating_rating'):
         cr.execute("""
             UPDATE rating_rating r
@@ -116,9 +122,6 @@ def migrate(cr, version):
                AND r.parent_res_model = 'project.project'
                AND t.id = r.res_id
         """)
-
-    model_issue = env['ir.model']._get_id('project.issue')
-    model_task = env['ir.model']._get_id('project.task')
 
     cr.execute("""
         UPDATE ir_act_server
