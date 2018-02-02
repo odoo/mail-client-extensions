@@ -12,4 +12,16 @@ def migrate(cr, version):
          WHERE x.model = 'ir.ui.menu'
            AND x.name = CONCAT('account_financial_html_report_menu_', r.id)
     """)
+    cr.execute("""
+        UPDATE ir_model_data
+           SET noupdate = true
+         WHERE model = 'ir.ui.menu'
+           AND name ~ '^account_financial_html_report_menu_\d+$'
+    """)
+    cr.execute("""
+        UPDATE ir_model_data
+           SET noupdate = true
+         WHERE model = 'ir.actions.client'
+           AND name ~ '^account_financial_html_report_action_\d+$'
+    """)
     util.remove_column(cr, 'account_financial_html_report', 'parent_id')  # field is now a related
