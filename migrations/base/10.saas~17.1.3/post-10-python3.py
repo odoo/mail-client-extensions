@@ -12,6 +12,13 @@ from odoo.addons.base.maintenance.migrations import util            # noqa: E402
 PKG = 'lib2to3.fixes'
 
 def migrate(cr, version):
+    # ensure views have no xml declaration with encoding
+    cr.execute("""
+        UPDATE ir_ui_view
+           SET arch_db = regexp_replace(arch_db, '^<\?xml[^>]+encoding=[^>]+\?>', '<?xml version="1.0"?>')
+         WHERE arch_db ~ '^<\?xml[^>]+encoding=[^>]+\?>'
+    """)
+
     all_fixes = ['%s.fix_%s' % (PKG, f) for f in get_all_fix_names(PKG)]
     # inline_fixes = [
     #     'basestring', 'dict', 'filter', 'has_key', 'idoms', 'isinstance', 'long', 'map', 'ne',
