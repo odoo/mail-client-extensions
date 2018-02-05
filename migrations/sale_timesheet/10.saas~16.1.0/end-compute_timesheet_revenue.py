@@ -111,8 +111,17 @@ def migrate(cr, version):
     AAL = env['account.analytic.line']
 
     # took about 10 minutes on openerp@next
+    if hasattr(AAL, '_timesheet_compute_theorical_revenue_values'):
+        # >= 11 (will fail in saas~18, sorry)
+        def get_revenue(timesheet):
+            return timesheet._timesheet_compute_theorical_revenue_values()
+    else:
+        def get_revenue(timesheet):
+            return timesheet._get_timesheet_billing_values({})
+
     for timesheet in util.iter_browse(AAL, ids, logger=_logger, chunk_size=1):
-        values = timesheet._get_timesheet_billing_values({})
+        values = get_revenue(timesheet)
+
         values['id'] = timesheet.id
         cr.execute("""
             UPDATE account_analytic_line
