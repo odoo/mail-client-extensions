@@ -18,8 +18,8 @@ def migrate(cr, version):
     util.announce(cr, '10.saas~16', message, format='md')
 
 
-if __name__ == '__builtin__':
+if __name__ == '__main__':
     def echo(_cr, version, message, format):
-        print util.md2html(message)
+        print(util.md2html(message))
     util.announce = echo
     migrate(None, None)

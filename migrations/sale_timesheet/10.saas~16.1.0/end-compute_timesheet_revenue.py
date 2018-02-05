@@ -147,7 +147,7 @@ def migrate(cr, version):
         invoices._compute_timesheet_revenue()
 
 
-if __name__ == '__builtin__':
+if __name__ == '__main__':
     env = env   # noqa
     migrate(env.cr, None)
     env.cr.commit()
