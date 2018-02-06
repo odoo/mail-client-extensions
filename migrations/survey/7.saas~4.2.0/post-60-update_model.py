@@ -26,9 +26,9 @@ def migrate(cr, version):
 
     util.remove_field(cr, 'survey_survey', 'state')
 
-    # description are un html now
+    # description are in html now
     for tbl in ['survey', 'page', 'question']:
         cr.execute("""UPDATE survey_{0}
-                         SET description = '<pre>' || description || '</pre>'
+                         SET description = {1}
                        WHERE description IS NOT NULL
-                   """.format(tbl))
+                   """.format(tbl, util.pg_text2html('description')))
