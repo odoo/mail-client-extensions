@@ -27,7 +27,7 @@ def migrate(cr, version):
         util.rename_field(cr, 'voip.phonecall', 'description', 'note')
         util.rename_field(cr, 'voip.phonecall', 'partner_phone', 'phone')
         util.rename_field(cr, 'voip.phonecall', 'partner_mobile', 'mobile')
-        cr.execute("UPDATE voip_phonecall SET note = CONCAT('<p>', note, '</p>')")
+        cr.execute("UPDATE voip_phonecall SET note = {}".format(util.pg_text2html('note')))
 
         util.rename_model(cr, *eb('{crm,voip}.phonecall.transfer.wizard'))
 

@@ -61,12 +61,18 @@ def migrate(cr, version):
     cols = set(util.get_columns(cr, 'project_task', ignore)[0]) \
          & set(util.get_columns(cr, 'project_issue', ignore)[0])    # noqa:E127
 
+    if util.parse_version(version) < util.parse_version('10.saas~17'):
+        desc_col = util.pg_text2html('description')
+    else:
+        # already converted in project_issue@saas~17
+        desc_col = 'description'
+
     cr.execute("""
         INSERT INTO project_task(x_original_issue_id, description, {0})
-        SELECT id, CONCAT('<pre>', description, '</pre>'), {0}
+        SELECT id, {1}, {0}
           FROM project_issue i
         RETURNING x_original_issue_id::integer, id
-    """.format(','.join(cols)))
+    """.format(','.join(cols), desc_col))
 
     cs = 1024
     sz = ceil(cr.rowcount / cs)
