@@ -57,7 +57,7 @@ def migrate(cr, version):
             return x.encode('utf8')
 
     def pickle(x):
-        return _pickle.loads(encode(x))
+        return _pickle.loads(encode(x), encoding='utf-8')
 
     cr.execute("""
         INSERT INTO ir_default(create_uid, create_date, write_uid, write_date,
