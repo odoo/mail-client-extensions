@@ -38,10 +38,8 @@ def migrate(cr, version):
                   ELSE NULL
               END
          FROM sale_order_line sol,
-              account_analytic_account a,
               product_product p JOIN product_template t ON (p.product_tmpl_id = t.id)
         WHERE sol.id = l.so_line
-          AND a.id = l.account_id
           AND p.id = sol.product_id
           AND t.type = 'service'
           AND l.project_id IS NOT NULL
@@ -59,7 +57,7 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE account_analytic_line l
            SET timesheet_revenue =
-             CASE WHEN sol.currency_id != a.currency_id THEN NULL
+             CASE WHEN sol.currency_id != l.currency_id THEN NULL
                   ELSE round((l.unit_amount * sol.price_unit * (1 - (sol.discount / 100)))::numeric,
                              ceil(-log(c.rounding))::integer)
                       / CASE WHEN u_sol.category_id = u_aal.category_id
@@ -69,13 +67,11 @@ def migrate(cr, version):
 
               END
          FROM sale_order_line sol,
-              account_analytic_account a,
               res_currency c,
               product_uom u_sol,
               product_uom u_aal
         WHERE sol.id = l.so_line
-          AND a.id = l.account_id
-          AND c.id = a.currency_id
+          AND c.id = l.currency_id
           AND u_sol.id = sol.product_uom
           AND u_aal.id = l.product_uom_id
           AND l.timesheet_invoice_type IN ('billable_time', 'billable_fixed')
@@ -89,9 +85,8 @@ def migrate(cr, version):
                array_agg(l.timesheet_revenue::float8 ORDER BY l.id)
           FROM account_analytic_line l
           JOIN sale_order_line sol ON (sol.id = l.so_line)
-          JOIN account_analytic_account a ON (a.id = l.account_id)
          WHERE l.timesheet_invoice_type = 'billable_fixed'
-           AND sol.currency_id = a.currency_id
+           AND sol.currency_id = l.currency_id
       GROUP BY l.so_line, total
         HAVING sum(l.timesheet_revenue) > (sol.product_uom_qty * sol.price_unit * (1 - (sol.discount / 100)))
     """)
