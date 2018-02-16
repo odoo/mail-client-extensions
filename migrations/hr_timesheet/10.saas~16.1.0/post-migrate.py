@@ -8,13 +8,13 @@ def migrate(cr, version):
     gemp = util.ref(cr, 'base.group_user')
 
     # correct implied_id on gmng (use orm to handle users)
-    util.env(cr)['res.users'].browse(gmng).write({
+    util.env(cr)['res.groups'].browse(gmng).write({
         'implied_ids': [(6, 0, [gusr, ghru])],
     })
 
     # employees are users
     cr.execute("""
-        INSERT INTO res_groups_users_rel
+        INSERT INTO res_groups_users_rel(uid, gid)
              SELECT uid, %(gusr)s
                FROM res_groups_users_rel
               WHERE gid = %(gemp)s
