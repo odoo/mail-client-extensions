@@ -18,10 +18,11 @@ def migrate(cr, version):
         """.format(hour, date))
 
         cr.execute("""
-            SELECT p.resource_calendar_id, t.id, t.create_date, t.{1}, u.context_tz
+            SELECT p.resource_calendar_id, t.id, t.create_date, t.{1}, pa.tz
               FROM project_task t
               JOIN project_project p ON (p.id = t.project_id)
               JOIN res_users u ON (u.id = t.user_id)
+              JOIN res_partner pa ON (pa.id = u.partner_id)
              WHERE t.{0} IS NULL
                AND t.create_date IS NOT NULL
                AND t.{1} IS NOT NULL
