@@ -7,7 +7,7 @@ def migrate(cr, version):
     # TODO demo data for website_sale
 
     # no braces = from base module
-    renames = util.splitlines("""
+    renames = list(util.splitlines("""
         account.group_account_user
         association.menu_event_config
         base_setup.menu_config
@@ -73,7 +73,7 @@ def migrate(cr, version):
         {stock,stock_barcode}.demo_package
         {document,website_sign}.menu_document
 
-    """)
+    """))
 
     # This menu has been deduplicated into 2 modules. We have to choose one.
     if util.module_installed(cr, 'account'):

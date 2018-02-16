@@ -21,7 +21,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website_portal', 'portal')     # seriously, wasn't already the case?
 
     util.new_module(cr, 'website_sale_comparison', ('website_sale',))
-    util.new_module(cr, 'website_sale_whishlist', ('website_sale',))
+    util.new_module(cr, 'website_sale_wishlist', ('website_sale',))
 
     if util.has_enterprise():
         util.remove_module_deps(cr, 'website_helpdesk_livechat', ('helpdesk',))

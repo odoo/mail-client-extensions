@@ -1,0 +1,71 @@
+# -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
+
+def migrate(cr, version):
+    util.move_model(cr, 'report.paperformat', 'report', 'base', move_data=True)
+    util.move_model(cr, 'ir.qweb.field.barcode', 'report', 'base', move_data=False)
+    util.delete_model(cr, 'report')
+
+    for model in ['base.config.settings', 'res.company']:
+        for field in ['paperformat_id', 'external_report_layout']:
+            util.move_field_to_module(cr, model, field, 'report', 'base')
+
+    remove = util.splitlines("""
+        base_settings_view_form_inherit_report
+        act_report_xml_view_inherit_report
+        act_report_xml_view_inherit
+        assets_backend
+    """)
+    for name in remove:
+        util.remove_view(cr, 'report.' + name)
+
+    move_to_web = util.splitlines("""
+        assets_common
+        assets_pdf
+        assets_editor
+        layout
+
+        # other templates handled by `merge_module`
+    """)
+    for name in move_to_web:
+        util.rename_xmlid(cr, 'report.' + name, 'web.report_' + name)
+
+    cr.execute("""
+        UPDATE ir_ui_view
+           SET arch_db = regexp_replace(
+                arch_db,
+                't-call=([''"])report.(html_container|external_layout|internal_layout|basic_layout)\1',
+                't-call=\1web.\2\1',
+                'g')
+         WHERE type='qweb'
+    """)
+
+    util.rename_xmlid(cr, 'report.view_company_report_form', 'base.view_company_report_form')
+    util.merge_module(cr, 'report', 'web')
+
+    util.remove_record(cr, 'base.preview_rml_report')
+    # now adapt model
+    util.rename_model(cr, 'ir.actions.report.xml', 'ir.actions.report', rename_table=False)
+    cr.execute("UPDATE ir_actions SET type='ir.actions.report' WHERE type='ir.actions.report.xml'")
+
+    cr.execute("""
+        SELECT name
+          FROM ir_act_report_xml
+         WHERE report_type IN ('controller', 'pdf', 'sxw', 'webkit')
+    """)
+    reports = '\n'.join(' - %s' % n for n, in cr.fetchall())
+    if reports:
+        raise util.MigrationError('The database still contains deprecated reports:\n%s' % reports)
+
+    remove = util.splitlines("""
+        header
+        parser
+        auto
+        report_xml
+        report_xsl
+        report_rml
+        report_sxw_content_data
+        report_rml_content_data
+    """)
+    for field in remove:
+        util.remove_field(cr, 'ir.actions.report', field)

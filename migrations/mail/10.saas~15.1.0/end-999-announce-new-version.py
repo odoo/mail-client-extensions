@@ -39,6 +39,6 @@ def migrate(cr, version):
 if __name__ == '__main__':
     # odoo must be in PYTHONPATH
     def echo(_cr, version, message, format):
-        print util.md2html(message)
+        print(util.md2html(message))
     util.announce = echo
     migrate(None, None)

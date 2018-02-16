@@ -16,6 +16,6 @@ Read the [release notes on our website](https://www.odoo.com/page/odoo-10-releas
 if __name__ == '__main__':
     # odoo must be in PYTHONPATH
     def echo(_cr, version, message, *a, **kw):
-        print util.md2html(message)
+        print(util.md2html(message))
     util.announce = echo
     migrate(None, None)

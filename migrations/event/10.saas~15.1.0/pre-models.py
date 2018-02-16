@@ -17,7 +17,9 @@ def migrate(cr, version):
 
     # auto_confirm: before => computed value from global ir.values; now => stored value from event.type setting
     util.create_column(cr, 'event_event', 'auto_confirm', 'boolean')
-    auto_confirm = bool(env['ir.values'].get_default('event.config.settings', 'auto_confirmation')) or False
+    get_default = env['ir.values'].get_default if 'ir.values' in env else env['ir.default'].get
+    auto_confirm = bool(get_default('event.config.settings', 'auto_confirmation')) or False
+
     cr.execute("UPDATE event_event SET auto_confirm = %s", (auto_confirm,))
 
     setting_fields = util.splitlines("""
