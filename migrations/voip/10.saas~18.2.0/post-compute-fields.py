@@ -34,3 +34,9 @@ def _sanitize(cr, field):
 def migrate(cr, version):
     _sanitize(cr, 'phone')
     _sanitize(cr, 'mobile')
+
+
+if __name__ == '__main__':
+    env = env   # noqa: F821
+    migrate(env.cr, None)
+    env.cr.commit()

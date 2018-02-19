@@ -14,6 +14,7 @@ def migrate(cr, version):
           FROM account_invoice_line_tax r
           JOIN account_invoice_line l ON (l.id = r.invoice_line_id)
           JOIN account_invoice i ON (i.id = l.invoice_id)
+         WHERE l.price_total IS NULL
       GROUP BY l.id, price, i.currency_id, l.quantity, l.product_id, i.partner_id
     """)
 
@@ -28,3 +29,9 @@ def migrate(cr, version):
                    [tca['total_included'], lid])
 
     cr.execute("UPDATE account_invoice_line SET price_total=price_subtotal WHERE price_total IS NULL")
+
+
+if __name__ == '__main__':
+    env = env   # noqa: F821
+    migrate(env.cr, None)
+    env.cr.commit()
