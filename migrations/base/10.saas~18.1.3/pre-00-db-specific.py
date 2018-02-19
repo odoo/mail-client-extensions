@@ -16,6 +16,10 @@ def _db_openerp(cr, version):
              WHERE name = 'project_issue'
         )
     """)
+
+    # convert to lead button
+    cr.execute("UPDATE ir_ui_view SET model='project.task', inherit_id=352 WHERE id=2633")
+
     cr.execute("""
         UPDATE openerp_enterprise_database_app
            SET name = 'voip',
