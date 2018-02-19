@@ -35,8 +35,7 @@ def _db_openerp(cr, version):
     util.remove_view(cr, view_id=1876)      # old issue view
     util.remove_view(cr, view_id=10011)
     util.remove_view(cr, view_id=10308)     # sale.quote.template.active.dbo
-
-    cr.execute("UPDATE ir_ui_view SET arch_db=replace(arch_db, '2653', '3229') WHERE id=8118")
+    util.remove_view(cr, view_id=8216)      # website.cart - no refund policy
 
     util.force_noupdate(cr, 'openerp_website.odoo_blog_main_column', False)
 
