@@ -26,8 +26,9 @@ def migrate(cr, version):
     """)
 
     util.remove_field(cr, 'sale.order', 'subscription_id')
-    util.remove_field(cr, 'sale.subscription.line', 'actual_quantity')
-    util.remove_field(cr, 'sale.subscription.line', 'sold_quantity')
+    if util.dbuuid(cr) not in {'8851207e-1ff9-11e0-a147-001cc0f2115e'}:
+        util.remove_field(cr, 'sale.subscription.line', 'actual_quantity')
+        util.remove_field(cr, 'sale.subscription.line', 'sold_quantity')
 
     util.remove_field(cr, 'sale.subscription.wizard', 'account_id')
     for f in 'subscription_template_id portal_access is_authorized price'.split():
