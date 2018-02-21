@@ -2,7 +2,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    T = util.env(cr)['product.template']
+    # T = util.env(cr)['product.template']
     util.create_column(cr, 'product_template', 'subscription_template_id', 'int4')
     cr.execute("""
         WITH tmpls (ptid, stid, others) AS (
@@ -23,8 +23,8 @@ def migrate(cr, version):
           FROM tmpls
          WHERE array_length(others, 1) > 0
     """)
-    for ptid, stid in cr.fetchall():
-        nid = T.browse(ptid).copy().id
-        cr.execute("UPDATE product_template SET subscription_template_id=%s WHERE id=%s", [stid, nid])
+    # for ptid, stid in cr.fetchall():
+    #     nid = T.browse(ptid).copy().id
+    #     cr.execute("UPDATE product_template SET subscription_template_id=%s WHERE id=%s", [stid, nid])
 
     util.delete_model(cr, 'sale.subscription.template.line')
