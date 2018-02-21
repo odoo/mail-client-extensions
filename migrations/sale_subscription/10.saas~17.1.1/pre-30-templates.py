@@ -14,9 +14,10 @@ def migrate(cr, version):
           GROUP BY p.product_tmpl_id
         ),
         _upd AS (
-            UPDATE product_template
+            UPDATE product_template p
                SET subscription_template_id = t.stid
               FROM tmpls t
+             WHERE p.id = t.ptid
         )
         SELECT ptid, unnest(others)
           FROM tmpls
