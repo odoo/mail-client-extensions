@@ -2,6 +2,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.env(cr)['res.config.settings'].create({
-        'group_subtask_project': True,
-    }).execute()
+    if util.module_installed(cr, 'hr_timesheet'):
+        util.env(cr)['res.config.settings'].create({
+            'group_subtask_project': True,
+        }).execute()
