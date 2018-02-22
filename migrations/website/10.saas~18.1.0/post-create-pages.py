@@ -7,7 +7,7 @@ def migrate(cr, version):
     R = util.env(cr)['website.redirect']
     redirects = {
         'website.homepage': '/',
-        'website.contactus': '/conctactus',
+        'website.contactus': '/contactus',
         'website.aboutus': '/aboutus',
         # from other modules...
         'website_crm.contactus_thanks': '/contactus-thank-you',
