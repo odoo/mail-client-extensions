@@ -12,5 +12,12 @@ def migrate(cr, version):
     """)
     cr.execute("UPDATE sale_order SET can_directly_mark_as_paid = false WHERE can_directly_mark_as_paid IS NULL")
 
+    env = util.env(cr)
+    if (env['ir.default'].get('product.template', 'invoice_policy') == 'order' and
+       util.modules_installed(cr, 'account_invoicing', 'payment')):
+        cr.execute("SELECT count(*) FROM payment_provider WHERE auto_confim='generate_and_pay_invoice'")
+        if cr.fetchone()[0]:
+            env['ir.config_parameter'].set_param('website_sale.automatic_invoice', True)
+
     util.rename_field(cr, 'website.config.settings', 'sale_pricelist_setting_split_1', 'multi_sales_price')
     util.rename_field(cr, 'website.config.settings', 'sale_pricelist_setting_split_2', 'multi_sales_price_method')
