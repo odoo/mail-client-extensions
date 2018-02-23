@@ -96,6 +96,7 @@ def migrate(cr, version):
                SET {upd}
                    "{ir.res_id}" = "{ir.res_id}" + %s
              WHERE {whr}
+               AND COALESCE("{ir.res_id}", 0) != 0
         """.format(**locals())
 
         cr.execute(query, [offset])
