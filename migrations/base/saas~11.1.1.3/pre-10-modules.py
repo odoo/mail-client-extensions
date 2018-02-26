@@ -17,4 +17,3 @@ def migrate(cr, version):
     util.new_module(cr, 'website_sale_link_tracker', deps={'website_sale', 'website_links'}, auto_install=True)
 
     util.remove_module(cr, 'sale_service_rating')
-    util.remove_module(cr, 'web_planner')
