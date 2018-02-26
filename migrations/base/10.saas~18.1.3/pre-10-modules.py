@@ -124,6 +124,7 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *util.expand_braces('rating_project{,_issue}.mt_issue_rating'))
     util.rename_xmlid(cr, *util.expand_braces('rating_project{,_issue}.mt_project_issue_rating'))
+    util.move_field_to_module(cr, 'account.analytic.line', 'issue_id', 'project')
 
     removed_modules = util.splitlines("""
         marketing_campaign_crm_demo

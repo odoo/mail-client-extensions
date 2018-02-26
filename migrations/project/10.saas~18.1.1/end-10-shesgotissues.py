@@ -155,6 +155,17 @@ def migrate(cr, version):
                AND t.id = r.res_id
         """)
 
+    if util.column_exists(cr, 'account_analytic_line', 'issue_id'):
+        cr.execute("""
+            UPDATE account_analytic_line l
+               SET task_id = t.id
+                   project_id = t.project_id
+              FROM project_task t
+             WHERE t.id = l.issue_id + %s
+               AND l.task_id IS NULL
+               AND l.issue_id IS NOT NULL
+        """, [offset])
+
     cr.execute("""
         UPDATE ir_act_server
            SET model_id = %s,
