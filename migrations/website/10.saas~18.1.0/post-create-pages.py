@@ -16,9 +16,9 @@ def migrate(cr, version):
     for f, t in redirects.items():
         if not util.ref(cr, f):
             continue
-        R.create(dict(url_from='/page/' + f, url_to=t, type='302'))
+        R.create(dict(url_from='/page/' + f, url_to=t, type='301'))
         if f.startswith('website.'):
-            R.create(dict(url_from='/page/' + f[8:], url_to=t, type='302'))
+            R.create(dict(url_from='/page/' + f[8:], url_to=t, type='301'))
 
     # create pages
     cr.execute("""
@@ -66,4 +66,4 @@ def migrate(cr, version):
            AND key LIKE 'website.%'
     """)
     for key, in cr.fetchall():
-        R.create(dict(url_from='/page/' + key, url_to='/page/' + key[8:], type='302'))
+        R.create(dict(url_from='/page/' + key, url_to='/page/' + key[8:], type='301'))
