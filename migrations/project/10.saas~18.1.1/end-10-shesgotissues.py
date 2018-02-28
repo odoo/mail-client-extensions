@@ -192,6 +192,20 @@ def migrate(cr, version):
            AND t.name = i.name
     """, [model_task, model_issue])
 
+    if util.table_exists(cr, 'base_automation'):
+        cr.execute("""
+            UPDATE base_automation
+               SET trg_date_id = (SELECT id
+                                    FROM ir_model_fields
+                                   WHERE model='project.task'
+                                     AND name='write_date')
+             WHERE trg_date_id = (SELECT id
+                                    FROM ir_model_fields
+                                   WHERE model='project.issue'
+                                     AND name='date_action_last')
+        """)
+    util.update_field_references(cr, 'date_action_last', 'write_date', only_models=['project.task'])
+
     cr.execute(
         "UPDATE mail_template SET model='project.task', model_id=%s WHERE model='project.issue'",
         [model_task]
