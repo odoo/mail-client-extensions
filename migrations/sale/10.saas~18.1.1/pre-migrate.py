@@ -31,6 +31,7 @@ def migrate(cr, version):
         ('sale.order', 'payment_transaction_count'),
     ]
     if util.module_installed(cr, 'sale_payment'):
+        util.env(cr)['ir.config_parameter'].set_param('sale.sale_portal_confirmation_options', 'pay')
         for pv in payment_views:
             util.rename_xmlid(cr, 'sale.' + pv, 'sale_payment.' + pv)
         for pm, pf in payment_fields:
