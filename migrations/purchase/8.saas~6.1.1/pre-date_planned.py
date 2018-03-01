@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import util
-
+from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.drop_depending_views(cr, 'purchase_order_line', 'date_planned')
