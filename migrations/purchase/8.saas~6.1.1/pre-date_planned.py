@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import util
+
+
 def migrate(cr, version):
+    util.drop_depending_views(cr, 'purchase_order_line', 'date_planned')
     cr.execute("""
         ALTER TABLE purchase_order_line
             ALTER COLUMN date_planned TYPE timestamp without time zone
