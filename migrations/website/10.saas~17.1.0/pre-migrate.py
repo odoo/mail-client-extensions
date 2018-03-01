@@ -7,3 +7,11 @@ def migrate(cr, version):
     imp = util.import_script('base/10.saas~17.1.3/default_to_icp.py')
     for g in 'maps analytics analytics_dashboard'.split():
         imp.default_to_icp(cr, 'website.config.settings', 'has_google_' + g, 'website.has_google' + g)
+
+    cr.execute("SELECT count(1) FROM website WHERE COALESCE(google_management_client_secret, '') != ''")
+    has = cr.fetchall()[0] > 0
+    util.env(cr)['ir.config_parameter'].set_param('website_has_google_analytics_dashboard', has)
+
+    cr.execute("SELECT count(1) FROM website WHERE COALESCE(google_analytics_key, '') != ''")
+    has = cr.fetchall()[0] > 0
+    util.env(cr)['ir.config_parameter'].set_param('website_has_google_analytics', has)
