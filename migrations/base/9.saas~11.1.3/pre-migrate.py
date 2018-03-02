@@ -8,6 +8,12 @@ from openerp.tools.safe_eval import safe_eval
 NS = 'openerp.addons.base.maintenance.migrations.base.saas~11.'
 _logger = logging.getLogger(NS + __name__)
 
+try:
+    integer_types = (int, long)
+except NameError:
+    # python3
+    integer_types = (int,)
+
 def str2tuple(s):
     return safe_eval('tuple(%s)' % (s or ''))
 
@@ -46,9 +52,9 @@ def migrate(cr, version):
     for cid, model, func, args in cr.fetchall():
         args_eval = str2tuple(args)
         if (args_eval and
-            (type(args_eval[0]) in (int, long) or          # ignore booleans
+            (type(args_eval[0]) in integer_types or          # ignore booleans
              (isinstance(args_eval[0], (list, tuple)) and
-              all(type(x) in (int, long) for x in args_eval[0]))
+              all(type(x) in integer_types for x in args_eval[0]))
              )):
             matches = True
             _logger.error('Cron #%s calls env[%r].%s(*%s). Using `id` or `ids` as first argument '
