@@ -206,6 +206,7 @@ def migrate(cr, version):
         """)
     util.update_field_references(cr, 'date_action_last', 'write_date', only_models=['project.task'])
 
+    cr.execute("UPDATE ir_filters SET model_id='project.task' WHERE model_id='project.issue'")
     cr.execute(
         "UPDATE mail_template SET model='project.task', model_id=%s WHERE model='project.issue'",
         [model_task]
