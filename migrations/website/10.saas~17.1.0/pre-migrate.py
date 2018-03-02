@@ -10,9 +10,9 @@ def migrate(cr, version):
 
     if util.column_exists(cr, 'website', 'google_management_client_secret'):    # only appear in saas~14
         cr.execute("SELECT count(1) FROM website WHERE COALESCE(google_management_client_secret, '') != ''")
-        has = cr.fetchall()[0] > 0
+        has = cr.fetchone()[0] > 0
         util.env(cr)['ir.config_parameter'].set_param('website_has_google_analytics_dashboard', has)
 
     cr.execute("SELECT count(1) FROM website WHERE COALESCE(google_analytics_key, '') != ''")
-    has = cr.fetchall()[0] > 0
+    has = cr.fetchone()[0] > 0
     util.env(cr)['ir.config_parameter'].set_param('website_has_google_analytics', has)
