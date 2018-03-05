@@ -102,17 +102,25 @@ def migrate(cr, version):
     cr.execute("""ALTER TABLE stock_move_line ALTER COLUMN picking_id DROP NOT NULL""")
 
     # Add some indexes to improve speed when we will merge moves: maybe only when #stock_moves > 10000 (could also delete constraints)
-    cr.execute("""CREATE INDEX IF NOT EXISTS stock_move_orig ON stock_move (origin_returned_move_id) """)
-    cr.execute("""CREATE INDEX IF NOT EXISTS procurement_move_dest_id ON procurement_order (move_dest_id) """)
-    cr.execute("""CREATE INDEX IF NOT EXISTS stock_move_split_from ON stock_move (split_from, state) """)
-    cr.execute("""CREATE INDEX IF NOT EXISTS stock_move_operation_link_move_id ON stock_move_operation_link (move_id) """)
-    cr.execute("""CREATE INDEX IF NOT EXISTS stock_quant_negative_move_id ON stock_quant (negative_move_id) """) # Field deleted afterwards
-    cr.execute("""CREATE INDEX IF NOT EXISTS stock_scrap_move_id ON stock_scrap (move_id)""")
-    cr.execute("""CREATE INDEX IF NOT EXISTS stock_move_line_move_id ON stock_move_line (move_id)""")
+    for name, table, columns in [
+        ('stock_move_orig', 'stock_move', 'origin_returned_move_id'),
+        ('procurement_move_dest_id', 'procurement_order', 'move_dest_id'),
+        ('stock_move_split_from', 'stock_move', "split_from, state"),
+        ('stock_move_operation_link_move_id', 'stock_move_operation_link', 'move_id'),
+        ('stock_quant_negative_move_id', 'stock_quant', 'negative_move_id'), # Field deleted afterwards
+        ('stock_scrap_move_id', 'stock_scrap', 'move_id'),
+        ('stock_move_line_move_id', 'stock_move_line', 'move_id'),
+        ]:
+        if not util.get_index_on(cr, table, columns):
+            cr.execute("""CREATE INDEX %s ON %s (%s)""" % (name, table, columns))
+
     if util.table_exists(cr, 'stock_move_lots'):
-        cr.execute("""CREATE INDEX IF NOT EXISTS stock_move_lots_move_id ON stock_move_lots (move_id)""")
+        if not util.get_index_on(cr, 'stock_move_lots', 'move_id'):
+            cr.execute("""CREATE INDEX stock_move_lots_move_id ON stock_move_lots (move_id)""")
     if util.table_exists(cr, 'stock_valuation_adjustment_lines'):
-        cr.execute("""CREATE INDEX IF NOT EXISTS stock_valuation_adjustment_lines_move_id ON stock_valuation_adjustment_lines (move_id)""") #might be deleted in the end
+        if not util.get_index_on(cr, 'stock_valuation_adjustment_lines', 'move_id'):
+            cr.execute("""CREATE INDEX stock_valuation_adjustment_lines_move_id ON stock_valuation_adjustment_lines (move_id)""") #might be deleted in the end
+
     cr.commit()
     # Update: partially_available state has been removed from picking
     cr.execute("""UPDATE stock_picking SET state='assigned' WHERE state='partially_available'""")
@@ -262,7 +270,7 @@ def migrate(cr, version):
             SELECT m.product_id, m.location_id, m.location_dest_id, 0.0, 0.0, m.product_uom_qty, m.product_uom,
                 m.restrict_partner_id, NULL, m.date, m.restrict_lot_id, m.id
             FROM stock_move m
-            WHERE m.scrapped = 't' AND NOT EXISTS (SELECT FROM stock_scrap WHERE move_id = m.id)
+            WHERE m.scrapped = 't' AND NOT EXISTS (SELECT id FROM stock_scrap WHERE move_id = m.id)
     """) #v8/v9 scraps did not get an added stock_scrap object (not in migration scripts)
 
     # Company_id on quants should be stored related field with the company of the location, so it should be false in virtual locations
