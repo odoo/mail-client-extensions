@@ -15,6 +15,10 @@ def migrate(cr, version):
 
         base_{action_rule,automation}_act
         menu_base_{action_rule,automation}_form
+
+        # demo server.action merged as _inherits
+        test_{action,rule_recursive_ir_actions_server}
+        test_{action_context,rule_on_write_check_context_ir_actions_server}
     """)
     for rename in renames:
         util.rename_xmlid(cr, *util.expand_braces('base_automation.' + rename))
