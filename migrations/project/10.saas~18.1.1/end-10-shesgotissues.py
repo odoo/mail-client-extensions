@@ -158,7 +158,7 @@ def migrate(cr, version):
     if util.column_exists(cr, 'account_analytic_line', 'issue_id'):
         cr.execute("""
             UPDATE account_analytic_line l
-               SET task_id = t.id
+               SET task_id = t.id,
                    project_id = t.project_id
               FROM project_task t
              WHERE t.id = l.issue_id + %s
