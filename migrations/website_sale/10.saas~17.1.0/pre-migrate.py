@@ -15,7 +15,7 @@ def migrate(cr, version):
     env = util.env(cr)
     if (env['ir.default'].get('product.template', 'invoice_policy') == 'order' and
        util.modules_installed(cr, 'account_invoicing', 'payment')):
-        cr.execute("SELECT count(*) FROM payment_provider WHERE auto_confim='generate_and_pay_invoice'")
+        cr.execute("SELECT count(*) FROM payment_acquirer WHERE auto_confim='generate_and_pay_invoice'")
         if cr.fetchone()[0]:
             env['ir.config_parameter'].set_param('website_sale.automatic_invoice', True)
 
