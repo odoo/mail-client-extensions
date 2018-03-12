@@ -58,9 +58,14 @@ def migrate(cr, version):
             as_id = IAS.create({
                 'name': bar_name,
                 'model_id': bar_model_id,
-                'state': 'followers',
+                'state': 'multi',
                 'partner_ids': partner_ids,
             }).id
+            # In v11 [1], There is a @constrains() that check we only set followers on mail.thread.
+            # However, as we are in `mail` module, models does not already have the flag set,
+            # raising a ValidationError. Bypass the check via SQL...
+            # [1] https://github.com/odoo/odoo/commit/c7d1466996dd2eca1776e390f9da9595317a4329
+            cr.execute("UPDATE ir_act_server SET state='followers' WHERE id=%s", [as_id])
         elif len(action_ids) != 1:
             ret = ''
             if action_ids:
@@ -95,6 +100,8 @@ def migrate(cr, version):
                    [bar_seq, as_id])
         # and link base.automation to the action server
         cr.execute("UPDATE base_automation SET action_server_id=%s WHERE id=%s", [as_id, bar_id])
+
+    IAS.clear_caches()
 
     # remove old m2m
     cr.execute("DROP TABLE base_action_rule_ir_act_server_rel")
