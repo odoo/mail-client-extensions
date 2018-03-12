@@ -11,13 +11,13 @@ def migrate(cr, version):
                     FROM product_template t
                    WHERE t.id = p.product_tmpl_id
                      AND p.barcode IS NULL
-                     AND p.default_code IS NOT NULL
+                     AND p.default_code ~ '^\d+$'
                      AND t.available_in_pos=true
                      AND p.id NOT IN (
                         -- in 9.0, the barcodes should be unique
                         SELECT unnest(array_agg(id))
                           FROM product_product
-                         WHERE default_code IS NOT NULL
+                         WHERE default_code ~ '^\d+$'
                       GROUP BY default_code
                         HAVING count(id) > 1
                      )
