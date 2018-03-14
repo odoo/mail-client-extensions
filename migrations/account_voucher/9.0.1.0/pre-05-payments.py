@@ -86,7 +86,7 @@ def migrate(cr, version):
              SELECT unnest(array_remove(array_agg(payment_id), NULL)),
                     unnest(array_remove(array_agg(invoice_id), NULL))
                FROM account_move_line
-              WHERE reconcile_partial_id IS NOT NUL
+              WHERE reconcile_partial_id IS NOT NULL
            GROUP BY reconcile_partial_id
     """)
 
