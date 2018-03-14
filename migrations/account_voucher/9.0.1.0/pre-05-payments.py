@@ -76,6 +76,18 @@ def migrate(cr, version):
                FROM account_move_line
               WHERE payment_id IS NOT NULL
                 AND invoice_id IS NOT NULL
+              UNION
+             SELECT unnest(array_remove(array_agg(payment_id), NULL)),
+                    unnest(array_remove(array_agg(invoice_id), NULL))
+               FROM account_move_line
+              WHERE reconcile_id IS NOT NULL
+           GROUP BY reconcile_id
+              UNION
+             SELECT unnest(array_remove(array_agg(payment_id), NULL)),
+                    unnest(array_remove(array_agg(invoice_id), NULL))
+               FROM account_move_line
+              WHERE reconcile_partial_id IS NOT NUL
+           GROUP BY reconcile_partial_id
     """)
 
     cr.execute("ALTER TABLE account_payment DROP COLUMN _voucher_id")
