@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
+def field_ref(cr, model, name):
+    ref = util.IMD_FIELD_PATTERN % (model.replace('.', '_'), name)
+    return util.ref(cr, 'hr.' + ref)
+
 def migrate(cr, version):
     util.replace_record_references(
         cr,
-        ('ir.model.fields', util.ref(cr, 'hr.field_hr_employee_name')),
-        ('ir.model.fields', util.ref(cr, 'hr.field_hr_employee_name_related')),
+        ('ir.model.fields', field_ref(cr, 'hr.employee', 'name')),
+        ('ir.model.fields', field_ref(cr, 'hr.employee', 'name_related')),
         replace_xmlid=False,
     )
     cr.execute("SELECT id FROM ir_model_fields WHERE model='hr.employee' AND name='name'")
