@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
+
+def migrate(cr, version):
+    util.new_module(cr, 'l10n_hk', deps={'account'})
+    util.new_module(cr, 'social_media', deps={'base'})
+    util.force_migration_of_fresh_module(cr, 'social_media')
+
+    util.new_module_dep(cr, 'l10n_cn', 'l10n_multilang')
+    util.new_module_dep(cr, 'mass_mailing', 'social_media')
+    util.new_module_dep(cr, 'website', 'social_media')
+
+    util.rename_module(cr, 'mrp_repair', 'repair')
