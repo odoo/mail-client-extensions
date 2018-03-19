@@ -11,3 +11,9 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website', 'social_media')
 
     util.rename_module(cr, 'mrp_repair', 'repair')
+
+    if util.has_enterprise():
+        util.new_module(cr, 'analytic_enterprise', deps={'web_grid', 'analytic', 'account'},
+                        auto_install=True)
+        util.new_module(cr, 'l10n_ca_check_printing', deps={'account_check_printing', 'l10n_ca'},
+                        auto_install=True)
