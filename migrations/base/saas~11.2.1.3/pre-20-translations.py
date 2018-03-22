@@ -10,3 +10,5 @@ def migrate(cr, version):
              HAVING count(id) > 1
         )
     """)
+
+    cr.execute("UPDATE res_lang SET code='km_KH' WHERE code='km_KM'")
