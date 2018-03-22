@@ -101,6 +101,3 @@ def migrate(cr, version):
          ) megajoin
     """) # Produce_line_id and consume_line_id were opposite in the mode
     # Temporary move lines are avoided as the moves are not done normally
-
-    # Set done_wo fields
-    cr.execute("""UPDATE stock_move_line ml SET done_wo='t' WHERE done_wo IS NULL""")
