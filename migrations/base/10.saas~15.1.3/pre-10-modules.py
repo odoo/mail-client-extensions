@@ -9,6 +9,9 @@ def migrate(cr, version):
     util.new_module(cr, 'base_sparse_field', ('base',), auto_install=has_sparse_fields)
 
     if has_sparse_fields:
+        # change module state to force earlier loading to ensure system know about `serialised`
+        # fields when loading them
+        cr.execute("UPDATE ir_module_module SET state='to upgrade' WHERE name='base_sparse_field'")
         util.move_field_to_module(cr, 'ir.model.fields', 'serialization_field_id',
                                   'base', 'base_sparse_field')
     else:
