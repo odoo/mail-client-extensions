@@ -12,7 +12,7 @@ def migrate(cr, version):
                              THEN 't'
                              ELSE 'f' END
                     FROM stock_move m, stock_picking p 
-                    WHERE m.picking_id = p.id
+                    WHERE m.picking_id = p.id AND NOT m.scrapped
                     GROUP BY m.picking_id, m.product_id, p.id
                     HAVING COUNT(*) > 1
                     """)
@@ -20,8 +20,7 @@ def migrate(cr, version):
     for re in res:
         # Check moves / move lines related to the same product in the picking
         picking = util.env(cr)['stock.picking'].browse(re[0])
-        moves = picking.move_lines.filtered(lambda x: x.product_id.id == re[1])
-        move_lines = picking.move_line_ids.filtered(lambda x: x.product_id.id == re[1])
+        moves = picking.move_lines.filtered(lambda x: x.product_id.id == re[1] and not x.scrapped)
         move_lots = {}
         # If we track the product by lot, we need to check the quants moved for every move to see which lots were moved for dividing the stock.pack.operation.lot
         if re[2] == 't':
