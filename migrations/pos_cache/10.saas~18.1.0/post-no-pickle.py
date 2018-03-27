@@ -15,5 +15,5 @@ def migrate(cr, version):
     for cache in util.env(cr)['pos.cache'].search([]):
         data = cPickle.loads(base64.decodestring(cache.cache))
         cache.write({
-            'cache': base64.encodestring(json.dumps(data))
+            'cache': base64.encodestring(json.dumps(data).encode('utf-8'))
         })
