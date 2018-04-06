@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
@@ -46,32 +48,33 @@ If you are using these phonecalls as a call center, you may want to install the 
         })
     stg_dead = stg_dead.id
 
-    team_col = 'team_id' if util.column_exists(cr, 'crm_phonecall', 'team_id') else 'section_id'
-    cr.execute("""
-      WITH new_leads AS (
-        INSERT INTO crm_lead(create_date, create_uid, name, partner_id, team_id, user_id, description, priority,
-                             phone, mobile, active, type,stage_id, message_bounce)
-             SELECT create_date, create_uid, 'Phonecall', partner_id, {0}, user_id, description, priority,
-                    partner_phone, partner_mobile, active,
-                    case when state = 'done' then 'opportunity' else 'lead' end,
-                    case when state = 'done' then %s when state = 'cancel' then %s else %s end,
-                    id
-               FROM crm_phonecall
-              WHERE opportunity_id IS NULL
-              ORDER BY id
-          RETURNING id, message_bounce as call_id
-      ),
-      _1 AS (
-        UPDATE crm_phonecall c
-           SET opportunity_id = l.id
-          FROM new_leads l
-         WHERE c.id = l.call_id
-      )
-      UPDATE crm_lead l
-         SET message_bounce = 0
-        FROM new_leads n
-       WHERE l.id = n.id
-    """.format(team_col), [stg_done, stg_dead, stg_new])
+    if not os.environ.get('ODOO_MIG_9_NO_ORPHAN_PHONECALL'):
+        team_col = 'team_id' if util.column_exists(cr, 'crm_phonecall', 'team_id') else 'section_id'
+        cr.execute("""
+        WITH new_leads AS (
+            INSERT INTO crm_lead(create_date, create_uid, name, partner_id, team_id, user_id, description, priority,
+                                phone, mobile, active, type,stage_id, message_bounce)
+                SELECT create_date, create_uid, 'Phonecall', partner_id, {0}, user_id, description, priority,
+                        partner_phone, partner_mobile, active,
+                        case when state = 'done' then 'opportunity' else 'lead' end,
+                        case when state = 'done' then %s when state = 'cancel' then %s else %s end,
+                        id
+                FROM crm_phonecall
+                WHERE opportunity_id IS NULL
+                ORDER BY id
+            RETURNING id, message_bounce as call_id
+        ),
+        _1 AS (
+            UPDATE crm_phonecall c
+            SET opportunity_id = l.id
+            FROM new_leads l
+            WHERE c.id = l.call_id
+        )
+        UPDATE crm_lead l
+            SET message_bounce = 0
+            FROM new_leads n
+        WHERE l.id = n.id
+        """.format(team_col), [stg_done, stg_dead, stg_new])
 
     cr.execute("""
       WITH new_tags AS (
@@ -86,6 +89,7 @@ If you are using these phonecalls as a call center, you may want to install the 
              SELECT p.opportunity_id, t.id
                FROM crm_phonecall p
                JOIN new_tags t ON (t.categ_id = p.categ_id)
+               WHERE p.opportunity_id IS NOT NULL
            GROUP BY 1, 2
       )
       UPDATE crm_lead_tag t
@@ -103,6 +107,7 @@ If you are using these phonecalls as a call center, you may want to install the 
                       name),
                %s
           FROM crm_phonecall
+          WHERE opportunity_id IS NOT NULL
     """, [activity.subtype_id.id])
 
     # util.delete_model(cr, 'crm.phonecall')
