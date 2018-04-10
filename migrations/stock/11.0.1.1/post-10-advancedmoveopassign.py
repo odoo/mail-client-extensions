@@ -55,6 +55,7 @@ def migrate(cr, version):
                     _logger.warning('UoM conversion failed for operation %s, product %s, picking %s between %s and %s',
                                     operation.id, move.product_id.display_name, picking.name,
                                     operation.product_uom_id.name, operation.product_id.uom_id.name)
+                    continue
                 if link[1] >= product_qty or move.state != 'done':
                     operation.move_id = move.id
                 else:
