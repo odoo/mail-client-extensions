@@ -35,13 +35,21 @@ def migrate(cr, version):
             AND upl.id = m.id
     """)
     
-    # Negative remaining_qty, remaining_value for outs that generated negative quants
+    # Negative remaining_qty for outs that generated negative quants
+    # Remaining_value should be 0 as they were not written for the out
     cr.execute("""
         UPDATE stock_move m SET remaining_qty = upl.remaining_qty, remaining_value = upl.remaining_value
-        FROM (SELECT m2.id AS id, SUM(q.quantity) AS remaining_qty, SUM(q.cost * q.quantity) AS remaining_value
-                FROM stock_quant_move_rel sqmr, stock_quant q, stock_location l, stock_move m2
+        FROM (SELECT m2.id AS id, - SUM(q.quantity) AS remaining_qty, 0.0 AS remaining_value
+                FROM stock_quant_move_rel sqmr, stock_quant q, stock_move m2
                 WHERE sqmr.move_id = m2.id AND q.id = sqmr.quant_id
-                AND l.id = q.location_id AND l.usage = 'internal' AND q.quantity < 0
+                 AND q.quantity > 0 AND q.propagated_from_id IS NOT NULL
+                 AND NOT EXISTS (SELECT m3.id FROM stock_move m3, stock_quant_move_rel r2, stock_location l11, stock_location l12
+                                WHERE r2.quant_id = q.id AND m3.id = r2.move_id AND m3.id != m2.id 
+                                    AND ((m3.date > m2.date) OR (m3.date = m2.date and m3.id > m2.id)) 
+                                    AND m3.location_id = l11.id AND m3.location_dest_id = l12.id
+                                    AND l12.usage != 'internal' AND (l12.usage != 'transit' OR l12.company_id IS NULL) 
+                                    AND (l11.usage = 'internal' OR (l11.usage = 'transit' AND l11.company_id IS NOT NULL))
+                                    )
                 GROUP BY m2.id) upl, 
             stock_location l1, stock_location l2 
         WHERE (l1.usage = 'internal' or (l1.usage='transit' AND l1.company_id IS NOT NULL)) and l2.usage != 'internal' and (l2.usage != 'transit' OR l2.company_id IS NULL)
@@ -66,10 +74,12 @@ def migrate(cr, version):
                         WHERE qupi.move_id = m.id""")
     
     # price_unit and value negative in out case
+    # Value will be corrected by fixed fifo_vacuum afterwards
     cr.execute("""UPDATE stock_move m SET price_unit = qupi.price, value = qupi.value
                         FROM (SELECT m2.id AS move_id, - SUM(q.quantity * q.cost) / m2.product_qty AS price, -SUM(q.quantity * q.cost) AS value
                                 FROM stock_move m2, stock_quant_move_rel sqmr, stock_quant q, stock_location l1, stock_location l2 
                                 WHERE sqmr.move_id = m2.id AND sqmr.quant_id = q.id AND q.quantity > 0 AND m2.product_qty > 0
+                                    AND q.propagated_from_id IS NULL
                                     AND l1.id = m2.location_id AND l2.id = m2.location_dest_id
                                     AND (l1.usage = 'internal' or (l1.usage='transit' AND l1.company_id IS NOT NULL)) and l2.usage != 'internal' and (l2.usage != 'transit' OR l2.company_id IS NULL)
                                 GROUP BY m2.id) qupi 
