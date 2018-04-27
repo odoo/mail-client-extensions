@@ -118,11 +118,6 @@ def migrate(cr, version):
         DELETE FROM stock_quant q USING product_product p, product_template pt
             WHERE pt.type = 'consu' AND p.id = q.product_id AND pt.id = p.product_tmpl_id
     """)
-    # Remove in_date for quants without lot -> TODO: might be removed with patch
-    cr.execute("""UPDATE stock_quant q SET in_date = NULL FROM product_product p, product_template pt
-                    WHERE q.product_id = p.id AND p.product_tmpl_id = pt.id 
-                        AND pt.tracking = 'none' AND q.lot_id IS NULL
-    """)
 
     # Create stock_move_line for stock moves done without
     cr.execute("""INSERT INTO stock_move_line
