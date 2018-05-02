@@ -12,12 +12,6 @@ def migrate(cr, version):
     util.remove_record(cr, 'l10n_be_hr_payroll.hr_payroll_rules_insurance')
     util.remove_record(cr, 'l10n_be_hr_payroll.hr_payroll_rules_advantage')
 
-    # Demo data -> To keep ?
-    util.remove_record(cr, 'hr_payroll.hr_contract_firstcontract1')
-    util.remove_record(cr, 'hr_payroll.hr_employee_payroll')
-    util.remove_record(cr, 'l10n_be_hr_payroll.res_partner_onss')
-    util.remove_record(cr, 'l10n_be_hr_payroll.res_partner_pp')
-
     util.remove_field(cr, 'hr.contract', 'travel_reimbursement_amount')
     util.remove_field(cr, 'hr.contract', 'car_company_amount')
     util.remove_field(cr, 'hr.contract', 'car_employee_deduction')
