@@ -4,6 +4,11 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.rename_model(cr, 'crm.case.section', 'crm.team')
     cr.execute("ALTER TABLE sale_member_rel RENAME COLUMN section_id TO team_id")
+    cr.execute("""
+            UPDATE mail_message_subtype
+               SET relation_field = 'team_id'
+             WHERE res_model = 'crm.team'
+    """)
 
     cr.execute("""UPDATE ir_model_data
                      SET name=replace(name, 'case_section', 'team')
