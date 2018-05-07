@@ -30,4 +30,7 @@ def migrate(cr, version):
     # remove cron from unknow models (wont never run)
     cr.execute("DELETE FROM ir_cron WHERE ir_actions_server_id IS NULL")
 
+    for field in 'model function args'.split():
+        util.remove_field(cr, 'ir.cron', field)
+
     util.rename_xmlid(cr, 'base.ir_cron_view', 'base.ir_cron_view_form')
