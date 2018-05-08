@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 def migrate(cr, version):
-    # remove duplicated translation (allow creation of unique index)
+    # remove empty and duplicated translation (allow creation of unique index)
+    cr.execute("DELETE FROM ir_translation WHERE trim(coalesce(value, '')) = ''")
     cr.execute("""
         DELETE FROM ir_translation WHERE id IN (
              SELECT unnest((array_agg(id ORDER BY id))[2:array_length(array_agg(id), 1)])
