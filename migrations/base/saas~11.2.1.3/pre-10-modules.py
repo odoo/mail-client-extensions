@@ -17,3 +17,4 @@ def migrate(cr, version):
                         auto_install=True)
         util.new_module(cr, 'l10n_ca_check_printing', deps={'account_check_printing', 'l10n_ca'},
                         auto_install=True)
+        util.module_deps_diff(cr, 'website_crm_score', minus={'marketing_automation'})
