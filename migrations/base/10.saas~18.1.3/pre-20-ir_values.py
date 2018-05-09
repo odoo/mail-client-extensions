@@ -20,7 +20,10 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE ir_actions a
            SET binding_model_id = m.id,
-               binding_type = CASE WHEN v.key2 = 'client_print_multi' THEN 'report' ELSE 'action' END
+               binding_type = CASE WHEN v.key2 = 'client_print_multi' THEN 'report'
+                                   WHEN NOT v.multi AND v.key2 = 'client_action_relate' THEN 'action_form_only'
+                                   ELSE 'action'
+                               END
           FROM ir_values v, ir_model m
          WHERE v.key = 'action'
            AND a.id = split_part({}, ',', 2)::int4
