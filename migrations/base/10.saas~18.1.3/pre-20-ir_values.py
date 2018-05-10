@@ -18,14 +18,25 @@ def migrate(cr, version):
     col, _ = util._ir_values_value(cr)
 
     cr.execute("""
+        WITH act_multi AS (
+            SELECT id, bool_or(multi) as multi FROM (
+                SELECT id, multi FROM ir_act_window
+                 UNION
+                SELECT id, multi FROM ir_act_report_xml
+                 UNION
+                SELECT id, false FROM ir_actions
+            ) u
+            GROUP BY id
+        )
         UPDATE ir_actions a
            SET binding_model_id = m.id,
                binding_type = CASE WHEN v.key2 = 'client_print_multi' THEN 'report'
-                                   WHEN NOT v.multi AND v.key2 = 'client_action_relate' THEN 'action_form_only'
+                                   WHEN NOT u.multi AND v.key2 = 'client_action_relate' THEN 'action_form_only'
                                    ELSE 'action'
                                END
-          FROM ir_values v, ir_model m
-         WHERE v.key = 'action'
+          FROM act_multi u, ir_values v, ir_model m
+         WHERE u.id = a.id
+           AND v.key = 'action'
            AND a.id = split_part({}, ',', 2)::int4
            AND m.model = v.model
     """.format(col))
