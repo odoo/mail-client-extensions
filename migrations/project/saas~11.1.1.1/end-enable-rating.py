@@ -8,4 +8,6 @@ def migrate(cr, version):
          WHERE res_model='project.task'
     """)
     if cr.fetchone()[0] > 0:
-        util.env(cr)['res.config.settings'].create({'group_project_rating': True}).execute()
+        util.env(cr).ref('base.group_user').write({
+            'implied_ids': [(4, util.ref('project.group_project_rating'))],
+        })
