@@ -16,8 +16,6 @@ def _db_openerp(cr, version):
     # waiting revert in saas~11.2
     util.force_noupdate(cr, 'openerp_enterprise.reminder_expiration_one_app_free_email', True)
 
-    util.force_install_module(cr, 'website_calendar')
-
     with util.edit_view(cr, view_id=8118) as view:
         button = view.find('button')
         button.attrib['position'] = 'attributes'
