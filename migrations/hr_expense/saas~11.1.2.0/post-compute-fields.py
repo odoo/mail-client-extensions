@@ -5,7 +5,7 @@ def migrate(cr, version):
     cr.execute("""
         SELECT id
           FROM hr_expense
-         WHERE currency_company_id IS NOT NULL
+         WHERE company_currency_id IS NOT NULL
            AND total_amount_company IS NULL
     """)
     ids = [x[0] for x in cr.fetchall()]

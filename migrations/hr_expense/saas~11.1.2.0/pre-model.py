@@ -2,10 +2,10 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.create_column(cr, 'hr_expense', 'currency_company_id', 'int4')
+    util.create_column(cr, 'hr_expense', 'company_currency_id', 'int4')
     cr.execute("""
         UPDATE hr_expense e
-           SET currency_company_id = s.currency_id
+           SET company_currency_id = s.currency_id
           FROM hr_expense_sheet s
          WHERE s.id = e.sheet_id
     """)
@@ -14,5 +14,5 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE hr_expense
            SET total_amount_company = total_amount
-         WHERE currency_id = currency_company_id
+         WHERE currency_id = company_currency_id
     """)
