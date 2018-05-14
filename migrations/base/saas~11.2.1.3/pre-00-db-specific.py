@@ -9,7 +9,7 @@ def _db_openerp(cr, version):
     cr.execute("DELETE FROM ir_model_fields WHERE model='ir.actions.url'")
 
     util.remove_view(cr, 'openerp_website.website_data-selectors')
-    util.remove_view(cr, view_id=10821)
+    cr.execute("UPDATE ir_ui_view SET active=false WHERE id=10821")
 
     # do not need to be changed
     util.force_noupdate(cr, 'sale_subscription.email_subscription_open', True)
