@@ -9,5 +9,5 @@ def migrate(cr, version):
     """)
     if cr.fetchone()[0] > 0:
         util.env(cr).ref('base.group_user').write({
-            'implied_ids': [(4, util.ref('project.group_project_rating'))],
+            'implied_ids': [(4, util.ref(cr, 'project.group_project_rating'))],
         })
