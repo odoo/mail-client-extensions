@@ -7,7 +7,7 @@ def migrate(cr, version):
     cr.execute("""
         WITH lastatt AS (
             SELECT employee_id,
-                   max(id ORDER BY check_in desc) as id
+                   (array_agg(id ORDER BY check_in desc))[1] as id
               FROM hr_attendance
             GROUP BY employee_id
         )
