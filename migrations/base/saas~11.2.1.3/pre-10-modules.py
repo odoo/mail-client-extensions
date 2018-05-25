@@ -6,9 +6,11 @@ def migrate(cr, version):
     util.new_module(cr, 'social_media', deps={'base'})
     util.force_migration_of_fresh_module(cr, 'social_media')
 
+    util.new_module_dep(cr, 'iap', 'web_settings_dashboard')
     util.new_module_dep(cr, 'l10n_cn', 'l10n_multilang')
     util.new_module_dep(cr, 'mass_mailing', 'social_media')
     util.new_module_dep(cr, 'website', 'social_media')
+    util.new_module_dep(cr, 'website_quote', 'sale_payment')
 
     util.rename_module(cr, 'mrp_repair', 'repair')
 
