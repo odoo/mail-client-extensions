@@ -31,9 +31,9 @@ def migrate(cr, version):
     cr.execute("""
         INSERT INTO stock_move_line
         (product_id, location_id, location_dest_id, product_qty, product_uom_qty, qty_done, product_uom_id,
-                                owner_id, date, lot_id, move_id, state)
+                                owner_id, date, lot_id, move_id, picking_id, state)
         SELECT q.product_id, q.location_id, mres.location_dest_id, SUM(q.quantity), 0.0, 0.0, mres.product_uom,
-                                q.owner_id, mres.date, q.lot_id, mres.id, mres.state
+                                q.owner_id, mres.date, q.lot_id, mres.id, mres.picking_id, mres.state
         FROM stock_quant q, stock_move mres
         WHERE q.reservation_id = mres.id AND NOT EXISTS
             (SELECT ml.id
