@@ -17,7 +17,7 @@ def migrate(cr, version):
     """)
     cr.execute("DELETE FROM res_partner_title WHERE domain='partner'")
 
-    cr.execute("UPDATE res_partner SET type='contact' WHERE type='default'")
+    cr.execute("UPDATE res_partner SET type='contact' WHERE type='default' OR type IS NULL")
     cr.execute("""
         UPDATE res_partner
            SET type='other'
