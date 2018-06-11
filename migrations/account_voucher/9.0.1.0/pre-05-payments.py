@@ -71,23 +71,36 @@ def migrate(cr, version):
            -- AND (l.debit = p.amount OR l.credit = p.amount)
     """)
     cr.execute("""
+        WITH reconcile AS (
+             SELECT array_remove(array_agg(payment_id), NULL) payment_ids,
+                    array_remove(array_agg(invoice_id), NULL) invoice_ids
+               FROM account_move_line
+              WHERE reconcile_id IS NOT NULL
+           GROUP BY reconcile_id
+        ),
+        partial AS (
+             SELECT array_remove(array_agg(payment_id), NULL) payment_ids,
+                    array_remove(array_agg(invoice_id), NULL) invoice_ids
+               FROM account_move_line
+              WHERE reconcile_partial_id IS NOT NULL
+           GROUP BY reconcile_partial_id
+        )
+
         INSERT INTO account_invoice_payment_rel(payment_id, invoice_id)
              SELECT payment_id, invoice_id
                FROM account_move_line
               WHERE payment_id IS NOT NULL
                 AND invoice_id IS NOT NULL
               UNION
-             SELECT unnest(array_remove(array_agg(payment_id), NULL)),
-                    unnest(array_remove(array_agg(invoice_id), NULL))
-               FROM account_move_line
-              WHERE reconcile_id IS NOT NULL
-           GROUP BY reconcile_id
+             SELECT p, i
+               FROM reconcile,
+                    unnest(reconcile.payment_ids) p,
+            LATERAL unnest(reconcile.invoice_ids) i
               UNION
-             SELECT unnest(array_remove(array_agg(payment_id), NULL)),
-                    unnest(array_remove(array_agg(invoice_id), NULL))
-               FROM account_move_line
-              WHERE reconcile_partial_id IS NOT NULL
-           GROUP BY reconcile_partial_id
+             SELECT p, i
+               FROM partial,
+                    unnest(partial.payment_ids) p,
+            LATERAL unnest(partial.invoice_ids) i
     """)
 
     cr.execute("ALTER TABLE account_payment DROP COLUMN _voucher_id")
