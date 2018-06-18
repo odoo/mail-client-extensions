@@ -176,5 +176,7 @@ def migrate(cr, version):
     # cleanup old fields
     util.remove_field(cr, 'stock.location.path', 'picking_type')
     util.remove_field(cr, 'stock.location.path', 'product_id')
+    util.remove_field(cr, 'stock.location.path', 'journal_id')
+    util.remove_field(cr, 'stock.location.path', 'invoice_state')
     util.remove_field(cr, 'procurement.rule', 'picking_type')
     util.remove_field(cr, 'procurement.rule', 'product_id')
