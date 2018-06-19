@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+import json
 import logging
 from math import ceil, log10
 import os
@@ -24,6 +25,7 @@ def migrate(cr, version):
         project_filter, params = '', []
 
     L('copy projects with tasks AND issues')
+    created_projects = {}
     cr.execute("""
         SELECT p.id, p.label_issues
           FROM project_project p
@@ -42,6 +44,53 @@ def migrate(cr, version):
             'label_tasks': label,
         }).id
         cr.execute("UPDATE project_issue SET project_id=%s WHERE project_id=%s", [nid, pid])
+        created_projects[pid] = nid
+
+    if created_projects:
+        cr.execute("""
+            WITH langs AS (
+                SELECT lang
+                  FROM ir_translation
+                 WHERE name = 'account.analytic.account,name'
+              GROUP BY lang
+            ),
+            projects AS (
+                SELECT p.analytic_account_id as aaid,
+                       l.lang,
+                       p.label_tasks,
+                       COALESCE(
+                            (SELECT value
+                               FROM ir_translation
+                              WHERE name = 'project.project,label_issues'
+                                AND res_id = p.id
+                                AND lang = l.lang),
+                            (SELECT value
+                               FROM ir_translation
+                              WHERE name = 'project.project,label_issues'
+                                AND res_id = p.id
+                                AND lang = 'en_US'),
+                            p.label_tasks
+                       ) as trans_label
+
+                  FROM project_project p,
+                       langs l
+                 WHERE p.id IN %s
+            )
+            UPDATE ir_translation t
+               SET value = CONCAT(t.value, ' (', p.trans_label, ')'),
+                   src = CONCAT(t.src, ' (', p.label_tasks, ')')
+              FROM projects p
+             WHERE t.res_id = p.aaid
+               AND t.lang = p.lang
+               AND t.name = 'account.analytic.account,name'
+        """, [tuple(created_projects.values())])
+        cr.execute("""
+            UPDATE ir_translation
+               SET name = 'project.project,label_tasks',
+                   res_id = ('{}'::json->>res_id::varchar)::int4
+             WHERE name = 'project.project,label_issues'
+               AND res_id IN %s
+        """.format(json.dumps(created_projects)), [tuple(created_projects.keys())])
 
     ignore = ('id', 'description')
     cols = set(util.get_columns(cr, 'project_task', ignore)[0]) \
