@@ -11,6 +11,9 @@ def migrate(cr, version):
                         auto_install=True)
         util.new_module(cr, 'hr_expense_sepa', deps=('account_sepa', 'hr_expense'),
                         auto_install=True)
+        util.new_module(cr, 'website_sale_taxcloud_delivery',
+                        deps=('website_sale_delivery', 'website_sale_account_taxcloud'),
+                        auto_install=True)
 
     with ignore(psycopg2.Error), util.savepoint(cr):
         util.new_module(cr, 'l10n_fr_certification', deps={'l10n_fr'})
