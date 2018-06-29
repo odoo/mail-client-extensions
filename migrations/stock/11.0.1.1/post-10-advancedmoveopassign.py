@@ -109,9 +109,9 @@ def migrate(cr, version):
                         _logger.warning("Rounding errors for splitting operation %s: %s vs. %s ", operation.id, product_uom_qty, qty)
                     cr.execute("""UPDATE stock_move_line SET qty_done = %s WHERE id = %s""",
                                (product_uom_qty - qty if product_uom_qty > qty else 0.0, operation.id)) #rounding errors, in sql, otherwise quants get changed
+                    util.env(cr)['stock.move.line'].invalidate_cache()
 
 
-    
     # Convert the (adapted) stock_pack_operation_lots into stock_move_line and delete their original stock_move_line
     cr.execute("""
         INSERT INTO stock_move_line (move_id, product_id, location_id, location_dest_id, product_uom_qty, qty_done, product_uom_id, 
