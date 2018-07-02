@@ -148,3 +148,10 @@ def migrate(cr, version):
     FROM stock_move m
     WHERE ml.move_id = m.id and ml.state is null;
     """)
+
+    # As date of migrated pack operations had no real meaning before, while it should be the date now
+    cr.execute("""
+        UPDATE stock_move_line SET date = m.date
+            FROM stock_move m
+            WHERE move_id = m.id AND m.state = 'done' AND m.picking_id IS NOT NULL
+    """)
