@@ -68,6 +68,23 @@ def migrate(cr, version):
 
     # Migration of stock_location
     if util.table_exists(cr, 'product_pulled_flow'):
+        moved = util.splitlines("""
+        partner_address_id
+        location_id
+        location_src_id
+        procure_method
+        cancel_cascade
+    """)
+        for m in moved:
+            util.move_field_to_module(cr, 'product.pulled.flow', m,'stock_location', 'stock')
+        util.move_field_to_module(cr, 'product.pulled.flow', 'invoice_state','stock_location', 'stock_account')
+        moved = util.splitlines("""
+        name
+        company_id
+        type_proc
+    """)
+        for m in moved:
+            util.move_field_to_module(cr, 'product.pulled.flow', m,'stock_location', 'procurement')
         util.rename_model(cr, 'product.pulled.flow', 'procurement.rule', rename_table=True)
         util.rename_field(cr, 'procurement.rule', 'cancel_cascade', 'propagate')
         util.rename_field(cr, 'procurement.rule', 'type_proc', 'action')
