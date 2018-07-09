@@ -12,7 +12,7 @@ def migrate(cr, version):
     used_counties = ' UNION '.join(
         'SELECT {1} AS id FROM {0} WHERE {1} IS NOT NULL'.format(tbl, col)
         for tbl, col, _, _ in util.get_fk(cr, 'res_country')
-    )
+    ) or 'NULL'
     cr.execute("""
         DELETE FROM res_country
               WHERE code IN ('an', 'nt', 'tp', 'yu', 'zr')
