@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     # create missing indexes
     index_query = "CREATE INDEX {0}_{1}_index ON {0}({1})".format
@@ -10,7 +11,9 @@ def migrate(cr, version):
     if util.column_exists(cr, 'account_analytic_line', 'holiday_id'):
         cr.execute(index_query('account_analytic_line', 'holiday_id'))
 
-    columns = ','.join(util.get_columns(cr, 'hr_leave_allocation', ignore=('id', 'parent_id'))[0])
+    # NOTE: number_of_hours is added by saas~11.4 and will be filled later...
+    ignored_columns = ('id', 'parent_id', 'number_of_hours')
+    columns = ','.join(util.get_columns(cr, 'hr_leave_allocation', ignore=ignored_columns)[0])
     util.create_column(cr, 'hr_leave_allocation', '_tmp', 'int4')
     cr.execute("""
         INSERT INTO hr_leave_allocation(_tmp, {0})
