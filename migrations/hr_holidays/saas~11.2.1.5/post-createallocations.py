@@ -11,16 +11,18 @@ def migrate(cr, version):
     if util.column_exists(cr, 'account_analytic_line', 'holiday_id'):
         cr.execute(index_query('account_analytic_line', 'holiday_id'))
 
-    # NOTE: number_of_hours is added by saas~11.4 and will be filled later...
-    ignored_columns = ('id', 'parent_id', 'number_of_hours')
-    columns = ','.join(util.get_columns(cr, 'hr_leave_allocation', ignore=ignored_columns)[0])
+    columns = (
+        set(util.get_columns(cr, 'hr_leave_allocation', ignore=('id', 'parent_id'))[0])
+        & set(util.get_columns(cr, 'hr_leave')[0])
+    )
+
     util.create_column(cr, 'hr_leave_allocation', '_tmp', 'int4')
     cr.execute("""
         INSERT INTO hr_leave_allocation(_tmp, {0})
              SELECT id, {0}
                FROM hr_leave
               WHERE type='add'
-    """.format(columns))
+    """.format(', '.join(columns)))
     cr.execute("""
         UPDATE hr_leave_allocation a
            SET parent_id = p.id
