@@ -36,7 +36,7 @@ def migrate(cr, version):
 
         view_{mrp_,}repair_kanban
 
-        act_{mrp_}repair_invoice
+        act_{mrp_,}repair_invoice
 
         # some demo data
         {mrp_repair_rmrp,repair_r}0
