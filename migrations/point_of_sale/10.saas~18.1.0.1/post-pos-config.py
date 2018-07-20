@@ -41,6 +41,6 @@ def migrate(cr, version):
         INSERT INTO pos_config_product_pricelist_rel(pos_config_id, product_pricelist_id)
              SELECT c.id, p.id
                FROM pos_config c, product_pricelist p
-              WHERE c.company_id = p.company_id
+              WHERE c.company_id = COALESCE(p.company_id, c.company_id)
                 AND p.active = true
     """)
