@@ -181,7 +181,7 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.new_module(cr, 'account_tax_python')
         util.new_module_dep(cr, 'account_tax_python', 'account')
-        if util.module_installed(cr, 'account'):
+        if util.module_installed(cr, 'account') and util.table_exists(cr, "account_tax"):
             cr.execute("SELECT count(1) FROM account_tax WHERE type='code'")
             if cr.fetchone()[0]:
                 util.force_install_module(cr, 'account_tax_python')
