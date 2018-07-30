@@ -27,13 +27,24 @@ def migrate(cr, version):
 
     # only one reference uom is allowed per category
     # Change type and let xml data updates them
-    cr.execute("UPDATE uom_uom SET uom_type='bigger', factor=1 WHERE uom_type='reference'")
+    cr.execute("""
+        WITH multiple_references AS (
+            SELECT unnest((array_agg(id order by id))[2:array_length(array_agg(id), 1)]) as id
+              FROM uom_uom
+             WHERE uom_type='reference'
+          GROUP BY category_id
+            HAVING count(id) > 1
+        )
+        UPDATE uom_uom
+           SET uom_type='bigger', factor=1
+         WHERE id IN (SELECT id FROM multiple_references)
+    """)
 
     eb = util.expand_braces
     units = "unit dozen kgm gram day hour ton meter km cm litre "\
             "lb oz inch foot mile floz qt gal"
     for unit in units.split():
-        util.rename_xmlid(cr, *eb("{product,uom}.product_uom_" + unit), noupdate=False)
+        util.rename_xmlid(cr, *eb("{product,uom}.product_uom_" + unit))
 
     for suffix in "tree_view form_view form_action".split():
         util.rename_xmlid(cr, *eb("{product,uom}.product_uom_" + suffix))
