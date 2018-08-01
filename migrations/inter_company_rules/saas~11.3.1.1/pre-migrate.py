@@ -20,6 +20,7 @@ def migrate(cr, version):
                                    THEN 'sale'
                                    WHEN po_from_so=true
                                    THEN 'purchase'
+                              END
     """)
     cr.execute("""
         ALTER TABLE res_company
