@@ -300,8 +300,19 @@ def migrate(cr, version):
         SET scheduled_date = max_date
         WHERE move_type != 'direct'
     """)
-    util.remove_field(cr, 'stock_picking', 'min_date')
-    util.remove_field(cr, 'stock_picking', 'max_date')
+    oldfields = util.splitlines("""
+        min_date
+        max_date
+        launch_pack_operations
+        pack_operation_product_ids
+        quant_reserved_exist
+        pack_operation_ids
+        recompute_pack_op
+        pack_operation_pack_ids
+        pack_operation_exist
+    """)
+    for f in oldfields:
+        util.remove_field(cr, 'stock.picking', f)
     
     util.create_column(cr, 'stock_move', 'reference', 'varchar')
     cr.execute("""
