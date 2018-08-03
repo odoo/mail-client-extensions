@@ -28,5 +28,3 @@ def migrate(cr, version):
         for model, fields in PROJECT_FIELDS.items():
             for field in fields:
                 util.move_field_to_module(cr, model, field, "project", "hr_timesheet")
-
-    util.remove_column(cr, "project_task", "remaining_hours")  # keep field
