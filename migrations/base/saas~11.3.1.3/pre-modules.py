@@ -10,7 +10,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'hr_timesheet', 'analytic')
     util.new_module_dep(cr, 'l10n_lu', 'l10n_multilang')
     util.new_module_dep(cr, 'product', 'uom')
-    util.force_migration_of_fresh_module(cr, 'uom')
+    util.force_migration_of_fresh_module(cr, 'uom', init=False)
     util.remove_module_deps(cr, 'project', {'analytic'})
 
     util.module_deps_diff(cr, 'survey', plus={'http_routing'}, minus={'website'})
