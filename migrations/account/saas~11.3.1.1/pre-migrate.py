@@ -12,3 +12,4 @@ def migrate(cr, version):
 
     util.remove_view(cr, "account.view_account_invoice_filter_inherit_invoices")
     util.remove_view(cr, "account.view_account_invoice_filter_inherit_credit_notes")
+    util.remove_view(cr, "account.view_tax_form_cash_basis_inherit")  # from account_cash_basis_base_account module
