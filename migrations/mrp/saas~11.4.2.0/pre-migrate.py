@@ -13,3 +13,5 @@ def migrate(cr, version):
 
     util.remove_record(cr, "mrp.mrp_message_action_main")
     util.remove_menus(cr, [util.ref(cr, "mrp.message_menu")])
+    util.remove_model(cr, "mrp.message")
+    util.remove_field(cr, "mrp.workorder", "production_messages")
