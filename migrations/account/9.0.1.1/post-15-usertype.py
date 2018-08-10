@@ -79,12 +79,16 @@ def migrate(cr, version):
         """, (tuple(types_to_keep),))
 
     # compute related field on account_move_line
+    cr.execute("alter table account_move_line drop constraint account_move_line_user_type_id_fkey")
+    cr.execute("drop index account_move_line_user_type_id_index")
     cr.execute("""
         UPDATE account_move_line aml
            SET user_type_id = acc.user_type_id
           FROM account_account acc
          WHERE aml.account_id = acc.id
     """)
+    cr.execute("create index account_move_line_user_type_id_index on account_move_line (user_type_id)")
+    cr.execute("alter table account_move_line add constraint account_move_line_user_type_id_fkey FOREIGN KEY (user_type_id) REFERENCES account_account_type(id) ON DELETE SET NULL")
 
     """
         Compute related field internal_type

@@ -119,59 +119,60 @@ def migrate(cr, version):
         else:
             invoices_mapping[invoice['move_id']] = [(invoice['tax_id'], invoice['name'])]
 
-    cr.execute("""SELECT a.id, a.debit, a.credit, a.account_id, t.id AS tax_id, t.parent_id as parent_tax_id, 
-                        t.name, a.move_id, a.name as aml_name
-                    FROM account_move_line a, account_tax t 
-                    WHERE (t.base_code_id = a.tax_code_id OR t.ref_base_code_id = a.tax_code_id) 
-                        AND a.tax_code_id IS NOT NULL AND a.tax_amount != 0 AND t.company_id = a.company_id
-                        AND (t.base_code_id IS NOT NULL OR t.ref_base_code_id IS NOT NULL)
-                        AND a.tax_line_id IS NULL
-                """)
-    mapped = {}
-    not_mapped = {}
-    invoiced_mapped = {}
-    for aml in cr.dictfetchall():
-        if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
-            tax_id = False
-            invoice_tax_list = invoices_mapping.get(aml['move_id'], False)
-            if invoice_tax_list:
+    with util.disabled_index_on(cr, 'account_move_line_account_tax_rel'):
+        cr.execute("""SELECT a.id, a.debit, a.credit, a.account_id, t.id AS tax_id, t.parent_id as parent_tax_id,
+                            t.name, a.move_id, a.name as aml_name
+                        FROM account_move_line a, account_tax t
+                        WHERE (t.base_code_id = a.tax_code_id OR t.ref_base_code_id = a.tax_code_id)
+                            AND a.tax_code_id IS NOT NULL AND a.tax_amount != 0 AND t.company_id = a.company_id
+                            AND (t.base_code_id IS NOT NULL OR t.ref_base_code_id IS NOT NULL)
+                            AND a.tax_line_id IS NULL
+                    """)
+        mapped = {}
+        not_mapped = {}
+        invoiced_mapped = {}
+        for aml in cr.dictfetchall():
+            if (aml['debit'] != 0 or aml['credit'] != 0) and not mapped.get(aml['id']):
                 tax_id = False
-                # Check if one of the invoice line has the same name and value as tax_id
-                # If yes, keep that one
-                if ((aml['tax_id'], aml['aml_name']) in invoice_tax_list):
-                    tax_id = aml['tax_id']
-                elif ((aml['parent_tax_id'], aml['aml_name']) in invoice_tax_list):
-                    tax_id = aml['parent_tax_id']
+                invoice_tax_list = invoices_mapping.get(aml['move_id'], False)
+                if invoice_tax_list:
+                    tax_id = False
+                    # Check if one of the invoice line has the same name and value as tax_id
+                    # If yes, keep that one
+                    if ((aml['tax_id'], aml['aml_name']) in invoice_tax_list):
+                        tax_id = aml['tax_id']
+                    elif ((aml['parent_tax_id'], aml['aml_name']) in invoice_tax_list):
+                        tax_id = aml['parent_tax_id']
+                    else:
+                        taxes_id = [t[0] for t in invoice_tax_list]
+                        temp_tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
+                            or aml['parent_tax_id'] in taxes_id and aml['parent_tax_id']\
+                            or False
+                        if temp_tax_id and not invoiced_mapped.get(aml['id'], False):
+                            invoiced_mapped[aml['id']] = temp_tax_id
+                if not tax_id:
+                    not_mapped[aml['id']] = aml['tax_id']
                 else:
-                    taxes_id = [t[0] for t in invoice_tax_list]
-                    temp_tax_id = aml['tax_id'] in taxes_id and aml['tax_id'] \
-                        or aml['parent_tax_id'] in taxes_id and aml['parent_tax_id']\
-                        or False
-                    if temp_tax_id and not invoiced_mapped.get(aml['id'], False):
-                        invoiced_mapped[aml['id']] = temp_tax_id
-            if not tax_id:
-                not_mapped[aml['id']] = aml['tax_id']
-            else:
-                cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id) 
-                                VALUES(%s, %s)
-                            """, (aml['id'], tax_id))
-                mapped[aml['id']] = tax_id
+                    cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id)
+                                    VALUES(%s, %s)
+                                """, (aml['id'], tax_id))
+                    mapped[aml['id']] = tax_id
 
-    for k,v in invoiced_mapped.items():
-        if not mapped.get(k, False):
-            cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id) 
-                                VALUES(%s, %s)
-                            """, (k, v))
-            mapped[k] = v
+        for k,v in invoiced_mapped.items():
+            if not mapped.get(k, False):
+                cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id)
+                                    VALUES(%s, %s)
+                                """, (k, v))
+                mapped[k] = v
 
-    for k,v in not_mapped.items():
-        if not mapped.get(k, False):
-            cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id) 
-                                VALUES(%s, %s)
-                            """, (k, v))
+        for k,v in not_mapped.items():
+            if not mapped.get(k, False):
+                cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id)
+                                    VALUES(%s, %s)
+                                """, (k, v))
 
     cr.execute("""SELECT aml.id, aml.debit, aml.credit, aml.account_id, tax.id AS tax_id, tax.parent_id as parent_tax_id,
-                     tax.name, aml.move_id, aml.name as aml_name 
+                     tax.name, aml.move_id, aml.name as aml_name
                     FROM account_move_line aml, account_tax tax
                     WHERE (tax.tax_code_id = aml.tax_code_id OR tax.ref_tax_code_id = aml.tax_code_id)
                         AND aml.tax_code_id IS NOT NULL AND aml.tax_amount != 0  AND tax.company_id = aml.company_id
@@ -239,4 +240,3 @@ def migrate(cr, version):
                      SET type_tax_use = 'sale', name = name || ' (sale)'
                    WHERE type_tax_use = 'all'
     """)
-

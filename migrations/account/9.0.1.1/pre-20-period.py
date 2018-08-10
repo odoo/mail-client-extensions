@@ -14,11 +14,12 @@ def migrate(cr, version):
                 """)
 
     #Set the related date on account_move_line
-    cr.execute("""UPDATE account_move_line aml 
-                    SET date = am.date 
-                    FROM account_move am 
-                    WHERE aml.move_id = am.id
-                """)
+    with util.disabled_index_on(cr, 'account_move_line'):
+        cr.execute("""UPDATE account_move_line aml
+                        SET date = am.date
+                        FROM account_move am
+                        WHERE aml.move_id = am.id
+                    """)
 
     #and again on account_bank_statement
     cr.execute("""UPDATE account_bank_statement a

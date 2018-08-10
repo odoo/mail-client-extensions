@@ -25,30 +25,31 @@ def migrate(cr, version):
     util.create_column(cr, 'account_move_line', 'credit_cash_basis', 'numeric')
     util.create_column(cr, 'account_move_line', 'balance_cash_basis', 'numeric')
 
-    cr.execute("""UPDATE account_move_line aml 
-                    SET balance = (aml.debit-aml.credit), 
-                        company_currency_id = c.currency_id, 
-                        user_type_id = acc.user_type, 
-                        amount_residual = CASE WHEN acc.reconcile = false THEN 0 ELSE NULL END,
-                        amount_residual_currency = CASE WHEN acc.reconcile = false THEN 0 ELSE NULL END,
-                        reconciled = CASE WHEN acc.reconcile = false THEN false ELSE NULL END, 
-                        debit_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.debit ELSE NULL END,
-                        credit_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.credit ELSE NULL END,
-                        balance_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.debit-aml.credit ELSE NULL END
-                    FROM res_company c,
-                        account_account acc,
-                        account_journal j 
-                    WHERE aml.company_id = c.id AND aml.account_id = acc.id AND aml.journal_id = j.id""")
+    with util.disabled_index_on(cr, 'account_move_line'):
+        cr.execute("""UPDATE account_move_line aml
+                        SET balance = (aml.debit-aml.credit),
+                            company_currency_id = c.currency_id,
+                            user_type_id = acc.user_type,
+                            amount_residual = CASE WHEN acc.reconcile = false THEN 0 ELSE NULL END,
+                            amount_residual_currency = CASE WHEN acc.reconcile = false THEN 0 ELSE NULL END,
+                            reconciled = CASE WHEN acc.reconcile = false THEN false ELSE NULL END,
+                            debit_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.debit ELSE NULL END,
+                            credit_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.credit ELSE NULL END,
+                            balance_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.debit-aml.credit ELSE NULL END
+                        FROM res_company c,
+                            account_account acc,
+                            account_journal j
+                        WHERE aml.company_id = c.id AND aml.account_id = acc.id AND aml.journal_id = j.id""")
 
-    #update aml that are from invoice that have been fully paid, meaning the aml are already reconciled
-    cr.execute("""UPDATE account_move_line aml
-                    SET amount_residual = 0.0,
-                        amount_residual_currency = 0.0, 
-                        reconciled = true
-                    FROM account_account acc, account_invoice inv
-                    WHERE aml.account_id = acc.id AND aml.move_id = inv.move_id AND acc.reconcile = true AND inv.state != 'open'
-                        AND aml.reconcile_id IS NOT NULL
-                """)
+        #update aml that are from invoice that have been fully paid, meaning the aml are already reconciled
+        cr.execute("""UPDATE account_move_line aml
+                        SET amount_residual = 0.0,
+                            amount_residual_currency = 0.0,
+                            reconciled = true
+                        FROM account_account acc, account_invoice inv
+                        WHERE aml.account_id = acc.id AND aml.move_id = inv.move_id AND acc.reconcile = true AND inv.state != 'open'
+                            AND aml.reconcile_id IS NOT NULL
+                    """)
 
     util.create_column(cr, 'account_invoice', 'residual_company_signed', 'numeric')
     util.create_column(cr, 'account_invoice', 'residual_signed', 'numeric')
@@ -90,7 +91,6 @@ def migrate(cr, version):
                     WHERE t2.move_id = m.id AND m.company_id = c.id
                 """)
 
-    
     util.create_column(cr, 'account_invoice_line', 'currency_id', 'int4')
 
     cr.execute("""UPDATE account_invoice_line l
