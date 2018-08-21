@@ -12,7 +12,7 @@ def migrate(cr, version):
         UPDATE account_chart_template c
            SET transfert_account_code_prefix = a.code
           FROM account_account_template a
-         WHERE a.id = c.transfert_account_id
+         WHERE a.id = c.transfer_account_id
         """
     )
 
@@ -21,7 +21,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.line", "is_unaffected_earning_line")
     util.remove_field(cr, "account.chart.template", "company_id")
     util.remove_field(cr, "account.chart.template", "transfert_account_id")
-    util.remove_field(cr, "wizard.multi.charts.accounts", "transfert_account_id")
+    util.remove_field(cr, "wizard.multi.charts.accounts", "transfer_account_id")
     util.remove_field(cr, "account.tax.template", "company_id")
 
     util.remove_model(cr, "account.opening")
