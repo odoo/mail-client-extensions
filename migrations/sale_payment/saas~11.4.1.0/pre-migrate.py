@@ -30,3 +30,4 @@ def migrate(cr, version):
 
     util.remove_view(cr, "sale_payment.sale_order_view_form")
     util.remove_view(cr, "sale_payment.payment_confirmation_status")
+    util.remove_view(cr, "sale_payment.crm_team_salesteams_view_kanban_inherit_website_portal_sale")
