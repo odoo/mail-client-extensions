@@ -10,3 +10,5 @@ def migrate(cr, version):
     util.remove_view(cr, "account.setup_bank_journal_form")
     util.remove_view(cr, "account.setup_posted_move_form")
     util.remove_view(cr, "account.setup_opening_move_line_tree")
+
+    cr.execute("UPDATE ir_model_data SET noupdate=false WHERE model LIKE 'account.%.template'")
