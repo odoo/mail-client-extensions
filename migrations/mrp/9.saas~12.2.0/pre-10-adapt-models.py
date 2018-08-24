@@ -31,3 +31,9 @@ def migrate(cr, version):
         UPDATE mrp_bom_line SET product_qty = product_qty / product_efficiency
         WHERE product_efficiency != 1.0 AND product_efficiency > 0.0
     """)
+
+    #Computation of this field loads pretty all stock moves...
+    #Try to avoid this.
+    util.create_column(cr, 'stock_move', 'is_done', 'boolean')
+    util.create_column(cr, 'mrp_production', 'availability', 'varchar')
+    util.create_column(cr, 'mrp_workcenter', 'working_state', 'varchar')
