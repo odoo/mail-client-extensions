@@ -1,4 +1,5 @@
 import logging
+import os
 
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
@@ -7,7 +8,7 @@ from openerp.addons.base.maintenance.migrations import util
 NS = 'openerp.addons.base.maintenance.migrations.stock.saas-5.'
 _logger = logging.getLogger(NS + __name__)
 
-MINIMUM_ROUNDING = 1e-06
+MINIMUM_ROUNDING = os.environ.get('ODOO_SAAS_5_MINIMUM_STOCK_ROUNDING', 1e-08)
 
 def sanitize_moves(cr):
     fixed_moves = 0
