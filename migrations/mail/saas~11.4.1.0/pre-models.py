@@ -11,13 +11,5 @@ def migrate(cr, version):
     util.create_column(cr, "mail_message_res_partner_needaction_rel", "failure_type", "varchar")
     util.create_column(cr, "mail_message_res_partner_needaction_rel", "failure_reason", "text")
 
-    cr.execute("""
-        UPDATE mail_message_res_partner_needaction_rel
-           SET failure_type = CASE WHEN email_status = 'bounce' THEN 'BOUNCE'
-                                   WHEN email_status = 'exception' THEN 'UNKNOWN'
-                                   ELSE 'NONE'
-                               END,
-               failure_reason = CASE WHEN email_status = 'exception' THEN 'Unknown Error'
-                                     ELSE NULL
-                                END
-    """)
+    cr.execute("UPDATE mail_message_res_partner_needaction_rel SET failure_type='UNKNOWN' WHERE email_status = 'exception'")
+    cr.execute("UPDATE mail_message_res_partner_needaction_rel SET failure_type='BOUNCE' WHERE email_status = 'bounce'")
