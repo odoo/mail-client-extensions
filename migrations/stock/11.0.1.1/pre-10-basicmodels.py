@@ -145,7 +145,7 @@ def migrate(cr, version):
     # Make links between split_froms and all their dests and original chained moves
     cr.execute("""SELECT id, picking_id FROM stock_move m
                     WHERE m.split_from IS NULL
-                     AND m.state != 'cancel'
+                     AND m.state != 'cancel' AND picking_id IS NOT NULL
                      AND EXISTS (SELECT id FROM stock_move m2 WHERE m2.split_from = m.id AND m2.state != 'cancel')""")
     res = cr.fetchall()
     for re in res:
