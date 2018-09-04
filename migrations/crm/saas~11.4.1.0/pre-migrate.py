@@ -7,11 +7,10 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE crm_lead
            SET expected_revenue =
-                 round((COALESCE(planned_revenue, 0) * COALESCE(probability, 0) / 100.0)::numeric, 2),
-               priority = CASE WHEN priority = '0' THEN '1'  -- Normal/Medium
-                               WHEN priority = '1' THEN '0'  -- Low
-                               ELSE priority
-                           END
+                 round((COALESCE(planned_revenue, 0) * COALESCE(probability, 0) / 100.0)::numeric, 2)
+            WHERE round(expected_revenue, 2) !=
+                  round((COALESCE(planned_revenue, 0) * COALESCE(probability, 0) / 100.0)::numeric, 2)
+                OR expected_revenue IS NULL
     """)
 
     cr.execute("""
