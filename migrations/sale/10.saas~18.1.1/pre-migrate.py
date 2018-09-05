@@ -10,7 +10,6 @@ def migrate(cr, version):
     """, [util.ref(cr, 'sale.product_template_form_view_invoice_policy')])
 
     util.rename_field(cr, 'sale.order', 'project_id', 'analytic_account_id')
-    util.remove_field(cr, 'sale.order', 'procurement_group_id')
 
     util.create_column(cr, 'account_invoice_line', 'price_total', 'numeric')
     util.create_column(cr, 'sale_order_line', 'amt_to_invoice', 'numeric')
