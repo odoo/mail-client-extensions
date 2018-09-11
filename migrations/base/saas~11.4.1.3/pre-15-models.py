@@ -3,7 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, 'base.user_groups_view')
     cr.execute("""
         UPDATE res_partner
            SET active = true
