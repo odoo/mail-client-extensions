@@ -22,7 +22,7 @@ def migrate(cr, version):
         util.new_module(cr, "project_timesheet_forecast",
                         deps={"hr_timesheet", "project_forecast"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "project_timesheet_forecast")
-        util.new_module(cr, "web_dashboard", deps={"web"})
+        util.new_module(cr, "web_dashboard", deps={"web"}, auto_install=True)
         util.new_module(cr, "website_sale_dashboard",
                         deps={"website_sale", "web_dashboard"}, auto_install=True)
         util.new_module(cr, "website_sale_dashboard_with_margin",
