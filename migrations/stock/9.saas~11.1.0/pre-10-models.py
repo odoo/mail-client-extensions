@@ -6,11 +6,13 @@ def migrate(cr, version):
     # They aimed to store the initially ordered quantity in case the move/operation qty change
     # This can be invalid but we will initiate these columns with the currently processed qty
 
-    util.create_column(cr, 'stock_move', 'ordered_qty', 'numeric')
-    util.create_column(cr, 'stock_pack_operation', 'ordered_qty', 'numeric')
+    with util.disabled_index_on(cr, 'stock_move'):
+        util.create_column(cr, 'stock_move', 'ordered_qty', 'numeric')
+        cr.execute("UPDATE stock_move SET ordered_qty = product_uom_qty")
 
-    cr.execute("UPDATE stock_move SET ordered_qty = product_uom_qty")
-    cr.execute("UPDATE stock_pack_operation SET ordered_qty = product_qty")
+    with util.disabled_index_on(cr, 'stock_pack_operation'):
+        util.create_column(cr, 'stock_pack_operation', 'ordered_qty', 'numeric')
+        cr.execute("UPDATE stock_pack_operation SET ordered_qty = product_qty")
 
     # beside the logic would say when should go from `auto` (Automatic)
     # to `transparent` (Automatic No Step Added), the code in `_apply` function only treat
