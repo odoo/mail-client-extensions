@@ -136,7 +136,7 @@ def migrate(cr, version):
     # Do some checks for the logs
     cr.execute("""SELECT ml.id, p.name from stock_move_line ml, stock_picking p 
                     WHERE NOT EXISTS (SELECT id FROM stock_move WHERE ml.move_id = id) 
-                        AND ml.picking_id = p.id AND p.state = 'done' AND qty_done > 0.0;
+                        AND ml.picking_id = p.id AND p.state = 'done' AND qty_done > 0.0 LIMIT 1;
     """)
     res = cr.fetchall()
     if res:
