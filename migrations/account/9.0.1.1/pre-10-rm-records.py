@@ -9,11 +9,13 @@ _logger = logging.getLogger(NS + __name__)
 def migrate(cr, version):
 
     # Delete all account_move_line whose period has the flag 'special' (opening and closing period) set to True
+    # Ignore lines from the first opening period
     cr.execute("""DELETE FROM account_move_line
                     WHERE id IN (SELECT aml.id FROM account_move_line AS aml, account_period AS p, account_journal AS j
                        WHERE p.id = aml.period_id AND aml.journal_id = j.id
-                        AND p.special = True AND j.type = 'situation')
-                """)
+                        AND p.special = True AND j.type = 'situation'
+                        AND p.id NOT IN (SELECT min(id) FROM account_period WHERE special = True GROUP BY company_id))
+               """)
 
     # Delete account of type = view and consolidation
     # first remove foreign key constraint that says on delete cascade on parent_id
