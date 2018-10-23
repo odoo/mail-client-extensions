@@ -7,6 +7,7 @@ def migrate(cr, version):
     util.new_module(cr, "auth_password_policy", deps={"base_setup", "web"}, auto_install=False)
     util.new_module(cr, "auth_password_policy_signup", deps={"auth_password_policy", "auth_signup"}, auto_install=True)
     util.new_module(cr, "crm_reveal", deps={"iap", "crm", "website_form"})
+    util.new_module(cr, "delivery_hs_code", deps={"delivery"}, auto_install=True)
     util.new_module(cr, "mail_bot", deps={"mail"}, auto_install=True)
     util.force_migration_of_fresh_module(cr, "mail_bot")
     util.new_module(cr, "im_livechat_mail_bot", deps={"im_livechat", "mail_bot"}, auto_install=True)
