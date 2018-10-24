@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import psycopg2
 from odoo.addons.base.maintenance.migrations import util
 
@@ -118,6 +119,8 @@ def migrate(cr, version):
         util.module_deps_diff(cr, 'website_helpdesk', plus={'website'}, minus={'portal', 'website_form_editor'})
         util.new_module_dep(cr, 'website_helpdesk_form', 'website_form_editor')
         util.new_module_dep(cr, 'website_sign', 'portal')
+        if util.table_exists(cr, 'project_issue') and os.environ.get('ODOO_MIG_S18_NOSPLIT_PROJECTS'):
+            util.force_install_module(cr, 'helpdesk')
     else:
         # you're screw...
         util.remove_module(cr, 'marketing_campaign')
