@@ -69,6 +69,8 @@ def migrate(cr, version):
     # force auto_install
     if util.modules_installed(cr, "website_sale", "sale_stock"):
         util.force_install_module(cr, "website_sale_stock")
+        if util.modules_installed(cr, "delivery"):
+            util.force_migration_of_fresh_module(cr, "website_sale_delivery")
 
     if util.has_enterprise():
         util.rename_module(cr, "report_intrastat", "account_intrastat")
