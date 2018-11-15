@@ -56,7 +56,39 @@ def migrate(cr, version):
     util.create_column(cr, "sale_order", "signed_by", "varchar")
     util.create_column(cr, "sale_order", "commitment_date", "timestamp without time zone")
     util.remove_field(cr, "sale_order", "product_id")
+
     util.move_field_to_module(cr, "sale.order", "amount_undiscounted", "sale_quotation_builder", "sale")
+    util.move_field_to_module(cr, "sale.order", "require_payment", "sale_quotation_builder", "sale")
+    util.create_column(cr, "sale_order", "require_signature", "boolean")
+    if not util.column_exists(cr, 'sale_order', "require_payment"):
+        util.create_column(cr, "sale_order", "require_payment", "boolean")
+        cr.execute("""
+            WITH reqs AS (
+                SELECT o.id,
+                       COALESCE(oc.portal_confirmation_pay, uc.portal_confirmation_pay) as pay,
+                       COALESCE(oc.portal_confirmation_sign, uc.portal_confirmation_sign) as sign
+                  FROM sale_order o
+             LEFT JOIN res_company oc ON oc.id = o.company_id
+             LEFT JOIN res_users u ON u.id = o.create_uid
+                  JOIN res_company uc ON uc.id = u.company_id
+            )
+            UPDATE sale_order o
+               SET require_payment = r.pay,
+                   require_signature = r.sign
+              FROM reqs r
+             WHERE r.id = o.id
+        """)
+    else:
+        # existing column is int4; change type.
+        cr.execute("""
+            ALTER TABLE sale_order
+           ALTER COLUMN require_payment
+                   TYPE boolean
+                  USING require_payment::boolean
+        """)
+        cr.execute(
+            "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false)"
+        )
 
     util.create_column(cr, "sale_order_line", "untaxed_amount_invoiced", "numeric")
     util.create_column(cr, "sale_order_line", "untaxed_amount_to_invoice", "numeric")

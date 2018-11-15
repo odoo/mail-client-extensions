@@ -9,23 +9,6 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "sale.order", "sale_order_template_id", "sale_quotation_builder", "sale_management")
     util.rename_field(cr, "sale.order", "options", "sale_order_option_ids")
     util.move_field_to_module(cr, "sale.order", "sale_order_option_ids", "sale_quotation_builder", "sale_management")
-    util.move_field_to_module(cr, "sale.order", "require_payment", "sale_quotation_builder", "sale_management")
-    cr.execute(
-        """
-        ALTER TABLE sale_order
-        ALTER COLUMN require_payment
-        TYPE boolean
-        USING require_payment::boolean
-    """
-    )
-    util.create_column(cr, "sale_order", "require_signature", "boolean")
-    cr.execute(
-        """
-        UPDATE sale_order
-        SET require_signature=TRUE
-        WHERE require_payment=FALSE or require_payment IS NULL
-    """
-    )
 
     util.rename_field(cr, "sale.order.line", "option_line_id", "sale_order_option_ids")
     util.move_field_to_module(
