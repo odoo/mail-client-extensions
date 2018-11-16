@@ -80,17 +80,17 @@ def migrate(cr, version):
     util.remove_model(cr, 'wizard.valuation.history')
 
 
-    util.remove_field(cr, 'stock_quant', 'propagated_from_id')
-    util.remove_field(cr, 'stock_quant', 'negative_move_id')
-    util.remove_field(cr, 'stock_quant', 'reservation_id')
-    util.remove_field(cr, 'stock_quant', 'packaging_type_id')
-    util.remove_field(cr, 'stock_quant', 'cost')
+    util.remove_field(cr, 'stock.quant', 'propagated_from_id')
+    util.remove_field(cr, 'stock.quant', 'negative_move_id')
+    util.remove_field(cr, 'stock.quant', 'reservation_id')
+    util.remove_field(cr, 'stock.quant', 'packaging_type_id')
+    util.remove_field(cr, 'stock.quant', 'cost')
 
-    util.remove_field(cr, 'stock_move', 'move_dest_id')
-    util.remove_field(cr, 'stock_move', 'procurement_id')
-    util.remove_field(cr, 'stock_move', 'partially_available')
-    util.remove_field(cr, 'stock_move', 'split_from')
-    util.remove_field(cr, 'stock_move', 'restrict_lot_id')
+    util.remove_field(cr, 'stock.move', 'move_dest_id')
+    util.remove_field(cr, 'stock.move', 'procurement_id')
+    util.remove_field(cr, 'stock.move', 'partially_available')
+    util.remove_field(cr, 'stock.move', 'split_from')
+    util.remove_field(cr, 'stock.move', 'restrict_lot_id')
     # Use super-efficient merge algo, but also adjust for in_date
     cr.execute("""WITH
                         dupes AS (
