@@ -96,3 +96,13 @@ def migrate(cr, version):
                 GROUP BY am.id, m.id) movematch
         WHERE am.id = movematch.account_move_id
     """)
+    # As the account moves in v11 have negative quantities when they are linked to outgoing stock moves and
+    # this is used in the calculation of the stock valuation, we need to make them negative
+    cr.execute("""
+        UPDATE account_move_line aml SET quantity = -aml.quantity
+        FROM account_move am, stock_move m, stock_location l1, stock_location l2
+            WHERE am.id = aml.move_id AND am.stock_move_id = m.id
+                AND l1.id = m.location_id AND l2.id = m.location_dest_id
+                AND (l1.usage = 'internal' or (l1.usage='transit' AND  l1.company_id IS NOT NULL))
+                AND (l2.usage != 'internal' AND (l2.usage != 'transit' OR l2.company_id IS NULL))
+    """)
