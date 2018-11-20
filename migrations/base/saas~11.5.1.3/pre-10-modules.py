@@ -3,6 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+
+    # saas specific. uninstall non-compatible module
+    # this is safe as this module only contains model overwrites.
+    cr.execute("UPDATE ir_module_module SET state='uninstalled' WHERE name='saas_pos_fast_reconcile'")
+
     util.new_module(cr, "account_facturx", deps={"account"}, auto_install=True)
     util.new_module(cr, "auth_password_policy", deps={"base_setup", "web"}, auto_install=False)
     util.new_module(cr, "auth_password_policy_signup", deps={"auth_password_policy", "auth_signup"}, auto_install=True)
