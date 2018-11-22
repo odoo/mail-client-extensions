@@ -4,8 +4,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
 
-    util.create_column(cr, "hr.leave", "request_date_from", "date")
-    util.create_column(cr, "hr.leave", "request_date_to", "date")
+    util.create_column(cr, "hr_leave", "request_date_from", "date")
+    util.create_column(cr, "hr_leave", "request_date_to", "date")
     util.create_column(cr, "hr_leave", "request_unit_all", "varchar")
     util.create_column(cr, "hr_leave", "request_unit_day", "varchar")
     cr.execute("""
