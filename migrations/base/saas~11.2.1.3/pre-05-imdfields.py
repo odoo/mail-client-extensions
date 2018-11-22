@@ -16,6 +16,19 @@ def migrate(cr, version):
                 AND f.id IS NULL
         )
     """)
+
+    # some previous migration left ir_model_fields with non existing model name
+    # that would crash with the next queries, so we need to clean them up
+    cr.execute("""
+        DELETE FROM ir_model_fields WHERE model IN (
+            'ir.actions.url',
+            'email_template.account',
+            'res.partner.canal',
+            'mailgate.thread',
+            'mailgate.message'
+        )
+    """)
+
     cr.execute("""
         UPDATE ir_model_fields f
            SET model = m.model
