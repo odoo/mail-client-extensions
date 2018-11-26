@@ -2,7 +2,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 
-def migrate(cr, version):
+def migrate(cr, version, module="sale_payment"):
     util.create_m2m(
         cr, "sale_order_transaction_rel",
         "payment_transaction", "sale_order",
@@ -26,8 +26,8 @@ def migrate(cr, version):
     for state in {"pending", "authorized"}:
         util.remove_field(cr, "crm.team", "{}_payment_transactions_count".format(state))
         util.remove_field(cr, "crm.team", "{}_payment_transactions_amount".format(state))
-        util.remove_record(cr, "sale_payment.payment_transaction_action_{}".format(state))
+        util.remove_record(cr, "{}.payment_transaction_action_{}".format(module, state))
 
-    util.remove_view(cr, "sale_payment.sale_order_view_form")
-    util.remove_view(cr, "sale_payment.payment_confirmation_status")
-    util.remove_view(cr, "sale_payment.crm_team_salesteams_view_kanban_inherit_website_portal_sale")
+    util.remove_view(cr, module + ".sale_order_view_form")
+    util.remove_view(cr, module + ".payment_confirmation_status")
+    util.remove_view(cr, module + ".crm_team_salesteams_view_kanban_inherit_website_portal_sale")
