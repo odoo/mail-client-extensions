@@ -168,9 +168,9 @@ def migrate(cr, version):
 
         util.remove_module(cr, "account_extension")
         util.remove_module(cr, "hr_expense_sepa")
-        util.remove_module(cr, "print_docsaway")
         util.remove_module(cr, "print_sale")
         util.remove_module(cr, "print")
+        util.remove_module(cr, "print_docsaway")
         util.remove_module(cr, "website_quote_subscription")
         util.remove_module(cr, "website_sale_dashboard_with_margin")
         util.remove_module(cr, "website_version")  # merged into website?
