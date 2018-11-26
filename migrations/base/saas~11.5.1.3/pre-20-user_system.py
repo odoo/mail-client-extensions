@@ -94,7 +94,7 @@ def migrate(cr, version):
         oauth_uid = cr.fetchone()[0]
         if oauth_uid:
             cr.execute("UPDATE res_users SET oauth_uid = NULL WHERE id=%s", [u1id])
-            cr.execute("UPDATE res_users SET oauth_uid = %s WHERE id=%s", [u2id, oauth_uid])
+            cr.execute("UPDATE res_users SET oauth_uid = %s WHERE id=%s", [oauth_uid, u2id])
 
     # copy groups
     cr.execute(
