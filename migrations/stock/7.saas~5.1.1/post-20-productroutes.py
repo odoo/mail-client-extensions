@@ -101,6 +101,9 @@ def migrate(cr, version):
         #
         # DO THE SAME FOR PUSH RULES
         #
+        _logger.info("Indexing push rule id")
+        cr.execute("CREATE INDEX IF NOT EXISTS stock_move_push_rule_id_idx  on stock_move(push_rule_id);")
+        cr.commit()
 
         # Find push rules with same products
         cr.execute("""
@@ -130,7 +133,6 @@ def migrate(cr, version):
             push_rule.create(cr, SUPERUSER_ID, {'name': location, 'route_id': route_id,
                                                     'location_dest_id': key[0],
                                                     'location_from_id': key[1],
-                                                    'invoice_state': key[2],
                                                     'company_id': key[3],
                                                     'propagate': key[4],
                                                     'delay': key[5]})
@@ -139,9 +141,11 @@ def migrate(cr, version):
             templates = [x.product_tmpl_id.id for x in product_var.browse(cr, SUPERUSER_ID, value)]
             product_obj.write(cr, SUPERUSER_ID, templates, {'route_ids': [(4, route_id)]})
 
-        cr.execute("""
-        DELETE FROM stock_location_path WHERE product_id IS NOT NULL
-        """)
+        cr.execute("SELECT count(*) FROM stock_location_path WHERE product_id IS NULL")
+        if cr.fetchone()[0]:
+            cr.execute("DELETE FROM stock_location_path WHERE product_id IS NOT NULL")
+        else:
+            cr.execute("truncate table stock_location_path")
 
         rules = push_rule.search(cr, SUPERUSER_ID, [('picking_type_id', '=', False)])
         stock_move = registry['stock.move']
