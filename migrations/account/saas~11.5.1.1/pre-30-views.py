@@ -7,6 +7,7 @@ def migrate(cr, version):
 
         setup_view_company_form
         res_config_settings_view_form_inherit_account_invoicing
+        product_template_form_view_invoice_policy
 
         # reports
         report_financial
