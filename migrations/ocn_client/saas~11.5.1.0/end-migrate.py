@@ -10,7 +10,7 @@ def migrate(cr, version):
     [value] = cr.fetchone() or ["False"]
     if str2bool(value, default=False):
         RCS = util.env(cr)["res.config.settings"]
-        RCS.create({"ocn_push_notification": True}).excecute()
+        RCS.create({"ocn_push_notification": True}).execute()
 
         endpoint = RCS._get_endpoint()
         ocnuuid = RCS._get_ocn_uuid()
