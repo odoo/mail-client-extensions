@@ -14,6 +14,7 @@ def migrate(cr, version):
     util.remove_field(cr, "sale.order", "project_project_id")
     util.create_column(cr, "sale_order_line", "project_id", "int4")
     # XXX verify with jem
+    cr.execute("UPDATE sale_order_line SET project_id=NULL WHERE task_id IS NULL")
     cr.execute("""
         UPDATE sale_order_line l
            SET project_id = t.project_id
