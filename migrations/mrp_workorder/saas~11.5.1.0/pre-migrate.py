@@ -15,6 +15,6 @@ def migrate(cr, version):
 
     util.move_field_to_module(cr, "mrp.production.workcenter.line", "picture", "quality_mrp_workorder", "mrp_workorder")
 
-    util.remove_record(cr, "mrp_workorder.mrp_production_menu_planning")
     util.remove_record(cr, "mrp_workorder.menu_mrp_production_plan")
     util.remove_record(cr, "mrp_workorder.menu_mrp_production_pending")
+    util.remove_record(cr, "mrp_workorder.mrp_production_menu_planning")
