@@ -8,7 +8,10 @@ from openerp.tools import file_open
 
 def migrate(cr, version):
     codes = []
-    with closing(file_open('addons/base/res/res_country_data.xml')) as fp:
+    subdir = "data" if util.version_gte("saas-11.1") else "res"
+    fname = "addons/base/{}/res_country_data.xml".format(subdir)
+
+    with closing(file_open(fname)) as fp:
         tree = etree.parse(fp)
         for node in tree.xpath('//field[@name="phone_code"]'):
             xid = node.getparent().get('id')
@@ -33,5 +36,8 @@ def migrate(cr, version):
            AND coalesce(phone_code, 0) = 0
     """, codes)
 
+
 if __name__ == '__main__':
-    util.main(migrate)
+    env = env   # noqa: F821
+    migrate(env.cr, None)
+    env.cr.commit()
