@@ -8,12 +8,13 @@ def migrate(cr, version, module="sale_payment"):
         "payment_transaction", "sale_order",
         "transaction_id", "sale_order_id"
     )
-    cr.execute("""
-        INSERT INTO sale_order_transaction_rel(transaction_id, sale_order_id)
-             SELECT id, sale_order_id
-               FROM payment_transaction
-              WHERE sale_order_id IS NOT NULL
-    """)
+    if util.column_exists(cr, "payment_transaction", "sale_order_id"):
+        cr.execute("""
+            INSERT INTO sale_order_transaction_rel(transaction_id, sale_order_id)
+                 SELECT id, sale_order_id
+                   FROM payment_transaction
+                  WHERE sale_order_id IS NOT NULL
+        """)
 
     util.remove_field(cr, "payment.transaction", "sale_order_id")
     util.remove_field(cr, "payment.transaction", "so_state")
