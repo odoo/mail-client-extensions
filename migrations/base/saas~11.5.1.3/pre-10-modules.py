@@ -176,4 +176,4 @@ def migrate(cr, version):
         util.remove_module(cr, "website_version")  # merged into website?
 
         # Design themes
-        util.merge_module(cr, "snippet_latest_posts", "website_blog")
+        util.merge_module(cr, "snippet_latest_posts", "website_blog", tolerant=True)
