@@ -15,7 +15,7 @@ def migrate(cr, version):
         util.create_column(cr, table, "mode_company_id", "int4")
 
     util.create_column(cr, "hr_leave", "request_unit_half", "boolean")
-    if util.column_exists(cr, "hr_leave", "reques_unit_all"):
+    if util.column_exists(cr, "hr_leave", "request_unit_all"):
         cr.execute("UPDATE hr_leave SET request_unit_half = (request_unit_all = 'half')")
 
     util.remove_field(cr, "hr.leave", "request_date_to_period")
