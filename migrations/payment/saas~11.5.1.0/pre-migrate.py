@@ -15,10 +15,11 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE res_company
            SET payment_acquirer_onboarding_state =
-                CASE WHEN id IN (select company_id
-                                   from account_payment
-                                  where payment_transaction_id is not null
-                               group by company_id)
+                CASE WHEN id IN (SELECT j.company_id
+                                   FROM account_payment p
+                                   JOIN account_journal j ON j.id = p.journal_id
+                                  WHERE p.payment_transaction_id IS NOT NULL
+                               GROUP BY j.company_id)
                      THEN 'just_done'
                      ELSE 'not_done'
                  END
