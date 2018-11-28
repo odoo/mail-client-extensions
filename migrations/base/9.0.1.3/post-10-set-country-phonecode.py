@@ -8,7 +8,7 @@ from openerp.tools import file_open
 
 def migrate(cr, version):
     codes = []
-    subdir = "data" if util.version_gte("saas-11.1") else "res"
+    subdir = "data" if util.version_gte("saas~11.1") else "res"
     fname = "addons/base/{}/res_country_data.xml".format(subdir)
 
     with closing(file_open(fname)) as fp:
