@@ -8,7 +8,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.register.payment", "company_id")
     # now a non-stored related
-    util.remove_column(cr, "account.payment", "company_id")
+    util.remove_column(cr, "account_payment", "company_id")
 
     util.remove_view(cr, "account.view_account_invoice_filter_inherit_invoices")
     util.remove_view(cr, "account.view_account_invoice_filter_inherit_credit_notes")
