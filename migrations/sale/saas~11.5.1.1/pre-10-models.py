@@ -87,7 +87,7 @@ def migrate(cr, version):
                   USING require_payment::boolean
         """)
         cr.execute(
-            "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false)"
+            "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false"
         )
 
     util.create_column(cr, "sale_order_line", "untaxed_amount_invoiced", "numeric")
