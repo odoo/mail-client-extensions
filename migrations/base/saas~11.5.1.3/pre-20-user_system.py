@@ -107,9 +107,21 @@ def migrate(cr, version):
         [u2id, u1id],
     )
 
+    # copy companies
+    cr.execute(
+        """
+        INSERT INTO res_company_users_rel(cid, user_id)
+             SELECT cid, %s
+               FROM res_company_users_rel
+              WHERE user_id = %s
+    """,
+        [u2id, u1id],
+    )
+
     # reassign everything to user 2 except some fields that should be kept linked to __system__
     ignored = [
         ("res_groups_users_rel", "uid"),  # already copied above
+        ("res_company_users_rel", "user_id"),  # already copied above
         ("ir_cron", "user_id"),
         ("mail_activity", "create_user_id"),  # second create_uid (wtf?)
         ("mail_alias", "alias_user_id"),
