@@ -26,7 +26,7 @@ def migrate(cr, version):
     util.create_column(cr, "website", "cart_abandoned_delay", "float8")
     delay = ICP.get_param("website_sale.cart_abandoned_delay")
     if delay:
-        cr.execute("UPDATE res_company SET cart_abandoned_delay=%s", [delay])
+        cr.execute("UPDATE website SET cart_abandoned_delay=%s", [delay])
 
     util.remove_field(cr, "res.partner", "last_website_so_id")
 
