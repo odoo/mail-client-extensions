@@ -103,13 +103,13 @@ def migrate(cr, version):
             cr, "account_invoice_extract", deps={"account_accountant", "iap", "mail_enterprise"}, auto_install=True
         )
         util.new_module(cr, "account_predictive_account", deps={"account_accountant"}, auto_install=True)
-        util.new_module(cr, "crm_enterprise", deps={"crm", "web_dashboard"}, auto_install=True)
+        util.new_module(cr, "crm_enterprise", deps={"crm", "web_dashboard", "web_cohort"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "crm_enterprise")
         util.new_module(cr, "iot", deps={"web"})
         util.new_module(cr, "documents", deps={"base", "mail", "portal", "web"})
         for mod in {"account", "product", "project", "sign"}:
             util.new_module(cr, "documents_" + mod, deps={"documents", mod}, auto_install=True)
-        util.new_module(cr, "event_enterprise", deps={"event"}, auto_install=True)
+        util.new_module(cr, "event_enterprise", deps={"event", "web_cohort"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "event_enterprise")
         util.new_module(cr, "l10n_au_aba", deps={"account_batch_payment", "l10n_au"}, auto_install=True)
         util.new_module(cr, "l10n_co_edi", deps={"account", "l10n_co"})
