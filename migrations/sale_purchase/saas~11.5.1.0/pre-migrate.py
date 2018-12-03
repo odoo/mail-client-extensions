@@ -9,7 +9,7 @@ def migrate(cr, version):
         cr.execute(
             """
             UPDATE purchase_order_line p
-            SET p.sale_order_id=s.order_id
+            SET sale_order_id=s.order_id
             FROM sale_order_line s
             WHERE s.id=p.sale_line_id
         """
