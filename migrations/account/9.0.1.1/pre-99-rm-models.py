@@ -57,9 +57,10 @@ def migrate(cr, version):
     util.delete_model(cr, 'account.common.journal.report')
     util.delete_model(cr, 'account.addtmpl.wizard')
 
+    util.remove_model(cr, "account.journal.cashbox.line")
+
     # To check
     # account.statement.operation.template
-    # account.journal.cashbox.line
     # account.tax.code.template
     # account.subscription.line
     # account.subscription
@@ -67,4 +68,3 @@ def migrate(cr, version):
     # account.model
     # account.tax.code
     # account.analytic.journal (in analytic)
-
