@@ -7,6 +7,7 @@ def migrate(cr, version):
     util.rename_module(cr, 'crm_project_issue', 'crm_project')
     util.rename_module(cr, 'website_issue', 'website_form_project')
     util.rename_module(cr, 'website_portal', 'portal')
+    util.module_deps_diff(cr, 'portal', plus={'http_routing', 'mail'}, minus={'website', 'auth_signup'})
     util.rename_module(cr, 'website_rating_project_issue', 'website_rating_project')
 
     util.new_module(cr, 'account_payment', deps={'account', 'payment'})
