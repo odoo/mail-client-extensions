@@ -7,3 +7,4 @@ def migrate(cr, version):
     util.remove_field(cr, "product.wishlist", "session", cascade=True)
     util.remove_field(cr, "product.wishlist", "price_new")
     util.remove_field(cr, "res.users", "current_session")
+    util.remove_record(cr, 'website_sale_wishlist.product_wishlist_rule')
