@@ -49,7 +49,7 @@ def migrate(cr, version):
         UPDATE res_company c
            SET external_report_layout_id = l.id
           FROM layouts l
-         WHERE l.name = c.external_report_layout
+         WHERE l.name = COALESCE(c.external_report_layout, 'standard')
     """
     )
     util.remove_field(cr, "res.company", "external_report_layout")
