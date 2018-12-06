@@ -1,26 +1,40 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
     # This should delete nothing as it's
     cr.execute("DELETE FROM ir_translation WHERE type IN ('field', 'report', 'view', 'help')")
 
-    # Those fields are html_translate
-    fields_translations_to_modify = [
-        ("im_livechat.channel", "website_description"),
-        ("hr.job", "website_description"),
-        ("digest.tip", "tip_description"),
-        ("slide.channel", "description"),
-        ("sale.order.template", "website_description"),
-        ("sale.order.template.line", "website_description"),
-        ("sale.order.template.option", "website_description"),
-        ("sale.order", "website_description"),
-        ("sale.order.line", "website_description"),
-        ("sale.order.option", "website_description"),
-        ("product.template", "website_description"),
-        ("blog.post", "content"),
-        ("event.track", "description"),
-    ]
+    # Those fields are (x|ht)ml_translate
+    fields_translations_to_modify = util.splitlines("""
+
+        ir.ui.view,arch_db
+
+        blog.post,content
+        digest.tip,tip_description
+        event.event,description
+        event.track,description
+
+        hr.job,website_description
+        im_livechat.channel,website_description
+
+        product.template,quote_description   # will be rename to quotation_only_description later
+        product.template.website_description
+
+        sale.order,website_description
+        sale.order.line,website_description
+        sale.order.option,website_description
+        sale.order.template,website_description
+        sale.order.template.line,website_description
+        sale.order.template.option,website_description
+
+        slide.channel,description
+        slide.channel,access_error_msg
+
+    """)
+
     cr.execute(
         """
         UPDATE ir_translation
@@ -28,7 +42,7 @@ def migrate(cr, version):
          WHERE type='model'
            AND name IN %s
     """,
-        [tuple("%s,%s" % t for t in fields_translations_to_modify)],
+        [tuple(fields_translations_to_modify)],
     )
 
     # De-duplicate translations
