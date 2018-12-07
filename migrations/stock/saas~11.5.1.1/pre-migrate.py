@@ -16,10 +16,10 @@ def migrate(cr, version):
         """
         INSERT INTO stock_rule (name, company_id, route_id, location_src_id, location_id, delay,
                                 picking_type_id, auto, propagate, active, warehouse_id,
-                                route_sequence, sequence, action)
+                                route_sequence, sequence, action, procure_method)
              SELECT name, company_id, route_id, location_from_id, location_dest_id, delay,
                     picking_type_id, auto, propagate, active, warehouse_id,
-                    route_sequence, sequence, 'push'
+                    route_sequence, sequence, 'push', 'make_to_stock'
                FROM stock_location_path
     """
     )
