@@ -141,11 +141,7 @@ def migrate(cr, version):
             templates = [x.product_tmpl_id.id for x in product_var.browse(cr, SUPERUSER_ID, value)]
             product_obj.write(cr, SUPERUSER_ID, templates, {'route_ids': [(4, route_id)]})
 
-        cr.execute("SELECT count(*) FROM stock_location_path WHERE product_id IS NULL")
-        if cr.fetchone()[0]:
-            cr.execute("DELETE FROM stock_location_path WHERE product_id IS NOT NULL")
-        else:
-            cr.execute("truncate table stock_location_path")
+        cr.execute("DELETE FROM stock_location_path WHERE product_id IS NOT NULL")
 
         rules = push_rule.search(cr, SUPERUSER_ID, [('picking_type_id', '=', False)])
         stock_move = registry['stock.move']
