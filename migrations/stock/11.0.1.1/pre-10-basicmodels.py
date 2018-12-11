@@ -259,14 +259,13 @@ def migrate(cr, version):
 
     # Link stock.move and stock.move.line when there is only one move in the picking (easy case)
     cr.execute("""UPDATE stock_move_line
-                SET move_id = m.id
-                    FROM stock_move m, (SELECT picking_id, product_id
+                SET move_id = pick_product.theid
+                    FROM (SELECT picking_id, product_id, max(id) as theid
                         FROM stock_move
                         WHERE picking_id IS NOT NULL
                         GROUP BY picking_id, product_id
                         HAVING COUNT(*) = 1) pick_product
-                    WHERE m.picking_id = pick_product.picking_id AND m.product_id = pick_product.product_id
-                        AND stock_move_line.product_id = pick_product.product_id AND stock_move_line.picking_id = pick_product.picking_id
+                    WHERE stock_move_line.product_id = pick_product.product_id AND stock_move_line.picking_id = pick_product.picking_id
     """)
 
     # Scrapped needs move lines too
