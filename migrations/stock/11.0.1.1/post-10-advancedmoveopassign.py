@@ -128,7 +128,7 @@ def migrate(cr, version):
 
     # Check if there are still procurement exceptions without move related
     cr.execute("""
-        SELECT * FROM procurement_order WHERE state='exception' AND move_dest_id IS NULL;
+        SELECT count(*) FROM procurement_order WHERE state='exception' AND move_dest_id IS NULL;
     """)
     res = cr.fetchall()
     if res:
