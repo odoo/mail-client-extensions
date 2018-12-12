@@ -10,7 +10,7 @@ def migrate(cr, version):
 
     util.rename_model(cr, "procurement.rule", "stock.rule")
     util.create_column(cr, "stock_rule", "auto", "varchar")
-    cr.execute("UPDATE stock_rule SET action='pull'")
+    cr.execute("UPDATE stock_rule SET action='pull' WHERE action='move'")
 
     cr.execute(
         """
