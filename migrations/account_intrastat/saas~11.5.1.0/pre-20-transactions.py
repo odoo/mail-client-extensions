@@ -7,7 +7,7 @@ def migrate(cr, version):
         return
 
     # Move data from l10n_be_intrastat.transaction to account.intrastat.code with type=transaction
-    util.rename_column(cr, "account_invoice_line", "intrastat_transaction_id", "_int_trans_id")
+    cr.execute('ALTER TABLE account_invoice_line RENAME COLUMN intrastat_transaction_id TO _int_trans_id')
 
     util.move_field_to_module(
         cr, "account.invoice.line", "intrastat_transaction_id", "l10n_be_intrastat", "account_intrastat"

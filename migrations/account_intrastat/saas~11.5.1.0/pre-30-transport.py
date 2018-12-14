@@ -13,7 +13,7 @@ def migrate(cr, version):
         # This allow keeping existing column to be kept and
         # let ORM create the new one with correct constraints
         table = util.table_of_model(cr, model)
-        util.rename_column(cr, table, "transport_mode_id", "_int_transp_id")
+        cr.execute('ALTER TABLE %s RENAME COLUMN transport_mode_id TO _int_transp_id' % table)
         util.rename_field(cr, model, "transport_mode_id", "intrastat_transport_mode_id")
 
         util.move_field_to_module(cr, model, "intrastat_transport_mode_id", "l10n_be_intrastat", "account_intrastat")
