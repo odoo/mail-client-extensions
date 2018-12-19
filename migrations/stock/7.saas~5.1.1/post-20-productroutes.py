@@ -102,7 +102,8 @@ def migrate(cr, version):
         # DO THE SAME FOR PUSH RULES
         #
         _logger.info("Indexing push rule id")
-        cr.execute("CREATE INDEX IF NOT EXISTS stock_move_push_rule_id_idx  on stock_move(push_rule_id);")
+        if not util.get_index_on(cr, 'stock_move', 'push_rule_id'):
+            cr.execute("CREATE INDEX stock_move_push_rule_id_idx on stock_move(push_rule_id);")
         cr.commit()
 
         # Find push rules with same products
