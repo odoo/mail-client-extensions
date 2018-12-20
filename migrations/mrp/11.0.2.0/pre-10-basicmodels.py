@@ -10,6 +10,7 @@ def migrate(cr, version):
     util.create_column(cr, 'stock_move_line', 'production_id', 'int4')
     util.create_column(cr, 'stock_move_line', 'workorder_id', 'int4')
     util.create_column(cr, 'stock_move_line', 'lot_produced_id', 'int4')
+    util.create_column(cr, 'stock_move_line', 'done_move', 'bool')
 
     # Sometimes there are stock_move_lots without quantity_done (maybe because they changed from tracked to non-tracked) and it is better to delete them
     cr.execute("""
@@ -101,3 +102,10 @@ def migrate(cr, version):
          ) megajoin
     """) # Produce_line_id and consume_line_id were opposite in the mode
     # Temporary move lines are avoided as the moves are not done normally
+
+    cr.execute("""
+        UPDATE stock_move_line  ml
+           SET done_move=m.is_done
+          FROM stock_move m
+         WHERE m.id=ml.move_id
+    """)
