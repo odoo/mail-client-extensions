@@ -8,6 +8,11 @@ def migrate(cr, version):
     # this is safe as this module only contains model overwrites.
     cr.execute("UPDATE ir_module_module SET state='uninstalled' WHERE name='saas_pos_fast_reconcile'")
 
+    # saas specific, no longer needed since firecloud saas credentials are now hosted on iap
+    # and the ocn_client module (auto install) handles it customer-side
+    # since the mail_push dep does not exist anymore, leaving it installed prevent updating saas_trial
+    util.remove_module(cr, "saas_fcm")
+
     util.new_module(cr, "account_facturx", deps={"account"}, auto_install=True)
     util.new_module(cr, "auth_password_policy", deps={"base_setup", "web"}, auto_install=False)
     util.new_module(cr, "auth_password_policy_signup", deps={"auth_password_policy", "auth_signup"}, auto_install=True)
