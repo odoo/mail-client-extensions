@@ -21,6 +21,6 @@ def migrate(cr, version):
             )
         )
 
-        util.remove_column(cr, table, "_int_trans_id")
+        util.remove_column(cr, table, "_int_transp_id")
 
     util.remove_model(cr, "l10n_be_intrastat.transport_mode")
