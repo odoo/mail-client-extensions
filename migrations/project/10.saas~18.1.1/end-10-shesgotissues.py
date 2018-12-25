@@ -156,7 +156,7 @@ def migrate(cr, version):
         table = util.table_of_model(cr, model)
         if util.column_exists(cr, table, column):
             cr.execute("""UPDATE "{table}"
-                             SET "{column}" = 'project.task,' || ((substr("{column}", 14))::integer + %s)
+                             SET "{column}" = 'project.task,' || ((substr("{column}", 15))::integer + %s)
                            WHERE "{column}" LIKE 'project.issue,%%'
                        """.format(table=table, column=column),
                        [offset])
