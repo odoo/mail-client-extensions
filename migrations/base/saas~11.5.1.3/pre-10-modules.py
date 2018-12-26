@@ -182,3 +182,4 @@ def migrate(cr, version):
 
         # Design themes
         util.merge_module(cr, "snippet_latest_posts", "website_blog", tolerant=True)
+        util.merge_module(cr, "snippet_google_map", "theme_common", tolerant=True)
