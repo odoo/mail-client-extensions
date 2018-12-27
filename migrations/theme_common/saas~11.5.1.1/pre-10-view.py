@@ -5,8 +5,6 @@ def migrate(cr, version):
 
     views = util.splitlines("""
         theme_common.assets_frontend
-        theme_common.compatibility-saas-10-1
-        theme_common.compatibility-saas-10-2
     """)
 
     for v in views:
