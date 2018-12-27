@@ -9,3 +9,6 @@ def migrate(cr, version):
 
     util.remove_view(cr, 'stock.external_layout_barcode_right')
     util.remove_view(cr, 'stock.external_layout_header_barcode_right')
+
+    # create column to avoid computing a column that will always be NULL
+    util.create_column(cr, 'stock_picking', 'activity_date_deadline', 'date')
