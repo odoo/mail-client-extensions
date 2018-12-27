@@ -20,7 +20,7 @@ def migrate(cr, version):
         from_config_tmpl_id = None
 
     if from_config_tmpl_id:
-        cr.execute("UPDATE res_company SET cart_recovery_mail_template_id=%s", [from_config_tmpl_id])
+        cr.execute("UPDATE website SET cart_recovery_mail_template_id=%s", [from_config_tmpl_id])
     util.remove_record_if_unchanged(cr, "website_sale.mail_template_sale_cart_recovery")
 
     util.create_column(cr, "website", "cart_abandoned_delay", "float8")
