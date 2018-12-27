@@ -9,7 +9,7 @@ from odoo.addons.base.maintenance.migrations import util
 _logger = logging.getLogger('odoo.addons.base.maintenance.migrations.project.saas-18.' + __name__)
 
 def migrate(cr, version):
-    if not util.table_exists(cr, 'project_issue') or os.environ.get('ODOO_MIG_S18_NOSPLIT_PROJECTS'):
+    if not util.table_exists(cr, 'project_issue') or os.environ.get('ODOO_MIG_S18_HELPDESK_ISSUES'):
         return
 
     L = _logger.debug

@@ -10,14 +10,14 @@ _logger = logging.getLogger('odoo.addons.base.maintenance.migrations.hepdesk.saa
 
 
 def migrate(cr, version):
-    if util.table_exists(cr, 'project_issue') and os.environ.get('ODOO_MIG_S18_NOSPLIT_PROJECTS'):
+    if util.table_exists(cr, 'project_issue') and os.environ.get('ODOO_MIG_S18_HELPDESK_ISSUES'):
         L = _logger.debug
 
         env = util.env(cr)
         Projects = env['project.project']
         HelpdeskTeam = env['helpdesk.team']
 
-        nosplit = os.environ.get('ODOO_MIG_S18_NOSPLIT_PROJECTS', '')
+        nosplit = os.environ.get('ODOO_MIG_S18_HELPDESK_ISSUES', '')
         if nosplit:
             project_filter = 'AND p.id NOT IN %s'
             params = [tuple(int(s) for s in nosplit.split(','))]
