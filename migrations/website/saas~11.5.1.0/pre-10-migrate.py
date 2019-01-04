@@ -63,6 +63,56 @@ def migrate(cr, version):
     """
     )
 
+    # Populate website theme_id with the installed theme so that it get loaded in 12.0
+    #
+    # Get the ids (and names) of the installed_themes (except hidden ones) ... they are in state='to upgrade' during migration
+    # LEFT JOIN with ir_module_module_dependency ON the name to get the (child) themes (in module_id) depending on these installed themes
+    # LEFT JOIN with the installed_themes on id=module_id to "mark" the installed themes with an installed 'child'
+    # GROUP by id and keep the one that is not "marked" [HAVING array_to_string(array_agg(dt.id), '') = '']
+
+    query = """
+            WITH installed_themes AS (
+            SELECT id,name
+              FROM ir_module_module
+             WHERE state = 'to upgrade'
+               AND (name = 'theme_default'
+                OR category_id IN (
+                    SELECT id
+                      FROM ir_module_category
+                     WHERE parent_id = (
+                            SELECT res_id
+                              FROM ir_model_data
+                             WHERE module = 'base'
+                               AND name = 'module_category_theme'
+                           )
+                       AND id != (
+                            SELECT res_id
+                              FROM ir_model_data
+                             WHERE module = 'base'
+                               AND name = 'module_category_theme_hidden'
+                           )
+                     UNION
+                    SELECT res_id
+                      FROM ir_model_data
+                     WHERE module = 'base'
+                       AND name = 'module_category_theme'
+                   ))
+            ),
+            leaf_themes AS (
+                SELECT t.id
+                  FROM installed_themes t
+             LEFT JOIN ir_module_module_dependency d ON t.name = d.name
+             LEFT JOIN installed_themes dt ON dt.id = d.module_id
+              GROUP BY t.id
+                HAVING array_to_string(array_agg(dt.id), '') = ''
+            )
+            UPDATE website w
+                  SET theme_id = i.id
+              FROM leaf_themes i
+            WHERE w.id = 1
+         """
+    cr.execute(query)
+
     params = [("google_maps_api_key", "google_maps_api_key"), ("auth_signup_uninvited", "auth_signup.invitation_scope")]
     for field, key in params:
         param_value = ICP.get_param(key)
