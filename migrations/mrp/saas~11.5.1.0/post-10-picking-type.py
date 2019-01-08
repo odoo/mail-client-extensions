@@ -4,7 +4,7 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     env = util.env(cr)
 
-    for warehouse in env['stock.warehouse'].search([]):
+    for warehouse in env['stock.warehouse'].with_context(active_test=False).search([]):
         picking_type_vals = warehouse._create_or_update_sequences_and_picking_types()
         if picking_type_vals:
             warehouse.write(picking_type_vals)
