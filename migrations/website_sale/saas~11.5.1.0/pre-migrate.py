@@ -21,7 +21,7 @@ def migrate(cr, version):
 
     if from_config_tmpl_id:
         cr.execute("UPDATE website SET cart_recovery_mail_template_id=%s", [from_config_tmpl_id])
-    util.remove_record_if_unchanged(cr, "website_sale.mail_template_sale_cart_recovery")
+    util.if_unchanged(cr, "website_sale.mail_template_sale_cart_recovery", util.update_record_from_xml)
 
     util.create_column(cr, "website", "cart_abandoned_delay", "float8")
     delay = ICP.get_param("website_sale.cart_abandoned_delay")

@@ -35,7 +35,7 @@ def migrate(cr, version):
     util.remove_record(cr, "sale.menu_variants_action")
     util.remove_record(cr, "sale.menu_product_category_config_sale")
 
-    util.remove_record_if_unchanged(cr, "sale.email_template_edi_sale")
+    util.if_unchanged(cr, "sale.email_template_edi_sale", util.update_record_from_xml)
 
     subtype_id = util.ref(cr, "sale.mt_order_confirmed")
     cr.execute("""

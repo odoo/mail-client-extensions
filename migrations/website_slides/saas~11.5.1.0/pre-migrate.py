@@ -13,5 +13,5 @@ def migrate(cr, version):
         cr.execute("UPDATE website set website_slide_google_app_key=%s", (param_value,))
     util.remove_record(cr, "website_slides.google_app_key")
 
-    util.remove_record_if_unchanged(cr, "website_slides.slide_template_published")
-    util.remove_record_if_unchanged(cr, "website_slides.slide_template_shared")
+    util.if_unchanged(cr, "website_slides.slide_template_published", util.update_record_from_xml)
+    util.if_unchanged(cr, "website_slides.slide_template_shared", util.update_record_from_xml)
