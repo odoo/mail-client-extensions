@@ -85,6 +85,11 @@ def migrate(cr, version):
                                 GROUP BY m2.id) qupi 
                         WHERE qupi.move_id = m.id""")
     
+
+    #create index to speedup the matching below
+    cr.execute("""create index account_move_line_name_mig_only on account_move_line(name)""")
+    cr.execute("""create index stock_move_name_mig_only on stock_move(name)""")
+
     # Create link between account move and stock move (based on reference/name matching)
     util.create_column(cr, 'account_move', 'stock_move_id', 'int4')
     cr.execute("""
@@ -96,13 +101,30 @@ def migrate(cr, version):
                 GROUP BY am.id, m.id) movematch
         WHERE am.id = movematch.account_move_id
     """)
-    # As the account moves in v11 have negative quantities when they are linked to outgoing stock moves and
-    # this is used in the calculation of the stock valuation, we need to make them negative
-    cr.execute("""
-        UPDATE account_move_line aml SET quantity = -aml.quantity
-        FROM account_move am, stock_move m, stock_location l1, stock_location l2
-            WHERE am.id = aml.move_id AND am.stock_move_id = m.id
-                AND l1.id = m.location_id AND l2.id = m.location_dest_id
-                AND (l1.usage = 'internal' or (l1.usage='transit' AND  l1.company_id IS NOT NULL))
-                AND (l2.usage != 'internal' AND (l2.usage != 'transit' OR l2.company_id IS NULL))
-    """)
+
+    # Create link between account move and stock move (based name only where there is no picking_id)
+    # Less precise than the previous query, se we do not overwrite previously created matching
+    cr.execute("""UPDATE account_move am SET stock_move_id = movematch.stock_move_id FROM 
+                    (
+                        SELECT am.id AS account_move_id, min(sm.id ) stock_move_id
+                        FROM account_move_line aml, stock_move sm, account_move am 
+                        WHERE 
+                        aml.move_id = am.id AND sm.product_id=aml.product_id
+                        AND aml.name=sm.name
+                        AND sm.picking_id is null
+                        GROUP BY am.id, sm.id
+                        HAVING count(distinct(sm.id )) = 1 
+                    ) movematch
+                    WHERE am.id = movematch.account_move_id
+                    AND am.stock_move_id is null""")
+
+    #drop index to speedup the matching
+    cr.execute("""drop index account_move_line_name_mig_only """)
+    cr.execute("""drop index stock_move_name_mig_only """)
+
+
+    # update quantity for account_move_line (only used during inventory valuation with a specified date)
+        # The quantity on the account_move_line sould have the same sign as the balance.
+        # If the valuation for the line is +10$ make sure the quantity is positive (add money = add quantity)
+        # Shortly, quantity should have the same sign as the balance 
+    cr.execute("""update account_move_line set quantity = abs(quantity)*sign(balance) where quantity is not null""") 
