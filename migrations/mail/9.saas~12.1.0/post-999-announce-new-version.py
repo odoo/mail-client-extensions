@@ -35,6 +35,6 @@ if __name__ == '__main__':
     # Use version < saas~10, because syspath is not initialized with `OdooHook`,
     # so no `odoo` module importable (it will import odoo.py instead).
     def echo(_cr, version, message, format):
-        print util.md2html(message)
+        print(util.md2html(message))
     util.announce = echo
     migrate(None, None)

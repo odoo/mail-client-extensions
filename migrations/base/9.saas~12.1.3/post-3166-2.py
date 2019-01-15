@@ -60,7 +60,7 @@ def migrate(cr, version):
         states_matches = defaultdict(list)
         with open(os.path.join(HERE, 'states.csv')) as fp:
             reader = csv.reader(fp)
-            reader.next()   # remove header line
+            next(reader)  # remove header line
             states = list(iter(reader))
 
         for s in states:
