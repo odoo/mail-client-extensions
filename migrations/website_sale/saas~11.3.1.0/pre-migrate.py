@@ -8,3 +8,7 @@ def migrate(cr, version):
 
     util.remove_view(cr, "website_sale.continue_shopping")
     util.remove_view(cr, "website_sale.bill_to")
+
+    # pre-update views without verification
+    util.update_record_from_xml(cr, "website_sale.wizard_checkout")
+    util.update_record_from_xml(cr, "website_sale.extra_info_option")
