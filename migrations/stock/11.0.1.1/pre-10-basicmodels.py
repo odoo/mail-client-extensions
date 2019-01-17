@@ -2,6 +2,7 @@
 from openerp.addons.base.maintenance.migrations import util
 
 
+
 def merge_moves(cr, first_one, to_delete, total_qty, total_uom_qty):
     # This method is used to merge stock moves, but at the same time preserve the information on the old models,
     # so we can use them later for e.g. splitting the stock_pack_operation_lot into stock_move_line
@@ -44,20 +45,8 @@ def merge_moves(cr, first_one, to_delete, total_qty, total_uom_qty):
     cr.execute("""DELETE FROM stock_move WHERE id IN %s""", (tuple(to_delete),))
 
 
-def create_idx(cr):
-    idx_list = [
-        ("procurement_order_move_dest_id_mig_idx", "procurement_order", "move_dest_id"),
-        ("stock_move_consumed_for_mig_idx", "stock_move", "consumed_for"),
-        ("stock_move_origin_returned_move_id_mig_idx", "stock_move", "origin_returned_move_id"),
-        ("stock_move_split_from_mig_idx", "stock_move", "split_from"),
-        ("stock_quant_negative_move_id_mig_idx", "stock_quant", "negative_move_id"),
-    ]
-    for idx_name, table_name, column_name in idx_list:
-        util.create_index(cr, idx_name, table_name, column_name)
-
 
 def migrate(cr, version):
-    create_idx(cr)
 
     # Remove ir cron scheduler action as it will be on procurement group instead of procurement order
     util.remove_record(cr, 'stock.ir_cron_scheduler_action')
