@@ -2,7 +2,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.merge_module(cr, 'account_cash_basis_base_account', 'account', tolerant=True)
+    util.merge_module(cr, 'account_cash_basis_base_account', 'account')
     util.rename_module(cr, 'product_extended', 'mrp_bom_cost')
 
     util.new_module(cr, 'uom', deps={'base'})

@@ -53,7 +53,7 @@ def migrate(cr, version):
     util.ENVIRON['tax_exigible_intalled'] = util.module_installed(cr, 'account_tax_exigible')
     # beside behavior has been moved to `account_tax_cash_basis` module, fields have been moved
     # to `account` module
-    util.merge_module(cr, 'account_tax_exigible', 'account', tolerant=True)
+    util.merge_module(cr, 'account_tax_exigible', 'account')
 
     util.new_module_dep(cr, 'auth_ldap', 'base_setup')
     util.new_module_dep(cr, 'base_gengo', 'base_setup')

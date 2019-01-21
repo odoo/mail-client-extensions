@@ -2,10 +2,10 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.merge_module(cr, 'account_extra_reports', 'account', tolerant=True)
+    util.merge_module(cr, 'account_extra_reports', 'account')
 
     util.remove_view(cr, 'account_full_reconcile.view_move_line_form')
-    util.merge_module(cr, 'account_full_reconcile', 'account', tolerant=True)
+    util.merge_module(cr, 'account_full_reconcile', 'account')
 
     view_list = util.splitlines("""
         view_account_analytic_line_tree_inherit_account_id
