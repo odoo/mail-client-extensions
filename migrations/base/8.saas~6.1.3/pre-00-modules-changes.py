@@ -9,11 +9,14 @@ def migrate(cr, version):
     util.remove_module(cr, 'crm_profiling')     # FIXME convert to a survey?
     util.remove_module(cr, 'l10n_fr_rib')
     util.remove_module(cr, 'marketing_crm')
-    util.remove_module(cr, 'portal_claim')
-    util.remove_module(cr, 'portal_project_issue')
     util.remove_module(cr, 'web_graph')
     util.remove_module(cr, 'website_instantclick')
     util.remove_module(cr, 'website_less')
+
+    util.rename_module(cr, "portal_claim", "website_crm_claim")
+    util.new_module_dep(cr, "website_crm_claim", "website")
+    util.rename_module(cr, "portal_project_issue", "website_project_issue")
+    util.new_module_dep(cr, "website_project_issue", "website")
 
     util.remove_module_deps(cr, 'mass_mailing', ('web_kanban_sparkline',))
     util.remove_module_deps(cr, 'sales_team', ('web_kanban_sparkline',))
@@ -39,6 +42,8 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'barcodes', 'web')
     util.new_module_dep(cr, 'point_of_sale', 'barcodes')
     util.new_module_dep(cr, 'stock', 'barcodes')
+
+    util.new_module(cr, "payment_authorize", deps={"payment"})
 
     if util.module_installed(cr, 'procurement_jit') and not util.module_installed(cr, 'stock'):
         # procurement_jit was already useless without stock. Do not force stock installation
@@ -106,6 +111,8 @@ def migrate(cr, version):
 
     util.new_module(cr, 'website_links')
     util.new_module_dep(cr, 'mass_mailing', 'website_links')
+
+    util.new_module(cr, "website_slides", deps={"website", "website_mail"})
 
     util.new_module(cr, 'web_tip')
     util.new_module_dep(cr, 'web_tip', 'web')

@@ -60,6 +60,10 @@ def migrate(cr, version):
     for m in l10n:
         util.new_module_dep(cr, 'l10n_' + m, 'account')
 
+    util.new_module(cr, "l10n_au", deps={"account"})
+    util.new_module(cr, "l10n_de_skr03", deps={"l10n_de"})
+    util.new_module(cr, "l10n_de_skr04", deps={"l10n_de"})
+
     util.new_module_dep(cr, 'l10n_ca', 'report')
     util.new_module_dep(cr, 'l10n_ca', 'l10n_multilang')
     util.new_module_dep(cr, 'l10n_us', 'report')
@@ -175,9 +179,6 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'website_slides', 'marketing')
 
-    # and the more important one!
-    util.new_module_dep(cr, 'test_new_api', 'web')
-
     if util.has_enterprise():
         util.new_module(cr, 'account_tax_python')
         util.new_module_dep(cr, 'account_tax_python', 'account')
@@ -192,12 +193,10 @@ def migrate(cr, version):
 
         l10n = 'au ar at be bo br ch cl co de_skr03 de_skr04 do es et fr gr hr hu in jp lu ma nl no pl ro sg si th uk uy vn'.split()
         for l in l10n:
-            if not util.module_installed(cr, 'l10n_' + l):
-                util.new_module(cr, 'l10n_' + l, deps=('account',))
             util.new_module(cr, 'l10n_' + l + '_reports', deps=('l10n_' + l, 'account_reports'),
                             auto_install=True)
 
-        util.new_module(cr, 'currency_rate_live', deps=('accounts',), auto_install=True)
+        util.new_module(cr, 'currency_rate_live', deps=('account',), auto_install=True)
 
         util.new_module(cr, 'hr_holidays_gantt', deps=('hr_holidays', 'web_gantt'), auto_install=True)
         util.new_module(cr, 'mass_mailing_themes', deps=('mass_mailing',), auto_install=True)

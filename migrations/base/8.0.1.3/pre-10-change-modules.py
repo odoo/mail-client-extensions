@@ -10,7 +10,9 @@ def migrate(cr, version):
     util.new_module(cr, 'bus')
     util.rename_module(cr, 'im', 'im_chat')
     util.new_module_dep(cr, 'im_chat', 'bus')
+    util.new_module(cr, "im_odoo_support", deps={"im_chat", "web"})
 
+    util.new_module(cr, "payment_sips", deps={"payment"})
     util.rename_module(cr, 'project_mrp', 'sale_service')
 
     util.new_module_dep(cr, 'l10n_uk', 'account_anglo_saxon')
@@ -25,6 +27,8 @@ def migrate(cr, version):
     util.new_module(cr, 'website_sale_options', deps=('website_sale',))
 
     # new l10n modules
-    for cc in 'ae hu sg'.split():
+    for cc in 'ae do hu jp no sa sg'.split():
         l10n = 'l10n_' + cc
         util.new_module(cr, l10n, deps=('account', 'account_chart'))
+
+    util.new_module(cr, "l10n_eu_service", deps={"account_accountant"})

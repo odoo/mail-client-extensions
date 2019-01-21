@@ -60,7 +60,7 @@ def migrate(cr, version):
         util.new_module_dep(cr, 'account_taxcloud', 'l10n_us')
 
         util.remove_module_deps(cr, 'project_forecast_sale', ('sale_timesheet',))
-        util.new_module_dep(cr, 'project_forecast_sale', ('sale',))
+        util.new_module_dep(cr, 'project_forecast_sale', 'sale')
 
         # removed modules
         util.remove_module(cr, 'delivery_temando')

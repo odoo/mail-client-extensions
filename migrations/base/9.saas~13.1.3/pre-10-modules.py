@@ -9,6 +9,22 @@ def migrate(cr, version):
 
         util.new_module(cr, 'mrp_barcode', deps=('mrp_workorder', 'stock_barcode'))
         util.new_module(cr, 'helpdesk', deps=('base_setup', 'mail', 'utm', 'rating'))
+        util.new_module(
+            cr,
+            "web_studio",
+            deps={
+                "base_action_rule",
+                "base_import_module",
+                "grid",
+                "mail",
+                "report",
+                "web",
+                "web_calendar",
+                "web_editor",
+                "web_gantt",
+                "web_kanban",
+            },
+        )
         util.new_module(cr, 'website_helpdesk',
                         deps=('website_form_editor', 'helpdesk', 'website_portal'))
         util.new_module(cr, 'website_helpdesk_form', deps=('website_helpdesk',))

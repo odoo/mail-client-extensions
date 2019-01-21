@@ -23,6 +23,8 @@ def migrate(cr, version):
 
     util.move_field_to_module(cr, 'product.template', 'produce_delay', 'product', 'mrp')
 
+    util.new_module(cr, "payment_buckaroo", deps={"payment"})
+
     util.new_module_dep(cr, 'purchase', 'stock_account')
     util.remove_module_deps(cr, 'purchase', ('stock', 'procurement'))
 
@@ -41,6 +43,8 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'stock', 'web_kanban_gauge')
     util.new_module_dep(cr, 'stock', 'web_kanban_sparkline')
     util.remove_module_deps(cr, 'stock', ('account',))
+    util.new_module(cr, "stock_landed_costs", deps={"stock_account"})
+    util.new_module(cr, "stock_picking_wave", deps={"stock"})
 
     util.new_module_dep(cr, 'sale_stock', 'stock_account')
     util.remove_module_deps(cr, 'sale_stock', ('stock', 'procurement'))

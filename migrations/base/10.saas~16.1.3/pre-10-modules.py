@@ -12,7 +12,7 @@ def migrate(cr, version):
                     auto_install=True)
     util.new_module(cr, 'project_timesheet_holidays', ('hr_timesheet', 'hr_holidays'),
                     auto_install=True)
-    util.new_module(cr, 'phone_validation', ('base'),)
+    util.new_module(cr, 'phone_validation', ('base',))
     util.new_module(cr, 'crm_phone_validation', ('phone_validation', 'crm'),)
     util.new_module(cr, 'website_crm_phone_validation', ('crm_phone_validation', 'website_crm', 'website_form'),
                     auto_install=True)

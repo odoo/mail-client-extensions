@@ -8,7 +8,6 @@ def migrate(cr, version):
     util.rename_module(cr, 'crm_project_issue', 'crm_project')
     util.rename_module(cr, 'website_issue', 'website_form_project')
     util.rename_module(cr, 'website_portal', 'portal')
-    util.module_deps_diff(cr, 'portal', plus={'http_routing', 'mail'}, minus={'website', 'auth_signup'})
     util.rename_module(cr, 'website_rating_project_issue', 'website_rating_project')
 
     util.new_module(cr, 'account_payment', deps={'account', 'payment'})
@@ -16,6 +15,8 @@ def migrate(cr, version):
     util.new_module(cr, 'transifex', deps={'base'})
 
     util.new_module_dep(cr, 'account', 'portal')
+    util.module_deps_diff(cr, 'portal', plus={'http_routing', 'mail'}, minus={'website', 'auth_signup'})
+
     util.merge_module(cr, 'website_account', 'account')     # FIXME
 
     accountant_deps = util.splitlines("""
@@ -25,7 +26,7 @@ def migrate(cr, version):
         l10n_be_intrastat
         l10n_eu_service
         l10n_fr_fec
-        test_main_flows
+        # test_main_flows
 
         # enterprise modules
         account_reports_followup
