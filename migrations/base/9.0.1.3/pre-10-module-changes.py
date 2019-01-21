@@ -192,6 +192,8 @@ def migrate(cr, version):
 
         l10n = 'au ar at be bo br ch cl co de_skr03 de_skr04 do es et fr gr hr hu in jp lu ma nl no pl ro sg si th uk uy vn'.split()
         for l in l10n:
+            if not util.module_installed(cr, 'l10n_' + l):
+                util.new_module(cr, 'l10n_' + l, deps=('account',))
             util.new_module(cr, 'l10n_' + l + '_reports', deps=('l10n_' + l, 'account_reports'),
                             auto_install=True)
 
