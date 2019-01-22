@@ -12,6 +12,7 @@ def migrate(cr, version):
         DELETE FROM res_groups_users_rel
               WHERE gid IN %s
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %s)
+                AND uid != 1
     """, [(user, portal), public])
 
     # remove portal users from `employee` group
@@ -19,4 +20,18 @@ def migrate(cr, version):
         DELETE FROM res_groups_users_rel
               WHERE gid = %s
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %s)
+                AND uid != 1
     """, [user, portal])
+
+    # remove SUPERUSER from `portal` and `public` groups
+    cr.execute("""
+        DELETE FROM res_groups_users_rel
+              WHERE gid IN %s
+                AND uid = 1
+    """, [(portal, public)])
+    # and force it to `employee` group
+    cr.execute("""
+        INSERT INTO res_groups_users_rel(uid, gid)
+             VALUES (1, %s)
+        ON CONFLICT DO NOTHING
+    """, [user])
