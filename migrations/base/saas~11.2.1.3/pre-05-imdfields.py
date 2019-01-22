@@ -24,6 +24,7 @@ def migrate(cr, version):
             'ir.actions.url',
             'email_template.account',
             'res.partner.canal',
+            'crm.case',
             'mailgate.thread',
             'mailgate.message'
         )
