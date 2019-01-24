@@ -9,6 +9,8 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb('project.{portal_project_rule,project_project_rule_portal}'))
     util.rename_xmlid(cr, *eb('project.{portal_task_rule,project_task_rule_portal}'))
 
+    util.force_noupdate(cr, "project.edit_project", False)
+
     # rename to /dev/null
     util.remove_record(cr, 'project.portal_issue_rule')   # from website_project_issue
 
