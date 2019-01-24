@@ -9,6 +9,7 @@ def migrate(cr, version):
     # new modules
     util.new_module(cr, 'base_address_city', deps=('base',))
     util.new_module(cr, 'base_address_extended', deps=('base',))
+    util.new_module(cr, 'l10n_in_schedule6', deps=('account',))
 
     # new modules-link
     util.new_module(cr, 'crm_livechat', deps=('crm', 'im_livechat'), auto_install=True)

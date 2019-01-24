@@ -144,3 +144,5 @@ def migrate(cr, version):
     cr.execute(
         "UPDATE ir_module_module SET demo=(SELECT demo FROM ir_module_module WHERE name='base')"
     )
+
+    util.new_module(cr, 'website_crm_score', deps=('base', 'sales_team', 'marketing', 'website_crm'))
