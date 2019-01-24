@@ -4,6 +4,7 @@ from openerp.addons.base.maintenance.migrations import util
 from openerp.tools.misc import ignore
 
 def migrate(cr, version):
+    util.new_module(cr, 'l10n_be_intrastat_2019', deps=('l10n_be_intrastat',), auto_install=True)
     if util.has_enterprise():
         util.new_module(cr, 'web_mobile', deps=('web_settings_dashboard',), auto_install=True)
         util.new_module(cr, 'mail_push', deps=('mail', 'web_mobile'), auto_install=True)
