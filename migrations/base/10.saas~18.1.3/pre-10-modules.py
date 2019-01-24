@@ -45,7 +45,15 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'l10n_nl', 'base_address_extended')
 
-    util.merge_module(cr, 'procurement', 'stock')
+    sale_stock_installed = util.module_installed(cr, "sale_stock")
+    util.merge_module(cr, "procurement", "stock")
+    if (
+        util.parse_version(version) < util.parse_version("10.saas~14")
+        and util.module_installed(cr, "sale_stock") != sale_stock_installed
+    ):
+        # for databases < saas~14, if sale_stock is going to be auto installed via module merge,
+        # we need to manually rename xmlid to avoid duplicated group. See #369
+        util.import_script("sale_stock/10.saas~14.1.0/pre-renames.py").migrate(cr, version)
 
     util.new_module_dep(cr, 'project', 'portal')
     util.merge_module(cr, 'project_issue', 'project')   # will handle deps
