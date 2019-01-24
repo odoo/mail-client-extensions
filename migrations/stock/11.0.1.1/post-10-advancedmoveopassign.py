@@ -117,7 +117,7 @@ def migrate(cr, version):
         INSERT INTO stock_move_line (move_id, product_id, location_id, location_dest_id, product_uom_qty, qty_done, product_uom_id, 
         fresh_record, package_id, result_package_id, owner_id, picking_id, ordered_qty, date, lot_id, lot_name, state) 
              (SELECT p.move_id, p.product_id,  p.location_id, p.location_dest_id, l.qty, l.qty, p.product_uom_id, 
-                        p.fresh_record, p.package_id, p.result_package_id, p.owner_id, p.picking_id, p.ordered_qty, pp.date, l.lot_id, l.lot_name, m.state
+                        p.fresh_record, p.package_id, p.result_package_id, p.owner_id, p.picking_id, p.ordered_qty, coalesce(pp.date, p.date), l.lot_id, l.lot_name, m.state
                     FROM stock_move_line p, stock_pack_operation_lot l, stock_picking pp, stock_move m 
                     WHERE p.id = l.operation_id AND pp.id = p.picking_id AND m.id = p.move_id)
     """)
