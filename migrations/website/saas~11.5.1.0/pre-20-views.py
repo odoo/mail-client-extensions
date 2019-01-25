@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, "website.layout")
+    util.force_noupdate(cr, "website.layout", False)
     util.rename_xmlid(cr, 'website.menu_homepage','website.menu_home')
     """
     Ensure each website qweb view, and all their inherited views,
