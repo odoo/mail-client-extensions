@@ -36,3 +36,4 @@ def migrate(cr, version):
 
     util.remove_view(cr, "website_sale.sale_order_view_form")
     util.remove_view(cr, "website_sale.sort")
+    util.remove_view(cr, "website_sale.content_new_product")
