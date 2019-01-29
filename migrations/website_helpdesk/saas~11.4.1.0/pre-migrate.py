@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
