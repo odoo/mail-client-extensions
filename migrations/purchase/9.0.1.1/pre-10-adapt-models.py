@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from openerp.addons.base.maintenance.migrations import util
+
 
 def migrate(cr, version):
     # Easier to let the ORM to recreate the whole table instead of droping the bunch of
@@ -30,14 +32,9 @@ def migrate(cr, version):
     # and we might be happy to have kept this info
     cr.execute("UPDATE purchase_order_line pol SET state=po.state FROM purchase_order AS po WHERE po.id=pol.order_id")  # field is now related
 
-    # deassociate invoice lines from purchase order line with differents uoms
-    # if uoms are differents, the stored computed field `qty_invoiced` cannot be computed.
-    cr.execute("""UPDATE account_invoice_line i
-                     SET purchase_line_id = NULL
-                    FROM purchase_order_line o
-                   WHERE o.id = i.purchase_line_id
-                     AND i.uom_id != o.product_uom
-               """)
+    # fields will be computed in `post-` script
+    util.create_column(cr, "purchase_order_line", "qty_invoiced", "numeric")
+    util.create_column(cr, "purchase_order_line", "qty_received", "numeric")
 
     # remove old m2m between purchase_order_line and account_invoice_line
     cr.execute("DROP TABLE IF EXISTS purchase_order_line_invoice_rel")
