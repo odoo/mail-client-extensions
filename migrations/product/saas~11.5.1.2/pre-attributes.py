@@ -33,6 +33,15 @@ def migrate(cr, version):
           LEFT JOIN product_attribute_price i
                  ON i.value_id = r.product_attribute_value_id AND i.product_tmpl_id = p.product_tmpl_id
     """)
+    cr.execute("""
+        ALTER TABLE product_attribute_line_product_attribute_value_rel
+          RENAME TO product_attribute_value_product_template_attribute_line_rel
+    """)
+    cr.execute("""
+        ALTER TABLE product_attribute_value_product_template_attribute_line_rel
+      RENAME COLUMN product_attribute_line_id
+                 TO product_template_attribute_line_id
+    """)
 
     util.remove_field(cr, "procuct.attribute.value", "product_ids")
     util.remove_field(cr, "procuct.attribute.value", "price_extra")
