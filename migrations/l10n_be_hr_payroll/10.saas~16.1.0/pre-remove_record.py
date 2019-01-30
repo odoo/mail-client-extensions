@@ -5,7 +5,7 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.delete_unused(
         cr,
-        "hr.salary.rule",
+        "hr_salary_rule",
         [
             "l10n_be_hr_payroll.hr_payroll_rules_p_p_b1",
             "l10n_be_hr_payroll.hr_payroll_rules_child_handicap",
