@@ -87,8 +87,13 @@ def migrate(cr, version):
     
 
     #create index to speedup the matching below
-    cr.execute("""create index account_move_line_name_mig_only on account_move_line(name)""")
-    cr.execute("""create index stock_move_name_mig_only on stock_move(name)""")
+    cr.execute("""create index account_move_line_name_mig_only on account_move_line using hash (name)""")
+    cr.execute("""create index stock_move_name_mig_only on stock_move using hash (name)""")
+    cr.execute("""create index stock_picking_mig_only on stock_picking using hash (name)""")
+    cr.execute("""create index account_move_name_mig_only on account_move using hash (name)""")
+    cr.execute("""create index account_move_line_ref_mig_only on account_move_line using hash (ref)""")
+    cr.execute("""create index account_move_ref_mig_only on account_move using hash (ref)""")
+
 
     # Create link between account move and stock move (based on reference/name matching)
     util.create_column(cr, 'account_move', 'stock_move_id', 'int4')
@@ -121,6 +126,10 @@ def migrate(cr, version):
     #drop index to speedup the matching
     cr.execute("""drop index account_move_line_name_mig_only """)
     cr.execute("""drop index stock_move_name_mig_only """)
+    cr.execute("""drop index stock_picking_mig_only """)
+    cr.execute("""drop index account_move_name_mig_only """)
+    cr.execute("""drop index account_move_line_ref_mig_only """)
+    cr.execute("""drop index account_move_ref_mig_only """)
 
 
     # update quantity for account_move_line (only used during inventory valuation with a specified date)
