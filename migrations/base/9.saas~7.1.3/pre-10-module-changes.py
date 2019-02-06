@@ -12,7 +12,8 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'analytic', 'report')
     util.new_module_dep(cr, 'utm', 'base')
-    util.new_module_dep(cr, 'website_crm_score', 'marketing_campaign')      # enterprise
+    if util.has_enterprise():
+        util.new_module_dep(cr, 'website_crm_score', 'marketing_campaign')      # enterprise
 
     util.remove_module_deps(cr, 'website_event_track', ('website_blog',))
 
