@@ -19,6 +19,16 @@ def migrate(cr, version):
     so_ids = [r[0] for r in cr.fetchall()]
     util.recompute_fields(cr, "sale.order", ["currency_rate"], ids=so_ids, chunk_size=SZ)
 
+    # for some reason, some related fields from the past might not be set correctly
+    # (3 databases so far had the problem), so we make sure the company_id field is
+    # correctly set on sale and invoice lines otherwise the currency computation crashes
+    cr.execute("""
+        UPDATE sale_order_line  sol
+            SET company_id=so.company_id
+            FROM sale_order so
+            WHERE so.id=sol.order_id AND
+                  sol.company_id IS NULL
+    """)
     cr.execute(
         """
         SELECT r.order_line_id
