@@ -7,6 +7,9 @@ def migrate(cr, version):
     portal = util.ref(cr, "base.group_portal")
     public = util.ref(cr, "base.group_public")
 
+    u2id = util.ENVIRON['user2_id']
+    assert isinstance(u2id, int)
+
     # remove public users from `portal` and `employee` groups
     cr.execute("""
         DELETE FROM res_groups_users_rel
@@ -27,11 +30,11 @@ def migrate(cr, version):
     cr.execute("""
         DELETE FROM res_groups_users_rel
               WHERE gid IN %s
-                AND uid = 1
-    """, [(portal, public)])
+                AND uid IN (1, %s)
+    """, [(portal, public), u2id])
     # and force it to `employee` group
     cr.execute("""
         INSERT INTO res_groups_users_rel(uid, gid)
-             VALUES (1, %s)
+             VALUES (1, %s), (%s, %s)
         ON CONFLICT DO NOTHING
-    """, [user])
+    """, [user, u2id, user])

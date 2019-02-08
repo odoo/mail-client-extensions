@@ -12,7 +12,7 @@ def migrate(cr, version):
         return 2
 
     u1id = 1
-    u2id = try_id_2("res_users")
+    u2id = util.ENVIRON["user2_id"] = try_id_2("res_users")
 
     cr.execute("SELECT partner_id FROM res_users WHERE id=1")
     p1id = cr.fetchone()[0]
