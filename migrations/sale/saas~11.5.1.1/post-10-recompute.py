@@ -15,9 +15,13 @@ def migrate(cr, version):
            AND c.currency_id = p.currency_id
     """
     )
-    cr.execute("SELECT id FROM sale_order WHERE currency_rate IS NULL")
+    cr.execute("SELECT id FROM sale_order WHERE currency_rate IS NULL AND company_id IS NOT NULL")
     so_ids = [r[0] for r in cr.fetchall()]
     util.recompute_fields(cr, "sale.order", ["currency_rate"], ids=so_ids, chunk_size=SZ)
+
+
+    #some database does not contain company id value on sale order as not required field
+    cr.execute("UPDATE sale_order SET currency_rate = 1 WHERE currency_rate IS NULL")
 
     # for some reason, some related fields from the past might not be set correctly
     # (3 databases so far had the problem), so we make sure the company_id field is
