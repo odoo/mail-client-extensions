@@ -25,7 +25,7 @@ def migrate(cr, version):
            AND u1.id = m.product_uom_id
            AND u2.id = t.uom_id
     """)
-    cr.commit()
+
     # Then let ORM compute remaining records
     cr.execute(
         """
