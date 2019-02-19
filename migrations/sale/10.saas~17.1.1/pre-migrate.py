@@ -16,13 +16,13 @@ def migrate(cr, version):
          WHERE key='sale.default_use_sale_note'
     """)
 
-    mapping = {
-        'sale_pricelist_setting': 'sale_pricelist_setting',
-        'deposit_product_id_setting': 'default_deposit_product_id',
-        'auto_done_setting': 'auto_done_setting',
-        'sale_show_tax': 'sale_show_tax',
+    fields = {
+        "sale_pricelist_setting",
+        "default_deposit_product_id",
+        "auto_done_setting",
+        "sale_show_tax",
     }
 
-    imp = util.import_script('base/10.saas~17.1.3/default_to_icp.py')
-    for f, k in mapping.items():
-        imp.default_to_icp(cr, 'sale.config.settings', f, 'sale.' + k)
+    imp = util.import_script("base/10.saas~17.1.3/default_to_icp.py")
+    for f in fields:
+        imp.default_to_icp(cr, "sale.config.settings", f, "sale." + f)
