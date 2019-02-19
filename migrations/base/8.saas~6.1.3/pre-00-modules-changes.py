@@ -43,6 +43,8 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'point_of_sale', 'barcodes')
     util.new_module_dep(cr, 'stock', 'barcodes')
 
+    util.new_module(cr, "inter_company_rules", deps={"sale", "purchase", "sale_stock", "sale_order_dates"})
+
     util.new_module(cr, "payment_authorize", deps={"payment"})
 
     if util.module_installed(cr, 'procurement_jit') and not util.module_installed(cr, 'stock'):
@@ -55,11 +57,16 @@ def migrate(cr, version):
     util.new_module(cr, 'rating')
     util.new_module_dep(cr, 'rating', 'mail')
     util.new_module_dep(cr, 'im_livechat', 'rating')
+    util.new_module(cr, "rating_project", deps={"rating", "project"})
+    util.new_module(cr, "rating_project_issue", deps={"rating_project", "project_issue"}, auto_install=True)
+    util.new_module(cr, "website_rating_project_issue", deps={"website_project_issue", "rating_project_issue"})
 
     util.new_module(cr, 'planner', deps=('web',), auto_install=True)
     util.new_module(cr, 'planner_crm', deps=('planner', 'crm'), auto_install=True)
 
     util.merge_module(cr, 'email_template', 'mail')
+
+    util.new_module(cr, "stock_calendar", deps={"purchase", "resource"})
 
     util.new_module(cr, 'theme_default')
     util.new_module_dep(cr, 'theme_default', 'website')
@@ -112,8 +119,6 @@ def migrate(cr, version):
     util.new_module(cr, 'website_links')
     util.new_module_dep(cr, 'mass_mailing', 'website_links')
 
-    util.new_module(cr, "website_slides", deps={"website", "website_mail"})
-
     util.new_module(cr, 'web_tip')
     util.new_module_dep(cr, 'web_tip', 'web')
     for m in 'account crm event hr project purchase website_quote'.split():
@@ -131,6 +136,7 @@ def migrate(cr, version):
     # migration script to be in a specific file instead of a method above...
     util.force_migration_of_fresh_module(cr, 'utm')
 
+    util.new_module(cr, "website_event_questions", deps={"website_event"})
     util.new_module(cr, 'website_portal')
     util.new_module_dep(cr, 'website_portal', 'sale')
     util.new_module_dep(cr, 'website_portal', 'website')
@@ -141,8 +147,13 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'website_quote', 'payment')
     util.new_module_dep(cr, 'website_quote', 'website_portal')
 
+    util.new_module(cr, 'website_crm_score', deps=('base', 'sales_team', 'marketing', 'website_crm'))
+    util.new_module(cr, "website_sale_digital", deps={"document", "website_sale"})
+    util.new_module(cr, "website_sale_stock", deps={"website_sale", "sale_stock"}, auto_install=True)
+    util.new_module(cr, "website_slides", deps={"website", "website_mail"})
+    util.new_module(cr, "website_version", deps={"website", "marketing", "google_account", "mail"})
+
+    # correctly set the "demo" flag
     cr.execute(
         "UPDATE ir_module_module SET demo=(SELECT demo FROM ir_module_module WHERE name='base')"
     )
-
-    util.new_module(cr, 'website_crm_score', deps=('base', 'sales_team', 'marketing', 'website_crm'))
