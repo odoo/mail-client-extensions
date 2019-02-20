@@ -2,7 +2,10 @@
 from openerp.addons.base.maintenance.migrations import util
 
 # NOTE
-# this script is called twice: in post- and in end- (symlink) to allow depending modules to overwrite values
+# this script is called multiple time:
+# in post- (this script) and in end- to allow depending modules to overwrite values
+# it should also be called in post- mrp to allow module `purchase_stock` to be updated
+# See #415 #417
 
 
 def migrate(cr, version):
