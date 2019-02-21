@@ -148,7 +148,7 @@ def migrate(cr, version):
             util.force_install_module(cr, "stock_intrastat")
 
         util.module_deps_diff(cr, "account_accountant", minus={"account_reports"})
-        util.module_deps_diff(cr, "account_reports", plus={"account_accountant"}, minus={"anccount"})
+        util.module_deps_diff(cr, "account_reports", plus={"account_accountant"}, minus={"account"})
         util.module_deps_diff(cr, "account_sepa", plus={"account_batch_payment"}, minus={"account"})
         util.module_deps_diff(cr, "account_sepa_direct_debit", plus={"account_batch_payment"}, minus={"account"})
         util.module_deps_diff(cr, "helpdesk", plus={"digest"})
