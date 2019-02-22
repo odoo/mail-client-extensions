@@ -2,6 +2,16 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    # a required=True without cascade deletion  on the uninstall wizard can prevent
+    # module deletion (module_id on the wizard is a not null fkey)
+    # apply the cascade deletion pre-emptively to avoid stupid restrictions
+    cr.execute('''ALTER TABLE base_module_uninstall
+                  DROP CONSTRAINT base_module_uninstall_module_id_fkey,
+                  ADD CONSTRAINT base_module_uninstall_module_id_fkey
+                    FOREIGN KEY (module_id)
+                    REFERENCES ir_module_module(id)
+                    ON DELETE CASCADE
+               ''')
     util.new_module_dep(cr, 'l10n_mx', 'account_cancel')
 
     util.merge_module(cr, 'rating_project', 'project')
