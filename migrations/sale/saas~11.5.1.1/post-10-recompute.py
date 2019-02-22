@@ -60,7 +60,7 @@ def migrate(cr, version):
     """
     )
 
-    # Create section lines
+    # Create section lines for sale_order_lines
     # Then re-generate the sequence to ensure proper order
     cr.execute(
         """
@@ -88,5 +88,35 @@ def migrate(cr, version):
         SET sequence=new_sequence.sequence
         FROM new_sequence
         WHERE sale_order_line.id=new_sequence.id
+    """
+    )
+
+    # same thing for account_invoice_line
+    cr.execute(
+        """
+        INSERT INTO account_invoice_line
+            (invoice_id, layout_category_id, sequence, display_type, name,
+             price_unit, quantity
+            )
+            SELECT il.invoice_id, il.layout_category_id, min(il.sequence)-5, 'line_section', l.name,
+                   0, 0
+            FROM account_invoice_line il INNER JOIN sale_layout_category l on il.layout_category_id=l.id
+            GROUP BY il.invoice_id, il.layout_category_id, l.name
+            ORDER BY il.invoice_id, il.layout_category_id
+    """
+    )
+    cr.execute(
+        """
+        WITH new_sequence AS (
+            SELECT il.id,row_number() OVER (
+                PARTITION BY il.invoice_id
+                ORDER BY il.invoice_id, l.sequence, l.id, COALESCE(il.sequence, 0), il.id
+            ) as sequence
+            FROM account_invoice_line il INNER JOIN sale_layout_category l on il.layout_category_id=l.id
+        )
+        UPDATE account_invoice_line
+        SET sequence=new_sequence.sequence
+        FROM new_sequence
+        WHERE account_invoice_line.id=new_sequence.id
     """
     )
