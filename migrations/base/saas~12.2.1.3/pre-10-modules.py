@@ -18,6 +18,7 @@ def migrate(cr, version):
 
     util.module_deps_diff(cr, "crm_reveal", plus={"crm_iap_lead"})
     util.rename_module(cr, "crm_reveal", "crm_iap_lead_website")
+    util.force_migration_of_fresh_module(cr, "crm_iap_lead")
     util.module_deps_diff(cr, "event", plus={"portal"})
     util.module_deps_diff(cr, "portal", plus={"web", "web_editor"})
     util.module_deps_diff(cr, "purchase_mrp", plus={"purchase_stock"}, minus={"purchase"})
