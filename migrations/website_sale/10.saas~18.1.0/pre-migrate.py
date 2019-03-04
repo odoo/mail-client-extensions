@@ -17,3 +17,5 @@ def migrate(cr, version):
         util.rename_field(cr, 'product.template', 'availablity_warning', 'custom_message')
         util.move_field_to_module(cr, 'product.template', 'custom_message',
                                   'website_sale', 'website_sale_stock')
+
+        util.force_migration_of_fresh_module(cr, "website_sale_stock")
