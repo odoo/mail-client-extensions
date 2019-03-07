@@ -120,6 +120,9 @@ if self.link_field_id:
                code = code || '
 eval_context = dict(env=env, model=model, record=record, records=records,
                     object=record, obj=record, user=env.user, context=dict(env.context))
+object = obj = record
+user = env.user
+context = dict(env.context)
 self = env["ir.actions.server"].browse(' || id || ')
 data = {}
 for exp in self.fields_lines:
@@ -129,7 +132,7 @@ for exp in self.fields_lines:
 CASE WHEN use_write = 'other' THEN
     'ref_id = ' || split_part(ref_object, ',', 2)
 ELSE
-    'ref_id = int(' || COALESCE(write_expression, '0') || '), eval_context)'
+    'ref_id = int(' || COALESCE(write_expression, '0') || ')'
 END
 || '
 env[self.model_id.model].browse(ref_id).write(data)
