@@ -26,12 +26,13 @@ def migrate(cr, version):
     """)
     cr.execute("""
         INSERT INTO product_template_attribute_value(product_attribute_value_id, product_tmpl_id, price_extra)
-             SELECT r.product_attribute_value_id, p.product_tmpl_id, COALESCE(i.price_extra, 0)
+             SELECT r.product_attribute_value_id, p.product_tmpl_id, COALESCE(i.price_extra, 0) price_extra
                FROM product_attribute_value_product_product_rel r
                JOIN product_product p
                  ON p.id = r.product_product_id
           LEFT JOIN product_attribute_price i
                  ON i.value_id = r.product_attribute_value_id AND i.product_tmpl_id = p.product_tmpl_id
+           GROUP BY r.product_attribute_value_id, p.product_tmpl_id, price_extra
     """)
     cr.execute("""
         ALTER TABLE product_attribute_line_product_attribute_value_rel
