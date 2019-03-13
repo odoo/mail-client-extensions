@@ -3,7 +3,12 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     eb = util.expand_braces
-    util.rename_xmlid(cr, *eb('purchase_requisition.seq_purchase_{requisition,tender}'))
+    sequence_id = util.rename_xmlid(cr, *eb('purchase_requisition.seq_purchase_{requisition,tender}'))
+    if sequence_id:
+        cr.execute("""UPDATE ir_sequence
+                         SET code='purchase.requisition.purchase.tender'
+                       WHERE id=%s
+                   """, [sequence_id])
 
     util.create_column(cr, 'purchase_requisition', 'currency_id', 'int4')
     cr.execute("""
