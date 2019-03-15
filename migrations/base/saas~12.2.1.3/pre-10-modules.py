@@ -32,8 +32,6 @@ def migrate(cr, version):
     if util.modules_installed(cr, "hr_payroll", "l10n_be"):
         util.force_install_module(cr, "l10n_be_hr_payroll")
 
-    util.remove_module(cr, "stock_zebra")  # ??
-
     if util.has_enterprise():
         util.rename_module(cr, "quality_mrp_iot", "mrp_workorder_iot")
         util.rename_module(cr, "timesheet_grid_sale", "sale_timesheet_enterprise")
@@ -50,5 +48,3 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "documents_account", plus={"account_reports"}, minus={"account"})
         util.module_deps_diff(cr, "mrp_workorder_iot", plus={"mrp_workorder"}, minus={"quality_mrp_workorder"})
         util.module_deps_diff(cr, "quality_iot", plus={"quality_control"}, minus={"quality"})
-
-        util.remove_module(cr, "mrp_zebra")
