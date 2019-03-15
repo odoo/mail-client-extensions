@@ -2,11 +2,21 @@
 import ast
 import re
 import logging
-logging.getLogger().setLevel(logging.WARNING)
-_logger = logging.getLogger('odoo.addons.base.maintenance.migrations.base.saas-17.' + __name__)
 
 from lib2to3.refactor import RefactoringTool, get_all_fix_names     # noqa: E402
 from lib2to3.pgen2.parse import ParseError                          # noqa: E402
+import lib2to3.pgen2.driver
+
+lib2to3_logger = logging.getLogger('lib2to3.driver')
+class Lib2to3LoggingShim(object):
+    def getLogger(self):
+        return logging.getLogger('lib2to3.driver')
+lib2to3.pgen2.driver.logging = Lib2to3LoggingShim()
+
+logging.getLogger('lib2to3.driver').setLevel(logging.WARNING)
+logging.getLogger('RefactoringTool').setLevel(logging.WARNING)
+_logger = logging.getLogger('odoo.addons.base.maintenance.migrations.base.saas-17.' + __name__)
+
 from odoo.addons.base.maintenance.migrations import util            # noqa: E402
 
 PKG = 'lib2to3.fixes'
