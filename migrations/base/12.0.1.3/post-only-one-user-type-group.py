@@ -32,7 +32,7 @@ def migrate(cr, version):
     # remove SUPERUSER and user2 from `portal` and `public` groups
     cr.execute("""
         DELETE FROM res_groups_users_rel
-              WHERE gid IN (%(portal)s, %(public)s))
+              WHERE gid IN (%(portal)s, %(public)s)
                 AND uid IN (1, %(u2id)s)
     """, locals())
     # and force them to `employee` group
