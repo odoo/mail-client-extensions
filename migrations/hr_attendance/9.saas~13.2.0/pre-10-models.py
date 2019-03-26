@@ -41,7 +41,7 @@ def migrate(cr, version):
                   FROM hr_attendance a, hr_attendance b
                  WHERE a.employee_id = b.employee_id
                    AND b.check_out IS NOT NULL
-                   AND a.check_in BETWEEN b.check_in AND b.check_out
+                   AND a.check_in > b.check_in AND a.check_in < b.check_out
               GROUP BY a.id
           ) x
          WHERE array_length(o, 1) > 1 and id = o[1]
