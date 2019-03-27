@@ -27,6 +27,8 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "website_forum", plus={"website_profile"}, minus={"gamification", "website_partner"})
     util.module_deps_diff(cr, "website_slides", plus={"website_profile", "website_rating"})
 
+    util.force_migration_of_fresh_module(cr, "website_profile")
+
     if util.modules_installed(cr, "hr_payroll", "account"):
         util.force_install_module(cr, "hr_payroll_account")
 
