@@ -25,3 +25,14 @@ def migrate(cr, version):
     util.remove_field(cr, "account.tax.template", "company_id")
 
     util.remove_model(cr, "account.opening")
+
+    # if 8.0 -> 9.0 mig, we added a fake CoA template
+    # we need to set up some values for that coa
+    # to allow postgres to set the not null as required by the fields def
+    cr.execute("""
+        UPDATE account_chart_template
+        SET bank_account_code_prefix='000',
+            cash_account_code_prefix='000',
+            transfer_account_code_prefix='000'
+        WHERE name='migration_chart_9_0_1_1'
+        """)
