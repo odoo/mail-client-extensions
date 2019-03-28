@@ -6,11 +6,11 @@ def migrate(cr, version):
     util.create_column(cr, "account_invoice", "vendor_bill_id", "int4")
     util.create_column(cr, "account_invoice", "vendor_display_name", "varchar")
 
-    util.create_column(cr, "account_chart_template", "transfert_account_code_prefix", "varchar")
+    util.create_column(cr, "account_chart_template", "transfer_account_code_prefix", "varchar")
     cr.execute(
         """
         UPDATE account_chart_template c
-           SET transfert_account_code_prefix = a.code
+           SET transfer_account_code_prefix = a.code
           FROM account_account_template a
          WHERE a.id = c.transfer_account_id
         """
