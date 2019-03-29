@@ -38,6 +38,7 @@ def migrate(cr, version):
                 AND uid IN (1, %(u2id)s)
     """, locals())
     # and force them to `employee`, `settings` and `access rights` groups
+    util.fixup_m2m(cr, 'res_groups_users_rel', 'res_users', 'res_groups', 'uid', 'gid')
     cr.execute("""
         INSERT INTO res_groups_users_rel(uid, gid)
              VALUES (1, %(user)s), (%(u2id)s, %(user)s)

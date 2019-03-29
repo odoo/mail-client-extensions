@@ -22,8 +22,7 @@ def migrate(cr, version):
 
     if todel:
         cr.execute('DELETE FROM forum_tag WHERE id IN %s', [tuple(todel)])
-        fix_m2m = util.import_script('base/9.0.1.3/pre-00-fixup-m2m.py')
-        fix_m2m.fixup_m2m(cr, 'forum_tag_rel',
+        util.fixup_m2m(cr, 'forum_tag_rel',
                           'forum_post', 'forum_tag', 'forum_id', 'forum_tag_id')
 
     cr.execute("UPDATE forum_tag SET name = trim(name)")
