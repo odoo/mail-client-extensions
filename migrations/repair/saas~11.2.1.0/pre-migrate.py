@@ -45,3 +45,10 @@ def migrate(cr, version):
     """)
     for r in renames:
         util.rename_xmlid(cr, *eb('repair.' + r))
+
+    cr.execute("""
+        UPDATE ir_sequence
+           SET code = 'repair.order'
+         WHERE code = 'mrp.repair'
+           AND id = %s
+    """, [util.ref(cr, "repair.seq_repair")])
