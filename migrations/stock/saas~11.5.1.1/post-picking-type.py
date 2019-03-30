@@ -12,6 +12,8 @@ def migrate(cr, version):
     env = util.env(cr)
 
     for warehouse in env["stock.warehouse"].with_context(active_test=False).search([]):
+        vals = {'reception_steps': warehouse.reception_steps, 'delivery_steps': warehouse.delivery_steps, 'code': warehouse.code}
+        warehouse._create_missing_locations(vals)
         picking_type_vals = warehouse._create_or_update_sequences_and_picking_types()
         if picking_type_vals:
             warehouse.write(picking_type_vals)
