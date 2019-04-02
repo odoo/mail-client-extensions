@@ -14,10 +14,12 @@ def migrate(cr, version):
     util.new_module(cr, 'http_routing', deps={'web'})
     util.new_module(cr, 'transifex', deps={'base'})
 
-    util.new_module_dep(cr, 'account', 'portal')
     util.module_deps_diff(cr, 'portal', plus={'http_routing', 'mail'}, minus={'website', 'auth_signup'})
+    util.new_module_dep(cr, 'account', 'portal')
 
-    util.merge_module(cr, 'website_account', 'account')     # FIXME
+    # Avoid to have account depending on website...
+    # Then let oneAppFree remains oneAppFree
+    util.merge_module(cr, 'website_account', 'account', without_deps=True)
 
     accountant_deps = util.splitlines("""
         account_asset
@@ -44,6 +46,22 @@ def migrate(cr, version):
     util.new_module(cr, 'l10n_in_stock', deps={'l10n_in', 'stock'}, auto_install=True)
 
     util.new_module_dep(cr, 'l10n_nl', 'base_address_extended')
+
+    # Avoid to install stock module just because procurement was auto-installed...
+    # Then let oneAppFree remains oneAppFree
+    if util.module_installed(cr, "procurement"):
+        # determine if really used
+        cr.execute("""
+            SELECT COUNT(*)
+              FROM ir_module_module_dependency d
+        INNER JOIN ir_module_module m ON d.module_id = m.id
+             WHERE d.name = 'procurement'
+               AND m.state IN %s
+        """, [util._INSTALLED_MODULE_STATES])
+        if not cr.fetchone()[0]:
+            cr.execute("SELECT COUNT(1) FROM procurement_order")
+            if not cr.fetchone()[0]:
+                util.uninstall_module(cr, "procurement")
 
     sale_stock_installed = util.module_installed(cr, "sale_stock")
     util.merge_module(cr, "procurement", "stock")
