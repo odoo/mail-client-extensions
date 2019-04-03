@@ -1,4 +1,20 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
+
+
+def update_lang_code(cr, from_, to):
+    cr.execute("ALTER TABLE ir_translation DROP CONSTRAINT ir_translation_lang_fkey_res_lang")
+    cr.execute("UPDATE ir_translation SET lang = %s WHERE lang = %s", [to, from_])
+    cr.execute("UPDATE res_lang SET code = %s WHERE code = %s", [to, from_])
+    cr.execute("UPDATE res_partner SET lang = %s WHERE lang = %s", [to, from_])
+    if util.column_exists(cr, "payment_transaction", "partner_lang"):
+        cr.execute("UPDATE payment_transaction SET partner_lang = %s WHERE partner_lang = %s", [to, from_])
+    cr.execute("""
+        ALTER TABLE ir_translation
+     ADD CONSTRAINT ir_translation_lang_fkey_res_lang
+        FOREIGN KEY (lang)
+         REFERENCES res_lang(code)
+    """)
 
 def migrate(cr, version):
     # remove empty and duplicated translation (allow creation of unique index)
@@ -12,4 +28,4 @@ def migrate(cr, version):
         )
     """)
 
-    cr.execute("UPDATE res_lang SET code='km_KH' WHERE code='km_KM'")
+    update_lang_code(cr, "km_KM", "km_KH")
