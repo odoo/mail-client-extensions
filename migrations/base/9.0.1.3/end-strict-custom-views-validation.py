@@ -6,7 +6,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     if not str2bool(os.environ.get('ODOO_MIG_STRICT_CUSTOM_VIEWS_VALIDATION'), default='on') or \
-       util.ENVIRON.get('custom_views_valid'):
+       util.ENVIRON.get('custom_views_valid') or not util.is_saas(cr):
         return
 
     env = util.env(cr)
