@@ -41,7 +41,7 @@ def migrate(cr, version):
     """
     )
     for r in renames:
-        util.rename_xmlid(cr, *eb("account_batch_payment." + r.format("{deposit,payment}")))
+        util.rename_xmlid(cr, *eb("account_batch_payment." + r.format("{deposit,payment}")), False)
 
     util.remove_record(cr, "account_batch_payment.action_batch_deposit")
     util.remove_record(cr, "account_batch_payment.menu_batch_deposit")
