@@ -7,3 +7,11 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, "sale.group_show_price_subtotal", "account.group_show_line_subtotals_tax_excluded")
     util.rename_xmlid(cr, "sale.group_show_price_total", "account.group_show_line_subtotals_tax_included")
+    cr.execute("""
+        UPDATE ir_config_parameter
+           SET value = CASE value WHEN 'total' THEN 'tax_included'
+                                  ELSE 'tax_excluded'
+                        END,
+               key = 'account.show_line_subtotals_tax_selection'
+         WHERE key = 'sale.sale_show_tax'
+    """)
