@@ -10,7 +10,7 @@ def migrate(cr, version):
     pub = util.ref(cr, "base.group_public")
 
     env = util.env(cr)
-    env.invalidate_cache()
+    env.cache.invalidate()
 
     cr.execute(
         """
