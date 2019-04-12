@@ -27,9 +27,13 @@ def migrate(cr, version):
     util.new_module(cr, 'website_sale_link_tracker', deps={'website_sale', 'website_links'}, auto_install=True)
 
     if util.has_enterprise():
+        util.new_module(cr, "quality_control", deps=("quality",))
+        if util.module_installed(cr, "quality"):
+            # module `quality` has been splitted. Keep behavior
+            util.force_install_module(cr, "quality_control")
+
         util.module_deps_diff(cr, 'mrp_maintenance', plus={'mrp_workorder'}, minus={'quality_mrp'})
         util.module_deps_diff(cr, 'mrp_workorder', plus={'quality'})
-        util.new_module(cr, 'quality_control', deps=('quality',), auto_install=True)
         util.module_deps_diff(cr, 'quality_mrp', plus={'quality_control', 'mrp'}, minus={'mrp_workorder', 'quality'})
         util.new_module(cr, 'quality_mrp_workorder', deps=('quality_control', 'mrp_workorder'), auto_install=True)
 
