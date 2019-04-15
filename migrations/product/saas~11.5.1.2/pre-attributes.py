@@ -33,6 +33,14 @@ def migrate(cr, version):
           LEFT JOIN product_attribute_price i
                  ON i.value_id = r.product_attribute_value_id AND i.product_tmpl_id = p.product_tmpl_id
            GROUP BY r.product_attribute_value_id, p.product_tmpl_id, price_extra
+              UNION
+             SELECT r.product_attribute_value_id, pal.product_tmpl_id, 0 as price_extra
+               FROM product_attribute_line_product_attribute_value_rel r
+               JOIN product_template_attribute_line pal
+                 ON r.product_attribute_line_id=pal.id
+               JOIN product_attribute pa
+                 ON pal.attribute_id=pa.id
+              WHERE pa.create_variant='no_variant'
     """)
     cr.execute("""
         ALTER TABLE product_attribute_line_product_attribute_value_rel
