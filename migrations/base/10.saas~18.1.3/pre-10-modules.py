@@ -49,6 +49,7 @@ def migrate(cr, version):
 
     # Avoid to install stock module just because procurement was auto-installed...
     # Then let oneAppFree remains oneAppFree
+    util.module_deps_diff(cr, 'sale', minus={'procurement'})
     if util.module_installed(cr, "procurement"):
         # determine if really used
         cr.execute("""
