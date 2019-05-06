@@ -9,7 +9,7 @@ def migrate(cr, version):
     [tjs] = cr.fetchone() or [None]
     if tjs:
         cr.execute("""
-            INSERT INTO ir_model_data(module, name, model, res_id, noupdate)'
+            INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
                  VALUES ('base', 'TJS', 'res.currency', %s, true)
         """, [tjs])
 
