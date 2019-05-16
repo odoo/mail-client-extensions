@@ -9,3 +9,5 @@ def migrate(cr, version):
     cr.execute(
         "UPDATE ir_ui_view SET customize_show = FALSE WHERE id = %s", [util.ref(cr, "portal.portal_show_sign_in")]
     )
+
+    util.convert_binary_field_to_attachment(cr, "website", "favicon")

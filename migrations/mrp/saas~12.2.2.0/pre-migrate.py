@@ -35,3 +35,5 @@ def migrate(cr, version):
     util.rename_field(cr, "mrp.product.produce", "product_qty", "qty_producing")
     util.rename_field(cr, "mrp.product.produce", "lot_id", "final_lot_id")
     util.rename_field(cr, "mrp.product.produce", "produce_line_ids", "workorder_line_ids")
+
+    util.convert_binary_field_to_attachment(cr, "mrp.routing.workcenter", "worksheet")
