@@ -2,6 +2,7 @@
 import os
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     util.create_column(cr, 'hr_recruitment_stage', 'job_id', 'int4')
     util.create_column(cr, 'hr_recruitment_stage', '_tmp', 'int4')
@@ -26,21 +27,10 @@ def migrate(cr, version):
          WHERE s.id = o.stage_id
     """)
 
-    act = os.environ.get('ODOO_MIG_S9_JOB_STAGE', 'check')
-    # 3 valid values: 'check', 'dup', 'share'
+    act = os.environ.get('ODOO_MIG_S9_JOB_STAGE', 'share')
+    # 2 valid values: 'dup', 'share'
 
-    if act == 'check':
-        cr.execute("""
-            SELECT stage_id, array_agg(job_id order by job_id) as jobs
-              FROM job_stage_rel
-          GROUP BY 1
-            HAVING array_agg(job_id order by job_id) != (SELECT array_agg(id order by id) FROM hr_job)
-        """)
-        shared_stages = cr.fetchall()
-        if shared_stages:
-            raise util.MigrationError("Shared Stages found: %r", shared_stages)
-
-    elif act == 'dup':
+    if act == 'dup':
         cr.execute("""
             WITH stage_jobs AS (
                 SELECT stage_id, array_agg(job_id order by job_id) as jobs
