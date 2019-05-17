@@ -48,7 +48,6 @@ def migrate(cr, version):
          WHERE ARRAY[model, function]::text[] NOT IN %s
     """, [tuple([m, f] for m, _, f in crons_to_adapt)])
 
-    matches = False
     for cid, model, func, args in cr.fetchall():
         args_eval = str2tuple(args)
         if (args_eval and
@@ -56,10 +55,7 @@ def migrate(cr, version):
              (isinstance(args_eval[0], (list, tuple)) and
               all(type(x) in integer_types for x in args_eval[0]))
              )):
-            matches = True
+            cr.execute("UPDATE ir_cron set active=False WHERE id=%s", (cid,))
             _logger.error('Cron #%s calls env[%r].%s(*%s). Using `id` or `ids` as first argument '
-                          'may not works if method is `@api.multi`.',
+                          'may not works if method is `@api.multi`. Cron have been deactivated.',
                           cid, model, func, args)
-
-    if matches:
-        raise util.MigrationError('Suspicious crons found')
