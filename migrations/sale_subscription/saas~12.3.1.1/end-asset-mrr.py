@@ -1,0 +1,40 @@
+# -*- coding: utf-8 -*-
+import logging
+from odoo.addons.base.maintenance.migrations import util
+
+
+_logger = logging.getLogger(__name__)
+
+def migrate(cr, version):
+    #ORM Way
+    cr.execute("""
+        SELECT id
+          FROM account_invoice_line
+         WHERE subscription_end_date IS NOT NULL
+           AND subscription_start_date IS NOT NULL
+    """)
+    ids = [id[0] for id in cr.fetchall()]
+    util.recompute_fields(cr, 'account.invoice.line', ['subscription_mrr'], ids=ids)
+
+    # #SQL Way
+    # Tried to use the PostgreSQL "age" function
+    # https://www.postgresql.org/docs/11/functions-datetime.html
+    #
+    # With inputs like :
+    # subscription_start_date | subscription_end_date
+    # ------------------------+-----------------------
+    # 2017-01-30              | 2017-02-27
+    #
+    # Leads to 29 days in SQL, while 1 month in Python.
+    # The python result seems correct while the PostgreSQL one not
+    # Kept the ORM way until founding an SQL accuyrate solution
+    # cr.execute("""
+    #     UPDATE account_invoice_line
+    #        SET subscription_mrr2=price_subtotal_signed/(EXTRACT(YEAR FROM s.delta) * 12 + EXTRACT(MONTH FROM s.delta) + EXTRACT(DAY FROM s.delta) / 30)
+    #       FROM (SELECT id, age(subscription_end_date + integer '1', subscription_start_date) as delta
+    #              FROM account_invoice_line
+    #             WHERE subscription_end_date IS NOT NULL
+    #               AND subscription_start_date IS NOT NULL) as s
+    #      WHERE account_invoice_line.id=s.id
+    #        AND (EXTRACT(YEAR FROM s.delta) * 12 + EXTRACT(MONTH FROM s.delta) + EXTRACT(DAY FROM s.delta) / 30) != 0
+    # """)
