@@ -68,8 +68,8 @@ def migrate(cr, version):
          WHERE state='confirmed'
       GROUP BY user_id)
 
-    INSERT INTO lunch_cashmove(amount, user_id, description, state, active, date)
-    SELECT amount_diff,user_id,'Mig V12.2','payment',TRUE,CURRENT_DATE
+    INSERT INTO lunch_cashmove(amount, user_id, description, state, date)
+    SELECT amount_diff,user_id,'Mig V12.2','payment',CURRENT_DATE
     FROM (
         SELECT round((coalesce(cashm.cm,0.0)-coalesce(o.order,0.0))::NUMERIC,2) as amount_diff,cashm.user_id
           FROM cashm FULL OUTER JOIN o ON cashm.user_id=o.user_id) as res
