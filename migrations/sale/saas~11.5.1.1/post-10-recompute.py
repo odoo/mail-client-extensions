@@ -66,12 +66,12 @@ def migrate(cr, version):
         """
         INSERT INTO sale_order_line
             (order_id, layout_category_id, sequence, display_type, name,
-             price_unit, product_uom_qty, customer_lead
+             price_unit, product_uom_qty, customer_lead, company_id, currency_id
             )
             SELECT s.order_id, s.layout_category_id, min(s.sequence)-5, 'line_section', l.name,
-                   0, 0, 0
+                   0, 0, 0, s.company_id, s.currency_id
             FROM sale_order_line s INNER JOIN sale_layout_category l on s.layout_category_id=l.id
-            GROUP BY s.order_id, s.layout_category_id, l.name
+            GROUP BY s.order_id, s.layout_category_id, l.name, s.company_id, s.currency_id
             ORDER BY s.order_id, s.layout_category_id
     """
     )
