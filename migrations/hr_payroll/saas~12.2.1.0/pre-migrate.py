@@ -5,20 +5,21 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.remove_model(cr, "hr.benefit.employees")
 
-    util.create_column(cr, "hr_benefit", "contract_id", "int4")
-    util.create_column(cr, "hr_benefit", "company_id", "int4")
+    if util.table_exists(cr, "hr_benefit"):
+        util.create_column(cr, "hr_benefit", "contract_id", "int4")
+        util.create_column(cr, "hr_benefit", "company_id", "int4")
 
-    # Ok. hr.benefits are new in saas~12.1
-    # There is only one supported production database in this version (www.odoo.com)
-    # So we can assume that the current contract of employee is the correct one to attach to
-    # benefit.
-    cr.execute("""
-        UPDATE hr_benefit b
-           SET contract_id = e.contract_id,
-               company_id = e.company_id
-          FROM hr_employee e
-         WHERE e.id = b.employee_id
-    """)
+        # Ok. hr.benefits are new in saas~12.1
+        # There is only one supported production database in this version (www.odoo.com)
+        # So we can assume that the current contract of employee is the correct one to attach to
+        # benefit.
+        cr.execute("""
+            UPDATE hr_benefit b
+               SET contract_id = e.contract_id,
+                   company_id = e.company_id
+              FROM hr_employee e
+             WHERE e.id = b.employee_id
+        """)
 
     # hr.payslip
     util.remove_field(cr, "hr.payslip", "payslip_count")
