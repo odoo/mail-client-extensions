@@ -125,6 +125,7 @@ def migrate(cr, version):
         ("ir_cron", "user_id"),
         ("mail_activity", "create_user_id"),  # second create_uid (wtf?)
         ("mail_alias", "alias_user_id"),
+        ("res_company", "intercompany_user_id") # always SUPERUSER (uid=1)
     ]
 
     for table, fk, _, _ in util.get_fk(cr, "res_users"):
