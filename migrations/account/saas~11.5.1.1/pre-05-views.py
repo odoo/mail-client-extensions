@@ -17,6 +17,7 @@ def migrate(cr, version):
         report_partnerledger
         report_tax
         report_trialbalance
+        account_report_general_ledger_view
 
     """)
 
