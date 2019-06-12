@@ -7,6 +7,7 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "res.company", "project_time_mode_id", "project", "hr_timesheet")
     util.create_column(cr, "res_company", "timesheet_encode_uom_id", "integer")
 
+    day = util.ref(cr, "uom.product_uom_day")
     hour = util.ref(cr, "uom.product_uom_hour")
     if not hour:
         cr.execute("""
@@ -21,3 +22,6 @@ def migrate(cr, version):
     cr.execute("UPDATE res_company SET timesheet_encode_uom_id=%s", [hour])
 
     util.create_column(cr, "uom_uom", "timesheet_widget", "varchar")
+
+    cr.execute("UPDATE uom_uom SET timesheet_widget='float_time' WHERE id=%s", [hour])
+    cr.execute("UPDATE uom_uom SET timesheet_widget='float_toggle' WHERE id=%s", [day])
