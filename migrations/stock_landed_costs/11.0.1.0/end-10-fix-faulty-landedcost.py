@@ -64,7 +64,7 @@ def has_unsolved_LC_issues(cr):
     return False
 
 def has_valid_env_variable(cr):
-    var = int(os.environ.get(env_variable))
+    var = os.environ.get(env_variable) and int(os.environ.get(env_variable))
     if var:
         env = util.env(cr)
         account = env['account.account'].browse(var)
