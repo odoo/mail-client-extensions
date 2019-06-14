@@ -107,7 +107,7 @@ def migrate(cr, version):
         util.new_module(
             cr, "account_invoice_extract", deps={"account_accountant", "iap", "mail_enterprise"}, auto_install=True
         )
-        util.new_module(cr, "account_predictive_account", deps={"account_accountant"}, auto_install=True)
+        util.new_module(cr, "account_predictive_bills", deps={"account_accountant"}, auto_install=True)
         util.new_module(cr, "crm_enterprise", deps={"crm", "web_dashboard", "web_cohort"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "crm_enterprise")
         util.new_module(cr, "iot", deps={"web"})
