@@ -17,7 +17,7 @@ def migrate(cr, version):
                 cid_changed = True
             else:
                 uid = 1
-        elif not Journal.sudo(user=uid).check_access_rights("write", raise_exception=False):
+        if not Journal.sudo(user=uid).check_access_rights("write", raise_exception=False):
             uid = 1
 
         Journal.browse(jid).sudo(user=uid)._update_mail_alias({})
