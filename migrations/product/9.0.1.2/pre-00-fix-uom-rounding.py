@@ -42,30 +42,31 @@ def migrate(cr, version):
         if util.column_exists(cr, tbl, uom) and util.column_exists(cr, tbl, qty)
     )
 
-    cr.execute("""
-        WITH uom_usages AS (
-            {uom_usages}
-        ),
-        new_roundings AS (
-            SELECT uom.id AS id,
-                   coalesce(pow(10, -max(
-                        char_length(split_part(trim(both '0' from uu.qty::varchar),
-                                               '.', 2)))), 1) AS new_rounding
-              FROM product_uom uom
-         LEFT JOIN uom_usages uu ON (uu.uom = uom.id)
-             WHERE uom.rounding = 0
-          GROUP BY uom.id
-        )
-        UPDATE product_uom u
-           SET rounding = n.new_rounding
-          FROM new_roundings n
-         WHERE n.id = u.id
-        RETURNING u.id, n.new_rounding
-    """.format(uom_usages=uom_usages))
-    for uom_id, new_rounding in cr.fetchall():
-        _logger.warn("[UoM %s rounding adjusted to %s] rounding was 0", uom_id, new_rounding)
-        assert new_rounding >= MINIMUM_ROUNDING, \
-            "UoM's rounding adjustment too small, manual check required"
+    if uom_usages:
+        cr.execute("""
+            WITH uom_usages AS (
+                {uom_usages}
+            ),
+            new_roundings AS (
+                SELECT uom.id AS id,
+                       coalesce(pow(10, -max(
+                            char_length(split_part(trim(both '0' from uu.qty::varchar),
+                                                   '.', 2)))), 1) AS new_rounding
+                  FROM product_uom uom
+             LEFT JOIN uom_usages uu ON (uu.uom = uom.id)
+                 WHERE uom.rounding = 0
+              GROUP BY uom.id
+            )
+            UPDATE product_uom u
+               SET rounding = n.new_rounding
+              FROM new_roundings n
+             WHERE n.id = u.id
+            RETURNING u.id, n.new_rounding
+        """.format(uom_usages=uom_usages))
+        for uom_id, new_rounding in cr.fetchall():
+            _logger.warn("[UoM %s rounding adjusted to %s] rounding was 0", uom_id, new_rounding)
+            assert new_rounding >= MINIMUM_ROUNDING, \
+                "UoM's rounding adjustment too small, manual check required"
 
     cr.execute("UPDATE product_uom SET rounding = 0.01 WHERE rounding = 0 RETURNING id")
     for uom_id, in cr.fetchall():
