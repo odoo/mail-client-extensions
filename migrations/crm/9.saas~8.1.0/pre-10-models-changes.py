@@ -26,24 +26,10 @@ def migrate(cr, version):
          WHERE s.id = o.stage_id
     """)
 
-    act = os.environ.get('ODOO_MIG_S8_CRM_STAGE', 'check')
-    # 3 valid values: 'check', 'duplicate', 'share'
+    act = os.environ.get('ODOO_MIG_S8_CRM_STAGE', 'share')
+    # 2 valid values: 'duplicate', 'share'
 
-    if act == 'check':
-        cr.execute("""
-            SELECT stage_id, array_agg(team_id order by team_id) as teams
-              FROM crm_team_stage_rel
-          GROUP BY 1
-            HAVING array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team WHERE active)
-               AND array_agg(team_id order by team_id) != (SELECT array_agg(id order by id) FROM crm_team)
-        """)
-        shared_stages = cr.fetchall()
-        if shared_stages:
-            raise util.MigrationError(
-                "Shared Stages found. You can `share` or `duplicate` them by setting the env "
-                "variable $ODOO_MIG_S8_CRM_STAGE accordingly.\n%r", shared_stages)
-
-    elif act == 'duplicate':
+    if act == 'duplicate':
         cr.execute("""
             WITH stage_teams AS (
                 SELECT stage_id, array_agg(team_id order by team_id) as teams
