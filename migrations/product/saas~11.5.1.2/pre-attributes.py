@@ -32,7 +32,7 @@ def migrate(cr, version):
                  ON p.id = r.product_product_id
           LEFT JOIN product_attribute_price i
                  ON i.value_id = r.product_attribute_value_id AND i.product_tmpl_id = p.product_tmpl_id
-           GROUP BY r.product_attribute_value_id, p.product_tmpl_id, price_extra
+           GROUP BY r.product_attribute_value_id, p.product_tmpl_id, COALESCE(i.price_extra, 0)
               UNION
              SELECT r.product_attribute_value_id, pal.product_tmpl_id, 0 as price_extra
                FROM product_attribute_line_product_attribute_value_rel r
