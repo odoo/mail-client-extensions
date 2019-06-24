@@ -109,7 +109,7 @@ def migrate(cr, version):
                 total_groups = cr.fetchone()[0]
                 ROWS_TO_FETCH = 10**5
                 alt_cr.execute("""
-                    SELECT pricelist_id,fiscal_position_id,product_id,price_unit,qty,tax_ids,discount,agg
+                    SELECT pricelist_id,fiscal_position_id,product_id,price_unit,qty,tax_ids,discount,line_ids
                     FROM mig_temp_post_order_compute
                 """)
                 rows = alt_cr.fetchmany(ROWS_TO_FETCH)
