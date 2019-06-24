@@ -32,7 +32,7 @@ def migrate(cr, version):
     # old states: draft, cancel, confirmed, ready, in_production, done
     # new states: confirmed, cancel, planned, progress, done
     # Confirm all production orders that are in draft state
-    cr.execute("""SELECT id FROM mrp_production WHERE state='draft' """)
+    cr.execute("""SELECT id FROM mrp_production WHERE state='draft' AND bom_id IS NOT NULL  """)
     res = cr.fetchall()
     if res:
         draft_mos = mo_obj.browse([x[0] for x in res])
