@@ -135,5 +135,5 @@ def migrate(cr, version):
     # update quantity for account_move_line (only used during inventory valuation with a specified date)
         # The quantity on the account_move_line sould have the same sign as the balance.
         # If the valuation for the line is +10$ make sure the quantity is positive (add money = add quantity)
-        # Shortly, quantity should have the same sign as the balance 
-    cr.execute("""update account_move_line set quantity = abs(quantity)*sign(balance) where quantity is not null""") 
+        # Shortly, quantity should have the same sign as the balance
+    cr.execute("""update account_move_line set quantity = abs(quantity)*sign(balance) where quantity is not null and balance <> 0""")
