@@ -5,8 +5,8 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     cr.execute("ALTER TABLE mail_mass_mailing_contact_list_rel ADD COLUMN id SERIAL NOT NULL PRIMARY KEY")
     util.create_column(cr, "mail_mass_mailing_contact_list_rel", "create_uid", "integer")
-    util.create_column(cr, "mail_mass_mailing_contact_list_rel", "create_date", "integer")
-    util.create_column(cr, "mail_mass_mailing_contact_list_rel", "write_uid", "timestamp without time zone")
+    util.create_column(cr, "mail_mass_mailing_contact_list_rel", "create_date", "timestamp without time zone")
+    util.create_column(cr, "mail_mass_mailing_contact_list_rel", "write_uid", "integer")
     util.create_column(cr, "mail_mass_mailing_contact_list_rel", "write_date", "timestamp without time zone")
     util.create_column(cr, "mail_mass_mailing_contact_list_rel", "opt_out", "boolean")
 
