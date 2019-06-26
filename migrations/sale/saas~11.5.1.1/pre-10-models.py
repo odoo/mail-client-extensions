@@ -33,7 +33,7 @@ def migrate(cr, version):
     """
     )
 
-    util.create_column(cr, "res_config_settings", "use_quotation_validity_days", "int4")
+    util.create_column(cr, "res_config_settings", "use_quotation_validity_days", "boolean")
     util.create_column(cr, "res_config_settings", "portal_confirmation_sign", "boolean")
     util.create_column(cr, "res_config_settings", "portal_confirmation_pay", "boolean")
     util.create_column(cr, "res_config_settings", "group_sale_order_dates", "boolean")
