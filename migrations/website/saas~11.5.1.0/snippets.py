@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from lxml.html import builder as E
 
-### Carousel ###
+# === Carousel ===
 
 def carousel_indicators(element):
     for list_item in element.getchildren():
@@ -18,28 +18,50 @@ def carousel_inner(element):
 
 def carousel_item(node):
     node.classes |= ["carousel-item", "oe_custom_bg", "oe_img_bg"]
+    node.classes.remove("item")
+    for img in node.getchildren():
+        if "img-responsive" in img.classes:
+            img.classes |= ["d-block"]
 
 
 def carousel_control(node):
     if "left" in node.classes:
         way, title = "prev", "Previous"
+        node.classes.remove("left")
     elif "right" in node.classes:
         way, title = "next", "Next"
+        node.classes.remove("right")
     else:
         return
 
-    target = node.attrib["data-target"]
-    parent = node.getparent()
-    parent.remove(node)
+    klass = "carousel-control-%s" % way
+    if "hidden" in node.classes:
+        klass += " d-none"
+        node.classes.remove("hidden")
 
-    parent.append(
-        E.DIV(
-            E.CLASS("carousel-control-%s" % way),
-            {"role": "img", "title": title, "data-target": target, "data-slide": way, "data-label": title},
-            E.SPAN(E.CLASS("carousel-control-%s-icon" % way)),
-            E.SPAN(title, E.CLASS("sr-only o_default_snippet_text")),
+    attribs = node.attrib.keys()
+    if "data-target" in attribs:
+        parent = node.getparent()
+        parent.remove(node)
+        parent.append(
+            E.DIV(
+                E.CLASS(klass),
+                {
+                    "role": "img",
+                    "title": title,
+                    "data-target": node.attrib["data-target"],
+                    "data-slide": way,
+                    "data-label": title,
+                },
+                E.SPAN(E.CLASS("carousel-control-%s-icon" % way)),
+                E.SPAN(title, E.CLASS("sr-only o_default_snippet_text")),
+            )
         )
-    )
+    elif "href" in attribs:
+        node.classes.remove("carousel-control")
+        node.classes |= [klass]
+        node.set("aria-label", title)
+        node.set("title", title)
 
 
 def fix_carousel(body):
@@ -49,14 +71,17 @@ def fix_carousel(body):
         "carousel-control": carousel_control,
         "item": carousel_item,
     }
-    mycarouseldivs = body.xpath("//div[starts-with(@id, 'myCarousel')]|//section[starts-with(@id, 'myCarousel')]")
+    mycarouseldivs = body.xpath(
+        "//div[starts-with(@id, 'myCarousel')]|//section[starts-with(@id, 'myCarousel')]"
+        "|//section[hasclass('s_image_gallery')]//div[hasclass('slide')]"
+    )
     for cardiv in mycarouseldivs:
         cardiv.classes |= ["s_carousel", "s_carousel_default"]
         for element in cardiv.getchildren():
             for klass in element.classes:
                 level1_modifiers.get(klass, lambda n: None)(element)
 
-### Timeline ###
+# === Timeline ===
 
 def fixli(li, nr):
     nc = []
@@ -72,18 +97,23 @@ def fixli(li, nr):
         divcard.append(divcardbody)
         nc[ci].append(divcard)
 
-        heading = cv.xpath(".//div[hasclass('s_timeline_heading')]")[0]
-        for el in heading.getchildren():
-            if "s_timeline_date" in el.classes:
-                date.append(el.text)
-            else:
-                el.classes |= ["card_title"]
+        heading = cv.xpath(".//div[hasclass('s_timeline_heading')]")
+        for h in heading:
+            for el in h.getchildren():
+                if "s_timeline_date" in el.classes:
+                    date.append(el.text)
+                else:
+                    el.classes |= ["card_title"]
+                    divcardbody.append(el)
+
+        tbody = cv.xpath(".//div[hasclass('s_timeline_body')]")
+        for tb in tbody:
+            for el in tb.getchildren():
+                el.classes |= ["card_text"]
                 divcardbody.append(el)
 
-        tbody = cv.xpath(".//div[hasclass('s_timeline_body')]")[0]
-        for el in tbody.getchildren():
-            el.classes |= ["card_text"]
-            divcardbody.append(el)
+    if not date:
+        date = ["", ""]
 
     divdate = E.DIV(E.CLASS("s_timeline_date"),
                     E.SPAN(E.CLASS("bg-white"),
@@ -91,7 +121,7 @@ def fixli(li, nr):
                                date[0])))
     if ci < 1:
         nc.append(E.DIV(E.CLASS("s_timeline_content d-flex")))
-    elif date[0] != date[1]:
+    elif len(date) > 1 and date[0] != date[1]:
         divdate = E.DIV(E.CLASS("s_timeline_date"),
                         E.SPAN(E.CLASS("bg-white"),
                                E.DIV(E.I(E.CLASS("fa fa-caret-left"), style="margin: .25rem"),
@@ -111,6 +141,7 @@ def fixli(li, nr):
     nr.append(nc[0])
     nr.append(divdate)
     nr.append(nc[1])
+
 
 def fix_timeline(body):
     scts = body.xpath("//section[starts-with(@class, 's_timeline')]")
@@ -135,13 +166,11 @@ def fix_timeline(body):
                         sct.insert(idx, divcol)
                         idx += 1
 
-### snippet ###
 
-# The sniplike_dict is a dictionary of pattern:function
-# function is applied on views/blogs/... WHERE arch_db/content/... LIKE pattern
-
-
+# Register fixers.
+# Map a LIKE pattern to a fixer function
 FIXERS = {
     r'%id="myCarousel%': fix_carousel,
+    r'%s_image_gallery%': fix_carousel,
     r'%section class="s_timeline%': fix_timeline,
 }
