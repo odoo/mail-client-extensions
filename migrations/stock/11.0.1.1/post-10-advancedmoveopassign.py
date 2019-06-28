@@ -24,16 +24,19 @@ def migrate(cr, version):
         move_lots = {}
         # If we track the product by lot, we need to check the quants moved for every move to see which lots were moved for dividing the stock.pack.operation.lot
         if re[2] == 't':
+            # Get minimum rounding or 0.00001 if no rounding
+            cr.execute("SELECT COALESCE(-log(min(rounding)),5) FROM product_uom");
+            rounding = cr.fetchone()[0]
             if picking.state == 'done':
-                cr.execute("""SELECT sqmr.move_id, q.lot_id, SUM(q.quantity)
-                            FROM stock_quant_move_rel sqmr, stock_quant q 
-                            WHERE sqmr.quant_id = q.id AND sqmr.move_id IN %s 
-                            GROUP BY sqmr.move_id, q.lot_id""", (tuple(moves.ids),))
+                cr.execute("""SELECT sqmr.move_id, q.lot_id, ROUND(SUM(q.quantity):: numeric,%s::int)
+                            FROM stock_quant_move_rel sqmr, stock_quant q
+                            WHERE sqmr.quant_id = q.id AND sqmr.move_id IN %s
+                            GROUP BY sqmr.move_id, q.lot_id""", (rounding, tuple(moves.ids),))
             else:
-                cr.execute("""SELECT m.id, q.lot_id, SUM(q.quantity)
+                cr.execute("""SELECT m.id, q.lot_id, ROUND(SUM(q.quantity):: numeric,%s::int)
                             FROM stock_move m, stock_quant q
-                            WHERE q.reservation_id = m.id AND m.id IN %s 
-                            GROUP BY m.id, q.lot_id""", (tuple(moves.ids),))
+                            WHERE q.reservation_id = m.id AND m.id IN %s
+                            GROUP BY m.id, q.lot_id""", (rounding, tuple(moves.ids),))
             mqs = cr.fetchall()
             for mq in mqs:
                 move_lots.setdefault(mq[0], {})
