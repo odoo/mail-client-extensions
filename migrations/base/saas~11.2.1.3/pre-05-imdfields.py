@@ -5,6 +5,19 @@ def migrate(cr, version):
     # for databases born before 9.0, some cleanup should be made
     util.remove_field(cr, 'account_followup.followup', 'followup_line')
     util.import_script('account_reports_followup/9.0.1.0/pre-20-models.py').migrate(cr, version)
+    cr.execute("""
+        SELECT array_agg(id ORDER BY id)
+          FROM ir_model_fields
+         WHERE model = 'account.cashbox.line'
+           AND name IN ('number', 'subtotal')
+      GROUP BY name
+        HAVING count(*) > 1
+    """)
+    dupes = {x: f[0][0] for f in cr.fetchall() for x in f[0][1:]}
+    if dupes:
+        util.replace_record_references_batch(cr, dupes, "ir.model.fields", replace_xmlid=False)
+        for d in dupes:
+            util.remove_record(cr, ("ir.model.fields", d))
 
     cr.execute("DROP INDEX IF EXISTS ir_model_data_module_name_index")  # old duplicated index
     cr.execute("DROP INDEX IF EXISTS ir_model_data_module_name_uniq_index")  # will be recreated later
