@@ -95,7 +95,7 @@ def migrate(cr, version):
       DROP INDEX IF EXISTS ir_model_data_model_index;
       DROP INDEX IF EXISTS ir_model_data_name_index;
       ALTER TABLE ir_model_data DROP CONSTRAINT IF EXISTS ir_model_data_module_name_uniq;
-      CREATE UNIQUE INDEX ir_model_data_module_name_index ON ir_model_data (module, name);
+      CREATE UNIQUE INDEX ir_model_data_module_name_uniq_index ON ir_model_data (module, name);
       CREATE INDEX ir_model_data_model_res_id_index ON ir_model_data (model, res_id);
     """)
 
