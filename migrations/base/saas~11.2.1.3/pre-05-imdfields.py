@@ -6,6 +6,7 @@ def migrate(cr, version):
     util.remove_field(cr, 'account_followup.followup', 'followup_line')
     util.import_script('account_reports_followup/9.0.1.0/pre-20-models.py').migrate(cr, version)
 
+    cr.execute("DROP INDEX IF EXISTS ir_model_data_module_name_index")  # old duplicated index
     cr.execute("DROP INDEX IF EXISTS ir_model_data_module_name_uniq_index")  # will be recreated later
     cr.execute("""
         DELETE FROM ir_model_data WHERE id IN (
