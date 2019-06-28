@@ -3,6 +3,12 @@ from openerp.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+
+    # There was an unfortunate oversight during upgrade 6.1 -> 7.0 that leave the
+    # fields `number` and `subtotal`. Remove them now to avoid duplicated entries.
+    util.remove_field(cr, "account.cashbox.line", "number")
+    util.remove_field(cr, "account.cashbox.line", "subtotal")
+
     util.create_column(cr, "account_cashbox_line", "cashbox_id", "int4")
     util.rename_field(cr, "account.cashbox.line", "pieces", "coin_value")
     util.rename_field(cr, "account.cashbox.line", "number_opening", "number")
