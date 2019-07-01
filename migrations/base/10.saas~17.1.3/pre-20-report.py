@@ -2,6 +2,9 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    # for databases <= 10.saas-14
+    util.rename_xmlid(cr, *util.expand_braces("{account_batch_deposit,base}.paperformat_batch_deposit"))
+
     util.move_model(cr, 'report.paperformat', 'report', 'base', move_data=True)
     util.move_model(cr, 'ir.qweb.field.barcode', 'report', 'base', move_data=False)
     util.delete_model(cr, 'report')
