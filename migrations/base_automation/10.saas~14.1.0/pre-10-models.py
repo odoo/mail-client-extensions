@@ -59,7 +59,7 @@ def migrate(cr, version):
                 'name': bar_name,
                 'model_id': bar_model_id,
                 'state': 'multi',
-                'partner_ids': partner_ids,
+                'partner_ids': [(6, 0, partner_ids)],
             }).id
             # In v11 [1], There is a @constrains() that check we only set followers on mail.thread.
             # However, as we are in `mail` module, models does not already have the flag set,
