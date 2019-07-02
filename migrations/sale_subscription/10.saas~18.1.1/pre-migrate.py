@@ -4,6 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
 
     if util.parse_version(version) < util.parse_version('10.saas~17'):
+        util.import_script("website_subscription/10.saas~17.1.0/pre-01-payment.py").migrate(cr, version)
         saas17 = util.import_script('website_subscription/10.saas~17.1.0/pre-migrate.py')
         saas17.migrate(cr, version, module='sale_subscription')
 
