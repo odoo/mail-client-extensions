@@ -28,6 +28,6 @@ def migrate(cr, version):
         """
         )
 
-        util.move_field_to_module(cr, "res.company", "intrastat_country_id", "l10n_be_intrastat", "account_intrastat")
+        util.move_field_to_module(cr, "account.invoice", "intrastat_country_id", "l10n_be_intrastat", "account_intrastat")
         util.move_field_to_module(cr, "product.category", "intrastat_id", "l10n_be_intrastat", "account_intrastat")
         util.move_field_to_module(cr, "res.company", "incoterm_id", "l10n_be_intrastat", "account_intrastat")
