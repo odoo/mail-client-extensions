@@ -18,6 +18,7 @@ def migrate(cr, version):
           FROM user_resources r JOIN hr_employee e ON (r.id = e.resource_id)
          WHERE r.user_id = f.user_id
     """)
+    cr.execute("DELETE FROM project_forecast WHERE employee_id IS NULL")
 
     fields = ['effective_hours', 'percentage_hours']
     if util.module_installed(cr, 'project_timesheet_forecast_sale'):
