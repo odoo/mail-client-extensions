@@ -36,7 +36,7 @@ def migrate(cr, version):
         cr.execute(
             """
             WITH intrastat_invoices AS (
-                SELECT c.id AS country, inv.id AS id
+                SELECT c.id AS country, i.id AS id
                   FROM account_invoice i
                   JOIN res_partner p ON p.id = CASE WHEN i.type IN ('out_invoice', 'out_refund')
                                                     THEN i.partner_shipping_id
