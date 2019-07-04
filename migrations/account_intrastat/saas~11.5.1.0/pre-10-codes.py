@@ -31,3 +31,22 @@ def migrate(cr, version):
         util.move_field_to_module(cr, "account.invoice", "intrastat_country_id", "l10n_be_intrastat", "account_intrastat")
         util.move_field_to_module(cr, "product.category", "intrastat_id", "l10n_be_intrastat", "account_intrastat")
         util.move_field_to_module(cr, "res.company", "incoterm_id", "l10n_be_intrastat", "account_intrastat")
+    else:
+        util.create_column(cr, "account_invoice", "intrastat_country_id", "int4")
+        cr.execute(
+            """
+            WITH intrastat_invoices AS (
+                SELECT c.id AS country, inv.id AS id
+                  FROM account_invoice i
+                  JOIN res_partner p ON p.id = CASE WHEN i.type IN ('out_invoice', 'out_refund')
+                                                    THEN i.partner_shipping_id
+                                                    ELSE i.partner_id
+                                                END
+                  JOIN res_country c ON (p.country_id = c.id AND c.intrastat = true)
+            )
+            UPDATE account_invoice inv
+               SET intrastat_country_id = ii.country
+              FROM intrastat_invoices ii
+             WHERE ii.id = inv.id
+        """
+        )
