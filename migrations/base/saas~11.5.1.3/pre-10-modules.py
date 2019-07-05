@@ -93,7 +93,6 @@ def migrate(cr, version):
         util.remove_module(cr, "account_budget")
 
     util.remove_module(cr, "anonymization")
-    util.remove_module(cr, "pos_data_drinks")
     util.remove_module(cr, "website_forum_doc")
 
     if util.has_enterprise():
