@@ -108,7 +108,7 @@ def migrate(cr, version):
         UPDATE survey_survey
            SET questions_layout = 'page_per_section',
                questions_selection = 'all',
-               category = 'all',
+               category = 'default',
                access_mode = 'public',
                access_token = md5(concat(clock_timestamp()::varchar, ';', random()::varchar))::uuid::varchar,
                scoring_type = CASE quizz_mode WHEN TRUE THEN 'scoring_with_answers' ELSE 'no_scoring' END,
