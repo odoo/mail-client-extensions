@@ -6,7 +6,7 @@ def migrate(cr, version):
     # Some customers may have use data from `pos_data_drinks` module.
     # In this case, we cannot remove all data inconditionnaly.
 
-    sub = " UNION ".join(['SELECT 1 FROM "{}" x WHERE x."{}"=t.id'.format(f[0], f[1])
+    sub = " UNION ".join(['SELECT 1 FROM "{}" x WHERE x.{}=t.id'.format(f[0], f[1])
                           for f in util.get_fk(cr, "product_product")])
 
     if sub:
