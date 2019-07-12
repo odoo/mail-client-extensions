@@ -8,7 +8,7 @@ _logger = logging.getLogger(NS + __name__)
 def migrate(cr, version):
     env = util.env(cr)
     cr.execute("""
-        SELECT l.id, array_agg(tax_id) as taxes,
+        SELECT l.id, array_agg(r.tax_id) as taxes,
                l.price_unit * (1 - COALESCE(l.discount, 0) / 100.0) as price,
                i.currency_id, l.quantity, l.product_id, i.partner_id
           FROM account_invoice_line_tax r
