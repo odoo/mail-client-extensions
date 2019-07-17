@@ -32,6 +32,7 @@ def migrate(cr, version):
               FROM mail_push_device d
               JOIN res_partner p ON p.id = d.partner_id
              WHERE d.service_type = 'fcm'
+                AND d.subscription_id IS NOT NULL
           ORDER BY d.id
         """)
         for pid, pname, device, subscription_id in cr.fetchall():
