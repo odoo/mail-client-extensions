@@ -52,8 +52,8 @@ def migrate(cr, version):
                  TO product_template_attribute_line_id
     """)
 
-    util.remove_field(cr, "procuct.attribute.value", "product_ids")
-    util.remove_field(cr, "procuct.attribute.value", "price_extra")
+    util.remove_field(cr, "product.attribute.value", "product_ids")
+    util.remove_field(cr, "product.attribute.value", "price_extra")
     util.remove_model(cr, "product.attribute.price")
 
     util.rename_xmlid(cr, "product.product_attribute_line_form", "product.product_template_attribute_line_form")
