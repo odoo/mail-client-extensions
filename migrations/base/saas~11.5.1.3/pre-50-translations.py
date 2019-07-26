@@ -83,3 +83,15 @@ def migrate(cr, version):
         )
     """
     )
+
+    cr.execute(
+        """
+        DELETE FROM ir_translation WHERE id IN (
+             SELECT unnest((array_agg(id ORDER BY id))[2:array_length(array_agg(id), 1)])
+               FROM ir_translation
+           GROUP BY type, name, lang, res_id, md5(src)
+             HAVING count(id) > 1
+        )
+    """
+    )
+
