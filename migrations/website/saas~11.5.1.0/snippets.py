@@ -59,7 +59,7 @@ def carousel_control(node):
         )
     elif "href" in attribs:
         node.classes.remove("carousel-control")
-        node.classes |= [klass]
+        node.classes |= klass.split(" ")
         node.set("aria-label", title)
         node.set("title", title)
 
