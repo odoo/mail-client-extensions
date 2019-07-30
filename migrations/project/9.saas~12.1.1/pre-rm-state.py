@@ -8,14 +8,12 @@ import openerp.osv.expression as exp
 NS = 'openerp.addons.base.maintenance.migrations.base.9.'
 _logger = logging.getLogger(NS + __name__)
 
-s2 = util.import_script('base/7.saas~2.1.3/pre-30-state-to-stage.py')
-
 evaluation_context = {
-    'uid': s2.SelfPrint('uid'),
-    'user': s2.SelfPrint('user'),
-    'current_date': s2.SelfPrint('current_date'),
-    'datetime': s2.SelfPrint('datetime'),
-    'context_today': s2.SelfPrint('context_today'),
+    'uid': util.SelfPrint('uid'),
+    'user': util.SelfPrint('user'),
+    'current_date': util.SelfPrint('current_date'),
+    'datetime': util.SelfPrint('datetime'),
+    'context_today': util.SelfPrint('context_today'),
 }
 
 

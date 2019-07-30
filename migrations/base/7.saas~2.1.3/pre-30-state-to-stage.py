@@ -5,62 +5,9 @@ from openerp.tools import mute_logger
 from openerp.tools.safe_eval import safe_eval
 import openerp.osv.expression as exp
 
+from openerp.addons.base.maintenance.migrations import util
+
 _logger = logging.getLogger(__name__)
-
-class SelfPrint(object):
-    def __init__(self, name):
-        self.__name = name
-
-    def __getattr__(self, attr):
-        return SelfPrint('%r.%s' % (self, attr))
-
-    def __call__(self, *args, **kwargs):
-        s = []
-        for a in args:
-            s.append(repr(a))
-        for k, v in kwargs.items():
-            s.append('%s=%r' % (k, v))
-        return SelfPrint('%r(%s)' % (self, ', '.join(s)))
-
-    def __add__(self, other):
-        return SelfPrint('%r + %r' % (self, other))
-
-    def __radd__(self, other):
-        return SelfPrint('%r + %r' % (other, self))
-
-    def __sub__(self, other):
-        return SelfPrint('%r - %r' % (self, other))
-
-    def __rsub__(self, other):
-        return SelfPrint('%r - %r' % (other, self))
-
-    def __mul__(self, other):
-        return SelfPrint('%r * %r' % (self, other))
-
-    def __rmul__(self, other):
-        return SelfPrint('%r * %r' % (other, self))
-
-    def __div__(self, other):
-        return SelfPrint('%r / %r' % (self, other))
-
-    def __rdiv__(self, other):
-        return SelfPrint('%r / %r' % (other, self))
-
-    def __floordiv__(self, other):
-        return SelfPrint('%r // %r' % (self, other))
-
-    def __rfloordiv__(self, other):
-        return SelfPrint('%r // %r' % (other, self))
-
-    def __mod__(self, other):
-        return SelfPrint('%r % %r' % (self, other))
-
-    def __rmod__(self, other):
-        return SelfPrint('%r % %r' % (other, self))
-
-    def __repr__(self):
-        return self.__name
-    __str__ = __repr__
 
 
 @mute_logger('openerp.osv.expression')
@@ -70,11 +17,11 @@ def migrate(cr, version):
     """
 
     evaluation_context = {
-        'uid': SelfPrint('uid'),
-        'user': SelfPrint('user'),
-        'current_date': SelfPrint('current_date'),
-        'datetime': SelfPrint('datetime'),
-        'context_today': SelfPrint('context_today'),
+        'uid': util.SelfPrint('uid'),
+        'user': util.SelfPrint('user'),
+        'current_date': util.SelfPrint('current_date'),
+        'datetime': util.SelfPrint('datetime'),
+        'context_today': util.SelfPrint('context_today'),
     }
 
     def domain_of_stage_model(states):
