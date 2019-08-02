@@ -26,16 +26,6 @@ def migrate(cr, version):
 
     cr.execute("ALTER TABLE purchase_order ALTER COLUMN date_approve TYPE timestamp without time zone")
 
-    # util.create_m2m(cr, "account_invoice_purchase_order_rel", "purchase_order", "account_move")
-    # cr.execute(
-    #     """
-    #     INSERT INTO account_invoice_purchase_order_rel (purchase_order_id, account_move_id)
-    #          SELECT po.id, aml.move_id
-    #            FROM purchase_order po
-    #      INNER JOIN purchase_order_line pol on pol.order_id=po.id
-    #      INNER JOIN account_move_line aml on aml.purchase_line_id=pol.id
-    #     """
-    # )
     util.create_column(cr, "purchase_order", "currency_rate", "float8")
     cr.execute(
         """
