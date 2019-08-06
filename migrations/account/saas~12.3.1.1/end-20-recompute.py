@@ -1,0 +1,48 @@
+# -*- coding: utf-8 -*-
+
+
+def migrate(cr, version):
+    # util.recompute_fields(cr, "account.move.line", ["tax_audit"])
+    cr.execute(
+        """
+  WITH tags AS (
+          SELECT aml.id,
+                 TRIM(LEADING FROM to_char((CASE WHEN t.tax_negate THEN -1 ELSE 1 END)
+                                           *(CASE WHEN j.type = 'sale' THEN -1 ELSE 1 END)
+                                           *(CASE WHEN i.type IN ('in_refund', 'out_refund') THEN -1 ELSE 1 END)
+                                           * aml.balance,
+                                          '999,999,999,999,999,999,999.99')  -- should be enough, even for IRR
+                 ) AS tag_amount,
+                 cur.symbol AS currency,
+                 cur.position AS cur_pos,
+                 COALESCE(trl.tag_name, t.name) AS name
+            FROM account_move_line aml
+      INNER JOIN account_account_tag_account_move_line_rel t_rel ON t_rel.account_move_line_id = aml.id
+      INNER JOIN account_account_tag t ON t.id = t_rel.account_account_tag_id
+      INNER JOIN account_journal j ON j.id = aml.journal_id
+      INNER JOIN account_invoice i ON aml.invoice_id = i.id
+      INNER JOIN res_company c ON aml.company_id = c.id
+      INNER JOIN res_currency cur ON c.currency_id = cur.id
+       LEFT JOIN account_tax_report_line_tags_rel tr ON tr.account_account_tag_id = t.id
+       LEFT JOIN account_tax_report_line trl ON tr.account_tax_report_line_id = trl.id
+    ),
+    tag_values AS (
+        SELECT id,
+               array_to_string(
+                 array_agg(name || ': ' || CASE WHEN cur_pos = 'before' THEN currency || ' ' || tag_amount
+                                                ELSE                         tag_amount || ' ' || currency
+                                                 END
+                 ),
+                 '        '
+               ) AS tax_audit
+          FROM tags
+      GROUP BY id
+  )
+
+  UPDATE account_move_line
+     SET tax_audit = tag_values.tax_audit
+    FROM tag_values
+   WHERE tag_values.id = account_move_line.id
+
+    """
+    )
