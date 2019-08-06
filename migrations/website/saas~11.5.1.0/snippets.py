@@ -100,7 +100,7 @@ def fixli(li, nr):
         heading = cv.xpath(".//div[hasclass('s_timeline_heading')]")
         for h in heading:
             for el in h.getchildren():
-                if "s_timeline_date" in el.classes:
+                if "s_timeline_date" in el.classes and el.text:
                     date.append(el.text)
                 else:
                     el.classes |= ["card_title"]
