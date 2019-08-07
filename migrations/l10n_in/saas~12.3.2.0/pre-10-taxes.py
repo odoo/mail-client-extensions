@@ -3,7 +3,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    if not util.module_installed(cr, 'account_reports'):
+    if not util.table_exists(cr, 'tax_accounts_v12_bckp'):
         return
 
     cr.execute("savepoint l10n_in_inject_financial_report;")

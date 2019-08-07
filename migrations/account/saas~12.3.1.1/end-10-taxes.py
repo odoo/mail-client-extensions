@@ -14,7 +14,7 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
-    if not util.module_installed(cr, "account_reports"):
+    if not util.table_exists(cr, 'tax_accounts_v12_bckp'):
         return True
     env = util.env(cr)
     # Abracadabra !
