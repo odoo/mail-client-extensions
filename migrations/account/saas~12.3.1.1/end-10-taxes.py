@@ -67,19 +67,23 @@ def migrate(cr, version):
     env["account.move.line"].invalidate_cache(fnames=["tax_repartition_line_id"])
 
     # We generate the migration dict, now that basic consistency of taxes is ensured
-    dict_fname = "/tmp/dict.mig"
-    if not os.path.isfile(dict_fname):
-        migration_dicts_list = get_v13_migration_dicts(cr)
-        with open(dict_fname, "wb") as f:
-            pickle.dump(migration_dicts_list, f)
-    else:
-        with open(dict_fname, "rb") as f:
-            migration_dicts_list = pickle.load(f)
+    migration_dicts_list = get_v13_migration_dicts(cr)
+    # dict_fname = "/tmp/dict.mig"
+    # if not os.path.isfile(dict_fname):
+    #     migration_dicts_list = get_v13_migration_dicts(cr)
+    #     with open(dict_fname, "wb") as f:
+    #         pickle.dump(migration_dicts_list, f)
+    # else:
+    #     with open(dict_fname, "rb") as f:
+    #         migration_dicts_list = pickle.load(f)
 
     # Assign tags and accounts to repartition lines
     tax_counter = 1
     for migration_dict in migration_dicts_list:
-        tax = env["account.tax"].browse(migration_dict["tax"])
+        if migration_dict["tax"]:
+            tax = env["account.tax"].browse(migration_dict["tax"])
+        else:
+            tax = env["account.tax"]
         _logger.info(
             "Assigning repartition to tax %(index)s of %(count)s (id %(id)s)"
             % {"index": str(tax_counter), "count": str(len(migration_dicts_list)), "id": str(tax.id)}
