@@ -23,6 +23,10 @@ def migrate(cr, version):
               '30'):
         for s in ('', 'r'):
             util.remove_record(cr, 'l10n_fr_hr_payroll.hr_payroll_rules_%s_employe%s' % (r, s))
-    util.remove_record(cr, 'l10n_fr_hr_payroll.hr_payroll_salary_structure_base')
-    util.remove_record(cr, 'l10n_fr_hr_payroll.hr_payroll_salary_structure_employe_non_cadre')
-    util.remove_record(cr, 'l10n_fr_hr_payroll.hr_payroll_salary_structure_employe_cadre')
+    for struct in ['l10n_fr_hr_payroll.hr_payroll_salary_structure_base',
+                   'l10n_fr_hr_payroll.hr_payroll_salary_structure_employe_non_cadre',
+                   'l10n_fr_hr_payroll.hr_payroll_salary_structure_employe_cadre']:
+        struct_id = util.ref(cr, struct)
+        if struct_id:
+            cr.execute("DELETE FROM hr_salary_rule where struct_id=%s", [struct_id, ])
+        util.remove_record(cr, struct)
