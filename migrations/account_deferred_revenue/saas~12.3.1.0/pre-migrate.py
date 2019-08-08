@@ -5,3 +5,4 @@ def migrate(cr, version):
     util.remove_view(cr, 'account_deferred_revenue.view_product_template_form_inherit')
     util.remove_view(cr, 'account_deferred_revenue.view_account_invoice_asset_form')
     util.remove_view(cr, 'account_deferred_revenue.view_invoice_revenue_recognition_category')
+    util.remove_view(cr, 'account_deferred_revenue.res_config_settings_view_form')
