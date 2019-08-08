@@ -32,10 +32,14 @@ def migrate(cr, version):
     util.remove_record(cr, 'l10n_be_hr_payroll.hr_salary_rule_double_holiday_pay_salary')
     util.remove_record(cr, 'l10n_be_hr_payroll.hr_salary_rule_double_holiday_pay_gross')
     util.remove_record(cr, 'l10n_be_hr_payroll.hr_salary_rule_double_holiday_pay_net')
-    util.remove_record(cr, 'l10n_be_hr_payroll.hr_payroll_salary_structure_employee')
-    util.remove_record(cr, 'l10n_be_hr_payroll.hr_payroll_salary_structure_worker')
-    util.remove_record(cr, 'l10n_be_hr_payroll.hr_payroll_salary_structure_double_holiday_pay')
-    util.remove_record(cr, 'l10n_be_hr_payroll.hr_payroll_salary_structure_end_of_year_bonus')
+    for struct in ['l10n_be_hr_payroll.hr_payroll_salary_structure_employee',
+                   'l10n_be_hr_payroll.hr_payroll_salary_structure_worker',
+                   'l10n_be_hr_payroll.hr_payroll_salary_structure_double_holiday_pay',
+                   'l10n_be_hr_payroll.hr_payroll_salary_structure_end_of_year_bonus']:
+        struct_id = util.ref(cr, struct)
+        if struct_id:
+            cr.execute("DELETE FROM hr_salary_rule where struct_id=%s", [struct_id, ])
+        util.remove_record(cr, struct)
 
     cr.execute("UPDATE hr_work_entry_type SET meal_voucher=FALSE")
     cr.execute("UPDATE hr_contract SET fiscal_voluntarism=FALSE,fiscal_voluntary_rate=0")
