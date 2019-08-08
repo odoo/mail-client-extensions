@@ -8,4 +8,7 @@ def migrate(cr, version):
     cr.execute("SELECT id FROM mrp_workorder")
     ids = list(map(itemgetter(0), cr.fetchall()))
     for wo in util.iter_browse(WO, ids):
-        wo.generate_wo_lines()
+        if "_generate_wo_lines" in dir(wo):
+            wo._generate_wo_lines()
+        else:
+            wo.generate_wo_lines()
