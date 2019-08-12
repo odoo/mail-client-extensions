@@ -45,5 +45,3 @@ def migrate(cr, version):
 
     cr.execute("CREATE INDEX ON account_invoice_tax(tax_id)")
     cr.execute("CREATE INDEX ON account_move_line(tax_line_id)")
-
-    util.move_field_to_module(cr, 'account.payment', 'partner_bank_account_id', 'account_sepa', 'account')
