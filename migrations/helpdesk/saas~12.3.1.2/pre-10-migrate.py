@@ -3,9 +3,15 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, 'helpdesk_team', 'use_credit_notes')
-    util.create_column(cr, 'helpdesk_team', 'use_coupons')
-    util.create_column(cr, 'helpdesk_team', 'use_product_returns')
-    util.create_column(cr, 'helpdesk_team', 'use_product_repairs')
+    util.create_column(cr, "helpdesk_ticket", "email_cc", "varchar")
 
-    util.create_column(cr, 'helpdesk_ticket', 'email_cc', 'varchar')
+    mapping = {
+        "use_credit_notes": "helpdesk_account",
+        "use_coupons": "helpdesk_sale_coupon",
+        "use_product_returns": "helpdesk_stock",
+        "use_product_repairs": "helpdesk_repair",
+    }
+    for field, module in mapping.items():
+        util.create_column(cr, "helpdesk_team", field, "boolean")
+        if util.module_installed(module):
+            cr.execute("UPDATE helpdesk_team SET {} = true".format(field))
