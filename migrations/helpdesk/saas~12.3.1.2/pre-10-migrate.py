@@ -13,5 +13,5 @@ def migrate(cr, version):
     }
     for field, module in mapping.items():
         util.create_column(cr, "helpdesk_team", field, "boolean")
-        if util.module_installed(module):
+        if util.module_installed(cr, module):
             cr.execute("UPDATE helpdesk_team SET {} = true".format(field))
