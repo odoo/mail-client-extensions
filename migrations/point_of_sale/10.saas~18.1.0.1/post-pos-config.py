@@ -43,4 +43,7 @@ def migrate(cr, version):
                FROM pos_config c, product_pricelist p
               WHERE c.company_id = COALESCE(p.company_id, c.company_id)
                 AND p.active = true
+             EXCEPT
+             SELECT pos_config_id, product_pricelist_id
+               FROM pos_config_product_pricelist_rel
     """)
