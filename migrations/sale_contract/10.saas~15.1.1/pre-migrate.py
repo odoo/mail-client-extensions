@@ -13,4 +13,5 @@ def migrate(cr, version):
                     END) / t.recurring_interval
           FROM sale_subscription_template t
          WHERE t.id = s.template_id
+           AND recurring_monthly IS NULL
     """)
