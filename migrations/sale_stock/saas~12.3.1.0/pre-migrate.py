@@ -12,3 +12,4 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.invoice", "incoterms_id")
     util.remove_view(cr, 'sale_stock.invoice_form_inherit_sale_stock')
+    util.remove_view(cr, "sale_stock.report_invoice_document_inherit_sale_stock")
