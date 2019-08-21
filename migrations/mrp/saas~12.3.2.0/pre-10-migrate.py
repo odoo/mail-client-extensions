@@ -15,7 +15,6 @@ def migrate(cr, version):
         util.create_column(cr, "mrp_workorder_line", "finished_workorder_id", "int4")
 
     util.rename_field(cr, 'res.config.settings', 'module_mrp_byproduct', 'group_mrp_byproducts')
-    util.create_column(cr, 'res_config_settings', 'module_mrp_subcontracting', 'boolean')
 
     util.create_m2m(cr, 'stock_move_line_stock_production_lot_rel', 'stock_move_line', 'stock_production_lot')
     cr.execute("""
