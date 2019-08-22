@@ -16,3 +16,5 @@ def migrate(cr, version):
         util.move_field_to_module(cr, "res.partner", "barcode", "base", "point_of_sale")
     else:
         util.remove_field(cr, "res.partner", "barcode")
+
+    util.force_noupdate(cr, "base.view_partner_form", False)
