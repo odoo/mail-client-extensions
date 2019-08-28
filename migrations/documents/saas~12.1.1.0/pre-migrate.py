@@ -30,7 +30,7 @@ def migrate(cr, version):
         (id, attachment_id, active, partner_id, owner_id, lock_uid, file_size, res_model, name, type, folder_id)
             SELECT id, id, active, partner_id, owner_id, lock_uid, file_size, res_model, datas_fname, 'binary', folder_id
               FROM ir_attachment
-             WHERE folder_id IS NOT NULL
+             WHERE folder_id IS NOT NULL OR id IN (SELECT ir_attachment_id FROM document_tag_rel)
     """)
     cr.execute("SELECT setval('documents_document_id_seq', (SELECT MAX(id)+1 FROM documents_document))")
 
