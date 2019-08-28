@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if util.module_installed(cr, 'account_reports'):
+    if util.table_exists(cr, 'account_financial_html_report_line'):
         cr.execute("""
             SELECT account_financial_html_report_line.*, ir_model_data.name as xmlid, ir_model_data.module as module
           INTO financial_report_lines_v12_bckp
