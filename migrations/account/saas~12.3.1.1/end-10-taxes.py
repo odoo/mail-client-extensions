@@ -115,7 +115,7 @@ def migrate(cr, version):
 
                         tags += to_add.ids
 
-                if rep_type == "tax" and not (tax.amount_type == "percent" and tax.amount == 0):
+                if rep_type == "tax" and not (tax.amount_type in ("percent", "fixed") and tax.amount == 0):
                     rep_account_id = migration_dict[rep_inv_type == "invoice" and "inv_account_id" or "ref_account_id"]
                 else:
                     rep_account_id = None
@@ -545,15 +545,6 @@ def get_financial_reports_grids_mapping(cr):
         else:
             globals()[filler_fun_to_call](cr, rslt)
 
-    if rslt:
-        cr.execute(
-            """
-            delete from financial_report_lines_v12_bckp
-            where id not in %(ids_to_keep)s;
-        """,
-            {"ids_to_keep": tuple(rslt.keys())},
-        )
-
     return rslt
 
 
@@ -631,7 +622,6 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
 
         else:
             _logger.error("No V12 report line found with name %s" % v13_line.name)
-            # raise UserError("No V12 report line found with name " + v13_line.name)
 
 
 def _fill_grids_mapping_for_ae(cr, dict_to_fill):
@@ -1525,6 +1515,7 @@ def get_v13_migration_dicts(cr):
     #  This query only fetches the tags still declared, not the former ones, since the module has now been updated
     financial_tag_ids = {elem for (elem,) in cr.fetchall()}
 
+
     rslt = []
     treated_count = 0
     cr.execute(
@@ -1582,10 +1573,8 @@ def get_v13_migration_dicts(cr):
                     """
                     select id, domain, formulas
                     from financial_report_lines_v12_bckp
-                    where domain like '%%.tag\_ids%%%(tag_id)s%%'
-                """,
-                    {"tag_id": tag_id},
-                )
+                    where domain like '%%tax%%.tag\_ids%%%(tag_id)s%%'
+                """, {'tag_id': tag_id})
                 tag_report_lines_data = cr.fetchall()
 
                 if not tag_report_lines_data:
@@ -1613,7 +1602,13 @@ def get_v13_migration_dicts(cr):
                         tax_rslt["refund"]["tax"]["-"].add(financial_reports_grids_mapping[tax_report_line_id])
                         continue
 
-                    candidate_to_add = is_financial and tag_id or financial_reports_grids_mapping[tax_report_line_id]
+                    candidate_to_add = is_financial and tag_id or financial_reports_grids_mapping.get(tax_report_line_id)
+
+                    if not candidate_to_add:
+                        # Happens for noisy financial report lines, not corresponding to any tax report.
+                        # We can't remove these lines from the backup table with 100% certainty; we would
+                        # risk to remove lines using financial tags
+                        continue
 
                     if (
                         tax.amount != 0 or tax.amount_type == "code"

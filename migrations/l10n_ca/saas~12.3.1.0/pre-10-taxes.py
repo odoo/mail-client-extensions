@@ -6,14 +6,14 @@ def migrate(cr, version):
         SELECT res_id
         FROM ir_model_data
         WHERE
-        (name LIKE '%gstpst_bc_sale_en'
-            OR name LIKE '%gstpst_mb_sale_en'
-            OR name LIKE '%gstqst_sale_en'
-            OR name LIKE '%gstpst_sk_sale_en'
-            OR name LIKE '%gstpst_bc_purc_en'
-            OR name LIKE '%gstpst_mb_purc_en'
-            OR name LIKE '%gstqst_purc_en'
-            OR name LIKE '%gstpst_sk_purc_en')
+        (name LIKE '%gstpst\_bc\_sale\_en'
+            OR name LIKE '%gstpst\_mb\_sale\_en'
+            OR name LIKE '%gstqst\_sale\_en'
+            OR name LIKE '%gstpst\_sk\_sale\_en'
+            OR name LIKE '%gstpst\_bc\_purc\_en'
+            OR name LIKE '%gstpst\_mb\_purc\_en'
+            OR name LIKE '%gstqst\_purc\_en'
+            OR name LIKE '%gstpst\_sk\_purc\_en')
         AND model = 'account.tax'
         AND module = 'l10n_ca'
     """)
