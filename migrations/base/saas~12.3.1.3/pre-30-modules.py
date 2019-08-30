@@ -47,6 +47,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "mail_enterprise", plus={"web_mobile"})
         util.new_module(cr, "mrp_account_enterprise", deps={"mrp_account"}, auto_install=True)
         util.module_deps_diff(cr, "sale_subscription", minus={"account_deferred_revenue"})
+        util.module_deps_diff(cr, "stock_account_enterprise", plus={"stock_enterprise"})
         util.module_deps_diff(
             cr, "test_l10n_be_hr_payroll_account", plus={"l10n_generic_coa", "l10n_be", "account_accountant"}
         )
