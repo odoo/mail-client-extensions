@@ -17,18 +17,18 @@ def migrate(cr, version):
     cr.execute("DELETE FROM documents_request_wizard")
 
     # cleanup
-    # some avw^wpeople delete existing folders,
+    # some people delete existing folders,
     # however the facets linked to folders (and tags linked to facets) are cascade deleted,
     # but their xmlid stay in database.
-    cr.execute("""
-        DELETE FROM ir_model_data
-              WHERE model = 'documents.tag'
-                AND res_id NOT IN (SELECT id
-                                     FROM documents_tag)
-    """)
-    cr.execute("""
-        DELETE FROM ir_model_data
-              WHERE model = 'documents.facet'
-                AND res_id NOT IN (SELECT id
-                                     FROM documents_facet)
-    """)
+    # I know this way of building queries is discouraged (at least!), but I don't know
+    # another way to give table name as parameter
+    for model in ["documents.facet", "documents.tag", "documents.workflow.rule"]:
+        cr.execute(
+            """
+            DELETE FROM ir_model_data
+                  WHERE model = '%(model)s'
+                    AND res_id NOT IN (SELECT id
+                                         FROM %(table_name)s)
+        """
+            % {"model": model, "table_name": util.table_of_model(cr, model)}
+        )
