@@ -86,7 +86,7 @@ def migrate(cr, version):
             channel_id int4,
             partner_id int4,
             completed boolean,
-            completion float8
+            completion int4
         )
     """
     )
