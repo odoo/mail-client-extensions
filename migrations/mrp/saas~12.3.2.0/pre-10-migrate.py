@@ -29,7 +29,7 @@ def migrate(cr, version):
         util.rename_model(cr, 'mrp.subproduct', 'mrp.bom.byproduct')
         util.rename_field(cr, 'stock.move', 'subproduct_id', 'byproduct_id')
 
-    util.create_column(cr, 'stock_picking_type', 'use_create_components_lots', 'int4')
+    util.create_column(cr, 'stock_picking_type', 'use_create_components_lots', 'boolean')
     util.remove_field(cr, 'stock_production_lot', 'use_next_on_work_order_id')
 
     util.rename_field(cr, "mrp.product.produce.line", "product_produce_id", "raw_product_produce_id")
