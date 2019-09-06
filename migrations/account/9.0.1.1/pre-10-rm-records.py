@@ -14,7 +14,9 @@ def migrate(cr, version):
                     WHERE id IN (SELECT aml.id FROM account_move_line AS aml, account_period AS p, account_journal AS j
                        WHERE p.id = aml.period_id AND aml.journal_id = j.id
                         AND p.special = True AND j.type = 'situation'
-                        AND p.id NOT IN (SELECT min(id) FROM account_period WHERE special = True GROUP BY company_id))
+                        AND p.id NOT IN (
+                          SELECT (array_agg(id ORDER BY date_start, id))[1]
+                            FROM account_period WHERE special = True GROUP BY company_id))
                """)
 
     # Delete account of type = view and consolidation
