@@ -3,7 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_field(cr, "product.pricelist", "discount_policy")
     util.remove_field(cr, "product.template", "hide_expense_policy")
     util.remove_field(cr, "crm.team", "use_quotations")
     util.remove_field(cr, "crm.team", "use_invoices")
