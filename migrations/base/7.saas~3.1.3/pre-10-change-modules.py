@@ -35,7 +35,7 @@ def migrate(cr, version):
     util.new_module(cr, "gamification_sale_crm", deps={"gamification", "sale_crm"}, auto_install=True)
     util.new_module(cr, "hr_gamification", deps={"gamification", "hr"}, auto_install=True)
 
-    util.new_module(cr, "payment", deps={"account"})
+    util.new_module(cr, "payment", deps={"account"}, auto_install=True)
     for provider in {"adyen", "ogone", "paypal", "transfer"}:
         util.new_module(cr, "payment_" + provider, deps={"payment"})
 
