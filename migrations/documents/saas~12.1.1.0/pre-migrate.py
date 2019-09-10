@@ -25,13 +25,14 @@ def migrate(cr, version):
         )
     """)
 
+    fname_col = 'name' if util.version_gte('saas~12.4') else 'datas_fname'
     cr.execute("""
         INSERT INTO documents_document
         (id, attachment_id, active, partner_id, owner_id, lock_uid, file_size, res_model, name, type, folder_id)
-            SELECT id, id, active, partner_id, owner_id, lock_uid, file_size, res_model, datas_fname, 'binary', folder_id
+            SELECT id, id, active, partner_id, owner_id, lock_uid, file_size, res_model, %s, 'binary', folder_id
               FROM ir_attachment
              WHERE folder_id IS NOT NULL OR id IN (SELECT ir_attachment_id FROM document_tag_rel)
-    """)
+    """ % (fname_col,))
     cr.execute("SELECT setval('documents_document_id_seq', (SELECT MAX(id)+1 FROM documents_document))")
 
     util.rename_field(cr, 'documents.folder', 'attachment_ids', 'document_ids')
