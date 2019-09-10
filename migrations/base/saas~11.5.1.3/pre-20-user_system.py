@@ -129,7 +129,7 @@ def migrate(cr, version):
     ]
 
     for table, fk, _, _ in util.get_fk(cr, "res_users"):
-        if fk in ("create_uid", "write_uid"):
+        if table == "ir_model_data":
             continue
         if (table, fk) in ignored:
             continue
@@ -138,4 +138,18 @@ def migrate(cr, version):
                SET {fk} = %s
              WHERE {fk} = %s
         """
-        cr.execute(query.format(table=table, fk=fk), [u2id, u1id])
+        params = [u2id, u1id]
+
+        if fk in ("create_uid", "write_uid"):
+            # only update column for non-system records
+            query += """
+                AND id NOT IN (
+                    SELECT res_id
+                      FROM ir_model_data
+                     WHERE model = %s
+                       AND COALESCE(module, '') NOT IN ('', '__export__')
+                )
+            """
+            params += [util.model_of_table(cr, table)]
+
+        cr.execute(query.format(table=table, fk=fk), params)
