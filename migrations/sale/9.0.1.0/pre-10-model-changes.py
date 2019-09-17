@@ -37,7 +37,7 @@ def migrate(cr, version):
             SET state = 'sale'
             WHERE state IN ('waiting_date', 'manual', 'shipping_except', 'invoice_except','progress')
         """)
-    cr.execute("UPDATE sale_order_line SET state=so.state FROM sale_order AS so WHERE so.id=order_id")  # field is now related
+    cr.execute("UPDATE sale_order_line sl SET state=so.state FROM sale_order AS so WHERE so.id=sl.order_id")  # field is now related
 
     # bootstrap some new computed fields
     util.create_column(cr, 'sale_order', 'invoice_status', 'varchar')
