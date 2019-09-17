@@ -10,8 +10,8 @@ def migrate(cr, version):
     util.remove_field(cr, "mrp.routing", "location_id")
     util.remove_field(cr, "mrp.workorder", "workorder_line_ids")
 
-    util.rename_field(cr, "mrp.workorder.line", "raw_workorder_id", "workorder_id")
     if util.table_exists(cr, 'mrp_workorder_line'):
+        util.rename_field(cr, "mrp.workorder.line", "workorder_id", "raw_workorder_id")
         util.create_column(cr, "mrp_workorder_line", "finished_workorder_id", "int4")
 
     util.rename_field(cr, 'res.config.settings', 'module_mrp_byproduct', 'group_mrp_byproducts')

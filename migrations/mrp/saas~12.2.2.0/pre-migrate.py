@@ -26,7 +26,6 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "mrp.workorder", "active_move_line_ids")
-    util.remove_field(cr, "stock.move.line", "done_wo")
     util.remove_field(cr, "stock.move", "active_move_line_ids")
 
     cr.execute("DELETE FROM mrp_product_produce_line")  # TransientModel
