@@ -5,6 +5,12 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     inc = util.ref(cr, "account.group_show_line_subtotals_tax_included")
     exc = util.ref(cr, "account.group_show_line_subtotals_tax_excluded")
+
+    if not inc or not exc:
+        # If any is unknown, we can't have users in both groups.
+        # This may happen if `sale` module is uninstalled (these groups where moved from there)
+        return
+
     usr = util.ref(cr, "base.group_user")
     ptl = util.ref(cr, "base.group_portal")
     pub = util.ref(cr, "base.group_public")
