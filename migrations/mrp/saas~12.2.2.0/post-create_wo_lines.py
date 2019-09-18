@@ -16,7 +16,7 @@ def migrate(cr, version):
            AND done_wo = true
     """.format(wo))
 
-    cr.execute("SELECT max(id) + 1 FROM mrp_workorder_line")
+    cr.execute("SELECT COALESCE(max(id), 0) + 1 FROM mrp_workorder_line")
     cr.execute("ALTER SEQUENCE mrp_workorder_line_id_seq RESTART WITH %s", cr.fetchone())
 
     # now flag finished wo_lines
