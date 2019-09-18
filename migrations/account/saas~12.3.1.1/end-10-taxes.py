@@ -502,46 +502,30 @@ def get_financial_reports_grids_mapping(cr):
     Returns a map between financial report line ids and the corresponding
     tax report line's tag_name in v13.
     """
-    env = util.env(cr)
     rslt = {}
 
-    for company in env["res.company"].search([]):
-        if not company.country_id:
-            raise UserError(
-                "Company with id %(company_id)s has no country set. Please define one before running the migration script."
-                % {"company_id": company.id}
+    cr.execute("""
+        SELECT lower(co.code), array_agg(cp.id ORDER BY cp.id)
+          FROM account_tax t
+          JOIN res_company cp ON cp.id = t.company_id
+          JOIN res_partner pa ON pa.id = cp.partner_id
+     LEFT JOIN res_country co ON co.id = pa.country_id
+      GROUP BY 1
+    """)
+    for cc, cids in cr.fetchall():
+        if not cc:
+            raise util.MigrationError(
+                "Companies with ids %r has no country set. "
+                "Please define one before running the migration script." % cids
             )
 
-        filler_fun_to_call = (
-            "_fill_grids_mapping_for_%s" % company.country_id.code.lower()
-        )  # So, such a function needs to be defined for each country
-        if not globals().get(filler_fun_to_call, False):
-            # Some countries don't have any tax report (but some use financial reports instead, so we still need to migrate). We only display an error message if not in one of these.
-            if company.country_id.code not in (
-                "ES",
-                "CA",
-                "CN",
-                "CO",
-                "CR",
-                "EC",
-                "GT",
-                "HK",
-                "HN",
-                "IE",
-                "IT",
-                "MN",
-                "MX",
-                "NZ",
-                "PA",
-                "PE",
-                "PT",
-                "SA",
-                "TR",
-                "UA",
-                "US",
-                "VE",
-            ):
-                _logger.error("Grids mapping not implemented for country %s" % company.country_id.code.lower())
+        filler_fun_to_call = "_fill_grids_mapping_for_%s" % cc
+        # So, such a function needs to be defined for each country
+        if filler_fun_to_call not in globals():
+            # Some countries don't have any tax report but some use financial reports instead, so
+            # we still need to migrate.
+            if cc not in "es ca cn co cr ec gt hk hn ie it mn mx nz pa pe pt sa tr ua us ve".split():
+                raise util.MigrationError("Grids mapping not implemented for country %r" % cc)
         else:
             globals()[filler_fun_to_call](cr, rslt)
 
