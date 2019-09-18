@@ -19,9 +19,11 @@ def migrate(cr, version):
         cr.execute(
             """
             WITH new_sequence AS (
-                SELECT s.id,row_number() OVER (PARTITION BY s.sale_order_template_id) as sequence
+                SELECT s.id,row_number() OVER (
+                    PARTITION BY s.sale_order_template_id
+                    ORDER BY s.sale_order_template_id, l.sequence, l.id, COALESCE(s.sequence, 0), s.id
+                ) as sequence
                 FROM sale_order_template_line s INNER JOIN sale_layout_category l on s.layout_category_id=l.id
-                ORDER BY s.sale_order_template_id, l.sequence, l.id, COALESCE(s.sequence, 0), id
             )
             UPDATE sale_order_template_line
             SET sequence=new_sequence.sequence
