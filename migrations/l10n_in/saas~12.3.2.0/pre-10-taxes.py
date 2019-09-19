@@ -6,6 +6,27 @@ def migrate(cr, version):
     if not util.table_exists(cr, 'tax_accounts_v12_bckp'):
         return
 
+    cr.execute("""
+        INSERT INTO taxes_not_to_merge(tax_id)
+        SELECT res_id
+        FROM ir_model_data
+        WHERE
+        (name LIKE '%sgst\_sale\_1'
+            OR name LIKE '%sgst\_sale\_2'
+            OR name LIKE '%sgst\_sale\_28'
+            OR name LIKE '%sgst\_sale\_18'
+            OR name LIKE '%sgst\_sale\_12'
+            OR name LIKE '%sgst\_sale\_5'
+            OR name LIKE '%sgst\_purchase\_1'
+            OR name LIKE '%sgst\_purchase\_2'
+            OR name LIKE '%sgst\_purchase\_28'
+            OR name LIKE '%sgst\_purchase\_18'
+            OR name LIKE '%sgst\_purchase\_12'
+            OR name LIKE '%sgst\_purchase\_5')
+        AND model = 'account.tax'
+        AND module = 'l10n_in'
+    """)
+
     cr.execute("savepoint l10n_in_inject_financial_report;")
 
     #If a tax is type_tax_use 'none', we artifically switch it to its parent type temporarily, to check what grids to impact for it
