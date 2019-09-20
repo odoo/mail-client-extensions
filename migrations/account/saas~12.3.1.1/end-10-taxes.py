@@ -505,25 +505,18 @@ def get_financial_reports_grids_mapping(cr):
     rslt = {}
 
     cr.execute("""
-        SELECT lower(co.code), array_agg(cp.id ORDER BY cp.id)
-          FROM account_tax t
-          JOIN res_company cp ON cp.id = t.company_id
-          JOIN res_partner pa ON pa.id = cp.partner_id
-     LEFT JOIN res_country co ON co.id = pa.country_id
+        SELECT lower(c.code)
+          FROM account_tax_report_line l
+          JOIN res_country c ON c.id = l.country_id
       GROUP BY 1
     """)
-    for cc, cids in cr.fetchall():
-        if not cc:
-            raise util.MigrationError(
-                "Companies with ids %r has no country set. "
-                "Please define one before running the migration script." % cids
-            )
-
+    for cc, in cr.fetchall():
         filler_fun_to_call = "_fill_grids_mapping_for_%s" % cc
         # So, such a function needs to be defined for each country
         if filler_fun_to_call not in globals():
             # Some countries don't have any tax report but some use financial reports instead, so
             # we still need to migrate.
+            # XXX still needed?
             if cc not in "es ca cn co cr ec gt hk hn ie it mn mx nz pa pe pt sa tr ua us ve".split():
                 raise util.MigrationError("Grids mapping not implemented for country %r" % cc)
         else:
