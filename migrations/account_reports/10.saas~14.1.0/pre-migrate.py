@@ -23,6 +23,7 @@ def migrate(cr, version):
         l10n.be.partner.vat.listing.context
 
         # manager models
+        account.report.footnote
         account.report.footnotes.manager
         account.report.multicompany.manager
         account.report.analytic.manager
