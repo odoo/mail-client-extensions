@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+from ast import literal_eval
+from odoo.addons.base.maintenance.migrations import util
+
+
+def migrate(cr, version):
+    IMFS = util.env(cr)["ir.model.fields.selection"]
+    cr.execute("SELECT model, name, selection FROM ir_model_fields WHERE state = 'manual'")
+    for model, name, selection in cr.fetchall():
+        selection = literal_eval(selection or "[]")
+        IMFS._update_selection(model, name, selection)
+
+    util.remove_column(cr, "ir_model_fields", "selection")
