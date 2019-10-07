@@ -3,56 +3,48 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_houserent_allowance_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_register_provident_fund")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_professional_tax_deduction_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_food_coupen_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_tds_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_nps_contribution_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_vpf_contribution_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_company_transport_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_labour_Welfare_fund_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_group_term_insurance_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_leave_availed_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_medical_insurance_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_other_deduction_register")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_da")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_houserentallowancemetro_nonmetro")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_trans_allownce")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_special")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payroll_rule_child1")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payroll_rule_child2")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payroll_rule_city1")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payroll_rule_metrocity")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payroll_rule_nonmetrocity")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_arrears")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_lta")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_le")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_performance")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_bonus")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_medical_allow")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_medical")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_food_coupon")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_journals")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_uniform_senior")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_uniform_junior")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_telephone")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_prof_develope")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payroll_rule_car")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_internet")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_driver")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_tds")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_line_professional_tax")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_epf")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_enps")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_vpf")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_cpt")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_salary_rule_food_coupon_ded")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_lwf_employee")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_lwf_employer")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_cgti")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_dla")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_cmt")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_ode")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_ernps")
-    util.remove_record(cr, "l10n_in_hr_payroll.hr_payslip_rule_erpf")
+    salary_rule = util.splitlines(
+        """
+         hr_salary_rule_da
+         hr_salary_rule_houserentallowancemetro_nonmetro
+         hr_salary_trans_allownce
+         hr_salary_rule_special
+         hr_payroll_rule_child1
+         hr_payroll_rule_child2
+         hr_payroll_rule_city1
+         hr_payroll_rule_metrocity
+         hr_payroll_rule_nonmetrocity
+         hr_salary_rule_arrears
+         hr_salary_rule_lta
+         hr_salary_rule_le
+         hr_salary_rule_performance
+         hr_salary_rule_bonus
+         hr_salary_rule_medical_allow
+         hr_salary_rule_medical
+         hr_salary_rule_food_coupon
+         hr_salary_rule_journals
+         hr_salary_rule_uniform_senior
+         hr_salary_rule_uniform_junior
+         hr_salary_rule_telephone
+         hr_salary_rule_prof_develope
+         hr_payroll_rule_car
+         hr_salary_rule_internet
+         hr_salary_rule_driver
+         hr_payslip_rule_tds
+         hr_payslip_line_professional_tax
+         hr_payslip_rule_epf
+         hr_payslip_rule_enps
+         hr_payslip_rule_vpf
+         hr_payslip_rule_cpt
+         hr_salary_rule_food_coupon_ded
+         hr_payslip_rule_lwf_employee
+         hr_payslip_rule_lwf_employer
+         hr_payslip_rule_cgti
+         hr_payslip_rule_dla
+         hr_payslip_rule_cmt
+         hr_payslip_rule_ode
+         hr_payslip_rule_ernps
+         hr_payslip_rule_erpf
+    """
+    )
+    util.delete_unused(cr, "hr_salary_rule", {"l10n_in_hr_payroll.%s" % r for r in salary_rule})
