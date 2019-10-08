@@ -18,7 +18,7 @@ def migrate(cr, version):
     """
     )
     for fid, model, column, selection in cr.fetchall():
-        selection = literal_eval(selection)
+        selection = literal_eval(selection.strip())
         if not any(isinstance(k, int) for k, l in selection):
             continue
         _logger.info("convert field %s:%s to str-selection", model, column)
