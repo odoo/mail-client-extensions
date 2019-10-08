@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
+
 
 def migrate(cr, version):
+    if not util.table_exists(cr, "tax_accounts_v12_bckp"):
+        return
+
     cr.execute("""
         INSERT INTO v12_financial_tags_registry(tag_id)
         SELECT res_id
