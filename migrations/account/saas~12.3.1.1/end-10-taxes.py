@@ -1572,7 +1572,7 @@ def get_v13_migration_dicts(cr):
 
                     split_formula = _split_formulas_to_dict(cr, formulas)
 
-                    if tax.type_tax_use == "adjustment" and (
+                    if tax.type_tax_use == "adjustment" and tax_report_line_id in financial_reports_grids_mapping and (
                         inv_tax_line or ref_tax_line
                     ):  # We treat tax adjustment in a dedicated way, as they are not supposed to be used on invoices
                         tax_rslt["invoice"]["tax"]["+"].add(financial_reports_grids_mapping[tax_report_line_id])
