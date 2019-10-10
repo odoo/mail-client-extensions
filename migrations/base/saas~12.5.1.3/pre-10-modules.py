@@ -88,6 +88,19 @@ def migrate(cr, version):
     util.merge_module(cr, "decimal_precision", "base")
     util.merge_module(cr, "payment_stripe_sca", "payment_stripe")
 
+    if util.module_installed(cr, "l10n_fr"):
+        util.move_field_to_module(cr, "res.company", "l10n_fr_closing_sequence_id", "l10n_fr_sale_closing", "l10n_fr")
+
+        if util.module_installed(cr, "l10n_fr_pos_cert"):
+            util.remove_module_deps(cr, "l10n_fr_sale_closing", {"l10n_fr_certification"})
+            util.merge_module(cr, "l10n_fr_sale_closing", "l10n_fr_pos_cert")
+        else:
+            util.remove_module(cr, "l10n_fr_sale_closing")
+
+    if not util.module_installed(cr, "account"):
+        # account will steal fields before removing the module
+        util.remove_module(cr, "l10n_fr_certification")
+
     if util.has_enterprise():
         util.module_auto_install(cr, "account_asset", True)
         util.module_auto_install(cr, "account_bank_statement_import_camt", True)
