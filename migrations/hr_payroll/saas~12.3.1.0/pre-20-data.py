@@ -57,4 +57,12 @@ def migrate(cr, version):
     """)
 
     #Rules without struct_id are not last level Rules, then can be deleted
-    cr.execute("DELETE FROM hr_salary_rule WHERE struct_id IS NULL")
+    cr.execute("""
+        SELECT imd.name
+        FROM hr_salary_rule r
+        JOIN ir_model_data imd ON r.id = imd.res_id
+                                  AND imd.model = 'hr.salary.rule'
+        WHERE r.struct_id IS NULL
+    """)
+    for name in cr.fetchall():
+        util.delete_unused(cr, 'hr_payslip_line' , ['hr_salary_rule.' + name[0]])
