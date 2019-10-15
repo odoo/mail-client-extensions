@@ -8,3 +8,10 @@ def migrate(cr, version):
     util.rename_field(cr, "quality.check", "lot_id", "final_lot_id")
 
     util.remove_view(cr, "mrp_workorder.mrp_production_view_form_inherit_planning")
+
+    # cleanup non-done wo on quality checks
+    cr.execute("""
+        UPDATE quality_check c
+           SET move_line_id = NULL
+         WHERE move_line_id NOT IN (SELECT id FROM mrp_workorder_line)
+    """)
