@@ -240,6 +240,16 @@ def migrate(cr, version):
                     100 * child_tax.amount / group_to_treat.amount, precision_digits=4
                 )
             else:
+                # If tax lines (aml with tax_line_id set, so) exist for 0% taxes (can
+                # happen with POS), we remove the link to the tax if we have to merge them
+                # (since these lines have no impact on the accounting). We avoid doing that
+                # when not merging, just for the sake of not messing up with data uselessly.
+                cr.execute("""
+                    update account_move_line
+                    set tax_repartition_line_id = null, tax_line_id = null
+                    where tax_repartition_line_id in %(rep_lines)s
+                    and balance = 0
+                """, {'rep_lines': (new_inv_rep.id, new_ref_rep.id)})
                 (new_inv_rep + new_ref_rep).unlink()
 
             # Child taxes also need to apply their base tags to their parent's base line
