@@ -133,7 +133,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "stock.move", "value")
     util.remove_field(cr, "stock.move", "remaining_qty")
-    util.remove_field(cr, "stock.move", "remaining_value")
 
     util.remove_record(cr, "stock_account.product_valuation_action")
     util.remove_view(cr, "stock_account.view_stock_product_tree2")
