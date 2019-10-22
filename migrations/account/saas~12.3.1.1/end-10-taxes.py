@@ -14,6 +14,19 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
+    if util.version_gte('saas~12.4'):
+        sql_dict = {
+            'invoice_table': 'account_move',
+            'invoice_id_field': 'move_id',
+            'where_criteria': "move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')"
+        }
+    else:
+        sql_dict = {
+            'invoice_table': 'account_invoice',
+            'invoice_id_field': 'invoice_id',
+            'where_criteria': "invoice_id IS NULL"
+        }
+
     if not util.table_exists(cr, 'tax_accounts_v12_bckp'):
         return True
     env = util.env(cr)
@@ -35,33 +48,33 @@ def migrate(cr, version):
         """
         UPDATE account_move_line
            SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep
-         WHERE invoice_id IS NULL
+          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
+         WHERE %(where_criteria)s
            AND tax_line_id = tx_rep.invoice_tax_id
            AND tx_rep.repartition_type = 'tax'
-    """
+    """ % sql_dict
     )
     cr.execute(
         """
         UPDATE account_move_line
            SET tax_repartition_line_id = tx_rep.id
-          FROM account_invoice invoice, account_tax_repartition_line tx_rep
-         WHERE invoice.id = invoice_id
-           AND invoice.type in ('in_refund', 'out_refund')
+          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
+         WHERE %(invoice_id_field)s = move.id
+           AND move.type IN ('in_refund', 'out_refund')
            AND tax_line_id = tx_rep.refund_tax_id
            AND tx_rep.repartition_type = 'tax'
-    """
+    """ % sql_dict
     )
     cr.execute(
         """
         UPDATE account_move_line
            SET tax_repartition_line_id = tx_rep.id
-          FROM account_invoice invoice, account_tax_repartition_line tx_rep
-         WHERE invoice.id = invoice_id
-           AND invoice.type not in ('in_refund', 'out_refund')
+          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
+         WHERE %(invoice_id_field)s = move.id
+           AND move.type IN ('in_invoice', 'out_invoice')
            AND tax_line_id = tx_rep.invoice_tax_id
            AND tx_rep.repartition_type = 'tax'
-    """
+    """ % sql_dict
     )
 
     env["account.move.line"].invalidate_cache(fnames=["tax_repartition_line_id"])
@@ -123,33 +136,6 @@ def migrate(cr, version):
                 getattr(tax, rep_inv_type + "_repartition_line_ids").filtered(
                     lambda x: x.repartition_type == rep_type
                 ).write({"account_id": rep_account_id, "tag_ids": [(6, 0, tags)]})
-
-    # Assign repartition lines and tags to account.invoice.tax
-    _logger.info("Migrating account.invoice.tax objects...")
-    cr.execute(
-        """
-        update account_invoice_tax
-        set tax_repartition_line_id = tx_rep.id
-        from account_tax_repartition_line tx_rep, account_invoice inv
-        where account_invoice_tax.invoice_id = inv.id
-        and account_invoice_tax.tax_id = case when inv.type in ('in_refund', 'out_refund')
-                                         then tx_rep.refund_tax_id
-                                         else tx_rep.invoice_tax_id end
-        and tx_rep.repartition_type = 'tax'
-    """
-    )
-    env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id"])
-
-    cr.execute(
-        """
-        insert into account_account_tag_account_invoice_tax_rel
-        select inv_tx.id, rep_tag.account_account_tag_id
-        from account_invoice_tax inv_tx
-        join account_account_tag_account_tax_repartition_line_rel rep_tag
-        on inv_tx.tax_repartition_line_id = rep_tag.account_tax_repartition_line_id
-    """
-    )
-    env["account.invoice.tax"].invalidate_cache(fnames=["tag_ids"])
 
     # Merge child taxes into their parent
     tax_groups = env["account.tax"].with_context(active_test=False).search([("amount_type", "=", "group")])
@@ -260,36 +246,6 @@ def migrate(cr, version):
                 lambda x: x.repartition_type == "base"
             ).tag_ids
 
-            # Before deleting the old child taxes, we also need to replace them on account.invoice.tax entries
-            cr.execute(
-                """
-                update account_invoice_tax
-                set tax_repartition_line_id = tx_rep.id, tax_id = %(group_to_treat_id)s
-                from account_invoice invoice, account_tax_repartition_line tx_rep
-                where invoice.id = invoice_id
-                and tax_id = %(child_tax_id)s
-                and tx_rep.id = case when invoice.type in ('in_refund', 'out_refund') then %(new_ref_rep_id)s else %(new_inv_rep_id)s end;
-            """,
-                {
-                    "group_to_treat_id": group_to_treat.id,
-                    "child_tax_id": child_tax.id,
-                    "new_ref_rep_id": new_ref_rep.id,
-                    "new_inv_rep_id": new_inv_rep.id,
-                },
-            )
-
-            # in case account.invoice.tax objects contain taxes to remove, we replace them by their parent
-            cr.execute(
-                """
-                update account_invoice_tax_account_tax_rel
-                set account_tax_id = %(group_to_treat_id)s
-                where account_tax_id = %(child_tax_id)s
-            """,
-                {"group_to_treat_id": group_to_treat.id, "child_tax_id": child_tax.id},
-            )
-
-            env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id", "tax_id", "tax_ids"])
-
         tax_to_clean_ids += list(group_to_treat.children_tax_ids.ids)
 
     if tax_to_clean_ids:
@@ -328,15 +284,15 @@ def migrate(cr, version):
         from account_tax_repartition_line tx_rep, account_account_tag_account_tax_repartition_line_rel rep_tags, account_move_line_account_tax_rel aml_tx
         join account_move_line aml
         on aml.id = aml_tx.account_move_line_id
-        left join account_invoice invoice
-        on aml.invoice_id = invoice.id
+        join  %(invoice_table)s move
+        on aml.%(invoice_id_field)s = move.id
         where tx_rep.repartition_type = 'base'
         and aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
         and rep_tags.account_tax_repartition_line_id  = tx_rep.id
-        and ((invoice.type in ('in_refund', 'out_refund') and tx_rep.refund_tax_id is not null)
-             or (tx_rep.invoice_tax_id is not null and invoice.type not in ('in_refund', 'out_refund')))
+        and ((move.type in ('in_refund', 'out_refund') and tx_rep.refund_tax_id is not null)
+             or (tx_rep.invoice_tax_id is not null and move.type in ('in_invoice', 'out_invoice')))
         on conflict do nothing; -- for lines that are the base of multiple taxes sharing some tags
-    """
+    """ % sql_dict
     )
 
     env["account.move.line"].invalidate_cache(fnames=["tag_ids"])
@@ -412,33 +368,45 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
         ("currency_id", "=", False),
         ("currency_id", "=", tax.company_id.currency_id.id),
     ]
-    account_domain = base_domain + [
-        ("user_type_id.type", "=", type in ("in_invoice", "in_refund") and "payable" or "receivable")
-    ]
-    invoice_account = env["account.account"].search(account_domain, limit=1).id
+
     invoice_line_account = (
         env["account.account"]
         .search(base_domain + [("user_type_id.type", "not in", ("payable", "receivable"))], limit=1)
         .id
     )
-    if not invoice_account or not invoice_line_account:
+    if not invoice_line_account:
         _logger.error("Lack of suitable account")
         return False
-    if (
-        not env["account.invoice"]
-        .with_context(
-            force_company=tax.company_id.id,
-            default_company_id=tax.company_id.id,
-            company_id=tax.company_id.id,
-            type=type,
-        )
-        ._default_journal()
-        .id
-    ):
-        _logger.error("Lack of suitable journal")
-        return False
+    if util.version_gte('saas~12.4'):
+        if (
+            not env["account.move"]
+            .with_context(
+                force_company=tax.company_id.id,
+                default_company_id=tax.company_id.id,
+                company_id=tax.company_id.id,
+                type=type,
+            )
+            ._get_default_journal()
+            .id
+        ):
+            _logger.error("Lack of suitable journal")
+            return False
+    else:
+        if (
+            not env["account.invoice"]
+            .with_context(
+                force_company=tax.company_id.id,
+                default_company_id=tax.company_id.id,
+                company_id=tax.company_id.id,
+                type=type,
+            )
+            ._default_journal()
+            .id
+        ):
+            _logger.error("Lack of suitable journal")
+            return False
     invoice = (
-        env["account.invoice"]
+        env["account.move" if util.version_gte('saas~12.4') else "account.invoice"]
         .with_context(
             force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
         )
@@ -446,42 +414,42 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
             {
                 "partner_id": partner.id,
                 "currency_id": tax.company_id.currency_id.id,
-                "name": type,
-                "account_id": invoice_account,
                 "type": type,
-                "date_invoice": datetime.datetime.utcnow().isoformat(),
+                "invoice_date" if util.version_gte('saas~12.4') else "date_invoice": datetime.datetime.utcnow().isoformat(),
                 "company_id": tax.company_id.id,
+                "invoice_line_ids": [(0, 0, {
+                    "quantity": 1,
+                    "price_unit": amount,
+                    "name": "Papa a vu le fifi de lolo",
+                    "tax_ids" if util.version_gte('saas~12.4') else "invoice_line_tax_ids": [(6, 0, tax.ids)],
+                    "account_id": invoice_line_account,
+                })]
             }
         )
     )
-    env["account.invoice.line"].with_context(
+    invoice_ctx = invoice.with_context(
         force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
-    ).create(
-        {
-            "quantity": 1,
-            "price_unit": amount,
-            "invoice_id": invoice.id,
-            "name": "Papa a vu le fifi de lolo",
-            "invoice_line_tax_ids": [(6, 0, tax.ids)],
-            "account_id": invoice_line_account,
-        }
     )
-    invoice.with_context(
-        force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
-    )._onchange_invoice_line_ids()
-    invoice.with_context(
-        force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
-    ).action_invoice_open()
+    if util.version_gte('saas~12.4'):
+        invoice_ctx.post()
+    else:
+        invoice_ctx._onchange_invoice_line_ids()
+        invoice_ctx.action_invoice_open()
     return invoice
 
 
 def get_aml_domain(cr, invoice, domain):
+    if util.version_gte('saas~12.4'):
+    # invoice_id field does not exist anymore, use move_id instead
+        domain = domain.replace(' ', '')
+        domain = domain.replace("('invoice_id','=',False)", "('move_id.type', 'not in', ('in_invoice', 'out_invoice', 'in_refund', 'out_refund'))")
+        domain = domain.replace("'invoice_id", "'move_id")
+
     line_domain = safe_eval(domain)
 
     # We need to use the backup table in order to know which tax corresponds to which tag
     for index, condition in enumerate(line_domain):
         if condition[0] in ("tax_ids.tag_ids", "tax_line_id.tag_ids"):
-            new_condition = ("tag_ids", condition[1], condition[2])
 
             if condition[1] not in ("=", "!=", "in", "not in"):
                 raise UserError("Wrong operator in domain: %s" % condition[1])
@@ -504,6 +472,8 @@ def get_aml_domain(cr, invoice, domain):
 
             line_domain[index] = (condition[0].partition(".")[0], "in", target_taxes or [])
 
+    if util.version_gte('saas~12.4'):
+        return line_domain + [("move_id.state", "=", "posted"), ("move_id", "=", invoice.id)]
     return line_domain + [("move_id.state", "=", "posted"), ("move_id", "=", invoice.move_id.id)]
 
 
@@ -1462,6 +1432,15 @@ def get_v13_migration_dicts(cr):
 
     env = util.env(cr)
 
+    # Set all taxes as active ; keep track of the inactive ones to restore their state later
+    #TODO OCO récupérer les taxes inactives
+
+    cr.execute("""
+        update account_tax set active=True;
+    """)
+
+    env["account.tax"].invalidate_cache(fnames=['active'])
+
     # If a tax is type_tax_use 'none', we artificially switch it to its parent type temporarily, to check what grids to impact for it
     cr.execute(
         """
@@ -1570,6 +1549,7 @@ def get_v13_migration_dicts(cr):
                     )
 
                 for tax_report_line_id, domain, formulas in tag_report_lines_data:
+
                     # aml considered by this report line for both invoice and refund
                     inv_aml = env["account.move.line"].search(get_aml_domain(cr, inv, domain))
                     ref_aml = env["account.move.line"].search(get_aml_domain(cr, ref, domain))

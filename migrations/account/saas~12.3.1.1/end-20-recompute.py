@@ -20,7 +20,7 @@ def migrate(cr, version):
       INNER JOIN account_account_tag_account_move_line_rel t_rel ON t_rel.account_move_line_id = aml.id
       INNER JOIN account_account_tag t ON t.id = t_rel.account_account_tag_id
       INNER JOIN account_journal j ON j.id = aml.journal_id
-      INNER JOIN account_invoice i ON aml.invoice_id = i.id
+      INNER JOIN account_invoice i ON aml.move_id = i.move_id
       INNER JOIN res_company c ON aml.company_id = c.id
       INNER JOIN res_currency cur ON c.currency_id = cur.id
        LEFT JOIN account_tax_report_line_tags_rel tr ON tr.account_account_tag_id = t.id

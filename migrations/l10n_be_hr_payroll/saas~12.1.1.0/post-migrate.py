@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
+from odoo.exceptions import ValidationError
 
 
 def migrate(cr, version):
@@ -9,7 +10,10 @@ def migrate(cr, version):
         cr.execute("SELECT default_value FROM hr_contract_advantage_template WHERE code = %s", [field])
         if cr.rowcount:
             [value] = cr.fetchone()
-            set_def("hr.contract", field, value)
+            try:
+                set_def("hr.contract", field, value)
+            except ValidationError:
+                pass
 
     for field in {
         "holidays",
