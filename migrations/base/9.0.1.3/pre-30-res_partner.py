@@ -3,6 +3,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.rename_field(cr, 'res.partner.bank', 'bank', 'bank_id')
+    util.remove_column(cr, "res_partner_bank", "state")
     util.rename_field(cr, 'res.partner.bank', 'state', 'acc_type')
     util.delete_model(cr, 'res.partner.bank.type')
     util.delete_model(cr, 'res.partner.bank.type.field')
