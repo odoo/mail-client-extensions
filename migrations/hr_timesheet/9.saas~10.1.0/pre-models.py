@@ -96,8 +96,3 @@ def migrate(cr, version):
          WHERE a.id = p.alias_id
            AND p.id = ANY(%s)
     """, [new_project_ids])
-
-    threshold = int(os.environ.get('ODOO_MIG_S10_MAX_PROJECTS', 10))
-    if threshold and len(new_project_ids) > threshold:
-        raise util.MigrationError('Created too much projects (%d > %d). Aborting.' %
-                                  (len(new_project_ids), threshold))
