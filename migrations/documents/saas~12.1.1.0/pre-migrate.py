@@ -102,7 +102,7 @@ def migrate(cr, version):
 
     cr.execute("""
         UPDATE mail_alias
-           SET model_id = %s
+           SET alias_model_id = %s
          WHERE id IN (SELECT alias_id FROM documents_share)
     """, [model_id])
 
