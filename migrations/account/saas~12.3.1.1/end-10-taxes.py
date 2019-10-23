@@ -136,6 +136,33 @@ def migrate(cr, version):
                 getattr(tax, rep_inv_type + "_repartition_line_ids").filtered(
                     lambda x: x.repartition_type == rep_type
                 ).write({"account_id": rep_account_id, "tag_ids": [(6, 0, tags)]})
+    if not util.version_gte('saas~12.4'):
+        # Assign repartition lines and tags to account.invoice.tax
+        _logger.info("Migrating account.invoice.tax objects...")
+        cr.execute(
+            """
+            update account_invoice_tax
+            set tax_repartition_line_id = tx_rep.id
+            from account_tax_repartition_line tx_rep, account_invoice inv
+            where account_invoice_tax.invoice_id = inv.id
+            and account_invoice_tax.tax_id = case when inv.type in ('in_refund', 'out_refund')
+                                             then tx_rep.refund_tax_id
+                                             else tx_rep.invoice_tax_id end
+            and tx_rep.repartition_type = 'tax'
+        """
+        )
+        env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id"])
+
+        cr.execute(
+            """
+            insert into account_account_tag_account_invoice_tax_rel
+            select inv_tx.id, rep_tag.account_account_tag_id
+            from account_invoice_tax inv_tx
+            join account_account_tag_account_tax_repartition_line_rel rep_tag
+            on inv_tx.tax_repartition_line_id = rep_tag.account_tax_repartition_line_id
+        """
+        )
+        env["account.invoice.tax"].invalidate_cache(fnames=["tag_ids"])
 
     # Merge child taxes into their parent
     tax_groups = env["account.tax"].with_context(active_test=False).search([("amount_type", "=", "group")])
@@ -245,6 +272,37 @@ def migrate(cr, version):
             group_ref_base_line.tag_ids |= child_tax.refund_repartition_line_ids.filtered(
                 lambda x: x.repartition_type == "base"
             ).tag_ids
+            if not util.version_gte('saas~12.4'):
+                # Before deleting the old child taxes, we also need to replace them on account.invoice.tax entries
+                cr.execute(
+                    """
+                    update account_invoice_tax
+                    set tax_repartition_line_id = tx_rep.id, tax_id = %(group_to_treat_id)s
+                    from account_invoice invoice, account_tax_repartition_line tx_rep
+                    where invoice.id = invoice_id
+                    and tax_id = %(child_tax_id)s
+                    and tx_rep.id = case when invoice.type in ('in_refund', 'out_refund') then %(new_ref_rep_id)s else %(new_inv_rep_id)s end;
+                """,
+                    {
+                        "group_to_treat_id": group_to_treat.id,
+                        "child_tax_id": child_tax.id,
+                        "new_ref_rep_id": new_ref_rep.id,
+                        "new_inv_rep_id": new_inv_rep.id,
+                    },
+                )
+
+                # in case account.invoice.tax objects contain taxes to remove, we replace them by their parent
+                cr.execute(
+                    """
+                    update account_invoice_tax_account_tax_rel
+                    set account_tax_id = %(group_to_treat_id)s
+                    where account_tax_id = %(child_tax_id)s
+                """,
+                    {"group_to_treat_id": group_to_treat.id, "child_tax_id": child_tax.id},
+                )
+
+                env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id", "tax_id", "tax_ids"])
+
 
         tax_to_clean_ids += list(group_to_treat.children_tax_ids.ids)
 
