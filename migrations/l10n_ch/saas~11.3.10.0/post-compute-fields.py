@@ -25,5 +25,5 @@ def migrate(cr, version):
                SET l10n_ch_postal=sanitized_acc_number
              WHERE id in %s
         """,
-            (tuple(ids)),
+            [tuple(ids)],
         )
