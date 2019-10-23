@@ -32,13 +32,13 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'procurement', ('stock',))
     util.new_module_dep(cr, 'stock', 'procurement')
 
-    util.move_model(cr, 'stock.move.consume', 'stock', 'mrp', delete=True)
+    util.move_model(cr, 'stock.move.consume', 'stock', 'mrp')
     # Delete 'mrp.model_mrp_property_group' and 'mrp.model_mrp_property' from DBs <= v6.0 or migrated till v7.0
     cr.execute("""delete from ir_model_data
                 where module = 'mrp' and model = 'ir.model'
                 and name in ('model_mrp_property_group','model_mrp_property')""")
-    util.move_model(cr, 'mrp.property', 'procurement', 'mrp', move_data=True, delete=True)
-    util.move_model(cr, 'mrp.property.group', 'procurement', 'mrp', move_data=True, delete=True)
+    util.move_model(cr, 'mrp.property', 'procurement', 'mrp', move_data=True)
+    util.move_model(cr, 'mrp.property.group', 'procurement', 'mrp', move_data=True)
 
     util.new_module_dep(cr, 'stock', 'web_kanban_gauge')
     util.new_module_dep(cr, 'stock', 'web_kanban_sparkline')
