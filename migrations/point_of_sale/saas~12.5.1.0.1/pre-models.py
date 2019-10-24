@@ -49,6 +49,8 @@ def migrate(cr, version):
     """
     )
 
+    mercury = util.module_installed(cr, "pos_mercury")
+
     # create pos.payment.method from journals
     cr.execute(
         """
@@ -65,24 +67,31 @@ def migrate(cr, version):
             split_transactions boolean,
             company_id int4,
             use_payment_terminal varchar
+            {}
         )
-    """
+    """.format(
+            ", pos_mercury_config_id int4" if mercury else ""
+        )
     )
+
     util.create_m2m(cr, "pos_config_pos_payment_method_rel", "pos_config", "pos_payment_method")
+
     # NOTE: reuse `create_uid` to store the original journal_id
     cr.execute(
         """
         INSERT INTO pos_payment_method(create_uid, create_date, name,
                                        receivable_account_id, is_cash_count, cash_journal_id,
-                                       split_transactions, company_id)
+                                       split_transactions, company_id {0})
     SELECT DISTINCT j.id, now() at time zone 'UTC', j.name,
                     c.account_default_pos_receivable_account_id,
                     (j.type = 'cash'), CASE j.type WHEN 'cash' THEN j.id ELSE NULL END,
-                    false, c.id
+                    false, c.id {1}
                FROM pos_config_journal_rel r
                JOIN account_journal j ON j.id = r.journal_id
                JOIN res_company c ON c.id = j.company_id
-    """
+    """.format(
+            ", pos_mercury_config_id" if mercury else "", ", j.pos_mercury_config_id" if mercury else ""
+        )
     )
     cr.execute(
         """
@@ -103,6 +112,9 @@ def migrate(cr, version):
     util.create_column(cr, "pos_order", "to_invoice", "boolean")
 
     # create pos.payment from statements
+    mercury_fields = (
+        set() if not mercury else {"card_number", "card_brand", "card_owner_name", "ref_no", "record_no", "invoice_no"}
+    )
     cr.execute(
         """
         CREATE TABLE pos_payment (
@@ -119,19 +131,24 @@ def migrate(cr, version):
             session_id int4,
             card_type varchar,
             transaction_id varchar
+            {}
         )
-    """
+    """.format(
+            "".join(", mercury_{} varchar".format(f) for f in mercury_fields)
+        )
     )
     cr.execute(
         """
         INSERT INTO pos_payment(create_uid, create_date, name, pos_order_id, amount,
-                                payment_method_id, payment_date, session_id, transaction_id)
+                                payment_method_id, payment_date, session_id, transaction_id {0})
              SELECT s.create_uid, s.create_date, s.name, o.id, s.amount,
-                    m.id, s.date, o.session_id, s.ref
+                    m.id, s.date, o.session_id, s.ref {1}
                FROM account_bank_statement_line s
                JOIN pos_order o ON o.id = s.pos_statement_id
                JOIN pos_payment_method m ON m.create_uid = s.journal_id
-    """
+    """.format(
+            "".join(", mercury_" + f for f in mercury_fields), "".join(", s.mercury_" + f for f in mercury_fields)
+        )
     )
 
     cr.execute("UPDATE pos_payment_method SET create_uid = 1")
