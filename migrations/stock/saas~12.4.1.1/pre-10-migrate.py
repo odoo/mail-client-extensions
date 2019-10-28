@@ -72,12 +72,26 @@ def migrate(cr, version):
 
     # fill company_id with the warehouse one on stock_picking_type
     util.create_column(cr, "stock_picking_type", "company_id", "int4")
+    util.remove_field(cr, "stock.picking.type", "show_reserved")
     cr.execute("""
         UPDATE stock_picking_type spt
            SET company_id = sw.company_id
           FROM stock_warehouse sw
          WHERE spt.warehouse_id = sw.id
     """)
+    cr.execute(
+        "SELECT 1 FROM res_groups_implied_rel WHERE gid=%s AND hid IN (%s)",
+        [
+            util.ref(cr, "base.group_user"),
+            (
+                util.ref(cr, "stock.group_production_lot"),
+                util.ref(cr, "stock.group_stock_multi_locations"),
+                util.ref(cr, "stock.group_tracking_lot"),
+            ),
+        ],
+    )
+    if cr.rowcount:
+        cr.execute("UPDATE stock_picking_type SET show_operations=true")
 
     util.remove_record(cr, 'stock.action_inventory_line_tree')
     util.remove_view(cr, 'stock.view_stock_move_nosuggest_operations')
