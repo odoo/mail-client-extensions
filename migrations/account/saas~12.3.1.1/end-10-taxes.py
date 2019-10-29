@@ -91,17 +91,11 @@ def migrate(cr, version):
     #         migration_dicts_list = pickle.load(f)
 
     # Assign tags and accounts to repartition lines
-    tax_counter = 1
-    for migration_dict in migration_dicts_list:
+    for migration_dict in util.log_progress(migration_dicts_list, qualifier="taxes[repartition]"):
         if migration_dict["tax"]:
             tax = env["account.tax"].browse(migration_dict["tax"])
         else:
             tax = env["account.tax"]
-        _logger.info(
-            "Assigning repartition to tax %(index)s of %(count)s (id %(id)s)"
-            % {"index": str(tax_counter), "count": str(len(migration_dicts_list)), "id": str(tax.id)}
-        )
-        tax_counter += 1
 
         for rep_inv_type in ("invoice", "refund"):
             rep_vals = migration_dict[rep_inv_type]
@@ -190,7 +184,6 @@ def migrate(cr, version):
     )
     taxes_not_to_merge.update({tax for (tax,) in cr.fetchall()})
 
-    group_merging_counter = 1
     tax_to_clean_ids = []
     groups_to_merge = tax_groups.filtered(
         lambda x: x.id not in taxes_not_to_merge
@@ -198,12 +191,7 @@ def migrate(cr, version):
             child_tax.type_tax_use == "none" and child_tax.amount_type == "percent" for child_tax in x.children_tax_ids
         )
     )
-    for group_to_treat in groups_to_merge:
-        _logger.info(
-            "Merging group %(index)s of %(count)s (id %(id)s)"
-            % {"index": str(group_merging_counter), "count": str(len(groups_to_merge)), "id": str(group_to_treat.id)}
-        )
-        group_merging_counter += 1
+    for group_to_treat in util.log_progress(groups_to_merge, qualifier="tax groups to merge"):
         # The tax repartition lines of the group are useless (except if the have amount = 0, in wich case we keep them for simplicity)
         inv_tax_line = group_to_treat.invoice_repartition_line_ids.filtered(lambda x: x.repartition_type == "tax")
         ref_tax_line = group_to_treat.refund_repartition_line_ids.filtered(lambda x: x.repartition_type == "tax")
@@ -1539,9 +1527,7 @@ def get_v13_migration_dicts(cr):
     #  This query only fetches the tags still declared, not the former ones, since the module has now been updated
     financial_tag_ids = {elem for (elem,) in cr.fetchall()}
 
-
     rslt = []
-    treated_count = 0
     cr.execute(
         """
         select account_tax.id, case when count(account_account_tag_id) > 0 then array_agg(account_account_tag_id) else '{}' end
@@ -1551,12 +1537,8 @@ def get_v13_migration_dicts(cr):
         group by account_tax.id
     """
     )
-    taxes_data = cr.fetchall()
-    for tax_id, tax_tag_ids in taxes_data:  # So, they can belong to different companies
-
+    for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), qualifier="taxes"):
         tax = env["account.tax"].browse(tax_id)
-        treated_count += 1
-        _logger.info("Treating tax %s of %s... (id %s)" % (treated_count, len(taxes_data), tax.id))
 
         # get account_id and refund_account_id in SQL, since they have been removed between 12.2 and 12.3
         cr.execute(
