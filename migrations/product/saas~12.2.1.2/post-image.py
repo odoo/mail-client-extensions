@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
+SUFFIXES = ["big", "large", "medium", "small"]
+
+
+def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES):
+    fields = ["image{}_{}".format(infix, s) for s in SUFFIXES]
+    fields += ["can_image{}_be_zoomed".format(infix)]
+    orig_field = "image{}_original".format(infix)
+
+    ids = util.env(cr)[model].search([(orig_field, "!=", False)]).ids
+    util.recompute_fields(cr, model, fields, ids)
+
 
 def migrate(cr, version):
-    env = util.env(cr)
-    suffixes = ["big", "large", "medium", "small"]
-
     # `image_medium` and `image_small` where already there...
-    fields = ["image_{}".format(s) for s in suffixes[:2]] + ["can_image_be_zoomed"]
-    ids = env["product.template"].search([("image_original", "!=", False)]).ids
-    util.recompute_fields(cr, "product.template", fields, ids)
-
-    fields = ["image_raw_{}".format(s) for s in suffixes] + ["can_image_raw_be_zoomed"]
-    ids = env["product.product"].search([("image_raw_original", "!=", False)]).ids
-    util.recompute_fields(cr, "product.product", fields, ids)
+    image_mixin_recompute_fields(cr, "product.template", suffixes=SUFFIXES[:2])
+    image_mixin_recompute_fields(cr, "product.product", infix="_raw")
