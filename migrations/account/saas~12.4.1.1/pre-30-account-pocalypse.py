@@ -3,8 +3,18 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
+    # For now, we're unable to migrate databases with grouped invoice lines...
 
+    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
+    cr.execute("""
+        SELECT count(*)
+          FROM account_invoice i
+    INNER JOIN account_journal j ON i.journal_id=i.id
+         WHERE j.group_invoice_lines=TRUE
+    """)
+    if cr.fetchone()[0]:
+        raise util.MigrationError('Sorry. Migration of grouped invoice line is still not available')
+        
     # =======================================================================================
     # Migrate chatters
     # =======================================================================================
@@ -50,6 +60,22 @@ def migrate(cr, version):
          WHERE model IN ('account.invoice', 'account.voucher');
         """,
         [model_account_move],
+    )
+
+    # =======================================================================================
+    # What? Some developers use server action?
+    # =======================================================================================
+    cr.execute(
+        "UPDATE ir_act_server SET binding_model_id= %s WHERE binding_model_id in %s",
+        [model_account_move, (model_account_invoice_id, model_account_voucher_id)],
+    )
+    cr.execute(
+        "UPDATE ir_act_server SET crud_model_id= %s WHERE crud_model_id in %s",
+        [model_account_move, (model_account_invoice_id, model_account_voucher_id)],
+    )
+    cr.execute(
+        "UPDATE ir_act_server SET model_id= %s WHERE model_id in %s",
+        [model_account_move, (model_account_invoice_id, model_account_voucher_id)],
     )
 
     # =======================================================================================
@@ -168,6 +194,60 @@ def migrate(cr, version):
            AND (aml.tax_repartition_line_id IS NOT NULL OR aml.account_internal_type IN ('receivable', 'payable'))
         """
     )
+
+    # Fix quantity / price_unit / price_total / price_subtotal on tax lines.
+    util.parallel_execute(cr, [
+        """
+        -- single-currency
+        UPDATE account_move_line aml
+           SET quantity = 1,
+               price_unit = aml.balance * -1,
+               price_subtotal = aml.balance * -1,
+               price_total = aml.balance * -1
+          FROM account_move am
+         WHERE am.type in ('out_invoice', 'in_refund', 'out_receipt')
+           AND aml.move_id = am.id
+           AND am.currency_id = am.company_currency_id
+           AND aml.tax_repartition_line_id IS NOT NULL
+        """,
+        """
+        UPDATE account_move_line aml
+           SET quantity = 1,
+               price_unit = aml.balance,
+               price_subtotal = aml.balance,
+               price_total = aml.balance
+          FROM account_move am
+         WHERE am.type in ('in_invoice', 'out_refund', 'in_receipt')
+           AND aml.move_id = am.id
+           AND am.currency_id = am.company_currency_id
+           AND aml.tax_repartition_line_id IS NOT NULL;
+        """,
+        """
+        -- multi-currencies
+        UPDATE account_move_line aml
+           SET quantity = 1,
+               price_unit = aml.amount_currency * -1,
+               price_subtotal = aml.amount_currency * -1,
+               price_total = aml.amount_currency * -1
+          FROM account_move am
+         WHERE am.type in ('out_invoice', 'in_refund', 'out_receipt')
+           AND aml.move_id = am.id
+           AND am.currency_id != am.company_currency_id
+           AND aml.tax_repartition_line_id IS NOT NULL;
+        """,
+        """
+        UPDATE account_move_line aml
+           SET quantity = 1,
+               price_unit = aml.amount_currency,
+               price_subtotal = aml.amount_currency,
+               price_total = aml.amount_currency
+          FROM account_move am
+         WHERE am.type in ('in_invoice', 'out_refund', 'in_receipt')
+           AND aml.move_id = am.id
+           AND am.currency_id != am.company_currency_id
+           AND aml.tax_repartition_line_id IS NOT NULL;
+        """
+    ])
 
     # ==== others ====
     util.remove_field(cr, "account.journal", "group_invoice_lines")

@@ -7,6 +7,11 @@ from odoo.addons.base.maintenance.migrations import util
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
 
+def _get_model_id(cr, model):
+    cr.execute("SELECT id FROM ir_model WHERE model=%s", [model])
+    return cr.fetchone()[0]
+
+
 def fix_fk(cr, target, update_query):
     new_target = target.replace("invoice", "move")
 
@@ -95,6 +100,7 @@ def fix_indirect(cr):
                   FROM account_invoice i
                  WHERE i.id=d.%(id_field)s
                    AND %(model_field)s='account.invoice'
+                   AND i.move_id IS NOT NULL
             """
                 % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model}
             )
@@ -107,6 +113,7 @@ def fix_indirect(cr):
                       FROM invl_aml_mapping i
                      WHERE i.invl_id=d.%(id_field)s
                        AND %(model_field)s='account.invoice.line'
+                       AND i.aml_id IS NOT NULL
                 """
                     % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model}
                 )
@@ -167,3 +174,6 @@ def migrate(cr, version):
 
     fix_indirect(cr)
     fix_custom_m2o(cr)
+
+    for table in [("account.invoice", "account.move"), ("account.invoice.line", "account.move.line")]:
+        cr.execute("UPDATE ir_rule SET model_id=%s WHERE model_id=%s", [_get_model_id(cr, table[1]), _get_model_id(cr, table[0])])
