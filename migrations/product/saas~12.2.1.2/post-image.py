@@ -4,6 +4,20 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 SUFFIXES = ["big", "large", "medium", "small"]
+if util.version_gte("saas~12.5"):
+    SUFFIXES = ["1024", "256", "128"]
+
+
+def check_field(cr, model, fieldname):
+    cr.execute("SELECT id FROM ir_model_fields WHERE model=%s AND name=%s", [model, fieldname])
+    return bool(cr.rowcount)
+
+
+def get_orig_field(cr, model, infix):
+    for field in ["image{}_1920".format(infix), "image_1920", "image{}_original".format(infix), "image_original", "image"]:
+        if check_field(cr, model, field):
+            return field
+    return False
 
 
 def check_field(cr, model, fieldname):
@@ -22,7 +36,7 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES):
     if not check_field(cr, model, zoom):
         zoom = None
 
-    orig_field = "image{}_original".format(infix)
+    orig_field = get_orig_field(cr, model, infix)
 
     env = util.env(cr)
     full_path = env["ir.attachment"]._full_path
@@ -73,6 +87,6 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES):
 
 
 def migrate(cr, version):
-    # `image_medium` and `image_small` where already there...
+    # `image_medium` and `image_small` were already there...
     image_mixin_recompute_fields(cr, "product.template", suffixes=SUFFIXES[:2])
-    image_mixin_recompute_fields(cr, "product.product", infix="_raw")
+    image_mixin_recompute_fields(cr, "product.product", infix="_raw" if not util.version_gte("saas~12.5") else "_variant")
