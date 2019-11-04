@@ -30,12 +30,7 @@ def migrate(cr, version):
     util.new_module(cr, 'payment_payumoney', deps=('payment',))
     util.new_module(cr, 'payment_stripe', deps=('payment',))
 
-    util.rename_model(cr, 'sale_layout.category', 'sale.layout_category', rename_table=False)
-    util.ENVIRON['sale_layout_installed'] = installed = util.module_installed(cr, 'sale_layout')
-    if installed:
-        for model in 'sale.order.line account.invoice.line'.split():
-            util.rename_field(cr, model, 'sale_layout_cat_id', 'layout_category_id')
-            util.rename_field(cr, model, 'categ_sequence', 'layout_category_sequence')
+    util.ENVIRON['sale_layout_installed'] = util.module_installed(cr, 'sale_layout')
     util.merge_module(cr, 'sale_layout', 'sale')
 
     util.merge_module(cr, 'sale_service', 'sale_timesheet')
