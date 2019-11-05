@@ -799,12 +799,27 @@ def _fill_grids_mapping_for_br(cr, dict_to_fill):
 
 
 def _fill_grids_mapping_for_ch(cr, dict_to_fill):
+    # Lines 311a and 311b have been replaced by 312a and 312b; so we simply
+    # give them the same name here to fetch the same tags during migration.
+    # 382a_200 has been entirely removed and should be ignored
     cr.execute(
         """
+        update financial_report_lines_v12_bckp
+        set name = '312a Chiffre d''affaires imposable a 2.5% (TR)'
+        where xmlid = 'financial_report_line_chtax_311a'
+        and module = 'l10n_ch_reports';
+
+        update financial_report_lines_v12_bckp
+        set name = '312b TVA due a 2.5% (TR)'
+        where xmlid = 'financial_report_line_chtax_311b'
+        and module = 'l10n_ch_reports';
+
         select id, name
         from financial_report_lines_v12_bckp
         where xmlid like 'financial_report_line_chtax%'
-        and domain is not null;
+        and xmlid != 'financial_report_line_chtax_382a_200'
+        and domain is not null
+        and module = 'l10n_ch_reports';
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
