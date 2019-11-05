@@ -18,6 +18,9 @@ def migrate(cr, version):
 
     util.create_column(cr, 'hr_leave_allocation', '_tmp', 'int4')
     cr.execute("""
+        ALTER TABLE hr_leave_allocation DROP CONSTRAINT IF EXISTS hr_leave_allocation_type_value
+    """)
+    cr.execute("""
         INSERT INTO hr_leave_allocation(_tmp, {0})
              SELECT id, {0}
                FROM hr_leave
@@ -36,6 +39,7 @@ def migrate(cr, version):
     util.remove_field(cr, 'hr.leave', 'type')
     util.remove_column(cr, 'hr_leave_allocation', '_tmp')
 
+    util.env(cr)['hr.leave.allocation']._add_sql_constraints()
     util.env(cr)['hr.leave']._add_sql_constraints()
 
     # TODO create followers for allocation message.type
