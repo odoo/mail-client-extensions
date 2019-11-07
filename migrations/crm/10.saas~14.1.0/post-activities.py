@@ -16,7 +16,6 @@ def migrate(cr, version):
         crm.{crm,mail}_activity_demo_make_quote
         crm.{crm,mail}_activity_demo_call_demo
     """))
-    # __import__('pudb').set_trace()
     for ca, mat in name_map.items():
         caid = util.ref(cr, ca)
         matid = util.ref(cr, mat)
@@ -24,7 +23,8 @@ def migrate(cr, version):
             id_map[caid] = matid
             cr.execute("UPDATE mail_activity_type SET _caid = %s WHERE id = %s", [caid, matid])
 
-    util.replace_record_references_batch(cr, id_map, "crm.activity", "mail.activity.type", replace_xmlid=False)
+    if id_map:
+        util.replace_record_references_batch(cr, id_map, "crm.activity", "mail.activity.type", replace_xmlid=False)
 
     cr.execute("""
         INSERT INTO mail_activity_type(_caid, name, sequence, icon, summary, days, res_model_id)
@@ -36,8 +36,9 @@ def migrate(cr, version):
           RETURNING _caid, id
     """, [list(id_map)])
 
-    for caid, maid in cr.fetchall():
-        util.replace_record_references(cr, ('crm.activity', caid), ('mail.activity.type', maid))
+    id_map = dict(cr.fetchall())
+    if id_map:
+        util.replace_record_references_batch(cr, id_map, "crm.activity", "mail.activity.type")
 
     # create activities
     cr.execute("""
