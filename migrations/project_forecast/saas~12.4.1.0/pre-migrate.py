@@ -3,38 +3,40 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.drop_depending_views(cr, "project_forecast", "start_date")
-    util.drop_depending_views(cr, "project_forecast", "end_date")
-    util.rename_field(cr, "project.forecast", "start_date", "start_datetime")
-    util.rename_field(cr, "project.forecast", "end_date", "end_datetime")
+    if util.version_gte("saas~12.5"):
+        model = "planning.slot"
+        table = util.table_of_model(cr, model)
+        util.drop_depending_views(cr, table, "start_datetime")
+        util.drop_depending_views(cr, table, "end_datetime")
+    else:
+        model = "project.forecast"
+        table = util.table_of_model(cr, model)
+        util.drop_depending_views(cr, table, "start_date")
+        util.drop_depending_views(cr, table, "end_date")
+        util.rename_field(cr, model, "start_date", "start_datetime")
+        util.rename_field(cr, model, "end_date", "end_datetime")
 
-    cr.execute("ALTER TABLE project_forecast ALTER COLUMN start_datetime TYPE timestamp without time zone")
+    cr.execute("ALTER TABLE %s ALTER COLUMN start_datetime TYPE timestamp without time zone" % table)
     cr.execute(
         """
-            ALTER TABLE project_forecast
+            ALTER TABLE %s
            ALTER COLUMN end_datetime
                    TYPE timestamp without time zone
                   USING end_datetime + interval '23:59:59'
-        """
+        """ % table
     )
 
-    util.create_column(cr, "project_forecast", "recurrency_id", "int4")
-    util.create_column(cr, "project_forecast", "published", "boolean")
-    cr.execute("UPDATE project_forecast SET published = false")
+    util.create_column(cr, table, "recurrency_id", "int4")
+    util.create_column(cr, table, "published", "boolean")
+    cr.execute("UPDATE %s SET published = false" % table)
 
     util.remove_field(cr, "res.company", "forecast_uom")
     util.remove_field(cr, "res.company", "forecast_span")
     util.remove_field(cr, "res.config.settings", "forecast_uom")
     util.remove_field(cr, "res.config.settings", "forecast_span")
 
+    if util.version_gte("saas~12.5"):
+        # Only make sense in saas~12.4
+        return
+
     util.create_column(cr, "res_company", "forecast_default_view", "varchar")
-
-    eb = util.expand_braces
-    util.rename_xmlid(cr, *eb("project_forecast.project_forecast_action_view_by_user{,_grid}"))
-    util.rename_xmlid(cr, *eb("project_forecast.project_forecast_action_view_by_project{,_grid}"))
-
-    util.remove_record(cr, "project_forecast.project_forecast_action_server_by_user")
-    util.remove_record(cr, "project_forecast.project_forecast_action_server_by_project")
-
-    util.remove_record(cr, "project_forecast.project_forecast_action_view_grid_from_project")
-    util.remove_record(cr, "project_forecast.project_forecast_action_from_project")

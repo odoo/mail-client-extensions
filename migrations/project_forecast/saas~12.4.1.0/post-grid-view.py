@@ -3,6 +3,10 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if util.version_gte("saas~12.5"):
+        # Only make sense in saas~12.4
+        return
+
     cr.execute("UPDATE res_company SET forecast_default_view = 'grid'")
 
     grid_views = (
