@@ -10,4 +10,4 @@ def migrate(cr, version):
         WHERE inv.move_id = am.id
     ''')
 
-    util.remove_column('account_move', 'sdd_paying_mandate_id')
+    util.remove_column(cr, 'account_move', 'sdd_paying_mandate_id')
