@@ -9,8 +9,8 @@ def migrate(cr, version):
     cr.execute(
         """
         UPDATE account_move am
-        SET l10n_es_real_estate_id = inv.l10n_es_real_estate_id
-        FROM account_invoice inv
-        WHERE inv.move_id = am.id
-    """
+           SET l10n_es_real_estate_id = inv.l10n_es_real_estate_id
+          FROM account_invoice inv
+         WHERE inv.move_id = am.id
+        """
     )
