@@ -497,6 +497,9 @@ def get_aml_domain(cr, invoice, domain):
     if util.version_gte('saas~12.4'):
     # invoice_id field does not exist anymore, use move_id instead
         domain = domain.replace(' ', '')
+        domain = domain.replace("'notin'", "'not in'")
+        domain = domain.replace("'notlike'", "'not like'")
+        domain = domain.replace("'notilike'", "'not ilike'")
         domain = domain.replace("('invoice_id','=',False)", "('move_id.type', 'not in', ('in_invoice', 'out_invoice', 'in_refund', 'out_refund'))")
         domain = domain.replace("'invoice_id", "'move_id")
 
