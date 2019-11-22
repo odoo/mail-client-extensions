@@ -43,13 +43,6 @@ def migrate(cr, version):
             'mailgate.message'
         )
     """)
-
-    cr.execute("""
-        UPDATE ir_model_fields f
-           SET model = m.model
-          FROM ir_model m
-         WHERE m.id = f.model_id
-    """)
     cr.execute("""
         UPDATE ir_model_data d
            SET name = CONCAT('field_', replace(f.model, '.', '_'), '__', f.name)
