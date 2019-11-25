@@ -80,6 +80,10 @@ class IrUiView(models.Model):
                     """, md.module, md.name)
                     return True
                 elif not md or md.module not in standard_modules:
+                    _logger.warning("""
+                    The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.
+                    Disabling it for the migration ...
+                    """, view.name, view.id, view.inherit_id, view.model)
                     if md.module in custom_modules:
                         # custom view in a custom module, to remove
                         # it will be re-created when the user call -u on its custom module
@@ -87,10 +91,6 @@ class IrUiView(models.Model):
                     else:
                         # Custom view not in a custom module, to disable
                         view.active = False
-                    _logger.warning("""
-                        The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.
-                        Disabling it for the migration ...
-                    """, view.name, view.id, view.inherit_id, view.model)
                     return True
                 view = view.inherit_id
             else:
