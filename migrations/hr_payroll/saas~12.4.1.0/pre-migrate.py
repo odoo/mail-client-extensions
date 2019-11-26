@@ -35,7 +35,7 @@ def migrate(cr, version):
         for first, *dups in cr.fetchall():
             duplicates.update({d: first for d in dups})
         if duplicates:
-            util.replace_record_references_batch(cr, "hr.work.entry.type", duplicates)
+            util.replace_record_references_batch(cr, duplicates, "hr.work.entry.type")
             cr.execute("DELETE FROM hr_work_entry_type WHERE id IN %s", [tuple(duplicates)])
     else:
         # will be needed later for migrating `hr.payslip.worked_days`
