@@ -72,3 +72,6 @@ def migrate(cr, version):
         raise util.MigrationError('Invalid environment variable: $ODOO_MIG_S9_JOB_STAGE=%s' % act)
 
     util.remove_column(cr, 'hr_recruitment_stage', '_tmp')
+    util.remove_field(cr, "hr.recruitment.stage", "job_ids")
+    util.remove_field(cr, "hr.job", "stage_ids")
+    cr.execute("DROP TABLE IF EXISTS job_stage_rel")
