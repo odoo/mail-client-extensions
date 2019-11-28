@@ -112,10 +112,12 @@ def migrate(cr, version):
 
     # slide
     cr.execute("ALTER TABLE slide_slide DROP CONSTRAINT IF EXISTS slide_slide_name_uniq")
-    util.rename_field(cr, "slide.slide", "image", "image_raw_original")
-    util.rename_field(cr, "slide.slide", "image_medium", "image_raw_medium")
-    util.rename_field(cr, "slide.slide", "image_thumb", "image_raw_small")
+    util.rename_field(cr, "slide.slide", "image", "image_original")
+    util.rename_field(cr, "slide.slide", "image_medium", "image_medium")
+    util.rename_field(cr, "slide.slide", "image_thumb", "image_small")
     util.rename_field(cr, "slide.slide", "embed_views", "public_views")  # not really the same field
+
+    util.create_column(cr, "slide_slide", "can_image_be_zoomed", "boolean")
 
     util.remove_field(cr, "slide.slide", "download_security")
 
