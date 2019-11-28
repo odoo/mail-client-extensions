@@ -1,0 +1,66 @@
+# -*- coding: utf-8 -*-
+import logging
+from psycopg2 import IntegrityError
+
+from odoo import models
+
+_logger = logging.getLogger("odoo.addons.base.maintenance.migration.base.000." + __name__)
+
+
+def migrate(cr, version):
+    pass
+
+
+class Base(models.AbstractModel):
+    _inherit = "base"
+    _module = "base"
+
+    def create(self, values):
+        try:
+            with self.env.cr.savepoint():
+                return super(Base, self).create(values)
+        except IntegrityError as e:
+            if e.pgcode == "23505" and not self.pool.ready and getattr(self, "_match_uniq", False):
+                self.env.cr.execute(
+                    """
+                    SELECT a.attname
+                      FROM pg_index i
+                      JOIN pg_attribute a ON a.attrelid = i.indrelid
+                                         AND a.attnum = ANY(i.indkey)
+                     WHERE i.indexrelid = %s::regclass
+                """,
+                    [e.diag.constraint_name],
+                )
+                constraint_fields = [f for f, in self.env.cr.fetchall()]
+                if constraint_fields:
+                    if isinstance(values, list):
+                        assert len(values) == 1
+                        values = values[0]
+                    default, missing = {}, [f for f in constraint_fields if f not in values]
+                    if missing:
+                        default = self.default_get(missing)
+                    domain = [(f, "=", values.get(f, default.get(f, False))) for f in constraint_fields]
+                    record = self.with_context(active_test=False).search(domain, limit=1)
+                    if record:
+                        xmlid = record.get_metadata()[0]["xmlid"]
+                        if xmlid and not xmlid.startswith("__export__."):
+                            # XXX raise?
+                            _logger.warning("Matching record %r has XMLID %r. Missing rename?", record, xmlid)
+                        record._write(values)
+                        return record
+            raise
+
+
+for model in {
+    "res.country",
+    "res.country.state",
+    "res.lang",
+    "res.currency",
+    "ir.config_parameter",
+    "ir.actions.act_window.view",
+}:
+
+    class Americaine(models.Model):  # a.k.a "Le grand détournement"
+        _inherit = model
+        _module = "base"
+        _match_uniq = True
