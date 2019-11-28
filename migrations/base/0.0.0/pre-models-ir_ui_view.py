@@ -50,7 +50,7 @@ class IrUiView(models.Model):
             # so if there are multiple custom views but only one causes an issue, it tries to disable only this one.
             standard_modules = get_modules()
             custom_modules = [r['name'] for r in self.env['ir.module.module'].search_read([
-                ('name', 'not in', standard_modules)
+                ('name', 'not in', standard_modules + ['studio_customization'])
             ], ['name'])]
             views_to_check = []
             views = self._migrate_get_roots()
@@ -84,7 +84,7 @@ class IrUiView(models.Model):
                     The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.
                     Disabling it for the migration ...
                     """, view.name, view.id, view.inherit_id, view.model)
-                    if md.module in custom_modules:
+                    if md.module in custom_modules and view.arch_fs:
                         # custom view in a custom module, to remove
                         # it will be re-created when the user call -u on its custom module
                         view.unlink()
