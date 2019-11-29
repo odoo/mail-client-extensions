@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 from odoo.addons.base.maintenance.migrations import util
 
+FORCE_COPY = re.split(r"[,\s]+", os.getenv("MIG_S122_FORCE_COPY_IMAGES_MODELS", ""))
 
 SUFFIXES = ["big", "large", "medium", "small"]
 if util.version_gte("saas~12.5"):
-    SUFFIXES = ["1024", "256", "128"]
+    SUFFIXES = ["1024", "512", "256", "128"]
 
 
 def check_field(cr, model, fieldname):
@@ -14,18 +16,17 @@ def check_field(cr, model, fieldname):
 
 
 def get_orig_field(cr, model, infix):
-    for field in ["image{}_1920".format(infix), "image_1920", "image{}_original".format(infix), "image_original", "image"]:
+    for field in [
+        "image{}_1920".format(infix),
+        "image{}_original".format(infix),
+        "image",
+    ]:
         if check_field(cr, model, field):
             return field
     return False
 
 
-def check_field(cr, model, fieldname):
-    cr.execute("SELECT id FROM ir_model_fields WHERE model=%s AND name=%s", [model, fieldname])
-    return bool(cr.rowcount)
-
-
-def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES):
+def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_size=500):
     fields = ["image{}_{}".format(infix, s) for s in SUFFIXES]
     fields = [f for f in fields if check_field(cr, model, f)]
 
@@ -53,40 +54,47 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES):
         [model, orig_field],
     )
 
-    all_ids = []
+    not_ids = []
     has_ids = []
     for res_id, store_fname in cr.fetchall():
-        all_ids.append(res_id)
-        if os.path.isfile(full_path(store_fname)):
+        if model not in FORCE_COPY and os.path.isfile(full_path(store_fname)):
             has_ids.append(res_id)
+        else:
+            not_ids.append(res_id)
 
-    if len(all_ids) != len(has_ids):
+    if not_ids:
         cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field"))[0])
-        cr.execute(
-            """
-            INSERT INTO ir_attachment(res_field, {cols})
-                 SELECT unnest(%s), {cols}
-                   FROM ir_attachment
-                  WHERE res_model = %s
-                    AND res_field = %s
-                    AND res_id IS NOT NULL
-                    AND res_id != ALL(%s)
-        """.format(
-                cols=cols
-            ),
-            [fields, model, orig_field, has_ids],
-        )
+        size = (len(not_ids) + chunk_size - 1) / chunk_size
+        qual = '%s %d-bucket' % (model, chunk_size)
+        for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), qualifier=qual, size=size):
+            cr.execute(
+                """
+                INSERT INTO ir_attachment(res_field, {cols})
+                     SELECT unnest(%s), {cols}
+                       FROM ir_attachment
+                      WHERE res_model = %s
+                        AND res_field = %s
+                        AND res_id IS NOT NULL
+                        AND res_id = ANY(%s)
+            """.format(
+                    cols=cols
+                ),
+                [fields, model, orig_field, sub_ids],
+            )
         if zoom:
             table = util.table_of_model(cr, model)
-            cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [all_ids])
+            qual = '%s:%s %d-bucket' % (model, zoom, chunk_size)
+            for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), qualifier=qual, size=size):
+                cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [sub_ids])
 
     if has_ids:
         if zoom:
             fields += [zoom]
-        util.recompute_fields(cr, model, fields, has_ids)
+        util.recompute_fields(cr, model, fields, ids=has_ids, chunk_size=chunk_size)
 
 
 def migrate(cr, version):
     # `image_medium` and `image_small` were already there...
     image_mixin_recompute_fields(cr, "product.template", suffixes=SUFFIXES[:2])
-    image_mixin_recompute_fields(cr, "product.product", infix="_raw" if not util.version_gte("saas~12.5") else "_variant")
+    infix = "_raw" if not util.version_gte("saas~12.5") else "_variant"
+    image_mixin_recompute_fields(cr, "product.product", infix=infix)
