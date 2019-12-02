@@ -9,7 +9,11 @@ from odoo.addons.base.maintenance.migrations import util
 NS = "odoo.addons.base.maintenance.migrations.base.saas12-4."
 _logger = logging.getLogger(NS + __name__)
 
-evaluation_context = {"user": util.SelfPrint("user"), "time": util.SelfPrint("time")}
+evaluation_context = {
+    "user": util.SelfPrint("user"),
+    "time": util.SelfPrint("time"),
+    "website": util.SelfPrint("website"),
+}
 
 
 def migrate(cr, version):
