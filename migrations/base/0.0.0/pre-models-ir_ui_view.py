@@ -1,4 +1,5 @@
 import logging
+import re
 
 from openerp import models
 from openerp.modules.module import get_modules
@@ -11,6 +12,11 @@ if util.version_gte('10.0'):
         from openerp.addons.base.ir.ir_ui_view import get_view_arch_from_file
 else:
     get_resource_path = get_resource_from_path = get_view_arch_from_file = None
+
+try:
+    from odoo.tools.pycompat import to_text
+except ImportError:
+    to_text = lambda t: t
 
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
@@ -48,6 +54,16 @@ class IrUiView(models.Model):
             # - Disable the view if this is a custom view
             # The algorithm tries to correct one view at a time and then re-attempt the validation,
             # so if there are multiple custom views but only one causes an issue, it tries to disable only this one.
+
+            def resolve_external_ids(arch_fs, module):
+                def replacer(m):
+                    xmlid = m.group("xmlid")
+                    if "." not in xmlid:
+                        xmlid = "%s.%s" % (module, xmlid)
+                    return m.group("prefix") + str(self.env["ir.model.data"].xmlid_to_res_id(xmlid))
+
+                return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
+
             standard_modules = get_modules()
             custom_modules = [r['name'] for r in self.env['ir.module.module'].search_read([
                 ('name', 'not in', standard_modules + ['studio_customization'])
@@ -67,7 +83,8 @@ class IrUiView(models.Model):
                 if arch_fs_fullpath and md and md.noupdate and md.module:
                     # Standard view set to noupdate by the user, to override with original view
                     md.noupdate = False
-                    view.arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
+                    arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
+                    view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
                     # Mark the view as it was loaded with its XML data file.
                     # Otherwise it will be deleted in _process_end
                     if util.version_gte('saas~11.5'):
