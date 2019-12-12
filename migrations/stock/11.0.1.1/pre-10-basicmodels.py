@@ -220,13 +220,13 @@ def migrate(cr, version):
     """)
 
     # Merge moves logic: in v11, we try to avoid as much as possible to have 2 moves of the same product in a picking
-    # We need to keep split e.g. if it is a return or linked to different sale/purchase order line
+    # We need to keep split e.g. if it is a return or linked to different sale/purchase order line or linked to different lot/serial number
     # This should follow the same logic as the merge_moves logic in the code
     query_string = """SELECT COUNT(*) OVER (PARTITION BY m.picking_id, m.product_id,
                             CASE WHEN m.state = 'done' THEN 1
                                  WHEN m.state = 'draft' THEN 2
                                  ELSE 3 END,
-                            m.price_unit, m.product_packaging, m.procure_method,
+                            m.price_unit, m.restrict_lot_id, m.product_packaging, m.procure_method,
                             m.product_uom, m.restrict_partner_id, m.scrapped, m.origin_returned_move_id"""
     if util.column_exists(cr, 'stock_move', 'purchase_line_id'):
         query_string += ", m.purchase_line_id"
