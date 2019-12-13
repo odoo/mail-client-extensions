@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
 from odoo.addons.base.maintenance.migrations import util
+
+NS = 'odoo.addons.base.maintenance.migrations.base.saas~17.'
+_logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
     # for databases <= 10.saas-14
@@ -58,7 +62,10 @@ def migrate(cr, version):
     """)
     reports = '\n'.join(' - %s' % n for n, in cr.fetchall())
     if reports:
-        raise util.MigrationError('The database still contains deprecated reports:\n%s' % reports)
+        msg = 'The database still contains deprecated reports:\n%s' % reports
+        _logger.warning(msg)
+        util.add_to_migration_reports(msg, 'Reporting')
+
 
     remove = util.splitlines("""
         header
@@ -71,4 +78,4 @@ def migrate(cr, version):
         report_rml_content_data
     """)
     for field in remove:
-        util.remove_field(cr, 'ir.actions.report', field)
+        util.remove_field(cr, 'ir.actions.report', field, drop_column=not reports)
