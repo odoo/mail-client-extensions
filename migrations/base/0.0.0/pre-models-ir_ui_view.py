@@ -21,7 +21,6 @@ except ImportError:
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
 
-
 def migrate(cr, version):
     pass
 
@@ -80,9 +79,19 @@ class IrUiView(models.Model):
                     ('model', '=', 'ir.ui.view'), ('res_id', '=', view.id)
                 ], limit=1)
                 arch_fs_fullpath = get_resource_path(*view.arch_fs.split('/')) if view.arch_fs else False
+                view_data = {
+                    'id': view.id,
+                    'name': view.name,
+                    'model': view.model,
+                    'inherit_id': view.inherit_id,
+                    'module': md.module,
+                    'xml_id': '%s.%s' % (md.module, md.name)
+                }
                 if arch_fs_fullpath and md and md.noupdate and md.module:
                     # Standard view set to noupdate by the user, to override with original view
                     md.noupdate = False
+                    view_copy = view.copy({'active': False, 'name': '%s (Copy created during migration)' % view.name})
+                    view_data['copy_id'] = view_copy.id
                     arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
                     view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
                     # Mark the view as it was loaded with its XML data file.
@@ -91,6 +100,7 @@ class IrUiView(models.Model):
                         self.pool.loaded_xmlids.add('%s.%s' % (md.module, md.name))
                     else:
                         self.pool.model_data_reference_ids[(md.module, md.name)] = (view._name, view.id)
+                    util.add_to_migration_reports(view_data, 'Overridden views')
                     _logger.warning("""
                         The standard view `%s.%s` was set to `noupdate` and caused validation issues.
                         Resetting its arch and noupdate flag for the migration ...
@@ -104,9 +114,11 @@ class IrUiView(models.Model):
                     if md.module in custom_modules and view.arch_fs:
                         # custom view in a custom module, to remove
                         # it will be re-created when the user call -u on its custom module
+                        util.add_to_migration_reports(view_data, 'Deleted views')
                         view.unlink()
                     else:
                         # Custom view not in a custom module, to disable
+                        util.add_to_migration_reports(view_data, 'Disabled views')
                         view.active = False
                     return True
                 view = view.inherit_id

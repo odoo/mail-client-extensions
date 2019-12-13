@@ -127,5 +127,4 @@ def migrate(cr, version):
                 faulty_ids=[row[0] for row in invoices],
                 msg_unrecs=msg_unrecs,
             )
-        raise util.MigrationError(msg)
-
+        util.add_to_migration_reports(msg, "Accounting")
