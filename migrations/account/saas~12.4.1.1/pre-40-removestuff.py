@@ -56,3 +56,4 @@ def migrate(cr, version):
     # Security rules (noupdate block)
     util.remove_record(cr, "account.invoice_comp_rule")
     util.remove_record(cr, "account.account_invoice_line_comp_rule")
+    util.remove_record(cr, "account.tax_report_comp_rule")
