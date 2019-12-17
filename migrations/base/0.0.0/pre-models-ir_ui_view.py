@@ -85,7 +85,8 @@ class IrUiView(models.Model):
                     'model': view.model,
                     'inherit_id': view.inherit_id,
                     'module': md.module,
-                    'xml_id': '%s.%s' % (md.module, md.name)
+                    'xml_id': '%s.%s' % (md.module, md.name),
+                    'arch_fs': view.arch_fs,
                 }
                 if arch_fs_fullpath and md and md.noupdate and md.module:
                     # Standard view set to noupdate by the user, to override with original view
@@ -107,18 +108,25 @@ class IrUiView(models.Model):
                     """, md.module, md.name)
                     return True
                 elif not md or md.module not in standard_modules:
-                    _logger.warning("""
-                    The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.
-                    Disabling it for the migration ...
-                    """, view.name, view.id, view.inherit_id, view.model)
+                    message = 'The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.' % (
+                        view.name, view.id, view.inherit_id.id, view.model,
+                    )
                     if md.module in custom_modules and view.arch_fs:
                         # custom view in a custom module, to remove
                         # it will be re-created when the user call -u on its custom module
                         util.add_to_migration_reports(view_data, 'Deleted views')
+                        _logger.warning("""
+                        %s
+                        Deleting it for the migration as it comes from a custom module (%s.%s, %s)...
+                        """, message, md.module, md.name, view.arch_fs)
                         view.unlink()
                     else:
                         # Custom view not in a custom module, to disable
                         util.add_to_migration_reports(view_data, 'Disabled views')
+                        _logger.warning("""
+                        %s
+                        Disabling it for the migration ...
+                        """, message)
                         view.active = False
                     return True
                 view = view.inherit_id
