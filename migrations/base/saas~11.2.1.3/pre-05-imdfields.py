@@ -43,7 +43,17 @@ def migrate(cr, version):
             'mailgate.message'
         )
     """)
+    # Remove duplicates...
     cr.execute("""
+        DELETE FROM ir_model_data WHERE id IN (
+            SELECT unnest((array_agg(id ORDER BY id))[2:array_length(array_agg(id), 1)])
+              FROM ir_model_data
+             WHERE model = 'ir.model.fields'
+          GROUP BY module, res_id
+            HAVING count(id) > 1
+        )
+    """)
+    cr.execute(r"""
         UPDATE ir_model_data d
            SET name = CONCAT('field_', replace(f.model, '.', '_'), '__', f.name)
           FROM ir_model_fields f
