@@ -34,7 +34,11 @@ def migrate(cr, version):
     def get_default(c, f):
         value = IrDef.get('product.template', f, company_id=c)
         if value:
-            return value[0]
+            # verify that the record actually exist
+            tax_id = value[0]
+            cr.execute("SELECT id FROM account_tax WHERE id=%s", [tax_id])
+            if cr.rowcount:
+                return tax_id
 
     cr.execute("SELECT id FROM res_company")
     for cid, in cr.fetchall():
