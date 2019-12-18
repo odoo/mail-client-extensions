@@ -8,6 +8,7 @@ def migrate(cr, version):
     mo_obj = env['mrp.production']
     mos = mo_obj.search([('state', 'not in', ['done', 'cancel'])])
     
+    util.create_index(cr, 'mig_stock_move_workorder_id_idx', 'stock_move', 'workorder_id')
     #Put Unit Factor
     for mo in mos:
         cr.execute("""
