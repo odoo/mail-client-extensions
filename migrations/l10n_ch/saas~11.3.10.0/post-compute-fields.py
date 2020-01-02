@@ -6,7 +6,7 @@ def migrate(cr, version):
     ids = []
     cr.execute("SELECT id FROM res_partner_bank WHERE l10n_ch_postal IS NULL")
     for rec in util.iter_browse(util.env(cr)["res.partner.bank"], [b[0] for b in cr.fetchall()]):
-        if rec.sanitized_acc_number.startswith('CH') and rec.acc_type == "iban":
+        if rec.sanitized_acc_number and rec.sanitized_acc_number.startswith('CH') and rec.acc_type == "iban":
             cr.execute(
                 """
                 UPDATE res_partner_bank
