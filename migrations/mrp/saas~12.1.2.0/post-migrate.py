@@ -8,13 +8,6 @@ def migrate(cr, version):
            SET reservation_state='confirmed'
          WHERE reservation_state='waiting'
     """)
-    cr.execute("""
-        SELECT id
-          FROM mrp_production
-         WHERE state='progress'
-    """)
-    prod_ids = [r[0] for r in cr.fetchall()]
-    util.recompute_fields(cr, "mrp.production", ["state"], ids=prod_ids)
 
     cr.execute("""
         UPDATE mrp_production
@@ -22,6 +15,14 @@ def migrate(cr, version):
          WHERE reservation_state='none'
             OR state in ('done', 'cancel')
     """)
+
+    cr.execute("""
+        SELECT id
+          FROM mrp_production
+         WHERE state='progress'
+    """)
+    prod_ids = [r[0] for r in cr.fetchall()]
+    util.recompute_fields(cr, "mrp.production", ["state"], ids=prod_ids)
 
     cr.execute("""
         SELECT id
