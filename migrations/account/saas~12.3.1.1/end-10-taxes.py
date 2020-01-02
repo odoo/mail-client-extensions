@@ -543,7 +543,7 @@ def get_financial_reports_grids_mapping(cr):
             # Some countries don't have any tax report but some use financial reports instead, so
             # we still need to migrate.
             # XXX still needed?
-            if cc not in "es ca cn co cr ec gt hk hn ie it mn mx nz pa pe pt sa tr ua us ve".split():
+            if cc not in "es ca cn co cr ec gt hk hn ie it mn mx nz pa pe pt sa tr ua us ve dk".split():
                 raise util.MigrationError("Grids mapping not implemented for country %r" % cc)
         else:
             globals()[filler_fun_to_call](cr, rslt)
