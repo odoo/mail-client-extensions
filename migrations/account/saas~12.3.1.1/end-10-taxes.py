@@ -251,6 +251,15 @@ def migrate(cr, version):
                     where tax_repartition_line_id in %(rep_lines)s
                     and balance = 0
                 """, {'rep_lines': (new_inv_rep.id, new_ref_rep.id)})
+
+                if not util.version_gte('saas~12.4'):
+                    # account.invoice.tax for a 0% tax should never exist, they make no sense
+                    # So, we delete them to avoid crashing the script later on
+                    cr.execute("""
+                        delete from account_invoice_tax
+                        where tax_id = %(tax_to_delete)s
+                    """, {'tax_to_delete': child_tax.id})
+
                 (new_inv_rep + new_ref_rep).unlink()
 
             # Child taxes also need to apply their base tags to their parent's base line
