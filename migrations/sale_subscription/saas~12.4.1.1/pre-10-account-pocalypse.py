@@ -15,8 +15,7 @@ def migrate(cr, version):
                    subscription_start_date = invl.subscription_start_date,
                    subscription_end_date = invl.subscription_end_date,
                    subscription_mrr = invl.subscription_mrr
-              FROM account_invoice_line invl
-              JOIN invl_aml_mapping mapping ON mapping.invl_id = invl.id
-             WHERE mapping.is_invoice_line IS TRUE
-               AND mapping.aml_id=aml.id
+              FROM invl_aml_mapping m
+              JOIN account_invoice_line invl ON invl.id = m.invl_id
+             WHERE m.aml_id = aml.id
         ''')

@@ -16,11 +16,12 @@ def migrate(cr, version):
          WHERE am.id = inv.move_id
     """)
 
-    # FIXME This query does not seems correct...
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_move_line aml
-           SET intrastat_transaction_id = mapping.aml_id
-          FROM invl_aml_mapping mapping
-         WHERE mapping.is_invoice_line IS TRUE
-           AND mapping.invl_id = aml.intrastat_transaction_id
-    """)
+           SET intrastat_transaction_id = invl.intrastat_transaction_id
+          FROM invl_aml_mapping m
+          JOIN account_invoice_line invl ON invl.id = m.invl_id
+         WHERE m.aml_id = aml.id
+        """
+    )
