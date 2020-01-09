@@ -111,23 +111,12 @@ class IrUiView(models.Model):
                     message = 'The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.' % (
                         view.name, view.id, view.inherit_id.id, view.model,
                     )
-                    if md.module in custom_modules and view.arch_fs:
-                        # custom view in a custom module, to remove
-                        # it will be re-created when the user call -u on its custom module
-                        util.add_to_migration_reports(view_data, 'Deleted views')
-                        _logger.warning("""
-                        %s
-                        Deleting it for the migration as it comes from a custom module (%s.%s, %s)...
-                        """, message, md.module, md.name, view.arch_fs)
-                        view.unlink()
-                    else:
-                        # Custom view not in a custom module, to disable
-                        util.add_to_migration_reports(view_data, 'Disabled views')
-                        _logger.warning("""
-                        %s
-                        Disabling it for the migration ...
-                        """, message)
-                        view.active = False
+                    util.add_to_migration_reports(view_data, 'Disabled views')
+                    _logger.warning("""
+                    %s
+                    Disabling it for the migration ...
+                    """, message)
+                    view.active = False
                     return True
                 view = view.inherit_id
             else:
