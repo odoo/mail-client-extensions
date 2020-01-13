@@ -64,7 +64,7 @@ def migrate(cr, version):
 
     # Remove views
     util.remove_view(cr, 'stock.view_move_form')
-    util.remove_view(cr, 'stock.view_pack_operation_details_form', deactivate_custom=True)
+    util.remove_view(cr, 'stock.view_pack_operation_details_form')
 
 
     # Create column lot_id/lot_name on stock_pack_operation, product_qty is renamed to product_uom_qty to be consistent with stock.move
