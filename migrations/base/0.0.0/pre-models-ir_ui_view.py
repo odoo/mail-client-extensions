@@ -47,6 +47,11 @@ class IrUiView(models.Model):
                 else:
                     raise
 
+        def copy_translations(old, new, *args, **kwargs):
+            if old.env.context.get('_migrate_fix_views'):
+                return
+            return super(IrUiView, old).copy_translations(new, *args, **kwargs)
+
         def _migrate_fix_views(self):
             # If a view has validation issue, either:
             # - Overwrite the arch if this is a standard view for which the user manually set it to noupdate,
@@ -91,7 +96,7 @@ class IrUiView(models.Model):
                 if arch_fs_fullpath and md and md.noupdate and md.module:
                     # Standard view set to noupdate by the user, to override with original view
                     md.noupdate = False
-                    view_copy = view.copy({'active': False, 'name': '%s (Copy created during migration)' % view.name})
+                    view_copy = view.with_context(_migrate_fix_views=True).copy({'active': False, 'name': '%s (Copy created during upgrade)' % view.name})
                     view_data['copy_id'] = view_copy.id
                     arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
                     view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
