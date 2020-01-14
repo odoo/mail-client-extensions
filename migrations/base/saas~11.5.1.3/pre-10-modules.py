@@ -61,7 +61,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "sale_stock", plus={"sale"}, minus={"sale_management"})
     # TODO ensure `sale_payment` migration script are run before sale...
 
-    util.module_deps_diff(cr, "stock_dropshipping", plus={"sale_purchase"}, minus={"purchase_stock"})
+    util.module_deps_diff(cr, "stock_dropshipping", plus={"sale_purchase"})
     util.new_module_dep(cr, "test_mail", "mail_bot")
     util.new_module_dep(cr, "theme_bootswatch", "website_theme_install")
     util.new_module_dep(cr, "theme_default", "website_theme_install")
