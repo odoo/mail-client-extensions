@@ -21,7 +21,6 @@ def migrate(cr, version):
     util.force_migration_of_fresh_module(cr, "crm_iap_lead")
     util.module_deps_diff(cr, "event", plus={"portal"})
     util.module_deps_diff(cr, "portal", plus={"web", "web_editor"})
-    util.module_deps_diff(cr, "purchase_mrp", plus={"purchase_stock"}, minus={"purchase"})
     util.module_deps_diff(cr, "purchase_requisition", plus={"purchase"}, minus={"purchase_stock"})
     util.module_deps_diff(cr, "survey", plus={"auth_signup"})
     util.module_deps_diff(cr, "website_forum", plus={"website_profile"}, minus={"gamification", "website_partner"})
