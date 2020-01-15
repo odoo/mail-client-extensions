@@ -143,8 +143,13 @@ def migrate(cr, version):
     if util.table_exists(cr, 'stock_valuation_adjustment_lines'):
         if not util.get_index_on(cr, 'stock_valuation_adjustment_lines', 'move_id'):
             cr.execute("""CREATE INDEX stock_valuation_adjustment_lines_move_id ON stock_valuation_adjustment_lines (move_id)""") #might be deleted in the end
-    cr.execute("""ALTER TABLE stock_quant_move_rel
-                  DROP CONSTRAINT IF EXISTS stock_quant_move_rel_quant_id_move_id_key;""")
+    cr.execute(
+        """
+        ALTER TABLE stock_quant_move_rel
+            -- constraint name is not stable. drop all possible exising ones
+            DROP CONSTRAINT IF EXISTS stock_quant_move_rel_quant_id_move_id_key,
+            DROP CONSTRAINT IF EXISTS stock_quant_move_rel_move_id_quant_id_key
+    """)
 
     cr.commit()
     # Update: partially_available state has been removed from picking
