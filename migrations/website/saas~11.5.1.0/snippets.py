@@ -90,6 +90,9 @@ def fixli(li, nr):
     icon2 = E.I(E.CLASS("fa fa-1x fa-asterisk bg-alpha rounded-circle s_timeline_icon"))
     content = li.xpath(".//div[hasclass('s_timeline_panel_content')]")
 
+    if not content:
+        return
+
     for ci, cv in enumerate(content):
         nc.append(E.DIV(E.CLASS("s_timeline_content d-flex")))
         divcard = E.DIV(E.CLASS("s_card card bg-white w-100"))
