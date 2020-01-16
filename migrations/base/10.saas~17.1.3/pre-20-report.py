@@ -22,9 +22,16 @@ def migrate(cr, version):
         act_report_xml_view_inherit_report
         act_report_xml_view_inherit
         assets_backend
+
+        # for databases <= 10.saas-14
+        external_layout_header
+        external_layout_footer
+        minimal_layout
     """)
     for name in remove:
         util.remove_view(cr, 'report.' + name)
+
+    util.force_noupdate(cr, "report.external_layout", False)
 
     move_to_web = util.splitlines("""
         assets_common
@@ -35,7 +42,7 @@ def migrate(cr, version):
         # other templates handled by `merge_module`
     """)
     for name in move_to_web:
-        util.rename_xmlid(cr, 'report.' + name, 'web.report_' + name)
+        util.rename_xmlid(cr, "report." + name, "web.report_" + name, noupdate=False)
 
     cr.execute("""
         UPDATE ir_ui_view
