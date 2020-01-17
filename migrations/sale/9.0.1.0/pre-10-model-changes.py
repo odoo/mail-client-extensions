@@ -323,7 +323,7 @@ def _update_lines(cr):
                         ELSE 'no'
                    END AS state
               FROM sale_order so
-              JOIN sale_order_line line ON (so.id = line.order_id)
+               LEFT JOIN sale_order_line line ON (so.id = line.order_id)
           GROUP BY so.id
         )
         UPDATE sale_order so
