@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
+import os
 
-def findtax(cr, code1, code2, base, cache):
+def findtax(cr, code1, code2, base, cache, move):
     codes = (code1, code2)
     key = (frozenset(codes), base)
     if key in cache:
@@ -17,10 +18,29 @@ def findtax(cr, code1, code2, base, cache):
           GROUP BY parent_id
             HAVING count(*) > 1
         """.format(prefix + col), [codes])
-        tax = cr.fetchone()
-        if tax:
-            cache[key] = tax[0]
-            return tax[0]
+        taxes = [x[0] for x in cr.fetchall()]
+        if os.environ.get('ODOO_MIG_ACCOUNTING_MULTIPLE_TAXES_9'):
+            if len(taxes) > 1:
+                # We have several taxes that matches, we can try finding the correct one based on the tax on the invoice if there is
+                # an invoice linked to that move, if no result found or still several results found, take first tax as we won't be able
+                # to find correct match.
+                # Also don't store result in cache as it could lead to problem for other moves with same code.
+                cr.execute("""
+                    SELECT t.tax_id
+                    FROM account_invoice_line_tax t
+                    JOIN account_invoice_line l ON t.invoice_line_id = l.id
+                    JOIN account_invoice inv ON l.invoice_id = inv.id
+                    WHERE inv.move_id = %s
+                        AND t.tax_id IN %s
+                """, (move, tuple(taxes)))
+                linetax = cr.fetchone()
+                if linetax:
+                    return linetax[0]
+                else:
+                    return taxes[0]
+        if taxes:
+            cache[key] = taxes[0]
+            return taxes[0]
     cache[key] = None
     return None
 
@@ -44,21 +64,21 @@ def migrate(cr, version):
                AND tax_amount IS NOT NULL
                AND tax_code_id IS NOT NULL
         )
-        SELECT l1.id, l0.tax_code_id, l1.tax_code_id, l1.tax_line_id
+        SELECT l1.id, l0.tax_code_id, l1.tax_code_id, l1.tax_line_id, l1.move_id
           FROM account_move_line l1
           JOIN lines0 l0 ON (l1.id != l0.id AND l0.move_id=l1.move_id)
          WHERE l0.tax_amount = l1.tax_amount
            AND l1.tax_code_id IS NOT NULL
     """)
-    for line_id, tax_code1, tax_code2, tax_line_id in cr.fetchall():
+    for line_id, tax_code1, tax_code2, tax_line_id, move_id in cr.fetchall():
         if tax_line_id:
             # Update tax_line_id
-            tax = findtax(cr, tax_code1, tax_code2, base=False, cache=tax_cache)
+            tax = findtax(cr, tax_code1, tax_code2, base=False, cache=tax_cache, move=move_id)
             if tax:
                 tax_line_id_to_update.append((line_id, tax))
         else:
             # Update tax_line_ids
-            tax = findtax(cr, tax_code1, tax_code2, base=True, cache=tax_cache)
+            tax = findtax(cr, tax_code1, tax_code2, base=True, cache=tax_cache, move=move_id)
             if tax:
                 tax_line_ids_to_update.append((line_id, tax))
 
