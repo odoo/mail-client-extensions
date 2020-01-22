@@ -304,6 +304,12 @@ def migrate(cr, version):
         tax_to_clean_ids += list(group_to_treat.children_tax_ids.ids)
 
     if tax_to_clean_ids:
+        cr.execute(
+            """
+            DELETE FROM account_fiscal_position_tax 
+            WHERE tax_src_id in %s or tax_dest_id in %s
+        """, [tuple(tax_to_clean_ids), tuple(tax_to_clean_ids)]
+        )
         cr.execute("DELETE FROM account_tax_filiation_rel WHERE child_tax in %s", [tuple(tax_to_clean_ids)])
         cr.execute("DELETE FROM account_tax WHERE id in %s", [tuple(tax_to_clean_ids)])
         cr.execute("DELETE FROM ir_model_data WHERE res_id in %s and model = 'account.tax';", [tuple(tax_to_clean_ids)])
