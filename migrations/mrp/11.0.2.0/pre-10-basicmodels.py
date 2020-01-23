@@ -46,23 +46,6 @@ def migrate(cr, version):
                 AND NOT EXISTS (SELECT id FROM stock_move_lots ml2 WHERE ml2.move_id = m.id)
     """)
 
-    # Log an error when quantity_done_store != SUM (quantity_done)
-    cr.execute("""
-            SELECT m.id FROM stock_move m, stock_move_line ml, mrp_production p  
-            WHERE ml.move_id = m.id AND m.raw_material_production_id IS NOT NULL
-                AND p.id = m.raw_material_production_id
-                AND p.state NOT IN ('done', 'cancel')
-                AND EXISTS (SELECT ml2.id FROM stock_move_lots ml2, stock_move m2 
-                            WHERE ml2.move_id = m2.id AND m2.production_id = p.id
-                                AND p.product_id = m2.product_id)
-                AND NOT EXISTS (SELECT id FROM stock_move_lots mlo WHERE mlo.move_id = m.id) 
-            GROUP BY m.id
-            HAVING SUM(ml.qty_done) != m.quantity_done_store
-    """)
-    res = cr.fetchall()
-    if res:
-        _logger.warning('There are moves in production orders where the theoretical quantities do not match: %s', res)
-
     # For the other lines
     cr.execute("""
         INSERT INTO stock_move_line
