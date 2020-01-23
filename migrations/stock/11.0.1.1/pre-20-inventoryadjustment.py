@@ -35,7 +35,6 @@ FROM stock_inventory_line il
      INNER JOIN stock_location l1 ON l1.id = m.location_id
      INNER JOIN stock_location l2 ON l2.id = m.location_dest_id
 WHERE i.state = 'done'
-  AND il.theoretical_qty!=0
   AND (
         (il.theoretical_qty>il.product_qty AND l1.usage!='inventory' AND l2.usage='inventory')
         OR (il.theoretical_qty<il.product_qty AND l1.usage='inventory'  AND l2.usage!='inventory')
