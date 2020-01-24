@@ -17,3 +17,6 @@ def migrate(cr, version):
                         deps=('website_sale_delivery', 'website_sale_account_taxcloud'),
                         auto_install=True)
         util.new_module(cr, "l10n_uk_reports_hmrc", deps={"l10n_uk_reports"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/6291
+        util.new_module(cr, "account_reports_cash_flow", deps={"account_reports"}, auto_install=True)

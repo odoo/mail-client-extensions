@@ -9,3 +9,6 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.new_module(cr, "l10n_uk_reports_hmrc", deps={"l10n_uk_reports"}, auto_install=True)
         util.module_deps_diff(cr, "stock_account_enterprise", plus={"stock_enterprise"})
+
+        # https://github.com/odoo/enterprise/pull/6357
+        util.new_module(cr, "account_reports_cash_flow", deps={"account_reports"}, auto_install=True)
