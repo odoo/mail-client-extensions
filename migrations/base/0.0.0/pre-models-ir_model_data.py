@@ -1,8 +1,8 @@
-from openerp import api, models, release
-from openerp.tools.parse_version import parse_version
-from openerp.addons.base.maintenance.migrations import util
+from odoo import api, models, release
+from odoo.tools.parse_version import parse_version
+from odoo.addons.base.maintenance.migrations import util
 if util.version_gte('10.0'):
-    from openerp.modules.module import get_resource_from_path
+    from odoo.modules.module import get_resource_from_path
 else:
     get_resource_from_path = None
 if parse_version(release.version) < parse_version('saas~11.4'):
