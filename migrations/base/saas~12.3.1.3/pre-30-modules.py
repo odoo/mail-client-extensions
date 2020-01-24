@@ -44,6 +44,7 @@ def migrate(cr, version):
         util.new_module(cr, "helpdesk_sale_coupon", deps={"helpdesk_sale", "sale_coupon"})
         util.new_module(cr, "hr_payroll_gantt", deps={"hr_payroll", "web_gantt"}, auto_install=True)
         util.module_deps_diff(cr, "l10n_be_hr_payroll", minus={"l10n_be"})
+        util.new_module(cr, "l10n_mx_edi_payment", deps={"l10n_mx_edi"}, auto_install=True)
         util.module_deps_diff(cr, "mail_enterprise", plus={"web_mobile"})
         util.new_module(cr, "mrp_account_enterprise", deps={"mrp_account"}, auto_install=True)
         util.module_deps_diff(cr, "sale_subscription", minus={"account_deferred_revenue"})
