@@ -37,7 +37,11 @@ def migrate(cr, version):
 
     cr.execute("""
         UPDATE sale_order_line l
-           SET qty_delivered_manual = 0,
+           SET qty_delivered_manual = CASE WHEN l.is_expense THEN 0
+                         {with_sale_stock} WHEN t.type IN ('consu', 'product') THEN 0
+                     {with_sale_timesheet} WHEN t.type = 'service' AND t.service_type = 'timesheet' THEN 0
+                                           ELSE qty_delivered
+                                       END,
                qty_delivered_method = CASE WHEN l.is_expense THEN 'analytic'
                          {with_sale_stock} WHEN t.type IN ('consu', 'product') THEN 'stock_move'
                      {with_sale_timesheet} WHEN t.type = 'service' AND t.service_type = 'timesheet' THEN 'timesheet'
