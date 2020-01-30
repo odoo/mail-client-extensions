@@ -429,7 +429,30 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
         ("currency_id", "=", False),
         ("currency_id", "=", tax.company_id.currency_id.id),
     ]
+    if util.version_gte('saas~12.4'):
+        journal = env["account.move"].with_context(
+            force_company=tax.company_id.id,
+            default_company_id=tax.company_id.id,
+            company_id=tax.company_id.id,
+            type=type,
+        )._get_default_journal()
+    else:
+        journal = env["account.invoice"].with_context(
+            force_company=tax.company_id.id,
+            default_company_id=tax.company_id.id,
+            company_id=tax.company_id.id,
+            type=type,
+        )._default_journal()
 
+    if not journal.id:
+        _logger.error("Lack of suitable journal")
+        return False
+
+    if journal.type_control_ids or journal.account_control_ids:
+        base_domain += ['|',
+            ('user_type_id', 'in', journal.type_control_ids.ids), 
+            ('id', 'in', journal.account_control_ids.ids)
+        ]
     invoice_line_account = (
         env["account.account"]
         .search(base_domain + [("user_type_id.type", "not in", ("payable", "receivable"))], limit=1)
@@ -438,34 +461,7 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
     if not invoice_line_account:
         _logger.error("Lack of suitable account")
         return False
-    if util.version_gte('saas~12.4'):
-        if (
-            not env["account.move"]
-            .with_context(
-                force_company=tax.company_id.id,
-                default_company_id=tax.company_id.id,
-                company_id=tax.company_id.id,
-                type=type,
-            )
-            ._get_default_journal()
-            .id
-        ):
-            _logger.error("Lack of suitable journal")
-            return False
-    else:
-        if (
-            not env["account.invoice"]
-            .with_context(
-                force_company=tax.company_id.id,
-                default_company_id=tax.company_id.id,
-                company_id=tax.company_id.id,
-                type=type,
-            )
-            ._default_journal()
-            .id
-        ):
-            _logger.error("Lack of suitable journal")
-            return False
+
     invoice = (
         env["account.move" if util.version_gte('saas~12.4') else "account.invoice"]
         .with_context(
