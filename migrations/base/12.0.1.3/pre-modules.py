@@ -12,3 +12,10 @@ def migrate(cr, version):
 
         # https://github.com/odoo/enterprise/pull/6357
         util.new_module(cr, "account_reports_cash_flow", deps={"account_reports"}, auto_install=True)
+
+        util.new_module(cr, "product_unspsc", deps={"product"})
+        util.new_module(
+            cr,
+            "l10n_co_edi_ubl_2_1",
+            deps={"l10n_co_edi", "base_address_city", "product_unspsc"},
+        )
