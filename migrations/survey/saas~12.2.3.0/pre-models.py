@@ -32,13 +32,13 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH allq AS (
-            SELECT q.id, p.survey_id, p.sequence AS pseq,
+            SELECT q.id, p.survey_id, p.sequence AS pseq, p.id pid,
                    CASE is_page WHEN TRUE THEN -2147483648 ELSE q.sequence END AS qseq
               FROM survey_question q
               JOIN survey_page p ON p.id = q.page_id
         ),
         reseq AS (
-            SELECT id, row_number() OVER(PARTITION BY survey_id ORDER BY pseq, qseq) AS seq
+            SELECT id, row_number() OVER(PARTITION BY survey_id ORDER BY pseq, pid, qseq, id) AS seq
               FROM allq
         )
         UPDATE survey_question q
