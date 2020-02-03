@@ -14,7 +14,7 @@ def migrate(cr, version):
             company_id integer,
             product_id integer NOT NULL,
             sequence integer,
-            warehouse_id integer -- NOT NULL,     -- should be required, but sale_forecast.warehouse_id wasn't, forbidding migration
+            warehouse_id integer, -- NOT NULL,     -- should be required, but sale_forecast.warehouse_id wasn't, forbidding migration
             forecast_target_qty float8,
             min_to_replenish_qty float8,
             max_to_replenish_qty float8

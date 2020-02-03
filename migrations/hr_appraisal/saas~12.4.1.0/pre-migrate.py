@@ -66,6 +66,7 @@ def migrate(cr, version):
         survey_survey_view_form
         survey_user_input_view_search
         survey_user_input_view_form
+        survey_view_kanban
     """)
     for view in views:
         util.remove_view(cr, "hr_appraisal." + view)

@@ -22,6 +22,7 @@ def migrate(cr, version):
     # ### work.entry.type
     if util.table_exists(cr, "hr_work_entry_type"):
         util.create_column(cr, "hr_work_entry_type", "is_unforeseen", "boolean")
+        util.create_column(cr, "hr_work_entry_type", "is_leave", "boolean")
         cr.execute("UPDATE hr_work_entry_type SET is_unforeseen = false")
         cr.execute("UPDATE hr_work_entry_type SET code = md5(id::varchar) WHERE code IS NULL")
         # deduplicate entry type on code

@@ -12,11 +12,10 @@ def migrate(cr, version):
     cr.execute(
         """
         UPDATE account_move_line aml
-           SET purchase_line_id=inv.purchase_line_id
-          FROM account_invoice_line inv
-    INNER JOIN invl_aml_mapping map ON map.invl_id=inv.id
-    INNER JOIN purchase_order_line pol ON pol.id=inv.purchase_line_id
-         WHERE aml.id = map.aml_id AND map.is_invoice_line IS TRUE;
+           SET purchase_line_id = invl.purchase_line_id
+          FROM invl_aml_mapping m
+          JOIN account_invoice_line invl ON invl.id = m.invl_id
+         WHERE m.aml_id = aml.id
         """
     )
 

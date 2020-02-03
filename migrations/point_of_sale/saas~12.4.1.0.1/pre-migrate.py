@@ -7,7 +7,9 @@ def migrate(cr, version):
     util.force_noupdate(cr, "point_of_sale.seq_picking_type_posout", noupdate=True)
     util.remove_field(cr, "pos.config", "stock_location_id")
     util.remove_field(cr, "pos.config", "iface_start_categ_domain_ids")
-    util.create_column(cr, "pos_order", "currency_rate", "float8")
+    if not util.column_exists(cr, "pos_order", "currency_rate"):
+        # module `pos_sale` already add this column, but as `numeric`
+        util.create_column(cr, "pos_order", "currency_rate", "float8")
     cr.execute(
         """
         UPDATE pos_order o
@@ -17,6 +19,7 @@ def migrate(cr, version):
          WHERE cmpy.id=o.company_id
            AND pp.id=o.pricelist_id
            AND pp.currency_id=cmpy.currency_id
+           AND o.currency_rate IS NULL
         """
     )
     cr.execute(

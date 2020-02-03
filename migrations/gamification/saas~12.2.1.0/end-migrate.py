@@ -4,10 +4,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # recompute badge image_{small,medium}
-    Badge = util.env(cr)['gamification.badge']
-    ids = Badge.search([('image', '!=', False)]).ids
-    for badge in util.iter_browse(Badge, ids):
-        badge.image = badge.image
+    if not util.version_gte('saas~12.5'):
+        Badge = util.env(cr)['gamification.badge']
+        ids = Badge.search([('image', '!=', False)]).ids
+        for badge in util.iter_browse(Badge, ids):
+            badge.image = badge.image
 
     # recompute karma rank
     if not util.column_exists(cr, "res_users", "_karma"):

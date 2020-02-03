@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import os
 import math
 
 from multiprocessing import Process, Semaphore
@@ -51,14 +50,12 @@ def migrate(cr, version):
 
         lead_ids = [(res[0], res[1], res[2]) for res in cr.fetchall()]
         _logger.info("Computing phone_valid")
-        nbr_thd = min(os.cpu_count(), 8)
+        nbr_thd = min(util.cpu_count(), 8)
         chunksize = int(math.ceil(len(lead_ids) / float(nbr_thd)))
-        lead_chunks = [lead_ids[i:i + chunksize] for i in range(0, len(lead_ids), chunksize)]
+        lead_chunks = [lead_ids[i:i + chunksize] for i in range(0, len(lead_ids), chunksize)] if chunksize > 0 else [lead_ids]
         lst_thd = []
         out_sem = Semaphore()
-        # out_q = Queue()
         for chunk in lead_chunks:
-            print(len(chunk))
             p = Process(
                 target=validate_phone,
                 args=(cr, chunk, out_sem))

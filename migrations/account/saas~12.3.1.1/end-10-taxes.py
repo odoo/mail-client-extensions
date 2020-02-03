@@ -9,7 +9,7 @@ from odoo.tools import float_round
 from odoo.tools.safe_eval import safe_eval
 from odoo.exceptions import UserError
 
-NS = "openerp.addons.base.maintenance.migrations.account.saas~12.3."
+NS = "odoo.addons.base.maintenance.migrations.account.saas~12.3."
 _logger = logging.getLogger(NS + __name__)
 
 

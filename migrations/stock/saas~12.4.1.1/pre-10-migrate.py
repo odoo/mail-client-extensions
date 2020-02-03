@@ -80,7 +80,7 @@ def migrate(cr, version):
          WHERE spt.warehouse_id = sw.id
     """)
     cr.execute(
-        "SELECT 1 FROM res_groups_implied_rel WHERE gid=%s AND hid IN (%s)",
+        "SELECT 1 FROM res_groups_implied_rel WHERE gid=%s AND hid IN %s",
         [
             util.ref(cr, "base.group_user"),
             (

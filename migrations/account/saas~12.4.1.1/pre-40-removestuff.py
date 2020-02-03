@@ -3,19 +3,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    return
     # =======================================================================================
     # Remove stuff
     # =======================================================================================
-    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
-
-    # Models
-    util.remove_model(cr, "account_invoice_tax", drop_table=False)
-    util.remove_model(cr, "account_invoice_line", drop_table=False)
-    util.remove_model(cr, "account_invoice", drop_table=False)
-    if is_account_voucher_installed:
-        util.remove_model(cr, "account_voucher", drop_table=False)
-        util.remove_model(cr, "account_voucher_line", drop_table=False)
 
     # Menus
     util.remove_menus(
@@ -57,3 +47,23 @@ def migrate(cr, version):
     util.remove_record(cr, "account.invoice_comp_rule")
     util.remove_record(cr, "account.account_invoice_line_comp_rule")
     util.remove_record(cr, "account.tax_report_comp_rule")
+    util.remove_record(cr, "account.account_invoice_rule_portal")
+    util.remove_record(cr, "account.account_invoice_line_rule_portal")
+
+    # Force update of record rules linked to invoices
+    cr.execute(
+        """
+        UPDATE ir_model_data
+           SET noupdate=FALSE
+         WHERE model='ir.rule'
+           AND res_id in (SELECT id
+                           FROM ir_rule
+                          WHERE model_id in (SELECT id
+                                               FROM ir_model
+                                              WHERE model in ('account.invoice',
+                                                              'account.invoice.line',
+                                                              'account.voucher')
+                                            )
+                         )
+        """
+        )

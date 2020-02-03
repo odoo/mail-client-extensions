@@ -33,3 +33,14 @@ def migrate(cr, version):
                 % {"dst_table": dst_table, "src_table": src_table, "field": field, "link": _get_linking(src_table)}
             )
     cr.execute("DROP TABLE mig_s124_accountfieldstotransfer")
+
+    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
+
+    # Models
+    util.remove_model(cr, "account.invoice.tax", drop_table=False)
+    util.remove_model(cr, "account.invoice.line", drop_table=False)
+    util.remove_model(cr, "account.invoice", drop_table=False)
+    util.remove_model(cr, "account.register.payments")
+    if is_account_voucher_installed:
+        util.remove_model(cr, "account_voucher", drop_table=False)
+        util.remove_model(cr, "account_voucher_line", drop_table=False)

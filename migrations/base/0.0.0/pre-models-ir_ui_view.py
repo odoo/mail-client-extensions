@@ -1,15 +1,15 @@
 import logging
 import re
 
-from openerp import models
-from openerp.modules.module import get_modules
-from openerp.addons.base.maintenance.migrations import util
+from odoo import models
+from odoo.modules.module import get_modules
+from odoo.addons.base.maintenance.migrations import util
 if util.version_gte('10.0'):
-    from openerp.modules.module import get_resource_path, get_resource_from_path
+    from odoo.modules.module import get_resource_path, get_resource_from_path
     if util.version_gte('saas~11.4'):
-        from openerp.addons.base.models.ir_ui_view import get_view_arch_from_file
+        from odoo.addons.base.models.ir_ui_view import get_view_arch_from_file
     else:
-        from openerp.addons.base.ir.ir_ui_view import get_view_arch_from_file
+        from odoo.addons.base.ir.ir_ui_view import get_view_arch_from_file
 else:
     get_resource_path = get_resource_from_path = get_view_arch_from_file = None
 
