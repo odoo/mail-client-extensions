@@ -15,3 +15,17 @@ def migrate(cr, version):
      LEFT JOIN childs on a.id=childs.parent_id
          WHERE aa.id=a.id
     """)
+
+    # Acquisition date should be coming from the related move lines.
+    # TODO(jde): fallback on asset's create_date if there is no move line.
+    cr.execute("""
+        UPDATE account_asset aa
+           SET acquisition_date = aml.acq_date
+          FROM (
+               SELECT asset_id, min(date) as acq_date
+                 FROM account_move_line
+                WHERE asset_id IS NOT NULL
+                GROUP BY asset_id
+          ) AS aml
+         WHERE aa.id = aml.asset_id AND aa.acquisition_date IS NULL
+    """)
