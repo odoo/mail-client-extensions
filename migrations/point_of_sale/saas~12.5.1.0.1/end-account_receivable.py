@@ -16,5 +16,6 @@ def migrate(cr, version):
            SET receivable_account_id = c.account_default_pos_receivable_account_id
           FROM res_company c
          WHERE c.id = m.company_id
+           AND m.receivable_account_id IS NULL
     """
     )
