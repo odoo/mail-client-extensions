@@ -7,7 +7,7 @@ def migrate(cr, version):
         util.rename_model(cr, "mail.mass_mailing.stage", "utm.stage")
         util.move_model(cr, "utm.stage", "mass_mailing", "utm")
 
-        util.rename_model(cr, "mail.mass_mailing_tag", "utm.tag")
+        util.rename_model(cr, "mail.mass_mailing.tag", "utm.tag")
         util.move_model(cr, "utm.tag", "mass_mailing", "utm")
     else:
         # For some obscure reasons of a mandatory field, not creating the table make the migration fail
