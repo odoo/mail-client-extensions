@@ -1,11 +1,5 @@
-This repository contains the migration scripts written to pass from version 7.0
-to version 11.0 (to be continued...).
+# Odoo Upgrade Scripts
 
-They are written incrementally as we deploy snapshots to the SaaS platform.
+This repository contains the migration scripts written to pass from version `7.0` to `master`.
 
-To use these migration scripts against `saas~*` versions, you have to symlink
-this directory to:
-
-```sh
-$OPENERP_SERVER/odoo/addons/base/maintenance
-```
+**Please check the [wiki](https://github.com/odoo/upgrade/wiki) for technical documentation.**
