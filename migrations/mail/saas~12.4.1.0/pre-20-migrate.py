@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    # util.rename_model(cr, "mail.blacklist.mixin", "mail.thread.blacklist")
+    util.rename_model(cr, "mail.blacklist.mixin", "mail.thread.blacklist", rename_table=False)
     util.rename_field(cr, "mail.message", "layout", "email_layout_xmlid")
     util.rename_field(cr, "mail.tracking.value", "groups", "field_groups")
 
