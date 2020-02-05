@@ -20,8 +20,8 @@ domain_fields = [
     IR("mail_mass_mailing", None, "mailing_domain", "mailing_model_id"),
     IR("mailing_mailing", None, "mailing_domain", "mailing_model_id"),
     # TODO dupe with `base_action_rule`
-    IR("base_automation", None, "filter_domain", "model_id"),
-    IR("base_automation", None, "filter_pre_domain", "model_id"),
+    IR("base_automation", "(SELECT model_name FROM ir_act_server WHERE id = t.action_server_id)", "filter_domain"),
+    IR("base_automation", "(SELECT model_name FROM ir_act_server WHERE id = t.action_server_id)", "filter_pre_domain"),
     # destination model is always "res.users"
     IR("gamification_challenge", "'res.users'", "user_domain"),
     IR("gamification_goal_definition", None, "domain", "model_id"),
