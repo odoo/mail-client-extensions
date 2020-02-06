@@ -32,7 +32,7 @@ def migrate(cr, version):
                     ),
                     '\m(cover(?!-)|o_wblog_has_cover)\M', 'o_record_has_cover', 'g'
                 ))
-            );
+            )
     """)
     cr.execute(
         # bb0cdec renamed the cover size 'container-fluid cover_full' -> 'cover_full'
@@ -43,9 +43,10 @@ def migrate(cr, version):
                 to_jsonb(REGEXP_REPLACE(
                     cover_properties::json->>'resize_class',
                     '\mcontainer-fluid\M', '', 'g')
+                )
             )
             WHERE cover_properties::json->>'resize_class' ~ '\mcontainer-fluid\M'
-                AND cover_properties::json->>'resize_class' ~ '\mcover_full\M';
+                AND cover_properties::json->>'resize_class' ~ '\mcover_full\M'
 
     """)
     cr.execute(
@@ -62,7 +63,7 @@ def migrate(cr, version):
                 )
             )
             WHERE cover_properties::json->>'resize_class' ~ '\mcontainer-fluid\M'
-                AND cover_properties::json->>'resize_class' ~ '\mcover_narrow\M';
+                AND cover_properties::json->>'resize_class' ~ '\mcover_narrow\M'
     """)
     cr.execute(
         # bb0cdec renamed the cover size 'container cover_narrow' -> 'cover_auto'
@@ -78,5 +79,5 @@ def migrate(cr, version):
                 )
             )
             WHERE cover_properties::json->>'resize_class' ~ '\mcontainer(?!-)\M'
-                AND cover_properties::json->>'resize_class' ~ '\mcover_narrow\M';
+                AND cover_properties::json->>'resize_class' ~ '\mcover_narrow\M'
     """)
