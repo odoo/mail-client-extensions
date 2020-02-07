@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys
+import uuid
 from concurrent.futures import ProcessPoolExecutor
 
 from psycopg2.extras import execute_batch
@@ -45,7 +47,8 @@ def migrate(cr, version):
     # Functions can only be pickle if they are importable.
     # However, the current file is not importable due to the dash in the filename.
     # We should then put the executed function in its own importable file.
-    san = util.import_script("sms/saas~12.5.2.0/sanitize.py")
+    name = f"_upgrade_{uuid.uuid4().hex}"
+    san = sys.modules[name] = util.import_script("sms/saas~12.5.2.0/sanitize.py", name=name)
 
     with ProcessPoolExecutor() as executor:
         execute_batch(
