@@ -3,16 +3,22 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    cleaned = util.ENVIRON["000_clean_imd"]
-    if not cleaned:
-        return
+    queries = []
     cr.execute("""
         SELECT model, array_agg(res_id)
           FROM ir_model_data
-         WHERE CONCAT(module, '.', name) IN %s
+          JOIN _upgrade_clean_imd USING(module, name)
       GROUP BY model
-    """, [tuple(cleaned)])
-    for model, ids in cr.fetchall():
+    """)
+    for model, ids in util.log_progress(cr.fetchall(), qualifier="models", size=cr.rowcount):
         table = util.table_of_model(cr, model)
         if util.column_exists(cr, table, "active"):
-            cr.execute("UPDATE {} SET active = false WHERE id IN %s".format(table), [tuple(ids)])
+            queries.append(
+                cr.mogrify(
+                    "UPDATE {} SET active = false WHERE id IN %s".format(table),
+                    [tuple(ids)],
+                ).decode()
+            )
+    if queries:
+        util.parallel_execute(cr, queries)
+    cr.execute("DROP TABLE _upgrade_clean_imd")
