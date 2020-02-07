@@ -17,8 +17,9 @@ def migrate(cr, version):
         DELETE FROM stock_move_lots WHERE done_move = 't' AND quantity_done is null;
     """)
 
+    queries = []
     # Tracked moves in production orders, those with stock_move_lots, need to be converted to stock.move.line
-    cr.execute("""
+    queries.append("""
         INSERT INTO stock_move_line
         (product_id, location_id, location_dest_id, product_qty, product_uom_qty, qty_done, product_uom_id,
         package_id, result_package_id, owner_id, picking_id, date, lot_id, move_id, done_wo, state, workorder_id,
@@ -32,7 +33,7 @@ def migrate(cr, version):
 
     # Non-tracked moves are those without stock.move.lots and those need to get stock.move.line too
     # If the finished product is tracked, those need to have a lot_produced_id too!
-    cr.execute("""
+    queries.append("""
             INSERT INTO stock_move_line
             (product_id, location_id, location_dest_id, product_qty, product_uom_qty, qty_done, product_uom_id,
             package_id, result_package_id, owner_id, picking_id, date, lot_id, move_id, done_wo, state, lot_produced_id)
@@ -45,6 +46,7 @@ def migrate(cr, version):
                 AND m.state NOT IN ('done', 'cancel')
                 AND NOT EXISTS (SELECT id FROM stock_move_lots ml2 WHERE ml2.move_id = m.id)
     """)
+    util.parallel_execute(cr, queries)
 
     # For the other lines
     cr.execute("""
