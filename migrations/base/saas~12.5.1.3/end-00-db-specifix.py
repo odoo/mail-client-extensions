@@ -13,11 +13,14 @@ def _openerp(cr, version):
     cr.execute(
         """
         UPDATE event_event
-           SET cover_properties = REPLACE(REPLACE(cover_properties,
-                                                  'cover_mid',
-                                                  'o_half_screen_height o_record_has_cover'),
-                                          '"background-image": "none"',
-                                          '"background-image": "' || custom_banner_url || '"')
+           SET cover_properties = jsonb_set(jsonb_set(cover_properties::jsonb,
+                '{background-image}', to_jsonb(custom_banner_url)),
+                '{resize_class}', to_jsonb(case
+                    when cover_properties::jsonb->>'resize_class' !~ '\mo_record_has_cover\M'
+                      then concat('o_record_has_cover ', cover_properties::jsonb->>'resize_class')
+                      else cover_properties::jsonb->>'resize_class'
+                    end))
+         WHERE custom_banner_url is not null
     """
     )
     cr.execute(
