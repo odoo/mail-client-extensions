@@ -1,6 +1,33 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
+def _convert_to_account_move_vals(depr_line):
+    return {
+        'ref': depr_line['asset_code'],
+        'date': depr_line['depreciation_date'],
+        'journal_id': depr_line['journal_id'],
+        'line_ids': [
+            (0, 0, {
+                'name': depr_line['asset_name'],
+                'account_id': depr_line['account_depreciation_id'],
+                'debit': max(0, -depr_line['amount']),
+                'credit': max(0, depr_line['amount']),
+                'partner_id': depr_line['partner_id'],
+                'analytic_tag_ids': [(6, 0, depr_line['analytic_tag_ids'])],
+                'analytic_account_id': depr_line['account_analytic_id'],
+            }),
+            (0, 0, {
+                'name': depr_line['asset_name'],
+                'account_id': depr_line['account_depreciation_expense_id'],
+                'debit': max(0, depr_line['amount']),
+                'credit': max(0, -depr_line['amount']),
+                'partner_id': depr_line['partner_id'],
+                'analytic_tag_ids': [(6, 0, depr_line['analytic_tag_ids'])],
+                'analytic_account_id': depr_line['account_analytic_id'],
+            }),
+        ]
+    }
+
 
 def migrate(cr, version):
     util.create_column(cr, 'account_account', 'asset_model', 'int4')
@@ -64,6 +91,56 @@ def migrate(cr, version):
     util.create_column(cr, 'account_move', 'asset_remaining_value', 'numeric')
     util.create_column(cr, 'account_move', 'asset_depreciated_value', 'numeric')
     util.create_column(cr, 'account_move', 'asset_manually_modified', 'boolean')
+    cr.execute("""
+        SELECT
+            asset.code AS asset_code,
+            line.depreciation_date,
+            category.journal_id,
+            asset.id AS asset_id,
+            line.remaining_value,
+            line.depreciated_value,
+            asset.name AS asset_name,
+            category.account_depreciation_id,
+            category.account_depreciation_expense_id,
+            line.amount,
+            asset.partner_id,
+            asset.account_analytic_id,
+            array_remove(ARRAY_AGG(tags.account_analytic_tag_id), NULL) AS analytic_tag_ids
+        FROM account_asset_depreciation_line line
+        JOIN account_asset asset ON line.asset_id = asset.id
+        JOIN account_asset_category category ON asset.category_id = category.id
+        LEFT JOIN account_analytic_tag_account_asset_asset_rel tags ON account_asset_asset_id = asset.id
+        WHERE line.move_id IS NULL
+        GROUP BY
+            asset.code,
+            line.depreciation_date,
+            category.journal_id,
+            asset.id,
+            line.remaining_value,
+            line.depreciated_value,
+            asset.name,
+            category.account_depreciation_id,
+            category.account_depreciation_expense_id,
+            line.amount,
+            asset.partner_id,
+            asset.account_analytic_id
+    """)
+    env = util.env(cr)
+    result = cr.dictfetchall()
+    move_ids = env["account.move"].create([_convert_to_account_move_vals(res) for res in result])
+    cr.executemany("""
+        UPDATE account_move SET
+            asset_id=%s,
+            asset_remaining_value=%s,
+            asset_depreciated_value=%s
+        WHERE id=%s
+    """, list(zip(
+        [res['asset_id'] for res in result],
+        [res['remaining_value'] for res in result],
+        [res['depreciated_value'] for res in result],
+        move_ids.ids
+    )))
+
     cr.execute("""
         UPDATE account_move
            SET asset_id=d.asset_id,
