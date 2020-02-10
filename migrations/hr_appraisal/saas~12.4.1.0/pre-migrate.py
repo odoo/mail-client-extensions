@@ -56,6 +56,12 @@ def migrate(cr, version):
                colleagues_body_html = %(html)s
     """, dict(html=html))
 
+    cr.execute("""
+        UPDATE ir_act_server
+           SET code = 'model.run_employee_appraisal()'
+         WHERE id = (SELECT ir_actions_server_id FROM ir_cron WHERE id = %s)
+    """, [util.ref(cr, "hr_appraisal.ir_cron_scheduler_appraisal")])
+
     # cleanup data
     util.remove_record(cr, "hr_appraisal.mail_template_user_input_appraisal")
     util.remove_record(cr, "hr_appraisal.access_calendar_attendee_survey_user")
