@@ -48,6 +48,7 @@ def _openerp(cr, version):
                      )
     """
     )
+    cr.execute("UPDATE account_payment_term SET company_id = NULL")
 
 
 def migrate(cr, version):
