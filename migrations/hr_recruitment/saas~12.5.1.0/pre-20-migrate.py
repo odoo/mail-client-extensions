@@ -12,6 +12,11 @@ def migrate(cr, version):
               WHERE job_id IS NOT NULL
     """
     )
+    cr.execute(
+        "UPDATE ir_ui_menu SET action = NULL WHERE id = %s",
+        [util.ref(cr, "hr_recruitment.menu_crm_case_categ0_act_job")],
+    )
+
     util.update_field_references(cr, "job_id", "job_ids", only_models=("hr.recruitment.stage",))
     util.remove_field(cr, "hr.recruitment.stage", "job_id")
 
