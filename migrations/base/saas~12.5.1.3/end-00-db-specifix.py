@@ -29,7 +29,10 @@ def _openerp(cr, version):
         UPDATE ir_ui_view v
           SET active = d.active
         FROM (          SELECT NULL "module",   NULL "name",                  NULL "active"
+              UNION ALL SELECT 'website_blog',  'opt_blog_cards_design',      false
+              UNION ALL SELECT 'website_blog',  'opt_blog_list_view',         false
               UNION ALL SELECT 'website_blog',  'opt_blog_post_sidebar',      false
+              UNION ALL SELECT 'website_blog',  'opt_blog_sidebar_show',      false
               UNION ALL SELECT 'website_blog',  'opt_posts_loop_show_cover',  true
               UNION ALL SELECT 'website_blog',  'opt_posts_loop_show_teaser', false
               UNION ALL SELECT 'website_blog',  'view_blog_post_list',        false
