@@ -23,29 +23,22 @@ def _openerp(cr, version):
          WHERE custom_banner_url is not null
     """
     )
+    # title row will never match, as (NULL = NULL) is false in SQL
     cr.execute(
         """
-        UPDATE ir_ui_view
-           SET active = false
-         WHERE id IN (SELECT res_id
-                        FROM ir_model_data
-                       WHERE model = 'ir.ui.view'
-                         AND module IN ('website_event', 'website_blog')
-                         AND name IN ('opt_index_sidebar', 'opt_blog_post_sidebar',
-                                      'view_blog_post_list', 'opt_posts_loop_show_teaser')
-                     )
-    """
-    )
-    cr.execute(
-        """
-        UPDATE ir_ui_view
-           SET active = true
-         WHERE id IN (SELECT res_id
-                        FROM ir_model_data
-                       WHERE model = 'ir.ui.view'
-                         AND module IN ('website_event', 'website_blog')
-                         AND name = 'opt_posts_loop_show_cover'
-                     )
+        UPDATE ir_ui_view v
+          SET active = d.active
+        FROM (          SELECT NULL "module",   NULL "name",                  NULL "active"
+              UNION ALL SELECT 'website_blog',  'opt_blog_post_sidebar',      false
+              UNION ALL SELECT 'website_blog',  'opt_posts_loop_show_cover',  true
+              UNION ALL SELECT 'website_blog',  'opt_posts_loop_show_teaser', false
+              UNION ALL SELECT 'website_blog',  'view_blog_post_list',        false
+              UNION ALL SELECT 'website_event', 'opt_index_sidebar',          false
+             ) d
+             JOIN ir_model_data md ON md.module = d.module
+                                  AND md.name = d.name
+        WHERE md.model = 'ir.ui.view'
+          AND v.id = md.res_id
     """
     )
     cr.execute("UPDATE account_payment_term SET company_id = NULL")
