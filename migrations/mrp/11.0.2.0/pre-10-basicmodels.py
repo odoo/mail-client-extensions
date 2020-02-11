@@ -74,19 +74,36 @@ def migrate(cr, version):
              AND m.quantity_done_store > 0.0
         """)
 
-    # Links between consumed and produced move lines
-    cr.execute("""
-         INSERT INTO stock_move_line_consume_rel
-         (produce_line_id, consume_line_id)
-         SELECT megajoin.ml1, megajoin.ml2 FROM
-         (SELECT ml1.id as ml1, ml2.id as ml2 FROM stock_quant_consume_rel sqcr, stock_move m1, stock_move m2, stock_move_line ml1, stock_move_line ml2, stock_quant q1, stock_quant q2,
-         stock_quant_move_rel sqmr1, stock_quant_move_rel sqmr2
-         WHERE sqcr.consume_quant_id = q1.id AND sqmr1.quant_id = q1.id AND sqmr1.move_id = m1.id AND ml1.move_id = m1.id AND (ml1.lot_id IS NULL OR ml1.lot_id = q1.lot_id)
-          AND sqcr.produce_quant_id = q2.id AND sqmr2.quant_id = q2.id AND sqmr2.move_id = m2.id AND ml2.move_id = m2.id AND (ml2.lot_id IS NULL OR ml2.lot_id = q2.lot_id)
-          AND ((m1.raw_material_production_id IS NOT NULL AND m2.production_id IS NOT NULL) OR (m1.consume_unbuild_id IS NOT NULL AND m2.unbuild_id IS NOT NULL)) GROUP BY ml1.id, ml2.id
-         ) megajoin
-    """) # Produce_line_id and consume_line_id were opposite in the mode
-    # Temporary move lines are avoided as the moves are not done normally
+    _logger.info("Creating links between consumed and produced move lines (megajoin)")
+    # Make inserts in stock_move_line_consume_rel to track products
+
+    with util.temp_index(
+        cr, "stock_move", "raw_material_production_id"
+    ), util.temp_index(cr, "stock_move", "production_id"):
+        cr.execute("SELECT COUNT(*) FROM mrp_production")
+        num_buckets = int(cr.fetchone()[0] / 200) + 1
+        util.parallel_execute(
+            cr,
+            util.explode_query(
+                cr,
+                """INSERT INTO stock_move_line_consume_rel (produce_line_id, consume_line_id)
+                   SELECT sml1.id sml1, sml2.id sml2
+                     FROM mrp_production mp
+                     JOIN stock_move sm1 ON sm1.raw_material_production_id = mp.id
+                     JOIN stock_move_line sml1 ON sm1.id = sml1.move_id
+                     JOIN stock_move sm2 ON sm2.production_id = mp.id
+                     JOIN stock_move_line sml2 ON sm2.id = sml2.move_id
+                     JOIN product_product pp ON (pp.id = sml1.product_id OR pp.id = sml2.product_id)
+                     JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                    WHERE mp.state = 'done'
+                      AND pt.tracking <> 'none'
+                      AND {parallel_filter}
+                 GROUP BY sml1.id, sml2.id
+                """,
+                num_buckets=num_buckets,
+                prefix="mp.",
+            ),
+        )
 
     cr.execute("""
         UPDATE stock_move_line  ml
