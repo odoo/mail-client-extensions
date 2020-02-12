@@ -26,8 +26,7 @@ def migrate(cr, version):
     util.remove_field(cr, "res.users", "appraisal_employee")
 
     util.remove_field(cr, "survey.user_input", "appraisal_id")
-
-    util.remove_model(cr, "survey.invite")
+    util.remove_field(cr, "survey.invite", "appraisal_id")
 
     # set default html message
     html = """
@@ -73,6 +72,7 @@ def migrate(cr, version):
         survey_user_input_view_search
         survey_user_input_view_form
         survey_view_kanban
+        survey_invite_view_form
     """)
     for view in views:
         util.remove_view(cr, "hr_appraisal." + view)
