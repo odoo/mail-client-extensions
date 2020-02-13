@@ -8,6 +8,11 @@ def migrate(cr, version):
     util.remove_field(cr, "sms.template.preview", "name")
     util.remove_field(cr, "sms.template.preview", "model")
     util.remove_field(cr, "sms.template.preview", "sidebar_action_id")
+    util.remove_field(cr, "sms.template.preview", "copyvalue")
+    util.remove_field(cr, "sms.template.preview", "null_value")
+    util.remove_field(cr, "sms.template.preview", "sub_model_object_field")
+    util.remove_field(cr, "sms.template.preview", "sub_object")
+    util.remove_field(cr, "sms.template.preview", "model_object_field")
     # Remove fields linked to sms.template.preview code cleaning
     util.remove_field(cr, "sms.template.preview", "res_id")
     # Remove column linked to _inherit of sms.template removal, now a computed field
