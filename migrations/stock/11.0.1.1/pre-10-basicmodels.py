@@ -130,25 +130,21 @@ def migrate(cr, version):
     # Pack operations will appear for every (done) move, so this won't always be in a picking
     cr.execute("""ALTER TABLE stock_move_line ALTER COLUMN picking_id DROP NOT NULL""")
 
-    # Add some indexes to improve speed when we will merge moves: maybe only when #stock_moves > 10000 (could also delete constraints)
+    # Add some indexes to improve speed when we will merge moves.
+    # maybe only when #stock_moves > 10000 (could also delete constraints)
     for name, table, columns in [
-        ('stock_move_orig', 'stock_move', 'origin_returned_move_id'),
-        ('procurement_move_dest_id', 'procurement_order', 'move_dest_id'),
-        ('stock_move_split_from', 'stock_move', "split_from, state"),
-        ('stock_move_operation_link_move_id', 'stock_move_operation_link', 'move_id'),
-        ('stock_quant_negative_move_id', 'stock_quant', 'negative_move_id'), # Field deleted afterwards
-        ('stock_scrap_move_id', 'stock_scrap', 'move_id'),
-        ('stock_move_line_move_id', 'stock_move_line', 'move_id'),
-        ]:
-        if not util.get_index_on(cr, table, columns):
-            cr.execute("""CREATE INDEX %s ON %s (%s)""" % (name, table, columns))
+        ("stock_move_orig", "stock_move", ("origin_returned_move_id",)),
+        ("procurement_move_dest_id", "procurement_order", ("move_dest_id",)),
+        ("stock_move_split_from", "stock_move", ("split_from", "state")),
+        ("stock_move_operation_link_move_id", "stock_move_operation_link", ("move_id",)),
+        ("stock_quant_negative_move_id", "stock_quant", ("negative_move_id",)),
+        ("stock_scrap_move_id", "stock_scrap", ("move_id",)),
+        ("stock_move_line_move_id", "stock_move_line", ("move_id",)),
+        ("stock_move_lots_move_id", "stock_move_lots", ("move_id",)),
+        ("stock_valuation_adjustment_lines_move_id", "stock_valuation_adjustment_lines", ("move_id",)),
+    ]:
+        util.create_index(cr, name, table, *columns)
 
-    if util.table_exists(cr, 'stock_move_lots'):
-        if not util.get_index_on(cr, 'stock_move_lots', 'move_id'):
-            cr.execute("""CREATE INDEX stock_move_lots_move_id ON stock_move_lots (move_id)""")
-    if util.table_exists(cr, 'stock_valuation_adjustment_lines'):
-        if not util.get_index_on(cr, 'stock_valuation_adjustment_lines', 'move_id'):
-            cr.execute("""CREATE INDEX stock_valuation_adjustment_lines_move_id ON stock_valuation_adjustment_lines (move_id)""") #might be deleted in the end
     cr.execute(
         """
         ALTER TABLE stock_quant_move_rel
