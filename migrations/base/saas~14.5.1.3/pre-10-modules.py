@@ -13,6 +13,9 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.new_module(cr, "hr_appraisal_skills", deps={"hr_appraisal", "hr_skills"}, auto_install=True)
         util.new_module(cr, "event_social", deps={"event", "social"}, auto_install=True)
+        util.new_module(cr, "social_instagram", deps={"social"}, auto_install=False)
+        util.module_deps_diff(cr, "social_demo", plus={"social_instagram"})
+        util.module_deps_diff(cr, "social_test_full", plus={"social_instagram"})
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
