@@ -15,3 +15,9 @@ def migrate(cr, version):
     util.rename_field(cr, "crm.lead2opportunity.partner.mass", "opportunity_ids", "duplicated_lead_ids")
 
     cr.execute('ALTER TABLE "crm_lead_tag_rel" RENAME TO "crm_tag_rel"')
+
+    util.move_field_to_module(cr, "crm.team", "assigned_leads_count", "website_crm_score", "crm")
+    util.rename_field(cr, "crm.team", "assigned_leads_count", "lead_all_assigned_month_count")
+    util.rename_field(cr, "crm.team", "unassigned_leads_count", "lead_unassigned_count")
+    util.rename_field(cr, "crm.team", "overdue_opportunities_count", "opportunities_overdue_count")
+    util.rename_field(cr, "crm.team", "overdue_opportunities_amount", "opportunities_overdue_amount")
