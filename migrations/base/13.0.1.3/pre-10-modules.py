@@ -17,6 +17,7 @@ def migrate(cr, version):
     util.new_module(cr, "pos_six", deps={"point_of_sale"})
 
     if util.has_enterprise():
+        util.new_module(cr, "l10n_lu_reports_electronic", deps={"l10n_lu_reports"}, auto_install=True)
         util.new_module(cr, "pos_hr_l10n_be", deps={"pos_hr", "pos_blackbox_be"}, auto_install=True)
         util.module_deps_diff(cr, "pos_blackbox_be", plus={"pos_iot"})
         util.module_deps_diff(cr, "crm_enterprise", plus={"web_map"})
