@@ -306,7 +306,7 @@ def migrate(cr, version):
     if tax_to_clean_ids:
         cr.execute(
             """
-            DELETE FROM account_fiscal_position_tax 
+            DELETE FROM account_fiscal_position_tax
             WHERE tax_src_id in %s or tax_dest_id in %s
         """, [tuple(tax_to_clean_ids), tuple(tax_to_clean_ids)]
         )
@@ -389,13 +389,25 @@ def migrate(cr, version):
                 tax_accounts = sorted(tax_rep_lines.mapped("account_id.code"))
                 tax_tags = sorted(tax_rep_lines.mapped("tag_ids.name"))
 
+                # Some accounts have changed in generic COA in saas-12.5; also impacting tax repartition
+                # For these, the migration script will keep the previous account when migrating
+                # (of course, since only the template changes, not its instance).
+                # In that case, the migration is correct, and the warning does not indicate any error.
+                # We hardcode here an artificial switch of code for the two tax accounts
+                # used in data of this module to avoid triggering the warning on runbot builds, with migration tests.
+                # In case we add tests for localizations facing the same issues in the future, entries can be added to this dict.
+                if util.version_gte('saas~12.5') and util.module_installed(cr, 'l10n_generic_coa'):
+                    acc_aliases = {util.ref(cr, 'l10n_generic_coa.tax_paid'): '1013', util.ref(cr, 'l10n_generic_coa.tax_received'): '1112'}
+                else:
+                    acc_aliases = {}
+
                 template_rep_lines = getattr(tax_template, inv_type + "_repartition_line_ids")
-                template_accounts = sorted(
-                    [
-                        account.code.ljust(account.chart_template_id.code_digits, "0")
-                        for account in template_rep_lines.mapped("account_id")
-                    ]
-                )
+                account_codes_to_sort = []
+                for account in template_rep_lines.mapped("account_id"):
+                    acc_code = acc_aliases.get(account.id, account.code)
+                    account_codes_to_sort.append(acc_code.ljust(account.chart_template_id.code_digits, "0"))
+
+                template_accounts = sorted(account_codes_to_sort)
                 template_tags = sorted(
                     set(
                         template_rep_lines.mapped("tag_ids.name")
@@ -1508,7 +1520,6 @@ def get_v13_migration_dicts(cr):
     env = util.env(cr)
 
     # Set all taxes as active ; keep track of the inactive ones to restore their state later
-    #TODO OCO récupérer les taxes inactives
 
     cr.execute("""
         update account_tax set active=True;
