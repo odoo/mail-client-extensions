@@ -31,6 +31,5 @@ def migrate(cr, version):
     util.remove_field(cr, "crm.lead", "score_pageview_ids")
     util.remove_field(cr, "crm.lead", "pageviews_count")
     util.remove_field(cr, "crm.lead", "lang_id")
-    util.remove_field(cr, "crm.lead", "phone")
 
     util.remove_model(cr, "website.crm.pageview")
