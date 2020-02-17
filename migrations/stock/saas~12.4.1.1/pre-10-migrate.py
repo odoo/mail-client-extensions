@@ -70,9 +70,12 @@ def migrate(cr, version):
     util.create_column(cr, "stock_rule", "propagate_date_minimum_delta", "int4")
     cr.execute("UPDATE stock_rule SET propagate_date = true, propagate_date_minimum_delta = 1")
 
+    if not util.version_gte("saas~12.5"):
+        # field make a comeback in saas~12.5
+        util.remove_field(cr, "stock.picking.type", "show_reserved")
+
     # fill company_id with the warehouse one on stock_picking_type
     util.create_column(cr, "stock_picking_type", "company_id", "int4")
-    util.remove_field(cr, "stock.picking.type", "show_reserved")
     cr.execute("""
         UPDATE stock_picking_type spt
            SET company_id = sw.company_id

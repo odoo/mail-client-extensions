@@ -100,8 +100,10 @@ def migrate(cr, version):
 
     util.create_column(cr, "stock_picking_type", "sequence_code", "varchar")
     util.create_column(cr, "stock_picking_type", "return_picking_type_id", "int4")
-    util.create_column(cr, "stock_picking_type", "show_reserved", "boolean")
+    show_reserved_created = util.create_column(cr, "stock_picking_type", "show_reserved", "boolean")
     util.remove_field(cr, "stock.picking.type", "last_done_picking")
+
+    dashdash = "" if show_reserved_created else "--"
 
     cr.execute(
         r"""
@@ -121,11 +123,11 @@ def migrate(cr, version):
          LEFT JOIN stock_warehouse w ON w.id = t.warehouse_id
         )
         UPDATE stock_picking_type t
-           SET sequence_code = s.code,
-               show_reserved = t.show_operations AND t.code != 'incoming'
+           SET sequence_code = s.code
+               {}, show_reserved = t.show_operations AND t.code != 'incoming'
           FROM seqcodes s
          WHERE s.id = t.id
-    """
+    """.format(dashdash)
     )
 
     util.create_column(cr, "stock_production_lot", "company_id", "int4")
