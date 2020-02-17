@@ -3,6 +3,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.move_field_to_module(cr, "sale.order.line", "product_template_id", "sale_product_configurator", "sale")
+
     util.create_column(cr, "account_move", "team_id", "int4")
     util.create_column(cr, "account_move", "partner_shipping_id", "int4")
     cr.execute(
