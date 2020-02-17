@@ -3,6 +3,13 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    cr.execute("SELECT active FROM ir_rule WHERE id = %s", [util.ref(cr, "base.res_partner_rule")])
+    if not cr.rowcount or not cr.fetchone()[0]:
+        # loutish technique to set a column to NULL
+        # it's also O(1) instead of O(n) with an UPDATE
+        util.remove_column(cr, "res_partner", "company_id")
+        util.create_column(cr, "res_partner", "company_id", "int4")
+
     cr.execute("ALTER TABLE ir_model_data ALTER COLUMN noupdate SET DEFAULT false")
 
     util.move_model(cr, "report.layout", "web", "base")

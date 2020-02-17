@@ -5,16 +5,12 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     eb = util.expand_braces
 
-    cr.execute(
-        """
-        SELECT active
-          FROM ir_rule
-         WHERE id = %s
-        """,
-        [util.ref(cr, "product.product_comp_rule")]
-    )
+    cr.execute("SELECT active FROM ir_rule WHERE id = %s", [util.ref(cr, "product.product_comp_rule")])
     if not cr.rowcount or not cr.fetchone()[0]:
-        cr.execute("UPDATE product_template SET company_id=NULL")
+        # loutish technique to set a column to NULL
+        # it's also O(1) instead of O(n) with an UPDATE
+        util.remove_column(cr, "product_template", "company_id")
+        util.create_column(cr, "product_template", "company_id", "int4")
 
     util.create_m2m(cr, "product_variant_combination", "product_template_attribute_value", "product_product")
     cr.execute(
