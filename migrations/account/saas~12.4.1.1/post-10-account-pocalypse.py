@@ -514,11 +514,13 @@ def _compute_invoice_line_move_line_mapping(cr):
 @contextmanager
 def no_fiscal_lock(cr):
     cr.execute("""
-        UPDATE res_company
+        UPDATE res_company c
            SET tax_lock_date = NULL,
                period_lock_date = NULL,
                fiscalyear_lock_date = NULL
-     RETURNING tax_lock_date, period_lock_date, fiscalyear_lock_date, id
+          FROM res_company old
+         WHERE old.id = c.id
+     RETURNING old.tax_lock_date, old.period_lock_date, old.fiscalyear_lock_date, old.id
     """)
     data = cr.fetchall()
     yield
