@@ -33,6 +33,7 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.move.line", "to_loc")
 
     util.remove_field(cr, "stock.picking.type", "barcode_nomenclature_id")
+    util.move_field_to_module(cr, "stock.picking.type", "barcode", "stock_barcode", "stock")
 
     util.remove_field(cr, "stock.warehouse", "default_resupply_wh_id")
 
