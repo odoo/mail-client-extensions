@@ -1102,8 +1102,10 @@ def migrate_invoice_lines(cr):
             env["account.move.line"].create(create_todo)
 
     with util.disable_triggers(cr, "account_move"):
-        # Fix amount_untaxed, amount_untaxed_signed, amount_tax, amount_tax_signed, amount_total, amount_total_signed, amount_residual, amount_residual_signed.
-        _logger.info("Fix amount_untaxed, amount_untaxed_signed, amount_tax, amount_tax_signed, amount_total, amount_total_signed, amount_residual, amount_residual_signed")
+        _logger.info(
+            "Fix amount_untaxed, amount_untaxed_signed, amount_tax, amount_tax_signed, "
+            "amount_total, amount_total_signed, amount_residual, amount_residual_signed"
+        )
         cr.execute("""
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_untaxed
@@ -1166,9 +1168,10 @@ def migrate_invoice_lines(cr):
                    amount_total_signed = am_updatable_amounts.total_amount * (-1),
                    amount_residual = am_updatable_amounts.residual_amount,
                    amount_residual_signed = am_updatable_amounts.residual_amount
-              FROM am_updatable_amounts
+              FROM am_updatable_amounts, res_company c
              WHERE am.type IN ('out_invoice', 'out_receipt', 'in_refund')
-               AND am.currency_id = am.company_currency_id
+               AND c.id = am.company_id
+               AND am.currency_id = c.currency_id
                AND am_updatable_amounts.id=am.id
             """,
             'single_currency_in_invoice': """
@@ -1181,9 +1184,10 @@ def migrate_invoice_lines(cr):
                    amount_total_signed = am_updatable_amounts.total_amount * (-1),
                    amount_residual = am_updatable_amounts.residual_amount * (-1),
                    amount_residual_signed = am_updatable_amounts.residual_amount
-              FROM am_updatable_amounts
+              FROM am_updatable_amounts, res_company c
              WHERE am.type IN ('in_invoice', 'in_receipt', 'out_refund')
-               AND am.currency_id = am.company_currency_id
+               AND c.id = am.company_id
+               AND am.currency_id = c.currency_id
                AND am.id=am_updatable_amounts.id
             """,
             'single_currency_other': """
@@ -1196,10 +1200,14 @@ def migrate_invoice_lines(cr):
                    amount_total_signed = abs(am_updatable_amounts.total_amount),
                    amount_residual = abs(am_updatable_amounts.residual_amount),
                    amount_residual_signed = abs(am_updatable_amounts.residual_amount)
-              FROM am_updatable_amounts
+              FROM am_updatable_amounts, res_company c
              WHERE am.type = 'entry'
-               AND (SELECT COUNT(aml.currency_id) FROM account_move_line aml WHERE aml.currency_id IS NOT NULL AND am.id = aml.move_id) != 1
-               AND am.currency_id = am.company_currency_id
+               AND (SELECT COUNT(aml.currency_id)
+                      FROM account_move_line aml
+                     WHERE aml.currency_id IS NOT NULL
+                       AND am.id = aml.move_id) != 1
+               AND c.id = am.company_id
+               AND am.currency_id = c.currency_id
                AND am.id=am_updatable_amounts.id
             """,
             'multi_currency_out_invoice': """
@@ -1213,9 +1221,10 @@ def migrate_invoice_lines(cr):
                    amount_total_signed = am_updatable_amounts.total_amount_curr * (-1),
                    amount_residual = am_updatable_amounts.residual_amount_curr,
                    amount_residual_signed = am_updatable_amounts.residual_amount_curr
-              FROM am_updatable_amounts
+              FROM am_updatable_amounts, res_company c
              WHERE am.type IN ('out_invoice', 'out_receipt', 'in_refund')
-               AND am.currency_id != am.company_currency_id
+               AND c.id = am.company_id
+               AND am.currency_id != c.currency_id
                AND am_updatable_amounts.id=am.id
             """,
             'multi_currency_in_invoice': """
@@ -1228,9 +1237,10 @@ def migrate_invoice_lines(cr):
                    amount_total_signed = am_updatable_amounts.total_amount_curr * (-1),
                    amount_residual = am_updatable_amounts.residual_amount_curr * (-1),
                    amount_residual_signed = am_updatable_amounts.residual_amount_curr
-              FROM am_updatable_amounts
+              FROM am_updatable_amounts, res_company c
              WHERE am.type IN ('in_invoice', 'in_receipt', 'out_refund')
-               AND am.currency_id != am.company_currency_id
+               AND c.id = am.company_id
+               AND am.currency_id != c.currency_id
                AND am.id=am_updatable_amounts.id
             """,
             'multi_currency_other': """
@@ -1243,8 +1253,14 @@ def migrate_invoice_lines(cr):
                    amount_total_signed = abs(am_updatable_amounts.total_amount_curr),
                    amount_residual = abs(am_updatable_amounts.residual_amount_curr),
                    amount_residual_signed = abs(am_updatable_amounts.residual_amount_curr)
-              FROM am_updatable_amounts
-             WHERE am.type = 'entry' AND (SELECT COUNT(aml.currency_id) FROM account_move_line aml WHERE aml.currency_id IS NOT NULL AND am.id = aml.move_id) = 1
+              FROM am_updatable_amounts, res_company c
+             WHERE am.type = 'entry'
+               AND (SELECT COUNT(aml.currency_id)
+                      FROM account_move_line aml
+                     WHERE aml.currency_id IS NOT NULL
+                       AND am.id = aml.move_id) = 1
+               AND c.id = am.company_id
+               AND am.currency_id != c.currency_id
                AND am.id=am_updatable_amounts.id
         """}
 
