@@ -22,4 +22,35 @@ def migrate(cr, version):
 
     util.remove_field(cr, "sign.template", "extension")
     util.remove_field(cr, "sign.send.request", "extension")
-    util.remove_model(cr, "sign.item.value")
+    util.rename_model(cr, "sign.item.value", "sign.request.item.value")
+    util.create_column(cr, "sign_request_item_value", "sign_request_item_id", "int4")
+
+    cr.execute(
+        """
+    with vv as (SELECT v.id vid ,r.id rid
+                  FROM sign_request_item_value v
+                  JOIN sign_item i ON v.sign_item_id=i.id
+             LEFT JOIN sign_request_item r ON v.sign_request_id=r.sign_request_id AND r.role_id=i.responsible_id),
+
+     nullvid as (SELECT vv.vid
+                   FROM vv
+                  WHERE rid is null),
+
+     vv2 as (SELECT v.id vid ,r.id rid
+               FROM sign_request_item_value v
+               JOIN sign_item i ON v.sign_item_id=i.id
+          LEFT JOIN sign_request_item r ON v.sign_request_id=r.sign_request_id AND v.id IN (SELECT vid FROM nullvid)),
+
+    allvv as (SELECT vid,rid
+                FROM vv where rid IS NOT NULL
+        UNION ALL
+              SELECT vid,rid
+                FROM vv2
+               WHERE rid IS NOT NULL)
+
+    UPDATE sign_request_item_value v
+       SET sign_request_item_id=allvv.rid
+      FROM allvv
+     WHERE allvv.vid=v.id
+    """
+    )
