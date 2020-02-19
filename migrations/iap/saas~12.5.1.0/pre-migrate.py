@@ -7,8 +7,10 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO iap_account_res_company_rel(iap_account_id, res_company_id)
-             SELECT id, company_id
-               FROM iap_account
+             SELECT iap.id, COALESCE(iap.company_id, p.company_id)
+               FROM iap_account iap
+            JOIN res_users u ON u.id = iap.create_uid
+            JOIN res_partner p ON p.id = u.partner_id
     """
     )
     util.remove_column(cr, "iap_account", "company_id")
