@@ -28,7 +28,7 @@ def migrate(cr, version):
     if delay:
         cr.execute("UPDATE website SET cart_abandoned_delay=%s", [delay])
 
-    util.remove_column(cr, "res.partner", "last_website_so_id")
+    util.remove_column(cr, "res_partner", "last_website_so_id")
 
     util.remove_field(cr, "sale.order", "can_directly_mark_as_paid")
     util.create_column(cr, "sale_order", "website_id", "int4")
