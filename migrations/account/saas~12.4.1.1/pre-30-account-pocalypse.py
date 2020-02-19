@@ -276,7 +276,7 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO account_invoice_payment_rel(invoice_id, payment_id)
-             SELECT inv.move_id, payment_id
+             SELECT inv.move_id, old.payment_id
                FROM account_invoice_payment_rel_old old
           LEFT JOIN account_invoice inv ON inv.id = old.invoice_id
               WHERE inv.move_id IS NOT NULL;
