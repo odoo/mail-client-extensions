@@ -5,7 +5,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     IMFS = util.env(cr)["ir.model.fields.selection"]
-    cr.execute("SELECT model, name, selection FROM ir_model_fields WHERE state = 'manual'")
+    cr.execute("SELECT model, name, regexp_replace(selection, '\s+', '') FROM ir_model_fields WHERE state = 'manual'")
     for model, name, selection in cr.fetchall():
         selection = literal_eval(selection or "[]")
         IMFS._update_selection(model, name, selection)
