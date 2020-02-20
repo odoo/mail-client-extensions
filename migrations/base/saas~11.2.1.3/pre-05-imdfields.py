@@ -3,8 +3,13 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # for databases born before 9.0, some cleanup should be made
+
+    # Clean references of field `followup_line` (without being tracked) to avoid duplicates
+    # when renamed to `followup_line_ids` by the imported script call
     util.remove_field(cr, 'account_followup.followup', 'followup_line')
+    util.ENVIRON["__renamed_fields"]["account_followup.followup"].remove("followup_line")
     util.import_script('account_reports_followup/9.0.1.0/pre-20-models.py').migrate(cr, version)
+
     cr.execute("""
         SELECT array_agg(id ORDER BY id)
           FROM ir_model_fields
