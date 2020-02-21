@@ -17,3 +17,6 @@ def migrate(cr, version):
     util.new_module(cr, "coupon", deps={"account"})
     util.module_deps_diff(cr, "sale_coupon", plus={"coupon"})
     util.force_migration_of_fresh_module(cr, "coupon", init=True)
+    util.merge_module(cr, "account_analytic_default", "account")
+    util.merge_module(cr, "account_analytic_default_hr_expense", "hr_expense")
+    util.merge_module(cr, "account_analytic_default_purchase", "purchase")
