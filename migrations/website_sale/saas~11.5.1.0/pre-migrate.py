@@ -9,7 +9,6 @@ def migrate(cr, version):
     # website_id on res_partner is a new field in saas-11.5,
     # no need to recompute the stored related, it's always NULL
     util.rename_field(cr, "res.config.settings", "module_account_invoicing", "module_account")
-    util.remove_field(cr, "res.config.settings", "automatic_invoice")
     util.remove_field(cr, "res.config.settings", "module_l10n_eu_service")
 
     util.create_column(cr, "website", "cart_recovery_mail_template_id", "int4")
