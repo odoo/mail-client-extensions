@@ -3,7 +3,7 @@ from openerp.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_field(cr, "res.config.settings", "website_slide_google_app_key")
+    util.remove_column(cr, "res_config_settings", "website_slide_google_app_key")
     util.create_column(cr, "website", "website_slide_google_app_key", "varchar")
     util.create_column(cr, "slide_channel", "website_id", "int4")
 
