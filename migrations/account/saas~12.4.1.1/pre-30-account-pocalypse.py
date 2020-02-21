@@ -9,7 +9,7 @@ def migrate(cr, version):
     cr.execute("""
         SELECT count(*)
           FROM account_invoice i
-    INNER JOIN account_journal j ON i.journal_id=i.id
+    INNER JOIN account_journal j ON i.journal_id=j.id
          WHERE j.group_invoice_lines=TRUE
     """)
     if cr.fetchone()[0]:
