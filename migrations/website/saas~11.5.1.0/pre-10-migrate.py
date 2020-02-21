@@ -7,10 +7,10 @@ def migrate(cr, version):
     util.create_column(cr, "ir_attachment", "key", "varchar")
     util.create_column(cr, "ir_attachment", "website_id", "int4")
     util.create_column(cr, "res_config_settings", "module_website_links", "boolean")
-    util.remove_field(cr, "res.config.settings", "google_maps_api_key")
-    util.remove_field(cr, "res.config.settings", "has_google_analytics")
-    util.remove_field(cr, "res.config.settings", "has_google_analytics_dashboard")
-    util.remove_field(cr, "res.config.settings", "has_google_maps")
+    util.remove_column(cr, "res_config_settings", "google_maps_api_key")
+    util.remove_column(cr, "res_config_settings", "has_google_analytics")
+    util.remove_column(cr, "res_config_settings", "has_google_analytics_dashboard")
+    util.remove_column(cr, "res_config_settings", "has_google_maps")
 
     util.create_column(cr, "res_partner", "website_id", "int4")
     util.create_column(cr, "res_users", "website_id", "int4")
@@ -118,6 +118,16 @@ def migrate(cr, version):
         param_value = ICP.get_param(key)
         if param_value:
             cr.execute("UPDATE website set {}=%s".format(field), (param_value,))
+
+    cr.execute("""
+        DELETE FROM ir_config_parameter
+              WHERE key IN ('google_maps_api_key',
+                            'auth_signup.invitation_scope',
+                            'website.has_google_analytics',
+                            'website.has_google_analytics_dashboard',
+                            'website.has_google_maps'
+                           )
+    """)
 
     util.create_column(cr, "website_page", "header_overlay", "boolean")
     util.create_column(cr, "website_page", "header_color", "varchar")
