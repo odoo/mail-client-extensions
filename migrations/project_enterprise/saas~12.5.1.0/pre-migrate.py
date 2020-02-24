@@ -10,3 +10,6 @@ def migrate(cr, version):
     util.remove_view(cr, "project_enterprise.project_task_view_form_allow_planning_domain")
     util.remove_view(cr, "project_enterprise.project_view_form_simplified_inherit")
     util.remove_view(cr, "project_enterprise.project_view_form_inherit")
+
+    for pf in {"email", "phone", "mobile", "zip"}:
+        util.move_field_to_module(cr, "project.task", f"partner_{pf}", "industry_fsm", "project_enterprise")
