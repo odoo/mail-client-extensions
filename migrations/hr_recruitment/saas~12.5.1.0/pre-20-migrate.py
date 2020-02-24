@@ -12,13 +12,8 @@ def migrate(cr, version):
               WHERE job_id IS NOT NULL
     """
     )
-    # Missing removal in saas-9
-    util.remove_field(cr, "hr.recruitment.stage", "job_ids")
-    if util.table_exists(cr, "job_stage_rel"):
-        cr.execute("DROP TABLE job_stage_rel")
-
-    util.remove_column(cr, "hr_recruitment_stage", "job_id")
-    util.rename_field(cr, "hr.recruitment.stage", "job_id", "job_ids")
+    util.update_field_references(cr, "job_id", "job_ids", only_models=("hr.recruitment.stage",))
+    util.remove_field(cr, "hr.recruitment.stage", "job_id")
 
     util.remove_field(cr, "hr.applicant", "reference")
 
