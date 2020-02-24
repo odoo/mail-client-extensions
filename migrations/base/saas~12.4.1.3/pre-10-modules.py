@@ -63,5 +63,9 @@ def migrate(cr, version):
 
     util.remove_module(cr, "event_sale_product_configurator")
 
+    for field in {"campaign_id", "medium_id", "source_id"}:
+        util.move_field_to_module(cr, "sale.order", field, "website_sale_link_tracker", "sale")
+        util.move_field_to_module(cr, "sale.report", field, "website_sale_link_tracker", "sale")
+
     util.remove_module(cr, "website_sale_link_tracker")
     util.remove_module(cr, "website_survey")  # merged?
