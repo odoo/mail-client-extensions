@@ -43,3 +43,20 @@ def migrate(cr, version):
          WHERE id IN (SELECT id FROM warns)
     """
     )
+
+    cr.execute(
+        """
+        UPDATE hr_contract
+           SET date_end = s.end_of_last_contract - INTERVAL '1 DAY'
+          FROM (
+            SELECT id,
+                   LAG(date_start, 1) OVER (PARTITION BY employee_id ORDER BY date_start DESC) end_of_last_contract
+              FROM hr_contract
+             WHERE state IN ('open', 'close')
+               AND employee_id IS NOT null
+          ) s
+         WHERE hr_contract.date_end IS NULL
+           AND hr_contract.id = s.id
+           AND hr_contract.state = 'close'
+    """
+    )
