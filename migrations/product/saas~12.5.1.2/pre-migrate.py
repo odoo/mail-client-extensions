@@ -53,6 +53,7 @@ def migrate(cr, version):
         INSERT INTO product_attribute_product_template_rel(product_attribute_id, product_template_id)
              SELECT attribute_id, product_tmpl_id
                FROM product_template_attribute_line
+         ON CONFLICT DO NOTHING
     """
     )
 
