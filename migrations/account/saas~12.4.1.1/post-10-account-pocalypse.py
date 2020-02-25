@@ -76,6 +76,7 @@ def _explode_tax_groups(cr):
        inner join account_tax t on ailt.tax_id=t.id
        inner join account_tax_filiation_rel child on t.id=child.parent_tax
             where t.amount_type='group'
+       ON CONFLICT DO NOTHING
         """
     )
     cr.execute(
