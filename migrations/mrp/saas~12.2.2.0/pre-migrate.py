@@ -3,8 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.move_field_to_module(cr, "mrp.production", "date_planned_start_wo", "mrp_workorder", "mrp")
+    util.move_field_to_module(cr, "mrp.production", "date_planned_finished_wo", "mrp_workorder", "mrp")
     util.create_column(cr, "mrp_production", "date_planned_start_wo", "timestamp without time zone")
     util.create_column(cr, "mrp_production", "date_planned_finished_wo", "timestamp without time zone")
+
     util.create_column(cr, "mrp_production", "date_start_wo", "timestamp without time zone")
     util.create_column(cr, "mrp_production", "orderpoint_id", "int4")
 
@@ -18,8 +21,8 @@ def migrate(cr, version):
           GROUP BY production_id
         )
         UPDATE mrp_production p
-           SET date_planned_start_wo = d.started,
-               date_planned_finished_wo = d.finished
+           SET date_planned_start_wo = COALESCE(date_planned_start_wo, d.started),
+               date_planned_finished_wo = COALESCE(date_planned_finished_wo, d.finished)
           FROM dates d
          WHERE d.production_id = p.id
     """  # noqa

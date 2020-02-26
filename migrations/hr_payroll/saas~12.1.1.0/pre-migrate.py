@@ -29,7 +29,6 @@ def migrate(cr, version):
     for field in {
         "active",
         "parent_rule_id",
-        "company_id",
         "condition_select",
         "condition_range",
         "condition_python",
@@ -41,6 +40,11 @@ def migrate(cr, version):
         "input_ids",
     }:
         util.remove_field(cr, "hr.payslip.line", field)
+
+    if util.version_gte("saas~12.3"):
+        util.remove_column(cr, "hr_payslip_line", "company_id")  # now a related
+    else:
+        util.remove_field(cr, "hr.payslip.line", "company_id")  # gone in saas~12.{1,2}
 
     util.remove_field(cr, "hr.salary.rule", "input_ids")
 

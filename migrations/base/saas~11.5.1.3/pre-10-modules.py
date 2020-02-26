@@ -182,6 +182,15 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "website_crm_score", plus={"crm_enterprise"})
 
         util.remove_module(cr, "account_extension")
+        # Move field info to hr_expense module. We don't care about data of this transient model.
+        # This will avoid useless warning about respawn field
+        util.move_field_to_module(
+            cr,
+            "hr.expense.sheet.register.payment.wizard",
+            "partner_bank_account_id",
+            "hr_expense_sepa",
+            "hr_expense",
+        )
         util.remove_module(cr, "hr_expense_sepa")
         util.remove_module(cr, "print_sale")
         util.remove_module(cr, "print")

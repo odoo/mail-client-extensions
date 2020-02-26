@@ -13,7 +13,6 @@ def migrate(cr, version):
     util.rename_field(cr, "account.asset", "value", "original_value")
     util.rename_field(cr, "asset.modify", "resume_date", "date")
 
-    util.remove_field(cr, "account.asset", "total_depreciation_entries_count")
     util.remove_field(cr, "account.asset", "display_warning_account_type")
     util.remove_field(cr, "account.move", "deferred_revenue_ids")
     util.remove_field(cr, "account.move", "number_deferred_revenue_ids")

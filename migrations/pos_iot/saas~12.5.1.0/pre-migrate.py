@@ -9,5 +9,4 @@ def migrate(cr, version):
     util.create_column(cr, "pos_payment_method", "iot_device_id", "int4")
 
     util.remove_field(cr, "account.journal", "use_payment_terminal")
-    util.remove_field(cr, "pos.config", "proxy_ip")
     util.remove_field(cr, "pos.config", "iface_payment_terminal")

@@ -37,8 +37,6 @@ def migrate(cr, version):
 
     util.rename_model(cr, 'account.asset.asset', 'account.asset')
 
-    util.rename_field(cr, 'account.asset', 'method_period', 'method_period_old')
-    util.create_column(cr, 'account_asset', 'method_period', 'varchar')
     util.create_column(cr, 'account_asset', 'value_residual', 'numeric')
     util.create_column(cr, 'account_asset', 'prorata_date', 'date')
     util.create_column(cr, 'account_asset', 'asset_type', 'varchar')
@@ -64,13 +62,13 @@ def migrate(cr, version):
             account_asset_id,account_depreciation_id,
             account_depreciation_expense_id,journal_id,company_id,method,
             method_number,method_period,method_progress_factor,
-            prorata,currency_id,method_period_old,first_depreciation_date,value)
+            prorata,currency_id,first_depreciation_date,value)
              SELECT 'model' as state,ac.id,
                     ac.active,ac.name,ac.account_analytic_id,ac.account_asset_id,
                     ac.account_depreciation_id,ac.account_depreciation_expense_id,
                     ac.journal_id,ac.company_id,ac.method,ac.method_number,
                     ac.method_period,ac.method_progress_factor,
-                    ac.prorata,c.currency_id,ac.method_period,CURRENT_DATE,0
+                    ac.prorata,c.currency_id,CURRENT_DATE,0
                FROM account_asset_category ac
                INNER JOIN res_company c on ac.company_id=c.id
     """)
@@ -81,10 +79,14 @@ def migrate(cr, version):
                account_asset_id=c.account_asset_id,
                account_depreciation_id=c.account_depreciation_id,
                account_depreciation_expense_id=c.account_depreciation_expense_id,
-               journal_id=c.journal_id,
-               method_period=CASE WHEN method_period_old=1 THEN '1' ELSE '12' END
+               journal_id=c.journal_id
           FROM account_asset_category c
          WHERE account_asset.category_id=c.id
+    """)
+    cr.execute("""
+        ALTER TABLE account_asset
+        ALTER COLUMN method_period TYPE varchar
+        USING CASE method_period WHEN 1 THEN '1' ELSE '12'
     """)
 
     util.create_column(cr, 'account_move', 'asset_id', 'int4')
@@ -166,7 +168,6 @@ def migrate(cr, version):
     util.create_column(cr, 'asset_modify', 'resume_date', 'date')
     util.create_column(cr, 'asset_modify', 'need_date', 'boolean')
 
-    util.remove_field(cr, 'account.asset', 'method_period_old')
     util.remove_field(cr, 'account.asset', 'code')
     util.remove_field(cr, 'account.asset', 'partner_id')
     util.remove_field(cr, 'account.asset', 'method_end')

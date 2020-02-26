@@ -37,6 +37,7 @@ def migrate(cr, version):
     util.create_column(cr, "res_config_settings", "portal_confirmation_sign", "boolean")
     util.create_column(cr, "res_config_settings", "portal_confirmation_pay", "boolean")
     util.create_column(cr, "res_config_settings", "group_sale_order_dates", "boolean")
+    util.move_field_to_module(cr, "res.config.settings", "automatic_invoice", "website_sale", "sale")
     util.create_column(cr, "res_config_settings", "automatic_invoice", "boolean")
     util.create_column(cr, "res_config_settings", "template_id", "int4")
     util.remove_field(cr, "res.config.settings", "portal_confirmation")

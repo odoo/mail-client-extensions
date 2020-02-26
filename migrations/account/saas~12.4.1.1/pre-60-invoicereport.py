@@ -13,9 +13,10 @@ def migrate(cr, version):
     util.rename_field(cr, "account.invoice.report", "price_total", "price_subtotal")
     util.rename_field(cr, "account.invoice.report", "nbr", "nbr_lines")
     util.rename_field(cr, "account.invoice.report", "date_due", "invoice_date_due")
-    util.remove_field(cr, "account.invoice.report", "account_id")
-    util.rename_field(cr, "account.invoice.report", "account_line_id", "account_id")
     util.rename_field(cr, "account.invoice.report", "partner_bank_id", "invoice_partner_bank_id")
+
+    util.update_field_references(cr, "account_line_id", "account_id", only_models=("account.invoice.report",))
+    util.remove_field(cr, "account.invoice.report", "account_line_id")
 
     util.remove_field(cr, "account.invoice.report", "user_currency_price_total")
     util.remove_field(cr, "account.invoice.report", "user_currency_price_average")
