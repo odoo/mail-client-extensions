@@ -3,7 +3,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_field(cr, "crm.team", "use_leads")
+    if not util.version_gte("saas~12.5"):
+        util.remove_field(cr, "crm.team", "use_leads")
     util.remove_field(cr, "crm.team", "dashboard_graph_period_pipeline")
     util.remove_field(cr, "crm.team", "dashboard_graph_group_pipeline")
 

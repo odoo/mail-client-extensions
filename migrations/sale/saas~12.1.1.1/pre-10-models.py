@@ -4,7 +4,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.remove_field(cr, "product.template", "hide_expense_policy")
-    util.remove_field(cr, "crm.team", "use_quotations")
+    if not util.version_gte("saas~12.5"):
+        util.remove_field(cr, "crm.team", "use_quotations")
     util.remove_field(cr, "crm.team", "use_invoices")
     util.remove_field(cr, "crm.team", "dashboard_graph_model")
 

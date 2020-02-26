@@ -66,8 +66,8 @@ def migrate(cr, version):
     """
     )
 
-    util.create_column(cr, "crm_team", "use_quotations", "boolean")
-    cr.execute("UPDATE crm_team SET use_quotations = true")
+    if util.create_column(cr, "crm_team", "use_quotations", "boolean"):
+        cr.execute("UPDATE crm_team SET use_quotations = true")
 
     util.create_column(cr, "utm_campaign", "company_id", "int4")
 

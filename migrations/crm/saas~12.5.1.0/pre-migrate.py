@@ -10,8 +10,8 @@ def migrate(cr, version):
     util.create_column(cr, "crm_lead", "lang_id", "int4")
     util.remove_field(cr, "crm.stage", "legend_priority")
 
-    util.create_column(cr, "crm_team", "use_leads", "boolean")
-    cr.execute("UPDATE crm_team SET use_leads = true")
+    if util.create_column(cr, "crm_team", "use_leads", "boolean"):
+        cr.execute("UPDATE crm_team SET use_leads = true")
 
     util.create_column(cr, "res_config_settings", "module_crm_iap_lead_enrich", "boolean")
     util.create_column(cr, "res_config_settings", "lead_enrich_auto", "varchar")
