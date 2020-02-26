@@ -86,7 +86,7 @@ def migrate(cr, version):
     cr.execute("""
         ALTER TABLE account_asset
         ALTER COLUMN method_period TYPE varchar
-        USING CASE method_period WHEN 1 THEN '1' ELSE '12'
+        USING CASE WHEN method_period = '1' THEN '1' ELSE '12' END
     """)
 
     util.create_column(cr, 'account_move', 'asset_id', 'int4')
