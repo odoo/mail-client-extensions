@@ -1202,10 +1202,6 @@ def migrate_invoice_lines(cr):
                    amount_residual_signed = abs(am_updatable_amounts.residual_amount)
               FROM am_updatable_amounts, res_company c
              WHERE am.type = 'entry'
-               AND (SELECT COUNT(aml.currency_id)
-                      FROM account_move_line aml
-                     WHERE aml.currency_id IS NOT NULL
-                       AND am.id = aml.move_id) != 1
                AND c.id = am.company_id
                AND am.currency_id = c.currency_id
                AND am.id=am_updatable_amounts.id
@@ -1255,25 +1251,12 @@ def migrate_invoice_lines(cr):
                    amount_residual_signed = abs(am_updatable_amounts.residual_amount_curr)
               FROM am_updatable_amounts, res_company c
              WHERE am.type = 'entry'
-               AND (SELECT COUNT(aml.currency_id)
-                      FROM account_move_line aml
-                     WHERE aml.currency_id IS NOT NULL
-                       AND am.id = aml.move_id) = 1
                AND c.id = am.company_id
                AND am.currency_id != c.currency_id
                AND am.id=am_updatable_amounts.id
         """}
 
-        util.parallel_execute(
-            cr,
-            [
-                queries["single_currency_out_invoice"],
-                queries["single_currency_in_invoice"],
-                queries["multi_currency_out_invoice"],
-                queries["multi_currency_in_invoice"],
-            ],
-        )
-        util.parallel_execute(cr, [queries["single_currency_other"], queries["multi_currency_other"]])
+        util.parallel_execute(cr, queries.values())
 
         _logger.info("Fix invoice_payment_state.")
         # A move is paid if all its payable/receivable lines (at least 1) are reconciled
