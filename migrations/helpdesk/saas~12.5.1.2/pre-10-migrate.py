@@ -59,3 +59,6 @@ def migrate(cr, version):
     util.remove_field(cr, "helpdesk.ticket", "sla_name")
     util.remove_field(cr, "helpdesk.ticket", "sla_active")
     util.remove_column(cr, "helpdesk_ticket", "sla_fail")  # related not stored
+
+    util.remove_record(cr, "helpdesk.helpdesk_sla_cron")
+    util.remove_record(cr, "helpdesk.helpdesk_sla_cron_ir_actions_server")
