@@ -3,26 +3,12 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.delete_unused(cr, "product_product", {"point_of_sale.product_product_consumable"}, False)
-    cr.execute(
-        """
-        UPDATE ir_model_data
-           SET name = 'product_product_misc',
-               noupdate = true
-         WHERE module = 'point_of_sale'
-           AND name = 'product_product_consumable'
-    """
-    )
-    util.delete_unused(cr, "product_template", {"point_of_sale.product_product_consumable_product_template"}, False)
-    cr.execute(
-        """
-        UPDATE ir_model_data
-           SET name = 'product_product_misc_product_template',
-               noupdate = true
-         WHERE module = 'point_of_sale'
-           AND name = 'product_product_consumable_product_template'
-    """
-    )
+    eb = util.expand_braces
+
+    util.delete_unused(cr, "product_product", {"point_of_sale.product_product_consumable"})
+    util.delete_unused(cr, "product_template", {"point_of_sale.product_product_consumable_product_template"})
+    util.rename_xmlid(cr, *eb("point_of_sale.product_product_{consumable,misc}"))
+    util.rename_xmlid(cr, *eb("point_of_sale.product_product_{consumable,misc}_product_template"))
 
     util.force_noupdate(cr, "point_of_sale.pos_sale_journal", True)
 
