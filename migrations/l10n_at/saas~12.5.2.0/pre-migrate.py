@@ -4,7 +4,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.remove_record(cr, "l10n_at.account_reports_at_statements_menu")
-    util.delete_unused(cr, "account_account_type", ["l10n_at.account_type_other"])
 
     for model in [
         "account.fiscal.position.tax.template",
@@ -27,3 +26,4 @@ def migrate(cr, version):
             util.remove_record(cr, "l10n_at." + name[0])
 
     util.remove_record(cr, "l10n_at.austria_chart_template")
+    util.delete_unused(cr, "account_account_type", ["l10n_at.account_type_other"])

@@ -16,5 +16,5 @@ def migrate(cr, version):
         for name in cr.fetchall():
             util.remove_record(cr, "l10n_cl." + name[0])
 
-    util.delete_unused(cr, "account_account_type", ["l10n_cl.account_account_type_NCLASIFICADO"])
     util.remove_record(cr, "l10n_cl.cl_chart_template")
+    util.delete_unused(cr, "account_account_type", ["l10n_cl.account_account_type_NCLASIFICADO"])
