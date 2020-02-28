@@ -1548,7 +1548,7 @@ def view_exists(cr, view):
     cr.execute("SELECT 1 FROM information_schema.views WHERE table_name=%s", [view])
     return bool(cr.rowcount)
 
-def get_fk(cr, table):
+def get_fk(cr, table, quote_ident=True):
     """return the list of foreign keys pointing to `table`
 
         returns a 4 tuple: (foreign_table, foreign_column, constraint_name, on_delete_action)
@@ -1558,9 +1558,10 @@ def get_fk(cr, table):
     """
     if "." in table:
         raise SleepyDeveloperError("table name cannot contains dot")
-    q = """SELECT quote_ident(cl1.relname) as table,
-                  quote_ident(att1.attname) as column,
-                  quote_ident(con.conname) as conname,
+    funk = "quote_ident" if quote_ident else "concat"
+    q = """SELECT {funk}(cl1.relname) as table,
+                  {funk}(att1.attname) as column,
+                  {funk}(con.conname) as conname,
                   con.confdeltype
              FROM pg_constraint as con, pg_class as cl1, pg_class as cl2,
                   pg_attribute as att1, pg_attribute as att2
@@ -1575,7 +1576,7 @@ def get_fk(cr, table):
               AND con.confkey[1] = att2.attnum
               AND att2.attrelid = cl2.oid
               AND con.contype = 'f'
-    """
+    """.format(funk=funk)
     cr.execute(q, (table,))
     return cr.fetchall()
 
