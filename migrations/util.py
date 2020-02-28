@@ -1076,7 +1076,7 @@ def delete_unused(cr, *xmlids):
         )
 
         for (tid,) in cr.fetchall():
-            remove_record(cr, (table, tid))
+            remove_record(cr, (model, tid))
 
 
 def modules_installed(cr, *modules):
