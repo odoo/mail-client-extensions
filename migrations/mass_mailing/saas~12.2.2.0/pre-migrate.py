@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.delete_unused(cr, "mail_mass_mailing_list", ["mass_mailing.mass_mail_list_1"])
+    util.delete_unused(cr, "mass_mailing.mass_mail_list_1")
 
     util.create_column(cr, "mail_mass_mailing", "subject", "varchar")
     util.create_column(cr, "mail_mass_mailing", "body_arch", "text")

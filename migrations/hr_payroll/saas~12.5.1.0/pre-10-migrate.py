@@ -44,4 +44,4 @@ def migrate(cr, version):
 
     util.create_column(cr, "hr_payslip_employees", "structure_id", "int4")
 
-    util.delete_unused(cr, "hr_payroll_structure_type", ["hr_payroll.structure_type_employee"])
+    util.delete_unused(cr, "hr_payroll.structure_type_employee")

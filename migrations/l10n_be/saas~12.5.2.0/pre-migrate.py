@@ -8,6 +8,5 @@ def migrate(cr, version):
 
     util.delete_unused(
         cr,
-        "res_country_state",
-        ["l10n_be.state_be_%s" % state for state in "van wbr bru wht wlg vli wlx wna vov vbr vwv".split()],
+        *["l10n_be.state_be_%s" % state for state in "van wbr bru wht wlg vli wlx wna vov vbr vwv".split()],
     )

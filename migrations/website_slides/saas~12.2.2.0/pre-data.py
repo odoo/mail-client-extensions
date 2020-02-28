@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # TODO handle demo data
-    util.delete_unused(cr, "slide_channel", {"website_slides.channel_partial", "website_slides.channel_private"})
+    util.delete_unused(cr, "website_slides.channel_partial", "website_slides.channel_private")
 
     for role in {"public", "portal", "user"}:
         for model in {"slide", "tag", "channel", "category"}:

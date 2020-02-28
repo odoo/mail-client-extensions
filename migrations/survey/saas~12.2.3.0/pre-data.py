@@ -6,7 +6,7 @@ def migrate(cr, version):
     eb = util.expand_braces
 
     util.rename_xmlid(cr, "survey.email_template_survey", "survey.mail_template_user_input_invite")
-    util.delete_unused(cr, "survey_stage", {"survey.stage_permanent"})
+    util.delete_unused(cr, "survey.stage_permanent")
 
     for x in {"", "_question", "_label", "_user_input", "_user_input_line", "_stage"}:
         util.rename_xmlid(cr, *eb("survey.access_survey%s_{public,all}" % x), False)

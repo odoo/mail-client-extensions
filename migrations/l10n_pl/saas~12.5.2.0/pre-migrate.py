@@ -12,5 +12,5 @@ def migrate(cr, version):
         [(util.ref(cr, "l10n_pl.account_type_tax"), util.ref(cr, "l10n_pl.account_type_settlement"))],
     )
 
-    util.delete_unused(cr, "res_country_state", [f"l10n_pl.CA{c:02}" for c in range(1, 17)])
-    util.delete_unused(cr, "account_account_type", ["l10n_pl.account_type_nonbalance"])
+    util.delete_unused(cr, *[f"l10n_pl.CA{c:02}" for c in range(1, 17)])
+    util.delete_unused(cr, "l10n_pl.account_type_nonbalance")
