@@ -15,7 +15,7 @@ def _get_model_id(cr, model):
 def fix_fk(cr, target, update_query):
     new_target = target.replace("invoice", "move")
 
-    for table, column, constraint_name, delete_action in util.get_fk(cr, target):
+    for table, column, constraint_name, delete_action in util.get_fk(cr, target, quote_ident=False):
         # Skip some already fixed fields
         if (table, column) not in [
             ("account_invoice_account_move_line_rel", "account_invoice_id"),
@@ -28,47 +28,39 @@ def fix_fk(cr, target, update_query):
             _logger.info("Fix %s FK on %s.%s", target, table, column)
             old_column = "{}_mig_s124".format(column)
 
-            cr.execute("ALTER TABLE {} RENAME COLUMN {} TO {}".format(table, column, old_column))
+            cr.execute(f'ALTER TABLE "{table}" RENAME COLUMN "{column}" TO "{old_column}"')
             util.create_column(cr, table, column, "int4")
 
             cr.execute(update_query.format_map(locals()))
 
-            other_columns = util.get_columns(cr, table, ignore=("id", column))[0]
+            cr.execute(f'ALTER TABLE "{table}" DROP CONSTRAINT "{constraint_name}"')
+
+            other_columns = util.get_columns(cr, table, ignore=(column, old_column))[0]
             is_m2m = len(other_columns) == 1
 
-            delete_action = (
-                "CASCADE"
-                if is_m2m
-                else {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}[
-                    delete_action
-                ]
-            )
+            if not is_m2m:
+                delete_action = {
+                    "a": "NO ACTION",
+                    "r": "RESTRICT",
+                    "c": "CASCADE",
+                    "n": "SET NULL",
+                    "d": "SET DEFAULT",
+                }[delete_action]
 
-            cr.execute(
-                """
-                ALTER TABLE {table} DROP CONSTRAINT {constraint_name};
-                ALTER TABLE {table}
-                  ADD CONSTRAINT {constraint_name}
-                  FOREIGN KEY ({column})
-                  REFERENCES {new_target}
-                  ON DELETE {delete_action};
-            """.format_map(
-                    locals()
-                )
-            )
-
-            if is_m2m:
-                # set column not null & add indexes
-                other_column = other_columns[0]
                 cr.execute(
-                    """
-                    ALTER TABLE {table} ALTER COLUMN {column} SET NOT NULL;
-                    CREATE UNIQUE INDEX ON {table} ({column}, {other_column});
-                    CREATE INDEX ON {table} ({column});
-                """.format_map(
-                        locals()
-                    )
+                    f"""
+                    ALTER TABLE "{table}"
+                      ADD CONSTRAINT "{constraint_name}"
+                      FOREIGN KEY ("{column}")
+                      REFERENCES "{new_target}"
+                      ON DELETE {delete_action};
+                """
                 )
+            else:
+                other_column = other_columns[0]
+                fk2 = util.target_of(cr, table, other_column)
+                if fk2:
+                    util.fixup_m2m(cr, table, new_target, fk2[0], column, other_column)
 
             util.remove_column(cr, table, old_column, cascade=True)
 
@@ -154,10 +146,10 @@ def migrate(cr, version):
         cr,
         "account_invoice",
         """
-            UPDATE {table} t
-               SET {column} = i.move_id
+            UPDATE "{table}" t
+               SET "{column}" = i.move_id
               FROM account_invoice i
-             WHERE i.id = t.{old_column}
+             WHERE i.id = t."{old_column}"
         """,
     )
 
@@ -165,10 +157,10 @@ def migrate(cr, version):
         cr,
         "account_invoice_line",
         """
-            UPDATE {table} t
-               SET {column} = l.aml_id
+            UPDATE "{table}" t
+               SET "{column}" = l.aml_id
               FROM invl_aml_mapping l
-             WHERE l.invl_id = t.{old_column}
+             WHERE l.invl_id = t."{old_column}"
         """,
     )
 
