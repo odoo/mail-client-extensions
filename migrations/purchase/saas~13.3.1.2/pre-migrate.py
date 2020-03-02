@@ -72,3 +72,18 @@ def migrate(cr, version):
 
     # Remove unused menu item
     util.remove_menus(cr, [util.ref(cr, "purchase.menu_report_purchase")])
+    
+    util.create_column(cr, "purchase_order", "expected_date", "timestamp without time zone")
+
+    cr.execute("""
+        WITH pol AS (
+                SELECT order_id, MIN(date_planned) as date_planned
+                  FROM purchase_order_line
+                 WHERE date_planned IS NOT NULL
+              GROUP BY order_id
+        )
+        UPDATE purchase_order po
+           SET expected_date = pol.date_planned
+          FROM pol
+         WHERE pol.order_id = po.id
+    """)
