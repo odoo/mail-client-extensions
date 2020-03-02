@@ -8,4 +8,4 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("documents{,_hr}.documents_hr_documents"))
     util.rename_xmlid(cr, *eb("documents{,_hr}.documents_hr_documents_absences"))
 
-    util.delete_unused(cr, "documents_tag", {"documents.documents_hr_documents_appraisal"})
+    util.delete_unused(cr, "documents.documents_hr_documents_appraisal")
