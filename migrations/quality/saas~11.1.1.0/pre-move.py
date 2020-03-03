@@ -64,8 +64,8 @@ def migrate(cr, version):
 
     cr.execute("""
         UPDATE ir_model_data
-           SET module='quality_mrp'
-         WHERE module='quality_mrp_workorder'
+           SET module='quality_mrp_worker'
+         WHERE module='quality_mrp'
            AND model IN ('quality.point.test_type',
                          'quality.point'
                         )
