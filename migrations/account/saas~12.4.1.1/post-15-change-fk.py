@@ -33,9 +33,9 @@ def fix_fk(cr, target, update_query):
 
             cr.execute(update_query.format_map(locals()))
 
-            cr.execute(f'ALTER TABLE "{table}" DROP CONSTRAINT "{constraint_name}"')
+            util.remove_column(cr, table, old_column)
 
-            other_columns = util.get_columns(cr, table, ignore=(column, old_column))[0]
+            other_columns = util.get_columns(cr, table, ignore=(column,))[0]
             is_m2m = len(other_columns) == 1
 
             if not is_m2m:
@@ -61,8 +61,6 @@ def fix_fk(cr, target, update_query):
                 fk2 = util.target_of(cr, table, other_column)
                 if fk2:
                     util.fixup_m2m(cr, table, new_target, fk2[0], column, other_column)
-
-            util.remove_column(cr, table, old_column, cascade=True)
 
 
 def fix_indirect(cr):
