@@ -1,1 +1,0 @@
-../../l10n_mx_edi_external_trade/saas~12.1.0.1/pre-migrate.py
