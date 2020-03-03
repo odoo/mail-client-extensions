@@ -23,3 +23,7 @@ def migrate(cr, version):
         else:
             f = t = rename
         util.rename_xmlid(cr, "sale_quotation_builder." + f, "sale_management." + t)
+
+    util.rename_xmlid(
+        cr, "sale_quotation_builder.view_sale_quote_template_form", "sale_management.sale_order_template_view_form"
+    )
