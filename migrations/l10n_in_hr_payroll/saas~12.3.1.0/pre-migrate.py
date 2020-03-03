@@ -47,4 +47,4 @@ def migrate(cr, version):
          hr_payslip_rule_erpf
     """
     )
-    util.delete_unused(cr, "hr_salary_rule", {"l10n_in_hr_payroll.%s" % r for r in salary_rule})
+    util.delete_unused(cr, *["l10n_in_hr_payroll.%s" % r for r in salary_rule])
