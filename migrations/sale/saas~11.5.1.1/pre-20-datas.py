@@ -29,6 +29,7 @@ def migrate(cr, version):
     util.remove_view(cr, "sale.portal_order_page")
     util.remove_view(cr, "sale.portal_order_error")
     util.remove_view(cr, "sale.portal_order_success")
+    util.rename_xmlid(cr, "sale_quotation_builder.so_quotation", "sale.sale_order_portal_template")
 
     util.remove_record(cr, "sale.report_all_channels_sales")
     util.remove_record(cr, "sale.menu_attribute_action")
