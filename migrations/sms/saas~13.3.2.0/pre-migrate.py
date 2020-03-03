@@ -25,5 +25,6 @@ def migrate(cr, version):
     util.remove_field(cr, "sms.composer", "partner_ids")
     util.rename_field(cr, "sms.composer", "recipient_count", "recipient_valid_count")
     util.rename_field(cr, "sms.composer", "recipient_description", "recipient_single_description")
+    util.create_column(cr, "sms_composer", "recipient_single_number_itf", "varchar")
     # force view update as it is quite changed
     util.force_noupdate(cr, "sms.sms_composer_view_form", False)
