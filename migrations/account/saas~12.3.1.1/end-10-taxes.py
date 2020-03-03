@@ -446,7 +446,7 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
             force_company=tax.company_id.id,
             default_company_id=tax.company_id.id,
             company_id=tax.company_id.id,
-            type=type,
+            default_type=type,
         )._get_default_journal()
     else:
         journal = env["account.invoice"].with_context(
@@ -484,6 +484,7 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
                 "partner_id": partner.id,
                 "currency_id": tax.company_id.currency_id.id,
                 "type": type,
+                "journal_id": journal.id,
                 "invoice_date" if util.version_gte('saas~12.4') else "date_invoice": datetime.datetime.utcnow().isoformat(),
                 "company_id": tax.company_id.id,
                 "invoice_line_ids": [(0, 0, {
