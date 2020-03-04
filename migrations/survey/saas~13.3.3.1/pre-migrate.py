@@ -5,8 +5,10 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     # session support
-    util.rename_field(cr, 'survey.survey', 'session_show_ranking', 'session_show_leaderboard')
-    util.create_column(cr, 'survey_survey', 'session_start_time', 'timestamp without time zone')
+    util.rename_field(cr, "survey.survey", "session_show_ranking", "session_show_leaderboard")
+    util.create_column(cr, "survey_survey", "session_start_time", "timestamp without time zone")
+
+    util.create_column(cr, "survey_survey", "session_code", "varchar")
 
     # conditional questions support
     util.create_column(cr, "survey_question", "is_conditional", "boolean")
