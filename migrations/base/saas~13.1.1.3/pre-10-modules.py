@@ -69,9 +69,12 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "account_sepa_direct_debit", plus={"account_accountant"})
 
         util.module_deps_diff(cr, "approvals", plus={"product"})
+
         util.module_deps_diff(
             cr, "hr_payroll", plus={"hr_work_entry_contract"}, minus={"hr_contract", "hr_holidays", "hr_work_entry"},
         )
+        util.force_migration_of_fresh_module(cr, "hr_work_entry_contract")
+
         util.module_deps_diff(cr, "hr_referral", plus={"hr_recruitment_reports"})
         util.module_deps_diff(cr, "industry_fsm", plus={"timesheet_grid"}, minus={"sale_timesheet_enterprise"})
         util.module_deps_diff(cr, "industry_fsm_report", minus={"project"})
