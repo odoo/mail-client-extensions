@@ -35,14 +35,6 @@ def migrate(cr, version):
 
         util.new_module(cr, "hr_work_entry_contract", deps={"hr_work_entry", "hr_contract"})
         util.new_module(
-            cr, "hr_work_entry_holidays", deps={"hr_work_entry_contract", "hr_holidays"}, auto_install=True,
-        )
-        util.new_module(
-            cr, "hr_payroll_holidays", deps={"hr_payroll", "hr_work_entry_holidays"}, auto_install=True,
-        )
-        if util.module_installed(cr, "hr_payroll"):
-            util.force_install_module(cr, "hr_payroll_holidays")
-        util.new_module(
             cr, "hr_recruitment_reports", deps={"hr_recruitment", "web_dashboard"}, auto_install=True,
         )
 
@@ -74,6 +66,13 @@ def migrate(cr, version):
             cr, "hr_payroll", plus={"hr_work_entry_contract"}, minus={"hr_contract", "hr_holidays", "hr_work_entry"},
         )
         util.force_migration_of_fresh_module(cr, "hr_work_entry_contract")
+        util.new_module(
+            cr, "hr_work_entry_holidays", deps={"hr_work_entry_contract", "hr_holidays"}, auto_install=True,
+        )
+        util.force_migration_of_fresh_module(cr, "hr_work_entry_holidays")
+        util.new_module(
+            cr, "hr_payroll_holidays", deps={"hr_payroll", "hr_work_entry_holidays"}, auto_install=True,
+        )
 
         util.module_deps_diff(cr, "hr_referral", plus={"hr_recruitment_reports"})
         util.module_deps_diff(cr, "industry_fsm", plus={"timesheet_grid"}, minus={"sale_timesheet_enterprise"})
