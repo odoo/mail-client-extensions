@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
+
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -22,3 +23,5 @@ def migrate(cr, version):
     util.rename_xmlid(cr, 'mass_mailing.view_mail_mass_mailing_contact_kanban', 'mass_mailing.mailing_contact_view_kanban')
     util.rename_xmlid(cr, 'mass_mailing.view_mail_mass_mailing_contact_pivot', 'mass_mailing.mailing_contact_view_pivot')
     util.rename_xmlid(cr, 'mass_mailing.view_mail_mass_mailing_contact_graph', 'mass_mailing.mailing_contact_view_graph')
+
+    util.create_column(cr, "mailing_mailing", "lang", "varchar")
