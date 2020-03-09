@@ -154,3 +154,6 @@ def migrate(cr, version):
           WHERE use_in_tax_closing IS NULL
            """
           )
+
+    util.create_column(cr, "account_move_reversal", "date_mode", "varchar")
+    cr.execute("UPDATE account_move_reversal SET date_mode = 'custom' WHERE date_mode IS NULL")
