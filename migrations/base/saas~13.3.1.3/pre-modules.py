@@ -31,3 +31,4 @@ def migrate(cr, version):
             plus={"hr_contract_salary_payroll", "l10n_be_hr_contract_salary"},
             minus={"hr_contract_salary"},
         )
+        util.new_module(cr, "purchase_stock_enterprise", deps={"purchase_enterprise", "purchase_stock"}, auto_install=True)
