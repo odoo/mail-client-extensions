@@ -130,3 +130,22 @@ def migrate(cr, version):
     for model_name, field_names in fields_to_check.items():
         for field_name in field_names:
             util.check_company_fields(cr, model_name, field_name)
+
+    util.create_column(cr, 'account_tax_repartition_line', 'use_in_tax_closing', 'bool')
+
+    cr.execute(
+       """
+         UPDATE account_tax_repartition_line
+            SET use_in_tax_closing = TRUE
+           FROM account_account
+          WHERE account_tax_repartition_line.account_id = account_account.id
+        AND NOT account_account.internal_group IN ('income', 'expense')
+           """
+          )
+    cr.execute(
+       """
+         UPDATE account_tax_repartition_line
+            SET use_in_tax_closing = FALSE
+          WHERE use_in_tax_closing IS NULL
+           """
+          )
