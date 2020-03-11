@@ -294,8 +294,8 @@ You must at least define one of:
     else:
         addons_path = [normalize_path(path) for path in args.addons_path.split(",")]
 
-    source_exec_path = exec_path
-    source_addons_path = addons_path
+    target_exec_path = source_exec_path = exec_path
+    target_addons_path = source_addons_path = addons_path
 
     # automatic multiverse management
     if args.multiverse:
