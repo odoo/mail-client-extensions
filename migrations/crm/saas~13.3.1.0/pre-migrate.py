@@ -21,3 +21,6 @@ def migrate(cr, version):
     util.rename_field(cr, "crm.team", "unassigned_leads_count", "lead_unassigned_count")
     util.rename_field(cr, "crm.team", "overdue_opportunities_count", "opportunities_overdue_count")
     util.rename_field(cr, "crm.team", "overdue_opportunities_amount", "opportunities_overdue_amount")
+
+    util.rename_field(cr, "crm.lead", "phone_blacklisted", "phone_sanitized_blacklisted")
+    util.create_column(cr, 'crm_lead', 'phone_sanitized', "varchar")

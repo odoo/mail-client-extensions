@@ -28,3 +28,5 @@ def migrate(cr, version):
     util.create_column(cr, "sms_composer", "recipient_single_number_itf", "varchar")
     # force view update as it is quite changed
     util.force_noupdate(cr, "sms.sms_composer_view_form", False)
+
+    util.rename_field(cr, "res.partner", "phone_blacklisted", "phone_sanitized_blacklisted")
