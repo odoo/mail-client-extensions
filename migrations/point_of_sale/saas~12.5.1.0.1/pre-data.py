@@ -5,11 +5,16 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     eb = util.expand_braces
 
-    util.delete_unused(
-        cr,
-        "point_of_sale.product_product_consumable",
-        "point_of_sale.product_product_consumable_product_template",
-    )
+    consumable = "point_of_sale.product_product_consumable"
+    consumable_tmpl = f"{consumable}_product_template"
+
+    util.delete_unused(cr, consumable)
+    if util.ref(cr, consumable):
+        # if product still there, mark the template as noupdate
+        util.force_noupdate(cr, consumable_tmpl, True)
+    else:
+        util.delete_unused(cr, consumable_tmpl)
+
     util.rename_xmlid(cr, *eb("point_of_sale.product_product_{consumable,misc}"))
     util.rename_xmlid(cr, *eb("point_of_sale.product_product_{consumable,misc}_product_template"))
 
