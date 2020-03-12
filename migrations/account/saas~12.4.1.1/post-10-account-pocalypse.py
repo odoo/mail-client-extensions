@@ -1332,7 +1332,7 @@ def migrate_invoice_lines(cr):
 def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
-    cr.execute("REINDEX account_tax")
+    cr.execute("REINDEX TABLE account_tax")
     with no_fiscal_lock(cr):
         if util.table_exists(cr, "account_voucher"):
             migrate_voucher_lines(cr)
