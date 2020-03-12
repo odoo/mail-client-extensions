@@ -355,13 +355,12 @@ def _compute_invoice_line_move_line_mapping(cr):
              WHERE il.display_type IS NULL
                AND il.price_subtotal != 0
 
-               AND il.id NOT IN (SELECT invl_id FROM invl_aml_mapping)
-               AND ml.id NOT IN (SELECT aml_id FROM invl_aml_mapping)
+               AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
+               AND NOT EXISTS (SELECT aml_id FROM invl_aml_mapping WHERE aml_id=ml.id)
 
                AND {}
         """.format(" AND ".join(filters[c] for c in cond)))
         added = cr.rowcount
-
         if added:
             cr.execute(remove_bad_matches_query)
             removed = cr.rowcount
@@ -1331,6 +1330,9 @@ def migrate_invoice_lines(cr):
 
 
 def migrate(cr, version):
+    cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
+    cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
+    cr.execute("REINDEX account_tax")
     with no_fiscal_lock(cr):
         if util.table_exists(cr, "account_voucher"):
             migrate_voucher_lines(cr)
