@@ -4,8 +4,14 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, 'crm_lead2opportunity_partner', 'lead_id', 'int4')
-    util.create_column(cr, 'crm_lead2opportunity_partner_mass', 'lead_id', 'int4')
-    util.remove_model(cr, 'crm.partner.binding')
+    util.remove_model(cr, "crm.partner.binding")
+
+    util.create_column(cr, "crm_lead2opportunity_partner", "lead_id", "int4")
+    util.create_column(cr, "crm_lead2opportunity_partner", "force_assignment", "boolean")
+    util.rename_field(cr, "crm.lead2opportunity.partner", "opportunity_ids", "duplicated_lead_ids")
+
+    util.create_column(cr, "crm_lead2opportunity_partner_mass", "lead_id", "int4")
+    util.rename_field(cr, "crm.lead2opportunity.partner.mass", "force_assignation", "force_assignment")
+    util.rename_field(cr, "crm.lead2opportunity.partner.mass", "opportunity_ids", "duplicated_lead_ids")
 
     cr.execute('ALTER TABLE "crm_lead_tag_rel" RENAME TO "crm_tag_rel"')
