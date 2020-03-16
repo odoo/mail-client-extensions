@@ -59,4 +59,5 @@ def migrate(cr, version):
             "test_marketing_automation",
             plus={"marketing_automation_sms", "test_mass_mailing", "test_mail_enterprise", "test_mail_full"},
         )
+        util.new_module_dep(cr, "voip", "web_mobile")
         util.new_module(cr, "hr_appraisal_survey", deps={"hr_appraisal", "survey"})
