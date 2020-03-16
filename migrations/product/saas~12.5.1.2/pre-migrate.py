@@ -18,12 +18,17 @@ def migrate(cr, version):
         INSERT INTO product_variant_combination(product_template_attribute_value_id, product_product_id)
              SELECT ptav.id, r.product_product_id
                FROM product_attribute_value_product_product_rel r
-               JOIN product_template_attribute_value ptav ON ptav.product_attribute_value_id = r.product_attribute_value_id
+               JOIN product_product p
+                 ON p.id = r.product_product_id
+               JOIN product_template_attribute_value ptav
+                 ON ptav.product_attribute_value_id = r.product_attribute_value_id
+                AND ptav.product_tmpl_id = p.product_tmpl_id
     """
     )
-    cr.execute("DROP TABLE product_attribute_value_product_product_rel")
 
+    cr.execute("DROP TABLE product_attribute_value_product_product_rel")
     # util.rename_field(cr, "product.product", "attribute_value_ids", "product_template_attribute_value_ids")
+    util.remove_field(cr, "product.product", "attribute_value_ids")
 
     util.create_column(cr, "product_product", "combination_indices", "varchar")
     cr.execute(
