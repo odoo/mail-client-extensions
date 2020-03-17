@@ -189,6 +189,7 @@ def migrate(cr, version):
                 util.force_migration_of_fresh_module(cr, 'account_tax_python')
 
         util.new_module(cr, 'account_reports', deps=('account',), auto_install=True)
+        util.force_migration_of_fresh_module(cr, 'account_reports')
         util.new_module(cr, 'account_extension', deps=('account',), auto_install=True)
 
         l10n = 'au ar at be bo br ch cl co de_skr03 de_skr04 do es et fr gr hr hu in jp lu ma nl no pl ro sg si th uk uy vn'.split()
