@@ -52,3 +52,23 @@ def migrate(cr, version):
          WHERE po.id = p.id
         """
     )
+
+    # Create new PurchaseOrder date_calendar_start stored computed field
+    util.create_column(cr, "purchase_order", "date_calendar_start", "timestamp without time zone")
+
+    # Compute all date_calendar_start for existing records
+    cr.execute(
+        """
+        UPDATE purchase_order
+        SET date_calendar_start = CASE WHEN state IN ('purchase', 'done') THEN date_approve
+                                       ELSE date_order
+                                  END
+        """
+    )
+
+    util.remove_record(cr, "purchase.filter_purchase_order_monthly_purchases")
+    util.remove_record(cr, "purchase.filter_purchase_order_price_per_supplier")
+    util.remove_record(cr, "purchase.filter_purchase_order_average_delivery_time")
+
+    # Remove unused menu item
+    util.remove_menus(cr, [util.ref(cr, "purchase.menu_report_purchase")])
