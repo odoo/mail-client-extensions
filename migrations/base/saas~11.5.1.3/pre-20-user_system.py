@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict
+import itertools
+
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -125,8 +128,11 @@ def migrate(cr, version):
         ("ir_cron", "user_id"),
         ("mail_activity", "create_user_id"),  # second create_uid (wtf?)
         ("mail_alias", "alias_user_id"),
-        ("res_company", "intercompany_user_id") # always SUPERUSER (uid=1)
+        ("res_company", "intercompany_user_id"),  # always SUPERUSER (uid=1)
     ]
+
+    # regroup queries per table to avoid updating the same table (and records) in parallel.
+    all_queries = defaultdict(list)
 
     for table, fk, _, _ in util.get_fk(cr, "res_users"):
         if table == "ir_model_data":
@@ -151,5 +157,7 @@ def migrate(cr, version):
                 )
             """
             params += [util.model_of_table(cr, table)]
+        all_queries[table].append(cr.mogrify(query.format(table=table, fk=fk), params).decode())
 
-        cr.execute(query.format(table=table, fk=fk), params)
+    for queries in itertools.zip_longest(*all_queries.values()):
+        util.parallel_execute(cr, [q for q in queries if q is not None])
