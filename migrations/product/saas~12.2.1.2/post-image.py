@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+from odoo import tools
 from odoo.addons.base.maintenance.migrations import util
 
 FORCE_COPY = re.split(r"[,\s]+", os.getenv("MIG_S122_FORCE_COPY_IMAGES_MODELS", ""))
@@ -63,14 +64,14 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
             not_ids.append(res_id)
 
     if not_ids:
-        cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field"))[0])
+        cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content"))[0])
         size = (len(not_ids) + chunk_size - 1) / chunk_size
         qual = '%s %d-bucket' % (model, chunk_size)
         for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), qualifier=qual, size=size):
             cr.execute(
                 """
-                INSERT INTO ir_attachment(res_field, {cols})
-                     SELECT unnest(%s), {cols}
+                INSERT INTO ir_attachment(res_field, {cols}, index_content)
+                     SELECT unnest(%s), {cols}, 'image_is_not_yet_resized'
                        FROM ir_attachment
                       WHERE res_model = %s
                         AND res_field = %s
@@ -86,6 +87,12 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
             qual = '%s:%s %d-bucket' % (model, zoom, chunk_size)
             for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), qualifier=qual, size=size):
                 cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [sub_ids])
+
+        # Inject the cron which will resize the images which have not been resized during the upgrade
+        if not util.ref(cr, "__upgrade__.post_upgrade_resize_image"):
+            cron_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resize-images-cron.xml")
+            with open(cron_file, "rb") as fp:
+                tools.convert_xml_import(cr, "__upgrade__", fp, {})
 
     if has_ids:
         if zoom:
