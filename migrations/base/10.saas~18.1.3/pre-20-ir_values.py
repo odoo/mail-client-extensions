@@ -37,9 +37,14 @@ def migrate(cr, version):
           FROM act_multi u, ir_values v, ir_model m
          WHERE u.id = a.id
            AND v.key = 'action'
-           AND a.id = split_part({}, ',', 2)::int4
+           AND a.id = CASE
+                           -- ir.actions.actions(354,)
+                           WHEN {col} like '%,)' THEN split_part(split_part({col}, '(', 2), ',', 1)::int4
+                           -- ir.actions.act_window,167
+                           ELSE split_part({col}, ',', 2)::int4
+                            END
            AND m.model = v.model
-    """.format(col))
+    """.format(col=col))
 
     # default
     pv = util.parse_version
