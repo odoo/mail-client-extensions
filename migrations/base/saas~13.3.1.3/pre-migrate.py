@@ -23,3 +23,5 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("base.module_category_{accounting,human_resources}_expense"))
     util.rename_xmlid(cr, *eb("base.module_category_accounting_{payment,payment_acquirers}"))
     util.rename_xmlid(cr, *eb("base.module_category_{discuss,productivity_discuss}"))
+
+    util.remove_view(cr, "base.view_partner_short_form")
