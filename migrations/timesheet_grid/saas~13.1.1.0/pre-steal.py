@@ -3,6 +3,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    if util.version_gte("saas~13.2"):
+        # in saas~13.2, everything moves to `hr_timesheet`
+        return
+
     eb = util.expand_braces
 
     moves = {
