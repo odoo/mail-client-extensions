@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if util.table_exists(cr, 'tax_accounts_v12_bckp'):
+    if util.table_exists(cr, "tax_accounts_v12_bckp"):
         cr.execute("DROP TABLE financial_report_lines_v12_bckp")
         cr.execute("DROP TABLE account_tax_account_tag_v12_bckp")
         cr.execute("DROP TABLE tax_accounts_v12_bckp")

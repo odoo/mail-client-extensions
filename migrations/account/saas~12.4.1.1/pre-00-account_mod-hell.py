@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models
 
-# from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.account.models import account_move  # noqa
 
 

@@ -47,20 +47,24 @@ def _convert_to_account_move_vals(inv_vals):
         "invoice_partner_display_name": inv_vals.get("invoice_partner_display_name"),
         # Lines.
         "invoice_line_ids": [
-            (0, 0, {
-                "name": inv_line_vals["name"],
-                "display_type": inv_line_vals.get("display_type"),
-                "sequence": inv_line_vals["sequence"],
-                "product_uom_id": inv_line_vals.get("product_uom_id"),
-                "product_id": inv_line_vals["product_id"],
-                "account_id": inv_line_vals["account_id"],
-                "price_unit": inv_line_vals["price_unit"],
-                "quantity": inv_line_vals["quantity"],
-                "discount": inv_line_vals.get("discount"),
-                "tax_ids": [(6, 0, [] if inv_line_vals.get("display_type") else inv_line_vals["tax_ids"])],
-                "analytic_account_id": inv_line_vals["analytic_account_id"],
-                "analytic_tag_ids": [(6, 0, inv_line_vals["analytic_tag_ids"])],
-            })
+            (
+                0,
+                0,
+                {
+                    "name": inv_line_vals["name"],
+                    "display_type": inv_line_vals.get("display_type"),
+                    "sequence": inv_line_vals["sequence"],
+                    "product_uom_id": inv_line_vals.get("product_uom_id"),
+                    "product_id": inv_line_vals["product_id"],
+                    "account_id": inv_line_vals["account_id"],
+                    "price_unit": inv_line_vals["price_unit"],
+                    "quantity": inv_line_vals["quantity"],
+                    "discount": inv_line_vals.get("discount"),
+                    "tax_ids": [(6, 0, [] if inv_line_vals.get("display_type") else inv_line_vals["tax_ids"])],
+                    "analytic_account_id": inv_line_vals["analytic_account_id"],
+                    "analytic_tag_ids": [(6, 0, inv_line_vals["analytic_tag_ids"])],
+                },
+            )
             for inv_line_vals in inv_vals.get("invoice_line_ids", [])
         ],
     }
@@ -71,26 +75,27 @@ def _explode_tax_groups(cr):
     cr.execute(
         """
         INSERT INTO account_invoice_line_tax (invoice_line_id, tax_id)
-           select ailt.invoice_line_id,child.child_tax
-             from account_invoice_line_tax ailt
-       inner join account_tax t on ailt.tax_id=t.id
-       inner join account_tax_filiation_rel child on t.id=child.parent_tax
-            where t.amount_type='group'
+           SELECT ailt.invoice_line_id,child.child_tax
+             FROM account_invoice_line_tax ailt
+             JOIN account_tax t on ailt.tax_id=t.id
+             JOIN account_tax_filiation_rel child on t.id=child.parent_tax
+            WHERE t.amount_type='group'
        ON CONFLICT DO NOTHING
         """
     )
     cr.execute(
         """
         DELETE
-        FROM account_invoice_line_tax ailt
-  USING account_tax t, account_invoice_line l,account_invoice i
-       where t.amount_type='group'
-         AND i.move_id IS NULL
-         AND ailt.tax_id=t.id
-         AND l.id=ailt.invoice_line_id
-         AND i.id=l.invoice_id
+          FROM account_invoice_line_tax ailt
+         USING account_tax t, account_invoice_line l,account_invoice i
+         WHERE t.amount_type='group'
+           AND i.move_id IS NULL
+           AND ailt.tax_id=t.id
+           AND l.id=ailt.invoice_line_id
+           AND i.id=l.invoice_id
     """
     )
+
 
 def _get_conditions():
     # NOTE: as we ignore already matched lines, the conditions SHOULD be from more precise to less precise
@@ -100,7 +105,6 @@ def _get_conditions():
         {"same_name", "same_product", "same_taxes_percentages"},
         {"same_not_null_product", "exact_same_taxes"},
         {"same_name", "exact_same_taxes"},
-
         # We now ignore the taxes if the invoice is paid and moved posted, trusting the accountant
         {"same_name", "same_product", "paid_invoice_posted_move"},
         {"same_not_null_product", "paid_invoice_posted_move"},
@@ -118,6 +122,7 @@ def _get_conditions():
                     yield (cond - {"same_name"}) | {"same_trimmed_name"} | xtr
                     yield (cond - {"same_name"}) | {"same_chopped_name"} | xtr
                     yield (cond - {"same_name"}) | {"same_name_first_line"} | xtr
+                    yield (cond - {"same_name"}) | {"substring_name"} | xtr
 
         yield {"same_amount", "only_one_line", "same_not_null_product"}
         for xtr in explode(dimensions):
@@ -125,6 +130,8 @@ def _get_conditions():
 
         for xtr in itertools.chain(*dimensions):
             yield xtr | {"only_one_line"}
+        yield {"same_amount", "same_name", "same_not_null_product"}
+        yield {"same_amount", "same_not_null_product"}
 
     # conditions = list(
     return iter(
@@ -139,8 +146,10 @@ def _get_conditions():
         )
     )
 
+
 def _get_mapping_exceptions(name):
     return {int(a): int(b) for each in os.environ.get(name, "").split(",") for a, _, b in [each.partition(":")] if each}
+
 
 def _compute_invoice_line_move_line_mapping(cr):
     """ Compute the mapping between account_invoice_line and its corresponding account_move_line.
@@ -166,8 +175,12 @@ def _compute_invoice_line_move_line_mapping(cr):
         if exc:
             cr.executemany("INSERT INTO invl_aml_mapping(invl_id, aml_id) VALUES (%s, %s)", exc.items())
     else:
-        cr.execute("DELETE FROM invl_aml_mapping m WHERE NOT EXISTS (SELECT 1 FROM account_invoice_line l where l.id=m.invl_id)")
-        cr.execute("DELETE FROM invl_aml_mapping m WHERE NOT EXISTS (SELECT 1 FROM account_move_line l where l.id=m.aml_id)")
+        cr.execute(
+            "DELETE FROM invl_aml_mapping m WHERE NOT EXISTS (SELECT 1 FROM account_invoice_line l where l.id=m.invl_id)"
+        )
+        cr.execute(
+            "DELETE FROM invl_aml_mapping m WHERE NOT EXISTS (SELECT 1 FROM account_move_line l where l.id=m.aml_id)"
+        )
 
     remove_bad_matches_query = """
         WITH gb_ml AS (
@@ -195,6 +208,7 @@ def _compute_invoice_line_move_line_mapping(cr):
               USING bad
               WHERE m.invl_id = bad.il
                 AND m.aml_id = bad.ml
+          RETURNING m.invl_id, m.aml_id
     """
 
     filters = {
@@ -223,9 +237,7 @@ def _compute_invoice_line_move_line_mapping(cr):
                                                  END),
                       curr.decimal_places)) <= curr.rounding
             """,
-
         "same_account": "il.account_id = ml.account_id",
-
         "same_name": "il.name = ml.name",
         # move line name used to be limited to 64 characters. See https://git.io/JeAmb
         "same_chopped_name": "substr(il.name, 0, 65) = ml.name",
@@ -234,11 +246,11 @@ def _compute_invoice_line_move_line_mapping(cr):
         # invoice line name is a `fields.Text`, while move line name is a `fields.Char`.
         # Only match the first line
         "same_name_first_line": r"(regexp_match(il.name, '^(.*)$', 'n'))[1] = ml.name",
-
+        # Sometimes, invoice line's name has been cut, move line's name must be used as prefix to match
+        "substring_name": "strpos(ml.name, il.name) = 1",  # aka starts_with
         "same_product": "il.product_id IS NOT DISTINCT FROM ml.product_id",
         # When ignoring the name, the product should be not null
         "same_not_null_product": "il.product_id = ml.product_id",
-
         "same_analytic_account": """
              il.account_analytic_id IS NOT DISTINCT FROM ml.analytic_account_id
              AND
@@ -276,7 +288,6 @@ def _compute_invoice_line_move_line_mapping(cr):
                     WHERE r.account_move_line_id = ml.id
                  ORDER BY r.account_tax_id)
             )""",
-
         "same_taxes_from_company": """(
              ARRAY(SELECT r.tax_id
                      FROM account_invoice_line_tax r
@@ -325,7 +336,6 @@ def _compute_invoice_line_move_line_mapping(cr):
                       AND t.amount_type != 'percent'
              )
             )""",
-
         "paid_invoice_posted_move": "i.state IN ('open', 'paid') AND m.state = 'posted'",
         # only consider unmatched lines with the same amount
         "only_one_line": """
@@ -342,7 +352,8 @@ def _compute_invoice_line_move_line_mapping(cr):
 
     # execute the query in mutli-passes (leeloo?)
     for cond in _get_conditions():
-        cr.execute("""
+        cr.execute(
+            """
             INSERT INTO invl_aml_mapping(invl_id, aml_id)
             SELECT il.id, ml.id
               FROM account_invoice_line il
@@ -353,13 +364,15 @@ def _compute_invoice_line_move_line_mapping(cr):
               JOIN res_currency curr ON curr.id = i.currency_id
 
              WHERE il.display_type IS NULL
-               AND il.price_subtotal != 0
 
                AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
                AND NOT EXISTS (SELECT aml_id FROM invl_aml_mapping WHERE aml_id=ml.id)
 
                AND {}
-        """.format(" AND ".join(filters[c] for c in cond)))
+        """.format(
+                " AND ".join(filters[c] for c in cond)
+            )
+        )
         added = cr.rowcount
         if added:
             cr.execute(remove_bad_matches_query)
@@ -369,14 +382,16 @@ def _compute_invoice_line_move_line_mapping(cr):
 
         _logger.info("invoices: fill line mapping with +%d/-%d entries using conditions %r", added, removed, cond)
 
-        cr.execute("""
+        cr.execute(
+            """
             SELECT count(l.id)
               FROM account_invoice_line l
          LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
              WHERE l.display_type IS NULL
                AND l.price_subtotal != 0
                AND m.invl_id IS NULL
-        """)
+        """
+        )
         rem = cr.fetchone()[0]
         if rem == 0:
             break
@@ -386,7 +401,8 @@ def _compute_invoice_line_move_line_mapping(cr):
     env = util.env(cr)
     MoveLine = env["account.move.line"]
 
-    cr.execute("""
+    cr.execute(
+        """
         SELECT l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
                l.price_unit, l.quantity, l.discount, l.sequence,
                l.account_analytic_id,
@@ -404,7 +420,8 @@ def _compute_invoice_line_move_line_mapping(cr):
       GROUP BY l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
                l.price_unit, l.quantity, l.discount, l.sequence,
                l.account_analytic_id
-    """)
+    """
+    )
     mls = []
     line_ids = []
     for line in util.log_progress(cr.dictfetchall(), qualifier="zero-line", logger=_logger):
@@ -430,14 +447,13 @@ def _compute_invoice_line_move_line_mapping(cr):
     _logger.info("invoices: creating zero-line move.line")
     ml_ids = MoveLine.create(mls).ids
     _logger.info("invoices: creating zero-line mapping")
-    cr.executemany(
-        "INSERT INTO invl_aml_mapping(invl_id, aml_id) VALUES (%s, %s)", zip(line_ids, ml_ids)
-    )
+    cr.executemany("INSERT INTO invl_aml_mapping(invl_id, aml_id) VALUES (%s, %s)", zip(line_ids, ml_ids))
 
     # constistancy check
     _logger.info("invoices: ensuring consistant mapping")
     cr.execute(remove_bad_matches_query)
-    cr.execute("""
+    cr.execute(
+        """
         WITH gb_ml AS (
             SELECT invl_id, array_agg(aml_id ORDER BY aml_id) as ml_ids
               FROM invl_aml_mapping
@@ -449,10 +465,12 @@ def _compute_invoice_line_move_line_mapping(cr):
           FROM gb_ml
       GROUP BY ml_ids
     HAVING NOT (count(invl_id) = 1 and array_length(ml_ids,1)=1)
-    """)
+    """
+    )
     # use unnest,unnest as `zip` (works in any pg version because both arrays have the same length)
     # See https://www.postgresql-archive.org/select-unnest-unnest-td6014421.html
-    cr.execute("""
+    cr.execute(
+        """
         WITH same_length AS (
             DELETE FROM saas124_acc_mig_bad_mappings
              WHERE array_length(invls, 1) = array_length(amls, 1)
@@ -466,7 +484,8 @@ def _compute_invoice_line_move_line_mapping(cr):
               USING todel t
               WHERE m.invl_id = t.il
                 AND m.aml_id != t.ml
-    """)
+    """
+    )
 
     cr.execute("SELECT invls, amls FROM saas124_acc_mig_bad_mappings")
     for i, a in cr.fetchall():
@@ -477,13 +496,19 @@ def _compute_invoice_line_move_line_mapping(cr):
     # if cr.rowcount:
     #     raise util.MigrationError("bad invoice mapping found")
 
-    cr.execute("""
+    search_missing_mapping = """
         SELECT count(l.id), string_agg(l.id::text, ',' ORDER BY l.id)
           FROM account_invoice_line l
      LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
          WHERE l.display_type IS NULL
            AND m.invl_id IS NULL
-    """)
+    """
+    cr.execute(search_missing_mapping)
+    cnt, ids = cr.fetchone()
+    if cnt:
+        _compute_invoice_line_grouped_in_move_line(cr)
+
+    cr.execute(search_missing_mapping)
     cnt, ids = cr.fetchone()
     if cnt:
         _logger.error("Missing move line for %s invoice lines: %s", cnt, ids)
@@ -512,7 +537,8 @@ def _compute_invoice_line_move_line_mapping(cr):
 
 @contextmanager
 def no_fiscal_lock(cr):
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE res_company c
            SET tax_lock_date = NULL,
                period_lock_date = NULL,
@@ -520,20 +546,25 @@ def no_fiscal_lock(cr):
           FROM res_company old
          WHERE old.id = c.id
      RETURNING old.tax_lock_date, old.period_lock_date, old.fiscalyear_lock_date, old.id
-    """)
+    """
+    )
     data = cr.fetchall()
     yield
-    cr.executemany("""
+    cr.executemany(
+        """
         UPDATE res_company
            SET tax_lock_date = %s,
                period_lock_date = %s,
                fiscalyear_lock_date = %s
          WHERE id = %s
 
-    """, data)
+    """,
+        data,
+    )
 
 
 def migrate_voucher_lines(cr):
+    env = util.env(cr)
     # cleanup
     cr.execute("DELETE FROM account_voucher_line WHERE voucher_id IS NULL")
 
@@ -560,6 +591,44 @@ def migrate_voucher_lines(cr):
          AND v.id = l.voucher_id
         """
     )
+
+    # In case a draft of cancelled voucher has a different company than its journal (incorrect, but can happen),
+    # we change its journal to assign it to the first one of the right type available for this company
+    _logger.info("vouchers: fixing journal issues")
+    # TODO : Revamp in SQL
+    for company in env["res.company"].search([]):
+        cr.execute(
+            """
+            SELECT journal.type as journal_type, array_agg(inv.id) as ids
+              FROM account_voucher inv
+              JOIN account_journal journal ON journal.id = inv.journal_id
+             WHERE inv.company_id != journal.company_id
+               AND inv.state IN ('draft', 'cancel')
+               AND inv.company_id = %(company)s
+          GROUP BY journal.type
+        """,
+            {"company": company.id},
+        )
+
+        to_fix = cr.dictfetchall()
+        for data_dict in to_fix:
+            journal = env["account.journal"].search(
+                [("type", "=", data_dict["journal_type"]), ("company_id", "=", company.id)], limit=1
+            )
+            if not journal:
+                raise util.MigrationError(
+                    f"Company {company.id} has `draft` or `canceled` vouchers on journals belonging to a different company, "
+                    "but does not have any equivalent journal allowing to fix that. Manual intervention is required."
+                )
+
+            cr.execute(
+                """
+                UPDATE account_voucher
+                   SET journal_id = %(journal)s
+                 WHERE id IN %(ids)s
+            """,
+                {"journal": journal.id, "ids": tuple(data_dict["ids"])},
+            )
 
     # create moves for draft/cancel vouchers
     _logger.info("vouchers: create missing account moves")
@@ -620,7 +689,6 @@ def migrate_voucher_lines(cr):
         for line_vals in cr.dictfetchall():
             vouchers[line_vals["voucher_id"]].setdefault("invoice_line_ids", []).append(line_vals)
 
-    env = util.env(cr)
     Move = env["account.move"].with_context(check_move_validity=False)
     created_moves = Move.browse()
     for record_id, vals in util.log_progress(vouchers.items(), qualifier="vouchers", logger=_logger):
@@ -672,6 +740,7 @@ def migrate_voucher_lines(cr):
               USING bad
               WHERE m.vl_id = bad.vl
                 AND m.ml_id = bad.ml
+            RETURNING m.vl_id,m.ml_id
     """
 
     filters = {
@@ -696,9 +765,7 @@ def migrate_voucher_lines(cr):
                                                  END),
                       curr.decimal_places)) <= curr.rounding
             """,
-
         "same_account": "il.account_id = ml.account_id",
-
         "same_name": "il.name = ml.name",
         # move line name used to be limited to 64 characters. See https://git.io/JeAmb
         "same_chopped_name": "substr(il.name, 0, 65) = ml.name",
@@ -707,11 +774,11 @@ def migrate_voucher_lines(cr):
         # invoice line name is a `fields.Text`, while move line name is a `fields.Char`.
         # Only match the first line
         "same_name_first_line": r"(regexp_match(il.name, '^(.*)$', 'n'))[1] = ml.name",
-
+        # Sometimes, invoice line's name has been cut, move line's name must be used as prefix to match
+        "substring_name": "strpos(ml.name, il.name) = 1",  # aka starts_with
         "same_product": "il.product_id IS NOT DISTINCT FROM ml.product_id",
         # When ignoring the name, the product should be not null
         "same_not_null_product": "il.product_id = ml.product_id",
-
         "same_analytic_account": """
              il.account_analytic_id IS NOT DISTINCT FROM ml.analytic_account_id
              AND
@@ -749,7 +816,6 @@ def migrate_voucher_lines(cr):
                     WHERE r.account_move_line_id = ml.id
                  ORDER BY r.account_tax_id)
             )""",
-
         "same_taxes_from_company": """(
              ARRAY(SELECT r.account_tax_id
                      FROM account_tax_account_voucher_line_rel r
@@ -798,7 +864,6 @@ def migrate_voucher_lines(cr):
                       AND t.amount_type != 'percent'
              )
             )""",
-
         "paid_invoice_posted_move": "i.state = 'posted' AND m.state = 'posted'",
         # only consider unmatched lines with the same amount
         "only_one_line": """
@@ -813,7 +878,8 @@ def migrate_voucher_lines(cr):
     }
 
     for cond in _get_conditions():
-        cr.execute("""
+        cr.execute(
+            """
             INSERT INTO vl_ml_mapping(vl_id, ml_id)
             SELECT il.id, ml.id
               FROM account_voucher_line il
@@ -828,7 +894,10 @@ def migrate_voucher_lines(cr):
                AND ml.id NOT IN (SELECT ml_id FROM vl_ml_mapping)
 
                AND {}
-        """.format(" AND ".join(filters[c] for c in cond)))
+        """.format(
+                " AND ".join(filters[c] for c in cond)
+            )
+        )
         added = cr.rowcount
 
         if added:
@@ -839,7 +908,8 @@ def migrate_voucher_lines(cr):
 
         _logger.info("vouchers: fill line mapping with +%d/-%d entries using conditions %r", added, removed, cond)
 
-        cr.execute("""
+        cr.execute(
+            """
             SELECT count(l.id)
               FROM account_voucher_line l
               JOIN account_voucher v ON v.id = l.voucher_id
@@ -847,7 +917,8 @@ def migrate_voucher_lines(cr):
              WHERE m.vl_id IS NULL
                AND l.price_subtotal != 0
                AND v.move_id IS NOT NULL
-        """)
+        """
+        )
         rem = cr.fetchone()[0]
         if rem == 0:
             break
@@ -855,7 +926,8 @@ def migrate_voucher_lines(cr):
 
     _logger.info("vouchers: ensuring consistant mapping")
     cr.execute(remove_bad_matches_query)
-    cr.execute("""
+    cr.execute(
+        """
         WITH gb_ml AS (
             SELECT vl_id, array_agg(ml_id ORDER BY ml_id) as ml_ids
               FROM vl_ml_mapping
@@ -867,10 +939,12 @@ def migrate_voucher_lines(cr):
           FROM gb_ml
       GROUP BY ml_ids
     HAVING NOT (count(vl_id) = 1 and array_length(ml_ids,1)=1)
-    """)
+    """
+    )
     # use unnest,unnest as `zip` (works in any pg version because both arrays have the same length)
     # See https://www.postgresql-archive.org/select-unnest-unnest-td6014421.html
-    cr.execute("""
+    cr.execute(
+        """
         WITH same_length AS (
             DELETE FROM saas124_acc_mig_bad_voucher_mapping
              WHERE array_length(vls, 1) = array_length(mls, 1)
@@ -884,14 +958,16 @@ def migrate_voucher_lines(cr):
               USING todel t
               WHERE m.vl_id = t.vl
                 AND m.ml_id != t.ml
-    """)
+    """
+    )
 
     cr.execute("SELECT vls, mls FROM saas124_acc_mig_bad_voucher_mapping")
     for v, m in cr.fetchall():
         _logger.error("vouchers: invalid line mapping: %r <-> %r", v, m)
 
     _logger.info("vouchers: check for missing line mapping")  # ignoring line with amount = 0
-    cr.execute("""
+    cr.execute(
+        """
         SELECT count(l.id), string_agg(l.id::text, ',' ORDER BY l.id)
           FROM account_voucher_line l
           JOIN account_voucher v ON v.id = l.voucher_id
@@ -899,7 +975,8 @@ def migrate_voucher_lines(cr):
          WHERE m.vl_id IS NULL
            AND l.price_subtotal != 0
            AND v.move_id IS NOT NULL
-    """)
+    """
+    )
     cnt, ids = cr.fetchone()
     if cnt:
         _logger.error("vouchers: missing move line for %s voucher lines: %s", cnt, ids)
@@ -911,7 +988,8 @@ def migrate_voucher_lines(cr):
         UPDATE account_move_line m
         SET quantity = v.quantity,
             price_unit = v.price_unit,
-            price_subtotal = v.price_subtotal
+            price_subtotal = v.price_subtotal,
+            exclude_from_invoice_tab = FALSE
         FROM vl_ml_mapping g
         JOIN account_voucher_line v ON v.id = g.vl_id
         WHERE g.ml_id = m.id
@@ -920,6 +998,71 @@ def migrate_voucher_lines(cr):
 
     # cr.execute("CREATE UNIQUE INDEX ON vl_ml_mapping(vl_id)")
     # cr.execute("CREATE INDEX ON vl_ml_mapping(ml_id)")
+
+
+def _compute_invoice_line_grouped_in_move_line(cr):
+    # "tax_ids": [(6, 0, [] if inv_line_vals.get("display_type") else inv_line_vals["tax_ids"])],
+    # "analytic_tag_ids": [(6, 0, inv_line_vals["analytic_tag_ids"])],
+    cr.execute("ALTER TABLE account_move_line ADD COLUMN _mig124_invl_id int4")
+    cr.execute(
+        """
+        INSERT INTO account_move_line (
+            move_id, move_name, date, ref, parent_state, journal_id, company_id, company_currency_id,
+            account_id,account_internal_type,account_root_id,sequence,name,quantity,price_unit,discount,
+            display_type,is_rounding_line,exclude_from_invoice_tab,analytic_account_id,
+            debit,credit,balance,amount_currency,price_subtotal,price_total,reconciled,blocked,
+            currency_id,partner_id,product_uom_id,product_id,_mig124_invl_id
+        )
+        SELECT m.id,
+               m.name,
+               m.date,
+               m.ref,
+               m.state,
+               m.journal_id,
+               m.company_id,
+               c.currency_id,
+               NULL, -- l.account_id,
+               aat.type,
+               a.root_id,
+               l.sequence,
+               l.name,
+               l.quantity,
+               l.price_unit,
+               l.discount,
+               'line_note',
+               FALSE,
+               FALSE,
+               l.account_analytic_id,
+               0,
+               0,
+               0,
+               0,
+               0,
+               0,
+               TRUE,
+               FALSE,
+               NULL, -- l.currency_id,
+               l.partner_id,
+               l.uom_id,
+               l.product_id,
+               l.id
+          FROM account_invoice_line l
+          JOIN account_invoice i ON l.invoice_id=i.id
+          JOIN account_move m ON m.id=i.move_id
+     LEFT JOIN res_company c ON m.company_id=c.id
+     LEFT JOIN account_account a ON l.account_id=a.id
+     LEFT JOIN account_account_type aat ON aat.id=a.user_type_id
+
+         WHERE l.id NOT IN (SELECT invl_id FROM invl_aml_mapping)
+    """
+    )
+    cr.execute(
+        """
+        INSERT INTO invl_aml_mapping (invl_id,aml_id)
+        SELECT _mig124_invl_id,id FROM account_move_line WHERE _mig124_invl_id IS NOT NULL
+    """
+    )
+    cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig124_invl_id")
 
 
 def migrate_invoice_lines(cr):
@@ -931,6 +1074,43 @@ def migrate_invoice_lines(cr):
     # =======================================================================================
     cr.execute("DELETE FROM account_invoice_line WHERE invoice_id IS NULL")
     _explode_tax_groups(cr)
+
+    # In case a draft of cancelled invoice has a different company than its journal (incorrect, but can happen),
+    # we change its journal to assign it to the first one of the right type available for this company
+    _logger.info("invoices: fixing journal issues")
+    for company in env["res.company"].search([]):
+        cr.execute(
+            """
+            SELECT journal.type as journal_type, array_agg(inv.id) as ids
+              FROM account_invoice inv
+              JOIN account_journal journal ON journal.id = inv.journal_id
+             WHERE inv.company_id != journal.company_id
+               AND inv.state IN ('draft', 'cancel')
+               AND inv.company_id = %(company)s
+          GROUP BY journal.type
+        """,
+            {"company": company.id},
+        )
+
+        for journal_type, ids in cr.fetchall():
+
+            journal = env["account.journal"].search(
+                [("type", "=", journal_type), ("company_id", "=", company.id)], limit=1
+            )
+            if not journal:
+                raise util.MigrationError(
+                    "Company {company.id} has `draft` or `canceled` vouchers on journals belonging to a different company, "
+                    "but does not have any equivalent journal allowing to fix that. Manual intervention is required."
+                )
+
+            cr.execute(
+                """
+                UPDATE account_invoice
+                   SET journal_id = %(journal)s
+                 WHERE id IN %(ids)s
+            """,
+                {"journal": journal.id, "ids": tuple(ids)},
+            )
 
     # Create account_move for draft account_invoice.
     cr.execute(
@@ -1063,7 +1243,8 @@ def migrate_invoice_lines(cr):
              AND invl.display_type IS NULL
         ORDER BY invl.invoice_id, invl.sequence, invl.id) AS invoices
            WHERE aml_upd.id=invoices.aml_id
-            """, [tuple(created_moves.ids)]
+            """,
+            [tuple(created_moves.ids)],
         )
 
     # Fix lines having display_type != False.
@@ -1083,7 +1264,8 @@ def migrate_invoice_lines(cr):
              AND inv.move_id NOT IN %s
              AND invl.display_type IS NOT NULL
         ORDER BY invl.invoice_id, invl.sequence, invl.id
-            """, [tuple(created_moves.ids)]
+            """,
+            [tuple(created_moves.ids)],
         )
 
         create_todo = []
@@ -1101,6 +1283,25 @@ def migrate_invoice_lines(cr):
             env["account.move.line"].create(create_todo)
 
     with util.disable_triggers(cr, "account_move"):
+        # First un-exclude from invoice tab so that we can reuse exclude_from_invoice_tab field when computing amounts
+        _logger.info("Un-exclude from invoice tab")
+        cr.execute(
+            """
+            UPDATE account_move_line aml
+               SET exclude_from_invoice_tab = FALSE
+              FROM invl_aml_mapping m
+             WHERE aml.id = m.aml_id
+            """
+        )
+        cr.execute(
+            """
+            UPDATE account_move_line
+               SET exclude_from_invoice_tab = FALSE
+             WHERE account_id is null
+               AND exclude_from_invoice_tab IS NULL
+            """
+        )
+
         _logger.info(
             "Fix amount_untaxed, amount_untaxed_signed, amount_tax, amount_tax_signed, "
             "amount_total, amount_total_signed, amount_residual, amount_residual_signed"
@@ -1109,15 +1310,14 @@ def migrate_invoice_lines(cr):
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_untaxed
               FROM account_move_line
-             WHERE tax_repartition_line_id IS NULL
-               AND account_internal_type NOT IN ('receivable', 'payable')
+             WHERE exclude_from_invoice_tab = false
           GROUP BY move_id
         """)
         cr.execute("""
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_tax
               FROM account_move_line
-             WHERE tax_repartition_line_id IS NOT NULL
+             WHERE tax_line_id IS NOT NULL
           GROUP BY move_id
         """)
         cr.execute("""
@@ -1151,12 +1351,13 @@ def migrate_invoice_lines(cr):
          LEFT JOIN am_tax on am_tax.move_id=am.id
          LEFT JOIN am_total on am_total.move_id=am.id
          LEFT JOIN am_residual on am_residual.move_id=am.id
-        """)
+        """
+        )
         cr.execute("CREATE INDEX ON am_updatable_amounts(id)")
 
         _logger.info("Same currency as company")
         queries = {
-            'single_currency_out_invoice': """
+            "single_currency_out_invoice": """
             -- ================ SINGLE-CURRENCY ================
             UPDATE account_move am
                SET amount_untaxed = am_updatable_amounts.untaxed_amount * (-1),
@@ -1173,7 +1374,7 @@ def migrate_invoice_lines(cr):
                AND am.currency_id = c.currency_id
                AND am_updatable_amounts.id=am.id
             """,
-            'single_currency_in_invoice': """
+            "single_currency_in_invoice": """
             UPDATE account_move am
                SET amount_untaxed = am_updatable_amounts.untaxed_amount,
                    amount_untaxed_signed = am_updatable_amounts.untaxed_amount * (-1),
@@ -1189,7 +1390,7 @@ def migrate_invoice_lines(cr):
                AND am.currency_id = c.currency_id
                AND am.id=am_updatable_amounts.id
             """,
-            'single_currency_other': """
+            "single_currency_other": """
             UPDATE account_move am
                SET amount_untaxed = abs(am_updatable_amounts.untaxed_amount),
                    amount_untaxed_signed = abs(am_updatable_amounts.untaxed_amount),
@@ -1205,7 +1406,7 @@ def migrate_invoice_lines(cr):
                AND am.currency_id = c.currency_id
                AND am.id=am_updatable_amounts.id
             """,
-            'multi_currency_out_invoice': """
+            "multi_currency_out_invoice": """
             -- ================ MULTI-CURRENCIES ================
             UPDATE account_move am
                SET amount_untaxed = am_updatable_amounts.untaxed_amount_curr * (-1),
@@ -1222,7 +1423,7 @@ def migrate_invoice_lines(cr):
                AND am.currency_id != c.currency_id
                AND am_updatable_amounts.id=am.id
             """,
-            'multi_currency_in_invoice': """
+            "multi_currency_in_invoice": """
             UPDATE account_move am
                SET amount_untaxed = am_updatable_amounts.untaxed_amount_curr,
                    amount_untaxed_signed = am_updatable_amounts.untaxed_amount_curr * (-1),
@@ -1238,7 +1439,7 @@ def migrate_invoice_lines(cr):
                AND am.currency_id != c.currency_id
                AND am.id=am_updatable_amounts.id
             """,
-            'multi_currency_other': """
+            "multi_currency_other": """
             UPDATE account_move am
                SET amount_untaxed = abs(am_updatable_amounts.untaxed_amount_curr),
                    amount_untaxed_signed = abs(am_updatable_amounts.untaxed_amount_curr),
@@ -1253,7 +1454,8 @@ def migrate_invoice_lines(cr):
                AND c.id = am.company_id
                AND am.currency_id != c.currency_id
                AND am.id=am_updatable_amounts.id
-        """}
+        """,
+        }
 
         util.parallel_execute(cr, queries.values())
 
@@ -1270,7 +1472,8 @@ def migrate_invoice_lines(cr):
                     GROUP BY move_id
               ) AS sub
              WHERE am.id = sub.move_id
-        """)
+        """
+        )
         cr.execute("UPDATE account_move SET invoice_payment_state = 'not_paid' WHERE invoice_payment_state IS NULL")
 
         cr.execute(
@@ -1306,15 +1509,14 @@ def migrate_invoice_lines(cr):
         """
         )
 
-        _logger.info("Migrate the chatter from account_invoice to account_move.")
+        _logger.info("Migrate multiple important fields from account_invoice to account_move.")
         cr.execute(
             """
-            -- mail_thread
-            -- Fix added new stored 'message_main_attachment_id' field.
             UPDATE account_move am
-            SET message_main_attachment_id = inv.message_main_attachment_id
-            FROM account_invoice inv
-            WHERE am.id = inv.move_id
+               SET message_main_attachment_id = inv.message_main_attachment_id,
+                   partner_id = inv.partner_id
+              FROM account_invoice inv
+             WHERE am.id = inv.move_id
             """
         )
 
@@ -1325,6 +1527,14 @@ def migrate_invoice_lines(cr):
                SET exclude_from_invoice_tab = FALSE
               FROM invl_aml_mapping m
              WHERE aml.id = m.aml_id
+            """
+        )
+        cr.execute(
+            """
+            UPDATE account_move_line
+               SET exclude_from_invoice_tab = FALSE
+             WHERE account_id is null
+               AND exclude_from_invoice_tab IS NULL
             """
         )
 

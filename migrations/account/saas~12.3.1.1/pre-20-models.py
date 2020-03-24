@@ -16,18 +16,18 @@ def migrate(cr, version):
     )
 
     util.rename_field(cr, "account_tax", "cash_basis_account_id", "cash_basis_transition_account_id")
-    if util.table_exists(cr, 'tax_accounts_v12_bckp'):
+    if util.table_exists(cr, "tax_accounts_v12_bckp"):
         cr.execute(
             """
-            update tax_accounts_v12_bckp
-            set account_id = account_tax.cash_basis_transition_account_id
-            from account_tax
-            where account_tax.id = tax_accounts_v12_bckp.id
-            and account_tax.cash_basis_transition_account_id is not null;
+            UPDATE tax_accounts_v12_bckp
+               SET account_id = account_tax.cash_basis_transition_account_id
+              FROM account_tax
+             WHERE account_tax.id = tax_accounts_v12_bckp.id
+               AND account_tax.cash_basis_transition_account_id is not null;
 
-            update account_tax
-            set cash_basis_transition_account_id = account_id, account_id = cash_basis_transition_account_id
-            where cash_basis_transition_account_id is not null;
+            UPDATE account_tax
+               SET cash_basis_transition_account_id = account_id, account_id = cash_basis_transition_account_id
+             WHERE cash_basis_transition_account_id is not null;
         """
         )
 

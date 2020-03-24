@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+
 def migrate(cr, version):
-    cr.execute("""
+    cr.execute(
+        """
         WITH cnoc AS (
          SELECT p.id AS pid,
                 (regexp_matches(d.module, 'l10n_(..)(?:_|$)'))[1] AS cc
@@ -19,4 +21,5 @@ def migrate(cr, version):
             SET country_id = upd.cid
            FROM upd
           WHERE upd.pid = p.id
-        """)
+        """
+    )

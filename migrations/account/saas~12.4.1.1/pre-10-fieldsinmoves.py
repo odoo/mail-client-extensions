@@ -9,9 +9,18 @@ def migrate(cr, version):
 
     To avoid field definition loose, custom fields should also be adapted
     """
-    cr.execute("""
-    CREATE TABLE mig_s124_accountfieldstotransfer (name varchar, ttype varchar, src_model varchar, dst_model varchar, state varchar)
-    """)
+    cr.execute(
+        """
+    CREATE TABLE mig_s124_accountfieldstotransfer (
+        name varchar,
+        ttype varchar,
+        src_model varchar,
+        dst_model varchar,
+        state varchar,
+        transfer boolean DEFAULT FALSE
+    )
+    """
+    )
     for suffix in ["", ".line"]:
         src_model = "account.invoice%s" % suffix
         dst_model = "account.move%s" % suffix

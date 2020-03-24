@@ -5,7 +5,7 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     # These two tables are used to migrate financial tags ; they can be filled in
     # pre script by l10n modules if needed (see l10n_es for an example)
-    if util.table_exists(cr, 'tax_accounts_v12_bckp'):
+    if util.table_exists(cr, "tax_accounts_v12_bckp"):
         cr.execute(
             """
             CREATE TABLE financial_tags_conversion_map(

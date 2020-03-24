@@ -6,15 +6,17 @@ def migrate(cr, version):
     # For now, we're unable to migrate databases with grouped invoice lines...
 
     is_account_voucher_installed = util.table_exists(cr, "account_voucher")
-    cr.execute("""
+    cr.execute(
+        """
         SELECT count(*)
           FROM account_invoice i
     INNER JOIN account_journal j ON i.journal_id=j.id
          WHERE j.group_invoice_lines=TRUE
-    """)
+    """
+    )
     if cr.fetchone()[0]:
-        raise util.MigrationError('Sorry. Migration of grouped invoice line is still not available')
-        
+        raise util.MigrationError("Sorry. Migration of grouped invoice line is still not available")
+
     # =======================================================================================
     # Migrate chatters
     # =======================================================================================
@@ -137,11 +139,14 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account_move", "matched_percentage")
 
+    # Some previously migrated databases already had this field with wrong values
+    cr.execute("UPDATE account_move SET type = NULL")
     # Update account_move from existing account_invoice.
     cr.execute(
         """
         UPDATE account_move am
         SET type = inv.type,
+            currency_id = inv.currency_id,
             commercial_partner_id = inv.commercial_partner_id,
             company_currency_id = comp.currency_id,
             fiscal_position_id = inv.fiscal_position_id,
@@ -191,13 +196,15 @@ def migrate(cr, version):
           FROM account_move am
          WHERE am.type in ('in_invoice', 'out_invoice', 'in_refund', 'out_refund', 'out_receipt', 'in_receipt')
            AND aml.move_id = am.id
-           AND (aml.tax_repartition_line_id IS NOT NULL OR aml.account_internal_type IN ('receivable', 'payable'))
+           AND (aml.tax_line_id IS NOT NULL OR aml.account_internal_type IN ('receivable', 'payable'))
         """
     )
 
     # Fix quantity / price_unit / price_total / price_subtotal on tax lines.
-    util.parallel_execute(cr, [
-        """
+    util.parallel_execute(
+        cr,
+        [
+            """
         -- single-currency
         UPDATE account_move_line aml
            SET quantity = 1,
@@ -210,7 +217,7 @@ def migrate(cr, version):
            AND am.currency_id = am.company_currency_id
            AND aml.tax_repartition_line_id IS NOT NULL
         """,
-        """
+            """
         UPDATE account_move_line aml
            SET quantity = 1,
                price_unit = aml.balance,
@@ -222,7 +229,7 @@ def migrate(cr, version):
            AND am.currency_id = am.company_currency_id
            AND aml.tax_repartition_line_id IS NOT NULL;
         """,
-        """
+            """
         -- multi-currencies
         UPDATE account_move_line aml
            SET quantity = 1,
@@ -235,7 +242,7 @@ def migrate(cr, version):
            AND am.currency_id != am.company_currency_id
            AND aml.tax_repartition_line_id IS NOT NULL;
         """,
-        """
+            """
         UPDATE account_move_line aml
            SET quantity = 1,
                price_unit = aml.amount_currency,
@@ -246,8 +253,9 @@ def migrate(cr, version):
            AND aml.move_id = am.id
            AND am.currency_id != am.company_currency_id
            AND aml.tax_repartition_line_id IS NOT NULL;
-        """
-    ])
+        """,
+        ],
+    )
 
     # ==== others ====
     util.remove_field(cr, "account.journal", "group_invoice_lines")
@@ -260,12 +268,14 @@ def migrate(cr, version):
     # cr.execute("SELECT id, reversed_entry_id FROM account_move WHERE reversed_entry_id IS NOT NULL")
     # for id, reversed_entry_id in cr.fetchall():
     #     cr.execute("UPDATE account_move SET reversed_entry_id = %s WHERE id = %s", (id, reversed_entry_id))
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_move am
            SET reversed_entry_id=amr.id
           FROM account_move amr
          WHERE am.id=amr.reversed_entry_id
-    """)
+    """
+    )
 
     # Fix the many2many crosstable account_invoice_payment_rel that was between account_payment & account_invoice,
     # not between account_payment & account_move.

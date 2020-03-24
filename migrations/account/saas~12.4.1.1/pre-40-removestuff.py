@@ -66,4 +66,4 @@ def migrate(cr, version):
                                             )
                          )
         """
-        )
+    )

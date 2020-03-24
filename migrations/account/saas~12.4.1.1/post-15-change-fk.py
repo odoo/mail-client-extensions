@@ -24,6 +24,7 @@ def fix_fk(cr, target, update_query):
             ("account_invoice", "refund_invoice_id"),
             ("account_invoice_tax", "invoice_id"),
             ("account_invoice_line_tax", "invoice_line_id"),
+            ("account_invoice", "auto_invoice_id"),  # defined (and handled) in inter_company_rules
         ]:
             _logger.info("Fix %s FK on %s.%s", target, table, column)
             old_column = "{}_mig_s124".format(column)
@@ -139,7 +140,6 @@ def fix_custom_m2o(cr):
 
 
 def migrate(cr, version):
-
     fix_fk(
         cr,
         "account_invoice",
@@ -166,4 +166,7 @@ def migrate(cr, version):
     fix_custom_m2o(cr)
 
     for table in [("account.invoice", "account.move"), ("account.invoice.line", "account.move.line")]:
-        cr.execute("UPDATE ir_rule SET model_id=%s WHERE model_id=%s", [_get_model_id(cr, table[1]), _get_model_id(cr, table[0])])
+        cr.execute(
+            "UPDATE ir_rule SET model_id=%s WHERE model_id=%s",
+            [_get_model_id(cr, table[1]), _get_model_id(cr, table[0])],
+        )

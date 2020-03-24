@@ -14,20 +14,20 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
-    if util.version_gte('saas~12.4'):
+    if util.version_gte("saas~12.4"):
         sql_dict = {
-            'invoice_table': 'account_move',
-            'invoice_id_field': 'move_id',
-            'where_criteria': "move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')"
+            "invoice_table": "account_move",
+            "invoice_id_field": "move_id",
+            "where_criteria": "move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
         }
     else:
         sql_dict = {
-            'invoice_table': 'account_invoice',
-            'invoice_id_field': 'invoice_id',
-            'where_criteria': "invoice_id IS NULL"
+            "invoice_table": "account_invoice",
+            "invoice_id_field": "invoice_id",
+            "where_criteria": "invoice_id IS NULL",
         }
 
-    if not util.table_exists(cr, 'tax_accounts_v12_bckp'):
+    if not util.table_exists(cr, "tax_accounts_v12_bckp"):
         return True
     env = util.env(cr)
     # Abracadabra !
@@ -52,7 +52,8 @@ def migrate(cr, version):
          WHERE %(where_criteria)s
            AND tax_line_id = tx_rep.invoice_tax_id
            AND tx_rep.repartition_type = 'tax'
-    """ % sql_dict
+    """
+        % sql_dict
     )
     cr.execute(
         """
@@ -63,7 +64,8 @@ def migrate(cr, version):
            AND move.type IN ('in_refund', 'out_refund')
            AND tax_line_id = tx_rep.refund_tax_id
            AND tx_rep.repartition_type = 'tax'
-    """ % sql_dict
+    """
+        % sql_dict
     )
     cr.execute(
         """
@@ -74,7 +76,8 @@ def migrate(cr, version):
            AND move.type IN ('in_invoice', 'out_invoice')
            AND tax_line_id = tx_rep.invoice_tax_id
            AND tx_rep.repartition_type = 'tax'
-    """ % sql_dict
+    """
+        % sql_dict
     )
 
     env["account.move.line"].invalidate_cache(fnames=["tax_repartition_line_id"])
@@ -130,30 +133,30 @@ def migrate(cr, version):
                 getattr(tax, rep_inv_type + "_repartition_line_ids").filtered(
                     lambda x: x.repartition_type == rep_type
                 ).write({"account_id": rep_account_id, "tag_ids": [(6, 0, tags)]})
-    if not util.version_gte('saas~12.4'):
+    if not util.version_gte("saas~12.4"):
         # Assign repartition lines and tags to account.invoice.tax
         _logger.info("Migrating account.invoice.tax objects...")
         cr.execute(
             """
-            update account_invoice_tax
-            set tax_repartition_line_id = tx_rep.id
-            from account_tax_repartition_line tx_rep, account_invoice inv
-            where account_invoice_tax.invoice_id = inv.id
-            and account_invoice_tax.tax_id = case when inv.type in ('in_refund', 'out_refund')
+            UPDATE account_invoice_tax
+               SET tax_repartition_line_id = tx_rep.id
+              FROM account_tax_repartition_line tx_rep, account_invoice inv
+             WHERE account_invoice_tax.invoice_id = inv.id
+               AND account_invoice_tax.tax_id = case when inv.type in ('in_refund', 'out_refund')
                                              then tx_rep.refund_tax_id
                                              else tx_rep.invoice_tax_id end
-            and tx_rep.repartition_type = 'tax'
+               AND tx_rep.repartition_type = 'tax'
         """
         )
         env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id"])
 
         cr.execute(
             """
-            insert into account_account_tag_account_invoice_tax_rel
-            select inv_tx.id, rep_tag.account_account_tag_id
-            from account_invoice_tax inv_tx
-            join account_account_tag_account_tax_repartition_line_rel rep_tag
-            on inv_tx.tax_repartition_line_id = rep_tag.account_tax_repartition_line_id
+            INSERT INTO account_account_tag_account_invoice_tax_rel
+                 SELECT inv_tx.id, rep_tag.account_account_tag_id
+                   FROM account_invoice_tax inv_tx
+                   JOIN account_account_tag_account_tax_repartition_line_rel rep_tag
+                        ON inv_tx.tax_repartition_line_id = rep_tag.account_tax_repartition_line_id
         """
         )
         env["account.invoice.tax"].invalidate_cache(fnames=["tag_ids"])
@@ -165,10 +168,10 @@ def migrate(cr, version):
     # (since their tax aml are grouped, so we can't distinguish between them without re-posting the invoices)
     cr.execute(
         """
-        select array_agg(parent_tax)
-        from account_tax_filiation_rel
-        group by child_tax
-        having count(parent_tax) > 1
+        SELECT array_agg(parent_tax)
+          FROM account_tax_filiation_rel
+      GROUP BY child_tax
+        HAVING count(parent_tax) > 1
     """
     )
     taxes_not_to_merge = set()
@@ -176,12 +179,7 @@ def migrate(cr, version):
         taxes_not_to_merge.update(set(parent_taxes_list))
 
     # Some groups can be kept as groups in 12.3, for legal reasons
-    cr.execute(
-        """
-        select tax_id
-        from taxes_not_to_merge
-    """
-    )
+    cr.execute("SELECT tax_id FROM taxes_not_to_merge")
     taxes_not_to_merge.update({tax for (tax,) in cr.fetchall()})
 
     tax_to_clean_ids = []
@@ -245,20 +243,26 @@ def migrate(cr, version):
                 # happen with POS), we remove the link to the tax if we have to merge them
                 # (since these lines have no impact on the accounting). We avoid doing that
                 # when not merging, just for the sake of not messing up with data uselessly.
-                cr.execute("""
-                    update account_move_line
-                    set tax_repartition_line_id = null, tax_line_id = null
-                    where tax_repartition_line_id in %(rep_lines)s
-                    and balance = 0
-                """, {'rep_lines': (new_inv_rep.id, new_ref_rep.id)})
+                cr.execute(
+                    """
+                    UPDATE account_move_line
+                       SET tax_repartition_line_id = null, tax_line_id = null
+                     WHERE tax_repartition_line_id in %(rep_lines)s
+                       AND balance = 0
+                """,
+                    {"rep_lines": (new_inv_rep.id, new_ref_rep.id)},
+                )
 
-                if not util.version_gte('saas~12.4'):
+                if not util.version_gte("saas~12.4"):
                     # account.invoice.tax for a 0% tax should never exist, they make no sense
                     # So, we delete them to avoid crashing the script later on
-                    cr.execute("""
-                        delete from account_invoice_tax
-                        where tax_id = %(tax_to_delete)s
-                    """, {'tax_to_delete': child_tax.id})
+                    cr.execute(
+                        """
+                        DELETE FROM account_invoice_tax
+                              WHERE tax_id = %(tax_to_delete)s
+                    """,
+                        {"tax_to_delete": child_tax.id},
+                    )
 
                 (new_inv_rep + new_ref_rep).unlink()
 
@@ -269,16 +273,16 @@ def migrate(cr, version):
             group_ref_base_line.tag_ids |= child_tax.refund_repartition_line_ids.filtered(
                 lambda x: x.repartition_type == "base"
             ).tag_ids
-            if not util.version_gte('saas~12.4'):
+            if not util.version_gte("saas~12.4"):
                 # Before deleting the old child taxes, we also need to replace them on account.invoice.tax entries
                 cr.execute(
                     """
-                    update account_invoice_tax
-                    set tax_repartition_line_id = tx_rep.id, tax_id = %(group_to_treat_id)s
-                    from account_invoice invoice, account_tax_repartition_line tx_rep
-                    where invoice.id = invoice_id
-                    and tax_id = %(child_tax_id)s
-                    and tx_rep.id = case when invoice.type in ('in_refund', 'out_refund') then %(new_ref_rep_id)s else %(new_inv_rep_id)s end;
+                    UPDATE account_invoice_tax
+                       SET tax_repartition_line_id = tx_rep.id, tax_id = %(group_to_treat_id)s
+                      FROM account_invoice invoice, account_tax_repartition_line tx_rep
+                     WHERE invoice.id = invoice_id
+                       AND tax_id = %(child_tax_id)s
+                       AND tx_rep.id = case when invoice.type in ('in_refund', 'out_refund') then %(new_ref_rep_id)s else %(new_inv_rep_id)s end
                 """,
                     {
                         "group_to_treat_id": group_to_treat.id,
@@ -291,15 +295,23 @@ def migrate(cr, version):
                 # in case account.invoice.tax objects contain taxes to remove, we replace them by their parent
                 cr.execute(
                     """
-                    update account_invoice_tax_account_tax_rel
-                    set account_tax_id = %(group_to_treat_id)s
-                    where account_tax_id = %(child_tax_id)s
+                    UPDATE account_invoice_tax_account_tax_rel
+                       SET account_tax_id = %(group_to_treat_id)s
+                     WHERE account_tax_id = %(child_tax_id)s
                 """,
                     {"group_to_treat_id": group_to_treat.id, "child_tax_id": child_tax.id},
                 )
 
                 env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id", "tax_id", "tax_ids"])
-
+            else:
+                cr.execute(
+                    """
+                    UPDATE account_move_line
+                       SET tax_line_id = %(group_to_treat_id)s
+                     WHERE tax_line_id = %(child_tax_id)s
+                """,
+                    {"group_to_treat_id": group_to_treat.id, "child_tax_id": child_tax.id},
+                )
 
         tax_to_clean_ids += list(group_to_treat.children_tax_ids.ids)
 
@@ -308,7 +320,8 @@ def migrate(cr, version):
             """
             DELETE FROM account_fiscal_position_tax
             WHERE tax_src_id in %s or tax_dest_id in %s
-        """, [tuple(tax_to_clean_ids), tuple(tax_to_clean_ids)]
+        """,
+            [tuple(tax_to_clean_ids), tuple(tax_to_clean_ids)],
         )
         cr.execute("DELETE FROM account_tax_filiation_rel WHERE child_tax in %s", [tuple(tax_to_clean_ids)])
         cr.execute("DELETE FROM account_tax WHERE id in %s", [tuple(tax_to_clean_ids)])
@@ -328,11 +341,11 @@ def migrate(cr, version):
     _logger.info("Setting tags on tax amls...")
     cr.execute(
         """
-        insert into account_account_tag_account_move_line_rel
-        select aml.id as account_move_line_id, rep_tags.account_account_tag_id as account_account_tag_id
-        from account_move_line aml
-        join account_account_tag_account_tax_repartition_line_rel rep_tags
-        on rep_tags.account_tax_repartition_line_id = aml.tax_repartition_line_id;
+        INSERT INTO account_account_tag_account_move_line_rel
+             SELECT aml.id as account_move_line_id, rep_tags.account_account_tag_id as account_account_tag_id
+               FROM account_move_line aml
+               JOIN account_account_tag_account_tax_repartition_line_rel rep_tags
+                    ON rep_tags.account_tax_repartition_line_id = aml.tax_repartition_line_id
     """
     )
 
@@ -340,20 +353,19 @@ def migrate(cr, version):
     _logger.info("Setting tags on base amls...")
     cr.execute(
         """
-        insert into account_account_tag_account_move_line_rel
-        select aml_tx.account_move_line_id as account_move_line_id, rep_tags.account_account_tag_id as account_account_tag_id
-        from account_tax_repartition_line tx_rep, account_account_tag_account_tax_repartition_line_rel rep_tags, account_move_line_account_tax_rel aml_tx
-        join account_move_line aml
-        on aml.id = aml_tx.account_move_line_id
-        join  %(invoice_table)s move
-        on aml.%(invoice_id_field)s = move.id
-        where tx_rep.repartition_type = 'base'
-        and aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
-        and rep_tags.account_tax_repartition_line_id  = tx_rep.id
-        and ((move.type in ('in_refund', 'out_refund') and tx_rep.refund_tax_id is not null)
-             or (tx_rep.invoice_tax_id is not null and move.type in ('in_invoice', 'out_invoice')))
-        on conflict do nothing; -- for lines that are the base of multiple taxes sharing some tags
-    """ % sql_dict
+        INSERT INTO account_account_tag_account_move_line_rel
+             SELECT aml_tx.account_move_line_id as account_move_line_id, rep_tags.account_account_tag_id as account_account_tag_id
+               FROM account_tax_repartition_line tx_rep, account_account_tag_account_tax_repartition_line_rel rep_tags, account_move_line_account_tax_rel aml_tx
+               JOIN account_move_line aml ON aml.id = aml_tx.account_move_line_id
+               JOIN  %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+              WHERE tx_rep.repartition_type = 'base'
+                AND aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
+                AND rep_tags.account_tax_repartition_line_id  = tx_rep.id
+                AND ((move.type in ('in_refund', 'out_refund') AND tx_rep.refund_tax_id is not null)
+                    OR (tx_rep.invoice_tax_id is not null and move.type IN ('in_invoice', 'out_invoice')))
+        ON conflict do nothing; -- for lines that are the base of multiple taxes sharing some tags
+    """
+        % sql_dict
     )
 
     env["account.move.line"].invalidate_cache(fnames=["tag_ids"])
@@ -396,8 +408,11 @@ def migrate(cr, version):
                 # We hardcode here an artificial switch of code for the two tax accounts
                 # used in data of this module to avoid triggering the warning on runbot builds, with migration tests.
                 # In case we add tests for localizations facing the same issues in the future, entries can be added to this dict.
-                if util.version_gte('saas~12.5') and util.module_installed(cr, 'l10n_generic_coa'):
-                    acc_aliases = {util.ref(cr, 'l10n_generic_coa.tax_paid'): '1013', util.ref(cr, 'l10n_generic_coa.tax_received'): '1112'}
+                if util.version_gte("saas~12.5") and util.module_installed(cr, "l10n_generic_coa"):
+                    acc_aliases = {
+                        util.ref(cr, "l10n_generic_coa.tax_paid"): "1013",
+                        util.ref(cr, "l10n_generic_coa.tax_received"): "1112",
+                    }
                 else:
                     acc_aliases = {}
 
@@ -441,29 +456,38 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
         ("currency_id", "=", False),
         ("currency_id", "=", tax.company_id.currency_id.id),
     ]
-    if util.version_gte('saas~12.4'):
-        journal = env["account.move"].with_context(
-            force_company=tax.company_id.id,
-            default_company_id=tax.company_id.id,
-            company_id=tax.company_id.id,
-            default_type=type,
-        )._get_default_journal()
+    if util.version_gte("saas~12.4"):
+        journal = (
+            env["account.move"]
+            .with_context(
+                force_company=tax.company_id.id,
+                default_company_id=tax.company_id.id,
+                company_id=tax.company_id.id,
+                default_type=type,
+            )
+            ._get_default_journal()
+        )
     else:
-        journal = env["account.invoice"].with_context(
-            force_company=tax.company_id.id,
-            default_company_id=tax.company_id.id,
-            company_id=tax.company_id.id,
-            type=type,
-        )._default_journal()
+        journal = (
+            env["account.invoice"]
+            .with_context(
+                force_company=tax.company_id.id,
+                default_company_id=tax.company_id.id,
+                company_id=tax.company_id.id,
+                type=type,
+            )
+            ._default_journal()
+        )
 
     if not journal.id:
         _logger.error("Lack of suitable journal")
         return False
 
     if journal.type_control_ids or journal.account_control_ids:
-        base_domain += ['|',
-            ('user_type_id', 'in', journal.type_control_ids.ids), 
-            ('id', 'in', journal.account_control_ids.ids)
+        base_domain += [
+            "|",
+            ("user_type_id", "in", journal.type_control_ids.ids),
+            ("id", "in", journal.account_control_ids.ids),
         ]
     invoice_line_account = (
         env["account.account"]
@@ -475,7 +499,7 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
         return False
 
     invoice = (
-        env["account.move" if util.version_gte('saas~12.4') else "account.invoice"]
+        env["account.move" if util.version_gte("saas~12.4") else "account.invoice"]
         .with_context(
             force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
         )
@@ -485,22 +509,30 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
                 "currency_id": tax.company_id.currency_id.id,
                 "type": type,
                 "journal_id": journal.id,
-                "invoice_date" if util.version_gte('saas~12.4') else "date_invoice": datetime.datetime.utcnow().isoformat(),
+                "invoice_date"
+                if util.version_gte("saas~12.4")
+                else "date_invoice": datetime.datetime.utcnow().isoformat(),
                 "company_id": tax.company_id.id,
-                "invoice_line_ids": [(0, 0, {
-                    "quantity": 1,
-                    "price_unit": amount,
-                    "name": "Papa a vu le fifi de lolo",
-                    "tax_ids" if util.version_gte('saas~12.4') else "invoice_line_tax_ids": [(6, 0, tax.ids)],
-                    "account_id": invoice_line_account,
-                })]
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "quantity": 1,
+                            "price_unit": amount,
+                            "name": "Papa a vu le fifi de lolo",
+                            "tax_ids" if util.version_gte("saas~12.4") else "invoice_line_tax_ids": [(6, 0, tax.ids)],
+                            "account_id": invoice_line_account,
+                        },
+                    )
+                ],
             }
         )
     )
     invoice_ctx = invoice.with_context(
         force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
     )
-    if util.version_gte('saas~12.4'):
+    if util.version_gte("saas~12.4"):
         invoice_ctx.post()
     else:
         invoice_ctx._onchange_invoice_line_ids()
@@ -509,13 +541,16 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
 
 
 def get_aml_domain(cr, invoice, domain):
-    if util.version_gte('saas~12.4'):
-    # invoice_id field does not exist anymore, use move_id instead
-        domain = domain.replace(' ', '')
+    if util.version_gte("saas~12.4"):
+        # invoice_id field does not exist anymore, use move_id instead
+        domain = domain.replace(" ", "")
         domain = domain.replace("'notin'", "'not in'")
         domain = domain.replace("'notlike'", "'not like'")
         domain = domain.replace("'notilike'", "'not ilike'")
-        domain = domain.replace("('invoice_id','=',False)", "('move_id.type', 'not in', ('in_invoice', 'out_invoice', 'in_refund', 'out_refund'))")
+        domain = domain.replace(
+            "('invoice_id','=',False)",
+            "('move_id.type', 'not in', ('in_invoice', 'out_invoice', 'in_refund', 'out_refund'))",
+        )
         domain = domain.replace("'invoice_id", "'move_id")
 
     line_domain = safe_eval(domain)
@@ -533,9 +568,9 @@ def get_aml_domain(cr, invoice, domain):
 
             cr.execute(
                 """
-                select array_agg(account_tax_id)
-                from account_tax_account_tag_v12_bckp
-                where account_account_tag_id """
+                SELECT array_agg(account_tax_id)
+                  FROM account_tax_account_tag_v12_bckp
+                 WHERE account_account_tag_id """
                 + condition[1]
                 + """ %(values)s
             """,
@@ -545,7 +580,7 @@ def get_aml_domain(cr, invoice, domain):
 
             line_domain[index] = (condition[0].partition(".")[0], "in", target_taxes or [])
 
-    if util.version_gte('saas~12.4'):
+    if util.version_gte("saas~12.4"):
         return line_domain + [("move_id.state", "=", "posted"), ("move_id", "=", invoice.id)]
     return line_domain + [("move_id.state", "=", "posted"), ("move_id", "=", invoice.move_id.id)]
 
@@ -557,13 +592,15 @@ def get_financial_reports_grids_mapping(cr):
     """
     rslt = {}
 
-    cr.execute("""
+    cr.execute(
+        """
         SELECT lower(c.code)
           FROM account_tax_report_line l
           JOIN res_country c ON c.id = l.country_id
       GROUP BY 1
-    """)
-    for cc, in cr.fetchall():
+    """
+    )
+    for (cc,) in cr.fetchall():
         filler_fun_to_call = "_fill_grids_mapping_for_%s" % cc
         # So, such a function needs to be defined for each country
         if filler_fun_to_call not in globals():
@@ -582,10 +619,10 @@ def _fill_grids_mapping_for_be(cr, dict_to_fill):
     code_prefix = "BETAX"
     cr.execute(
         """
-        select id, regexp_replace(code, '%(prefix)s', '')
-        from financial_report_lines_v12_bckp
-        where code like '%(prefix)s%%'
-        and domain is not null;
+        SELECT id, regexp_replace(code, '%(prefix)s', '')
+          FROM financial_report_lines_v12_bckp
+         WHERE code like '%(prefix)s%%'
+           AND domain is not null
     """
         % {"prefix": code_prefix}
     )
@@ -598,17 +635,17 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
     # Fix inconsistent data in the v12 report, so that we can do things in a generic and clean way
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set code = 'LUTAX_b_SANS'
-        where code = 'b_SANS';
+        UPDATE financial_report_lines_v12_bckp
+           SET code = 'LUTAX_b_SANS'
+         WHERE code = 'b_SANS';
 
-        update financial_report_lines_v12_bckp
-        set name = 'II.D.2. taxe 17%'
-        where code = 'LUTAX_732';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'II.D.2. taxe 17%'
+         WHERE code = 'LUTAX_732';
 
-        update financial_report_lines_v12_bckp
-        set name = 'I.B.6.b)2) Prestations de services à des identifiés à la TVA dans un autre Etat membre exonérées dans l''Etat membre du preneur (art.17/1/b)'
-        where code = 'LUTAX_424';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'I.B.6.b)2) Prestations de services à des identifiés à la TVA dans un autre Etat membre exonérées dans l''Etat membre du preneur (art.17/1/b)'
+         WHERE code = 'LUTAX_424';
     """
     )
 
@@ -624,9 +661,9 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
 
     cr.execute(
         """
-        select name, id, domain
-        from financial_report_lines_v12_bckp
-        where code like 'LUTAX%%'
+        SELECT name, id, domain
+          FROM financial_report_lines_v12_bckp
+         WHERE code like 'LUTAX%%'
     """
     )
     lutax_lines_map = {entry["name"]: entry for entry in cr.dictfetchall()}
@@ -642,8 +679,9 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
                 # line merging children of childrens, so a simple loop is enough)
                 cr.execute(
                     """
-                    select id from financial_report_lines_v12_bckp
-                    where parent_id = %(parent_id)s
+                    SELECT id
+                      FROM financial_report_lines_v12_bckp
+                     WHERE parent_id = %(parent_id)s
                 """,
                     {"parent_id": v12_line_data["id"]},
                 )
@@ -657,18 +695,18 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
 def _fill_grids_mapping_for_ae(cr, dict_to_fill):
     cr.execute(
         """
-        select name, id
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_ae%'
+        SELECT name, id
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_ae%'
     """
     )
     name_map = dict(cr.fetchall())
 
     cr.execute(
         """
-        select code, id
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_ae%'
+        SELECT code, id
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_ae%'
     """
     )
     code_map = dict(cr.fetchall())
@@ -693,9 +731,9 @@ def _fill_grids_mapping_for_ae(cr, dict_to_fill):
 def _fill_grids_mapping_for_ar(cr, dict_to_fill):
     cr.execute(
         """
-        select name, id
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_ar%'
+        SELECT name, id
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_ar%'
     """
     )
     name_map = dict(cr.fetchall())
@@ -718,39 +756,39 @@ def _fill_grids_mapping_for_at(cr, dict_to_fill):
     # Manually assign the tag names for the lines with identical name
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set name = 'zum Steuersatz von 10 % (Innergemeinschaftliche Erwerbe - Steuerpflichtige Umsätze)'
-        where xmlid = 'account_financial_report_l10n_at_tva_line7';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'zum Steuersatz von 10 % (Innergemeinschaftliche Erwerbe - Steuerpflichtige Umsätze)'
+         WHERE xmlid = 'account_financial_report_l10n_at_tva_line7';
 
-        update financial_report_lines_v12_bckp
-        set name = 'zum Steuersatz von 20 % (Innergemeinschaftliche Erwerbe - Steuerpflichtige Umsätze)'
-        where xmlid = 'account_financial_report_l10n_at_tva_line6';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'zum Steuersatz von 20 % (Innergemeinschaftliche Erwerbe - Steuerpflichtige Umsätze)'
+         WHERE xmlid = 'account_financial_report_l10n_at_tva_line6';
 
-        update financial_report_lines_v12_bckp
-        set name = 'zum Steuersatz von 10% (Lieferungen, sonstige Leistungen und Eigenverbrauch - Steuerpflichtige Umsätze)'
-        where xmlid = 'account_financial_report_l10n_at_tva_line11';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'zum Steuersatz von 10% (Lieferungen, sonstige Leistungen und Eigenverbrauch - Steuerpflichtige Umsätze)'
+         WHERE xmlid = 'account_financial_report_l10n_at_tva_line11';
 
-        update financial_report_lines_v12_bckp
-        set name = 'zum Steuersatz von 20 % (Lieferungen, sonstige Leistungen und Eigenverbrauch - Steuerpflichtige Umsätze)'
-        where xmlid = 'account_financial_report_l10n_at_tva_line10';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'zum Steuersatz von 20 % (Lieferungen, sonstige Leistungen und Eigenverbrauch - Steuerpflichtige Umsätze)'
+         WHERE xmlid = 'account_financial_report_l10n_at_tva_line10';
 
-        update financial_report_lines_v12_bckp
-        set name = 'zum Steuersatz von 20 % (Rechnungen von anderen Unternehmern und innergemeinschaftliche Dreiecksgeschäfte)'
-        where xmlid = 'account_financial_report_l10n_at_tva_line27';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'zum Steuersatz von 20 % (Rechnungen von anderen Unternehmern und innergemeinschaftliche Dreiecksgeschäfte)'
+         WHERE xmlid = 'account_financial_report_l10n_at_tva_line27';
 
-        update financial_report_lines_v12_bckp
-        set name = 'zum Steuersatz von 10 % (Rechnungen von anderen Unternehmern und innergemeinschaftliche Dreiecksgeschäfte)'
-        where xmlid = 'account_financial_report_l10n_at_tva_line26';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'zum Steuersatz von 10 % (Rechnungen von anderen Unternehmern und innergemeinschaftliche Dreiecksgeschäfte)'
+         WHERE xmlid = 'account_financial_report_l10n_at_tva_line26';
     """
     )
 
     code_prefix = "ATT"
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where code like '%(prefix)s%%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE code like '%(prefix)s%%'
+           AND domain is not null
     """
         % {"prefix": code_prefix}
     )
@@ -763,39 +801,39 @@ def _fill_grids_mapping_for_au(cr, dict_to_fill):
     au_companies = env["res.company"].search([("partner_id.country_id.code", "=", "AU")])
     cr.execute(
         """
-        select distinct account_account_tag_id
-        from account_tax_account_tag_v12_bckp
-        join tax_accounts_v12_bckp
-        on tax_accounts_v12_bckp.id = account_tax_account_tag_v12_bckp.account_tax_id
-        join account_tax
-        on account_tax.id = account_tax_account_tag_v12_bckp.account_tax_id
-        where tax_accounts_v12_bckp.account_id is not null
-        and account_tax.company_id in %(company_ids)s
+        SELECT distinct account_account_tag_id
+          FROM account_tax_account_tag_v12_bckp
+          JOIN tax_accounts_v12_bckp
+               ON tax_accounts_v12_bckp.id = account_tax_account_tag_v12_bckp.account_tax_id
+          JOIN account_tax
+               ON account_tax.id = account_tax_account_tag_v12_bckp.account_tax_id
+         WHERE tax_accounts_v12_bckp.account_id is not null
+           AND account_tax.company_id in %(company_ids)s
     """,
         {"company_ids": tuple(au_companies.ids)},
     )
     all_tags = [tag for (tag,) in cr.fetchall()]
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set domain = %(domain)s
-        where xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
+        UPDATE financial_report_lines_v12_bckp
+           SET domain = %(domain)s
+         WHERE xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
     """,
         {"domain": "[('tax_line_id.tag_ids', 'in', %s)]" % str(all_tags)},
     )
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set code = 'GST from General Ledger'
-        where xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl';
+        UPDATE financial_report_lines_v12_bckp
+           SET code = 'GST from General Ledger'
+         WHERE xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
     """
     )
     cr.execute(
         """
-        select id, code
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_au_gstrpt%'
-        and domain is not null;
+        SELECT id, code
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_au_gstrpt%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -804,10 +842,10 @@ def _fill_grids_mapping_for_au(cr, dict_to_fill):
 def _fill_grids_mapping_for_bo(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_bo%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_bo%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -816,10 +854,10 @@ def _fill_grids_mapping_for_bo(cr, dict_to_fill):
 def _fill_grids_mapping_for_br(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_br%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_br%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -831,22 +869,22 @@ def _fill_grids_mapping_for_ch(cr, dict_to_fill):
     # 382a_200 has been entirely removed and should be ignored
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set name = '312a Chiffre d''affaires imposable a 2.5% (TR)'
-        where xmlid = 'financial_report_line_chtax_311a'
-        and module = 'l10n_ch_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = '312a Chiffre d''affaires imposable a 2.5% (TR)'
+         WHERE xmlid = 'financial_report_line_chtax_311a'
+           AND module = 'l10n_ch_reports';
 
-        update financial_report_lines_v12_bckp
-        set name = '312b TVA due a 2.5% (TR)'
-        where xmlid = 'financial_report_line_chtax_311b'
-        and module = 'l10n_ch_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = '312b TVA due a 2.5% (TR)'
+         WHERE xmlid = 'financial_report_line_chtax_311b'
+           AND module = 'l10n_ch_reports';
 
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'financial_report_line_chtax%'
-        and xmlid != 'financial_report_line_chtax_382a_200'
-        and domain is not null
-        and module = 'l10n_ch_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'financial_report_line_chtax%'
+           AND xmlid != 'financial_report_line_chtax_382a_200'
+           AND domain is not null
+           AND module = 'l10n_ch_reports';
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -855,10 +893,10 @@ def _fill_grids_mapping_for_ch(cr, dict_to_fill):
 def _fill_grids_mapping_for_cl(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'financial_report_line_cl%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'financial_report_line_cl%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -874,10 +912,10 @@ def _fill_grids_mapping_for_de(cr, dict_to_fill):
     )
     cr.execute(
         """
-        select id, SPLIT_PART(name,'.',1) as name, xmlid
-        from financial_report_lines_v12_bckp
-        where xmlid like 'financial_report_line_de%'
-        and domain is not null;
+        SELECT id, SPLIT_PART(name,'.',1) as name, xmlid
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'financial_report_line_de%'
+           AND domain is not null
     """
     )
     for v12_line in cr.dictfetchall():
@@ -890,11 +928,11 @@ def _fill_grids_mapping_for_de(cr, dict_to_fill):
 def _fill_grids_mapping_for_do(cr, dict_to_fill):
     cr.execute(
         """
-        select id, SPLIT_PART(name,' ',1)
-        from financial_report_lines_v12_bckp
-        where xmlid like '%_do'
-        and domain is not null
-        and module = 'l10n_do_reports';
+        SELECT id, SPLIT_PART(name,' ',1)
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like '%_do'
+           AND domain is not null
+           AND module = 'l10n_do_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -903,11 +941,11 @@ def _fill_grids_mapping_for_do(cr, dict_to_fill):
 def _fill_grids_mapping_for_et(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like '%_et'
-        and domain is not null
-        and module = 'l10n_et_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like '%_et'
+           AND domain is not null
+           AND module = 'l10n_et_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -916,26 +954,26 @@ def _fill_grids_mapping_for_et(cr, dict_to_fill):
 def _fill_grids_mapping_for_fr(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set domain=NULL
-        where xmlid = 'account_financial_report_line_98_fr'
-        and module = 'l10n_fr_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET domain=NULL
+         WHERE xmlid = 'account_financial_report_line_98_fr'
+           AND module = 'l10n_fr_reports';
 
-        update financial_report_lines_v12_bckp
-        set name='Base H.T. 5.5%'
-        where xmlid = 'account_financial_report_line_08_fr'
-        and module = 'l10n_fr_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET name='Base H.T. 5.5%'
+         WHERE xmlid = 'account_financial_report_line_08_fr'
+           AND module = 'l10n_fr_reports';
 
-        update financial_report_lines_v12_bckp
-        set name='Base H.T. 5.5%'
-        where xmlid = 'account_financial_report_line_08_fr'
-        and module = 'l10n_fr_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET name='Base H.T. 5.5%'
+         WHERE xmlid = 'account_financial_report_line_08_fr'
+           AND module = 'l10n_fr_reports';
     """
     )
 
     cr.execute(
         """
-        select sub.id,
+        SELECT sub.id,
             CASE WHEN sub.parent_name = 'Base H.T. TVA collectée' THEN replace(sub.name,'H.T.','collectée')
     			 WHEN sub.parent_name = 'TVA collectée' THEN replace(sub.name,'TVA','TVA collectée')
     			 WHEN sub.parent_name = 'Base H.T. TVA acquittée' THEN replace(sub.name,'H.T.','acquittée')
@@ -948,11 +986,11 @@ def _fill_grids_mapping_for_fr(cr, dict_to_fill):
     			 WHEN sub.parent_name = 'TVA déductible intracommunautaire' THEN replace(sub.name,'TVA','TVA déductible intracom.')
     			 ELSE name
     		END as tag_name
-        from (select id, name,
-                 (select name from financial_report_lines_v12_bckp rlv12_parent where rlv12_parent.id = rlv12.parent_id) as parent_name
-                  from financial_report_lines_v12_bckp rlv12
-                  where xmlid like '%_fr'
-                  and domain is not null
+        FROM (SELECT id, name,
+                 (SELECT name FROM financial_report_lines_v12_bckp rlv12_parent WHERE rlv12_parent.id = rlv12.parent_id) as parent_name
+                    FROM financial_report_lines_v12_bckp rlv12
+                   WHERE xmlid like '%_fr'
+                     AND domain is not null
         ) as sub
     """
     )
@@ -962,11 +1000,11 @@ def _fill_grids_mapping_for_fr(cr, dict_to_fill):
 def _fill_grids_mapping_for_gr(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_si%'
-        and domain is not null
-        and module = 'l10n_gr_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_si%'
+           AND domain is not null
+           AND module = 'l10n_gr_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -975,52 +1013,52 @@ def _fill_grids_mapping_for_gr(cr, dict_to_fill):
 def _fill_grids_mapping_for_hr(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set name = replace(name,' bis', ' (30%)')
-        where xmlid = 'financial_report_l10n_hr_line_66b';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = replace(name,' bis', ' (30%)')
+         WHERE xmlid = 'financial_report_l10n_hr_line_66b';
 
-        update financial_report_lines_v12_bckp
-        set name = replace(name,' bis', ' (70%)')
-        where xmlid = 'financial_report_l10n_hr_line_23b';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = replace(name,' bis', ' (70%)')
+         WHERE xmlid = 'financial_report_l10n_hr_line_23b';
 
-        update financial_report_lines_v12_bckp
-        set name = replace(name,' ter', ' (30%)')
-        where xmlid = 'financial_report_l10n_hr_line_23t';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = replace(name,' ter', ' (30%)')
+         WHERE xmlid = 'financial_report_l10n_hr_line_23t';
 
-        update financial_report_lines_v12_bckp
-        set name = replace(name,' ter', ' (70%)')
-        where xmlid = 'financial_report_l10n_hr_line_66t';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = replace(name,' ter', ' (70%)')
+         WHERE xmlid = 'financial_report_l10n_hr_line_66t';
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (osnovica)')
-        where xmlid in ('financial_report_l10n_hr_line_15',
-                        'financial_report_l10n_hr_line_17',
-                        'financial_report_l10n_hr_line_21',
-                        'financial_report_l10n_hr_line_24',
-                        'financial_report_l10n_hr_line_26',
-                        'financial_report_l10n_hr_line_28');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (osnovica)')
+         WHERE xmlid in ('financial_report_l10n_hr_line_15',
+                         'financial_report_l10n_hr_line_17',
+                         'financial_report_l10n_hr_line_21',
+                         'financial_report_l10n_hr_line_24',
+                         'financial_report_l10n_hr_line_26',
+                         'financial_report_l10n_hr_line_28');
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (porez)')
-        where xmlid in ('financial_report_l10n_hr_line_34',
-                        'financial_report_l10n_hr_line_36',
-                        'financial_report_l10n_hr_line_40',
-                        'financial_report_l10n_hr_line_43',
-                        'financial_report_l10n_hr_line_44',
-                        'financial_report_l10n_hr_line_46');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (porez)')
+         WHERE xmlid in ('financial_report_l10n_hr_line_34',
+                         'financial_report_l10n_hr_line_36',
+                         'financial_report_l10n_hr_line_40',
+                         'financial_report_l10n_hr_line_43',
+                         'financial_report_l10n_hr_line_44',
+                         'financial_report_l10n_hr_line_46');
 
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = sum.balance'
-        where xmlid = 'financial_report_l10n_hr_line_66';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = sum.balance'
+         WHERE xmlid = 'financial_report_l10n_hr_line_66';
     """
     )
 
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'financial_report_l10n_hr%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'financial_report_l10n_hr%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1029,10 +1067,10 @@ def _fill_grids_mapping_for_hr(cr, dict_to_fill):
 def _fill_grids_mapping_for_hu(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'financial_report_line_hu%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'financial_report_line_hu%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1041,10 +1079,10 @@ def _fill_grids_mapping_for_hu(cr, dict_to_fill):
 def _fill_grids_mapping_for_in(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like '%l10n_in_line%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like '%l10n_in_line%'
+           AND domain is not null;
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1053,24 +1091,24 @@ def _fill_grids_mapping_for_in(cr, dict_to_fill):
 def _fill_grids_mapping_for_jp(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set name = '不課税 (仮受税額)'
-        where xmlid = 'account_financial_report_l10n_jp_line_4'
-        and module = 'l10n_jp_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = '不課税 (仮受税額)'
+         WHERE xmlid = 'account_financial_report_l10n_jp_line_4'
+           AND module = 'l10n_jp_reports';
 
-        update financial_report_lines_v12_bckp
-        set name = '不課税 (仮払税額)'
-        where xmlid = 'account_financial_report_l10n_jp_line_8'
-        and module = 'l10n_jp_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = '不課税 (仮払税額)'
+         WHERE xmlid = 'account_financial_report_l10n_jp_line_8'
+           AND module = 'l10n_jp_reports';
     """
     )
 
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_jp_line%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_jp_line%'
+           AND domain is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1081,17 +1119,17 @@ def _fill_grids_mapping_for_ma(cr, dict_to_fill):
 
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set name='Achats à l''importation (10%) (HT)'
-        where xmlid = 'account_financial_report_l10n_ma_line_102';
+        UPDATE financial_report_lines_v12_bckp
+           SET name='Achats à l''importation (10%) (HT)'
+         WHERE xmlid = 'account_financial_report_l10n_ma_line_102';
 
-        update financial_report_lines_v12_bckp
-        set name='Achats à l''importation (10%) (TVA)'
-        where xmlid = 'account_financial_report_l10n_ma_line_117';
+        UPDATE financial_report_lines_v12_bckp
+           SET name='Achats à l''importation (10%) (TVA)'
+         WHERE xmlid = 'account_financial_report_l10n_ma_line_117';
 
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = -sum.balance'
-        where xmlid in ('account_financial_report_l10n_ma_line_8',
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = -sum.balance'
+         WHERE xmlid in ('account_financial_report_l10n_ma_line_8',
                         'account_financial_report_l10n_ma_line_14',
                         'account_financial_report_l10n_ma_line_20',
                         'account_financial_report_l10n_ma_line_30',
@@ -1099,23 +1137,23 @@ def _fill_grids_mapping_for_ma(cr, dict_to_fill):
                         'account_financial_report_l10n_ma_line_54',
                         'account_financial_report_l10n_ma_line_68',
                         'account_financial_report_l10n_ma_line_84')
-        and module = 'l10n_ma_reports';
+           AND module = 'l10n_ma_reports';
 
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = sum.balance'
-        where xmlid in ('account_financial_report_l10n_ma_line_102',
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = sum.balance'
+         WHERE xmlid in ('account_financial_report_l10n_ma_line_102',
                         'account_financial_report_l10n_ma_line_117',
                         'account_financial_report_l10n_ma_line_129',
                         'account_financial_report_l10n_ma_line_137')
-        and module = 'l10n_ma_reports';
+           AND module = 'l10n_ma_reports';
         """
     )
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_ma%'
-        and domain is not null;
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_ma%'
+           AND domain is not null;
     """
     )
 
@@ -1131,32 +1169,32 @@ def _fill_grids_mapping_for_ma(cr, dict_to_fill):
 def _fill_grids_mapping_for_nl(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = -sum.balance'
-        where xmlid in ('financial_report_line_nl_01_01_01',
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = -sum.balance'
+         WHERE xmlid in ('financial_report_line_nl_01_01_01',
                         'financial_report_line_nl_02_01_01')
-        and module = 'l10n_nl_reports';
+           AND module = 'l10n_nl_reports';
 
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = sum.balance'
-        where xmlid in ('financial_report_line_nl_02_03_02',
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = sum.balance'
+         WHERE xmlid in ('financial_report_line_nl_02_03_02',
                         'financial_report_line_nl_02_03_01')
-        and module = 'l10n_nl_reports';
+           AND module = 'l10n_nl_reports';
     """
     )
 
     cr.execute(
         """
-        select financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
-        from financial_report_lines_v12_bckp
-        join account_tax_report_line
-        on account_tax_report_line.name = case when xmlid = 'financial_report_line_nl_01_01_01_01' then '1a. Leveringen/diensten belast met hoog tarief (omzet)'
-                                               when xmlid = 'financial_report_line_nl_02_01_01_01' then '1a. Leveringen/diensten belast met 21% (BTW)'
-                                               else financial_report_lines_v12_bckp.name end
-        where financial_report_lines_v12_bckp.xmlid like 'financial_report_line_nl%'
-        and financial_report_lines_v12_bckp.module = 'l10n_nl_reports'
-        and financial_report_lines_v12_bckp.domain is not null
-        and financial_report_lines_v12_bckp.formulas is not null;
+        SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
+          FROM financial_report_lines_v12_bckp
+          JOIN account_tax_report_line
+               ON account_tax_report_line.name = CASE WHEN xmlid = 'financial_report_line_nl_01_01_01_01' THEN '1a. Leveringen/diensten belast met hoog tarief (omzet)'
+                                                      WHEN xmlid = 'financial_report_line_nl_02_01_01_01' THEN '1a. Leveringen/diensten belast met 21% (BTW)'
+                                                      ELSE financial_report_lines_v12_bckp.name END
+         WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_nl%'
+           AND financial_report_lines_v12_bckp.module = 'l10n_nl_reports'
+           AND financial_report_lines_v12_bckp.domain is not null
+           AND financial_report_lines_v12_bckp.formulas is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1165,11 +1203,11 @@ def _fill_grids_mapping_for_nl(cr, dict_to_fill):
 def _fill_grids_mapping_for_no(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'financial_report_no_%'
-        and domain is not null
-        and module = 'l10n_no_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'financial_report_no_%'
+           AND domain is not null
+           AND module = 'l10n_no_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1178,28 +1216,28 @@ def _fill_grids_mapping_for_no(cr, dict_to_fill):
 def _fill_grids_mapping_for_pl(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = sum.balance'
-        where xmlid in ('account_financial_report_pl_03_01_01_04_04',
-                        'account_financial_report_pl_02_02',
-                        'account_financial_report_pl_01_12')
-        and module = 'l10n_pl_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = sum.balance'
+         WHERE xmlid in ('account_financial_report_pl_03_01_01_04_04',
+                         'account_financial_report_pl_02_02',
+                         'account_financial_report_pl_01_12')
+           AND module = 'l10n_pl_reports'
     """
     )
 
     cr.execute(
         """
-        select financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
-        from financial_report_lines_v12_bckp
-        join account_tax_report_line
-        on account_tax_report_line.name = case when xmlid = 'account_financial_report_pl_03_01_01_04_04b' then 'Podatek - Nabycie towarów i usług pozostałych'
-                                               when xmlid = 'account_financial_report_pl_02_02b' then 'Podstawa - Nabycie towarów i usług pozostałych'
-                                               when xmlid = 'account_financial_report_pl_01_12b' then 'Podstawa - Dostawa towarów, podatnik nabywca'
-                                               else financial_report_lines_v12_bckp.name end
-        where financial_report_lines_v12_bckp.xmlid like 'account_financial_report_pl_%'
-        and financial_report_lines_v12_bckp.module = 'l10n_pl_reports'
-        and financial_report_lines_v12_bckp.domain is not null
-        and financial_report_lines_v12_bckp.formulas is not null;
+        SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
+          FROM financial_report_lines_v12_bckp
+          JOIN account_tax_report_line
+               ON account_tax_report_line.name = CASE WHEN xmlid = 'account_financial_report_pl_03_01_01_04_04b' THEN 'Podatek - Nabycie towarów i usług pozostałych'
+                                                      WHEN xmlid = 'account_financial_report_pl_02_02b' THEN 'Podstawa - Nabycie towarów i usług pozostałych'
+                                                      WHEN xmlid = 'account_financial_report_pl_01_12b' THEN 'Podstawa - Dostawa towarów, podatnik nabywca'
+                                                      ELSE financial_report_lines_v12_bckp.name END
+         WHERE financial_report_lines_v12_bckp.xmlid like 'account_financial_report_pl_%'
+           AND financial_report_lines_v12_bckp.module = 'l10n_pl_reports'
+           AND financial_report_lines_v12_bckp.domain is not null
+           AND financial_report_lines_v12_bckp.formulas is not null;
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1208,39 +1246,39 @@ def _fill_grids_mapping_for_pl(cr, dict_to_fill):
 def _fill_grids_mapping_for_ro(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (TVA colectata)')
-        where code like 'ROTAX_TVA_colectata%'
-        and name not like 'Baza TVA%';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (TVA colectata)')
+         WHERE code like 'ROTAX_TVA_colectata%'
+           AND name not like 'Baza TVA%';
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (deductibila)')
-        where code like 'ROTAX_TVA_deductibila%'
-        and (name not like '%_i%%'
-            or name = 'TVA Intracomunitar Bunuri');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (deductibila)')
+         WHERE code like 'ROTAX_TVA_deductibila%'
+           AND (name not like '%_i%%'
+            OR name = 'TVA Intracomunitar Bunuri');
 
-        update financial_report_lines_v12_bckp
-        set name = 'Baza TVA Intracomunitar Servicii (deductibila)'
-        where name = 'Baza TVA Intracomunitar Servicii%';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'Baza TVA Intracomunitar Servicii (deductibila)'
+         WHERE name = 'Baza TVA Intracomunitar Servicii%';
 
-        update financial_report_lines_v12_bckp
-        set name = 'Baza TVA Intracomunitar Bunuri (deductibila)'
-        where name = 'Baza TVA Intracomunitar Bunuri%';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'Baza TVA Intracomunitar Bunuri (deductibila)'
+         WHERE name = 'Baza TVA Intracomunitar Bunuri%';
 
-        update financial_report_lines_v12_bckp
-        set name = 'Baza TVA Taxare Inversa (deductibila)'
-        where name = 'Baza TVA Taxare Inversa'
-        and xmlid like 'account\_tax\_report\_ro\_%';
+        UPDATE financial_report_lines_v12_bckp
+           SET name = 'Baza TVA Taxare Inversa (deductibila)'
+         WHERE name = 'Baza TVA Taxare Inversa'
+           AND xmlid like 'account\_tax\_report\_ro\_%';
     """
     )
 
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_ro%'
-        and domain is not null
-        and module = 'l10n_ro_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_ro%'
+           AND domain is not null
+           AND module = 'l10n_ro_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1249,10 +1287,10 @@ def _fill_grids_mapping_for_ro(cr, dict_to_fill):
 def _fill_grids_mapping_for_sg(cr, dict_to_fill):
     cr.execute(
         """
-        select id, SPLIT_PART(name,' - ',1) as name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'account_financial_report_l10n_sg_gst_returns%'
-        and domain is not null;
+        SELECT id, SPLIT_PART(name,' - ',1) as name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'account_financial_report_l10n_sg_gst_returns%'
+           AND domain is not null;
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1261,38 +1299,38 @@ def _fill_grids_mapping_for_sg(cr, dict_to_fill):
 def _fill_grids_mapping_for_si(cr, dict_to_fill):
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = -sum.balance'
-        where xmlid in ('financial_report_line_si_02020102',
-                        'financial_report_line_si_02020101')
-        and module = 'l10n_si_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = -sum.balance'
+         WHERE xmlid in ('financial_report_line_si_02020102',
+                         'financial_report_line_si_02020101')
+           AND module = 'l10n_si_reports';
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (Neodbitni)')
-        where module = 'l10n_si_reports'
-        and xmlid in ('financial_report_line_si_01010101',
-                      'financial_report_line_si_01010102');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (Neodbitni)')
+         WHERE module = 'l10n_si_reports'
+           AND xmlid in ('financial_report_line_si_01010101',
+                         'financial_report_line_si_01010102');
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (Vstopni)')
-        where module = 'l10n_si_reports'
-        and xmlid in ('financial_report_line_si_01020202',
-                      'financial_report_line_si_01020203');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (Vstopni)')
+         WHERE module = 'l10n_si_reports'
+           AND xmlid in ('financial_report_line_si_01020202',
+                         'financial_report_line_si_01020203');
     """
     )
 
     cr.execute(
         """
-        select financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
-        from financial_report_lines_v12_bckp
-        join account_tax_report_line
-        on account_tax_report_line.tag_name = case when xmlid = 'financial_report_line_si_02020102b' then 'Izstopni DDV - znižana stopnja'
-                                               when xmlid = 'financial_report_line_si_02020101b' then 'Izstopni DDV - osnovna stopnja'
-                                               else financial_report_lines_v12_bckp.name end
-        where financial_report_lines_v12_bckp.xmlid like 'financial_report_line_si%'
-        and financial_report_lines_v12_bckp.module = 'l10n_si_reports'
-        and financial_report_lines_v12_bckp.domain is not null
-        and financial_report_lines_v12_bckp.formulas is not null;
+        SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
+          FROM financial_report_lines_v12_bckp
+          JOIN account_tax_report_line
+               ON account_tax_report_line.tag_name = CASE WHEN xmlid = 'financial_report_line_si_02020102b' THEN 'Izstopni DDV - znižana stopnja'
+                                                          WHEN xmlid = 'financial_report_line_si_02020101b' THEN 'Izstopni DDV - osnovna stopnja'
+                                                          ELSE financial_report_lines_v12_bckp.name END
+         WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_si%'
+           AND financial_report_lines_v12_bckp.module = 'l10n_si_reports'
+           AND financial_report_lines_v12_bckp.domain is not null
+           AND financial_report_lines_v12_bckp.formulas is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1302,39 +1340,39 @@ def _fill_grids_mapping_for_th(cr, dict_to_fill):
     tag_id = util.env(cr)["ir.model.data"].xmlid_to_res_id("l10n_th.tag_th_05")
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set domain = '[(''tax_line_id.tag_ids'', ''in'', [%(tag_id)s])]'
-        where xmlid = 'account_financial_report_th_01_2'
-        and module = 'l10n_th_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET domain = '[(''tax_line_id.tag_ids'', ''in'', [%(tag_id)s])]'
+         WHERE xmlid = 'account_financial_report_th_01_2'
+           AND module = 'l10n_th_reports';
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (to be paid)')
-        where module = 'l10n_th_reports'
-        and xmlid in ('account_financial_report_th_02_1',
-                      'account_financial_report_th_02_2',
-                      'account_financial_report_th_01_1',
-                      'account_financial_report_l10n_th_03',
-                      'account_financial_report_l10n_th_04');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (to be paid)')
+         WHERE module = 'l10n_th_reports'
+           AND xmlid in ('account_financial_report_th_02_1',
+                         'account_financial_report_th_02_2',
+                         'account_financial_report_th_01_1',
+                         'account_financial_report_l10n_th_03',
+                         'account_financial_report_l10n_th_04');
 
-        update financial_report_lines_v12_bckp
-        set name = concat(name, ' (taxable)')
-        where module = 'l10n_th_reports'
-        and xmlid in ('account_financial_report_th_2_1_2_1',
-                      'account_financial_report_th_2_1_2_2',
-                      'account_financial_report_th_2_1_1_1',
-                      'account_financial_report_th_2_2_1',
-                      'account_financial_report_th_2_2_2');
+        UPDATE financial_report_lines_v12_bckp
+           SET name = concat(name, ' (taxable)')
+         WHERE module = 'l10n_th_reports'
+           AND xmlid in ('account_financial_report_th_2_1_2_1',
+                         'account_financial_report_th_2_1_2_2',
+                         'account_financial_report_th_2_1_1_1',
+                         'account_financial_report_th_2_2_1',
+                         'account_financial_report_th_2_2_2');
     """,
         {"tag_id": tag_id},
     )
 
     cr.execute(
         """
-        select id, SPLIT_PART(name,' - ',1) as name
-        from financial_report_lines_v12_bckp
-        where code like 'THTAX%'
-        and domain is not null
-        and module = 'l10n_th_reports';
+        SELECT id, SPLIT_PART(name,' - ',1) as name
+          FROM financial_report_lines_v12_bckp
+         WHERE code like 'THTAX%'
+           AND domain is not null
+           AND module = 'l10n_th_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1374,46 +1412,46 @@ def _fill_grids_mapping_for_gb(cr, dict_to_fill):  # For some reason, UK's count
 
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = sum.balance'
-        where xmlid in ('financial_report_line_uk_0103',
-                        'financial_report_line_uk_03')
-        and module = 'l10n_uk_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = sum.balance'
+         WHERE xmlid in ('financial_report_line_uk_0103',
+                         'financial_report_line_uk_03')
+           AND module = 'l10n_uk_reports';
 
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = -sum.balance'
-        where xmlid in ('financial_report_line_uk_02')
-        and module = 'l10n_uk_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = -sum.balance'
+         WHERE xmlid in ('financial_report_line_uk_02')
+           AND module = 'l10n_uk_reports';
 
-        update financial_report_lines_v12_bckp
-        set domain = %(grid_6_domain)s
-        where xmlid in ('financial_report_line_uk_02')
-        and module = 'l10n_uk_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET domain = %(grid_6_domain)s
+         WHERE xmlid in ('financial_report_line_uk_02')
+           AND module = 'l10n_uk_reports';
 
-        update financial_report_lines_v12_bckp
-        set domain = %(grid_7_domain)s
-        where xmlid in ('financial_report_line_uk_03')
-        and module = 'l10n_uk_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET domain = %(grid_7_domain)s
+         WHERE xmlid in ('financial_report_line_uk_03')
+           AND module = 'l10n_uk_reports';
 
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = -sum.balance'
-        where xmlid in ('financial_report_line_uk_0103b')
-        and module = 'l10n_uk_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = -sum.balance'
+         WHERE xmlid in ('financial_report_line_uk_0103b')
+           AND module = 'l10n_uk_reports';
     """,
         {"grid_6_domain": str(grid_6_domain), "grid_7_domain": str(grid_7_domain)},
     )
 
     cr.execute(
         """
-        select financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
-        from financial_report_lines_v12_bckp
-        join account_tax_report_line
-        on account_tax_report_line.tag_name = case when xmlid = 'financial_report_line_uk_0103b' then '4'
-                                                   else replace(financial_report_lines_v12_bckp.code, 'UKTAX_', '') end
-        where financial_report_lines_v12_bckp.xmlid like 'financial_report_line_uk%'
-        and financial_report_lines_v12_bckp.module = 'l10n_uk_reports'
-        and financial_report_lines_v12_bckp.domain is not null
-        and financial_report_lines_v12_bckp.formulas is not null;
+        SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
+          FROM financial_report_lines_v12_bckp
+          JOIN account_tax_report_line
+               ON account_tax_report_line.tag_name = CASE WHEN xmlid = 'financial_report_line_uk_0103b' THEN '4'
+                                                          ELSE replace(financial_report_lines_v12_bckp.code, 'UKTAX_', '') END
+         WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_uk%'
+           AND financial_report_lines_v12_bckp.module = 'l10n_uk_reports'
+           AND financial_report_lines_v12_bckp.domain is not null
+           AND financial_report_lines_v12_bckp.formulas is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1422,11 +1460,11 @@ def _fill_grids_mapping_for_gb(cr, dict_to_fill):  # For some reason, UK's count
 def _fill_grids_mapping_for_uy(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like '%_uy'
-        and domain is not null
-        and module = 'l10n_uy_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like '%_uy'
+           AND domain is not null
+           AND module = 'l10n_uy_reports';
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1435,11 +1473,11 @@ def _fill_grids_mapping_for_uy(cr, dict_to_fill):
 def _fill_grids_mapping_for_vn(cr, dict_to_fill):
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like '%_vn'
-        and domain is not null
-        and module = 'l10n_vn_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like '%_vn'
+           AND domain is not null
+           AND module = 'l10n_vn_reports'
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1455,22 +1493,22 @@ def _fill_grids_mapping_for_za(cr, dict_to_fill):
     ]
     cr.execute(
         """
-        update financial_report_lines_v12_bckp
-        set formulas = 'balance = -sum.balance', domain = %(vat10_domain)s
-        where xmlid in ('za_vat_financial_report_line_18')
-        and module = 'l10n_za_reports';
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = -sum.balance', domain = %(vat10_domain)s
+         WHERE xmlid in ('za_vat_financial_report_line_18')
+           AND module = 'l10n_za_reports';
     """,
         {"vat10_domain": str(vat10_domain)},
     )
 
     cr.execute(
         """
-        select id, name
-        from financial_report_lines_v12_bckp
-        where xmlid like 'za_vat_financial_report_line%'
-        and domain is not null
-        and formulas is not null
-        and module = 'l10n_za_reports';
+        SELECT id, name
+          FROM financial_report_lines_v12_bckp
+         WHERE xmlid like 'za_vat_financial_report_line%'
+           AND domain is not null
+           AND formulas is not null
+           AND module = 'l10n_za_reports';
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
@@ -1485,27 +1523,27 @@ def erase_edi_data(cr):
     if util.module_installed(cr, "l10n_co_edi"):
         cr.execute(
             """
-            update res_company
-            set l10n_co_edi_test_mode = true;
+            UPDATE res_company
+               SET l10n_co_edi_test_mode = true;
         """
         )
     if util.module_installed(cr, "l10n_mx_edi"):
         cr.execute(
             """
-            update res_company
-            set l10n_mx_edi_pac_test_env = true;
+            UPDATE res_company
+               SET l10n_mx_edi_pac_test_env = true;
         """
         )
     if util.module_installed(cr, "l10n_it_edi"):
         cr.execute(
             """
-            delete from ir_mail_server;
+            DELETE FROM ir_mail_server;
 
-            update res_partner
-            set country_id = null
-            from res_country
-            where res_country.id = res_partner.country_id
-            and res_country.code = 'IT';
+            UPDATE res_partner
+               SET country_id = null
+              FROM res_country
+             WHERE res_country.id = res_partner.country_id
+               AND res_country.code = 'IT';
         """
         )
 
@@ -1522,28 +1560,26 @@ def get_v13_migration_dicts(cr):
 
     # Set all taxes as active ; keep track of the inactive ones to restore their state later
 
-    cr.execute("""
-        update account_tax set active=True;
-    """)
+    cr.execute("UPDATE account_tax SET active=true")
 
-    env["account.tax"].invalidate_cache(fnames=['active'])
+    env["account.tax"].invalidate_cache(fnames=["active"])
 
     # If a tax is type_tax_use 'none', we artificially switch it to its parent type temporarily, to check what grids to impact for it
     cr.execute(
         """
-        update account_tax
-        set type_tax_use = parent.type_tax_use, name = concat(account_tax.name, account_tax.id::varchar)
-        from account_tax_filiation_rel tx_rel, account_tax parent
-        where tx_rel.child_tax = account_tax.id
-        and parent.id = tx_rel.parent_tax
-        and account_tax.type_tax_use = 'none';
+        UPDATE account_tax
+           SET type_tax_use = parent.type_tax_use, name = concat(account_tax.name, account_tax.id::varchar)
+          FROM account_tax_filiation_rel tx_rel, account_tax parent
+         WHERE tx_rel.child_tax = account_tax.id
+           AND parent.id = tx_rel.parent_tax
+           AND account_tax.type_tax_use = 'none';
     """
     )  # Groups with type_tax_use = 'none' are not supported, so no group of group here
 
     env["account.tax"].invalidate_cache(fnames=["type_tax_use"])
 
     # To properly migrate adjustment taxes, we need to male sure they create tax lines when used
-    cr.execute("update account_tax set amount=10 where amount=0 and type_tax_use = 'adjustment';")
+    cr.execute("UPDATE account_tax set amount=10 WHERE amount=0 AND type_tax_use = 'adjustment'")
 
     partner = env["res.partner"].create({"name": "Tax migrator"})
 
@@ -1561,21 +1597,21 @@ def get_v13_migration_dicts(cr):
     # Get all the financial tags defined in 12.3
     cr.execute(
         """
-        select tag_id
-        from v12_financial_tags_registry
+        SELECT tag_id
+          FROM v12_financial_tags_registry
     """
     )
-    #  This query only fetches the tags still declared, not the former ones, since the module has now been updated
+    #  This query only fetches the tags still declared, not the former ones, since the module has now been UPDATEd
     financial_tag_ids = {elem for (elem,) in cr.fetchall()}
 
     rslt = []
     cr.execute(
         """
-        select account_tax.id, case when count(account_account_tag_id) > 0 then array_agg(account_account_tag_id) else '{}' end
-        from account_tax
-        left join account_tax_account_tag_v12_bckp
-        on account_tax.id = account_tax_account_tag_v12_bckp.account_tax_id
-        group by account_tax.id
+        SELECT account_tax.id, case when count(account_account_tag_id) > 0 then array_agg(account_account_tag_id) else '{}' end
+          FROM account_tax
+     LEFT JOIN account_tax_account_tag_v12_bckp
+               ON account_tax.id = account_tax_account_tag_v12_bckp.account_tax_id
+      GROUP BY account_tax.id
     """
     )
     for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), qualifier="taxes"):
@@ -1584,9 +1620,9 @@ def get_v13_migration_dicts(cr):
         # get account_id and refund_account_id in SQL, since they have been removed between 12.2 and 12.3
         cr.execute(
             """
-            select account_id, refund_account_id
-            from tax_accounts_v12_bckp
-            where id=%(tax_id)s;
+            SELECT account_id, refund_account_id
+              FROM tax_accounts_v12_bckp
+             WHERE id=%(tax_id)s;
         """,
             {"tax_id": tax_id},
         )
@@ -1618,10 +1654,12 @@ def get_v13_migration_dicts(cr):
                 # We want to see where v12 tags go, in order to prepare v13 tags assignation
                 cr.execute(
                     """
-                    select id, domain, formulas
-                    from financial_report_lines_v12_bckp
-                    where domain like '%%tax%%.tag\_ids%%%(tag_id)s%%'
-                """, {'tag_id': tag_id})
+                    SELECT id, domain, formulas
+                      FROM financial_report_lines_v12_bckp
+                     WHERE domain like '%%tax%%.tag\_ids%%%(tag_id)s%%'
+                """,
+                    {"tag_id": tag_id},
+                )
                 tag_report_lines_data = cr.fetchall()
 
                 if not tag_report_lines_data:
@@ -1643,14 +1681,18 @@ def get_v13_migration_dicts(cr):
 
                     split_formula = _split_formulas_to_dict(cr, formulas)
 
-                    if tax.type_tax_use == "adjustment" and tax_report_line_id in financial_reports_grids_mapping and (
-                        inv_tax_line or ref_tax_line
+                    if (
+                        tax.type_tax_use == "adjustment"
+                        and tax_report_line_id in financial_reports_grids_mapping
+                        and (inv_tax_line or ref_tax_line)
                     ):  # We treat tax adjustment in a dedicated way, as they are not supposed to be used on invoices
                         tax_rslt["invoice"]["tax"]["+"].add(financial_reports_grids_mapping[tax_report_line_id])
                         tax_rslt["refund"]["tax"]["-"].add(financial_reports_grids_mapping[tax_report_line_id])
                         continue
 
-                    candidate_to_add = is_financial and tag_id or financial_reports_grids_mapping.get(tax_report_line_id)
+                    candidate_to_add = (
+                        is_financial and tag_id or financial_reports_grids_mapping.get(tax_report_line_id)
+                    )
 
                     if not candidate_to_add:
                         # Happens for noisy financial report lines, not corresponding to any tax report.
@@ -1714,12 +1756,10 @@ def _get_financial_tags_conversion_map(cr):
     # other tags to these new tags, and giving the conditions for this replacement
     cr.execute(
         """
-        select old_data.res_id as old_tag_id, invoice_type, repartition_type, new_data.res_id as new_tag_id
-        from financial_tags_conversion_map conv_map
-        join ir_model_data old_data
-        on old_data.name = conv_map.old_tag_name and old_data.module = conv_map.module
-        join ir_model_data new_data
-        on new_data.name = conv_map.new_tag_name and new_data.module = conv_map.module
+        SELECT old_data.res_id as old_tag_id, invoice_type, repartition_type, new_data.res_id as new_tag_id
+          FROM financial_tags_conversion_map conv_map
+          JOIN ir_model_data old_data ON old_data.name = conv_map.old_tag_name AND old_data.module = conv_map.module
+          JOIN ir_model_data new_data ON new_data.name = conv_map.new_tag_name AND new_data.module = conv_map.module
     """
     )
 
