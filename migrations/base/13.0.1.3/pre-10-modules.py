@@ -14,3 +14,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "crm_enterprise", plus={"web_map"})
         util.merge_module(cr, "l10n_mx_edi_payment", "l10n_mx_edi")
         util.merge_module(cr, "account_reports_cash_flow", "account_reports")
+
+        util.new_module(
+            cr, "social_linkedin_company_support", deps={"social_linkedin"}, auto_install=True
+        )
