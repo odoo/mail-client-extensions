@@ -29,6 +29,16 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "l10n_be_edi", minus={"account", "account_edi_facturx"}, plus={"account_edi"})
     util.module_deps_diff(cr, "l10n_it_edi", plus={"account_edi"})
     util.module_deps_diff(cr, "l10n_be_edi", plus={"account_edi"})
+    # new event_crm module and its bridges
+    util.new_module(cr, "event_crm", deps={"event", "crm"}, auto_install=True)
+    util.new_module(cr, "event_crm_sale", deps={"event_crm", "event_sale"}, auto_install=True)
+    util.new_module(cr, "website_event_crm", deps={"event_crm", "website_event"}, auto_install=True)
+    util.new_module(cr, "website_event_crm_questions",
+                    deps={"website_event_crm", "website_event_questions"},
+                    auto_install=True)
+    util.new_module(cr, "test_event_full",
+                    deps={"event", "event_crm", "event_sale", "website_event_crm_questions",
+                          "website_event_questions", "website_event_sale", "website_event_track"})
 
     if util.has_enterprise():
         util.module_deps_diff(cr, "test_mail_enterprise",
