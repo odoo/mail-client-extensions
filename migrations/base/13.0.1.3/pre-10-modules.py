@@ -6,6 +6,8 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_il", deps={"account"})
     util.new_module(cr, "l10n_lt", deps={"l10n_multilang"})
     util.new_module(cr, "l10n_dk", deps={"account", "base_iban", "base_vat"})
+    util.new_module(cr, "odoo_referral", deps={"base", "web"}, auto_install=True)
+    util.new_module(cr, "odoo_referral_portal", deps={"website", "odoo_referral"}, auto_install=True)
     if util.has_enterprise():
         util.new_module(cr, "pos_hr_l10n_be", deps={"pos_hr", "pos_blackbox_be"}, auto_install=True)
         util.module_deps_diff(cr, "pos_blackbox_be", plus={"pos_iot"})
