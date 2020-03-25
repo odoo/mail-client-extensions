@@ -47,7 +47,10 @@ class Base(models.AbstractModel):
                         if xmlid and not xmlid.startswith("__export__."):
                             # XXX raise?
                             _logger.warning("Matching record %r has XMLID %r. Missing rename?", record, xmlid)
-                        record._write(values)
+                        store_values = {key: value for key, value in values.items() if record._fields[key].column_type}
+                        other_values = {key: value for key, value in values.items() if key not in store_values}
+                        record._write(store_values)
+                        record.write(other_values)
                         return record
             raise
 
