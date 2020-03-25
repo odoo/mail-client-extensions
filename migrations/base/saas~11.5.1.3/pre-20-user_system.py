@@ -134,6 +134,16 @@ def migrate(cr, version):
     # regroup queries per table to avoid updating the same table (and records) in parallel.
     all_queries = defaultdict(list)
 
+    # inhertied tables (and parents) should be processed sequentially
+    cr.execute(
+        """
+        SELECT DISTINCT c.relname
+          FROM pg_class c
+          JOIN pg_inherits i ON (i.inhrelid = c.oid OR i.inhparent = c.oid)
+        """
+    )
+    tables_with_inheritance = [t for t, in cr.fetchall()]
+
     for table, fk, _, _ in util.get_fk(cr, "res_users"):
         if table == "ir_model_data":
             continue
@@ -157,7 +167,9 @@ def migrate(cr, version):
                 )
             """
             params += [util.model_of_table(cr, table)]
-        all_queries[table].append(cr.mogrify(query.format(table=table, fk=fk), params).decode())
+
+        key = table if table not in tables_with_inheritance else None
+        all_queries[key].append(cr.mogrify(query.format(table=table, fk=fk), params).decode())
 
     for queries in itertools.zip_longest(*all_queries.values()):
         util.parallel_execute(cr, [q for q in queries if q is not None])
