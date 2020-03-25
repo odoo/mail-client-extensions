@@ -4,9 +4,6 @@ from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
 
 
-SAAS = bool(ENV.get("OE_SAAS_MIGRATION"))
-MOVE_TO_FILESTORE = bool(ENV.get("OE_MOVE_ATTACHMENTS_TO_FILESTORE"))
-
 def move_db_attachments_to_disk(cr):
     registry = RegistryManager.get(cr.dbname)
     keep_on_db = registry['ir.config_parameter'].get_param(
@@ -40,17 +37,10 @@ def move_db_attachments_to_disk(cr):
             ,       store_fname = %s
             WHERE CURRENT OF iter_cur
             """, [len(raw), fname])
-
-    if SAAS:
-        cr.execute("""
-            -- NOTE: since we rename the migrated database in SaaS, we should
-            --       purge the table.
-            VACUUM FULL ir_attachment;
-            """)
+    cr.execute("VACUUM FULL ir_attachment")
 
 def migrate(cr, version):
-    if MOVE_TO_FILESTORE:
-        move_db_attachments_to_disk(cr)
+    move_db_attachments_to_disk(cr)
 
 if __name__ == '__main__':
     import logging
