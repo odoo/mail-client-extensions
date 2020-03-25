@@ -3,20 +3,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    # For now, we're unable to migrate databases with grouped invoice lines...
-
     is_account_voucher_installed = util.table_exists(cr, "account_voucher")
-    cr.execute(
-        """
-        SELECT count(*)
-          FROM account_invoice i
-    INNER JOIN account_journal j ON i.journal_id=j.id
-         WHERE j.group_invoice_lines=TRUE
-    """
-    )
-    if cr.fetchone()[0]:
-        raise util.MigrationError("Sorry. Migration of grouped invoice line is still not available")
-
+    
     # =======================================================================================
     # Migrate chatters
     # =======================================================================================
