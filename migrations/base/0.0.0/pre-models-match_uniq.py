@@ -2,7 +2,7 @@
 import logging
 from psycopg2 import IntegrityError
 
-from odoo import models
+from odoo import api, models
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migration.base.000." + __name__)
 
@@ -15,6 +15,7 @@ class Base(models.AbstractModel):
     _inherit = "base"
     _module = "base"
 
+    @api.model
     def create(self, values):
         try:
             with self.env.cr.savepoint():
