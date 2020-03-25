@@ -7,6 +7,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "event", plus={"utm"})
     util.module_deps_diff(cr, "link_tracker", plus={"mail"})
     util.new_module(cr, "mrp_landed_costs", deps={"stock_landed_costs", "mrp"}, auto_install=True)
+    util.new_module(cr, "account_qr_code_sepa", deps={"account"}, auto_install=True)
     util.module_deps_diff(cr, "sale_coupon", plus={"sale"}, minus={"sale_management"})
     util.remove_module(cr, "social_linkedin_company_support")
 

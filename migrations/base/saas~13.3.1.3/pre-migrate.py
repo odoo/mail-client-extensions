@@ -25,3 +25,6 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("base.module_category_{discuss,productivity_discuss}"))
 
     util.remove_view(cr, "base.view_partner_short_form")
+
+    util.remove_field(cr, "res.partner.bank", "qr_code_valid")
+    util.remove_field(cr, "account.setup.bank.manual.config", "qr_code_valid")

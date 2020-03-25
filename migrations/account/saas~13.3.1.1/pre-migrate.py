@@ -3,6 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    # ===========================================================
+    # QR codes (PR:44839)
+    # ===========================================================
+    util.create_column(cr, "account_move", "qr_code_method", "varchar")
+    util.create_column(cr, "res_company", "qr_code", "boolean")
 
     # ===========================================================
     # Incoterms (PR:43883)
