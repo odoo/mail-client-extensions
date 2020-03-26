@@ -15,6 +15,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_cn_small_business", "l10n_cn")
     util.module_deps_diff(cr, "l10n_id", plus={"l10n_multilang"})
     util.module_deps_diff(cr, "sale_timesheet", plus={"sale_project"}, minus={"sale_management"})
+    util.force_migration_of_fresh_module(cr, "sale_project")
     util.module_deps_diff(
         cr, "stock_dropshipping", plus={"sale_purchase_stock"}, minus={"sale_stock", "purchase_stock", "sale_purchase"}
     )
