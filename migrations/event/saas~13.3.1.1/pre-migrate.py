@@ -15,3 +15,18 @@ def migrate(cr, version):
     for old_name in ["campaign_id", "source_id", "medium_id"]:
         util.move_field_to_module(cr, "event.registration", old_name, "event_sale", "event")
         util.rename_field(cr, "event.registration", old_name, f"utm_{old_name}")
+
+    cr.execute("""
+        CREATE TABLE event_tag (
+            id SERIAL PRIMARY KEY,
+            create_uid INTEGER,
+            write_uid INTEGER
+        )
+    """)
+
+    cr.execute("""
+        CREATE TABLE event_event_tag_rel (
+            event_id INTEGER,
+            tag_id INTEGER
+        )
+    """)
