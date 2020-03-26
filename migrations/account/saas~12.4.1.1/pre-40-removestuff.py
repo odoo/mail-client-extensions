@@ -11,7 +11,7 @@ def migrate(cr, version):
     util.remove_menus(
         cr,
         [
-            util.ref(cr, "account.action_invoice_tree1"),
+            util.ref(cr, "account.menu_action_invoice_tree1"),
             util.ref(cr, "account.menu_action_invoice_out_refund"),
             util.ref(cr, "account.menu_action_invoice_tree2"),
             util.ref(cr, "account.menu_action_invoice_in_refund"),
