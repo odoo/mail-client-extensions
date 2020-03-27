@@ -37,7 +37,6 @@ def move_db_attachments_to_disk(cr):
             ,       store_fname = %s
             WHERE CURRENT OF iter_cur
             """, [len(raw), fname])
-    cr.execute("VACUUM FULL ir_attachment")
 
 def migrate(cr, version):
     move_db_attachments_to_disk(cr)
