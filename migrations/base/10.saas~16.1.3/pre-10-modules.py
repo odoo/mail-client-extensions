@@ -88,3 +88,4 @@ def migrate(cr, version):
         util.merge_module(cr, 'project_forecast_grid', 'project_forecast')
         util.new_module_dep(cr, 'project_forecast', 'web_grid')
         util.new_module_dep(cr, 'project_forecast', 'hr')
+        util.force_migration_of_fresh_module(cr, "project_timesheet_forecast_sale")
