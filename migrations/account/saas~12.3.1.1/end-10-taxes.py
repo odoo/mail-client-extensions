@@ -893,10 +893,23 @@ def _fill_grids_mapping_for_ch(cr, dict_to_fill):
 def _fill_grids_mapping_for_cl(cr, dict_to_fill):
     cr.execute(
         """
-        SELECT id, name
+        SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
           FROM financial_report_lines_v12_bckp
-         WHERE xmlid like 'financial_report_line_cl%'
-           AND domain is not null
+          JOIN account_tax_report_line
+               ON account_tax_report_line.name = CASE
+                   WHEN xmlid = 'financial_report_line_cl_030101' THEN 'Ventas Netas Gravadas con IVA'
+                   WHEN xmlid = 'financial_report_line_cl_030102' THEN 'Ventas Exentas'
+                   WHEN xmlid = 'financial_report_line_cl_020201' THEN 'IVA Debito Fiscal'
+                   WHEN xmlid = 'financial_report_line_cl_030201' THEN 'Compras Netas Gravadas Con IVA (recuperable)'
+                   WHEN xmlid = 'financial_report_line_cl_030202' THEN 'Compras No Gravadas Con Iva'
+                   WHEN xmlid = 'financial_report_line_cl_020101' THEN 'IVA Pagado Compras Recuperables'
+                   WHEN xmlid = 'financial_report_line_cl_020203' THEN 'Compras Iva No Recuperable'
+                   ELSE financial_report_lines_v12_bckp.name
+               END
+         WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_cl%'
+           AND financial_report_lines_v12_bckp.module = 'l10n_cl_reports'
+           AND financial_report_lines_v12_bckp.domain is not null
+           AND financial_report_lines_v12_bckp.formulas is not null
     """
     )
     dict_to_fill.update(dict(cr.fetchall()))
