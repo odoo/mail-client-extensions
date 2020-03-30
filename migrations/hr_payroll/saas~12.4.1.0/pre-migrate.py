@@ -115,11 +115,11 @@ def migrate(cr, version):
     cr.execute("""
         INSERT INTO hr_work_entry_type(name, code, sequence,
                                        color, active, is_leave, is_unforeseen)
-             SELECT (array_agg(name))[1], code, sequence,
+             SELECT (array_agg(name))[1], code, min(sequence),
                     0, true, false, false
                FROM hr_payslip_worked_days
               WHERE work_entry_type_id IS NULL
-           GROUP BY code, sequence
+           GROUP BY code
     """)
     cr.execute("""
         UPDATE hr_payslip_worked_days w
