@@ -18,6 +18,7 @@ def migrate(cr, version):
 
         paid_work_entry_types = all_we_types - payslip.struct_id.unpaid_work_entry_type_ids
         if util.version_gte("saas~12.5"):
+            contract.date_generated_from = contract.date_generated_to = payslip.date_to
             work_hours = contract._get_work_hours(payslip.date_from, payslip.date_to)
             total_hours = sum(work_hours.values()) or 1
             paid_amount = payslip._get_contract_wage()
