@@ -10,6 +10,11 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.merge_module(cr, "iot_pairing", "iot")
 
+        util.merge_module(cr, 'l10n_co_edi_ubl_2_1', 'l10n_co_edi')
+        util.module_deps_diff(cr, 'l10n_co_edi', plus={'product_unspsc'})
+
+    util.module_deps_diff(cr, 'l10n_co', plus={'base_address_city', 'account_debit_note', 'l10n_latam_base'})
+
     util.create_column(cr, 'res_country', 'zip_required', 'boolean', default=True)
     util.create_column(cr, 'res_country', 'state_required', 'boolean', default=False)
     util.new_module(cr, "microsoft_account", deps={"base_setup"})
