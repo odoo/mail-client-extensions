@@ -159,6 +159,16 @@ def _compute_invoice_line_move_line_mapping(cr):
 
     _logger.info("invoices: compute invoice line <-> move line mapping")
 
+    # Create the reference table to log which condition creates the mapping.
+    # This table is not dropped
+    cr.execute(
+        """
+        CREATE TABLE _mig_134_invl_aml_cond_ref (
+            cond_id INTEGER,
+            cond_text VARCHAR
+        )
+        """
+    )
     # We van start migration with an existing invl_aml_mapping, coming from a previous migration
     # To avoid computing something already computed many times
     if not util.table_exists(cr, "invl_aml_mapping"):
@@ -167,7 +177,8 @@ def _compute_invoice_line_move_line_mapping(cr):
             """
             CREATE TABLE invl_aml_mapping (
                 invl_id INTEGER NOT NULL,
-                aml_id INTEGER NOT NULL
+                aml_id INTEGER NOT NULL,
+                cond INTEGER
             )
             """
         )
@@ -213,28 +224,12 @@ def _compute_invoice_line_move_line_mapping(cr):
 
     filters = {
         "same_amount": """
-            ROUND(il.price_subtotal - (CASE WHEN i.currency_id = comp.currency_id
-                                            THEN ml.balance
-                                            ELSE ml.amount_currency
-                                       END * CASE i.type
-                                                WHEN 'out_invoice' THEN -1
-                                                WHEN 'in_invoice' THEN 1
-                                                WHEN 'out_refund' THEN 1
-                                                WHEN 'in_refund' THEN -1
-                                             END),
+            ROUND(il.price_subtotal - ml._mig_124_precomputed_amount,
                   curr.decimal_places) = 0.0
             """,
         # with a 0.01 tolerance
         "nearly_same_amount": """
-            ABS(ROUND(il.price_subtotal - (CASE WHEN i.currency_id = comp.currency_id
-                                                THEN ml.balance
-                                                ELSE ml.amount_currency
-                                           END * CASE i.type
-                                                    WHEN 'out_invoice' THEN -1
-                                                    WHEN 'in_invoice' THEN 1
-                                                    WHEN 'out_refund' THEN 1
-                                                    WHEN 'in_refund' THEN -1
-                                                 END),
+            ABS(ROUND(il.price_subtotal - ml._mig_124_precomputed_amount,
                       curr.decimal_places)) <= curr.rounding
             """,
         "same_account": "il.account_id = ml.account_id",
@@ -350,52 +345,157 @@ def _compute_invoice_line_move_line_mapping(cr):
                                           WHERE m.invl_id = ol.id))""",
     }
 
-    # execute the query in mutli-passes (leeloo?)
-    for cond in _get_conditions():
-        cr.execute(
-            """
-            INSERT INTO invl_aml_mapping(invl_id, aml_id)
-            SELECT il.id, ml.id
-              FROM account_invoice_line il
-              JOIN account_invoice i ON i.id = il.invoice_id
-              JOIN account_move m ON m.id = i.move_id
-              JOIN account_move_line ml ON ml.move_id = m.id
-              JOIN res_company comp ON comp.id = i.company_id
-              JOIN res_currency curr ON curr.id = i.currency_id
-
-             WHERE il.display_type IS NULL
-
-               AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
-               AND NOT EXISTS (SELECT aml_id FROM invl_aml_mapping WHERE aml_id=ml.id)
-
-               AND {}
-        """.format(
-                " AND ".join(filters[c] for c in cond)
-            )
+    # precompute to speedup queries
+    cr.execute("ALTER TABLE account_move_line ADD COLUMN _mig_124_precomputed_amount NUMERIC")
+    cr.execute(
+        """WITH computed AS
+            (
+            SELECT
+                ml.id,
+                (
+                    CASE
+                        WHEN i.currency_id = comp.currency_id
+                        THEN ml.balance
+                        ELSE ml.amount_currency
+                    END
+                    *
+                    CASE i.type
+                        WHEN 'out_invoice' THEN -1
+                        WHEN 'in_invoice' THEN 1
+                        WHEN 'out_refund' THEN 1
+                        WHEN 'in_refund' THEN -1
+                    END
+                ) AS _mig_124_precomputed_amount
+            FROM account_invoice i
+            JOIN account_move m ON m.id = i.move_id
+            JOIN account_move_line ml ON ml.move_id = m.id
+            JOIN res_company comp ON comp.id = i.company_id
+            JOIN res_currency curr ON curr.id = i.currency_id
         )
-        added = cr.rowcount
-        if added:
-            cr.execute(remove_bad_matches_query)
-            removed = cr.rowcount
-        else:
-            removed = 0
+        UPDATE account_move_line l SET _mig_124_precomputed_amount = c._mig_124_precomputed_amount
+          FROM computed c
+         WHERE c.id = l.id"""
+    )
 
-        _logger.info("invoices: fill line mapping with +%d/-%d entries using conditions %r", added, removed, cond)
+    def generate_buckets():
+        # Try to use different chunk sizes according to the number of invoice_line by invoice
+        # To query takes a lot of time when there are invoices with many invoice lines
+        # For single invoice line process by chunk of 500, for medium size invoices(between 10 or 20 invoice lines process by 25)
 
         cr.execute(
             """
-            SELECT count(l.id)
-              FROM account_invoice_line l
-         LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
-             WHERE l.display_type IS NULL
-               AND l.price_subtotal != 0
-               AND m.invl_id IS NULL
+            WITH invoices0 AS (
+                SELECT il.invoice_id as id,
+                    CASE
+                    WHEN count(*)<=2 THEN 500
+                    WHEN count(*)<=5 THEN 100
+                    WHEN count(*)<=10 THEN 50
+                    WHEN count(*)<=20 THEN 25
+                    ELSE 2
+                    END as inv_group
+                        FROM account_invoice_line il
+                LEFT JOIN invl_aml_mapping mp ON il.id = mp.invl_id
+                GROUP BY il.invoice_id
+                HAVING count(*) <> count(mp.invl_id)
+                ),
+                buckets_per_group AS (
+                    SELECT inv_group, (count(*) / inv_group)::integer + 1 as buckets
+                    FROM invoices0
+                    GROUP BY inv_group
+                ),
+                invoices as (
+                    SELECT i.*,
+                        NTILE(buckets) OVER(PARTITION BY i.inv_group) as chunk
+                    FROM invoices0 i
+                    JOIN buckets_per_group b ON i.inv_group = b.inv_group
+                )
+                SELECT (array_agg(id))ids
+                  FROM invoices
+              GROUP BY inv_group,
+                       chunk
         """
         )
-        rem = cr.fetchone()[0]
-        if rem == 0:
-            break
-        _logger.info("invoices: still %d to match", rem)
+        return [r[0] for r in cr.fetchall()]
+
+    with util.temp_index(cr, "invl_aml_mapping", "invl_id"), util.temp_index(cr, "invl_aml_mapping", "aml_id"):
+        chunks = generate_buckets()
+        # use a temporary table to makes parallel inserts
+        # Allow to better parallelize with conditions NOT EXISTS(...in invl_aml_mapping)
+        cr.execute(
+            """
+                CREATE TABLE invl_aml_mapping_temp (
+                    invl_id INTEGER NOT NULL,
+                    aml_id INTEGER NOT NULL,
+                    cond INTEGER
+                )
+                """
+        )
+
+        # execute the query in mutli-passes (leeloo?)
+        for i, cond in enumerate(_get_conditions(), start=1):
+            _logger.info("insert query %s: cond:%s", i, cond)
+            cr.execute("TRUNCATE TABLE invl_aml_mapping_temp")
+            query = """
+                INSERT INTO invl_aml_mapping_temp(invl_id, aml_id, cond)
+                SELECT il.id, ml.id, %s
+                    FROM account_invoice_line il
+                    JOIN account_invoice i ON i.id = il.invoice_id
+                    JOIN account_move m ON m.id = i.move_id
+                    JOIN account_move_line ml ON ml.move_id = m.id
+                    JOIN res_company comp ON comp.id = i.company_id
+                    JOIN res_currency curr ON curr.id = i.currency_id
+                WHERE il.display_type IS NULL
+                  AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
+                  AND NOT EXISTS (SELECT aml_id FROM invl_aml_mapping WHERE aml_id=ml.id)
+                  AND i.id = ANY(%s)
+                  AND {}
+            """.format(
+                " AND ".join(filters[c] for c in cond)
+            )
+            queries = []
+            for chunk in chunks:
+                queries.append(cr.mogrify(query, (i, chunk)))
+            util.parallel_execute(cr, queries)
+            cr.execute(
+                """
+            INSERT INTO _mig_134_invl_aml_cond_ref (cond_id,cond_text)
+            VALUES(%s, %s)""",
+                (i, ", ".join(cond)),
+            )
+            cr.execute(
+                """INSERT INTO invl_aml_mapping(invl_id, aml_id, cond)
+            SELECT invl_id, aml_id, cond FROM invl_aml_mapping_temp
+            """
+            )
+            added = cr.rowcount
+            if added:
+                # reevaluate the chunks, don't loop to invoices having already all the lines mapped
+                chunks = generate_buckets()
+                cr.execute(remove_bad_matches_query)
+                removed = cr.rowcount
+            else:
+                removed = 0
+
+            _logger.info("invoices: fill line mapping with +%d/-%d entries using conditions %r", added, removed, cond)
+
+            cr.execute(
+                """
+                SELECT count(l.id)
+                  FROM account_invoice_line l
+             LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
+                 WHERE l.display_type IS NULL
+                   AND l.price_subtotal != 0
+                   AND m.invl_id IS NULL
+            """
+            )
+            rem = cr.fetchone()[0]
+            if rem == 0:
+                break
+            _logger.info("invoices: still %d to match", rem)
+
+    # clean optimizations
+    cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig_124_precomputed_amount")
+    cr.execute("DROP TABLE invl_aml_mapping_temp")
 
     # create move line for non matching invoice lines with subtotal zero
     env = util.env(cr)
@@ -447,7 +547,7 @@ def _compute_invoice_line_move_line_mapping(cr):
     _logger.info("invoices: creating zero-line move.line")
     ml_ids = MoveLine.create(mls).ids
     _logger.info("invoices: creating zero-line mapping")
-    cr.executemany("INSERT INTO invl_aml_mapping(invl_id, aml_id) VALUES (%s, %s)", zip(line_ids, ml_ids))
+    cr.executemany("INSERT INTO invl_aml_mapping(invl_id, aml_id,cond) VALUES (%s, %s, 0)", zip(line_ids, ml_ids))
 
     # constistancy check
     _logger.info("invoices: ensuring consistant mapping")
@@ -1058,8 +1158,8 @@ def _compute_invoice_line_grouped_in_move_line(cr):
     )
     cr.execute(
         """
-        INSERT INTO invl_aml_mapping (invl_id,aml_id)
-        SELECT _mig124_invl_id,id FROM account_move_line WHERE _mig124_invl_id IS NOT NULL
+        INSERT INTO invl_aml_mapping (invl_id,aml_id,cond)
+        SELECT _mig124_invl_id,id,9999 FROM account_move_line WHERE _mig124_invl_id IS NOT NULL
     """
     )
     cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig124_invl_id")

@@ -58,3 +58,7 @@ def migrate(cr, version):
             f"Error, you have {rowcount} account.move with different amount_untaxed value than the account.invoice",
             "Accounting",
         )
+
+    # clean indexes (created in pre-70-create-index.py)
+    index_names = util.ENVIRON.get("__created_fk_idx", [])
+    util.parallel_execute(cr, [f'DROP INDEX IF EXISTS "{name}"' for name in index_names])
