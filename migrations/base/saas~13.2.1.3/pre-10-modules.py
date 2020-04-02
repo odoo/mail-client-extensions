@@ -56,6 +56,7 @@ def migrate(cr, version):
         util.rename_module(cr, "inter_company_rules", "sale_purchase_inter_company_rules")
         util.module_deps_diff(cr, "sale_purchase_inter_company_rules", plus={"account_inter_company_rules"})
         util.module_auto_install(cr, "sale_purchase_inter_company_rules", True)
+        util.force_migration_of_fresh_module(cr, "account_inter_company_rules")
 
         util.merge_module(cr, "hr_holidays_gantt_calendar", "hr_holidays_gantt")
 
