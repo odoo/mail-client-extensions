@@ -40,7 +40,7 @@ class IrUiView(models.Model):
 
         def _check_xml(self):
             res = True
-            for record in self:
+            for record in self.with_context(_migrate_enable_studio_check=True):
                 try:
                     res = res and super(IrUiView, record)._check_xml()
                 except Exception:
