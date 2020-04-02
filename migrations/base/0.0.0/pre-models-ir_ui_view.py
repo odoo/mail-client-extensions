@@ -39,14 +39,16 @@ class IrUiView(models.Model):
             return roots
 
         def _check_xml(self):
+            res = True
             for record in self:
                 try:
-                    return super(IrUiView, record)._check_xml()
+                    res = res and super(IrUiView, record)._check_xml()
                 except Exception:
                     if record._migrate_fix_views():
-                        return record._migrate_get_roots()._check_xml()
+                        res = res and record._migrate_get_roots()._check_xml()
                     else:
                         raise
+            return res
 
         def copy_translations(old, new, *args, **kwargs):
             if old.env.context.get('_migrate_fix_views'):
