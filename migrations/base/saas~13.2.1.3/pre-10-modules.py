@@ -36,6 +36,7 @@ def migrate(cr, version):
         )
         util.force_migration_of_fresh_module(cr, "hr_expense_extract")
         util.new_module(cr, "industry_fsm_forecast", deps={"industry_fsm", "project_forecast"}, auto_install=True)
+        util.force_migration_of_fresh_module(cr, "industry_fsm_forecast")
         util.new_module(
             cr, "quality_control_picking_batch", deps={"quality_control", "stock_picking_batch"}, auto_install=True
         )
