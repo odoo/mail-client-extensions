@@ -721,7 +721,7 @@ def migrate_voucher_lines(cr):
           GROUP BY vl_id
         ),
         gb_vl AS (
-            SELECT array_agg(vl_id) as vl_ids, ml_ids
+            SELECT array_agg(vl_id ORDER BY vl_id) as vl_ids, ml_ids
               FROM gb_ml
           GROUP BY ml_ids
         ),
@@ -933,7 +933,7 @@ def migrate_voucher_lines(cr):
               FROM vl_ml_mapping
           GROUP BY vl_id
         )
-        SELECT array_agg(vl_id) as vls, ml_ids as mls
+        SELECT array_agg(vl_id ORDER BY vl_id) as vls, ml_ids as mls
        -- INTO TEMPORARY TABLE saas124_acc_mig_bad_voucher_mapping
           INTO TABLE saas124_acc_mig_bad_voucher_mapping
           FROM gb_ml
@@ -1306,40 +1306,50 @@ def migrate_invoice_lines(cr):
             "Fix amount_untaxed, amount_untaxed_signed, amount_tax, amount_tax_signed, "
             "amount_total, amount_total_signed, amount_residual, amount_residual_signed"
         )
-        cr.execute("""
+        cr.execute(
+            """
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_untaxed
               FROM account_move_line
              WHERE exclude_from_invoice_tab = false
           GROUP BY move_id
-        """)
-        cr.execute("""
+        """
+        )
+        cr.execute(
+            """
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_tax
               FROM account_move_line
              WHERE tax_line_id IS NOT NULL
           GROUP BY move_id
-        """)
-        cr.execute("""
+        """
+        )
+        cr.execute(
+            """
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_total
               FROM account_move_line
              WHERE account_internal_type NOT IN ('receivable', 'payable')
           GROUP BY move_id
-        """)
-        cr.execute("""
-            SELECT COALESCE(SUM(amount_residual), 0.0) as amount, COALESCE(SUM(amount_residual_currency), 0.0) as amount_curr, move_id
+        """
+        )
+        cr.execute(
+            """
+            SELECT COALESCE(SUM(amount_residual), 0.0) as amount,
+                COALESCE(SUM(amount_residual_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_residual
               FROM account_move_line
              WHERE account_internal_type IN ('receivable', 'payable')
           GROUP BY move_id
-        """)
+        """
+        )
         cr.execute("CREATE INDEX ON am_untaxed(move_id)")
         cr.execute("CREATE INDEX ON am_tax(move_id)")
         cr.execute("CREATE INDEX ON am_total(move_id)")
         cr.execute("CREATE INDEX ON am_residual(move_id)")
 
-        cr.execute("""
+        cr.execute(
+            """
             SELECT COALESCE(am_untaxed.amount,0) as untaxed_amount,COALESCE(am_untaxed.amount_curr,0) as untaxed_amount_curr,
                    COALESCE(am_tax.amount,0) as tax_amount,COALESCE(am_tax.amount_curr,0) as tax_amount_curr,
                    COALESCE(am_total.amount,0) as total_amount,COALESCE(am_total.amount_curr,0) as total_amount_curr,
