@@ -32,3 +32,19 @@ def migrate(cr, version):
     for opt in {"title", "body", "button", "navbar"}:
         for cnt in range(2, 7):
             util.remove_view(cr, "website.option_font_{}_{:02}_variables".format(opt, cnt))
+            cr.execute(
+                """
+                WITH qweb_views AS (
+                    SELECT id
+                       FROM ir_ui_view
+                      WHERE website_id IS NOT NULL
+                        AND key=%s
+                        AND type='qweb'
+                        AND id NOT IN (select res_id from ir_model_data where module='website' and model='ir.ui.view')
+                )
+                UPDATE ir_ui_view v
+                    SET active='f'
+                  FROM qweb_views qv
+                 WHERE qv.id=v.id
+               """, ["website.option_font_%(opt)s_0%(cnt)s_variables" % {"opt": opt, "cnt": cnt}]
+            )
