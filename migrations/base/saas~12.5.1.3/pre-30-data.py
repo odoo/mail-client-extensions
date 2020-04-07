@@ -7,7 +7,6 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("base.module_category_{communication,sales}_sign"))
     # util.rename_xmlid(cr, *eb("base.module_category_accounting_{invoicing,accounting}"))
 
-    util.force_noupdate(cr, "base.res_partner_rule", False)
     util.remove_record(cr, "base.menu_view_base_language_install")
 
     util.remove_view(cr, "base.view_company_report_form")
