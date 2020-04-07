@@ -90,7 +90,7 @@ def fix_indirect(cr):
                        %(model_field)s='account.move'
                   FROM account_invoice i
                  WHERE i.id=d.%(id_field)s
-                   AND %(model_field)s='account.invoice'
+                   AND d.%(model_field)s='account.invoice'
                    AND i.move_id IS NOT NULL
             """
                 % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model}
