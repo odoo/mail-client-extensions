@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     is_account_voucher_installed = util.table_exists(cr, "account_voucher")
-    
+
     # =======================================================================================
     # Migrate chatters
     # =======================================================================================
@@ -203,7 +203,7 @@ def migrate(cr, version):
          WHERE am.type in ('out_invoice', 'in_refund', 'out_receipt')
            AND aml.move_id = am.id
            AND am.currency_id = am.company_currency_id
-           AND aml.tax_repartition_line_id IS NOT NULL
+           AND aml.tax_line_id IS NOT NULL
         """,
             """
         UPDATE account_move_line aml
@@ -215,7 +215,7 @@ def migrate(cr, version):
          WHERE am.type in ('in_invoice', 'out_refund', 'in_receipt')
            AND aml.move_id = am.id
            AND am.currency_id = am.company_currency_id
-           AND aml.tax_repartition_line_id IS NOT NULL;
+           AND aml.tax_line_id IS NOT NULL
         """,
             """
         -- multi-currencies
@@ -228,7 +228,7 @@ def migrate(cr, version):
          WHERE am.type in ('out_invoice', 'in_refund', 'out_receipt')
            AND aml.move_id = am.id
            AND am.currency_id != am.company_currency_id
-           AND aml.tax_repartition_line_id IS NOT NULL;
+           AND aml.tax_line_id IS NOT NULL
         """,
             """
         UPDATE account_move_line aml
@@ -240,7 +240,7 @@ def migrate(cr, version):
          WHERE am.type in ('in_invoice', 'out_refund', 'in_receipt')
            AND aml.move_id = am.id
            AND am.currency_id != am.company_currency_id
-           AND aml.tax_repartition_line_id IS NOT NULL;
+           AND aml.tax_line_id IS NOT NULL
         """,
         ],
     )
