@@ -152,8 +152,7 @@ def migrate(cr, version):
             invoice_vendor_display_name = inv.vendor_display_name
         FROM account_invoice inv
         JOIN res_company comp ON comp.id = inv.company_id
-        WHERE move_id IS NOT NULL
-        AND am.id = inv.move_id
+        WHERE am.id = inv.move_id
     """
     )
 
