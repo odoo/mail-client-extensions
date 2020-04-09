@@ -1586,6 +1586,7 @@ def migrate_invoice_lines(cr):
         )
         cr.execute("UPDATE account_move SET invoice_payment_state = 'not_paid' WHERE invoice_payment_state IS NULL")
 
+        # The two queries below are separate for performance reason. (more details in the PR)
         cr.execute(
             """
             UPDATE account_move am
@@ -1596,10 +1597,27 @@ def migrate_invoice_lines(cr):
                 FROM account_move move
                 JOIN account_move_line line ON line.move_id = move.id
                 JOIN account_partial_reconcile part ON part.debit_move_id = line.id OR part.credit_move_id = line.id
-                JOIN account_move_line rec_line ON
-                    (rec_line.id = part.credit_move_id AND line.id = part.debit_move_id)
-                    OR
-                    (rec_line.id = part.debit_move_id AND line.id = part.credit_move_id)
+                /*slight variation with next query in next join*/
+                JOIN account_move_line rec_line ON (rec_line.id = part.debit_move_id AND line.id = part.credit_move_id)
+                JOIN account_payment payment ON payment.id = rec_line.payment_id
+                JOIN account_journal journal ON journal.id = rec_line.journal_id
+                WHERE payment.state IN ('posted', 'sent')
+                AND journal.post_at_bank_rec IS TRUE
+            )
+        """
+        )
+        cr.execute(
+            """
+            UPDATE account_move am
+            SET invoice_payment_state = 'in_payment'
+            WHERE am.invoice_payment_state = 'paid'
+            AND am.id IN (
+                SELECT move.id
+                FROM account_move move
+                JOIN account_move_line line ON line.move_id = move.id
+                JOIN account_partial_reconcile part ON part.debit_move_id = line.id OR part.credit_move_id = line.id
+                /*slight variation with previous query in next join*/
+                JOIN account_move_line rec_line ON (rec_line.id = part.credit_move_id AND line.id = part.debit_move_id)
                 JOIN account_payment payment ON payment.id = rec_line.payment_id
                 JOIN account_journal journal ON journal.id = rec_line.journal_id
                 WHERE payment.state IN ('posted', 'sent')
