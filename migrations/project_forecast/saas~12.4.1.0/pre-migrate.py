@@ -8,6 +8,12 @@ def migrate(cr, version):
         table = util.table_of_model(cr, model)
         util.drop_depending_views(cr, table, "start_datetime")
         util.drop_depending_views(cr, table, "end_datetime")
+
+        field_name_mapping = [
+            ("start_date", "start_datetime"),
+            ("end_date", "end_datetime"),
+        ]
+        util.update_server_actions_fields(cr, src_model="planning.slot", fields_mapping=field_name_mapping)
     else:
         model = "project.forecast"
         table = util.table_of_model(cr, model)
@@ -23,7 +29,8 @@ def migrate(cr, version):
            ALTER COLUMN end_datetime
                    TYPE timestamp without time zone
                   USING end_datetime + interval '23:59:59'
-        """ % table
+        """
+        % table
     )
 
     util.create_column(cr, table, "recurrency_id", "int4")
