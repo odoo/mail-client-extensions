@@ -58,7 +58,7 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
     not_ids = []
     has_ids = []
     for res_id, store_fname in cr.fetchall():
-        if model not in FORCE_COPY and os.path.isfile(full_path(store_fname)):
+        if model not in FORCE_COPY and store_fname and os.path.isfile(full_path(store_fname)):
             has_ids.append(res_id)
         else:
             not_ids.append(res_id)
