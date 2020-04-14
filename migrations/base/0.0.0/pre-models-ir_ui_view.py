@@ -1,7 +1,7 @@
 import logging
 import re
 
-from odoo import models
+from odoo import api, models
 from odoo.modules.module import get_modules
 from odoo.addons.base.maintenance.migrations import util
 if util.version_gte('10.0'):
@@ -39,6 +39,9 @@ class IrUiView(models.Model):
             return roots
 
         def _check_xml(self):
+            # Do not validate views during the upgrade. All views will be validated at once after upgrade.
+            if not self.env.context.get("_upgrade_validate_views"):
+                return True
             res = True
             for record in self.with_context(_migrate_enable_studio_check=True):
                 try:
@@ -130,6 +133,29 @@ class IrUiView(models.Model):
             else:
                 # No view has been modified
                 return False
+
+        @api.model
+        def _register_hook(self):
+            """
+            Validate all views, whether custom or not, with the fields coming from custom modules loaded as manual fields.
+            """
+            super(IrUiView, self)._register_hook()
+            with util.custom_module_field_as_manual(self.env):
+                query = """SELECT max(id)
+                             FROM ir_ui_view
+                            WHERE active
+                         GROUP BY coalesce(inherit_id, id)"""
+                self._cr.execute(query)
+                views = self.browse(it[0] for it in self._cr.fetchall())
+
+                for view in views.with_context(_upgrade_validate_views=True, load_all_views=True):
+                    try:
+                        view._check_xml()
+                    except Exception as e:
+                        _logger.warning(
+                            "invalid custom view %s for model %s: %s",
+                            view.xml_id or view.id, view.model, e
+                        )
 
         if util.version_gte('saas~11.5'):
             # Force the update of arch_fs and the view validation even if the view has been set to noupdate.
