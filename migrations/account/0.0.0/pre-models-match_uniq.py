@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from odoo import models
-from odoo.addons.account.models import account  # noqa
+
+try:
+    from odoo.addons.account.models import account_tax  # noqa
+except ImportError:
+    from odoo.addons.account.models import account  # noqa
 
 
 def migrate(cr, version):
