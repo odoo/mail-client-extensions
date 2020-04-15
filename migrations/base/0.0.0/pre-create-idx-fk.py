@@ -9,14 +9,56 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
+    create_index_queries = []
+    util.ENVIRON["__created_fk_idx"] = []
 
-    min_rows = int(os.environ.get("ODOO_MIG_CREATE_FK_INDEX_MIN_ROWS", "40000"))
-    if min_rows == 0:
-        _logger.info("ODOO_MIG_CREATE_FK_INDEX_MIN_ROWS is set to 0, Index creation skipped")
-        return
-
+    # create indexes on `ir_model{,_fields}` to speed up models/fields deletion
     cr.execute(
         """
+           SELECT quote_ident(concat('upgrade_fk_ir_model_idx_',
+                                     ROW_NUMBER() OVER(ORDER BY con.conname)::varchar
+                  )) AS index_name,
+                  quote_ident(cl1.relname) as table,
+                  quote_ident(att1.attname) as column
+             FROM pg_constraint as con, pg_class as cl1, pg_class as cl2,
+                  pg_attribute as att1, pg_attribute as att2
+            WHERE con.conrelid = cl1.oid
+              AND con.confrelid = cl2.oid
+              AND array_lower(con.conkey, 1) = 1
+              AND con.conkey[1] = att1.attnum
+              AND att1.attrelid = cl1.oid
+              AND cl2.relname IN ('ir_model', 'ir_model_fields')
+              AND att2.attname = 'id'
+              AND array_lower(con.confkey, 1) = 1
+              AND con.confkey[1] = att2.attnum
+              AND att2.attrelid = cl2.oid
+              AND con.contype = 'f'
+              AND NOT EXISTS (
+                    -- FIND EXISTING INDEXES
+                  SELECT 1
+                    FROM (select *, unnest(indkey) as unnest_indkey from pg_index) x
+                    JOIN pg_class c ON c.oid = x.indrelid
+                    JOIN pg_class i ON i.oid = x.indexrelid
+                    JOIN pg_attribute a ON (a.attrelid=c.oid AND a.attnum=x.unnest_indkey)
+                   WHERE (c.relkind = ANY (ARRAY['r'::"char", 'm'::"char"]))
+                     AND i.relkind = 'i'::"char"
+                     AND c.relname = cl1.relname
+                GROUP BY i.relname, x.indisunique, x.indisprimary
+                 HAVING array_agg(a.attname::text) = ARRAY[att1.attname::text]
+              )
+        """
+    )
+    for index_name, table_name, column_name in cr.fetchall():
+        util.ENVIRON["__created_fk_idx"].append(index_name)
+        create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
+
+    # now same for big tables
+    min_rows = int(os.environ.get("ODOO_MIG_CREATE_FK_INDEX_MIN_ROWS", "40000"))
+    if min_rows <= 0:
+        _logger.info("ODOO_MIG_CREATE_FK_INDEX_MIN_ROWS is set to 0, Index creation skipped")
+    else:
+        cr.execute(
+            """
         WITH big_tables AS(
         -- RETRIEVE BIG TABLES
             SELECT reltuples approximate_row_count , relname relation_name
@@ -41,9 +83,8 @@ def migrate(cr, version):
                 information_schema.table_constraints AS tc
                 JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
                 JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
-                LEFT JOIN big_tables bt1 ON bt1.relation_name = tc.table_name
+                JOIN big_tables bt1 ON bt1.relation_name = tc.table_name
             WHERE constraint_type = 'FOREIGN KEY' AND kcu.column_name NOT IN ('write_uid','create_uid')
-            AND (bt1.relation_name IS NOT NULL)
             AND NOT EXISTS
             (
                     -- FIND EXISTING INDEXES
@@ -59,14 +100,14 @@ def migrate(cr, version):
                     HAVING array_agg(a.attname::text ) = ARRAY[kcu.column_name::text]
             )
             ORDER BY 2,3
-        """,
-        [min_rows],
-    )
-    if cr.rowcount:
-        create_index_queries = []
-        util.ENVIRON["__created_fk_idx"] = []
+            """,
+            [min_rows],
+        )
+
         for index_name, table_name, column_name in cr.fetchall():
             util.ENVIRON["__created_fk_idx"].append(index_name)
             create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
+
+    if create_index_queries:
         _logger.info("creating %s indexes (might be slow)", len(create_index_queries))
         util.parallel_execute(cr, create_index_queries)
