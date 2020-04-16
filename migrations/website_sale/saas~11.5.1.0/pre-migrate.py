@@ -10,6 +10,10 @@ def migrate(cr, version):
     # no need to recompute the stored related, it's always NULL
     util.rename_field(cr, "res.config.settings", "module_account_invoicing", "module_account")
     util.remove_field(cr, "res.config.settings", "module_l10n_eu_service")
+    # odoo/odoo@03142cbbe996c66b222efde6ed4e8cc8cf779056
+    util.remove_field(cr, "res.config.settings", "order_mail_template")
+    # odoo/odoo@856c2e9008f1af7bc1327d9c2900db1e109ab0fa
+    util.remove_field(cr, "res.config.settings", "module_website_sale_options")
 
     util.create_column(cr, "website", "cart_recovery_mail_template_id", "int4")
     tmpl_id = util.ref(cr, "website_sale.mail_template_sale_cart_recovery")

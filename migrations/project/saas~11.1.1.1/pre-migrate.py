@@ -2,7 +2,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    util.remove_field(cr, 'res.config.settings', 'module_project_rating')
+    util.remove_field(cr, 'res.config.settings', 'module_rating_project')
     util.remove_record(cr, 'project.action_project_task_user_tree_filtered')
 
     eb = util.expand_braces

@@ -11,6 +11,6 @@ def migrate(cr, version):
     util.create_column(cr, "pos_order_line", "price_subtotal", "float8")
     util.create_column(cr, "pos_order_line", "price_subtotal_incl", "float8")
 
-    util.remove_field(cr, "pos.order.report", "stock_location_id")
+    util.remove_field(cr, "report.pos.order", "stock_location_id")
 
     util.remove_model(cr, "pos.discount")

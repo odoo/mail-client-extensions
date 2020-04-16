@@ -42,11 +42,16 @@ def migrate(cr, version):
 
     # account.invoice.reference_type will still be used by l10n_be_invoice_bba
     util.remove_field(cr, "account.journal", "account_setup_bank_data_done")
+    # `delegate=True` on the `journal_id` `many2one`
+    util.remove_field(cr, "account.bank.statement.import.journal.creation",
+                      "account_setup_bank_data_done", drop_column=False)
     util.remove_field(cr, "res.company", "account_sanitize_invoice_ref")
     util.remove_field(cr, "res.company", "qr_code_payment_journal_id")
     util.remove_field(cr, "res.company", "qr_code_valid")
     util.remove_field(cr, "res.company", "account_setup_company_data_done")
     util.remove_field(cr, "res.config.settings", "module_account_batch_deposit")
+    # odoo/odoo@258cd4a869673c0b25307d84bbb58655b74938b2
+    util.remove_field(cr, "res.config.settings", "module_print_docsaway")
     util.remove_field(cr, "res.config.settings", "account_hide_setup_bar")
     util.remove_field(cr, "res.config.settings", "account_sanitize_invoice_ref")
     util.remove_field(cr, "res.config.settings", "qr_code_payment_journal_id")
@@ -64,6 +69,9 @@ def migrate(cr, version):
                                               END
         """.format(kpi))
         util.remove_field(cr, "res.company", "account_setup_%s_done" % kpi)
+
+    # odoo/odoo@89e358caa8627c5eff21ee63015dece0997db2b4
+    util.remove_field(cr, "res.company", "account_setup_bar_closed")
 
     util.create_column(cr, "res_company", "account_onboarding_invoicing_layout_state", "varchar")
     util.create_column(cr, "res_company", "account_onboarding_sample_invoice_state", "varchar")

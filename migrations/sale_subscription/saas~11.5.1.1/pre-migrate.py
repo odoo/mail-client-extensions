@@ -60,5 +60,8 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "sale.subscription.template", "payment_mandatory")
+    # odoo/odoo@213b038eb5c51f2a9f27ac9ab522b418b252771a
+    # the field has been added after the upgrade script was written
+    util.remove_field(cr, "sale.subscription", "payment_mandatory")
     util.remove_field(cr, "sale.subscription.report", "recurring_price")
     util.remove_field(cr, "sale.subscription.report", "state")

@@ -5,8 +5,8 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     eb = util.expand_braces
 
-    util.rename_field(cr, "stock.location", "pull_ids", "rule_ids")
-    util.remove_field(cr, "stock.location", "push_ids")
+    util.rename_field(cr, "stock.location.route", "pull_ids", "rule_ids")
+    util.remove_field(cr, "stock.location.route", "push_ids")
 
     util.rename_model(cr, "procurement.rule", "stock.rule")
     util.create_column(cr, "stock_rule", "auto", "varchar")

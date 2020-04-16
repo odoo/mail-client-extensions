@@ -3,8 +3,8 @@ from functools import partial
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    for f in 'currency_company_id currency_id amount_currency analytic_amount_currency partner_id':
-        util.remove_field(cr, 'account.anlytic.line', f)
+    for f in 'company_currency_id amount_currency analytic_amount_currency'.split():
+        util.remove_field(cr, 'account.analytic.line', f)
 
     util.create_column(cr, 'account_payment_term_line', 'day_of_the_month', 'int4')
     cr.execute("""
@@ -55,3 +55,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, 'res.config.settings', 'default_sale_tax_id')
     util.remove_field(cr, 'res.config.settings', 'default_purchase_tax_id')
+    # odoo/odoo@026979c278175de4fa27fba1843b5b9320894d3e
+    util.remove_field(cr, 'res.config.settings', 'code_digits')

@@ -19,6 +19,8 @@ def migrate(cr, version):
         util.rename_model(cr, *eb(model))
 
     util.remove_field(cr, "sign.request", "nb_draft")
+    # odoo/enterprise@d70bb7945c5e57aa207eabdf4aa50e2803ee4ee7
+    util.remove_field(cr, "sign.request", "follower_ids")
     util.rename_field(cr, "sign.request.item", "signature_request_id", "sign_request_id")
     util.rename_field(cr, "sign.template", "signature_item_ids", "sign_item_ids")
     util.rename_field(cr, "sign.template", "signature_request_ids", "sign_request_ids")

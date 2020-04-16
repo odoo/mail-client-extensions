@@ -54,6 +54,8 @@ def migrate(cr, version):
 
     util.remove_field(cr, "product.attribute.value", "product_ids")
     util.remove_field(cr, "product.attribute.value", "price_extra")
+    # odoo/odoo@856c2e9008f1af7bc1327d9c2900db1e109ab0fa
+    util.remove_field(cr, "product.attribute.value", "price_ids")
     util.remove_model(cr, "product.attribute.price")
 
     util.rename_xmlid(cr, "product.product_attribute_line_form", "product.product_template_attribute_line_form")

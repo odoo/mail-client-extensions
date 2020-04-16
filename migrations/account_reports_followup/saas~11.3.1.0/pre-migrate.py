@@ -8,6 +8,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.move.line", "result")
     util.remove_field(cr, "res.partner", "payment_note")
+    util.remove_field(cr, "res.users", "payment_note", drop_column=False)
 
     util.create_column(cr, "account_followup_followup_line", "manual_action_type_id", "int4")
     cr.execute(

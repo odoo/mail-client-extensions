@@ -23,4 +23,4 @@ def migrate(cr, version):
     """)
     cr.execute("UPDATE resource_resource SET tz='UTC' WHERE tz IS NULL")
 
-    util.remove_field(cr, "resource_calendar_leaves", "tz")
+    util.remove_field(cr, "resource.calendar.leaves", "tz")

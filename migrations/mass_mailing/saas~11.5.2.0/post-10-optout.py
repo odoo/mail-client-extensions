@@ -13,4 +13,4 @@ def migrate(cr, version):
     """
     )
     util.remove_column(cr, "mail_mass_mailing_contact", "opt_out")
-    util.remove_column(cr, "mail_mass_mailing_contact", "unsubscription_date")
+    util.remove_field(cr, "mail.mass_mailing.contact", "unsubscription_date")

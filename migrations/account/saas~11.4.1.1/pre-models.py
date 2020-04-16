@@ -18,9 +18,9 @@ def migrate(cr, version):
 
     cr.execute("DELETE FROM wizard_multi_charts_accounts")
 
-    util.remove_field(cr, "account.move.line", "is_unaffected_earning_line")
+    util.remove_field(cr, "account.move.line", "is_unaffected_earnings_line")
     util.remove_field(cr, "account.chart.template", "company_id")
-    util.remove_field(cr, "account.chart.template", "transfert_account_id")
+    util.remove_field(cr, "account.chart.template", "transfer_account_id")
     util.remove_field(cr, "wizard.multi.charts.accounts", "transfer_account_id")
     util.remove_field(cr, "account.tax.template", "company_id")
 

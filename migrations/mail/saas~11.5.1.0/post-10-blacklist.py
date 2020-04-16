@@ -14,3 +14,4 @@ def migrate(cr, version):
     """
     )
     util.remove_field(cr, "res.partner", "opt_out")
+    util.remove_field(cr, "res.users", "opt_out", drop_column=False)

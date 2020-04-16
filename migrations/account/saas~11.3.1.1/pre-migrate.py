@@ -6,7 +6,9 @@ def migrate(cr, version):
     util.rename_field(cr, "account.tax", "cash_basis_account", "cash_basis_account_id")
     util.rename_field(cr, "account.tax.template", "cash_basis_account", "cash_basis_account_id")
 
-    util.remove_field(cr, "account.register.payment", "company_id")
+    util.remove_field(cr, "account.register.payments", "company_id")
+    # odoo/odoo@cdca5d4751a979f6b694f02d88160843f81a77f5
+    util.remove_field(cr, "account.abstract.payment", "company_id")
     # now a non-stored related
     util.remove_column(cr, "account_payment", "company_id")
 

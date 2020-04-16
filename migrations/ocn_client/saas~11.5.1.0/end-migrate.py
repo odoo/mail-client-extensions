@@ -40,4 +40,7 @@ def migrate(cr, version):
             if token:
                 cr.execute("UPDATE res_partner SET ocn_token = %s WHERE id = %s", [token, pid])
 
+    # odoo/enterprise@7587be4663c39f6388d752c0eb5f81f53a1ba9f8
+    util.remove_field(cr, "res.partner", "device_identity_ids")
+    util.remove_field(cr, "res.users", "device_identity_ids", drop_column=False)
     util.remove_model(cr, "mail_push.device")

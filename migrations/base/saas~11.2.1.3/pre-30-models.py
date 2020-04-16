@@ -3,7 +3,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.remove_field(cr, 'res.partner', 'commercial_partner_country_id')
-    util.remove_field(cr, 'res.group', 'is_portal')
+    util.remove_field(cr, 'res.users', 'commercial_partner_country_id', drop_column=False)
+    util.remove_field(cr, 'res.groups', 'is_portal')
 
     util.move_model(cr, 'base.partner.merge.line', 'crm', 'base')
     util.move_model(cr, 'base.partner.merge.automatic.wizard', 'crm', 'base')

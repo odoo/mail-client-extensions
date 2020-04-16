@@ -15,3 +15,5 @@ def migrate(cr, version):
     util.remove_menus(cr, [util.ref(cr, "mrp.message_menu")])
     util.remove_model(cr, "mrp.message")
     util.remove_field(cr, "mrp.workorder", "production_messages")
+    # odoo/odoo@000ecb046c10f6d97598dddf00cc3d5947414d2b
+    util.remove_field(cr, "res.config.settings", "module_repair")

@@ -10,4 +10,4 @@ def migrate(cr, version):
     cr.execute("select count(*) from fetchmail_server where action_id IS NOT NULL")
     if cr.fetchone()[0] > 0:
         _logger.warning("You were using server actions in incoming mail servers. This is not supported anymore.")
-    util.remove_field(cr, "fetchmail_server", "action_id")
+    util.remove_field(cr, "fetchmail.server", "action_id")

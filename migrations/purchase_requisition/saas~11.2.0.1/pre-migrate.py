@@ -20,3 +20,5 @@ def migrate(cr, version):
     """)
 
     cr.execute("DELETE FROM purchase_requisition_line WHERE requisition_id IS NULL")
+    # odoo/odoo@5d2c63bf49b86b5615adaa9fc3070fc5e826da15
+    util.remove_field(cr, "purchase.requisition", "account_analytic_id")

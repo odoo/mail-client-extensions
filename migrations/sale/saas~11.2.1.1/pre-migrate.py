@@ -51,3 +51,6 @@ def migrate(cr, version):
           JOIN product_template t ON (t.id = p.product_tmpl_id)
          WHERE p.id = l.product_id
     """.format(**locals()))     # poor man's PEP498
+
+    # odoo/odoo@faf6165e037bcb1afee8a4881f3a166c86fdee59
+    util.rename_field(cr, 'res.config.settings', 'default_deposit_product_id', 'deposit_default_product_id')

@@ -56,7 +56,7 @@ def migrate(cr, version):
     util.create_column(cr, "sale_order", "currency_rate", "float8")
     util.create_column(cr, "sale_order", "signed_by", "varchar")
     util.create_column(cr, "sale_order", "commitment_date", "timestamp without time zone")
-    util.remove_field(cr, "sale_order", "product_id")
+    util.remove_field(cr, "sale.order", "product_id")
 
     util.move_field_to_module(cr, "sale.order", "amount_undiscounted", "sale_quotation_builder", "sale")
     util.move_field_to_module(cr, "sale.order", "require_payment", "sale_quotation_builder", "sale")

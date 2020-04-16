@@ -12,3 +12,4 @@ def migrate(cr, version):
 
     util.remove_model(cr, "account.followup.report.all")
     util.remove_field(cr, "res.partner", "payment_next_action")
+    util.remove_field(cr, "res.users", "payment_next_action", drop_column=False)
