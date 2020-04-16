@@ -15,3 +15,20 @@ def migrate(cr, version):
            SET account_tax_periodicity='monthly',
                account_tax_periodicity_reminder_day=7
     """)
+
+    cr.execute(
+        """
+        WITH min_journal_ids AS (
+            SELECT company_id, min(id) AS min_id
+              FROM account_journal
+             WHERE type='general'
+               AND show_on_dashboard
+            GROUP BY company_id
+        )
+        UPDATE res_company c
+           SET account_tax_periodicity_journal_id = mid.min_id
+          FROM min_journal_ids mid
+         WHERE mid.company_id = c.id
+           AND account_tax_periodicity_journal_id IS NULL
+        """
+    )
