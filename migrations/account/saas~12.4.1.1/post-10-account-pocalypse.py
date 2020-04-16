@@ -1241,7 +1241,8 @@ def migrate_invoice_lines(cr):
             inv.partner_id,
             inv.type
         FROM account_invoice inv
-        WHERE inv.state IN ('draft', 'cancel')
+        WHERE inv.state NOT IN ('open', 'in_payment', 'paid')
+          AND inv.move_id IS NULL
     """
     )
     for inv_vals in cr.dictfetchall():
