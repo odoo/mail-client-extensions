@@ -177,19 +177,19 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH ranks AS (
-            SELECT partner_id,
-                   sum((left(type, 3) = 'in_')::int) supplier_rank,
-                   sum((left(type, 4) = 'out_')::int) customer_rank
-              FROM account_move
-             WHERE partner_id IS NOT NULL
-          GROUP BY partner_id
+            SELECT p.id as partner_id,
+                   coalesce(sum((left(m.type, 3) = 'in_')::integer), 0) + coalesce(p.supplier, false)::integer as supplier_rank,
+                   coalesce(sum((left(m.type, 4) = 'out_')::integer), 0) + coalesce(p.customer, false)::integer as customer_rank
+              FROM res_partner p
+         LEFT JOIN account_move m ON p.id = m.partner_id AND m.state = 'posted'
+             WHERE (p.supplier_rank IS NULL OR p.customer_rank IS NULL)
+          GROUP BY p.id
         )
         UPDATE res_partner p
            SET supplier_rank = ranks.supplier_rank,
                customer_rank = ranks.customer_rank
           FROM ranks
          WHERE ranks.partner_id = p.id
-           AND (p.supplier_rank IS NULL OR p.customer_rank IS NULL)
     """
     )
 

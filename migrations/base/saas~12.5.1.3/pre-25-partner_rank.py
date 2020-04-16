@@ -120,8 +120,8 @@ def adapt_domains(cr, model):
 
 
 def migrate(cr, version):
-    util.remove_field(cr, "res.partner", "customer")
-    util.remove_field(cr, "res.partner", "supplier")
+    util.remove_field(cr, "res.partner", "customer", drop_column=False)
+    util.remove_field(cr, "res.partner", "supplier", drop_column=False)
 
     # Now adapt domains...
     # FIXME what to do if `account` is not installed?
