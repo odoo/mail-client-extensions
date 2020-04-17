@@ -664,6 +664,10 @@ def no_fiscal_lock(cr):
 
 
 def migrate_voucher_lines(cr):
+    def _get_voucher_conditions():
+        yield from _get_conditions()
+        yield {"same_name", "same_not_null_analytic_account", "only_one_line"}
+
     env = util.env(cr)
     # cleanup
     cr.execute("DELETE FROM account_voucher_line WHERE voucher_id IS NULL")
@@ -977,7 +981,7 @@ def migrate_voucher_lines(cr):
                                           WHERE m.vl_id = ol.id))""",
     }
 
-    for cond in _get_conditions():
+    for cond in _get_voucher_conditions():
         cr.execute(
             """
             INSERT INTO vl_ml_mapping(vl_id, ml_id)
