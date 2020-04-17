@@ -42,4 +42,7 @@ def migrate(cr, version):
     util.create_column(cr, "res_lang", "url_code", "varchar")
     cr.execute("UPDATE res_lang SET url_code = code")
 
+    util.remove_module_deps(cr, 'saas_docsaway', ('print_docsaway',))
+    util.remove_module(cr, 'saas_docsaway')
+
     util.parallel_execute(cr, util.explode_query(cr, "UPDATE ir_model_data SET noupdate=TRUE WHERE noupdate IS NULL"))
