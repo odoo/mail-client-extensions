@@ -36,10 +36,11 @@ def migrate(cr, version):
         struct_id = util.ref(cr, struct)
         if struct_id:
             cr.execute("""
-                SELECT imd.name
+                SELECT imd.module, imd.name
                   FROM hr_salary_rule r
                   JOIN ir_model_data imd on r.id = imd.res_id and imd.model = 'hr.salary.rule'
                  WHERE r.struct_id=%s
             """, [struct_id])
-            util.delete_unused(cr, *['hr_salary_rule.' + name for name, in cr.fetchall()])
+            if cr.rowcount:
+                util.delete_unused(cr, *['%s.%s' % (module, name) for module, name in cr.fetchall()])
         util.delete_unused(cr, struct)
