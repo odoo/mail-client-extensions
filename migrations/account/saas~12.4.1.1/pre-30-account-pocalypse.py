@@ -268,6 +268,7 @@ def migrate(cr, version):
     # Fix the many2many crosstable account_invoice_payment_rel that was between account_payment & account_invoice,
     # not between account_payment & account_move.
     cr.execute("ALTER TABLE account_invoice_payment_rel RENAME TO account_invoice_payment_rel_old")
+    util.fixup_m2m(cr, "account_invoice_payment_rel_old", "account_invoice", "account_payment", "invoice_id", "payment_id")
 
     util.create_m2m(cr, "account_invoice_payment_rel", "account_move", "account_payment", "invoice_id", "payment_id")
 
