@@ -37,7 +37,9 @@ def migrate(cr, version):
         elif root_id:
             util.rename_xmlid(cr, root_name, hidden_name)
 
+    util.remove_view(cr, "base.view_menu")
     util.remove_view(cr, "base.view_partner_short_form")
 
-    util.remove_field(cr, "res.partner.bank", "qr_code_valid")
-    util.remove_field(cr, "account.setup.bank.manual.config", "qr_code_valid")
+    util.remove_record(cr, "base.company_normal_action_tree")
+    util.remove_record(cr, "base.action_partner_employee_form")
+    util.remove_record(cr, "base.action_partner_other_form")
