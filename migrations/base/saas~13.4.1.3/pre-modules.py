@@ -50,6 +50,7 @@ def migrate(cr, version):
             "website_event_track",
         },
     )
+    util.module_deps_diff(cr, "mass_mailing", plus={"digest"})
 
     if util.has_enterprise():
         util.new_module_dep(cr, "l10n_mx_edi", "product_unspsc")
