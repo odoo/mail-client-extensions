@@ -13,3 +13,5 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "product_template_ids")
     util.remove_field(cr, "project.task", "fsm_state")
     util.remove_model(cr, "product.task.map")
+
+    cr.execute("UPDATE ir_ui_menu SET action=NULL WHERE id=%s", (util.ref(cr, "industry_fsm.fsm_tasks_menu"),))
