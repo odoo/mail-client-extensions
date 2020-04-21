@@ -44,5 +44,7 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
             )
         )
         products = self.env["product.product"].browse([row[0] for row in self.env.cr.fetchall()])
-        results = products.mapped(lambda p: [p.id, p.qty_available])
+        # If a product is created or deleted, this can lead to an issue.
+        # So, only compare products having quantities != 0
+        results = [[p.id, p.qty_available] for p in products if p.qty_available]
         return [release.series, results]
