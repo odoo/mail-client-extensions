@@ -22,6 +22,13 @@ def migrate(cr, version):
     util.merge_module(cr, "account_analytic_default", "account")
     util.merge_module(cr, "account_analytic_default_hr_expense", "hr_expense")
     util.merge_module(cr, "account_analytic_default_purchase", "purchase")
+    util.new_module(cr, "account_edi", deps={"account"}, auto_install=True)
+    util.rename_module(cr, "account_facturx", "account_edi_facturx")
+    util.module_deps_diff(cr, "account_edi_facturx", plus={"account_edi"}, minus={"account"})
+    util.new_module(cr, "account_edi_ubl", deps={"account_edi"}, auto_install=True)
+    util.module_deps_diff(cr, "l10n_be_edi", minus={"account", "account_edi_facturx"}, plus={"account_edi"})
+    util.module_deps_diff(cr, "l10n_it_edi", plus={"account_edi"})
+    util.module_deps_diff(cr, "l10n_be_edi", plus={"account_edi"})
 
     if util.has_enterprise():
         util.module_deps_diff(cr, "test_mail_enterprise",
@@ -31,3 +38,5 @@ def migrate(cr, version):
                                     "test_mass_mailing",
                                     "test_mail_enterprise",
                                     "test_mail_full"})
+    
+
