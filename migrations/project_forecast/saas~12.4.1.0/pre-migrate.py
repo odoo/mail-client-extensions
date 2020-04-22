@@ -2,48 +2,34 @@
 from odoo.addons.base.maintenance.migrations import util
 
 
-def migrate(cr, version):
-    if util.version_gte("saas~12.5"):
-        model = "planning.slot"
-        table = util.table_of_model(cr, model)
-        util.drop_depending_views(cr, table, "start_datetime")
-        util.drop_depending_views(cr, table, "end_datetime")
+def upgrade(cr):
+    util.drop_depending_views(cr, "project_forecast", "start_date")
+    util.drop_depending_views(cr, "project_forecast", "end_date")
+    util.rename_field(cr, "project.forecast", "start_date", "start_datetime")
+    util.rename_field(cr, "project.forecast", "end_date", "end_datetime")
 
-        field_name_mapping = [
-            ("start_date", "start_datetime"),
-            ("end_date", "end_datetime"),
-        ]
-        util.update_server_actions_fields(cr, src_model="planning.slot", fields_mapping=field_name_mapping)
-    else:
-        model = "project.forecast"
-        table = util.table_of_model(cr, model)
-        util.drop_depending_views(cr, table, "start_date")
-        util.drop_depending_views(cr, table, "end_date")
-        util.rename_field(cr, model, "start_date", "start_datetime")
-        util.rename_field(cr, model, "end_date", "end_datetime")
-
-    cr.execute("ALTER TABLE %s ALTER COLUMN start_datetime TYPE timestamp without time zone" % table)
+    cr.execute("ALTER TABLE project_forecast ALTER COLUMN start_datetime TYPE timestamp without time zone")
     cr.execute(
         """
-            ALTER TABLE %s
+            ALTER TABLE project_forecast
            ALTER COLUMN end_datetime
                    TYPE timestamp without time zone
                   USING end_datetime + interval '23:59:59'
         """
-        % table
     )
 
-    util.create_column(cr, table, "recurrency_id", "int4")
-    util.create_column(cr, table, "published", "boolean")
-    cr.execute("UPDATE %s SET published = false" % table)
+    util.create_column(cr, "project_forecast", "recurrency_id", "int4")
+    util.create_column(cr, "project_forecast", "published", "boolean")
+    cr.execute("UPDATE project_forecast SET published = false")
 
+    util.remove_field(cr, "project.forecast", "forecast_uom")
     util.remove_field(cr, "res.company", "forecast_uom")
     util.remove_field(cr, "res.company", "forecast_span")
     util.remove_field(cr, "res.config.settings", "forecast_uom")
     util.remove_field(cr, "res.config.settings", "forecast_span")
 
-    if util.version_gte("saas~12.5"):
-        # Only make sense in saas~12.4
-        return
 
-    util.create_column(cr, "res_company", "forecast_default_view", "varchar")
+def migrate(cr, version):
+    if not util.version_gte("saas~12.5"):
+        upgrade(cr)
+        util.create_column(cr, "res_company", "forecast_default_view", "varchar")
