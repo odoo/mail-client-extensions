@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from odoo.upgrade import util
 
 
@@ -34,3 +35,18 @@ def migrate(cr, version):
             WHERE weekday IS NOT NULL
         """
     )
+
+    reminder_template = util.ref(cr, "calendar.calendar_template_meeting_reminder")
+    util.create_column(cr, "calendar_alarm", "mail_template_id", "int4")
+    util.create_column(cr, "calendar_alarm", "body", "text")
+
+    # pre-fill mail-based reminders with reminder template
+    if reminder_template:
+        cr.execute(
+            """
+               UPDATE calendar_alarm
+                  SET mail_template_id = %s
+                WHERE alarm_type='email'
+            """,
+            [reminder_template],
+        )
