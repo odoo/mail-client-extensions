@@ -199,7 +199,7 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_mx_edi_customs", "l10n_mx_edi")
         util.merge_module(cr, "l10n_mx_edi_external_trade", "l10n_mx_edi")
         util.merge_module(cr, "l10n_mx_edi_payment_bank", "l10n_mx_edi")
-        util.merge_module(cr, "l10n_mx_edi_tax_cash_basis", "l10n_mx_edi")
+        util.merge_module(cr, "l10n_mx_tax_cash_basis", "l10n_mx_edi")
 
         eb = util.expand_braces
         util.move_model(cr, "project.task.create.sale.order", *eb("sale_{project_,}timesheet_enterprise"))
