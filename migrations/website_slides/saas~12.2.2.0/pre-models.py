@@ -35,6 +35,7 @@ def migrate(cr, version):
     util.create_column(cr, "slide_channel", "karma_slide_comment", "int4")
     util.create_column(cr, "slide_channel", "karma_slide_vote", "int4")
 
+    util.remove_field(cr, "slide.channel", "access_error_msg")
     util.remove_field(cr, "slide.channel", "custom_slide_id")
     util.remove_field(cr, "slide.channel", "promoted_slide_id")
     util.remove_field(cr, "slide.channel", "can_see")
