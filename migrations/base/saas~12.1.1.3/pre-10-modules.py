@@ -23,12 +23,15 @@ def migrate(cr, version):
     util.merge_module(cr, "delivery_hs_code", "delivery")
     util.remove_module(cr, "crm_project")
     util.remove_module(cr, "survey_crm")
+    util.force_migration_of_fresh_module(cr, "pos_hr")
 
     if util.has_enterprise():
         util.new_module(cr, "crm_helpdesk", deps={"crm", "helpdesk"})
-        util.new_module(cr, "im_livechat_enterprise", deps={'im_livechat', 'web_dashboard'}, auto_install=True)
-        util.new_module(cr, "test_l10n_be_hr_payroll_account", deps={'hr_contract_salary', 'l10n_be_hr_payroll_account'})
-        util.new_module(cr, "voip_crm", deps={'base', 'crm', 'voip'}, auto_install=True)
+        util.new_module(cr, "im_livechat_enterprise", deps={"im_livechat", "web_dashboard"}, auto_install=True)
+        util.new_module(
+            cr, "test_l10n_be_hr_payroll_account", deps={"hr_contract_salary", "l10n_be_hr_payroll_account"}
+        )
+        util.new_module(cr, "voip_crm", deps={"base", "crm", "voip"}, auto_install=True)
 
         util.module_deps_diff(cr, "documents", plus={"attachment_indexation"})
         util.module_deps_diff(cr, "ocn_client", plus={"web_mobile"})
