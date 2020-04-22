@@ -22,3 +22,15 @@ def migrate(cr, version):
     util.force_noupdate(cr, "project.rating_project_request_email_template", False)
 
     util.remove_field(cr, 'project.task', 'date_deadline_formatted')
+
+    util.create_column(cr, "project_project", "allow_subtasks", "boolean")
+    group_subtask = util.env(cr).ref("project.group_subtask_project")
+    cr.execute(
+        """
+        UPDATE project_project
+           SET allow_subtasks = g.uid IS NOT NULL
+          FROM res_groups_users_rel g
+         WHERE g.gid = %s
+        """,
+        (group_subtask.id,),
+    )
