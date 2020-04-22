@@ -169,6 +169,7 @@ def migrate(cr, version):
     )
 
     # Wizard
+    util.remove_model(cr, "pos.open.statement")
     util.remove_field(cr, "pos.make.payment", "session_id")
     util.remove_field(cr, "pos.make.payment", "journal_id")
     util.create_column(cr, "pos_make_payment", "config_id", "int4")
