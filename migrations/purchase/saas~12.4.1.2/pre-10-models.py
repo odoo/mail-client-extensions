@@ -35,3 +35,7 @@ def migrate(cr, version):
            AND po.currency_id=c.currency_id
         """
     )
+
+    # reports
+    for field in {"unit_quantity", "negociation", "price_standard"}:
+        util.remove_field(cr, "purchase.report", field)
