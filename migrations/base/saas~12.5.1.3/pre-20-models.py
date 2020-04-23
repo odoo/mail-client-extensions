@@ -19,13 +19,13 @@ def migrate(cr, version):
     util.remove_field(cr, "ir.actions.act_window", "view_type")
     util.remove_column(cr, "ir_attachment", "res_name")  # non-stored computed field
 
-    util.remove_column(cr, "ir_model_constraint", "date_update")
-    util.remove_column(cr, "ir_model_relation", "date_update")
+    util.remove_field(cr, "ir.model.constraint", "date_update")
+    util.remove_field(cr, "ir.model.relation", "date_update")
     util.update_field_references(
         cr, "date_update", "write_date", only_models=("ir.model.constraint", "ir.model.relation")
     )
-    util.remove_column(cr, "ir_model_constraint", "date_init")
-    util.remove_column(cr, "ir_model_relation", "date_init")
+    util.remove_field(cr, "ir.model.constraint", "date_init")
+    util.remove_field(cr, "ir.model.relation", "date_init")
     util.update_field_references(
         cr, "date_init", "create_date", only_models=("ir.model.constraint", "ir.model.relation")
     )
