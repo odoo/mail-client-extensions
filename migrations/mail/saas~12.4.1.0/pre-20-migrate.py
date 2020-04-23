@@ -25,6 +25,7 @@ def migrate(cr, version):
         moderation_status
         moderator_id
         need_moderation
+        email_layout_xmlid
 
         # inheritance from `rating` module
         rating_ids
