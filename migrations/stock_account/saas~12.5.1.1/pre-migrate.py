@@ -16,15 +16,10 @@ def migrate(cr, version):
         cr.execute(
             """
             UPDATE stock_valuation_layer svl
-               SET remaining_value = CASE
-                      WHEN in_loc.usage != 'internal' THEN 0
-                      WHEN out_loc.usage != 'internal' THEN sm.remaining_value
-                   END
-              FROM stock_move sm, stock_location in_loc, stock_location out_loc
+               SET remaining_value = sm.remaining_value
+              FROM stock_move sm
              WHERE svl.stock_move_id = sm.id
-               AND sm.location_id = in_loc.id
-               AND sm.location_dest_id = out_loc.id
-        """
+            """
         )
 
     util.remove_record(cr, "stock_account.stock_history_rule")
