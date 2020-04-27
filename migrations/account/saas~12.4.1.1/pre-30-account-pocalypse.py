@@ -144,7 +144,7 @@ def migrate(cr, version):
             invoice_incoterm_id = inv.incoterm_id,
             invoice_origin = inv.origin,
             invoice_partner_bank_id = inv.partner_bank_id,
-            invoice_payment_ref = inv.name,
+            invoice_payment_ref = inv.reference,
             invoice_payment_term_id = inv.payment_term_id,
             invoice_sent = inv.sent,
             invoice_source_email = inv.source_email,
