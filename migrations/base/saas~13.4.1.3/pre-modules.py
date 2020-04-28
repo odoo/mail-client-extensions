@@ -20,3 +20,12 @@ def migrate(cr, version):
     util.merge_module(cr, "account_analytic_default", "account")
     util.merge_module(cr, "account_analytic_default_hr_expense", "hr_expense")
     util.merge_module(cr, "account_analytic_default_purchase", "purchase")
+
+    if util.has_enterprise():
+        util.module_deps_diff(cr, "test_mail_enterprise",
+                              plus={"marketing_automation_sms"})
+        util.module_deps_diff(cr, "test_marketing_automation",
+                              plus={"marketing_automation_sms",
+                                    "test_mass_mailing",
+                                    "test_mail_enterprise",
+                                    "test_mail_full"})
