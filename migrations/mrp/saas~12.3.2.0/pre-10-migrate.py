@@ -9,6 +9,8 @@ def migrate(cr, version):
 
     util.remove_field(cr, "mrp.routing", "location_id")
     util.remove_field(cr, "mrp.workorder", "workorder_line_ids")
+    util.remove_field(cr, "mrp.product.produce", "workorder_line_ids")
+    util.remove_field(cr, "mrp.production", "consumed_less_than_planned")
 
     if util.table_exists(cr, 'mrp_workorder_line'):
         util.rename_field(cr, "mrp.workorder.line", "workorder_id", "raw_workorder_id")
@@ -28,9 +30,10 @@ def migrate(cr, version):
     if util.table_exists(cr, 'mrp_subproduct'):
         util.rename_model(cr, 'mrp.subproduct', 'mrp.bom.byproduct')
         util.rename_field(cr, 'stock.move', 'subproduct_id', 'byproduct_id')
+        util.rename_field(cr, "mrp.bom", "sub_products", "byproduct_ids")
 
     util.create_column(cr, 'stock_picking_type', 'use_create_components_lots', 'boolean')
-    util.remove_field(cr, 'stock_production_lot', 'use_next_on_work_order_id')
+    util.remove_field(cr, "stock.production.lot", "use_next_on_work_order_id")
 
     util.rename_field(cr, "mrp.product.produce.line", "product_produce_id", "raw_product_produce_id")
     util.create_column(cr, "mrp_product_produce_line", "finished_product_produce_id", "int4")
