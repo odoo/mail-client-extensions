@@ -5,18 +5,19 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     cr.execute(
         """
-        SELECT count(*)
+        SELECT count(*), array_agg(id)
           FROM account_invoice
          WHERE state IN ('draft', 'cancel')
            AND move_id IS NOT NULL
     """
     )
-    inconsistent_invoices_count = cr.fetchone()[0]
+    inconsistent_invoices_count, invoices_ids = cr.fetchone()
     if inconsistent_invoices_count:
         raise util.MigrationError(
-            f"{inconsistent_invoices_count} invoices are in 'draft' or 'cancelled' state in pre-migration database, "
+            "%s invoices are in 'draft' or 'cancelled' state in pre-migration database, "
             "yet they are linked to an account.move. This is inconsistent and could come from an old bug or "
-            "customization. Please investigate and fix it in pre-migration db."
+            "customization. Please investigate and fix it in pre-migration db. Invoice ids: (%s)"
+            % (inconsistent_invoices_count, ", ".join([str(r) for r in invoices_ids]))
         )
 
     cr.execute(
