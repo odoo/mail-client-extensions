@@ -1185,12 +1185,8 @@ def _fill_grids_mapping_for_nl(cr, dict_to_fill):
         UPDATE financial_report_lines_v12_bckp
            SET formulas = 'balance = -sum.balance'
          WHERE xmlid in ('financial_report_line_nl_01_01_01',
-                        'financial_report_line_nl_02_01_01')
-           AND module = 'l10n_nl_reports';
-
-        UPDATE financial_report_lines_v12_bckp
-           SET formulas = 'balance = sum.balance'
-         WHERE xmlid in ('financial_report_line_nl_02_03_02',
+                        'financial_report_line_nl_02_01_01',
+                        'financial_report_line_nl_02_03_02',
                         'financial_report_line_nl_02_03_01')
            AND module = 'l10n_nl_reports';
     """
