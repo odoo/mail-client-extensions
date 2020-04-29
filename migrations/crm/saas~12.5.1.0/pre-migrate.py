@@ -15,7 +15,7 @@ def migrate(cr, version):
 
     util.create_column(cr, "res_config_settings", "module_crm_iap_lead_enrich", "boolean")
     util.create_column(cr, "res_config_settings", "lead_enrich_auto", "varchar")
-    util.remove_field(cr, "res_config_settings", "crm_phone_valid_method")
+    util.remove_field(cr, "res.config.settings", "crm_phone_valid_method")
 
     # data changes
     eb = util.expand_braces
