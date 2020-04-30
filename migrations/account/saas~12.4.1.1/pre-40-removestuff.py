@@ -67,3 +67,6 @@ def migrate(cr, version):
                          )
         """
     )
+
+    util.remove_model(cr, "account.invoice.confirm")
+    util.remove_model(cr, "account.invoice.refund")

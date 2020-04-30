@@ -81,7 +81,6 @@ def migrate(cr, version):
         for rec in cr.fetchall():
             cr.execute("ALTER TABLE %s DROP CONSTRAINT %s" % (rec[0], rec[1]))
 
-    util.remove_model(cr, "account.register.payments")
     if is_account_voucher_installed:
         util.remove_model(cr, "account_voucher", drop_table=False)
         util.remove_model(cr, "account_voucher_line", drop_table=False)

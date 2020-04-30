@@ -45,3 +45,6 @@ def migrate(cr, version):
 
     cr.execute("CREATE INDEX ON account_invoice_tax(tax_id)")
     cr.execute("CREATE INDEX ON account_move_line(tax_line_id)")
+
+    util.remove_model(cr, "account.abstract.payment")
+    util.remove_model(cr, "account.register.payments")
