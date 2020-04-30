@@ -19,9 +19,11 @@ class Model(models.Model):
 
     def unlink(self):
         models = self.mapped("model")
-        raise util.MigrationError(
+        # raise util.MigrationError(
+        util._logger.critical(
             "💥 It's look like you forgot to call `util.remove_model` on the following models: %s" % ", ".join(models)
         )
+        return super(Model, self).unlink()
 
 
 class Field(models.Model):
@@ -30,6 +32,8 @@ class Field(models.Model):
 
     def unlink(self):
         fields = ["%s.%s" % (f.model, f.name) for f in self]
-        raise util.MigrationError(
+        # raise util.MigrationError(
+        util._logger.critical(
             "💥 It's look like you forgot to call `util.remove_field` on the following fields: %s" % ", ".join(fields)
         )
+        return super(Field, self).unlink()
