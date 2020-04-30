@@ -73,7 +73,6 @@ def migrate(cr, version):
     util.replace_record_references_batch(cr, ids, "ir.attachment", "documents.document")
 
     for field in {
-        "active",
         "thumbnail",
         "folder_id",
         "lock_uid",
@@ -84,6 +83,7 @@ def migrate(cr, version):
         "available_rule_ids",
     }:
         util.remove_field(cr, "ir.attachment", field)
+    util.remove_field(cr, "ir.attachment", "active", skip_inherit={"mrp.document"})
 
     util.remove_inherit_from_model(cr, "ir.attachment", "mail.thread")
     util.remove_inherit_from_model(cr, "ir.attachment", "mail.activity.mixin")
