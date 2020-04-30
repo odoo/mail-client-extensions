@@ -307,7 +307,7 @@ class TestCrawler(IntegrityCase):
             for key, value in model.env.context.items()
             if key.startswith("search_default_") and value
         ]
-        domains = [action_domain] if action_domain else []
+        domains = []
         group_bys = []
         for default_filter, value in default_filters:
             for node in view.xpath("//*[@name='%s']" % default_filter):
@@ -321,6 +321,8 @@ class TestCrawler(IntegrityCase):
                     domains.append("[('%s', '=', %s)]" % (default_filter, value))
 
         domains = [self._safe_eval(domain) for domain in domains]
+        if action_domain:
+            domains = [self._safe_eval(action_domain) if isinstance(action_domain, str) else action_domain] + domains
         domains = [domain for domain in domains if domain]
         return expression.AND(domains) if domains else [], group_bys
 
