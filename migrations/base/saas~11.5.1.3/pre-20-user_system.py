@@ -159,13 +159,15 @@ def migrate(cr, version):
         if fk in ("create_uid", "write_uid"):
             # only update column for non-system records
             query += """
-                AND id NOT IN (
-                    SELECT res_id
-                      FROM ir_model_data
-                     WHERE model = %s
-                       AND COALESCE(module, '') NOT IN ('', '__export__')
+                AND NOT EXISTS
+                (
+                    SELECT 1
+                    FROM ir_model_data
+                    WHERE model = %s
+                        AND COALESCE(module, '') NOT IN ('', '__export__')
+                        AND id=res_id
                 )
-            """
+                """
             params += [util.model_of_table(cr, table)]
 
         key = table if table not in tables_with_inheritance else None
