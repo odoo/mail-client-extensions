@@ -47,17 +47,19 @@ def migrate(cr, version):
 
     # copy company data from l10n_fr_certification module
     if util.column_exists(cr, "res_company", "l10n_fr_secure_sequence_id"):
-        cr.execute("""
+        cr.execute(
+            """
             UPDATE account_journal j
                SET secure_sequence_id = c.l10n_fr_secure_sequence_id,
                    restrict_mode_hash_table = true
               FROM res_company c
              WHERE c.id = j.company_id
                AND c.l10n_fr_secure_sequence_id IS NOT NULL
-    """)
+    """
+        )
 
     # no more 'adjustment' taxes
-    cr.execute("UPDATE account_tax SET active = false WHERE type_tax_use = 'adjustment'")
+    cr.execute("UPDATE account_tax SET active=false, type_tax_use='none' WHERE type_tax_use = 'adjustment'")
     cr.execute(
         """
         WITH gone AS (
@@ -141,12 +143,14 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "account_account", "root_id", "int4")
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_account
            SET root_id=ASCII(code) * 1000 + ASCII(SUBSTRING(code,2,1))
          WHERE code IS NOT NULL
            AND root_id IS NULL
-    """)
+    """
+    )
     util.create_column(cr, "account_account_template", "root_id", "int4")
 
     util.create_column(cr, "account_chart_template", "default_cash_difference_income_account_id", "int4")
