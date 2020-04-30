@@ -46,3 +46,8 @@ def migrate(cr, version):
     util.remove_module(cr, 'saas_docsaway')
 
     util.parallel_execute(cr, util.explode_query(cr, "UPDATE ir_model_data SET noupdate=TRUE WHERE noupdate IS NULL"))
+
+    if util.module_installed(cr, "test_new_api"):
+        util.move_model(cr, "decimal.precision.test", "base", "test_new_api")
+    else:
+        util.remove_model(cr, "decimal.precision.test")
