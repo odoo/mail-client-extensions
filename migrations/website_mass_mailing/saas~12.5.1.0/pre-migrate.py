@@ -27,7 +27,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "mailing.list", "popup_content")
     util.remove_field(cr, "mailing.list", "popup_redirect_url")
-    util.remove_field(cr, "res_config_settings", "group_website_popup_on_exit")
+    util.remove_field(cr, "res.config.settings", "group_website_popup_on_exit")
 
     util.remove_record(cr, "website_mass_mailing.group_website_popup_on_exit")
     util.remove_view(cr, "website_mass_mailing.view_mail_mass_mailing_list_form")
