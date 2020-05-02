@@ -121,6 +121,7 @@ def migrate(cr, version):
         util.force_migration_of_fresh_module(cr, "documents_hr_contract")
         util.new_module(cr, "documents_hr_holidays", deps={"documents", "hr_holidays"}, auto_install=True)
         util.new_module(cr, "documents_hr_payroll", deps={"documents", "hr_payroll"}, auto_install=True)
+        util.force_migration_of_fresh_module(cr, "documents_hr_payroll")
         util.new_module(cr, "documents_hr_recruitment", deps={"documents", "hr_recruitment"}, auto_install=True)
         util.new_module(cr, "helpdesk_fsm", deps={"helpdesk", "industry_fsm"}, auto_install=True)
         util.new_module(cr, "hr_contract_sign", deps={"hr_contract", "sign"}, auto_install=True)
