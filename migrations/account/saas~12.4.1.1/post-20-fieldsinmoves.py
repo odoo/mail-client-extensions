@@ -82,5 +82,5 @@ def migrate(cr, version):
             cr.execute("ALTER TABLE %s DROP CONSTRAINT %s" % (rec[0], rec[1]))
 
     if is_account_voucher_installed:
-        util.remove_model(cr, "account_voucher", drop_table=False)
-        util.remove_model(cr, "account_voucher_line", drop_table=False)
+        util.remove_model(cr, "account.voucher", drop_table=False)
+        util.remove_model(cr, "account.voucher.line", drop_table=False)

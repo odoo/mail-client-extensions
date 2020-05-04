@@ -68,5 +68,6 @@ def migrate(cr, version):
         """
     )
 
+    util.remove_field(cr, "res.config.settings", "group_products_in_bills")
     util.remove_model(cr, "account.invoice.confirm")
     util.remove_model(cr, "account.invoice.refund")
