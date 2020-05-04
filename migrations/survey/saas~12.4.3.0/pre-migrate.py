@@ -18,6 +18,8 @@ def migrate(cr, version):
         [util.ref(cr, "survey.stage_closed"), util.ref(cr, "survey.stage_in_progress")],
     )
     cr.execute("UPDATE survey_survey SET state = 'draft' WHERE state IS NULL")
+    util.remove_field(cr, "survey.survey", "stage_id")
+    util.remove_field(cr, "survey.survey", "is_closed")
 
     util.remove_model(cr, "survey.stage")
 
