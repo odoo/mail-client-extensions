@@ -85,8 +85,8 @@ def migrate(cr, version):
     }:
         util.remove_field(cr, "ir.attachment", field)
 
-    util.remove_mixin_from_model(cr, "ir.attachment", "mail.thread")
-    util.remove_mixin_from_model(cr, "ir.attachment", "mail.activity.mixin")
+    util.remove_inherit_from_model(cr, "ir.attachment", "mail.thread")
+    util.remove_inherit_from_model(cr, "ir.attachment", "mail.activity.mixin")
 
     util.create_m2m(cr, "documents_document_documents_share_rel", "documents_document", "documents_share")
     cr.execute("""
