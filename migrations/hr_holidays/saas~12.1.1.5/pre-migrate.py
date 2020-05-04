@@ -25,6 +25,8 @@ def migrate(cr, version):
     # employee may have change manager at time the allocation was created.
     # leave it empty
 
+    util.remove_field(cr, "hr.leave.type", "double_validation")
+
     util.rename_field(cr, "hr.leave.report", "type", "leave_type")
 
     util.rename_xmlid(cr, *util.expand_braces("hr_holidays.resource_leaves_{officer,team_leader}"))
