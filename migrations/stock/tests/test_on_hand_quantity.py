@@ -26,12 +26,12 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
                 %s
                 ORDER BY pp.id%s
             """
-            % (
+            % ((
                 """
                     LEFT JOIN mrp_bom bom ON bom.product_id = pp.id OR bom.product_tmpl_id = pt.id
                     WHERE coalesce(bom.type, '') != 'phantom'
                 """, ", bom.sequence"
-            ) if ignore_kits else ("", "")
+            ) if ignore_kits else ("", ""))
         )
         products = self.env["product.product"].browse([row[0] for row in self.env.cr.fetchall()])
         results = products.mapped(lambda p: [p.id, p.qty_available])
