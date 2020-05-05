@@ -16,13 +16,13 @@ def migrate(cr, version):
         sql_dict = {
             "invoice_table": "account_move",
             "invoice_id_field": "move_id",
-            "where_criteria": "move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
+            "where_criteria": "aml.move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
         }
     else:
         sql_dict = {
             "invoice_table": "account_invoice",
             "invoice_id_field": "invoice_id",
-            "where_criteria": "invoice_id IS NULL",
+            "where_criteria": "aml.invoice_id IS NULL",
         }
 
     if not util.table_exists(cr, "tax_accounts_v12_bckp"):
@@ -44,7 +44,7 @@ def migrate(cr, version):
 
     cr.execute(
         """
-        UPDATE account_move_line
+        UPDATE account_move_line aml
            SET tax_repartition_line_id = tx_rep.id
           FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
          WHERE %(where_criteria)s
@@ -55,10 +55,10 @@ def migrate(cr, version):
     )
     cr.execute(
         """
-        UPDATE account_move_line
+        UPDATE account_move_line aml
            SET tax_repartition_line_id = tx_rep.id
           FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
-         WHERE %(invoice_id_field)s = move.id
+         WHERE aml.%(invoice_id_field)s = move.id
            AND move.type IN ('in_refund', 'out_refund')
            AND tax_line_id = tx_rep.refund_tax_id
            AND tx_rep.repartition_type = 'tax'
@@ -67,10 +67,10 @@ def migrate(cr, version):
     )
     cr.execute(
         """
-        UPDATE account_move_line
+        UPDATE account_move_line aml
            SET tax_repartition_line_id = tx_rep.id
           FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
-         WHERE %(invoice_id_field)s = move.id
+         WHERE aml.%(invoice_id_field)s = move.id
            AND move.type IN ('in_invoice', 'out_invoice')
            AND tax_line_id = tx_rep.invoice_tax_id
            AND tx_rep.repartition_type = 'tax'
