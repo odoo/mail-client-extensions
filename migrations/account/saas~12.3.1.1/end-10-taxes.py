@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import datetime
-import pickle
-import os
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.tools import float_round
@@ -190,7 +188,8 @@ def migrate(cr, version):
         )
     )
     for group_to_treat in util.log_progress(groups_to_merge, qualifier="tax groups to merge"):
-        # The tax repartition lines of the group are useless (except if the have amount = 0, in wich case we keep them for simplicity)
+        # The tax repartition lines of the group are useless
+        # (except if the have amount = 0, in wich case we keep them for simplicity)
         inv_tax_line = group_to_treat.invoice_repartition_line_ids.filtered(lambda x: x.repartition_type == "tax")
         ref_tax_line = group_to_treat.refund_repartition_line_ids.filtered(lambda x: x.repartition_type == "tax")
         cr.execute(
@@ -282,7 +281,8 @@ def migrate(cr, version):
                       FROM account_invoice invoice, account_tax_repartition_line tx_rep
                      WHERE invoice.id = invoice_id
                        AND tax_id = %(child_tax_id)s
-                       AND tx_rep.id = case when invoice.type in ('in_refund', 'out_refund') then %(new_ref_rep_id)s else %(new_inv_rep_id)s end
+                       AND tx_rep.id = CASE WHEN invoice.type IN ('in_refund', 'out_refund')
+                                       THEN %(new_ref_rep_id)s ELSE %(new_inv_rep_id)s END
                 """,
                     {
                         "group_to_treat_id": group_to_treat.id,
@@ -355,7 +355,9 @@ def migrate(cr, version):
         """
         INSERT INTO account_account_tag_account_move_line_rel
              SELECT aml_tx.account_move_line_id as account_move_line_id, rep_tags.account_account_tag_id as account_account_tag_id
-               FROM account_tax_repartition_line tx_rep, account_account_tag_account_tax_repartition_line_rel rep_tags, account_move_line_account_tax_rel aml_tx
+               FROM account_tax_repartition_line tx_rep,
+                    account_account_tag_account_tax_repartition_line_rel rep_tags,
+                    account_move_line_account_tax_rel aml_tx
                JOIN account_move_line aml ON aml.id = aml_tx.account_move_line_id
                JOIN  %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
               WHERE tx_rep.repartition_type = 'base'
@@ -380,7 +382,7 @@ def migrate(cr, version):
                 (
                     "name",
                     "=like",
-                    "%%\_%(name)s" % {"module": tax_template_data.module, "name": tax_template_data.name},
+                    r"%%\_%(name)s" % {"module": tax_template_data.module, "name": tax_template_data.name},
                 ),
                 ("model", "=", "account.tax"),
                 ("module", "=", tax_template_data.module),
@@ -391,9 +393,10 @@ def migrate(cr, version):
             tax_instance = env["account.tax"].browse(data.res_id)
 
             if tax_template.amount_type != tax_instance.amount_type:
-                _logger.warn(
-                    "Tax template with id %(template_id)s and instance with id %(instance_id)s don't have the same amount_type."
-                    % {"template_id": tax_template.id, "instance_id": tax_instance.id}
+                _logger.warning(
+                    "Tax template with id %s and instance with id %s don't have the same amount_type.",
+                    tax_template.id,
+                    tax_instance.id,
                 )
 
             for inv_type in ("invoice", "refund"):
@@ -432,7 +435,8 @@ def migrate(cr, version):
                     )
                 )
 
-                # A tax template may have no tax repartition lines. It should create a tax with default repartition (no account, no tag, only tax and base line)
+                # A tax template may have no tax repartition lines.
+                # It should create a tax with default repartition (no account, no tag, only tax and base line)
                 # Otherwize, repartition should be the same between template and tax.
                 different_repartition = (
                     len(tax_rep_lines) != 2
@@ -440,9 +444,12 @@ def migrate(cr, version):
                     else len(template_rep_lines) != len(tax_rep_lines)
                 )
                 if different_repartition or template_accounts != tax_accounts or template_tags != tax_tags:
-                    _logger.warn(
-                        "Tax %(tax_name)s (id %(tax_id)s)'s %(type)s repartition does not seem to match its related template. Manual verification advised."
-                        % {"tax_id": tax_instance.id, "tax_name": tax_instance.name, "type": inv_type}
+                    _logger.warning(
+                        "Tax %s (id %s)'s %s repartition does not"
+                        " seem to match its related template. Manual verification advised.",
+                        tax_instance.id,
+                        tax_instance.name,
+                        inv_type,
                     )
 
 
@@ -644,7 +651,8 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
          WHERE code = 'LUTAX_732';
 
         UPDATE financial_report_lines_v12_bckp
-           SET name = 'I.B.6.b)2) Prestations de services à des identifiés à la TVA dans un autre Etat membre exonérées dans l''Etat membre du preneur (art.17/1/b)'
+           SET name = 'I.B.6.b)2) Prestations de services à des identifiés à la TVA dans '
+                      'un autre Etat membre exonérées dans l''Etat membre du preneur (art.17/1/b)'
          WHERE code = 'LUTAX_424';
     """
     )
@@ -689,7 +697,7 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
                     dict_to_fill[child_id] = v13_line.tag_name
 
         else:
-            _logger.error("No V12 report line found with name %s" % v13_line.name)
+            _logger.error("No V12 report line found with name %s", v13_line.name)
 
 
 def _fill_grids_mapping_for_ae(cr, dict_to_fill):
@@ -987,23 +995,35 @@ def _fill_grids_mapping_for_fr(cr, dict_to_fill):
     cr.execute(
         """
         SELECT sub.id,
-            CASE WHEN sub.parent_name = 'Base H.T. TVA collectée' THEN replace(sub.name,'H.T.','collectée')
-    			 WHEN sub.parent_name = 'TVA collectée' THEN replace(sub.name,'TVA','TVA collectée')
-    			 WHEN sub.parent_name = 'Base H.T. TVA acquittée' THEN replace(sub.name,'H.T.','acquittée')
-    			 WHEN sub.parent_name = 'TVA acquittée' THEN replace(sub.name,'TVA','TVA acquittée')
-    			 WHEN sub.parent_name = 'Base H.T. TVA acquittée pour immobilisations' THEN replace(sub.name,'H.T.','acquittée immo.')
-    			 WHEN sub.parent_name = 'TVA acquittée pour immobilisations' THEN replace(sub.name,'TVA','TVA acquittée immo.')
-    			 WHEN sub.parent_name = 'Base H.T. TVA due intracommunautaire' THEN replace(sub.name,'H.T.','due intracom.')
-    			 WHEN sub.parent_name = 'TVA due intracommunautaire' THEN replace(sub.name,'TVA','TVA due intracom.')
-    			 WHEN sub.parent_name = 'Base H.T. TVA déductible intracommunautaire' THEN replace(sub.name,'H.T.','déductible intracom.')
-    			 WHEN sub.parent_name = 'TVA déductible intracommunautaire' THEN replace(sub.name,'TVA','TVA déductible intracom.')
-    			 ELSE name
-    		END as tag_name
+            CASE WHEN sub.parent_name = 'Base H.T. TVA collectée'
+                      THEN replace(sub.name,'H.T.','collectée')
+                 WHEN sub.parent_name = 'TVA collectée'
+                      THEN replace(sub.name,'TVA','TVA collectée')
+                 WHEN sub.parent_name = 'Base H.T. TVA acquittée'
+                      THEN replace(sub.name,'H.T.','acquittée')
+                 WHEN sub.parent_name = 'TVA acquittée'
+                      THEN replace(sub.name,'TVA','TVA acquittée')
+                 WHEN sub.parent_name = 'Base H.T. TVA acquittée pour immobilisations'
+                      THEN replace(sub.name,'H.T.','acquittée immo.')
+                 WHEN sub.parent_name = 'TVA acquittée pour immobilisations'
+                      THEN replace(sub.name,'TVA','TVA acquittée immo.')
+                 WHEN sub.parent_name = 'Base H.T. TVA due intracommunautaire'
+                      THEN replace(sub.name,'H.T.','due intracom.')
+                 WHEN sub.parent_name = 'TVA due intracommunautaire'
+                      THEN replace(sub.name,'TVA','TVA due intracom.')
+                 WHEN sub.parent_name = 'Base H.T. TVA déductible intracommunautaire'
+                      THEN replace(sub.name,'H.T.','déductible intracom.')
+                 WHEN sub.parent_name = 'TVA déductible intracommunautaire'
+                      THEN replace(sub.name,'TVA','TVA déductible intracom.')
+            ELSE name
+            END as tag_name
         FROM (SELECT id, name,
-                 (SELECT name FROM financial_report_lines_v12_bckp rlv12_parent WHERE rlv12_parent.id = rlv12.parent_id) as parent_name
-                    FROM financial_report_lines_v12_bckp rlv12
-                   WHERE xmlid like '%_fr'
-                     AND domain is not null
+                     (SELECT name
+                        FROM financial_report_lines_v12_bckp rlv12_parent
+                       WHERE rlv12_parent.id = rlv12.parent_id) as parent_name
+                FROM financial_report_lines_v12_bckp rlv12
+               WHERE xmlid LIKE '%_fr'
+                 AND domain IS NOT NULL
         ) as sub
     """
     )
@@ -1197,9 +1217,13 @@ def _fill_grids_mapping_for_nl(cr, dict_to_fill):
         SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
           FROM financial_report_lines_v12_bckp
           JOIN account_tax_report_line
-               ON account_tax_report_line.name = CASE WHEN xmlid = 'financial_report_line_nl_01_01_01_01' THEN '1a. Leveringen/diensten belast met hoog tarief (omzet)'
-                                                      WHEN xmlid = 'financial_report_line_nl_02_01_01_01' THEN '1a. Leveringen/diensten belast met 21% (BTW)'
-                                                      ELSE financial_report_lines_v12_bckp.name END
+            ON account_tax_report_line.name =
+                CASE WHEN xmlid = 'financial_report_line_nl_01_01_01_01'
+                        THEN '1a. Leveringen/diensten belast met hoog tarief (omzet)'
+                     WHEN xmlid = 'financial_report_line_nl_02_01_01_01'
+                        THEN '1a. Leveringen/diensten belast met 21% (BTW)'
+                ELSE financial_report_lines_v12_bckp.name
+                END
          WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_nl%'
            AND financial_report_lines_v12_bckp.module = 'l10n_nl_reports'
            AND financial_report_lines_v12_bckp.domain is not null
@@ -1239,10 +1263,15 @@ def _fill_grids_mapping_for_pl(cr, dict_to_fill):
         SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
           FROM financial_report_lines_v12_bckp
           JOIN account_tax_report_line
-               ON account_tax_report_line.name = CASE WHEN xmlid = 'account_financial_report_pl_03_01_01_04_04b' THEN 'Podatek - Nabycie towarów i usług pozostałych'
-                                                      WHEN xmlid = 'account_financial_report_pl_02_02b' THEN 'Podstawa - Nabycie towarów i usług pozostałych'
-                                                      WHEN xmlid = 'account_financial_report_pl_01_12b' THEN 'Podstawa - Dostawa towarów, podatnik nabywca'
-                                                      ELSE financial_report_lines_v12_bckp.name END
+            ON account_tax_report_line.name =
+                CASE WHEN xmlid = 'account_financial_report_pl_03_01_01_04_04b'
+                        THEN 'Podatek - Nabycie towarów i usług pozostałych'
+                     WHEN xmlid = 'account_financial_report_pl_02_02b'
+                        THEN 'Podstawa - Nabycie towarów i usług pozostałych'
+                     WHEN xmlid = 'account_financial_report_pl_01_12b'
+                        THEN 'Podstawa - Dostawa towarów, podatnik nabywca'
+                ELSE financial_report_lines_v12_bckp.name
+                END
          WHERE financial_report_lines_v12_bckp.xmlid like 'account_financial_report_pl_%'
            AND financial_report_lines_v12_bckp.module = 'l10n_pl_reports'
            AND financial_report_lines_v12_bckp.domain is not null
@@ -1254,7 +1283,7 @@ def _fill_grids_mapping_for_pl(cr, dict_to_fill):
 
 def _fill_grids_mapping_for_ro(cr, dict_to_fill):
     cr.execute(
-        """
+        r"""
         UPDATE financial_report_lines_v12_bckp
            SET name = concat(name, ' (TVA colectata)')
          WHERE code like 'ROTAX_TVA_colectata%'
@@ -1333,9 +1362,13 @@ def _fill_grids_mapping_for_si(cr, dict_to_fill):
         SELECT financial_report_lines_v12_bckp.id, account_tax_report_line.tag_name
           FROM financial_report_lines_v12_bckp
           JOIN account_tax_report_line
-               ON account_tax_report_line.tag_name = CASE WHEN xmlid = 'financial_report_line_si_02020102b' THEN 'Izstopni DDV - znižana stopnja'
-                                                          WHEN xmlid = 'financial_report_line_si_02020101b' THEN 'Izstopni DDV - osnovna stopnja'
-                                                          ELSE financial_report_lines_v12_bckp.name END
+            ON account_tax_report_line.tag_name =
+                CASE WHEN xmlid = 'financial_report_line_si_02020102b'
+                        THEN 'Izstopni DDV - znižana stopnja'
+                     WHEN xmlid = 'financial_report_line_si_02020101b'
+                        THEN 'Izstopni DDV - osnovna stopnja'
+                ELSE financial_report_lines_v12_bckp.name
+                END
          WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_si%'
            AND financial_report_lines_v12_bckp.module = 'l10n_si_reports'
            AND financial_report_lines_v12_bckp.domain is not null
@@ -1561,7 +1594,15 @@ def get_v13_migration_dicts(cr):
     """
     TO BE RETURNED
 
-    [{'tax': tax, 'inv_account_id': acc1, 'ref_account_id': acc2, 'invoice': {'base': {'+': set<tag_names>, '-': set<tag_names>, 'financial': set<tag_ids>}}, 'refund': {'tax': {'-': set<tag_names>}}}, ... other taxes ...]
+    [{'tax': tax,
+      'inv_account_id': acc1,
+      'ref_account_id': acc2,
+      'invoice': {'base': {'+': set<tag_names>,
+                           '-': set<tag_names>,
+                           'financial': set<tag_ids>}
+                          },
+                  'refund': {'tax': {'-': set<tag_names>}}},
+    ... other taxes ...]
     """
     cr.execute("savepoint v13_migration_dict;")
 
@@ -1573,7 +1614,8 @@ def get_v13_migration_dicts(cr):
 
     env["account.tax"].invalidate_cache(fnames=["active"])
 
-    # If a tax is type_tax_use 'none', we artificially switch it to its parent type temporarily, to check what grids to impact for it
+    # If a tax is type_tax_use 'none', we artificially switch it to its parent
+    # type temporarily, to check what grids to impact for it
     cr.execute(
         """
         UPDATE account_tax
@@ -1662,18 +1704,18 @@ def get_v13_migration_dicts(cr):
 
                 # We want to see where v12 tags go, in order to prepare v13 tags assignation
                 cr.execute(
-                    """
+                    r"""
                     SELECT id, domain, formulas
                       FROM financial_report_lines_v12_bckp
                      WHERE domain like '%%tax%%.tag\_ids%%%(tag_id)s%%'
-                """,
+                    """,
                     {"tag_id": tag_id},
                 )
                 tag_report_lines_data = cr.fetchall()
 
                 if not tag_report_lines_data:
-                    _logger.warn(
-                        "No financial report line found for tag with id %(tag_id)s. Is it normal?" % {"tag_id": tag_id}
+                    _logger.warning(
+                        "No financial report line found for tag with id %s. Is it normal?", tag_id,
                     )
 
                 for tax_report_line_id, domain, formulas in tag_report_lines_data:
@@ -1711,7 +1753,8 @@ def get_v13_migration_dicts(cr):
 
                     if (
                         tax.amount != 0 or tax.amount_type == "code"
-                    ):  # We don't want tags on taxes whose tax amount is 0 (there could be without this condition, depending on 12.2 setup)
+                    ):  # We don't want tags on taxes whose tax amount is 0
+                        # (there could be without this condition, depending on 12.2 setup)
 
                         if inv_tax_line:
                             if len(inv_tax_line) > 1:
@@ -1749,7 +1792,7 @@ def get_v13_migration_dicts(cr):
                             cr, "refund", "base", tax_rslt, candidate_to_add, is_financial, formula_evaluator
                         )
         else:
-            _logger.error("Cannot create invoice (lack of suitable account) for tax %s" % tax_id)
+            _logger.error("Cannot create invoice (lack of suitable account) for tax %s", tax_id)
 
     # Convert financial tags
     _convert_financial_tags(cr, rslt)
@@ -1790,7 +1833,8 @@ def _get_financial_tags_conversion_map(cr):
 
 
 def _convert_financial_tags(cr, mig_dicts_list):
-    # Apply conversion to the financial tags, in case some of them were removed and replaced by other tags in 12.3 (like for l10n_es)
+    # Apply conversion to the financial tags, in case some of them were removed
+    # and replaced by other tags in 12.3 (like for l10n_es)
     tags_conversion_map = _get_financial_tags_conversion_map(cr)
     for mig_dict in mig_dicts_list:
         for inv_type in ("invoice", "refund"):
