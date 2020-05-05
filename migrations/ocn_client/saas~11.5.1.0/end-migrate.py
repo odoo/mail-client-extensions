@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+
+try:
+    from odoo.addons.iap.tools.iap_tools import iap_jsonrpc
+except ImportError:
+    from odoo.addons.iap import jsonrpc as iap_jsonrpc
+
 from odoo.addons.base.maintenance.migrations import util
 from odoo.tools.misc import str2bool
-from odoo.addons.iap import jsonrpc
 
 
 def migrate(cr, version):
@@ -24,7 +29,7 @@ def migrate(cr, version):
                 "device_name": device,
                 "device_key": subscription,
             }
-            return jsonrpc(endpoint + "/iap/ocn/register_device", params=params)
+            return iap_jsonrpc(endpoint + "/iap/ocn/register_device", params=params)
 
         cr.execute("""
             SELECT p.id, p.name,
