@@ -276,11 +276,11 @@ def migrate(cr, version):
                 # Before deleting the old child taxes, we also need to replace them on account.invoice.tax entries
                 cr.execute(
                     """
-                    UPDATE account_invoice_tax
+                    UPDATE account_invoice_tax inv_tax
                        SET tax_repartition_line_id = tx_rep.id, tax_id = %(group_to_treat_id)s
                       FROM account_invoice invoice, account_tax_repartition_line tx_rep
-                     WHERE invoice.id = invoice_id
-                       AND tax_id = %(child_tax_id)s
+                     WHERE invoice.id = inv_tax.invoice_id
+                       AND inv_tax.tax_id = %(child_tax_id)s
                        AND tx_rep.id = CASE WHEN invoice.type IN ('in_refund', 'out_refund')
                                        THEN %(new_ref_rep_id)s ELSE %(new_inv_rep_id)s END
                 """,
