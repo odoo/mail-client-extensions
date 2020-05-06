@@ -6,8 +6,48 @@ def migrate(cr, version):
     env = util.env(cr)
     Payslip = env["hr.payslip"]
 
-    all_we_types = env["hr.work.entry.type"].search([])
+    cr.execute("""
+        WITH leaves AS
+        (
+            SELECT l.id,
+                em.name,
+                l.date_from,
+                l.date_from +
+                l.number_of_days *
+                CASE t.request_unit
+                    WHEN 'day' THEN r.hours_per_day
+                    WHEN 'half-day' THEN r.hours_per_day/2.0
+                    WHEN 'hour' THEN 1
+                    ELSE 0
+                    END * INTERVAL '1 hour' AS date_to_update
+            FROM hr_leave l
+            JOIN hr_leave_type t ON l.holiday_status_id = t.id
+            JOIN hr_employee em ON l.employee_id = em.id
+            JOIN resource_calendar r ON r.id = em.resource_calendar_id
+            WHERE l.date_from = l.date_to
+                AND l.number_of_days IS NOT NULL
+        ),
+        update_hr_leave AS
+        (
+            UPDATE hr_leave hl SET date_to = leaves.date_to_update
+            FROM leaves
+            WHERE leaves.id = hl.id
+        )
+        UPDATE resource_calendar_leaves hl SET date_to = leaves.date_to_update
+        FROM leaves
+        WHERE leaves.id = hl.holiday_id
+        RETURNING leaves.id, leaves.name, leaves.date_from, leaves.date_to_update""")
+    if cr.rowcount:
+        msg = """The following hr_leaves have a date_from equal to date_to causes issues during the upgrade.
+            The date_from has been adapted to the number of leave days taken.
+            Please check carefully those leaves after the upgrade.
+            %s
+        """ % ",".join([
+                "hr_leave: %s, user: %s, date_from :%s, date_to (original): %s, date_date (updated): %s"
+                    % (r['id'], r['name'], r['date_from'], r['date_from'], r['date_to_update'],) for r in cr.dictfetchall()])
+        util.add_to_migration_reports(msg)
 
+    all_we_types = env["hr.work.entry.type"].search([])
     cr.execute("SELECT payslip_id FROM hr_payslip_worked_days WHERE amount IS NULL GROUP BY payslip_id")
     for (payslip_id,) in util.log_progress(cr.fetchall(), "payslip"):
         payslip = Payslip.browse(payslip_id)
