@@ -99,7 +99,7 @@ def migrate(cr, version):
     util.create_column(cr, "survey_survey", "certification_mail_template_id", "int4")
 
     util.rename_field(cr, "survey.survey", "auth_required", "users_login_required")
-    util.rename_field(cr, "survey.survey", "tot_send_survey", "invite_count")
+    util.rename_field(cr, "survey.survey", "tot_sent_survey", "invite_count")
     util.rename_field(cr, "survey.survey", "tot_start_survey", "answer_count")
     util.rename_field(cr, "survey.survey", "tot_comp_survey", "answer_done_count")
 
@@ -125,6 +125,7 @@ def migrate(cr, version):
     util.remove_field(cr, "survey.survey", "result_url")
     util.remove_field(cr, "survey.survey", "quizz_mode")
     util.remove_field(cr, "survey.survey", "email_template_id")
+    util.remove_field(cr, "survey.survey", "designed")
 
     # user_input
     util.create_column(cr, "survey_user_input", "invite_token", "varchar")
