@@ -29,7 +29,7 @@ def migrate(cr, version):
         else:
             fields_left |= fields
     if fields_left:
-        fields_desc_list = ", ".join("%s.%s" % (field.model, field.name) for field in fields)
+        fields_desc_list = ", ".join("%s.%s" % (field.model, field.name) for field in fields_left)
         util.add_to_migration_reports(
             "Some custom related fields have not been computed because their model or fields they rely on "
             "are defined in modules which were not available during the upgrade: %s" % fields_desc_list,
