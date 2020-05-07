@@ -807,44 +807,45 @@ def _fill_grids_mapping_for_at(cr, dict_to_fill):
 def _fill_grids_mapping_for_au(cr, dict_to_fill):
     env = util.env(cr)
     au_companies = env["res.company"].search([("partner_id.country_id.code", "=", "AU")])
-    cr.execute(
+    if au_companies.ids:
+        cr.execute(
+            """
+            SELECT distinct account_account_tag_id
+            FROM account_tax_account_tag_v12_bckp
+            JOIN tax_accounts_v12_bckp
+                ON tax_accounts_v12_bckp.id = account_tax_account_tag_v12_bckp.account_tax_id
+            JOIN account_tax
+                ON account_tax.id = account_tax_account_tag_v12_bckp.account_tax_id
+            WHERE tax_accounts_v12_bckp.account_id is not null
+            AND account_tax.company_id in %(company_ids)s
+        """,
+            {"company_ids": tuple(au_companies.ids)},
+        )
+        all_tags = [tag for (tag,) in cr.fetchall()]
+        cr.execute(
+            """
+            UPDATE financial_report_lines_v12_bckp
+            SET domain = %(domain)s
+            WHERE xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
+        """,
+            {"domain": "[('tax_line_id.tag_ids', 'in', %s)]" % str(all_tags)},
+        )
+        cr.execute(
+            """
+            UPDATE financial_report_lines_v12_bckp
+            SET code = 'GST from General Ledger'
+            WHERE xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
         """
-        SELECT distinct account_account_tag_id
-          FROM account_tax_account_tag_v12_bckp
-          JOIN tax_accounts_v12_bckp
-               ON tax_accounts_v12_bckp.id = account_tax_account_tag_v12_bckp.account_tax_id
-          JOIN account_tax
-               ON account_tax.id = account_tax_account_tag_v12_bckp.account_tax_id
-         WHERE tax_accounts_v12_bckp.account_id is not null
-           AND account_tax.company_id in %(company_ids)s
-    """,
-        {"company_ids": tuple(au_companies.ids)},
-    )
-    all_tags = [tag for (tag,) in cr.fetchall()]
-    cr.execute(
+        )
+        cr.execute(
+            """
+            SELECT id, code
+            FROM financial_report_lines_v12_bckp
+            WHERE xmlid like 'account_financial_report_l10n_au_gstrpt%'
+            AND domain is not null
         """
-        UPDATE financial_report_lines_v12_bckp
-           SET domain = %(domain)s
-         WHERE xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
-    """,
-        {"domain": "[('tax_line_id.tag_ids', 'in', %s)]" % str(all_tags)},
-    )
-    cr.execute(
-        """
-        UPDATE financial_report_lines_v12_bckp
-           SET code = 'GST from General Ledger'
-         WHERE xmlid = 'account_financial_report_l10n_au_gstrpt_c_gl'
-    """
-    )
-    cr.execute(
-        """
-        SELECT id, code
-          FROM financial_report_lines_v12_bckp
-         WHERE xmlid like 'account_financial_report_l10n_au_gstrpt%'
-           AND domain is not null
-    """
-    )
-    dict_to_fill.update(dict(cr.fetchall()))
+        )
+        dict_to_fill.update(dict(cr.fetchall()))
 
 
 def _fill_grids_mapping_for_bo(cr, dict_to_fill):
