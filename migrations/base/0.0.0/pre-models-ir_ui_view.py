@@ -139,6 +139,8 @@ class IrUiView(models.Model):
                         message,
                     )
                     view.active = False
+                    self.env["ir.actions.act_window"].search([("view_id", "=", view.id)]).write({"view_id": False})
+                    self.env["ir.actions.act_window.view"].search([("view_id", "=", view.id)]).unlink()
                     return True
                 view = view.inherit_id
             else:
