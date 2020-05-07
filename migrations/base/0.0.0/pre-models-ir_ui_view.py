@@ -4,9 +4,11 @@ import re
 from odoo import api, models
 from odoo.modules.module import get_modules
 from odoo.addons.base.maintenance.migrations import util
-if util.version_gte('10.0'):
+
+if util.version_gte("10.0"):
     from odoo.modules.module import get_resource_path, get_resource_from_path
-    if util.version_gte('saas~11.4'):
+
+    if util.version_gte("saas~11.4"):
         from odoo.addons.base.models.ir_ui_view import get_view_arch_from_file
     else:
         from odoo.addons.base.ir.ir_ui_view import get_view_arch_from_file
@@ -21,17 +23,19 @@ except ImportError:
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
 
+
 def migrate(cr, version):
     pass
 
 
 class IrUiView(models.Model):
-    _inherit = 'ir.ui.view'
-    _module = 'base'
+    _inherit = "ir.ui.view"
+    _module = "base"
 
-    if util.version_gte('10.0'):
+    if util.version_gte("10.0"):
+
         def _migrate_get_roots(self):
-            roots = self.env['ir.ui.view']
+            roots = self.env["ir.ui.view"]
             for view in self:
                 while view.inherit_id:
                     view = view.inherit_id
@@ -54,7 +58,7 @@ class IrUiView(models.Model):
             return res
 
         def copy_translations(old, new, *args, **kwargs):
-            if old.env.context.get('_migrate_fix_views'):
+            if old.env.context.get("_migrate_fix_views"):
                 return
             return super(IrUiView, old).copy_translations(new, *args, **kwargs)
 
@@ -75,58 +79,65 @@ class IrUiView(models.Model):
                 return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
 
             standard_modules = get_modules()
-            custom_modules = [r['name'] for r in self.env['ir.module.module'].search_read([
-                ('name', 'not in', standard_modules + ['studio_customization'])
-            ], ['name'])]
             views_to_check = []
             views = self._migrate_get_roots()
             while views:
                 for view in views:
                     if view.active:
                         views_to_check.insert(0, view)
-                views = views.mapped('inherit_children_ids')
+                views = views.mapped("inherit_children_ids")
             for view in views_to_check:
-                md = self.env['ir.model.data'].search([
-                    ('model', '=', 'ir.ui.view'), ('res_id', '=', view.id)
-                ], limit=1)
-                arch_fs_fullpath = get_resource_path(*view.arch_fs.split('/')) if view.arch_fs else False
+                md = self.env["ir.model.data"].search([("model", "=", "ir.ui.view"), ("res_id", "=", view.id)], limit=1)
+                arch_fs_fullpath = get_resource_path(*view.arch_fs.split("/")) if view.arch_fs else False
                 view_data = {
-                    'id': view.id,
-                    'name': view.name,
-                    'model': view.model,
-                    'inherit_id': view.inherit_id,
-                    'module': md.module,
-                    'xml_id': '%s.%s' % (md.module, md.name),
-                    'arch_fs': view.arch_fs,
+                    "id": view.id,
+                    "name": view.name,
+                    "model": view.model,
+                    "inherit_id": view.inherit_id,
+                    "module": md.module,
+                    "xml_id": "%s.%s" % (md.module, md.name),
+                    "arch_fs": view.arch_fs,
                 }
                 if arch_fs_fullpath and md and md.noupdate and md.module:
                     # Standard view set to noupdate by the user, to override with original view
                     md.noupdate = False
-                    view_copy = view.with_context(_migrate_fix_views=True).copy({'active': False, 'name': '%s (Copy created during upgrade)' % view.name})
-                    view_data['copy_id'] = view_copy.id
+                    view_copy = view.with_context(_migrate_fix_views=True).copy(
+                        {"active": False, "name": "%s (Copy created during upgrade)" % view.name}
+                    )
+                    view_data["copy_id"] = view_copy.id
                     arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
                     view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
                     # Mark the view as it was loaded with its XML data file.
                     # Otherwise it will be deleted in _process_end
-                    if util.version_gte('saas~11.5'):
-                        self.pool.loaded_xmlids.add('%s.%s' % (md.module, md.name))
+                    if util.version_gte("saas~11.5"):
+                        self.pool.loaded_xmlids.add("%s.%s" % (md.module, md.name))
                     else:
                         self.pool.model_data_reference_ids[(md.module, md.name)] = (view._name, view.id)
-                    util.add_to_migration_reports(view_data, 'Overridden views')
-                    _logger.warning("""
+                    util.add_to_migration_reports(view_data, "Overridden views")
+                    _logger.warning(
+                        """
                         The standard view `%s.%s` was set to `noupdate` and caused validation issues.
                         Resetting its arch and noupdate flag for the migration ...
-                    """, md.module, md.name)
+                    """,
+                        md.module,
+                        md.name,
+                    )
                     return True
                 elif not md or md.module not in standard_modules:
-                    message = 'The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.' % (
-                        view.name, view.id, view.inherit_id.id, view.model,
+                    message = "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues." % (
+                        view.name,
+                        view.id,
+                        view.inherit_id.id,
+                        view.model,
                     )
-                    util.add_to_migration_reports(view_data, 'Disabled views')
-                    _logger.warning("""
+                    util.add_to_migration_reports(view_data, "Disabled views")
+                    _logger.warning(
+                        """
                     %s
                     Disabling it for the migration ...
-                    """, message)
+                    """,
+                        message,
+                    )
                     view.active = False
                     return True
                 view = view.inherit_id
@@ -137,7 +148,8 @@ class IrUiView(models.Model):
         @api.model
         def _register_hook(self):
             """
-            Validate all views, whether custom or not, with the fields coming from custom modules loaded as manual fields.
+            Validate all views, whether custom or not,
+            with the fields coming from custom modules loaded as manual fields.
             """
             super(IrUiView, self)._register_hook()
             with util.custom_module_field_as_manual(self.env):
@@ -151,26 +163,23 @@ class IrUiView(models.Model):
                 for view in views.with_context(_upgrade_validate_views=True, load_all_views=True):
                     try:
                         view._check_xml()
-                    except Exception as e:
-                        _logger.warning(
-                            "invalid custom view %s for model %s: %s",
-                            view.xml_id or view.id, view.model, e
-                        )
+                    except Exception:
+                        _logger.exception("invalid custom view %s for model %s", view.xml_id or view.id, view.model)
 
-        if util.version_gte('saas~11.5'):
+        if util.version_gte("saas~11.5"):
             # Force the update of arch_fs and the view validation even if the view has been set to noupdate.
             # From saas-11.5, `_update` of ir.model.data is deprecated and replaced by _load_records on each models
             def _load_records(self, data_list, update=False):
-                xml_ids = [data['xml_id'] for data in data_list if data.get('xml_id')]
-                force_check_views = self.env['ir.ui.view']
-                for row in self.env['ir.model.data']._lookup_xmlids(xml_ids, self):
+                xml_ids = [data["xml_id"] for data in data_list if data.get("xml_id")]
+                force_check_views = self.env["ir.ui.view"]
+                for row in self.env["ir.model.data"]._lookup_xmlids(xml_ids, self):
                     d_id, d_module, d_name, d_model, d_res_id, d_noupdate, r_id = row
                     if d_noupdate:
-                        filename = self.env.context['install_filename']
+                        filename = self.env.context["install_filename"]
                         xml_file = get_resource_from_path(filename)
                         if xml_file:
                             view = self.browse(d_res_id)
-                            view.arch_fs = '/'.join(xml_file[0:2])
+                            view.arch_fs = "/".join(xml_file[0:2])
                             force_check_views |= view
                 res = super(IrUiView, self)._load_records(data_list, update=update)
                 # Standard View set to noupdate in database are no validated. Force the validation.
