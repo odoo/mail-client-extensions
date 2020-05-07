@@ -106,7 +106,7 @@ def migrate(cr, version):
             aml.move_id
         FROM account_move_line aml
         LEFT JOIN account_move am ON am.id = aml.move_id
-        LEFT JOIN stock_move sm ON am.stock_move_id = sm.id
+        INNER JOIN stock_move sm ON am.stock_move_id = sm.id
         LEFT JOIN product_product pp ON pp.id = aml.product_id
         LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
         LEFT JOIN product_category pc ON pc.id = pt.categ_id
