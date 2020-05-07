@@ -1525,13 +1525,13 @@ def migrate_invoice_lines(cr):
             -- ================ MULTI-CURRENCIES ================
             UPDATE account_move am
                SET amount_untaxed = am_updatable_amounts.untaxed_amount_curr * (-1),
-                   amount_untaxed_signed = am_updatable_amounts.untaxed_amount_curr * (-1),
+                   amount_untaxed_signed = am_updatable_amounts.untaxed_amount * (-1),
                    amount_tax = am_updatable_amounts.tax_amount_curr * (-1),
-                   amount_tax_signed = am_updatable_amounts.tax_amount_curr * (-1),
+                   amount_tax_signed = am_updatable_amounts.tax_amount * (-1),
                    amount_total = am_updatable_amounts.total_amount_curr * (-1),
-                   amount_total_signed = am_updatable_amounts.total_amount_curr * (-1),
+                   amount_total_signed = am_updatable_amounts.total_amount * (-1),
                    amount_residual = am_updatable_amounts.residual_amount_curr,
-                   amount_residual_signed = am_updatable_amounts.residual_amount_curr
+                   amount_residual_signed = am_updatable_amounts.residual_amount
               FROM am_updatable_amounts, res_company c
              WHERE am.type IN ('out_invoice', 'out_receipt', 'in_refund')
                AND c.id = am.company_id
@@ -1541,13 +1541,13 @@ def migrate_invoice_lines(cr):
             "multi_currency_in_invoice": """
             UPDATE account_move am
                SET amount_untaxed = am_updatable_amounts.untaxed_amount_curr,
-                   amount_untaxed_signed = am_updatable_amounts.untaxed_amount_curr * (-1),
+                   amount_untaxed_signed = am_updatable_amounts.untaxed_amount * (-1),
                    amount_tax = am_updatable_amounts.tax_amount_curr,
-                   amount_tax_signed = am_updatable_amounts.tax_amount_curr * (-1),
+                   amount_tax_signed = am_updatable_amounts.tax_amount * (-1),
                    amount_total = am_updatable_amounts.total_amount_curr,
-                   amount_total_signed = am_updatable_amounts.total_amount_curr * (-1),
+                   amount_total_signed = am_updatable_amounts.total_amount * (-1),
                    amount_residual = am_updatable_amounts.residual_amount_curr * (-1),
-                   amount_residual_signed = am_updatable_amounts.residual_amount_curr
+                   amount_residual_signed = am_updatable_amounts.residual_amount
               FROM am_updatable_amounts, res_company c
              WHERE am.type IN ('in_invoice', 'in_receipt', 'out_refund')
                AND c.id = am.company_id
@@ -1557,13 +1557,13 @@ def migrate_invoice_lines(cr):
             "multi_currency_other": """
             UPDATE account_move am
                SET amount_untaxed = abs(am_updatable_amounts.untaxed_amount_curr),
-                   amount_untaxed_signed = abs(am_updatable_amounts.untaxed_amount_curr),
+                   amount_untaxed_signed = abs(am_updatable_amounts.untaxed_amount),
                    amount_tax = abs(am_updatable_amounts.tax_amount_curr),
-                   amount_tax_signed = abs(am_updatable_amounts.tax_amount_curr),
+                   amount_tax_signed = abs(am_updatable_amounts.tax_amount),
                    amount_total = abs(am_updatable_amounts.total_amount_curr),
-                   amount_total_signed = abs(am_updatable_amounts.total_amount_curr),
+                   amount_total_signed = abs(am_updatable_amounts.total_amount),
                    amount_residual = abs(am_updatable_amounts.residual_amount_curr),
-                   amount_residual_signed = abs(am_updatable_amounts.residual_amount_curr)
+                   amount_residual_signed = abs(am_updatable_amounts.residual_amount)
               FROM am_updatable_amounts, res_company c
              WHERE am.type = 'entry'
                AND c.id = am.company_id
