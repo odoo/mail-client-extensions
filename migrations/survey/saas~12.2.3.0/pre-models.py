@@ -76,7 +76,7 @@ def migrate(cr, version):
     """
     )
 
-    util.remove_model(cr, "survey.page")
+    util.merge_model(cr, "survey.page", "survey.question")
 
     # labels
     util.rename_field(cr, "survey.label", "quizz_mark", "answer_score")
