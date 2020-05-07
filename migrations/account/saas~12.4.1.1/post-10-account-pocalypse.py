@@ -1574,6 +1574,21 @@ def migrate_invoice_lines(cr):
 
         util.parallel_execute(cr, queries.values())
 
+        cr.execute(
+            """
+            WITH am_amounts AS ( SELECT am.id,
+                                        SUM(aml.credit) as credit
+                                   FROM account_move am  
+                                   JOIN account_move_line aml ON aml.move_id=am.id 
+                                  WHERE am.type='entry'
+                               GROUP BY am.id)
+            UPDATE account_move am
+               SET amount_total_signed=am_amounts.credit
+              FROM am_amounts
+             WHERE am_amounts.id=am.id
+            """
+        )
+
         _logger.info("Fix invoice_payment_state.")
         # A move is paid if all its payable/receivable lines (at least 1) are reconciled
         cr.execute(
