@@ -5,14 +5,16 @@ from odoo.exceptions import UserError
 
 def migrate(cr, version):
     env = util.env(cr)
-    cr.execute("""
-        SELECT model, array_agg(id)
-          FROM ir_model_fields
-         WHERE state = 'manual'
-           AND related IS NOT NULL
-           AND related_field_id IS NULL
-      GROUP BY model
-    """)
+    cr.execute(
+        """
+            SELECT model, array_agg(id)
+              FROM ir_model_fields
+             WHERE state = 'manual'
+               AND related IS NOT NULL
+               AND related_field_id IS NULL
+          GROUP BY model
+        """
+    )
     fields_left = env["ir.model.fields"]
     for model, ids in cr.fetchall():
         fields = env["ir.model.fields"].browse(ids)
@@ -27,8 +29,9 @@ def migrate(cr, version):
         else:
             fields_left |= fields
     if fields_left:
-        fields_desc_list = ', '.join('%s.%s' % (field.model, field.name) for field in fields)
-        util.add_to_migration_reports("""
-            Some custom related fields have not been computed because their model or fields they rely on
-            are defined in modules which were not available during the upgrade: %s
-        """ % fields_desc_list, "Custom fields")
+        fields_desc_list = ", ".join("%s.%s" % (field.model, field.name) for field in fields)
+        util.add_to_migration_reports(
+            "Some custom related fields have not been computed because their model or fields they rely on "
+            "are defined in modules which were not available during the upgrade: %s" % fields_desc_list,
+            "Custom fields",
+        )
