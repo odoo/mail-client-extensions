@@ -13,3 +13,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'l10n_in', 'base_vat')
     util.new_module(cr, "website_project", deps={"website", "project"}, auto_install=True)
     util.force_migration_of_fresh_module(cr, 'website_project')
+    # Extracting coupon module from sale_coupon module
+    util.new_module(cr, "coupon", deps={"account"})
+    util.module_deps_diff(cr, "sale_coupon", plus={"coupon"})
+    util.force_migration_of_fresh_module(cr, "coupon", init=True)
