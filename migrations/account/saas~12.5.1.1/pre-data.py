@@ -23,3 +23,5 @@ def migrate(cr, version):
     util.remove_view(cr, "account.account_tag_view_form")
     util.remove_view(cr, "account.view_account_bnk_stmt_cashbox_footer")
     util.remove_view(cr, "account.view_account_bnk_stmt_cashbox")
+
+    util.force_noupdate(cr, "account.open_account_journal_dashboard_kanban", False)
