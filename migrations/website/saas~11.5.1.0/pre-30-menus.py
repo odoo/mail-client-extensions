@@ -28,7 +28,7 @@ def migrate(cr, version):
 
     # step 2: take the menu hierarchy from the 1st website and make a template out of it
     #         by removing a link to a specific website
-    cr.execute('SELECT id FROM website_menu WHERE parent_id IS NULL ORDER BY website_id ASC LIMIT 1')
+    cr.execute('SELECT id FROM website_menu WHERE parent_id IS NULL ORDER BY website_id, sequence, id ASC LIMIT 1')
     main_menu = cr.dictfetchone()
     cr.execute('UPDATE website_menu SET website_id=null where id={}'.format(main_menu['id']))
     recursive_menu_website(cr, main_menu['id'])
