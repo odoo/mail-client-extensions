@@ -63,6 +63,11 @@ class TestCrawler(IntegrityCase):
 
     def invariant(self):
 
+        self.action_type_fields = {
+            action_type: list(self.env.registry[action_type]._fields)
+            for action_type in list(self.env.registry["ir.actions.actions"]._inherit_children) + ["ir.actions.actions"]
+        }
+
         # Try to use an admin to crawl the menus, if not fallback on using an employee.
         for group in ["base.group_system", "base.group_erp_manager", "base.group_user"]:
             user = (
@@ -122,7 +127,7 @@ class TestCrawler(IntegrityCase):
             action = self.env["ir.actions.actions"].browse(action_id)
             action_typed = self.env[action.type].browse(action_id)
             try:
-                [action_vals] = action_typed.read()
+                [action_vals] = action_typed.read(self.action_type_fields[action.type])
                 self.mock_action(action_vals)
             except Exception:
                 self.env.cr.rollback()  # In case the cursor is broken
@@ -166,9 +171,18 @@ class TestCrawler(IntegrityCase):
             if view_id:
                 action["views"][0] = (view_id[0] if isinstance(view_id, (list, tuple)) else view_id, view_modes[0])
 
-        views = model.load_views(
-            action["views"], options={"action_id": action.get("id"), "toolbar": True, "load_filters": True}
-        )
+        Action = env.registry["ir.actions.actions"]
+        origin_read = Action.read
+        action_fields = self.action_type_fields["ir.actions.actions"]
+        # To specify the list of fields to read on actions,
+        # because `get_bindings` calls read without passing the list fields,
+        # and it therefore reads alls the fields, and some custom fields might be broken.
+        with patch.object(
+            Action, "read", lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
+        ):
+            views = model.load_views(
+                action["views"], options={"action_id": action.get("id"), "toolbar": True, "load_filters": True}
+            )
         env["ir.filters"].get_filters(model._name, action_id=action.get("id"))
 
         domain, group_by = [], []
