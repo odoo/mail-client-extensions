@@ -37,7 +37,7 @@ class IrUiView(models.Model):
         def _migrate_get_roots(self):
             roots = self.env["ir.ui.view"]
             for view in self:
-                while view.inherit_id:
+                while view.mode == "extension" and view.inherit_id:
                     view = view.inherit_id
                 roots |= view
             return roots
