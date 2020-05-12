@@ -48,7 +48,7 @@ def migrate(cr, version):
                   INNER JOIN product_product p on l.product_id=p.id
                   INNER JOIN product_template t on p.product_tmpl_id=t.id
                        WHERE t.company_id is not null
-                    GROUP BY sale_order_template_id, company_id)
+                    GROUP BY sale_order_template_id, t.company_id)
         UPDATE sale_order_template t
            SET company_id=t.company_id
           FROM order_ids o
