@@ -3,6 +3,7 @@ import logging
 from psycopg2 import IntegrityError
 
 from odoo import api, models
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migration.base.000." + __name__)
 
@@ -51,6 +52,13 @@ class Base(models.AbstractModel):
                         other_values = {key: value for key, value in values.items() if key not in store_values}
                         record._write(store_values)
                         record.write(other_values)
+
+                        match_warning = getattr(self, "_match_uniq_warning", False)
+                        if match_warning:
+                            util.add_to_migration_reports(
+                                message=match_warning.format(xmlid=xmlid, **values), category="Merged Records"
+                            )
+
                         return record
             raise
 
