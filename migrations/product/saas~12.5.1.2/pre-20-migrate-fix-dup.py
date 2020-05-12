@@ -171,6 +171,16 @@ The following variants has been archived: {archived_product_list}""".format(
             [distinct_products, distinct_products],
         )
 
+        # clean product_attribute_value_product_template_attribute_line_rel m2m
+        util.fixup_m2m(
+            cr,
+            m2m="product_attribute_value_product_template_attribute_line_rel",
+            fk1="product_attribute_value",
+            fk2="product_template_attribute_line",
+            col1="product_attribute_value_id",
+            col2="product_template_attribute_line_id",
+        )
+
         # log a note to the end user
         msg = """ In our standard, all variant of the same product needs to have distinct attributes to ensure data integrity;  In your database, we detected that you have variant(s) for the same product with the same attributes (or no attributes).
 Hence we updated your variant attributes and added the`upgrade_technical` attribute, enabling the eligibility of your database (same product same attribute) for our upgrade scripts (same product, distinct attribute) without issues;
