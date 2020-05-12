@@ -130,3 +130,6 @@ def migrate(cr, version):
     util.remove_view(cr, "documents.documents_view_form")
     util.remove_view(cr, "documents.documents_upload_url_view")
     util.remove_view(cr, "documents.documents_view_list")
+
+    for xmlid in ["document_debug_action", "action_url_form", "document_action"]:
+        util.force_noupdate(cr, "documents.%s" % xmlid, False)
