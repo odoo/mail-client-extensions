@@ -39,9 +39,11 @@ def migrate(cr, version):
 
     util.create_column(cr, "hr_work_entry_type", "round_days", "varchar")
     util.create_column(cr, "hr_work_entry_type", "round_days_type", "varchar")
-
     cr.execute("UPDATE hr_work_entry_type SET round_days_type='DOWN', round_days='NO'")
 
     util.create_column(cr, "hr_payslip_employees", "structure_id", "int4")
+
+    util.remove_field(cr, "resource.calendar", "normal_attendance_ids")
+    util.remove_field(cr, "resource.calendar", "extra_attendance_ids")
 
     util.delete_unused(cr, "hr_payroll.structure_type_employee")
