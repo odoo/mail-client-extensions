@@ -34,5 +34,10 @@ def migrate(cr, version):
         )
 
     if cr.rowcount:
-        moves = ["(id: %s, balance: %s)" % (r[0], r[1]) for r in cr.fetchall()]
-        raise util.MigrationError("The following moves are not balanced:\n %s" % "\n".join(moves))
+        if cr.rowcount > 100:
+            msg = "A lot of moves are not balanced. You should have a look to that."
+        else:
+            moves = [f"(id: {id}, balance: {balance})" for id, balance in cr.fetchall()]
+            msg = "The following moves are not balanced: [%s]" % ", ".join(moves)
+
+        util.add_to_migration_reports(msg, "Unbalanced Moves")
