@@ -197,7 +197,7 @@ class AmountTotalSignedCornerCase(UpgradeCase):
         )
 
 
-@tagged("-upgrade", "to_fix")
+@tagged("-upgrade", "to_fix", "-integrity_case")
 class AmountTotalSignedIntegrity(IntegrityCase):
 
     message = "Some difference found in aggregates totals:\n(journal_id, amount_untaxed, amount_tax, amount_total, amount_untaxed_signed, amount_total_signed)"
