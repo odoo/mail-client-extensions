@@ -57,7 +57,7 @@ def migrate(cr, version):
             util.remove_module(cr, "l10n_%s_reports" % cc)
 
         util.remove_module(cr, "sale_subscription_asset")
-        util.merge_module(cr, 'l10n_uk_reports_hmrc', 'l10n_uk_reports')
+        util.merge_module(cr, "l10n_uk_reports_hmrc", "l10n_uk_reports")
 
     else:
         # all payroll modules moved to enterprise
@@ -68,3 +68,6 @@ def migrate(cr, version):
         util.remove_module(cr, "l10n_be_hr_payroll_fleet")
         util.remove_module(cr, "l10n_fr_hr_payroll")
         util.remove_module(cr, "l10n_in_hr_payroll")
+
+    # cleanup for saas databases
+    util.remove_module(cr, "saas_docsaway")
