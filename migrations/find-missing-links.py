@@ -2,16 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from fnmatch import fnmatch
-from glob import glob
-import os
+from pathlib import Path
 import sys
 
-HERE = os.path.dirname(os.path.realpath(__file__))
-L = len(HERE) + 1
+MIGRATIONS_DIR = Path(__file__).resolve().parent
 
 EXCEPTIONS = {
-    os.path.join(HERE, e)
+    MIGRATIONS_DIR / e
     for e in {
         # scripts that don't need a symlink because they are already handled in other ways
         "report/10.saas~14.1.0/pre-migrate.py",
@@ -47,22 +44,21 @@ def previous_versions(version):
         matches = ["%s.0" % (v[0] - 1,), saas(v[0] - 1, "*")]
     else:
         min_saas = {8: 6, 9: 7, 10: 14}
+        # fmt:off
         matches = ["%s.0" % v[0]] + [
             saas(v[0], "%s.*" % m) for m in range(min_saas.get(v[0], 1), v[1])
         ]
+        # fmt:on
 
     return matches
 
 
 def _match_linked_files(version, new, found, reason):
     result = True
-    expected = {
-        os.path.join(found, f)
-        for f in os.listdir(found)
-        if os.path.isfile(os.path.join(found, f)) and not fnmatch("*.py[cod]", f)
-    }
+    expected = {f for f in found.iterdir() if f.is_file()}
+
     for exc in expected & EXCEPTIONS:
-        exc = exc[L:]
+        exc = exc.relative_to(MIGRATIONS_DIR)
         print(f"🆗 {exc} manually handled in {new}/{version} ▶︎ [module {reason}]")
 
     expected -= EXCEPTIONS
@@ -70,22 +66,22 @@ def _match_linked_files(version, new, found, reason):
         return True
 
     target_links = {
-        g[L:]: os.path.realpath(g)
-        for g in glob(os.path.join(HERE, new, "%s.*" % version, "*"))
-        if os.path.islink(g)
+        str(g.relative_to(MIGRATIONS_DIR)): g.resolve()
+        for g in MIGRATIONS_DIR.glob(f"{new}/{version}.*/*")
+        if g.is_symlink()
     }
     missing = expected - set(target_links.values())
     if not missing:
         for link, target in target_links.items():
             if target in expected:
-                ltarget = target[L:]
+                ltarget = target.relative_to(MIGRATIONS_DIR)
                 print(f"✅ {link} -> {ltarget} ▶︎ [{reason} in {version}]")
     else:
         result = False
-        link = os.path.join(HERE, new, "%s.???" % version)[L:]
+        link = f"{new}/{version}.???"
         for script in missing:
-            lscript = script[L:]
-            bscript = os.path.basename(script)
+            lscript = script.relative_to(MIGRATIONS_DIR)
+            bscript = lscript.name
             print(f"❌ MISSING SYMLINK: {link}/{bscript} -> {lscript} ▶︎ [{reason} in {version}]")
 
     return result
@@ -95,19 +91,20 @@ def check_module_rename(version, old, new):
     result = True
 
     for match in previous_versions(version):
-        for found in glob(os.path.join(HERE, old, match)):
-            old_script_version = os.path.basename(found)
-            maybe_link = os.path.join(HERE, new, old_script_version)
-            lfound = found[L:]
-            link = maybe_link[L:]
+        for found in MIGRATIONS_DIR.glob(f"{old}/{match}"):
+            old_script_version = found.name
+            maybe_link = MIGRATIONS_DIR / new / old_script_version
 
-            if os.path.islink(maybe_link):
-                if os.path.realpath(maybe_link) == found:
+            lfound = found.relative_to(MIGRATIONS_DIR)
+            link = maybe_link.relative_to(MIGRATIONS_DIR)
+
+            if maybe_link.is_symlink():
+                if maybe_link.samefile(found):
                     print(f"✅ {link} -> {lfound} ▶︎ [renamed in {version}]")
                 else:
                     result = False
                     print(f"💥 INVALID SYMLINK: {link} -/-> {lfound} ▶︎ [renamed in {version}]")
-            elif os.path.exists(maybe_link):
+            elif maybe_link.is_dir():
                 result = False
                 print(
                     f"❗ DUPLICATED SCRIPTS: {link} is a real folder; "
@@ -123,7 +120,7 @@ def check_module_merge(version, old, new):
     result = True
 
     for match in previous_versions(version):
-        for found in glob(os.path.join(HERE, old, match)):
+        for found in MIGRATIONS_DIR.glob(f"{old}/{match}"):
             # In case of module merge, we need to track files instead of directories
             # Even if file is symlinked, scripts should be written defensively because
             # table and columns may not exists.
@@ -135,33 +132,33 @@ def check_module_merge(version, old, new):
 
 def main():
     rc = 0
-    for dirpath, _, filenames in os.walk(os.path.join(HERE, "base")):
-        version = os.path.basename(dirpath)
+
+    for pyfile in MIGRATIONS_DIR.glob("base/*/*.py"):
+        version = pyfile.parent.name
         if version == "0.0.0":
             continue
         version = ".".join(version.split(".")[:2])
-        for filename in filenames:
-            if not (filename.startswith(("pre-", "post-", "end-")) and filename.endswith(".py")):
-                continue
-            with open(os.path.join(dirpath, filename)) as fp:
-                tree = ast.parse(fp.read(), filename=filename)
 
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-                    if (
-                        isinstance(node.func.value, ast.Name)
-                        and node.func.value.id == "util"
-                        and node.func.attr == "rename_module"
-                    ):
-                        if not check_module_rename(version, node.args[1].s, node.args[2].s):
-                            rc = 1
-                    elif (
-                        isinstance(node.func.value, ast.Name)
-                        and node.func.value.id == "util"
-                        and node.func.attr == "merge_module"
-                    ):
-                        if not check_module_merge(version, node.args[1].s, node.args[2].s):
-                            rc = 1
+        if not pyfile.name.startswith(("pre-", "post-", "end-")):
+            continue
+
+        tree = ast.parse(pyfile.read_bytes(), filename=pyfile)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                if (
+                    isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "util"
+                    and node.func.attr == "rename_module"
+                ):
+                    if not check_module_rename(version, node.args[1].s, node.args[2].s):
+                        rc = 1
+                elif (
+                    isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "util"
+                    and node.func.attr == "merge_module"
+                ):
+                    if not check_module_merge(version, node.args[1].s, node.args[2].s):
+                        rc = 1
     return rc
 
 
