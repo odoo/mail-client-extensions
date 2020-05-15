@@ -22,6 +22,7 @@ def migrate(cr, version):
            SET email_normalized=lower(substring(email_from, '([^ ,;<@]+@[^> ,;]+)'))
          WHERE email_from IS NOT NULL
     """)
+    util.remove_field(cr, "crm.lead", "partner_address_mobile")
 
     # Teams probably use opportunities if `sale` is not installed.
     # Basically, a team can be either for opportunities, for quotations, or for both.

@@ -28,6 +28,7 @@ def migrate(cr, version):
     """
     )
     cr.execute("DROP TABLE mrp_bom_line_product_attribute_value_rel")
+    util.remove_field(cr, "mrp.bom.line", "valid_product_attribute_value_ids")
 
     if util.table_exists(cr, "mrp_bom_byproduct"):
         util.create_column(cr, "mrp_bom_byproduct", "company_id", "int4")

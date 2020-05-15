@@ -6,6 +6,9 @@ def migrate(cr, version):
     util.create_column(cr, "crm_lead", "automated_probability", "float8")
     util.create_column(cr, "crm_lead", "phone_state", "varchar")
     util.create_column(cr, "crm_lead", "email_state", "varchar")
+    # 🏓 field gone in saas~12.1, back in saas~12.3 and removed again in saas~12.4
+    util.remove_field(cr, "crm.lead", "partner_address_mobile")
+
     util.create_column(cr, "crm_stage", "is_won", "boolean")
     cr.execute("UPDATE crm_stage SET is_won=TRUE WHERE probability>=100")
     util.remove_field(cr, "crm.stage", "probability")

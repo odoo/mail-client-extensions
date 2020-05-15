@@ -31,7 +31,7 @@ def migrate(cr, version):
          WHERE l.move_id=m.id
     """)
 
-    util.remove_column(cr, 'stock_package_location', 'picking_source_location')
+    util.remove_field(cr, "stock.package_level", "picking_source_location")
     util.remove_record(cr, 'stock.property_stock_inventory')
     util.remove_record(cr, 'stock.property_stock_production')
 

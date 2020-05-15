@@ -10,6 +10,7 @@ def migrate(cr, version):
         # (Model, field),
         ("google_drive_config", "model_id"),
         ("ir_model_relation", "model"),
+        ("ir_model_constraint", "model"),
         ("marketing_campaign", "model_id"),
         ("sms_template", "model_id"),
         ("test_new_api_creativework_edition", "res_model_id"),

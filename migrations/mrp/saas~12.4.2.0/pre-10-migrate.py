@@ -3,6 +3,10 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.rename_field(cr, "mrp.abstract.workorder", "final_lot_id", "finished_lot_id")
+    # The `mrp.abstract.workorder` model only appears in saas~12.2
+    # For prior versions, we should be explicit.
+    util.rename_field(cr, "mrp.workorder", "final_lot_id", "finished_lot_id")
     util.rename_field(cr, "mrp.product.produce", "final_lot_id", "finished_lot_id")
 
     util.rename_field(cr, "mrp.production", "propagate", "propagate_cancel")
@@ -48,4 +52,5 @@ def migrate(cr, version):
 
     util.remove_column(cr, "mrp_workorder", "date_planned_start")
     util.remove_column(cr, "mrp_workorder", "date_planned_finished")
-    util.rename_field(cr, "mrp.workorder", "final_lot_id", "finished_lot_id")
+
+    util.remove_field(cr, "mrp.bom.line", "valid_product_attribute_value_wnva_ids")

@@ -18,3 +18,4 @@ def migrate(cr, version):
 
     util.remove_model(cr, 'hr.contribution.register')
     util.remove_model(cr, 'payslip.lines.contribution.register')
+    util.remove_model(cr, "report.hr_payroll.report_contributionregister")

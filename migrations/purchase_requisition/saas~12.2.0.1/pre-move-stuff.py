@@ -11,5 +11,9 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "purchase.requisition.line", "move_dest_id", *eb(mods))
     util.move_field_to_module(cr, "stock.move", "requisition_line_ids", *eb(mods))
 
+    # field was defined twice, remove the one with the typo
+    util.update_field_references(cr, *eb("requis{,i}tion_line_ids"), only_models=("stock.move",))
+    util.remove_field(cr, "stock.move", "requistion_line_ids")
+
     util.rename_xmlid(cr, *eb(mods + ".access_purchase_requisition_stock_manager"))
     util.rename_xmlid(cr, *eb(mods + ".access_purchase_requisition_line_stock_manager"))

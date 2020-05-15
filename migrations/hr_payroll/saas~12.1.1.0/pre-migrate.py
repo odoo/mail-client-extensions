@@ -25,6 +25,7 @@ def migrate(cr, version):
          WHERE r.id = l.salary_rule_id
     """
     )
+    # `hr.payslip.line` lost it's inheritance from `hr.salary.rule`
     # remove old inherits auto-related fields
     for field in {
         "active",
@@ -38,6 +39,11 @@ def migrate(cr, version):
         "amount_percentage_base",
         "child_ids",
         "input_ids",
+        # and fields from `hr_payroll_account`
+        "analytic_account_id",
+        "account_tax_id",
+        "account_debit",
+        "account_credit",
     }:
         util.remove_field(cr, "hr.payslip.line", field)
 

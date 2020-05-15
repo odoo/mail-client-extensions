@@ -20,6 +20,6 @@ def migrate(cr, version):
     """
     )
 
-    util.remove_field(cr, "account_followup_followup_line", "sequence")
-    util.remove_field(cr, "account_followup_followup_line", "followup_id")
+    util.remove_field(cr, "account_followup.followup.line", "sequence")
+    util.remove_field(cr, "account_followup.followup.line", "followup_id")
     util.remove_model(cr, "account_followup.followup")

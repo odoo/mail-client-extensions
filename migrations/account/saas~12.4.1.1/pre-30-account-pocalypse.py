@@ -83,7 +83,15 @@ def migrate(cr, version):
     util.create_column(cr, "account_move_line", "exclude_from_invoice_tab", "boolean")
     util.create_column(cr, "account_move_line", "is_rounding_line", "boolean")  # No way to set this field correctly.
 
-    util.remove_field(cr, "account_move_line", "invoice_id")
+    fields = """
+        invoice_id
+        credit_cash_basis debit_cash_basis balance_cash_basis
+        narration  # related to move
+        tax_line_grouping_key
+        user_type_id
+    """
+    for field in fields.split():
+        util.remove_field(cr, "account.move.line", field)
 
     cr.execute(
         """
@@ -122,10 +130,13 @@ def migrate(cr, version):
     util.create_column(cr, "account_move", "invoice_user_id", "int4")
     util.create_column(cr, "account_move", "invoice_vendor_display_name", "varchar")
 
-    util.rename_field(cr, "account_move", "amount", "amount_total")
-    util.rename_field(cr, "account_move", "reverse_entry_id", "reversed_entry_id")
+    util.rename_field(cr, "account.move", "amount", "amount_total")
+    util.rename_field(cr, "account.move", "reverse_entry_id", "reversed_entry_id")
 
-    util.remove_field(cr, "account_move", "matched_percentage")
+    util.remove_field(cr, "account.move", "reconcile_model_id")
+    util.remove_field(cr, "account.move", "matched_percentage")
+    util.remove_field(cr, "account.move", "tax_type_domain")
+    util.remove_field(cr, "account.move", "dummy_account_id")
 
     # Some previously migrated databases already had this field with wrong values
     cr.execute("UPDATE account_move SET type = NULL")
@@ -267,7 +278,9 @@ def migrate(cr, version):
     # Fix the many2many crosstable account_invoice_payment_rel that was between account_payment & account_invoice,
     # not between account_payment & account_move.
     cr.execute("ALTER TABLE account_invoice_payment_rel RENAME TO account_invoice_payment_rel_old")
-    util.fixup_m2m(cr, "account_invoice_payment_rel_old", "account_invoice", "account_payment", "invoice_id", "payment_id")
+    util.fixup_m2m(
+        cr, "account_invoice_payment_rel_old", "account_invoice", "account_payment", "invoice_id", "payment_id"
+    )
 
     util.create_m2m(cr, "account_invoice_payment_rel", "account_move", "account_payment", "invoice_id", "payment_id")
 

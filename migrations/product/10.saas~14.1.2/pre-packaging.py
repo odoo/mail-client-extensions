@@ -45,5 +45,5 @@ def migrate(cr, version):
         SELECT 1
     """.format(**locals()))
 
-    util.remove_field(cr, 'product_packaging', 'product_tmpl_id')
+    util.remove_field(cr, 'product.packaging', 'product_tmpl_id')
     util.remove_column(cr, 'product_packaging', '_tmp')

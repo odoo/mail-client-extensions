@@ -2,13 +2,11 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-
-    for a in 'actions report.xml act_window act_window_close act_url client'.split():
-        util.remove_field(cr, 'ir.actions.' + a, 'usage')
-
+    util.remove_field(cr, "ir.actions.actions", "usage", skip_inherit=("ir.actions.act_window", "ir.actions.server"))
     # `usage` column is an inherited one (postgres side)
     # So, deleting it from ir.actions.actions actually delete it from other model
     # We need to recreate it.
+    util.create_column(cr, "ir_act_window", "usage", "varchar")
     util.create_column(cr, 'ir_act_server', 'usage', 'varchar')
 
     cr.execute("DELETE FROM ir_act_server WHERE state='trigger'")
@@ -149,7 +147,7 @@ env[self.model_id.model].browse(ref_id).write(data)
         use_relational_model wkf_transition_id wkf_model_id wkf_model_name wkf_field_id
         use_create ref_object link_new_record use_write write_expression
         model_object_field sub_object sub_model_object_field copyvalue id_object id_value
-        crud_model_name
     """.split()
     for f in oldfields:
         util.remove_field(cr, 'ir.actions.server', f)
+    util.remove_column(cr, "ir_act_server", "crud_model_name")  # related not stored

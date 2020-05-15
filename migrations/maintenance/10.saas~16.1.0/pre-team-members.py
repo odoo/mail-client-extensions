@@ -9,4 +9,4 @@ def migrate(cr, version):
                FROM maintenance_team t
                JOIN res_users u ON (t.partner_id = u.partner_id)
     """)
-    util.remove_field(cr, 'maintenance_team', 'partner_id')
+    util.remove_field(cr, 'maintenance.team', 'partner_id')

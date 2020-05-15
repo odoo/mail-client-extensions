@@ -11,7 +11,8 @@ def migrate(cr, version):
 
     util.move_model(cr, 'report.paperformat', 'report', 'base', move_data=True)
     util.move_model(cr, 'ir.qweb.field.barcode', 'report', 'base', move_data=False)
-    util.delete_model(cr, 'report')
+    util.remove_model(cr, "report")
+    util.remove_model(cr, "report.abstract_report")
 
     for model in ['base.config.settings', 'res.company']:
         for field in ['paperformat_id', 'external_report_layout']:
@@ -72,7 +73,6 @@ def migrate(cr, version):
         msg = 'The database still contains deprecated reports:\n%s' % reports
         _logger.warning(msg)
         util.add_to_migration_reports(msg, 'Reporting')
-
 
     remove = util.splitlines("""
         header

@@ -7,5 +7,5 @@ def migrate(cr, version):
     cr.execute("UPDATE product_template SET responsible_id = COALESCE(create_uid, %s)",
                [SUPERUSER_ID])
 
-    util.remove_field(cr, 'product_template', 'property_stock_procurement')
+    util.remove_field(cr, 'product.template', 'property_stock_procurement')
     util.remove_model(cr, 'procurement.orderpoint.compute')

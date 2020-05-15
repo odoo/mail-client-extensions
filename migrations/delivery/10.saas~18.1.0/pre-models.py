@@ -18,4 +18,4 @@ def migrate(cr, version):
            AND p.product_tmpl_id = t.id
     """)
 
-    util.remove_field(cr, 'delivery_price_rule', 'standard_price')
+    util.remove_field(cr, 'delivery.price.rule', 'standard_price')
