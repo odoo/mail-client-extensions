@@ -110,3 +110,48 @@ def migrate(cr, version):
 
     util.remove_record(cr, "mrp.menu_view_resource_calendar_search_mrp")
     util.remove_record(cr, "mrp.menu_mrp_workcenter_productivity_loss")
+
+    try:
+        mto_route = util.env(cr)['stock.warehouse']._find_global_route('stock.route_warehouse0_mto', 'Make To Order').id
+    except:
+        mto_route = False
+    if mto_route:
+        cr.execute(
+            """
+            INSERT INTO stock_rule (
+                name,
+                procure_method,
+                company_id,
+                action,
+                auto,
+                route_id,
+                location_id,
+                location_src_id,
+                picking_type_id)
+            SELECT
+                CASE
+                    WHEN sw.manufacture_steps = 'mrp_one_step' THEN sw.code || ': ' || stock_loc.name || ' → ' || prod_loc.name || ' (MTO)'
+                    ELSE sw.code || ': ' || pbm_loc.name || ' → ' || prod_loc.name || ' (MTO)'
+                END,
+                'make_to_order',
+                comp.id,
+                'pull',
+                'manual',
+                %d,
+                prod_loc.id,
+                CASE
+                    WHEN sw.manufacture_steps = 'mrp_one_step' THEN sw.lot_stock_id
+                    ELSE sw.pbm_loc_id
+                END,
+                spt.id
+            FROM stock_warehouse sw
+            JOIN res_company comp ON sw.company_id = comp.id
+            JOIN stock_location prod_loc ON prod_loc.company_id = comp.id
+            JOIN stock_location stock_loc ON stock_loc.id = sw.lot_stock_id
+            JOIN stock_location pbm_loc ON pbm_loc.id = sw.pbm_loc_id
+            JOIN stock_picking_type spt ON spt.warehouse_id = sw.id
+            WHERE
+                prod_loc.usage = 'production'
+                AND spt.code = 'mrp_operation'
+            """ % mto_route
+        )
