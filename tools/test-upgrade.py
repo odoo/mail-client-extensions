@@ -107,7 +107,7 @@ def normalize_path(path, relative_to_file=False):
     # using os.getcwd() : root/master/odoo (not good, base_directory is root/master/upgrade)
 
     if relative_to_file:
-        base_directory = os.path.dirname(os.path.join(base_directory, __file__))
+        base_directory = os.path.dirname(os.path.dirname(os.path.join(base_directory, __file__)))
     abs_path = os.path.join(base_directory, path)
     return os.path.normpath(abs_path)
 
