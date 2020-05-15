@@ -5,7 +5,7 @@ import ast
 from pathlib import Path
 import sys
 
-MIGRATIONS_DIR = Path(__file__).resolve().parent
+MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 EXCEPTIONS = {
     MIGRATIONS_DIR / e
