@@ -22,3 +22,14 @@ def migrate(cr, version):
            SET email_normalized=lower(substring(email_from, '([^ ,;<@]+@[^> ,;]+)'))
          WHERE email_from IS NOT NULL
     """)
+
+    # Teams probably use opportunities if `sale` is not installed.
+    # Basically, a team can be either for opportunities, for quotations, or for both.
+    # But if `sale` is not installed, the team must be for opportunities.
+    # https://github.com/odoo/odoo/commit/1da63f0ab0fb4212bee46f960c6bbe8ca9251cac#diff-d56199d7a6b4a313a419fd79fe9a91ccR11
+    if not util.module_installed(cr, "sale_crm"):
+        cr.execute("""
+            UPDATE crm_team
+               SET use_opportunities = true
+             WHERE coalesce(use_opportunities, false) = false
+        """)
