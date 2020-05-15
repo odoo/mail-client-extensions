@@ -22,6 +22,8 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.notification", "is_email")
     util.rename_field(cr, "mail.notification", "email_status", "notification_status")
 
+    util.rename_field(cr, "mail.message", "needaction_partner_ids", "notified_partner_ids")
+
     util.remove_view(cr, "mail.qunit_mobile_suite")
 
     # Function `format_tz` has been renamed to `format_datetime`.

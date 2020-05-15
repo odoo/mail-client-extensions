@@ -3,4 +3,4 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.rename_field(cr, "reataurant.printer", "iotbox_id", "device_id")
+    util.rename_field(cr, "restaurant.printer", "iotbox_id", "device_id")

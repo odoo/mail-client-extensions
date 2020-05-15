@@ -44,6 +44,7 @@ def migrate(cr, version):
     """
     )
     util.remove_field(cr, "account.journal", "belongs_to_company")
+    util.remove_field(cr, "account.journal", "update_posted")
 
     # copy company data from l10n_fr_certification module
     if util.column_exists(cr, "res_company", "l10n_fr_secure_sequence_id"):
@@ -199,12 +200,12 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.config.settings", "module_account_asset")
     util.remove_field(cr, "res.config.settings", "module_account_deferred_revenue")
-    util.remove_field(cr, "res.config.settings", "module_account_report_followup")
+    util.remove_field(cr, "res.config.settings", "module_account_reports_followup")
 
     util.create_column(cr, "tax_adjustments_wizard", "adjustment_type", "varchar")
     util.create_column(cr, "tax_adjustments_wizard", "tax_report_line_id", "int4")
     util.create_column(cr, "tax_adjustments_wizard", "country_id", "int4")
-    util.remove_field(cr, "tax_adjustments_wizard", "tax_id")
+    util.remove_field(cr, "tax.adjustments.wizard", "tax_id")
 
     util.remove_model(cr, "account.invoice.import.wizard")
     util.remove_model(cr, "cash.box.in")

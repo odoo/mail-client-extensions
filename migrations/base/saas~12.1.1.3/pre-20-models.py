@@ -7,7 +7,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "ir.attachment", "res_model_name")
     if not util.module_installed(cr, "documents"):
-        util.remove_field(cr, "ir.attachment", "active")
+        util.remove_field(cr, "ir.attachment", "active", skip_inherit={"mrp.document"})
         util.remove_field(cr, "ir.attachment", "thumbnail")
     else:
         util.move_field_to_module(cr, "ir.attachment", "active", 'base', 'documents')

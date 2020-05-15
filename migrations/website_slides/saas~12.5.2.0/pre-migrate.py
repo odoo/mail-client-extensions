@@ -54,6 +54,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "slide.slide", "index_content")
     util.remove_field(cr, "slide.slide", "category_sequence")
+    util.remove_field(cr, "slide.slide", "access_token")
     cr.execute("ALTER TABLE slide_slide RENAME COLUMN category_id TO _old_category_id")
     util.create_column(cr, "slide_slide", "category_id", "int4")
 

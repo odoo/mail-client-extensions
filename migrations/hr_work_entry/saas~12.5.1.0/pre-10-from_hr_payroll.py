@@ -9,6 +9,8 @@ def migrate(cr, version):
     util.move_model(cr, "hr.work.entry.type", "hr_payroll", "hr_work_entry")
     util.move_model(cr, "hr.user.work.entry.employee", "hr_payroll", "hr_work_entry")
 
+    util.remove_field(cr, "hr.work.entry", "display_warning")
+
     util.move_field_to_module(cr, "resource.calendar.attendance", "work_entry_type_id", "hr_payroll", "hr_work_entry")
     util.move_field_to_module(cr, "resource.calendar.leaves", "work_entry_type_id", "hr_payroll", "hr_work_entry")
 
@@ -30,7 +32,7 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.work_entry_type_attendance"))
 
     if util.table_exists(cr, "hr_work_entry"):
-        util.create_column(cr, "hr_work_entry", "conflict", "boolean")  # Always false, state 'conflict' is newly created
+        util.create_column(cr, "hr_work_entry", "conflict", "boolean")  # Always false, state 'conflict' is new
         cr.execute("UPDATE hr_work_entry SET state='draft' WHERE state='confirmed'")
 
         cr.execute("ALTER TABLE hr_work_entry DROP CONSTRAINT hr_work_entry__unique")

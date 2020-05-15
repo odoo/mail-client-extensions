@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     eb = util.expand_braces
-    util.rename_field(cr, "product.public.category", *eb("product{,_template}_image_ids"))
+    util.rename_field(cr, "product.template", *eb("product{,_template}_image_ids"))
     util.rename_field(cr, "product.image", "image", "image_original")
     util.create_column(cr, "product_image", "can_image_be_zoomed", "boolean")
 

@@ -3,7 +3,10 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.remove_field(cr, "res.company", "propagation_minimum_delta")
+    util.remove_field(cr, "res.config.settings", "propagation_minimum_delta")
     util.remove_field(cr, "res.config.settings", "use_propagation_minimum_delta")
+    cr.execute("DELETE FROM ir_config_parameter WHERE key='stock.use_propagation_minimum_delta'")
 
     # new inventories
     util.create_m2m(cr, 'stock_inventory_stock_location_rel', 'stock_inventory', 'stock_location')
@@ -55,11 +58,15 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.inventory", "lot_id")
     util.remove_field(cr, "stock.inventory", "category_id")
     util.remove_field(cr, "stock.inventory", "exhausted")
+    util.remove_field(cr, "stock.inventory", "filter")
+    util.remove_field(cr, "stock.inventory", "total_qty")
 
     util.create_column(cr, "stock_inventory", "start_empty", "boolean")
 
     util.create_column(cr, "stock_inventory_line", "is_editable", "boolean")
     util.create_column(cr, "stock_inventory_line", "inventory_date", "date")
+    util.remove_field(cr, "stock.inventory.line", "inventory_location_id")
+    util.remove_field(cr, "stock.inventory.line", "product_uom_category_id")
 
     util.rename_field(cr, "stock.move", "propagate", "propagate_cancel")
     util.create_column(cr, "stock_move", "propagate_date", "boolean")

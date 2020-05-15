@@ -39,6 +39,7 @@ def migrate(cr, version):
 
     util.create_column(cr, 'account_asset', 'value_residual', 'numeric')
     util.create_column(cr, 'account_asset', 'prorata_date', 'date')
+    util.rename_field(cr, "account.asset", "type", "asset_type")  # was a related to category type
     util.create_column(cr, 'account_asset', 'asset_type', 'varchar')
     util.rename_field(cr, "account.asset", "first_depreciation_manual_date", "first_depreciation_date")
     util.create_column(cr, 'account_asset', 'disposal_date', 'date')
@@ -168,10 +169,9 @@ def migrate(cr, version):
     util.create_column(cr, 'asset_modify', 'resume_date', 'date')
     util.create_column(cr, 'asset_modify', 'need_date', 'boolean')
 
-    util.remove_field(cr, 'account.asset', 'code')
-    util.remove_field(cr, 'account.asset', 'partner_id')
-    util.remove_field(cr, 'account.asset', 'method_end')
-    util.remove_field(cr, 'account.asset', 'invoice_id')
+    fields = "entry_count code note category_id partner_id method_end invoice_id depreciation_line_ids"
+    for field in fields.split():
+        util.remove_field(cr, "account.asset", field)
 
     util.remove_field(cr, 'account.move', 'asset_depreciation_ids')
     util.remove_field(cr, 'account.invoice.line', 'asset_category_id')

@@ -42,7 +42,17 @@ def migrate(cr, version):
                         END
         """
     )
+    cr.execute(
+        """
+            DELETE
+              FROM payment_country_rel
+             WHERE payment_id IN (SELECT id
+                                    FROM payment_acquirer
+                                   WHERE COALESCE(specific_countries, false) = false)
+        """
+    )
 
+    util.remove_field(cr, "payment.acquirer", "specific_countries")
     util.remove_field(cr, "payment.acquirer", "website_published")
     util.remove_field(cr, "payment.acquirer", "error_msg")
 
