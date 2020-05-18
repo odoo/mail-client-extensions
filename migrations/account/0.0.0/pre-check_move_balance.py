@@ -14,6 +14,7 @@ def migrate(cr, version):
                 JOIN account_journal journal ON journal.id = move.journal_id
                 JOIN res_company company ON company.id = journal.company_id
                 JOIN res_currency currency ON currency.id = company.currency_id
+               WHERE move.state not in ('draft', 'cancel')
             GROUP BY line.move_id, currency.decimal_places
               HAVING ROUND(SUM(line.debit - line.credit), currency.decimal_places) != 0.0
             """
@@ -25,10 +26,13 @@ def migrate(cr, version):
 
         cr.execute(
             """
-              SELECT move_id, ROUND(SUM(debit - credit), %s)
-                FROM account_move_line
-            GROUP BY move_id
-              HAVING ROUND(SUM(debit - credit), %s) != 0.0
+              SELECT line.move_id, ROUND(SUM(line.debit - line.credit), %s)
+                FROM account_move_line line
+                JOIN account_move move
+                  ON (line.move_id = move.id)
+               WHERE move.state not in ('draft', 'cancel')
+            GROUP BY line.move_id
+              HAVING ROUND(SUM(line.debit - line.credit), %s) != 0.0
             """,
             [precision, precision],
         )
