@@ -20,7 +20,7 @@ def migrate(cr, version):
             """
         )
     else:
-        cr.execute("SELECT digits FROM decimal_precision WHERE name='account'")
+        cr.execute("SELECT digits FROM decimal_precision WHERE name='Account'")
         res = cr.fetchone()
         precision = min(5, res[0]) if res else 2
 
