@@ -18,4 +18,4 @@ def migrate(cr, version):
     # force deletion of parent_id field.
     # For some reason ORM keep it (with its "on delete cascade" constraint) which forbid cleaning
     # of existing records in l10n_* modules
-    util.remove_field(cr, 'account_account_template', 'parent_id')
+    util.remove_field(cr, 'account.account.template', 'parent_id')
