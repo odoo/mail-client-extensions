@@ -50,7 +50,7 @@ def migrate(cr, version):
          WHERE aml.id = map.aml_id
     """
     )
-    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
+    is_account_voucher_installed = util.ENVIRON["account_voucher_installed"]
 
     # Models
     # You may think that the following query is the same as the one in `util.get_fk()`

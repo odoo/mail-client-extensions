@@ -21,6 +21,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "website_crm_phone_validation", minus={"crm_phone_validation"})
     util.module_deps_diff(cr, "website_slides_survey", plus={"survey"}, minus={"website_survey"})
 
+    util.ENVIRON["account_voucher_installed"] = util.module_installed(cr, "account_voucher")
     util.merge_module(cr, "account_voucher", "account")
     util.merge_module(cr, "crm_phone_validation", "crm")
     util.merge_module(cr, "mrp_bom_cost", "mrp_account")

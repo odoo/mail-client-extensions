@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
+    is_account_voucher_installed = util.ENVIRON["account_voucher_installed"]
 
     # =======================================================================================
     # Migrate chatters

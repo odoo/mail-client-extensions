@@ -65,7 +65,7 @@ def fix_fk(cr, target, update_query):
 
 
 def fix_indirect(cr):
-    is_account_voucher_installed = util.table_exists(cr, "account_voucher")
+    is_account_voucher_installed = util.ENVIRON["account_voucher_installed"]
 
     # Delete duplicated followers:
     cr.execute(
