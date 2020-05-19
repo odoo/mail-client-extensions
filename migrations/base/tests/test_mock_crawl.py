@@ -125,8 +125,8 @@ class TestCrawler(IntegrityCase):
         if menu.get("action"):
             action_id = int(menu["action"].split(",")[1])
             action = self.env["ir.actions.actions"].browse(action_id)
-            action_typed = self.env[action.type].browse(action_id)
             try:
+                action_typed = self.env[action.type].browse(action_id)
                 [action_vals] = action_typed.read(self.action_type_fields[action.type])
                 self.mock_action(action_vals)
             except Exception:
