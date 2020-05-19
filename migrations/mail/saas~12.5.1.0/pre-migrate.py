@@ -22,6 +22,18 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.notification", "is_email")
     util.rename_field(cr, "mail.notification", "email_status", "notification_status")
 
+    # The many2many field `notified_partner_ids` existed in 8.0 and was removed in 9.0.
+    # https://github.com/odoo/odoo/blob/8.0/addons/mail/mail_message.py#L138
+    # Its table was removed correctly thanks to
+    # https://github.com/odoo/upgrade/blob/master/migrations/mail/9.0.1.0/pre-10-model-changes.py#L129
+    # but its field in the table `ir.model.fields` was not correctly removed in any upgrade script.
+    # If this field is there, and we attempt to rename `needaction_partner_ids` to `notified_partner_ids`
+    # It raise an unique constraint in the `ir_model_fields` table
+    if util.ref(cr, "mail.field_mail_mail__notified_partner_ids"):
+        util.remove_field(cr, "mail.mail", "notified_partner_ids", drop_column=False)
+    if util.ref(cr, "mail.field_mail_message__notified_partner_ids"):
+        util.remove_field(cr, "mail.message", "notified_partner_ids", drop_column=False)
+
     util.rename_field(cr, "mail.message", "needaction_partner_ids", "notified_partner_ids")
 
     util.remove_view(cr, "mail.qunit_mobile_suite")
