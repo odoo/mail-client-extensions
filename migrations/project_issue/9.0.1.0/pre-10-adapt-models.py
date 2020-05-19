@@ -34,5 +34,5 @@ def migrate(cr, version):
                                   AND s.project_tags_id = t.id)
     """)
 
-    util.remove_field(cr, 'project_issue', 'version_id')
+    util.remove_field(cr, 'project.issue', 'version_id')
     util.delete_model(cr, 'project.issue.version')
