@@ -25,6 +25,9 @@ def migrate(cr, version):
              SELECT r.mrp_bom_line_id, ptav.id
                FROM mrp_bom_line_product_attribute_value_rel r
                JOIN product_template_attribute_value ptav ON ptav.product_attribute_value_id = r.product_attribute_value_id
+               JOIN mrp_bom_line bline ON bline.id = r.mrp_bom_line_id
+               JOIN mrp_bom b ON b.id = bline.bom_id
+              WHERE ptav.product_tmpl_id = b.product_tmpl_id
     """
     )
     cr.execute("DROP TABLE mrp_bom_line_product_attribute_value_rel")
