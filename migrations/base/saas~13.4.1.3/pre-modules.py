@@ -52,6 +52,7 @@ def migrate(cr, version):
     )
 
     if util.has_enterprise():
+        util.new_module_dep(cr, "l10n_mx_edi", "product_unspsc")
         util.module_deps_diff(cr, "test_mail_enterprise", plus={"marketing_automation_sms"})
         util.module_deps_diff(
             cr,
