@@ -15,3 +15,11 @@ def migrate(cr, version):
              WHERE p.id = s.pricelist_id
         """
     )
+
+    gone = """
+        access_sale_order_invoicing_payments_readonly
+        access_sale_order_line_invoicing_payments_readonly
+        access_account_journal_sale_manager
+    """
+    for xid in util.splitlines(gone):
+        util.remove_record(cr, f"sale.{xid}")
