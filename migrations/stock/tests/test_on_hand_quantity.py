@@ -28,9 +28,14 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
             """
             % ((
                 """
-                    LEFT JOIN mrp_bom bom ON bom.product_id = pp.id OR bom.product_tmpl_id = pt.id
+                    LEFT JOIN mrp_bom bom
+                           ON
+                            (
+                              bom.product_id = pp.id
+                              OR (bom.product_tmpl_id = pt.id AND bom.product_id is NULL AND bom.type = 'phantom')
+                            )
                     WHERE coalesce(bom.type, '') != 'phantom'
-                """, ", bom.sequence"
+                """, ", bom.product_id, bom.sequence"
             ) if ignore_kits else ("", ""))
         )
         products = self.env["product.product"].browse([row[0] for row in self.env.cr.fetchall()])
