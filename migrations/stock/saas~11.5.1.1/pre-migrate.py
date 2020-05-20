@@ -46,4 +46,8 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("stock.access_{procurement,stock}_rule_stock_manager"))
     util.rename_xmlid(cr, *eb("stock.access_{procurement,stock}_rule_internal"))
 
+    util.rename_xmlid(cr, *eb("stock.view_{procurement,stock}_rule_filter"))
+    util.rename_xmlid(cr, *eb("stock.view_{procurement,stock}_rule_tree"))
+    util.rename_xmlid(cr, *eb("stock.view_{procurement,stock}_rule_form"))
+
     util.remove_field(cr, "stock.change.product.qty", "lot_id")
