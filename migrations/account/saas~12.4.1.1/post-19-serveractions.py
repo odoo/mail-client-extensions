@@ -39,8 +39,8 @@ def migrate(cr, version):
         cr, src_model="account.invoice", dst_model="account.move", fields_mapping=field_name_mapping
     )
 
-    # some old fields from 'account.invoice' have no equivalent in 'account.move'
-    # for them, we remove all the corresponding rows in ir_server_object_lines.
+    # for all fields from 'account.invoice' that have no equivalent in 'account.move'
+    # we remove all the corresponding rows in ir_server_object_lines.
     cr.execute(
         """
         DELETE
@@ -48,6 +48,5 @@ def migrate(cr, version):
          USING ir_model_fields mf
          WHERE mf.id = l.col1
            AND mf.model = 'account.invoice'
-           AND mf.name IN ('move_id', 'number')
         """
     )
