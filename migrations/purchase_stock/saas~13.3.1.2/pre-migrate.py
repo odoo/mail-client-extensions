@@ -3,9 +3,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "purchase_order_line", "product_description_variants", "varchar")
     util.create_column(cr, "purchase_order", "effective_date", "timestamp without time zone")
 
-    cr.execute("""
+    cr.execute(
+        """
         WITH pol AS (
                 SELECT po.id, MIN(date_done) as date_done
                   FROM purchase_order po
@@ -18,4 +20,8 @@ def migrate(cr, version):
           FROM pol
          WHERE po.id = pol.id
            AND pol.date_done IS NOT NULL
-    """)
+    """
+    )
+
+    util.remove_record(cr, "purchase_stock.access_stock_location_purchase_manager")
+    util.remove_record(cr, "purchase_stock.purchase_open_picking")
