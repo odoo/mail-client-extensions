@@ -10,5 +10,3 @@ def migrate(cr, version):
     util.force_noupdate(cr, 'mass_mailing_sms.mailing_contact_view_form', False)
     util.force_noupdate(cr, 'mass_mailing_sms.mailing_contact_view_kanban', False)
     util.force_noupdate(cr, 'mass_mailing_sms.mailing_contact_action_sms', False)
-
-    util.rename_field(cr, "mailing.contact", "phone_blacklisted", "phone_sanitized_blacklisted")
