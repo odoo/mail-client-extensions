@@ -7,6 +7,9 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("account_asset.view_invoice_{asset_category,supplier_form_asset_inherit}"))
     util.remove_view(cr, 'account_asset.view_product_template_form_inherit')
     util.remove_view(cr, 'account_asset.res_config_settings_view_form')
+    util.rename_xmlid(cr, *eb("account_asset.view_account_{asset_asset,asset}_form"))
+    util.rename_xmlid(cr, *eb("account_asset.view_account_{asset_asset,asset}_kanban"))
+    util.rename_xmlid(cr, *eb("account_asset.view_account_{asset_asset,asset}_purchase_tree"))
 
     util.remove_record(cr, 'account_asset.account_asset_cron')
     util.remove_record(cr, 'account_asset.account_asset_cron_ir_actions_server')
