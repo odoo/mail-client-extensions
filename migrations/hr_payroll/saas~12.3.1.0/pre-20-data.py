@@ -26,6 +26,7 @@ def migrate(cr, version):
     """)
 
     # Set struct_id on last level rules
+    util.fixup_m2m(cr, "hr_structure_salary_rule_rel", "hr_salary_rule", "hr_payroll_structure", "rule_id", "struct_id")
     cr.execute("""
         WITH upd AS (
             SELECT struct_id, rule_id
