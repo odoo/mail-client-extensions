@@ -803,7 +803,7 @@ def migrate_voucher_lines(cr):
                 # Store link to newly created account_moves.
                 cr.execute("UPDATE account_voucher SET move_id=%s WHERE id=%s", [created_move.id, record_id])
         except Exception:
-            _logger.exception("Cannot create move")
+            _logger.exception("Cannot create move from draft/cancel voucher")
 
     _logger.info("vouchers: compute voucher line -> move line mapping")
     cr.execute(
@@ -1288,22 +1288,61 @@ def migrate_invoice_lines(cr):
         cr.execute(
             """
             SELECT
+                inv_line.id,
                 inv_line.name,
                 inv_line.display_type,
                 inv_line.sequence,
                 inv_line.invoice_id,
                 inv_line.uom_id                     AS product_uom_id,
                 inv_line.product_id,
-                inv_line.account_id,
+                CASE
+                    WHEN inv_line.account_id IS NULL OR inv.company_id = account.company_id
+                    THEN inv_line.account_id
+                    ELSE (  SELECT COALESCE ((SELECT CASE
+                                                     WHEN inv.type IN ('out_invoice', 'in_refund')
+                                                        THEN j.default_credit_account_id
+                                                        ELSE j.default_debit_account_id
+                                                     END AS id
+                                                FROM account_journal j
+                                               WHERE j.id = inv.journal_id),
+                                             (SELECT CASE
+                                                     WHEN inv.type IN ('out_invoice', 'in_refund')
+                                                        THEN j.default_credit_account_id
+                                                        ELSE j.default_debit_account_id
+                                                     END AS id
+                                                FROM account_journal j
+                                               WHERE j.company_id = inv.company_id
+                                                 AND j.currency_id = inv.currency_id
+                                                 AND j.type = CASE
+                                                              WHEN inv.type IN ('out_invoice', 'out_refund')
+                                                              THEN 'sale'
+                                                              ELSE 'purchase'
+                                                              END
+                                                 AND (
+                                                        inv.type IN ('out_invoice', 'in_refund')
+                                                        AND j.default_credit_account_id IS NOT NULL
+                                                         OR j.default_debit_account_id IS NOT NULL
+                                                     )
+                                               LIMIT 1),
+                                             (SELECT a.id
+                                                FROM account_account a
+                                               WHERE a.company_id = inv.company_id
+                                                 AND a.internal_type = account.internal_type
+                                            ORDER BY (a.internal_group = account.internal_group) desc, id LIMIT 1))
+                    )
+                    END AS account_id,
                 inv_line.price_unit,
                 inv_line.quantity,
                 inv_line.discount,
                 array_remove(ARRAY_AGG(inv_line_tax.tax_id), NULL) AS tax_ids,
                 inv_line.account_analytic_id        AS analytic_account_id,
-                array_remove(ARRAY_AGG(tags.account_analytic_tag_id), NULL) AS analytic_tag_ids
+                array_remove(ARRAY_AGG(tags.account_analytic_tag_id), NULL) AS analytic_tag_ids,
+                inv_line.account_id                 AS original_account_id
             FROM account_invoice_line inv_line
+            JOIN account_invoice inv ON inv.id = inv_line.invoice_id
             LEFT JOIN account_invoice_line_tax inv_line_tax ON inv_line_tax.invoice_line_id = inv_line.id
             LEFT JOIN account_analytic_tag_account_invoice_line_rel tags ON tags.account_invoice_line_id = inv_line.id
+            LEFT JOIN account_account account ON account.id = inv_line.account_id
             WHERE inv_line.invoice_id IN %s
             GROUP BY
                 inv_line.id,
@@ -1317,13 +1356,25 @@ def migrate_invoice_lines(cr):
                 inv_line.price_unit,
                 inv_line.quantity,
                 inv_line.discount,
-                inv_line.account_analytic_id
+                inv_line.account_analytic_id,
+                inv.company_id,
+                inv.type,
+                inv.journal_id,
+                inv.currency_id,
+                account.company_id,
+                account.internal_type,
+                account.internal_group
             ORDER BY inv_line.sequence, inv_line.id
         """,
             [tuple(invoices)],
         )
+
+        updated_invoices = {}
         for line_vals in cr.dictfetchall():
             invoices[line_vals["invoice_id"]].setdefault("invoice_line_ids", []).append(line_vals)
+
+            if line_vals["account_id"] != line_vals["original_account_id"]:
+                updated_invoices.setdefault(line_vals["invoice_id"], []).append(line_vals["name"])
 
     # =======================================================================================
     # Create missing account_moves
@@ -1342,7 +1393,7 @@ def migrate_invoice_lines(cr):
                 # Store link to newly created account_moves.
                 mappings.append((created_move.id, record_id))
         except Exception:
-            _logger.exception("Cannot create move")
+            _logger.exception("Cannot create move from draft/cancel/custom invoice")
     cr.executemany("UPDATE account_invoice SET move_id=%s WHERE id=%s", mappings)
 
     # =======================================================================================
@@ -1350,6 +1401,17 @@ def migrate_invoice_lines(cr):
     # =======================================================================================
 
     _compute_invoice_line_move_line_mapping(cr)
+
+    if invoices and updated_invoices:
+        mapping = {invoice_id: move_id for move_id, invoice_id in mappings}
+        util.add_to_migration_reports(
+            message="The following invoices had lines set with an account belonging to a company different than the "
+            "invoice company. As these are draft or cancelled invoices, these lines have been reset with accounts "
+            "from the right company. "
+            "You should have a look at the lines of these invoices to make sure the accounts are set correctly: "
+            "%s." % ", ".join("%s (%s)" % (mapping[id], ", ".join(lines)) for id, lines in updated_invoices.items()),
+            category="Accounting",
+        )
 
     # Fix lines having display_type != False.
     _logger.info("invoices: fix lines having display_type IS NOT NULL")
