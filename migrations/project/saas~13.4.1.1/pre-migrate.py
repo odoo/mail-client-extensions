@@ -20,3 +20,5 @@ def migrate(cr, version):
     )
 
     util.force_noupdate(cr, "project.rating_project_request_email_template", False)
+
+    util.remove_field(cr, 'project.task', 'date_deadline_formatted')
