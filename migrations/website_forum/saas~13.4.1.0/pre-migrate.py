@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -7,5 +8,18 @@ def migrate(cr, version):
         UPDATE forum_post_reason
            SET reason_type = 'basic'
          WHERE reason_type NOT IN ('basic', 'offensive')
+    """
+    )
+
+    util.create_column(cr, "website", "forums_count", "int4")
+    cr.execute(
+        """
+        UPDATE website w
+           SET forums_count = (
+              SELECT count(*)
+                FROM forum_forum f
+               WHERE f.active
+                 AND (f.website_id is NULL OR f.website_id = w.id)
+            )
     """
     )
