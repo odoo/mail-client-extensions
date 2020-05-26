@@ -23,6 +23,20 @@ def migrate(cr, version):
     #some database does not contain company id value on sale order as not required field
     cr.execute("UPDATE sale_order SET currency_rate = 1 WHERE currency_rate IS NULL")
 
+    # To compute the currency, sale order lines need to have a related company_id, which we will set to
+    # the company_id from the related sale_order, but in case there are sale_order records with no
+    # company_id, we set a default one
+    cr.execute(
+        """
+        UPDATE sale_order s
+           SET company_id=COALESCE(p.company_id, u.company_id)
+          FROM res_users u, res_partner p
+         WHERE COALESCE(s.user_id, s.create_uid)=u.id
+           AND s.partner_id=p.id
+           AND s.company_id IS NULL
+        """
+    )
+
     # for some reason, some related fields from the past might not be set correctly
     # (3 databases so far had the problem), so we make sure the company_id field is
     # correctly set on sale and invoice lines otherwise the currency computation crashes
