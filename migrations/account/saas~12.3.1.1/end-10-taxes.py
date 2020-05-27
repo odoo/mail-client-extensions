@@ -30,6 +30,10 @@ def migrate(cr, version):
     if not util.table_exists(cr, "tax_accounts_v12_bckp"):
         return True
     env = util.env(cr)
+
+    # Manage the fiscal country of each company, setting the appropriate config_parameter if necessary (it will only serve in 13.0)
+    set_fiscal_country(env)
+
     # Abracadabra !
     # We consider the module was only updated. So, now, some tax_line_id are set while there is not tax_repartition_line_id
     # on the move lines. tax_line_id is supposed to be related on tax_repartition_line_id, so we have to fix this
@@ -158,7 +162,7 @@ def migrate(cr, version):
                             [
                                 ("name", "in", [tag_type + name for name in tag_details]),
                                 ("tax_negate", "=", (tag_type == "-")),
-                                ("country_id", "=", tax.company_id.country_id.id),
+                                ("country_id", "=", tax.company_id.get_fiscal_country().id),
                             ]
                         )
 
@@ -497,6 +501,46 @@ def migrate(cr, version):
                         tax_instance.name,
                         inv_type,
                     )
+
+
+def set_fiscal_country(env):
+    """ Some companies may have their offices in country B, while using the chart
+    of accounts and taxes of country A. In this case, company_id.country_id will be B,
+    but country A needs to be used to fetch the tax tags and generate the tax report.
+    For this, we use a config_parameter containing the country code of this "fiscal country"
+    when it is appropriate to have one (whose name contains the id of the company, so
+    it's one per company facing this situation).
+
+    This function creates those config_parameters when necessary. There is (unfortunately)
+    no way of getting an account.chart.template's country directly from it, so we
+    rely on the ir.model.data, and the module it was declared in (l10n_xx, xx being
+    a valid country code). the assumption is it should handle *most* cases properly.
+    """
+    env.cr.execute(
+        """
+           SELECT company.id, coa_country.code
+             FROM res_company company
+             JOIN res_partner company_partner
+               ON company_partner.id = company.partner_id
+        LEFT JOIN ir_model_data coa_data
+               ON coa_data.res_id = company.chart_template_id AND coa_data.model = 'account.chart.template'
+        LEFT JOIN res_country coa_country
+               ON coa_data.module = concat(
+                   'l10n_', CASE
+                    WHEN coa_country.code = 'GB'
+                    THEN 'uk'
+                    ELSE LOWER(coa_country.code)
+                    END
+                  )
+        LEFT JOIN res_country company_country
+               ON company_country.id = company_partner.country_id
+            WHERE (company_country.id IS NULL AND coa_country.id IS NOT NULL)
+               OR (coa_country.code IS NOT NULL AND company_country.code != coa_country.code)
+    """
+    )
+
+    for company_id, coa_country_code in env.cr.fetchall():
+        env["ir.config_parameter"].set_param("account_fiscal_country_%s" % company_id, coa_country_code)
 
 
 def create_invoice(cr, partner, tax, journal, amount=100, type="out_invoice"):
