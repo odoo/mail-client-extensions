@@ -42,17 +42,34 @@ def migrate(cr, version):
         else:
             raise UserError("Tax %s has already some repartition lines. It should not at this point." % tax.id)
 
-    cr.execute(
-        """
+    base_query ="""
         UPDATE account_move_line aml
            SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
+          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move, account_move m, account_journal j
          WHERE %(where_criteria)s
-           AND tax_line_id = tx_rep.invoice_tax_id
+           AND aml.move_id = m.id
+           AND m.journal_id = j.id
            AND tx_rep.repartition_type = 'tax'
-    """
-        % sql_dict
-    )
+    """ % sql_dict
+
+    util.parallel_execute(cr, [
+        base_query + """
+          AND tax_line_id = tx_rep.invoice_tax_id
+          AND NOT (aml.credit > 0.0 AND j.type='purchase')
+          AND NOT (aml.debit > 0.0 AND j.type='sale')
+        """,
+        base_query + """
+        AND aml.credit > 0.0
+        AND j.type='purchase'
+        AND tax_line_id = tx_rep.refund_tax_id
+        """,
+        base_query + """
+        AND aml.debit > 0.0
+        AND j.type='sale'
+        AND tax_line_id = tx_rep.refund_tax_id
+        """
+    ])
+
     cr.execute(
         """
         UPDATE account_move_line aml
