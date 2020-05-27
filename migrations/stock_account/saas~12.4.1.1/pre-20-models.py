@@ -116,7 +116,7 @@ def migrate(cr, version):
                 WHERE
                     name = 'property_stock_valuation_account_id' AND
                     (res_id IS NULL OR res_id = 'product.category,' || pt.categ_id) AND
-                    company_id = aml.company_id) AND
+                    company_id = aml.company_id ORDER by res_id LIMIT 1) AND
             'product.category,' || pc.id IN
                 (SELECT res_id FROM ir_property
                 WHERE
