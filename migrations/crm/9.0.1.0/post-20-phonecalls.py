@@ -4,6 +4,11 @@ import os
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+
+    # There is no longer a form and inbound tree view for phonecall whether or not crm_voip will be installed
+    util.remove_view(cr, 'crm.crm_case_phone_form_view')
+    util.remove_view(cr, 'crm.crm_case_inbound_phone_tree_view')
+
     cr.execute("SELECT value FROM ir_config_parameter WHERE key='migration.crm.want_voip'")
     want = cr.fetchone()
     if want:
@@ -11,7 +16,19 @@ def migrate(cr, version):
         util.force_install_module(cr, 'crm_voip')
         util.remove_record(cr, 'crm.filter_crm_phonecall_sales_team')
         util.remove_record(cr, 'crm.filter_crm_phonecall_phone_call_to_do')
+
+        # The phonecall tree, calendar and filter view are renamed in the crm_voip module
+        util.rename_xmlid(cr, 'crm.crm_case_phone_tree_view', 'crm_voip.crm_phonecall_tree_view')
+        util.rename_xmlid(cr, 'crm.crm_case_phone_calendar_view', 'crm_voip.crm_phonecall_calendar_view')
+        util.rename_xmlid(cr, 'crm.view_crm_case_phonecalls_filter', 'crm_voip.view_crm_case_phonecalls_filter')
+        util.rename_xmlid(cr, 'crm.phonecall_to_phonecall_view', 'crm_voip.phonecall_to_phonecall_view')
         return
+
+    # If crm_voip will not be installed, then we can delete these phonecall views as well.
+    util.remove_view(cr, 'crm.crm_case_phone_tree_view')
+    util.remove_view(cr, 'crm.crm_case_phone_calendar_view')
+    util.remove_view(cr, 'crm.view_crm_case_phonecalls_filter')
+    util.remove_view(cr, 'crm.phonecall_to_phonecall_view')
 
     cr.execute("SELECT count(1) from crm_phonecall")
     if not cr.fetchone()[0]:
