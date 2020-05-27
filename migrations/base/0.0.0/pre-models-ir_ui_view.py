@@ -34,14 +34,6 @@ class IrUiView(models.Model):
 
     if util.version_gte("10.0"):
 
-        def _migrate_get_roots(self):
-            roots = self.env["ir.ui.view"]
-            for view in self:
-                while view.mode == "extension" and view.inherit_id:
-                    view = view.inherit_id
-                roots |= view
-            return roots
-
         def _check_xml(self):
             # Do not validate views during the upgrade. All views will be validated at once after upgrade.
             if not self.env.context.get("_upgrade_validate_views"):
@@ -52,7 +44,11 @@ class IrUiView(models.Model):
                     res = res and super(IrUiView, record)._check_xml()
                 except Exception:
                     if record._migrate_fix_views():
-                        res = res and record._migrate_get_roots()._check_xml()
+                        # The current view might have been disabled, so find the root and validate it.
+                        view = record
+                        while view.mode != "primary":
+                            view = view.inherit_id
+                        res = res and view._check_xml()
                     else:
                         raise
             return res
@@ -80,7 +76,11 @@ class IrUiView(models.Model):
 
             standard_modules = get_modules()
             views_to_check = []
-            views = self._migrate_get_roots()
+            views = self.env["ir.ui.view"]
+            for view in self:
+                while view.inherit_id:
+                    view = view.inherit_id
+                views |= view
             while views:
                 for view in views:
                     if view.active:
