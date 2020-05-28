@@ -50,6 +50,7 @@ def migrate(cr, version):
            AND aml.move_id = m.id
            AND m.journal_id = j.id
            AND tx_rep.repartition_type = 'tax'
+           AND NOT EXISTS (SELECT 1 from caba_aml_invoice_info WHERE aml_id=aml.id)
     """ % sql_dict
 
     util.parallel_execute(cr, [
@@ -74,11 +75,13 @@ def migrate(cr, version):
         """
         UPDATE account_move_line aml
            SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
+          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move,
+               account_move_line aml_join LEFT JOIN caba_aml_invoice_info caba_info ON aml_join.id = caba_info.aml_id
          WHERE aml.%(invoice_id_field)s = move.id
-           AND move.type IN ('in_refund', 'out_refund')
-           AND tax_line_id = tx_rep.refund_tax_id
+           AND COALESCE(caba_info.invoice_type, move.type) IN ('in_refund', 'out_refund')
+           AND aml.tax_line_id = tx_rep.refund_tax_id
            AND tx_rep.repartition_type = 'tax'
+           AND aml_join.id = aml.id
     """
         % sql_dict
     )
@@ -86,11 +89,13 @@ def migrate(cr, version):
         """
         UPDATE account_move_line aml
            SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move
+          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move,
+               account_move_line aml_join LEFT JOIN caba_aml_invoice_info caba_info ON aml_join.id = caba_info.aml_id
          WHERE aml.%(invoice_id_field)s = move.id
-           AND move.type IN ('in_invoice', 'out_invoice')
-           AND tax_line_id = tx_rep.invoice_tax_id
+           AND COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')
+           AND aml.tax_line_id = tx_rep.invoice_tax_id
            AND tx_rep.repartition_type = 'tax'
+           AND aml_join.id = aml.id
     """
         % sql_dict
     )
@@ -377,11 +382,12 @@ def migrate(cr, version):
                     account_move_line_account_tax_rel aml_tx
                JOIN account_move_line aml ON aml.id = aml_tx.account_move_line_id
                JOIN  %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+               LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
               WHERE tx_rep.repartition_type = 'base'
                 AND aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
                 AND rep_tags.account_tax_repartition_line_id  = tx_rep.id
-                AND ((move.type in ('in_refund', 'out_refund') AND tx_rep.refund_tax_id is not null)
-                    OR (tx_rep.invoice_tax_id is not null and move.type IN ('in_invoice', 'out_invoice')))
+                AND ((COALESCE(caba_info.invoice_type, move.type) in ('in_refund', 'out_refund') AND tx_rep.refund_tax_id is not null)
+                    OR (tx_rep.invoice_tax_id is not null and COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')))
         ON conflict do nothing; -- for lines that are the base of multiple taxes sharing some tags
     """
         % sql_dict

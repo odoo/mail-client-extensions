@@ -8,8 +8,8 @@ def migrate(cr, version):
   WITH tags AS (
           SELECT aml.id,
                  TRIM(LEADING FROM to_char((CASE WHEN t.tax_negate THEN -1 ELSE 1 END)
-                                           *(CASE WHEN j.type = 'sale' THEN -1 ELSE 1 END)
-                                           *(CASE WHEN i.type IN ('in_refund', 'out_refund') THEN -1 ELSE 1 END)
+                                           *(CASE WHEN COALESCE(caba_info.journal_type, j.type) = 'sale' THEN -1 ELSE 1 END)
+                                           *(CASE WHEN COALESCE(caba_info.invoice_type, i.type) IN ('in_refund', 'out_refund') THEN -1 ELSE 1 END)
                                            * aml.balance,
                                           '999,999,999,999,999,999,999.99')  -- should be enough, even for IRR
                  ) AS tag_amount,
@@ -20,11 +20,14 @@ def migrate(cr, version):
       INNER JOIN account_account_tag_account_move_line_rel t_rel ON t_rel.account_move_line_id = aml.id
       INNER JOIN account_account_tag t ON t.id = t_rel.account_account_tag_id
       INNER JOIN account_journal j ON j.id = aml.journal_id
-      INNER JOIN account_invoice i ON aml.move_id = i.move_id
+      INNER JOIN account_move move ON move.id = aml.move_id
       INNER JOIN res_company c ON aml.company_id = c.id
       INNER JOIN res_currency cur ON c.currency_id = cur.id
+       LEFT JOIN account_invoice i ON aml.move_id = i.move_id
        LEFT JOIN account_tax_report_line_tags_rel tr ON tr.account_account_tag_id = t.id
        LEFT JOIN account_tax_report_line trl ON tr.account_tax_report_line_id = trl.id
+       LEFT JOIN caba_aml_invoice_info caba_info ON caba_info.aml_id = aml.id
+            WHERE caba_info.aml_id IS NOT NULL OR i.id IS NOT NULL
     ),
     tag_values AS (
         SELECT id,

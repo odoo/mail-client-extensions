@@ -34,3 +34,18 @@ def migrate(cr, version):
             );
         """
         )
+
+    # This table is used for migrating cash basis taxes, since we need to know the
+    # type and journal of each original invoice in order to apply tags to their cash
+    # basis entries properly.
+    cr.execute("""
+        CREATE TABLE caba_aml_invoice_info
+        AS SELECT caba_aml.id AS aml_id, invoice.type AS invoice_type, invoice_journal.type AS journal_type
+        FROM account_move_line caba_aml
+        JOIN res_company company ON company.id = caba_aml.company_id AND company.tax_exigibility
+        JOIN account_move caba_move ON caba_move.id = caba_aml.move_id
+        JOIN account_partial_reconcile caba_partial_rec ON caba_partial_rec.id = caba_move.tax_cash_basis_rec_id
+        JOIN account_move_line invoice_aml ON invoice_aml.id IN (caba_partial_rec.credit_move_id, caba_partial_rec.debit_move_id)
+        JOIN account_journal invoice_journal ON invoice_journal.id = invoice_aml.journal_id AND invoice_journal.type in ('sale', 'purchase')
+        JOIN account_invoice invoice ON invoice.id = invoice_aml.invoice_id
+    """)
