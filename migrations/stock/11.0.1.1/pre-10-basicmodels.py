@@ -54,6 +54,7 @@ def create_idx(cr):
     ]
     for idx_name, table_name, column_name in idx_list:
         util.create_index(cr, idx_name, table_name, column_name)
+    cr.execute("ANALYZE stock_move")
 
 
 def migrate(cr, version):
