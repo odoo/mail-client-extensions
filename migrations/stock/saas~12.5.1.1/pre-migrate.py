@@ -199,3 +199,7 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.quantity.history", "compute_at_date")
 
     util.remove_model(cr, "report.stock.forecast")
+
+    util.convert_field_to_property(
+        cr, "product.template", "responsible_id", type="many2one", target_model="res.users"
+    )
