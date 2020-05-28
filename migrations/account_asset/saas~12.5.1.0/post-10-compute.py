@@ -17,7 +17,6 @@ def migrate(cr, version):
     """)
 
     # Acquisition date should be coming from the related move lines.
-    # TODO(jde): fallback on asset's create_date if there is no move line.
     cr.execute("""
         UPDATE account_asset aa
            SET acquisition_date = aml.acq_date
@@ -29,3 +28,13 @@ def migrate(cr, version):
           ) AS aml
          WHERE aa.id = aml.asset_id AND aa.acquisition_date IS NULL
     """)
+
+    # fallback to prorata, first_depreciation, create date if there is no move line.
+    # https://github.com/odoo/enterprise/blob/ef1286f6f96c998db5697806e691193b5eb1c9cf/account_asset/models/account_asset.py#L118
+    cr.execute(
+      """
+        UPDATE account_asset
+           SET acquisition_date = COALESCE(prorata_date, first_depreciation_date, create_date)
+         WHERE acquisition_date IS NULL
+      """
+    )
