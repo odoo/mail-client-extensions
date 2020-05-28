@@ -11,7 +11,7 @@ def migrate(cr, version):
                                            *(CASE WHEN COALESCE(caba_info.journal_type, j.type) = 'sale' THEN -1 ELSE 1 END)
                                            *(CASE WHEN COALESCE(caba_info.invoice_type, i.type) IN ('in_refund', 'out_refund') THEN -1 ELSE 1 END)
                                            * aml.balance,
-                                          '999,999,999,999,999,999,999.99')  -- should be enough, even for IRR
+                                          '999,999,999,999,999,999,990.99')  -- should be enough, even for IRR
                  ) AS tag_amount,
                  cur.symbol AS currency,
                  cur.position AS cur_pos,
