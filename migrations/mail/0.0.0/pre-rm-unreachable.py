@@ -52,6 +52,11 @@ def migrate(cr, version):
                     for query in util.generate_indirect_reference_cleaning_queries(cr, ir)
                 ],
             )
+        elif ir.table in ["mail_mail_statistics", "mailing_trace"]:
+            # statistics table (renamed in saas~12.5) has a NULLABLE m2o to `mail_mail`.
+            # Removing a `mail_message` will also remove the linked `mail_mail`, forcing NULL on `mail_mail_statistics`
+            # We should then proccess them separately.
+            util.parallel_execute(cr, list(util.generate_indirect_reference_cleaning_queries(cr, ir)))
         elif ir.table.startswith("mail_"):
             mail_queries.extend(util.generate_indirect_reference_cleaning_queries(cr, ir))
 
