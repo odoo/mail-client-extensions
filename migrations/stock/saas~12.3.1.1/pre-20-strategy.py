@@ -23,6 +23,7 @@ def migrate(cr, version):
               FROM stock_fixed_putaway_strat sfps
         INNER JOIN product_putaway p on sfps.putaway_id=p.id
         INNER JOIN stock_location s on p.id=s.putaway_strategy_id
+        WHERE sfps.product_id IS NOT NULL OR sfps.category_id IS NOT NULL
     """)
     util.remove_model(cr, "product.putaway")
     util.remove_model(cr, "stock.fixed.putaway.strat")
