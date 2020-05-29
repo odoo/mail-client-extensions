@@ -1251,7 +1251,39 @@ def migrate_invoice_lines(cr):
     )
     for inv_vals in cr.dictfetchall():
         invoices[inv_vals["id"]] = inv_vals
+
     if invoices:
+
+        # Before creating account moves, be sure that account_receivable_id and account_payable_id
+        # properties of res_partners are valid (i.e with an account_id in the same company than the
+        # property itself). If it's not the case, drop them.
+        cr.execute(
+            """
+               DELETE FROM ir_property p
+                USING account_account a
+                WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
+                  AND p.res_id IS NOT NULL
+                  AND replace(p.res_id, 'res.partner,', '')::integer IN %s
+                  AND p.name IN ('property_account_receivable_id', 'property_account_payable_id')
+                  AND p.company_id != a.company_id
+                  AND p.company_id IS NOT NULL
+            RETURNING replace(p.res_id, 'res.partner,', '')
+            """,
+            [tuple(inv["partner_id"] for inv in invoices.values())],
+        )
+
+        if cr.rowcount:
+            util.add_to_migration_reports(
+                message="The following contacts have a problem with the company of their receivable and/or payable "
+                "account. When accessed with a specific company using the multi-company dropdown menu, in the right of "
+                "the top menu bar, these contacts use accounts belonging to another company then the currently used "
+                "company. These invalid accounts have been unset from these contacts to be able to upgrade the "
+                "accounting. To correct the accounts to use for these contacts, access the contact form and set the "
+                "accounts for each company available in the dropdown multi-company menu. The contact ids are: %s."
+                % ", ".join([str(id) for id, in cr.fetchall()]),
+                category="Partner accounts",
+            )
+
         # Manage account_invoice_line
         cr.execute(
             """
