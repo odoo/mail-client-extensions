@@ -417,11 +417,7 @@ def migrate(cr, version):
         tax_template = env["account.tax.template"].browse(tax_template_data.res_id)
         template_instance_data = env["ir.model.data"].search(
             [
-                (
-                    "name",
-                    "=like",
-                    r"%%\_%(name)s" % {"module": tax_template_data.module, "name": tax_template_data.name},
-                ),
+                ("name", "=like", r"%%\_%(name)s" % {"name": tax_template_data.name},),
                 ("model", "=", "account.tax"),
                 ("module", "=", tax_template_data.module),
             ]
@@ -491,7 +487,7 @@ def migrate(cr, version):
                     )
 
 
-def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
+def create_invoice(cr, partner, tax, journal, amount=100, type="out_invoice"):
     """ Returns an open invoice """
     env = util.env(cr)
     base_domain = [
@@ -501,32 +497,6 @@ def create_invoice(cr, partner, tax, amount=100, type="out_invoice"):
         ("currency_id", "=", False),
         ("currency_id", "=", tax.company_id.currency_id.id),
     ]
-    if util.version_gte("saas~12.4"):
-        journal = (
-            env["account.move"]
-            .with_context(
-                force_company=tax.company_id.id,
-                default_company_id=tax.company_id.id,
-                company_id=tax.company_id.id,
-                default_type=type,
-            )
-            ._get_default_journal()
-        )
-    else:
-        journal = (
-            env["account.invoice"]
-            .with_context(
-                force_company=tax.company_id.id,
-                default_company_id=tax.company_id.id,
-                company_id=tax.company_id.id,
-                type=type,
-            )
-            ._default_journal()
-        )
-
-    if not journal.id:
-        _logger.error("Lack of suitable journal")
-        return False
 
     if journal.type_control_ids or journal.account_control_ids:
         base_domain += [
@@ -1753,9 +1723,16 @@ def get_v13_migration_dicts(cr):
         }
         rslt.append(tax_rslt)
 
-        inv = create_invoice(cr, partner, tax, type=tax.type_tax_use == "sale" and "out_invoice" or "in_invoice")
+        # Create temporary journal which will be used for the creation of the invoices/refunds
+        # If we used the default journal, there could be a conflict with the journal's sequence having a
+        # static prefix/suffix but the current date triggering a sequence counter restart, which would lead to
+        # repeated invoice numbers and a crash in the migration, which is what happens on some databases
+        # without this addition
+        inv_type = "out_invoice" if tax.type_tax_use == "sale" else "in_invoice"
+        ref_type = "out_refund" if tax.type_tax_use == "sale" else "in_refund"
 
-        ref = create_invoice(cr, partner, tax, type=tax.type_tax_use == "sale" and "out_refund" or "in_refund")
+        inv = create_invoice(cr, partner, tax, _get_inv_journal(env, tax), type=inv_type)
+        ref = create_invoice(cr, partner, tax, _get_inv_journal(env, tax), type=ref_type)
 
         if inv and ref:
             for tag_id in tax_tag_ids:
@@ -1860,6 +1837,19 @@ def get_v13_migration_dicts(cr):
     env.clear()  # Reset the cache because of the rollback that just occured
 
     return rslt
+
+
+def _get_inv_journal(env, tax):
+    company_id = tax.company_id.id
+    jrnl_type = "sale" if tax.type_tax_use == "sale" else "purchase"
+    journal = env["account.journal"].search(
+        [("company_id", "=", company_id), ("code", "=", f"_MIG{jrnl_type}_"), ("type", "=", jrnl_type)], limit=1
+    )
+    if not journal:
+        journal = env["account.journal"].create(
+            {"company_id": company_id, "name": "Migration Temp Journal", "code": f"_MIG{jrnl_type}_", "type": jrnl_type}
+        )
+    return journal
 
 
 def _get_financial_tags_conversion_map(cr):
