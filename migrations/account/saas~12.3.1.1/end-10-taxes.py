@@ -1231,8 +1231,18 @@ def _fill_grids_mapping_for_nl(cr, dict_to_fill):
          WHERE xmlid in ('financial_report_line_nl_01_01_01',
                         'financial_report_line_nl_02_01_01',
                         'financial_report_line_nl_02_03_02',
-                        'financial_report_line_nl_02_03_01')
-           AND module = 'l10n_nl_reports';
+                        'financial_report_line_nl_02_03_01',
+                        'financial_report_line_nl_02_04_02b')
+           AND module = 'l10n_nl_reports'
+     """
+     )
+
+    cr.execute(
+        """
+        UPDATE financial_report_lines_v12_bckp
+           SET formulas = 'balance = sum.balance'
+         WHERE xmlid = 'financial_report_line_nl_02_04_02'
+           AND module = 'l10n_nl_reports'
     """
     )
 
@@ -1246,6 +1256,8 @@ def _fill_grids_mapping_for_nl(cr, dict_to_fill):
                         THEN '1a. Leveringen/diensten belast met hoog tarief (omzet)'
                      WHEN xmlid = 'financial_report_line_nl_02_01_01_01'
                         THEN '1a. Leveringen/diensten belast met 21% (BTW)'
+                     WHEN xmlid = 'financial_report_line_nl_02_04_02b'
+                        THEN '5b. Voorbelasting (BTW)'
                 ELSE financial_report_lines_v12_bckp.name
                 END
          WHERE financial_report_lines_v12_bckp.xmlid like 'financial_report_line_nl%'
