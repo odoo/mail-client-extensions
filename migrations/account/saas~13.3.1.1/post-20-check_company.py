@@ -55,4 +55,4 @@ def migrate(cr, version):
 
     for model_name, field_names in fields_to_check.items():
         for field_name in field_names:
-            util.check_company_fields(cr, model_name, field_name)
+            util.check_company_consistency(cr, model_name, field_name)
