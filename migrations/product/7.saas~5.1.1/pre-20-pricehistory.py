@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
+    if util.table_exists(cr, "product_price_history"):
+        # Looks like the module `product_price_history` from OCA is installed
+        util.move_model(cr, "product.price.history", "product_price_history", "product")
+        util.rename_field(cr, "product.price.history", "product_id", "product_template_id")  # FK is correct
+        util.rename_field(cr, "product.price.history", "amount", "cost")
+        util.uninstall_module(cr, "product_price_history")
+        return
 
     # NOTE: the orm will create FK
     cr.execute("""CREATE TABLE product_price_history(
