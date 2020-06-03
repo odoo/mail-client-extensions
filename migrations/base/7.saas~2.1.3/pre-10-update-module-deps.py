@@ -4,6 +4,11 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     # deleted modules
     util.remove_module(cr, 'base_status')
+    cr.execute("""
+        DELETE FROM ir_model_data
+         WHERE module='base_partner_merge'
+           AND name IN ('field_res_partner_id', 'field_res_partner_create_date')
+    """)
     util.remove_module(cr, 'base_partner_merge')    # only for custom/private
 
     util.new_module(cr, "web_kanban_gauge", deps={"web_kanban"})
