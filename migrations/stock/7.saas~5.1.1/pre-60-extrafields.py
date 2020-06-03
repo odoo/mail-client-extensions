@@ -5,12 +5,12 @@ def migrate(cr, version):
     """
     Create fields at forehand
     """
-    
+
     util.create_column(cr, 'product_template', 'track_incoming', 'boolean')
     util.create_column(cr, 'product_template', 'track_outgoing', 'boolean')
     cr.execute("""
         UPDATE product_template SET track_incoming = pp.track_incoming, track_outgoing = pp.track_outgoing
-        FROM product_product pp WHERE product_template.id = pp.product_tmpl_id 
+        FROM product_product pp WHERE product_template.id = pp.product_tmpl_id
     """)
 
     # procurement group will be bootstrapped by sale_stock
@@ -53,8 +53,5 @@ def migrate(cr, version):
     # again, doing an update on a huge table cost a lot. But here, some views
     # depend on this column: we drop them because they can be re-created
     # without expensive cost.
-    cr.execute("""
-        -- this view is re-created by the module mrp later
-        DROP VIEW IF EXISTS report_mrp_inout;
-        ALTER TABLE stock_move ALTER COLUMN state TYPE varchar;
-        """)
+    util.drop_depending_views(cr, "stock_move", "state")
+    cr.execute("ALTER TABLE stock_move ALTER COLUMN state TYPE varchar")
