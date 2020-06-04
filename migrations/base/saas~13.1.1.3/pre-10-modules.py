@@ -86,10 +86,6 @@ def migrate(cr, version):
 
         util.module_deps_diff(cr, "web_mobile", plus={"web_enterprise"}, minus={"base_setup"})
 
-        # if not util.version_gte("saas~13.2"):
-        #     util.remove_module(cr, "l10n_ar_edi")
-        #     util.remove_module(cr, "l10n_lu_reports_electronic")
-
     else:
         util.remove_module(cr, "account_bank_statement_import")
 
