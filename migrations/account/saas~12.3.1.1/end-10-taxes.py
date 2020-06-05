@@ -443,10 +443,9 @@ def migrate(cr, version):
             tax_instance = env["account.tax"].browse(data.res_id)
 
             if tax_template.amount_type != tax_instance.amount_type:
-                _logger.warning(
-                    "Tax template with id %s and instance with id %s don't have the same amount_type.",
-                    tax_template.id,
-                    tax_instance.id,
+                util.add_to_migration_reports(
+                    "Tax template with id %s and instance with id %s don't have the same amount_type." % (tax_template.id, tax_instance.id),
+                    "Tax configuration"
                 )
 
             for inv_type in ("invoice", "refund"):
@@ -494,12 +493,9 @@ def migrate(cr, version):
                     else len(template_rep_lines) != len(tax_rep_lines)
                 )
                 if different_repartition or template_accounts != tax_accounts or template_tags != tax_tags:
-                    _logger.warning(
-                        "Tax %s (id %s)'s %s repartition does not"
-                        " seem to match its related template. Manual verification advised.",
-                        tax_instance.id,
-                        tax_instance.name,
-                        inv_type,
+                    util.add_to_migration_reports(
+                        "Tax %s (id %s)'s %s repartition does not seem to match its related template. Manual verification advised." % (tax_instance.id, tax_instance.name, inv_type),
+                        "Tax configuration"
                     )
 
 
@@ -1806,8 +1802,9 @@ def get_v13_migration_dicts(cr):
                 tag_report_lines_data = cr.fetchall()
 
                 if not tag_report_lines_data:
-                    _logger.warning(
-                        "No financial report line found for tag with id %s. Is it normal?", tag_id,
+                    util.add_to_migration_reports(
+                        "No financial report line found for tag with id %s. Is it normal?" % tag_id,
+                        "Tax configuration"
                     )
 
                 for tax_report_line_id, domain, formulas in tag_report_lines_data:
