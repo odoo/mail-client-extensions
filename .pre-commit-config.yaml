@@ -7,6 +7,12 @@ repos:
         language: script
         pass_filenames: false
         always_run: true
+      - id: saas-dash
+        name: No `saas-*` directories
+        entry: Bad directory name. `saas` versions must have a tilde separator, not a dash.
+        language: fail
+        files: 'migrations/.*/(\d+\.)?saas-.*/.*\.py$'
+
   - repo: https://github.com/psf/black
     rev: 19.10b0
     hooks:
