@@ -1639,6 +1639,14 @@ def erase_edi_data(cr):
                AND res_country.code = 'IT';
         """
         )
+    if util.module_installed(cr, "account_taxcloud"):
+        cr.execute(
+            """
+            UPDATE account_fiscal_position
+               SET is_taxcloud = false
+             WHERE is_taxcloud
+        """
+        )
 
 
 def get_v13_migration_dicts(cr):
