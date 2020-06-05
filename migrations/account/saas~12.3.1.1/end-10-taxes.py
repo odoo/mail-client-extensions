@@ -16,13 +16,15 @@ def migrate(cr, version):
         sql_dict = {
             "invoice_table": "account_move",
             "invoice_id_field": "move_id",
-            "where_criteria": "aml.move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
+            "move_join": "JOIN account_move move ON aml.move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
+            "where_criteria": "",
         }
     else:
         sql_dict = {
             "invoice_table": "account_invoice",
             "invoice_id_field": "invoice_id",
-            "where_criteria": "aml.invoice_id IS NULL",
+            "move_join": "",
+            "where_criteria": "AND aml.invoice_id IS NULL",
         }
 
     if not util.table_exists(cr, "tax_accounts_v12_bckp"):
@@ -43,59 +45,72 @@ def migrate(cr, version):
             raise UserError("Tax %s has already some repartition lines. It should not at this point." % tax.id)
 
     base_query ="""
-        UPDATE account_move_line aml
-           SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move, account_move m, account_journal j
-         WHERE %(where_criteria)s
-           AND aml.move_id = m.id
-           AND m.journal_id = j.id
-           AND tx_rep.repartition_type = 'tax'
-           AND NOT EXISTS (SELECT 1 from caba_aml_invoice_info WHERE aml_id=aml.id)
-    """ % sql_dict
+    WITH new_repartition AS (
+      SELECT aml.id, tx_rep.id as rep_id
+        FROM account_move_line aml
+        JOIN account_tax_repartition_line tx_rep ON %(txrep_join)s AND tx_rep.repartition_type = 'tax'
+        JOIN account_move m ON aml.move_id = m.id
+        JOIN account_journal j ON m.journal_id = j.id
+        %(move_join)s
+       WHERE NOT EXISTS (SELECT 1 from caba_aml_invoice_info WHERE aml_id=aml.id)
+         %(additional_where)s
+         %(where_criteria)s
+    )
+
+     UPDATE account_move_line aml
+        SET tax_repartition_line_id = new_repartition.rep_id
+       FROM new_repartition
+      WHERE new_repartition.id=aml.id
+    """
 
     util.parallel_execute(cr, [
-        base_query + """
-          AND tax_line_id = tx_rep.invoice_tax_id
-          AND NOT (aml.credit > 0.0 AND j.type='purchase')
-          AND NOT (aml.debit > 0.0 AND j.type='sale')
-        """,
-        base_query + """
-        AND aml.credit > 0.0
-        AND j.type='purchase'
-        AND tax_line_id = tx_rep.refund_tax_id
-        """,
-        base_query + """
-        AND aml.debit > 0.0
-        AND j.type='sale'
-        AND tax_line_id = tx_rep.refund_tax_id
-        """
+        base_query % {**sql_dict,
+                      "txrep_join": "aml.tax_line_id = tx_rep.invoice_tax_id",
+                      "additional_where": """AND NOT (aml.credit > 0.0 AND j.type='purchase')
+                                             AND NOT (aml.debit > 0.0 AND j.type='sale')"""
+                     },
+        base_query % {**sql_dict,
+                      "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
+                      "additional_where" : "AND aml.credit > 0.0 AND j.type='purchase'"
+                     },
+        base_query % {**sql_dict,
+                      "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
+                      "additional_where" : "AND aml.debit > 0.0 AND j.type='sale'"
+                     }
     ])
 
     cr.execute(
         """
+        WITH new_repartition AS (
+            SELECT aml.id, tx_rep.id as rep_id
+              FROM account_move_line aml
+              JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.refund_tax_id AND tx_rep.repartition_type = 'tax'
+              JOIN %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+         LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+             WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_refund', 'out_refund')
+        )
         UPDATE account_move_line aml
-           SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move,
-               account_move_line aml_join LEFT JOIN caba_aml_invoice_info caba_info ON aml_join.id = caba_info.aml_id
-         WHERE aml.%(invoice_id_field)s = move.id
-           AND COALESCE(caba_info.invoice_type, move.type) IN ('in_refund', 'out_refund')
-           AND aml.tax_line_id = tx_rep.refund_tax_id
-           AND tx_rep.repartition_type = 'tax'
-           AND aml_join.id = aml.id
+           SET tax_repartition_line_id = new_repartition.rep_id
+          FROM new_repartition
+         WHERE new_repartition.id=aml.id
     """
         % sql_dict
     )
+
     cr.execute(
         """
+        WITH new_repartition AS (
+            SELECT aml.id, tx_rep.id as rep_id
+              FROM account_move_line aml
+              JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.invoice_tax_id AND tx_rep.repartition_type = 'tax'
+              JOIN %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+         LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+             WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')
+        )
         UPDATE account_move_line aml
-           SET tax_repartition_line_id = tx_rep.id
-          FROM account_tax_repartition_line tx_rep, %(invoice_table)s move,
-               account_move_line aml_join LEFT JOIN caba_aml_invoice_info caba_info ON aml_join.id = caba_info.aml_id
-         WHERE aml.%(invoice_id_field)s = move.id
-           AND COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')
-           AND aml.tax_line_id = tx_rep.invoice_tax_id
-           AND tx_rep.repartition_type = 'tax'
-           AND aml_join.id = aml.id
+           SET tax_repartition_line_id = new_repartition.rep_id
+          FROM new_repartition
+         WHERE new_repartition.id=aml.id
     """
         % sql_dict
     )
