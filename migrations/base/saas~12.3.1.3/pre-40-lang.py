@@ -31,3 +31,11 @@ def migrate(cr, version):
     cr.execute("UPDATE res_partner SET lang = 'ar_001' WHERE lang = 'ar_AA' ")
 
     cr.execute("DELETE FROM res_lang WHERE code = 'ar_AA'")
+
+    cr.execute(
+        """
+        UPDATE ir_translation
+           SET state='to_translate'
+         WHERE state NOT IN ('translated', 'to_translate', 'inprogress')
+         """
+    )
