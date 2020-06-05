@@ -62,3 +62,4 @@ def migrate(cr, version):
         )
         util.new_module_dep(cr, "voip", "web_mobile")
         util.new_module(cr, "hr_appraisal_survey", deps={"hr_appraisal", "survey"})
+        util.module_deps_diff(cr, "snailmail_account_followup", plus={"snailmail_account"}, minus={"snailmail"})
