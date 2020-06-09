@@ -1906,7 +1906,7 @@ def _get_inv_journal(env, tax):
         journal = env["account.journal"].create(
             {
                 "company_id": company_id,
-                "name": "Upgrade Temporary Journal ({jrnl_type})",
+                "name": f"Upgrade Temporary Journal ({jrnl_type})",
                 "code": jrnl_code,
                 "type": jrnl_type,
             }
