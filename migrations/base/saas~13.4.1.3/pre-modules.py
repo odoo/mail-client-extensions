@@ -38,5 +38,4 @@ def migrate(cr, version):
                                     "test_mass_mailing",
                                     "test_mail_enterprise",
                                     "test_mail_full"})
-    
-
+        util.new_module(cr, "hr_appraisal_survey", deps={"hr_appraisal", "survey"})
