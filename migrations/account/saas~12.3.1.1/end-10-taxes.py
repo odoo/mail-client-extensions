@@ -44,7 +44,7 @@ def migrate(cr, version):
         else:
             raise UserError("Tax %s has already some repartition lines. It should not at this point." % tax.id)
 
-    base_query ="""
+    base_query = """
     WITH new_repartition AS (
       SELECT aml.id, tx_rep.id as rep_id
         FROM account_move_line aml
@@ -63,21 +63,30 @@ def migrate(cr, version):
       WHERE new_repartition.id=aml.id
     """
 
-    util.parallel_execute(cr, [
-        base_query % {**sql_dict,
-                      "txrep_join": "aml.tax_line_id = tx_rep.invoice_tax_id",
-                      "additional_where": """AND NOT (aml.credit > 0.0 AND j.type='purchase')
-                                             AND NOT (aml.debit > 0.0 AND j.type='sale')"""
-                     },
-        base_query % {**sql_dict,
-                      "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
-                      "additional_where" : "AND aml.credit > 0.0 AND j.type='purchase'"
-                     },
-        base_query % {**sql_dict,
-                      "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
-                      "additional_where" : "AND aml.debit > 0.0 AND j.type='sale'"
-                     }
-    ])
+    util.parallel_execute(
+        cr,
+        [
+            base_query
+            % {
+                **sql_dict,
+                "txrep_join": "aml.tax_line_id = tx_rep.invoice_tax_id",
+                "additional_where": """AND NOT (aml.credit > 0.0 AND j.type='purchase')
+                                       AND NOT (aml.debit > 0.0 AND j.type='sale')""",
+            },
+            base_query
+            % {
+                **sql_dict,
+                "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
+                "additional_where": "AND aml.credit > 0.0 AND j.type='purchase'",
+            },
+            base_query
+            % {
+                **sql_dict,
+                "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
+                "additional_where": "AND aml.debit > 0.0 AND j.type='sale'",
+            },
+        ],
+    )
 
     cr.execute(
         """
@@ -102,7 +111,8 @@ def migrate(cr, version):
         WITH new_repartition AS (
             SELECT aml.id, tx_rep.id as rep_id
               FROM account_move_line aml
-              JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.invoice_tax_id AND tx_rep.repartition_type = 'tax'
+              JOIN account_tax_repartition_line tx_rep
+                   ON aml.tax_line_id = tx_rep.invoice_tax_id AND tx_rep.repartition_type = 'tax'
               JOIN %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
          LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
              WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')
@@ -401,8 +411,10 @@ def migrate(cr, version):
               WHERE tx_rep.repartition_type = 'base'
                 AND aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
                 AND rep_tags.account_tax_repartition_line_id  = tx_rep.id
-                AND ((COALESCE(caba_info.invoice_type, move.type) in ('in_refund', 'out_refund') AND tx_rep.refund_tax_id is not null)
-                    OR (tx_rep.invoice_tax_id is not null and COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')))
+                AND ((COALESCE(caba_info.invoice_type, move.type) in ('in_refund', 'out_refund')
+                      AND tx_rep.refund_tax_id is not null)
+                     OR (tx_rep.invoice_tax_id is not null and COALESCE(caba_info.invoice_type, move.type)
+                         IN ('in_invoice', 'out_invoice')))
         ON conflict do nothing; -- for lines that are the base of multiple taxes sharing some tags
     """
         % sql_dict
@@ -1220,7 +1232,7 @@ def _fill_grids_mapping_for_nl(cr, dict_to_fill):
                         'financial_report_line_nl_02_04_02b')
            AND module = 'l10n_nl_reports'
      """
-     )
+    )
 
     cr.execute(
         """
@@ -1842,12 +1854,18 @@ def get_v13_migration_dicts(cr):
 def _get_inv_journal(env, tax):
     company_id = tax.company_id.id
     jrnl_type = "sale" if tax.type_tax_use == "sale" else "purchase"
+    jrnl_code = f"UPG_{jrnl_type[0]}"
     journal = env["account.journal"].search(
-        [("company_id", "=", company_id), ("code", "=", f"_MIG{jrnl_type}_"), ("type", "=", jrnl_type)], limit=1
+        [("company_id", "=", company_id), ("code", "=", jrnl_code), ("type", "=", jrnl_type)], limit=1
     )
     if not journal:
         journal = env["account.journal"].create(
-            {"company_id": company_id, "name": "Migration Temp Journal", "code": f"_MIG{jrnl_type}_", "type": jrnl_type}
+            {
+                "company_id": company_id,
+                "name": "Upgrade Temporary Journal ({jrnl_type})",
+                "code": jrnl_code,
+                "type": jrnl_type,
+            }
         )
     return journal
 
