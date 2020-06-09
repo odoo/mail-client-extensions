@@ -71,16 +71,24 @@ def migrate(cr, version):
               AND att2.attrelid = cl2.oid
               AND con.contype = 'f'
     """
-
-    for model in ["account.invoice.tax", "account.invoice.line", "account.invoice"]:
-        util.remove_model(cr, model, drop_table=False)
+    model_mapping = [
+        ("account.invoice.tax", None),
+        ("account.invoice.line", "account.move.line"),
+        ("account.invoice", "account.move"),
+    ]
+    if is_account_voucher_installed:
+        model_mapping += [
+            ("account.voucher", "account.move"),
+            ("account.voucher.line", "account.move.line"),
+        ]
+    for model, target_model in model_mapping:
+        if target_model:
+            util.merge_model(cr, model, target_model, drop_table=False)
+        else:
+            util.remove_model(cr, model, drop_table=False)
         for constraint in util.get_fk(cr, util.table_of_model(cr, model)):
             cr.execute("ALTER TABLE %s DROP CONSTRAINT %s" % (constraint[0], constraint[2]))
 
         cr.execute(q, (util.table_of_model(cr, model),))
         for rec in cr.fetchall():
             cr.execute("ALTER TABLE %s DROP CONSTRAINT %s" % (rec[0], rec[1]))
-
-    if is_account_voucher_installed:
-        util.remove_model(cr, "account.voucher", drop_table=False)
-        util.remove_model(cr, "account.voucher.line", drop_table=False)
