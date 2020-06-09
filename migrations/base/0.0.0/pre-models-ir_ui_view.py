@@ -28,6 +28,16 @@ def migrate(cr, version):
     pass
 
 
+def get_standard_modules(self):
+    if not util.ENVIRON.get("standard_modules"):
+        standard_modules = get_modules()
+        modules = self.env["ir.module.module"].search_read(
+            [("name", "in", standard_modules), ("state", "in", ["installed", "to upgrade", "to install"])], ["name"]
+        )
+        util.ENVIRON["standard_modules"] = [module["name"] for module in modules]
+    return util.ENVIRON["standard_modules"]
+
+
 class IrUiView(models.Model):
     _inherit = "ir.ui.view"
     _module = "base"
@@ -74,7 +84,7 @@ class IrUiView(models.Model):
 
                 return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
 
-            standard_modules = get_modules()
+            standard_modules = get_standard_modules(self)
             views_to_check = []
             views = self.env["ir.ui.view"]
             for view in self:
