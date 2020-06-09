@@ -5,6 +5,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_module(cr, "odoo_referral_portal")
+    util.remove_module(cr, "im_support")
 
     util.new_module_dep(cr, "crm_iap_lead", "partner_autocomplete")
     util.new_module_dep(cr, "crm_iap_lead_enrich", "partner_autocomplete")
@@ -12,9 +13,9 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "mass_mailing", plus={"web_tour"})
     util.module_deps_diff(cr, "hr", minus={"mail_bot"})
     util.module_deps_diff(cr, "test_mail", minus={"mail_bot"})
-    util.new_module_dep(cr, 'l10n_in', 'base_vat')
+    util.new_module_dep(cr, "l10n_in", "base_vat")
     util.new_module(cr, "website_project", deps={"website", "project"}, auto_install=True)
-    util.force_migration_of_fresh_module(cr, 'website_project')
+    util.force_migration_of_fresh_module(cr, "website_project")
     # Extracting coupon module from sale_coupon module
     util.new_module(cr, "coupon", deps={"account"})
     util.module_deps_diff(cr, "sale_coupon", plus={"coupon"})
@@ -33,19 +34,28 @@ def migrate(cr, version):
     util.new_module(cr, "event_crm", deps={"event", "crm"}, auto_install=True)
     util.new_module(cr, "event_crm_sale", deps={"event_crm", "event_sale"}, auto_install=True)
     util.new_module(cr, "website_event_crm", deps={"event_crm", "website_event"}, auto_install=True)
-    util.new_module(cr, "website_event_crm_questions",
-                    deps={"website_event_crm", "website_event_questions"},
-                    auto_install=True)
-    util.new_module(cr, "test_event_full",
-                    deps={"event", "event_crm", "event_sale", "website_event_crm_questions",
-                          "website_event_questions", "website_event_sale", "website_event_track"})
+    util.new_module(
+        cr, "website_event_crm_questions", deps={"website_event_crm", "website_event_questions"}, auto_install=True
+    )
+    util.new_module(
+        cr,
+        "test_event_full",
+        deps={
+            "event",
+            "event_crm",
+            "event_sale",
+            "website_event_crm_questions",
+            "website_event_questions",
+            "website_event_sale",
+            "website_event_track",
+        },
+    )
 
     if util.has_enterprise():
-        util.module_deps_diff(cr, "test_mail_enterprise",
-                              plus={"marketing_automation_sms"})
-        util.module_deps_diff(cr, "test_marketing_automation",
-                              plus={"marketing_automation_sms",
-                                    "test_mass_mailing",
-                                    "test_mail_enterprise",
-                                    "test_mail_full"})
+        util.module_deps_diff(cr, "test_mail_enterprise", plus={"marketing_automation_sms"})
+        util.module_deps_diff(
+            cr,
+            "test_marketing_automation",
+            plus={"marketing_automation_sms", "test_mass_mailing", "test_mail_enterprise", "test_mail_full"},
+        )
         util.new_module(cr, "hr_appraisal_survey", deps={"hr_appraisal", "survey"})
