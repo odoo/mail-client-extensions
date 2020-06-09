@@ -24,8 +24,8 @@ def migrate(cr, version):
         util.rename_xmlid(cr, *util.expand_braces('base_automation.' + rename))
 
     # model changes
+    util.rename_field(cr, 'base.action.rule', 'kind', 'trigger')
     util.rename_model(cr, 'base.action.rule', 'base.automation')
-    util.rename_field(cr, 'base.automation', 'kind', 'trigger')
 
     util.create_column(cr, 'base_automation', 'action_server_id', 'int4')
 
