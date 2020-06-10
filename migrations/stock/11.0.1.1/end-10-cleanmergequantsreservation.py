@@ -129,9 +129,6 @@ def migrate(cr, version):
             AND NOT EXISTS (SELECT id FROM stock_move_line WHERE move_id = m.id) 
         RETURNING move_id, picking_id, product_id
     """)
-    res = cr.fetchall()
-    if res:
-        _logger.warning('We added some stock move line for move (move, picking, product): %s', res)
     util.remove_field(cr, 'stock.move', 'restrict_lot_id')
     # compute state on move line if not set already
     cr.execute("""
