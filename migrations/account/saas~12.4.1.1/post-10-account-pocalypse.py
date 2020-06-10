@@ -1223,6 +1223,14 @@ def migrate_invoice_lines(cr):
             )
 
     # Create account_move for draft account_invoice.
+    no_create_state = (
+        "in_payment",
+        "open",
+        "paid",
+    )
+    if os.getenv("MIG_CREATE_MISSING_MOVES"):
+        # if env var is set, allow to create draft dor open and paid invoices
+        no_create_state = ("in_payment",)
     cr.execute(
         """
         SELECT
@@ -1251,9 +1259,10 @@ def migrate_invoice_lines(cr):
             inv.partner_id,
             inv.type
         FROM account_invoice inv
-        WHERE inv.state NOT IN ('open', 'in_payment', 'paid')
+        WHERE inv.state NOT IN %s
           AND inv.move_id IS NULL
-    """
+    """,
+        [no_create_state],
     )
     for inv_vals in cr.dictfetchall():
         invoices[inv_vals["id"]] = inv_vals
@@ -1678,8 +1687,8 @@ def migrate_invoice_lines(cr):
             """
             WITH am_amounts AS ( SELECT am.id,
                                         SUM(aml.credit) as credit
-                                   FROM account_move am  
-                                   JOIN account_move_line aml ON aml.move_id=am.id 
+                                   FROM account_move am
+                                   JOIN account_move_line aml ON aml.move_id=am.id
                                   WHERE am.type='entry'
                                GROUP BY am.id)
             UPDATE account_move am

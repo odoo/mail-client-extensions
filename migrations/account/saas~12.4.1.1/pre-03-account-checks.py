@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
+import os
 
 
 def migrate(cr, version):
@@ -32,11 +33,22 @@ def migrate(cr, version):
 
     if invoices_count:
         ids = " Invoice ids: ({})".format(", ".join([str(r) for r in invoices_ids])) if invoices_count < 1000 else ""
-
-        raise util.MigrationError(
-            "%s invoices are in 'open' or 'paid' state but not linked to an account move in pre-migration database. "
-            "Please investigate and fix it in pre-migration db.%s" % (invoices_count, ids)
-        )
+        if not os.getenv("MIG_CREATE_MISSING_MOVES"):
+            raise util.MigrationError(
+                f"{invoices_count} invoices are in 'open' or 'paid' state"
+                " but not linked to an account move in pre-migration database. "
+                "Please investigate and fix it in pre-migration db. "
+                "The configuration in the original database for the invoices is probably wrong"
+                " and should preferably be corrected by customer."
+                "It is possible to bypass this validation and automatically create draft invoices"
+                " by setting the environment variable MIG_CREATE_MISSING_MOVES."
+                f"Concerned {ids}"
+            )
+        else:
+            # moves to be created in post-10-account-pocalypse.py
+            util.add_to_migration_reports(
+                "Account moves in draft created for some invoices %s", ", ".join([str(i) for i in invoices_ids]),
+            )
 
     cr.execute(
         """
