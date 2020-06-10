@@ -302,3 +302,14 @@ def migrate(cr, version):
 
     # Fix email_template_edi_invoice inside a noupdate block.
     util.force_noupdate(cr, "account.email_template_edi_invoice", noupdate=False)
+
+    # Fix the many2many crosstable account_analytic_tag_account_invoice_line_rel that may contains
+    # removed tag ids.
+    util.fixup_m2m(
+        cr,
+        m2m="account_analytic_tag_account_invoice_line_rel",
+        fk1="account_analytic_tag",
+        fk2="account_invoice_line",
+        col1="account_analytic_tag_id",
+        col2="account_invoice_line_id",
+    )
