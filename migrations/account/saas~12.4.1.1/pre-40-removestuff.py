@@ -32,6 +32,7 @@ def migrate(cr, version):
     util.remove_view(cr, "account.invoice_kanban")
     util.remove_view(cr, "account.invoice_supplier_tree")
     util.remove_view(cr, "account.invoice_supplier_form")
+    util.remove_view(cr, "account.invoice_form")
     util.remove_view(cr, "account.view_account_invoice_filter")
 
     # View (account_move) to be reloaded by the ORM as the whole view changed.
