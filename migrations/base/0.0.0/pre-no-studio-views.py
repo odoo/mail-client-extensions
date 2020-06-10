@@ -13,7 +13,7 @@ def migrate(cr, version):
         """
             UPDATE ir_model_data
                SET noupdate = false
-             WHERE model IN ('ir.ui.view', 'ir.actions.report')
+             WHERE model = 'ir.ui.view'
                AND noupdate = true
                AND studio = true
                AND module != 'studio_customization'
