@@ -539,7 +539,7 @@ def set_fiscal_country(env):
         env["ir.config_parameter"].set_param("account_fiscal_country_%s" % company_id, coa_country_code)
 
 
-def create_invoice(cr, partner, tax, journal, amount=100, type="out_invoice"):
+def create_invoice(cr, partner, tax, journal, account, amount=100, type="out_invoice"):
     """ Returns an open invoice """
     env = util.env(cr)
     base_domain = [
@@ -556,46 +556,41 @@ def create_invoice(cr, partner, tax, journal, amount=100, type="out_invoice"):
             ("user_type_id", "in", journal.type_control_ids.ids),
             ("id", "in", journal.account_control_ids.ids),
         ]
-    invoice_line_account = (
-        env["account.account"]
-        .search(base_domain + [("user_type_id.type", "not in", ("payable", "receivable"))], limit=1)
-        .id
-    )
-    if not invoice_line_account:
-        _logger.error("Lack of suitable account")
-        return False
 
+    vals = {
+        "partner_id": partner.id,
+        "currency_id": tax.company_id.currency_id.id,
+        "type": type,
+        "journal_id": journal.id,
+        "invoice_date" if util.version_gte("saas~12.4") else "date_invoice": datetime.datetime.utcnow().isoformat(),
+        "company_id": tax.company_id.id,
+        "invoice_line_ids": [
+            (
+                0,
+                0,
+                {
+                    "quantity": 1,
+                    "price_unit": amount,
+                    "name": "Papa a vu le fifi de lolo",
+                    "tax_ids" if util.version_gte("saas~12.4") else "invoice_line_tax_ids": [(6, 0, tax.ids)],
+                    "account_id": journal.default_debit_account_id.id,
+                },
+            )
+        ],
+    }
+    if util.version_gte("saas~12.4"):
+        model = "account.move"
+    else:
+        model = "account.invoice"
+        vals["account_id"] = account.id
     invoice = (
-        env["account.move" if util.version_gte("saas~12.4") else "account.invoice"]
+        env[model]
         .with_context(
             force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
         )
-        .create(
-            {
-                "partner_id": partner.id,
-                "currency_id": tax.company_id.currency_id.id,
-                "type": type,
-                "journal_id": journal.id,
-                "invoice_date"
-                if util.version_gte("saas~12.4")
-                else "date_invoice": datetime.datetime.utcnow().isoformat(),
-                "company_id": tax.company_id.id,
-                "invoice_line_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "quantity": 1,
-                            "price_unit": amount,
-                            "name": "Papa a vu le fifi de lolo",
-                            "tax_ids" if util.version_gte("saas~12.4") else "invoice_line_tax_ids": [(6, 0, tax.ids)],
-                            "account_id": invoice_line_account,
-                        },
-                    )
-                ],
-            }
-        )
+        .create(vals)
     )
+
     invoice_ctx = invoice.with_context(
         force_company=tax.company_id.id, default_company_id=tax.company_id.id, company_id=tax.company_id.id
     )
@@ -1783,8 +1778,9 @@ def get_v13_migration_dicts(cr):
         inv_type = "out_invoice" if tax.type_tax_use == "sale" else "in_invoice"
         ref_type = "out_refund" if tax.type_tax_use == "sale" else "in_refund"
 
-        inv = create_invoice(cr, partner, tax, _get_inv_journal(env, tax), type=inv_type)
-        ref = create_invoice(cr, partner, tax, _get_inv_journal(env, tax), type=ref_type)
+        journal, account = _get_inv_journal_and_account(env, tax)
+        inv = create_invoice(cr, partner, tax, journal, account, type=inv_type)
+        ref = create_invoice(cr, partner, tax, journal, account, type=ref_type)
 
         if inv and ref:
             for tag_id in tax_tag_ids:
@@ -1892,7 +1888,12 @@ def get_v13_migration_dicts(cr):
     return rslt
 
 
-def _get_inv_journal(env, tax):
+def _get_inv_journal_and_account(env, tax):
+    # Temporary bypass the constraint checking there isn't two `Current Year Earnings` accounts
+    # This constraint is validated as soon as you add a new account, even if the account you add is not of that type,
+    # and of course in some databases they do have two accounts of that type before upgrade.
+    _check_user_type_id = env.registry["account.account"]._check_user_type_id
+    env.registry["account.account"]._check_user_type_id = lambda self: True
     company_id = tax.company_id.id
     jrnl_type = "sale" if tax.type_tax_use == "sale" else "purchase"
     jrnl_code = f"UPG_{jrnl_type[0]}"
@@ -1900,15 +1901,51 @@ def _get_inv_journal(env, tax):
         [("company_id", "=", company_id), ("code", "=", jrnl_code), ("type", "=", jrnl_type)], limit=1
     )
     if not journal:
+        if jrnl_type == "purchase":
+            line_account = {
+                "name": "Expenses",
+                "code": "_UPG_600000",
+                "user_type_id": env.ref("account.data_account_type_expenses").id,
+                "company_id": company_id,
+            }
+        else:
+            line_account = {
+                "name": "Product Sales",
+                "code": "_UPG_400000",
+                "user_type_id": env.ref("account.data_account_type_revenue").id,
+                "company_id": company_id,
+            }
+        line_account = env["account.account"].create(line_account)
         journal = env["account.journal"].create(
             {
                 "company_id": company_id,
                 "name": f"Upgrade Temporary Journal ({jrnl_type})",
                 "code": jrnl_code,
                 "type": jrnl_type,
+                "default_debit_account_id": line_account.id,
+                "default_credit_account_id": line_account.id,
             }
         )
-    return journal
+
+    invoice_account_code = "_UPG_211000" if jrnl_type == "purchase" else "_UPG_121000"
+    invoice_account = env["account.account"].search(
+        [("code", "=", invoice_account_code), ("company_id", "=", company_id)]
+    )
+    if not invoice_account:
+        invoice_account = {
+            "code": invoice_account_code,
+            "reconcile": True,
+            "company_id": company_id,
+        }
+        if jrnl_type == "purchase":
+            invoice_account.update({"name": "Payable", "user_type_id": env.ref("account.data_account_type_payable").id})
+        else:
+            invoice_account.update(
+                {"name": "Receivable", "user_type_id": env.ref("account.data_account_type_receivable").id}
+            )
+        invoice_account = env["account.account"].create(invoice_account)
+    env.registry["account.account"]._check_user_type_id = _check_user_type_id
+    return journal, invoice_account
 
 
 def _get_financial_tags_conversion_map(cr):
