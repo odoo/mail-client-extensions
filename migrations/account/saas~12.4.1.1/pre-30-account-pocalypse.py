@@ -138,9 +138,17 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move", "tax_type_domain")
     util.remove_field(cr, "account.move", "dummy_account_id")
     # The compute field `currency_id` becomes a regular *required* field
-    # Prevent the ORM to init the defaults when adding the `NOT NULL` as, given the compute, the column is always filled
+    # Prevent the ORM to init the defaults when adding the `NOT NULL`
     # To avoid issues regarding journals not being set for a company and for performances.
-    # In the future, if we have databases having null value for this column, we will then try to set a default in here.
+    cr.execute(
+        """
+            UPDATE account_move move
+               SET currency_id = company.currency_id
+              FROM res_company company
+             WHERE move.company_id = company.id
+               AND move.currency_id IS NULL
+        """
+    )
     cr.execute("ALTER TABLE account_move ALTER COLUMN currency_id SET NOT NULL")
 
     # Some previously migrated databases already had this field with wrong values
