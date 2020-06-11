@@ -5,7 +5,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
 
-    # Moved fields from hr_contract_salary -> l10n_be_hr_contract_salary 
+    # Moved fields from hr_contract_salary -> l10n_be_hr_contract_salary
     moved_fields = {
         "generate.simulation.link": ["customer_relation", "contract_type", "new_car", "vehicle_id"],
         "hr.employee": ["internet_invoice", "sim_card", "mobile_invoice", "driving_license", "id_card"],
@@ -101,7 +101,17 @@ def migrate(cr, version):
         hr_contract_cdi_experienced_developer
         hr_contract_cdi_laurie_poiret
         hr_employee_laurie_poiret
-    """.split()
+    """
     eb = util.expand_braces
-    for data in moved_data:
-        util.rename_xmlid(cr, *eb("{hr_contract_salary,l10n_be_hr_contract_salary}.%s" % data))
+
+    if util.module_installed(cr, "l10n_be_hr_contract_salary"):
+        for data in util.splitlines(moved_data):
+            util.rename_xmlid(cr, *eb(f"{{hr_contract_salary,l10n_be_hr_contract_salary}}.{data}"))
+        # view
+        util.rename_xmlid(cr, *eb("{hr_contract_salary,l10n_be_hr_contract_salary}.hr_employee_view_form"))
+    else:
+        for data in util.splitlines(moved_data):
+            util.remove_record(cr, f"hr_contract_salary.{data}")
+        util.remove_view(cr, "hr_contract_salary.hr_employee_view_form")
+
+    util.remove_view(cr, "hr_contract_salary.assets_tests")
