@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.update_field_references(cr, "assign_date", "date_open", only_models=("crm.lead",))
     util.remove_field(cr, "crm.lead", "assign_date")
     util.remove_field(cr, "crm.team", "ratio")
     util.remove_field(cr, "crm.team", "leads_count")
