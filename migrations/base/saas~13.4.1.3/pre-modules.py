@@ -6,6 +6,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_module(cr, "odoo_referral_portal")
     util.remove_module(cr, "im_support")
+    util.remove_module(cr, "fleet_account")
 
     util.new_module_dep(cr, "crm_iap_lead", "partner_autocomplete")
     util.new_module_dep(cr, "crm_iap_lead_enrich", "partner_autocomplete")
@@ -50,6 +51,9 @@ def migrate(cr, version):
             "website_event_track",
         },
     )
+    util.new_module(cr, 'account_fleet', deps={'fleet', 'account'}, auto_install=True)
+    util.new_module(cr, 'account_disallowed_expenses', deps={'account_reports'})
+    util.new_module(cr, 'account_disallowed_expenses_fleet', deps={'account_disallowed_expenses', 'account_fleet'}, auto_install=True)
     util.module_deps_diff(cr, "mass_mailing", plus={"digest"})
     util.module_deps_diff(cr, "hr_timesheet", minus={"timer"})
 
