@@ -24,19 +24,43 @@ def migrate(cr, version):
         HAVING count(DISTINCT t.company_id)>1
     """
     )
-    template = env['sale.order.template']
-    template_line = env['sale.order.template.line']
-    option_line = env['sale.order.template.option']
+    template = env["sale.order.template"]
+    template_line = env["sale.order.template.line"]
+    option_line = env["sale.order.template.option"]
+    template_companies = {}
     for res in cr.fetchall():
         # Copy order header
         template_id = template.browse(res[0])
-        new_template_id = template_id.copy({'company_id': res[2], 'sale_order_template_option_ids': False, 'sale_order_template_line_ids': False}).id
+        new_template_id = template_id.copy(
+            {"company_id": res[2], "sale_order_template_option_ids": False, "sale_order_template_line_ids": False}
+        ).id
         # Copy lines with company_id Null
         # Affect lines with new company_id
-        cr.execute("UPDATE sale_order_template_line SET sale_order_template_id=%s where sale_order_template_id=%s and company_id=%s", [new_template_id, res[0], res[2]])
-        template_line.search([('sale_order_template_id', '=', res[0])]).copy({'sale_order_template_id': new_template_id, 'company_id': res[2]})
-        cr.execute("UPDATE sale_order_template_option SET sale_order_template_id=%s where sale_order_template_id=%s and company_id=%s", [new_template_id, res[0], res[2]])
-        option_line.search([('sale_order_template_id', '=', res[0])]).copy({'sale_order_template_id': new_template_id, 'company_id': res[2]})
+        cr.execute(
+            "UPDATE sale_order_template_line SET sale_order_template_id=%s where sale_order_template_id=%s and company_id=%s",
+            [new_template_id, res[0], res[2]],
+        )
+        for line in template_line.search(
+            [("sale_order_template_id", "=", res[0]), ("product_id.company_id", "in", [False, res[2]])]
+        ):
+            line.copy({"sale_order_template_id": new_template_id, "company_id": res[2]})
+        cr.execute(
+            "UPDATE sale_order_template_option SET sale_order_template_id=%s where sale_order_template_id=%s and company_id=%s",
+            [new_template_id, res[0], res[2]],
+        )
+        for line in option_line.search(
+            [("sale_order_template_id", "=", res[0]), ("product_id.company_id", "in", [False, res[2]])]
+        ):
+            line.copy({"sale_order_template_id": new_template_id, "company_id": res[2]})
+        template_companies[template_id] = res[1]
+    for template, company_id in template_companies.items():
+        domain = [
+            ("sale_order_template_id", "=", template.id),
+            ("product_id.company_id", "not in", [False, company_id]),
+        ]
+        template_line.search(domain).unlink()
+        option_line.search(domain).unlink()
+        template.write({"company_id": company_id})
 
     cr.execute(
         """
@@ -54,11 +78,14 @@ def migrate(cr, version):
           FROM order_ids o
           WHERE o.sale_order_template_id=t.id
         """
-        )
+    )
     for t in ["sale_order_template_line", "sale_order_template_option"]:
-        cr.execute("""
+        cr.execute(
+            """
             UPDATE %s l
                SET company_id=o.company_id
               FROM sale_order_template o
              WHERE o.id=l.sale_order_template_id
-            """ % t)
+            """
+            % t
+        )
