@@ -504,7 +504,7 @@ def _compute_invoice_line_move_line_mapping(cr):
     cr.execute(
         """
         SELECT l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
-               l.price_unit, l.quantity, l.discount, l.sequence,
+               l.price_unit, l.discount, l.sequence,
                l.account_analytic_id,
                array_remove(array_agg(x.tax_id), NULL) as taxes,
                array_remove(array_agg(g.account_analytic_tag_id), NULL) as tags
@@ -518,7 +518,7 @@ def _compute_invoice_line_move_line_mapping(cr):
            AND m.invl_id IS NULL
            AND l.price_subtotal = 0
       GROUP BY l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
-               l.price_unit, l.quantity, l.discount, l.sequence,
+               l.price_unit, l.discount, l.sequence,
                l.account_analytic_id
     """
     )
@@ -535,7 +535,13 @@ def _compute_invoice_line_move_line_mapping(cr):
                 "product_id": line["product_id"],
                 "account_id": line["account_id"],
                 "price_unit": line["price_unit"],
-                "quantity": line["quantity"],
+                # Force quantity to 0 to force the subtotal to be computed to 0
+                # In some cases, the subtotal on the invoice line is 0, but price unit * quantity * discount is not,
+                # and the override of the move line `create` will recompute the subtotal according to these.
+                # https://github.com/odoo/odoo/blob/c5cd7329529cfa27d1f65217bd54042642711048/addons/account/models/account_move.py#L3307
+                # It doesn't matter setting the quantity to 0 here, because it's reset with the correct quantity at the end of this method
+                # with a raw `UPDATE` sql on `account_move_line`, updating the quantity according to the invoice line.
+                "quantity": 0,
                 "discount": line["discount"],
                 "credit": 0,
                 "debit": 0,
