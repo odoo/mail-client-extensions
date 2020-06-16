@@ -37,66 +37,43 @@ def migrate(cr, version):
         _logger.info('creating temporary table')
         # Store the categorization, all columns are important params that impact the computation except
         # the last one which contains the matching lines as an array
-        cr.execute("""CREATE TABLE mig_temp_post_order_compute (
-             id serial,
-             pricelist_id integer,
-             fiscal_position_id integer,
-             product_id integer,
-             price_unit float8,
-             qty float8,
-             tax_ids integer[],
-             discount float8,
-             line_ids integer[],
-             price_subtotal float8,
-             price_subtotal_incl float8
-            )""")
+        cr.execute("""CREATE TABLE mig_temp_post_order_compute (line_ids integer[])""")
         cr.execute("""
             WITH lines as (
                     SELECT o.pricelist_id,
                             o.fiscal_position_id,
                             l.product_id,
                             l.qty,
-                            array_agg(DISTINCT t.account_tax_id) as tax_ids,
+                            array_agg(DISTINCT t.account_tax_id ORDER BY t.account_tax_id) as tax_ids,
                             l.id,
                             l.discount,
                             l.price_unit
                     FROM pos_order_line l
-                    LEFT JOIN pos_order o ON o.id=l.id
+                    JOIN pos_order o ON o.id=l.order_id
                     LEFT JOIN account_tax_pos_order_line_rel t ON l.id=t.pos_order_line_id
                     GROUP BY 1,2,3,4,6,7,8
                 )
-            INSERT INTO mig_temp_post_order_compute (
-                pricelist_id,
-                fiscal_position_id,
-                product_id,
-                price_unit,
-                qty,
-                tax_ids,
-                discount,
-                line_ids
-            )
-            SELECT pricelist_id,
-                fiscal_position_id,
-                product_id,
-                price_unit,
-                qty,
-                tax_ids,
-                discount,
-                array_agg(id) agg
-            FROM lines
-            group by 1,2,3,4,5,6,7
+       INSERT INTO mig_temp_post_order_compute (line_ids)
+            SELECT array_agg(id) agg
+              FROM lines
+          GROUP BY pricelist_id,
+                   fiscal_position_id,
+                   product_id,
+                   price_unit,
+                   qty,
+                   tax_ids,
+                   discount
         """)
-        def compute_for_group(group):
+        def compute_for_group(ids):
             # process a category of lines: compute amounts based on first line of group, then push the result via postgres
-            group_id = group[0]  # column 1 in SQL is 0 in Python :-)
-            ids = group[7]
             orderlines = env["pos.order.line"].browse([ids[0], ])
             res = orderlines[0]._compute_amount_line_all()
             cr.execute("""
-                UPDATE mig_temp_post_order_compute
-                SET price_subtotal_incl=%s,price_subtotal=%s
-                WHERE id=%s
-            """, [res['price_subtotal_incl'], res['price_subtotal'], group_id])
+                UPDATE pos_order_line
+                   SET price_subtotal_incl=%s,
+                       price_subtotal=%s
+                 WHERE pos_order_line.id IN %s
+            """, [res['price_subtotal_incl'], res['price_subtotal'], ids])
 
         # We need to make sure that the cursor we're about to open has the temp table available to it
         cr.commit()
@@ -109,24 +86,18 @@ def migrate(cr, version):
                 total_groups = cr.fetchone()[0]
                 ROWS_TO_FETCH = 10**5
                 alt_cr.execute("""
-                    SELECT pricelist_id,fiscal_position_id,product_id,price_unit,qty,tax_ids,discount,line_ids
+                    SELECT line_ids
                     FROM mig_temp_post_order_compute
                 """)
                 rows = alt_cr.fetchmany(ROWS_TO_FETCH)
                 while rows:
                     _logger.info('Computing total for order line groups (%s/%s)', done + len(rows), total_groups)
-                    for group in rows:
-                        compute_for_group(group)
+                    for ids, in rows:
+                        compute_for_group(ids)
                     env['pos.order.line'].invalidate_cache()
                     rows = alt_cr.fetchmany(ROWS_TO_FETCH)
                     done += len(rows)
-        cr.execute("""
-            UPDATE pos_order_line
-            SET price_subtotal_incl=tmp.price_subtotal_incl,
-                price_subtotal=tmp.price_subtotal
-            FROM mig_temp_post_order_compute tmp
-            WHERE pos_order_line.id = ANY(tmp.line_ids)
-        """)
+
         cr.execute(""" DROP TABLE mig_temp_post_order_compute """)  # clean up that shit
         # Now let's process the orders
         cr.execute("""
