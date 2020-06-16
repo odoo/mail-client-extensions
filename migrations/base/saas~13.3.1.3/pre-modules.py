@@ -29,6 +29,7 @@ def migrate(cr, version):
             deps={"hr_contract_salary_payroll", "l10n_be_hr_payroll_fleet"},
             auto_install=True,
         )
+        util.force_migration_of_fresh_module(cr, "l10n_be_hr_contract_salary")
         util.module_deps_diff(
             cr,
             "hr_contract_salary",
