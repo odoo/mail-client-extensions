@@ -1,22 +1,374 @@
 # -*- coding: utf-8 -*-
 from odoo.upgrade import util
+import logging
+
+_logger = logging.getLogger("odoo.upgrade.mrp.134" + __name__)
 
 
 def migrate(cr, version):
+    # Migration for PR: odoo/odoo#52949 and odoo/enterprise#11149, task_id: 2241471
+    util.remove_column(cr, "mrp_routing_workcenter", "old_id")
+    # Remove old operation
+    util.parallel_execute(cr, util.explode_query(cr, "DELETE FROM mrp_routing_workcenter WHERE bom_id IS NULL"))
+    cr.execute(
+        """
+        DROP TABLE IF EXISTS mrp_workorder_line CASCADE;
+        DROP TABLE IF EXISTS mrp_routing CASCADE;
+        DROP TABLE IF EXISTS temp_new_mrp_operation CASCADE;
+        """
+    )
 
+    # The first part of the migration script is to fill the new `qty_producing` field.
+    # There are multiple cases to handle:
+    #   1. if the production order is done, use the sum of `qty_done` of the finished move lines
+    #   2. if the production order is not done and doesn't contain any done move, use the sum the
+    #      `qty_done` of the finished move lines and delete them
+    #   3. if the production order contains done move, create "backordered" productions with the
+    #      done move and refer to the previous use case to handle the non-done moves.
+    # NOTE : this part will set `qty_producing` even on production orders having multiple lots or
+    #       serials produced, and these productions will be split into multiple ones in the next
+    #       parts (the new paradigm is one production equals one production order when traceability
+    #       is involved).
+
+    # (1./3.) Set qty_producing for all MO to be equals to the quantity produced (done)
+    _logger.info("Set qty_producing in MO with done move")
+    cr.execute(
+        """
+        WITH mo_qty_producing AS (
+            SELECT mp.id AS mo_id, sum(sml.qty_done / uom_sml.factor * uom_mp.factor) AS qty_producing
+              FROM stock_move_line sml
+                   JOIN stock_move AS sm ON sml.move_id = sm.id
+                   JOIN mrp_production AS mp ON sm.production_id = mp.id
+                   LEFT JOIN uom_uom AS uom_sml ON sml.product_uom_id = uom_sml.id
+                   LEFT JOIN uom_uom AS uom_mp ON mp.product_uom_id = uom_mp.id
+             WHERE sml.product_id = mp.product_id
+                   AND mp.state IN ('progress', 'to_close', 'done')
+                   AND sm.state = 'done'
+          GROUP BY mp.id
+        )
+        UPDATE mrp_production
+           SET qty_producing = mo_qty_producing.qty_producing
+          FROM mo_qty_producing
+         WHERE mrp_production.id = mo_qty_producing.mo_id
+     RETURNING mrp_production.id
+        """
+    )
+    ids_to_backorder = [mo_id for mo_id, in cr.fetchall()]
+    # (3.) For MO in progress with the done move
+    _logger.info("Create backorder for in progress MO")
     env = util.env(cr)
+    for mos in util.iter_browse(env["mrp.production"], ids_to_backorder):
+        mos = mos.filtered(lambda mo: mo.state != "done")
+        mos._generate_backorder_productions(close_mo=True)
+        for mo in mos:
+            mo.product_qty = mo.qty_producing
+
+    # (2.)
+    _logger.info("Remove move line of unfinished MO and set qty_producing on it")
+    cr.execute(
+        """
+        WITH mo_without_finished_move_done AS (
+          SELECT DISTINCT mp.id AS mo_id
+            FROM mrp_production AS mp
+                 JOIN stock_move AS sm ON (sm.production_id = mp.id AND mp.product_id = sm.product_id)
+           WHERE sm.state NOT IN ('done', 'cancel') AND mp.state NOT IN ('done', 'cancel')
+        ),
+        delete_slm AS (
+            DELETE FROM stock_move_line AS sml
+             USING stock_move AS sm
+                   JOIN mo_without_finished_move_done AS mo ON sm.production_id = mo.mo_id
+             WHERE sml.move_id = sm.id
+         RETURNING sml.move_id, sml.qty_done, sml.product_uom_id
+        ),
+        mo_qty_producing AS (
+            SELECT mp.id AS mo_id, sum(sml.qty_done / uom_sml.factor * uom_mp.factor) AS qty_producing
+              FROM delete_slm sml
+                   JOIN stock_move AS sm ON sml.move_id = sm.id
+                   JOIN mrp_production AS mp ON sm.production_id = mp.id
+                   LEFT JOIN uom_uom AS uom_sml ON sml.product_uom_id = uom_sml.id
+                   LEFT JOIN uom_uom AS uom_mp ON mp.product_uom_id = uom_mp.id
+             WHERE mp.state != 'done' AND sm.state NOT IN ('cancel', 'done')
+          GROUP BY mp.id
+        )
+        UPDATE mrp_production
+           SET qty_producing = mo_qty_producing.qty_producing
+          FROM mo_qty_producing
+         WHERE mrp_production.id = mo_qty_producing.mo_id
+        """
+    )
+
+    # The second part of the migration is to split production orders where multiple lots or serials
+    # where produced into different ones for each lot or serial.
+    # 1) Find manufacturing orders which should be split (`temp_mo_backorder_info`)
+    # 2) For each finished lot, we get back their stock move and stock move line consumed (`temp_mrp_consumed_line`)
+    # 3) Create the backordered orders as a copy of the source order
+    #    (expect for backorder_sequence, lot_producing_id, name, product_qty, qty_producing)
+    # 4) With the information found at 2), as previously a single stock move was used to produce
+    #    multiple lot, we need to split them into the new backordered productions. We decrease their
+    #    original quantity and duplicate them across new backorders.
+    # 5) We don't have this issue for the stock move lines, as they were already separated for each
+    #    produced lots, so we just move them into the related new move.
+    # NOTE : For now, we don't split workorder. In the current case, workorders will be only on the first MO (X-001)
+    #        Unfortunately, now the cost analysis and the stock valuation layers are inconsistent with MO
+    #        (and backorder created). If we want to split workorder: the time_ids (mrp.workcenter.productivity) and
+    #        dates fields need to split/relink, recreate m2m, relink stock_move to workorder, etc
+    util.create_column(cr, "mrp_production", "old_id", "int4")
+    util.create_column(cr, "stock_move", "old_id", "int4")
+    (column_production,) = util.get_columns(
+        cr,
+        "mrp_production",
+        ignore=("id", "old_id", "lot_producing_id", "backorder_sequence", "name", "product_qty", "qty_producing"),
+    )
+    column_stock_move, column_stock_move_pre = util.get_columns(
+        cr,
+        "stock_move",
+        ignore=("id", "old_id", "product_uom_qty", "production_id", "raw_material_production_id"),
+        extra_prefixes=["sm"],
+    )
+    if not util.table_exists(cr, "temp_mo_backorder_info"):
+        # (1.) temp_mo_backorder_info : source mo id, finished lot id, qty by backorder, backorder sequence
+        _logger.info("Create backorder info temporary table")
+        cr.execute(
+            """
+            WITH mo_id_lot_id AS (
+                SELECT mp.id AS mo_id,
+                       mp.product_uom_id AS mo_uom_id,
+                       spl.id AS lot_id
+                  FROM mrp_production mp
+                       JOIN product_product AS pp ON mp.product_id = pp.id
+                       JOIN product_template AS pt ON pp.product_tmpl_id = pt.id
+                       JOIN stock_move AS sm ON sm.production_id = mp.id AND sm.product_id = mp.product_id
+                       JOIN stock_move_line AS sml ON sml.move_id = sm.id
+                       JOIN stock_production_lot AS spl ON sml.lot_id = spl.id
+                 WHERE pt.tracking IN ('serial', 'lot')
+                       AND mp.state IN ('progress', 'to_close', 'done')
+                       AND sm.state != 'cancel'
+            ),
+            mo_to_backorder AS (
+                SELECT mo_id
+                  FROM mo_id_lot_id
+              GROUP BY mo_id
+                HAVING COUNT(DISTINCT lot_id) > 1
+            )
+            SELECT mo_id_lot_id.mo_id AS mo_id,
+                   mo_id_lot_id.lot_id AS lot_id,
+                   SUM(sml.qty_done / uom_line.factor * uom_mp.factor) AS product_qty,
+                   ROW_NUMBER() OVER (PARTITION BY mo_id_lot_id.mo_id) AS backorder_sequence
+              INTO TEMPORARY temp_mo_backorder_info
+              FROM mo_id_lot_id
+                   JOIN mo_to_backorder ON mo_to_backorder.mo_id = mo_id_lot_id.mo_id
+                   JOIN stock_move AS sm ON sm.production_id = mo_id_lot_id.mo_id
+                   JOIN stock_move_line AS sml ON sml.move_id = sm.id AND mo_id_lot_id.lot_id = sml.lot_id
+                   LEFT JOIN uom_uom AS uom_line ON sml.product_uom_id = uom_line.id
+                   LEFT JOIN uom_uom AS uom_mp ON mo_id_lot_id.mo_uom_id = uom_mp.id
+             WHERE sm.state != 'cancel'
+          GROUP BY mo_id_lot_id.mo_id, mo_id_lot_id.lot_id
+        """
+        )
+    if not util.table_exists(cr, "temp_mrp_consumed_line"):
+        # (2.) temp_mrp_consumed_line will contains consumed line for each (mo_id, lot_id)
+        _logger.info("Create consumed line temporary table")
+        cr.execute(
+            """
+            SELECT b_info.mo_id AS old_mo_id,
+                   b_info.lot_id AS lot_id,
+                   sm.id AS move_id,
+                   sml.id AS consumed_line_id,
+                   sml.qty_done AS qty_done
+              INTO TEMPORARY temp_mrp_consumed_line
+              FROM temp_mo_backorder_info AS b_info
+                   JOIN stock_move AS sm ON sm.raw_material_production_id = b_info.mo_id
+                   JOIN stock_move_line AS sml ON sml.move_id = sm.id
+                   JOIN stock_move_line_stock_production_lot_rel AS rel
+                        ON (rel.stock_production_lot_id = b_info.lot_id AND sml.id = rel.stock_move_line_id)
+             WHERE sm.state != 'cancel'
+            """
+        )
+
+    # (3.) Update the MO source and create backorder related too
+    _logger.info("Create the backorder MO + update source MO")
+    cr.execute(
+        """
+        WITH insert_backorder_production AS (
+            INSERT INTO mrp_production
+                        ({column_production}, old_id, backorder_sequence,
+                        lot_producing_id, name, product_qty, qty_producing)
+            SELECT {column_production}, b_info.mo_id,
+                   b_info.backorder_sequence, b_info.lot_id,
+                   mp.name ||
+                           ('-' || REPEAT('0', 2 - TRUNC(LOG(b_info.backorder_sequence))::INT)
+                           || b_info.backorder_sequence) AS name,
+                   b_info.product_qty, b_info.product_qty
+              FROM temp_mo_backorder_info AS b_info
+                   JOIN mrp_production AS mp ON mp.id = b_info.mo_id
+             WHERE b_info.backorder_sequence != 1
+         RETURNING id, old_id, lot_producing_id, product_id, product_qty
+        ),
+        qty_backorder AS (
+            SELECT old_id AS mo_id, SUM(product_qty) as qty
+              FROM insert_backorder_production
+          GROUP BY old_id
+        ),
+        update_source_mo AS (
+            UPDATE mrp_production AS mp
+               SET lot_producing_id = b_info.lot_id,
+                   name = name ||
+                               ('-' || REPEAT('0', 2 - TRUNC(LOG(b_info.backorder_sequence))::INT)
+                               || b_info.backorder_sequence),
+                   backorder_sequence = b_info.backorder_sequence,
+                   product_qty = mp.product_qty - qb.qty,
+                   qty_producing = mp.product_qty - qb.qty
+              FROM temp_mo_backorder_info AS b_info
+                   JOIN qty_backorder AS qb ON qb.mo_id = b_info.mo_id
+             WHERE mp.id = b_info.mo_id AND b_info.backorder_sequence = 1
+         RETURNING id
+        )
+        SELECT id FROM insert_backorder_production
+         UNION
+        SELECT id FROM update_source_mo
+    """.format(
+            column_production=", ".join(column_production)
+        )
+    )
+    ids_mo = [mo_id for mo_id, in cr.fetchall()]
+
+    # (4.) Create stock move for the backorder mo and update these on MO source
+    _logger.info("Create stock move for the backorder MO + update stock move of the MO source")
+    cr.execute(
+        """
+        WITH group_consumed_lines AS (
+            SELECT old_mo_id, lot_id, move_id, SUM(qty_done) AS qty_done
+              FROM temp_mrp_consumed_line
+          GROUP BY old_mo_id, lot_id, move_id
+        ),
+        create_finished_move_for_backorder_production AS (
+            INSERT INTO stock_move ({column_stock_move}, production_id, product_uom_qty, old_id)
+            SELECT {column_stock_move_pre}, mp.id, b_info.product_qty, sm.id
+              FROM temp_mo_backorder_info AS b_info
+                   JOIN mrp_production AS mp ON mp.old_id = b_info.mo_id AND mp.lot_producing_id = b_info.lot_id
+                   JOIN stock_move AS sm ON sm.production_id = b_info.mo_id AND sm.product_id = mp.product_id
+         RETURNING id, old_id, production_id, product_uom_qty
+        ),
+        create_raw_move_for_backorder_production AS (
+            INSERT INTO stock_move ({column_stock_move}, raw_material_production_id, product_uom_qty, old_id)
+            SELECT {column_stock_move_pre}, mp.id, gcl.qty_done, sm.id
+              FROM temp_mo_backorder_info AS b_info
+                   JOIN mrp_production AS mp ON mp.old_id = b_info.mo_id AND mp.lot_producing_id = b_info.lot_id
+                   JOIN stock_move AS sm ON sm.raw_material_production_id = b_info.mo_id
+                   JOIN group_consumed_lines AS gcl
+                        ON sm.id = gcl.move_id AND gcl.old_mo_id = mp.old_id AND mp.lot_producing_id = gcl.lot_id
+         RETURNING id, old_id, raw_material_production_id AS production_id, product_uom_qty
+        ),
+        new_move AS (
+            SELECT * FROM create_raw_move_for_backorder_production
+             UNION
+            SELECT * FROM create_finished_move_for_backorder_production
+        ),
+        create_stock_move_m2m AS (
+            INSERT INTO stock_move_move_rel (move_orig_id, move_dest_id)
+            SELECT new_move.id AS move_orig_id, rel.move_dest_id AS move_dest_id
+              FROM stock_move_move_rel AS rel
+                   JOIN new_move ON (rel.move_orig_id = new_move.old_id)
+             UNION
+            SELECT rel.move_orig_id AS move_orig_id, new_move.id AS move_dest_id
+              FROM stock_move_move_rel AS rel
+                   JOIN new_move ON (rel.move_dest_id = new_move.old_id)
+        ),
+        qty_remove_by_move AS (
+            SELECT old_id AS move_id, SUM(product_uom_qty) AS qty
+              FROM new_move
+          GROUP BY old_id
+        )
+        UPDATE stock_move
+           SET product_uom_qty = product_uom_qty - qty_remove_by_move.qty
+          FROM qty_remove_by_move
+         WHERE qty_remove_by_move.move_id = stock_move.id
+        """.format(
+            column_stock_move=", ".join(column_stock_move), column_stock_move_pre=", ".join(column_stock_move_pre)
+        )
+    )
+    # (5.) Relink stock move line to the new move
+    _logger.info("Relink stock move line to the new moves")
+    cr.execute(
+        """
+        UPDATE stock_move_line AS sml
+           SET move_id = new_move.id
+          FROM stock_move AS new_move
+               JOIN temp_mrp_consumed_line ON temp_mrp_consumed_line.move_id = new_move.old_id
+               JOIN mrp_production AS new_mo
+                    ON new_mo.id = new_move.raw_material_production_id
+                       AND new_mo.lot_producing_id = temp_mrp_consumed_line.lot_id
+         WHERE new_move.old_id IS NOT NULL
+               AND new_mo.old_id IS NOT NULL
+               AND sml.id = temp_mrp_consumed_line.consumed_line_id;
+
+        UPDATE stock_move_line AS sml
+           SET move_id = new_move.id
+          FROM stock_move AS new_move
+               JOIN mrp_production AS new_mo ON new_mo.id = new_move.production_id
+         WHERE new_move.old_id IS NOT NULL
+               AND new_mo.old_id IS NOT NULL
+               AND sml.lot_id = new_mo.lot_producing_id;
+        """
+    )
+
+    _logger.info("Clean and recompute some fields")
+    # Delete empty move coming from split in (4.)
+    cr.execute(
+        """
+        DELETE FROM stock_move
+         WHERE (stock_move.raw_material_production_id IN {ids_mo} OR stock_move.production_id IN {ids_mo})
+           AND stock_move.product_uom_qty = 0.0
+        """.format(
+            ids_mo=tuple(ids_mo)
+        )
+    )
+    # Clean working column, temporary table and invalidate cache for model used
+    util.remove_column(cr, "mrp_production", "old_id")
+    util.remove_column(cr, "stock_move", "old_id")
+    cr.execute(
+        """
+        DROP TABLE IF EXISTS temp_mo_backorder_info CASCADE;
+        DROP TABLE IF EXISTS temp_mrp_consumed_line CASCADE;
+        """
+    )
+
+    env["mrp.production"].invalidate_cache()
+    env["stock.move"].invalidate_cache()
+    env["stock.move.line"].invalidate_cache()
+
+    cr.execute(
+        """
+           SELECT id
+             FROM stock_move
+            WHERE stock_move.raw_material_production_id IN {ids_mo} OR stock_move.production_id IN {ids_mo}
+        """.format(
+            ids_mo=tuple(ids_mo)
+        )
+    )
+    ids_move = [move_id for move_id, in cr.fetchall()]
+    util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids_mo)
+    util.recompute_fields(cr, "stock.move", ["product_qty"], ids=ids_move)
+
+    # Before workorders were created with plan button, now it is done with the bom onchange, then simulate it when needed.
     env["mrp.production"].search(
         [("state", "in", ("draft", "confirmed")), ("bom_id", "!=", False), ("workorder_ids", "=", False)]
     )._create_workorder()
 
-    # For MO in progress (where qty_produced is > 0), because move_finished is already created (old version),
-    # It will be problematic in the new mrp version.
-    # => Automatically create the backorder of the MO if qty_produced > 0 and state = progress
-    # OR
-    # => Remove finished stock move line (mo.product_id = move_line.product_id) and they will be recreate when the MO will be closed
-    # TODO
+    # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
     cr.execute("SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL")
     ids_recompute_stock_move = [id for id, in cr.fetchall()]
     util.recompute_fields(cr, "stock.move", ["unit_factor", "reference"], ids=ids_recompute_stock_move)
 
+    # Recompute store fields of mrp.production where the compute method changed
     util.recompute_fields(cr, "mrp.production", ["state", "production_location_id"])
+
+    # New field consumption of workorder is the same than his MO
+    cr.execute(
+        """
+        UPDATE mrp_workorder AS mw
+           SET consumption = mp.consumption, product_id = mp.product_id
+          FROM mrp_production AS mp
+         WHERE mw.production_id = mp.id
+        """
+    )

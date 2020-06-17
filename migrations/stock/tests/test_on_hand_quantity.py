@@ -14,10 +14,12 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
     def check(self, value):
         before_version, before_results = value
         ignore_kits = "mrp.bom" in self.env.registry and parse_version(before_version) < parse_version("13.0")
-        after_version, after_results = self.invariant(ignore_kits=ignore_kits)
+        after_version, after_results = self.invariant(
+            ignore_kits=ignore_kits, only_product_ids=[i for i, _ in before_results]
+        )
         self.assertEqual(before_results, self.convert_check(after_results), self.message)
 
-    def invariant(self, ignore_kits=False):
+    def invariant(self, ignore_kits=False, only_product_ids=None):
         ignore_kits = ignore_kits or (
             "mrp.bom" in self.env.registry and parse_version(release.series) < parse_version("13.0")
         )
@@ -27,6 +29,7 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
                 FROM product_product pp
                 JOIN product_template pt ON pp.product_tmpl_id = pt.id
                 AND pp.active = TRUE AND pt.TYPE = 'product'
+                %s
                 %s
                 GROUP BY pp.id
                 ORDER BY pp.id
@@ -43,7 +46,18 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
                 WHERE coalesce(bom.type, '') != 'phantom'
                 """
                 if ignore_kits
-                else ""
+                else "",
+                (
+                    only_product_ids
+                    and (
+                        """
+                %s pp.id IN %s
+                    """
+                        % ("AND" if ignore_kits else "WHERE", str(tuple(only_product_ids)))
+                    )
+                )
+                or (only_product_ids is not None and "%s FALSE" % ("AND" if ignore_kits else "WHERE"))
+                or "",
             )
         )
         results = []
