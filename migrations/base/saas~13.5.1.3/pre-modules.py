@@ -83,3 +83,12 @@ def migrate(cr, version):
         util.new_module(cr, 'l10n_mx_edi_extended', deps={'l10n_mx_edi'})
         if util.module_installed(cr, 'l10n_mx_edi'):
             util.force_install_module(cr, 'l10n_mx_edi_extended')
+
+    # ===========================================================
+    # Add account_disallowed_expenses (PR: 49675 & 8480)
+    # ===========================================================
+    util.rename_module(cr, 'fleet_account', 'account_fleet')
+    if util.has_enterprise():
+        util.new_module(cr, 'account_disallowed_expenses', deps={'account_reports'})
+        util.new_module(cr, 'account_disallowed_expenses_fleet', deps={'account_disallowed_expenses', 'account_fleet'}, auto_install=True)
+        util.new_module(cr, 'l10n_be_disallowed_expenses', deps={'account_disallowed_expenses', 'l10n_be'}, auto_install=True)
