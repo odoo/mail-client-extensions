@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 import datetime
 
 from odoo.addons.base.maintenance.migrations import util
@@ -158,13 +159,32 @@ def migrate(cr, version):
                     if tag_type == "financial":
                         tags += list(tag_details)
                     else:
-                        to_add = env["account.account.tag"].search(
-                            [
-                                ("name", "in", [tag_type + name for name in tag_details]),
-                                ("tax_negate", "=", (tag_type == "-")),
-                                ("country_id", "=", tax.company_id.get_fiscal_country().id),
+                        base_domain = [
+                            ("name", "in", [tag_type + name for name, module in tag_details]),
+                            ("tax_negate", "=", (tag_type == "-")),
+                        ]
+                        domain = base_domain + [("country_id", "=", tax.company_id.get_fiscal_country().id)]
+                        to_add = env["account.account.tag"].search(domain)
+
+                        if len(to_add) != len(tag_details) and os.environ.get(
+                            "ODOO_MIG_S12_3_TAX_TAGS_MATCH_MODULE_COUNTRY"
+                        ):
+                            # Case where taxes from multiple charts of accounts are used by a single company
+                            # e.g. a Belgian company using taxes from NL, UK, DE, ES, ...
+                            # This is normally not supported by Odoo
+                            # In such a case, to find the tags related to the tax,
+                            # search using the country of the financial report line
+                            # rather than the fiscal country of the company
+                            # There is no country field on financial reports or their lines,
+                            # and we therefore guess the country from the module it comes from (e.g. l10n_nl).
+                            chart_mapping = {"UK": "GB"}
+                            tax_countries = [
+                                module.split("_")[1].upper() for _, module in tag_details if module.startswith("l10n_")
                             ]
-                        )
+                            tax_countries = [chart_mapping.get(code, code) for code in tax_countries if len(code) == 2]
+                            if tax_countries:
+                                domain = base_domain + [("country_id.code", "in", tax_countries)]
+                                to_add = env["account.account.tag"].search(domain)
 
                         if len(to_add) != len(tag_details):
                             raise UserError(
@@ -1789,7 +1809,7 @@ def get_v13_migration_dicts(cr):
                 # We want to see where v12 tags go, in order to prepare v13 tags assignation
                 cr.execute(
                     r"""
-                    SELECT id, domain, formulas
+                    SELECT id, domain, formulas, module
                       FROM financial_report_lines_v12_bckp
                      WHERE domain like '%%tax%%.tag\_ids%%%(tag_id)s%%'
                     """,
@@ -1803,7 +1823,7 @@ def get_v13_migration_dicts(cr):
                         "Tax configuration"
                     )
 
-                for tax_report_line_id, domain, formulas in tag_report_lines_data:
+                for tax_report_line_id, domain, formulas, module in tag_report_lines_data:
 
                     # aml considered by this report line for both invoice and refund
                     inv_aml = env["account.move.line"].search(get_aml_domain(cr, inv, domain))
@@ -1822,8 +1842,12 @@ def get_v13_migration_dicts(cr):
                         and tax_report_line_id in financial_reports_grids_mapping
                         and (inv_tax_line or ref_tax_line)
                     ):  # We treat tax adjustment in a dedicated way, as they are not supposed to be used on invoices
-                        tax_rslt["invoice"]["tax"]["+"].add(financial_reports_grids_mapping[tax_report_line_id])
-                        tax_rslt["refund"]["tax"]["-"].add(financial_reports_grids_mapping[tax_report_line_id])
+                        tax_rslt["invoice"]["tax"]["+"].add(
+                            (financial_reports_grids_mapping[tax_report_line_id], module)
+                        )
+                        tax_rslt["refund"]["tax"]["-"].add(
+                            (financial_reports_grids_mapping[tax_report_line_id], module)
+                        )
                         continue
 
                     candidate_to_add = (
@@ -1836,6 +1860,7 @@ def get_v13_migration_dicts(cr):
                         # risk to remove lines using financial tags
                         continue
 
+                    candidate_to_add = (candidate_to_add, module)
                     if (
                         tax.amount != 0 or tax.amount_type == "code"
                     ):  # We don't want tags on taxes whose tax amount is 0
