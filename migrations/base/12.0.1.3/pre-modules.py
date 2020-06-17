@@ -19,3 +19,5 @@ def migrate(cr, version):
             "l10n_co_edi_ubl_2_1",
             deps={"l10n_co_edi", "base_address_city", "product_unspsc"},
         )
+
+        util.new_module(cr, "iot_pairing", deps={"iot"}, auto_install=True)
