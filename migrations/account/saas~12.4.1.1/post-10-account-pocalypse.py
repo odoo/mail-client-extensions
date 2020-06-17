@@ -1313,40 +1313,9 @@ def migrate_invoice_lines(cr):
                 inv_line.uom_id                     AS product_uom_id,
                 inv_line.product_id,
                 CASE
-                    WHEN inv_line.account_id IS NULL OR inv.company_id = account.company_id
-                    THEN inv_line.account_id
-                    ELSE (  SELECT COALESCE ((SELECT CASE
-                                                     WHEN inv.type IN ('out_invoice', 'in_refund')
-                                                        THEN j.default_credit_account_id
-                                                        ELSE j.default_debit_account_id
-                                                     END AS id
-                                                FROM account_journal j
-                                               WHERE j.id = inv.journal_id),
-                                             (SELECT CASE
-                                                     WHEN inv.type IN ('out_invoice', 'in_refund')
-                                                        THEN j.default_credit_account_id
-                                                        ELSE j.default_debit_account_id
-                                                     END AS id
-                                                FROM account_journal j
-                                               WHERE j.company_id = inv.company_id
-                                                 AND j.currency_id = inv.currency_id
-                                                 AND j.type = CASE
-                                                              WHEN inv.type IN ('out_invoice', 'out_refund')
-                                                              THEN 'sale'
-                                                              ELSE 'purchase'
-                                                              END
-                                                 AND (
-                                                        inv.type IN ('out_invoice', 'in_refund')
-                                                        AND j.default_credit_account_id IS NOT NULL
-                                                         OR j.default_debit_account_id IS NOT NULL
-                                                     )
-                                               LIMIT 1),
-                                             (SELECT a.id
-                                                FROM account_account a
-                                               WHERE a.company_id = inv.company_id
-                                                 AND a.internal_type = account.internal_type
-                                            ORDER BY (a.internal_group = account.internal_group) desc, id LIMIT 1))
-                    )
+                    WHEN inv.company_id = account.company_id
+                        THEN inv_line.account_id
+                        ELSE NULL  -- let the ORM compute the account to use.
                     END AS account_id,
                 inv_line.price_unit,
                 inv_line.quantity,
@@ -1375,12 +1344,7 @@ def migrate_invoice_lines(cr):
                 inv_line.discount,
                 inv_line.account_analytic_id,
                 inv.company_id,
-                inv.type,
-                inv.journal_id,
-                inv.currency_id,
-                account.company_id,
-                account.internal_type,
-                account.internal_group
+                account.company_id
             ORDER BY inv_line.sequence, inv_line.id
         """,
             [tuple(invoices)],
@@ -1424,9 +1388,8 @@ def migrate_invoice_lines(cr):
         mapping = {invoice_id: move_id for move_id, invoice_id in mappings}
         util.add_to_migration_reports(
             message="The following invoices had lines set with an account belonging to a company different than the "
-            "invoice company. As these are draft or cancelled invoices, these lines have been reset with accounts "
-            "from the right company. "
-            "You should have a look at the lines of these invoices to make sure the accounts are set correctly: "
+            "invoice company. As these are draft or cancelled invoices, these lines have been reset with the default account. "
+            "You should have a look at the lines of these invoices to choose the right account: "
             "%s." % ", ".join("%s (%s)" % (mapping[id], ", ".join(lines)) for id, lines in updated_invoices.items()),
             category="Accounting",
         )
