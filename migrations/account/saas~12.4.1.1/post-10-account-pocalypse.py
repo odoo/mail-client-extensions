@@ -811,6 +811,7 @@ def migrate_voucher_lines(cr):
                 cr.execute("UPDATE account_voucher SET move_id=%s WHERE id=%s", [created_move.id, record_id])
         except Exception:
             _logger.exception("Cannot create move from draft/cancel voucher")
+        cr.commit()
 
     _logger.info("vouchers: compute voucher line -> move line mapping")
     cr.execute(
@@ -1410,6 +1411,7 @@ def migrate_invoice_lines(cr):
                 mappings.append((created_move.id, record_id))
         except Exception:
             _logger.exception("Cannot create move from draft/cancel/custom invoice")
+        cr.commit()
     cr.executemany("UPDATE account_invoice SET move_id=%s WHERE id=%s", mappings)
 
     # =======================================================================================
