@@ -1515,7 +1515,6 @@ def migrate_invoice_lines(cr):
             UPDATE account_move_line
                SET exclude_from_invoice_tab = FALSE
              WHERE account_id is null
-               AND exclude_from_invoice_tab IS NULL
             """
         )
 
@@ -1794,7 +1793,6 @@ def migrate_invoice_lines(cr):
             UPDATE account_move_line
                SET exclude_from_invoice_tab = FALSE
              WHERE account_id is null
-               AND exclude_from_invoice_tab IS NULL
             """
         )
 
