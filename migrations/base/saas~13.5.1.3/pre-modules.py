@@ -26,8 +26,34 @@ def migrate(cr, version):
 
     util.create_column(cr, 'res_country', 'zip_required', 'boolean', default=True)
     util.create_column(cr, 'res_country', 'state_required', 'boolean', default=False)
+
+    util.new_module(cr, "iap_mail", deps={"iap", "mail"}, auto_install=True)
+    util.new_module(cr, "iap_crm", deps={"crm", "iap_mail"}, auto_install=True)
     util.new_module(cr, "microsoft_account", deps={"base_setup"})
     util.new_module(cr, "microsoft_calendar", deps={"microsoft_account", "calendar"})
+
+    util.module_deps_diff(cr, "crm_iap_lead",
+                          plus={"iap_crm", "iap_mail"},
+                          minus={"iap", "crm", "partner_autocomplete"})
+    util.module_deps_diff(cr, "crm_iap_lead_enrich",
+                          plus={"iap_crm", "iap_mail"},
+                          minus={"iap", "crm", "partner_autocomplete"})
+    util.module_deps_diff(cr, "crm_iap_lead_website",
+                          plus={"iap_crm", "iap_mail"},
+                          minus={"iap", "crm"})
+    util.module_deps_diff(cr, "l10n_ec",
+                          plus={"l10n_latam_invoice_document", "l10n_latam_base"})
+    util.module_deps_diff(cr, 'l10n_latam_invoice_document',
+                          plus={'account_debit_note'})
+    util.module_deps_diff(cr, "partner_autocomplete",
+                          plus={"iap_mail"},
+                          minus={"iap", "mail", "web"})
+    util.module_deps_diff(cr, "sms",
+                          plus={"iap_mail"},
+                          minus={"iap"})
+    util.module_deps_diff(cr, "snailmail",
+                          plus={"iap_mail"},
+                          minus={"iap"})
 
     util.rename_xmlid(cr, *eb('base.module_category_{localization,accounting_localizations}_account_charts'))
     util.remove_record(cr, 'base.module_category_localization')
@@ -36,12 +62,15 @@ def migrate(cr, version):
     util.remove_module(cr, 'hr_expense_check')
     util.remove_module(cr, 'website_project')
 
-    util.module_deps_diff(cr, "l10n_ec", plus={"l10n_latam_invoice_document", "l10n_latam_base"})
-
     if util.has_enterprise():
-        util.module_deps_diff(cr, 'l10n_ar_edi', minus={'account_debit_note'})
+        util.module_deps_diff(cr, 'l10n_ar_edi',
+                              minus={'account_debit_note'})
+        util.module_deps_diff(cr, "mail_mobile",
+                              plus={"iap_mail"},
+                              minus={"iap"})
 
-    util.module_deps_diff(cr, 'l10n_latam_invoice_document', plus={'account_debit_note'})
+    util.force_migration_of_fresh_module(cr, "iap_mail")
+    util.force_migration_of_fresh_module(cr, "iap_crm")
 
     # ===========================================================
     # account_edi + refactoring l10n_mx_edi (PR: 52407 & 12226)
