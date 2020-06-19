@@ -8,6 +8,7 @@ def migrate(cr, version):
 
     util.merge_module(cr, "sale_timesheet_edit", "sale_timesheet", without_deps=True)
     util.merge_module(cr, "website_crm_score", "crm", without_deps=True)
+    util.merge_module(cr, "l10n_se_ocr", "l10n_se")
     if util.has_enterprise():
         util.new_module(cr, "helpdesk_fsm_report", deps={"helpdesk_fsm", "industry_fsm_report"}, auto_install=True)
         util.merge_module(cr, "helpdesk_sale_timesheet_edit", "helpdesk_sale_timesheet", without_deps=True)
