@@ -73,7 +73,7 @@ def migrate(cr, version):
                    SET price_subtotal_incl=%s,
                        price_subtotal=%s
                  WHERE pos_order_line.id IN %s
-            """, [res['price_subtotal_incl'], res['price_subtotal'], ids])
+            """, [res['price_subtotal_incl'], res['price_subtotal'], tuple(ids)])
 
         # We need to make sure that the cursor we're about to open has the temp table available to it
         cr.commit()
