@@ -3,28 +3,21 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, "mail_message", "is_internal", "boolean")
-    # on next-ob2:
-    # parallel queries in 2 pass: ~44 minutes
-    # one sequential query: ~41 minutes (looks more io-bound that cpu-bound)
-    # parallel queries in 1 pass (current code): ~27 minutes
-    util.parallel_execute(
-        cr,
-        util.explode_query_range(
-            cr,
-            """
-               UPDATE mail_message m
-                  SET is_internal = EXISTS (SELECT 1
-                                              FROM mail_message_subtype s
-                                             WHERE s.id = m.subtype_id
-                                               AND s.internal=true)
-                WHERE m.is_internal IS NULL
-                  AND {parallel_filter}
-            """,
-            table="mail_message",
-            prefix="m.",
-        ),
-    )
+
+    if util.column_exists(cr, "mail_message", "website_published"):
+        # from website_mail, see odoo/odoo@5649fc88e8f3022f4143400a124f2e3c1e5c0df8
+        util.move_field_to_module(cr, "mail.message", "website_published", "website_mail", "mail")
+        util.rename_field(
+            cr, "mail.message", "website_published", "is_internal", domain_adapter=lambda op, val: (op, not val)
+        )
+        # NOTE uses `!= true` instead of `not is_internal` to handle NULL values
+        # XXX took ~15 minutes with `ALTER TABLE`
+        #          ~60 minutes with `UPDATE`
+        #          ~30 minutes with parallized `UPDATE` (8 workers, 100k bucket)
+        cr.execute("ALTER TABLE mail_message ALTER COLUMN is_internal TYPE boolean USING (is_internal != true)")
+
+    else:
+        util.create_column(cr, "mail_message", "is_internal", "boolean", default=True)
 
     cr.execute("ALTER TABLE mail_tracking_value RENAME COLUMN field TO _field")
     util.create_column(cr, "mail_tracking_value", "field", "int4")
