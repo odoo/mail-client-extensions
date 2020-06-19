@@ -73,6 +73,22 @@ def migrate(cr, version):
     """
     )
 
+    cr.execute(
+        """
+        WITH warehouse_ids AS (
+             SELECT warehouse.id, warehouse.company_id
+               FROM stock_warehouse warehouse
+               JOIN stock_rule rule ON rule.warehouse_id = warehouse.id
+             GROUP BY warehouse.id, warehouse.company_id
+        )
+        UPDATE stock_rule rule1
+           SET company_id=ware_id.company_id
+          FROM warehouse_ids ware_id
+         WHERE rule1.warehouse_id=ware_id.id
+        """
+    )
+
+
     util.create_column(cr, "stock_package_level", "company_id", "int4")
     cr.execute(
         """
