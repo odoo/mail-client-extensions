@@ -157,7 +157,7 @@ def migrate(cr, version):
 
                 for tag_type, tag_details in rep_tags.items():
                     if tag_type == "financial":
-                        tags += list(tag_details)
+                        tags += list(t[0] for t in tag_details)
                     else:
                         base_domain = [
                             ("name", "in", [tag_type + name for name, module in tag_details]),
