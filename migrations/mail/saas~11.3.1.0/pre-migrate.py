@@ -15,9 +15,18 @@ def migrate(cr, version):
       )
       SELECT model FROM am WHERE ac=true
     """)
-    for model, in cr.fetchall():
+    models = cr.fetchall()
+    for model, in models:
         table = util.table_of_model(cr, model)
         util.remove_column(cr, table, "activity_date_deadline")
+    cr.execute(
+      """
+        UPDATE ir_model_fields
+           SET store = 'f'
+         WHERE model in %s
+           AND name = 'activity_date_deadline'
+      """, (tuple(models),)
+    )
 
     # short codes
     util.remove_field(cr, "mail.shortcode", "unicode_source")
