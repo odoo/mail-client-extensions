@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    fields_to_check = {
+        "account.account": ["tax_ids"],
+        "account.journal.group": ["excluded_journal_ids"],
+        "account.journal": [
+            "default_credit_account_id",
+            "default_debit_account_id",
+            "profit_account_id",
+            "loss_account_id",
+            "bank_account_id",
+            "secure_sequence_id",
+        ],
+        "account.tax": ["children_tax_ids", "cash_basis_transition_account_id", "cash_basis_base_account_id"],
+        "account.tax.repartition.line": ["account_id", "invoice_tax_id", "refund_tax_id"],
+        "account.analytic.line": ["move_id"],
+        "account.bank.statement": ["journal_id"],
+        "account.bank.statement.line": ["account_id", "statement_id"],
+        "account.move": [
+            "journal_id",
+            "reversed_entry_id",
+            "fiscal_position_id",
+            "invoice_payment_term_id",
+            "invoice_partner_bank_id",
+        ],
+        "account.move.line": [
+            "move_id",
+            "journal_id",
+            "account_id",
+            "reconcile_model_id",
+            "payment_id",
+            "statement_line_id",
+            "tax_ids",
+            "tax_repartition_line_id",
+            "analytic_account_id",
+            "analytic_tag_ids",
+        ],
+        "account.payment": ["journal_id", "partner_bank_account_id", "invoice_ids"],
+        "account.reconcile.model.line": [
+            "account_id",
+            "journal_id",
+            "tax_ids",
+            "analytic_account_id",
+            "analytic_tag_ids",
+        ],
+        "account.reconcile.model": ["match_journal_ids"],
+        "account.fiscal.position.tax": ["tax_src_id", "tax_dest_id"],
+        "account.fiscal.position.account": ["account_src_id", "account_dest_id"],
+    }
+    if util.table_exists(cr, "account_account_type_rel"):
+        fields_to_check["account.journal"].append("account_control_ids")
+
+    for model_name, field_names in fields_to_check.items():
+        for field_name in field_names:
+            util.check_company_consistency(cr, model_name, field_name)

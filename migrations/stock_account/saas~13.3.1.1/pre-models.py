@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
     util.remove_field(cr, "stock.valuation.layer", "active")
 
-    cr.execute("""
+    cr.execute(
+        """
         SELECT DISTINCT pt.name FROM stock_quant q
             JOIN product_product p ON q.product_id = p.id
             JOIN product_template pt ON pt.id = p.product_tmpl_id
@@ -15,8 +16,19 @@ def migrate(cr, version):
             AND pt.active = TRUE
             AND l.USAGE IN ('internal', 'transit')
             AND l.company_id IS NOT NULL
-    """)
-    products = ', '.join(n for n, in cr.fetchall())
-    if products:
-        msg = 'The following product templates quantities will be updated because we now include the quantities of their archived variants: %s' % products
-        util.add_to_migration_reports(msg, 'Inventory')
+        """
+    )
+    if cr.rowcount:
+        msg = """
+            <details>
+              <summary>
+                The following product templates quantities will be updated because we now include
+                the quantities of their archived variants
+              </summary>
+              <ul>%s</ul>
+            </details>
+        """ % "".join(
+            f"<li>{product}</li>" for product, in cr.fetchall()
+        )
+
+        util.add_to_migration_reports(msg, "Inventory", format="html")

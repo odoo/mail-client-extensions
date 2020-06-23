@@ -202,3 +202,11 @@ class IrUiView(models.Model):
                 # but the user won't be able to open the view.
                 force_check_views._check_xml()
                 return res
+
+    if util.version_gte("saas~13.1"):
+
+        def unlink(self):
+            for view in self:
+                if view.xml_id:
+                    _logger.critical("💥 It's look like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
+            return super().unlink()

@@ -11,3 +11,4 @@ def migrate(cr, version):
         )
         """
     )
+    cr.execute("UPDATE amazon_marketplace SET tax_included=FALSE WHERE tax_included IS NULL")

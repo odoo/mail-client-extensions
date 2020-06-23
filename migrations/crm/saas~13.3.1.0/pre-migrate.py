@@ -22,5 +22,8 @@ def migrate(cr, version):
     util.rename_field(cr, "crm.team", "overdue_opportunities_count", "opportunities_overdue_count")
     util.rename_field(cr, "crm.team", "overdue_opportunities_amount", "opportunities_overdue_amount")
 
-    util.rename_field(cr, "crm.lead", "phone_blacklisted", "phone_sanitized_blacklisted")
-    util.create_column(cr, 'crm_lead', 'phone_sanitized', "varchar")
+    util.create_column(cr, "crm_lead", "phone_sanitized", "varchar")
+
+    util.remove_view(cr, "crm.crm_lead_view_tree_activity")
+    util.remove_view(cr, "crm.assets_backend")
+    util.remove_record(cr, "crm.crm_team_act_tree")
