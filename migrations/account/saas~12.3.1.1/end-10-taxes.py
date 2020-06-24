@@ -580,7 +580,9 @@ def create_invoice(cr, partner, tax, journal, account, amount=100, type="out_inv
                     "price_unit": amount,
                     "name": "Papa a vu le fifi de lolo",
                     "tax_ids" if util.version_gte("saas~12.4") else "invoice_line_tax_ids": [(6, 0, tax.ids)],
-                    "account_id": journal.default_debit_account_id.id,
+                    "account_id": journal.default_debit_account_id.id
+                    if not journal.default_debit_account_id.deprecated
+                    else None,
                 },
             )
         ],
