@@ -11,6 +11,10 @@ def migrate(cr, version):
     cr.execute("DROP TABLE IF EXISTS account_voucher_line CASCADE")
     cr.execute("DROP TABLE IF EXISTS am_updatable_amounts CASCADE")
 
+    # If some Invoice/Bill have 0.000 value then it's not have payment entry so state is set as not_paid
+    # So here we set state as paid for amount residual is 0.000
+    cr.execute("UPDATE account_move SET invoice_payment_state = 'paid' WHERE amount_residual = 0.000 AND type IN ('out_invoice', 'out_refund', 'in_invoice', 'in_refund') AND state = 'posted'")
+
     # If some invoice amls still have exclude_from_invoice_tab = null and amount to 0,
     # we consider they were manually added(for some reason) and set them
     # as exclude_from_invoice_tab = True. We only do that because those lines have no impact on the accounting.
