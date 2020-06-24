@@ -8,10 +8,12 @@ def migrate(cr, version):
         SELECT COUNT(l.id), array_agg(l.id)
           FROM account_invoice_line l
           JOIN account_invoice inv ON inv.id = l.invoice_id
+          JOIN res_currency c ON c.id = inv.currency_id
          WHERE l.price_subtotal = 0
-           AND l.price_unit != 0
-           AND l.quantity != 0
-           AND l.discount != 100
+           AND ROUND(
+                   ABS(l.quantity * (l.price_unit * (1 - COALESCE(l.discount, 0) / 100.0))),
+                   (LOG(c.rounding) * -1)::int
+               ) > 0
            AND inv.state NOT IN ('open', 'in_payment', 'paid')
         """
     )
