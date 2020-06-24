@@ -43,8 +43,9 @@ def migrate(cr, version):
     # account.invoice.reference_type will still be used by l10n_be_invoice_bba
     util.remove_field(cr, "account.journal", "account_setup_bank_data_done")
     # `delegate=True` on the `journal_id` `many2one`
-    util.remove_field(cr, "account.bank.statement.import.journal.creation",
-                      "account_setup_bank_data_done", drop_column=False)
+    util.remove_field(
+        cr, "account.bank.statement.import.journal.creation", "account_setup_bank_data_done", drop_column=False
+    )
     util.remove_field(cr, "res.company", "account_sanitize_invoice_ref")
     util.remove_field(cr, "res.company", "qr_code_payment_journal_id")
     util.remove_field(cr, "res.company", "qr_code_valid")
@@ -61,13 +62,17 @@ def migrate(cr, version):
     # set KPIs
     for kpi in {"bank_data", "fy_data", "coa"}:
         util.create_column(cr, "res_company", "account_setup_%s_state" % kpi, "varchar")
-        cr.execute("""
+        cr.execute(
+            """
             UPDATE res_company
                SET account_setup_{0}_state = CASE account_setup_{0}_done WHEN true
                                                                          THEN 'just_done'
                                                                          ELSE 'not_done'
                                               END
-        """.format(kpi))
+        """.format(
+                kpi
+            )
+        )
         util.remove_field(cr, "res.company", "account_setup_%s_done" % kpi)
 
     # odoo/odoo@89e358caa8627c5eff21ee63015dece0997db2b4
@@ -76,7 +81,8 @@ def migrate(cr, version):
     util.create_column(cr, "res_company", "account_onboarding_invoicing_layout_state", "varchar")
     util.create_column(cr, "res_company", "account_onboarding_sample_invoice_state", "varchar")
     util.create_column(cr, "res_company", "account_onboarding_sale_tax_state", "varchar")
-    cr.execute("""
+    cr.execute(
+        """
       WITH logo_changed AS (
         SELECT c.id, a.id IS NOT NULL as changed
           FROM res_company c
@@ -103,7 +109,8 @@ def migrate(cr, version):
                                                  END
         FROM logo_changed l
        WHERE c.id = l.id
-    """)
+    """
+    )
 
     util.rename_xmlid(cr, *eb("account.{stock,account}_incoterms_form"))
     util.rename_xmlid(cr, *eb("account.{stock,account}_incoterms_view_search"))
