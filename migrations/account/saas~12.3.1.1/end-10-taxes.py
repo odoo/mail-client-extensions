@@ -464,8 +464,9 @@ def migrate(cr, version):
 
             if tax_template.amount_type != tax_instance.amount_type:
                 util.add_to_migration_reports(
-                    "Tax template with id %s and instance with id %s don't have the same amount_type." % (tax_template.id, tax_instance.id),
-                    "Tax configuration"
+                    "Tax template with id %s and instance with id %s don't have the same amount_type."
+                    % (tax_template.id, tax_instance.id),
+                    "Tax configuration",
                 )
 
             for inv_type in ("invoice", "refund"):
@@ -514,8 +515,9 @@ def migrate(cr, version):
                 )
                 if different_repartition or template_accounts != tax_accounts or template_tags != tax_tags:
                     util.add_to_migration_reports(
-                        "Tax %s (id %s)'s %s repartition does not seem to match its related template. Manual verification advised." % (tax_instance.id, tax_instance.name, inv_type),
-                        "Tax configuration"
+                        "Tax %s (id %s)'s %s repartition does not seem to match its related template. Manual verification advised."
+                        % (tax_instance.id, tax_instance.name, inv_type),
+                        "Tax configuration",
                     )
 
 
@@ -562,21 +564,6 @@ def set_fiscal_country(env):
 def create_invoice(cr, partner, tax, journal, account, amount=100, type="out_invoice"):
     """ Returns an open invoice """
     env = util.env(cr)
-    base_domain = [
-        ("company_id", "=", tax.company_id.id),
-        ("deprecated", "=", False),
-        "|",
-        ("currency_id", "=", False),
-        ("currency_id", "=", tax.company_id.currency_id.id),
-    ]
-
-    if journal.type_control_ids or journal.account_control_ids:
-        base_domain += [
-            "|",
-            ("user_type_id", "in", journal.type_control_ids.ids),
-            ("id", "in", journal.account_control_ids.ids),
-        ]
-
     vals = {
         "partner_id": partner.id,
         "currency_id": tax.company_id.currency_id.id,
@@ -1819,8 +1806,7 @@ def get_v13_migration_dicts(cr):
 
                 if not tag_report_lines_data:
                     util.add_to_migration_reports(
-                        "No financial report line found for tag with id %s. Is it normal?" % tag_id,
-                        "Tax configuration"
+                        "No financial report line found for tag with id %s. Is it normal?" % tag_id, "Tax configuration"
                     )
 
                 for tax_report_line_id, domain, formulas, module in tag_report_lines_data:
