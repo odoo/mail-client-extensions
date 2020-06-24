@@ -256,6 +256,20 @@ def migrate(cr, version):
         ],
     )
 
+    # Fix move lines with the currency set to the company currency and no amount currency
+    # to have better chances to be able to set the constraint `check_amount_currency_balance_sign`
+    # https://github.com/odoo/odoo/blob/57277257efc62f0f58945797daf9a7d667991dde/addons/account/models/account_move.py#L2617-L2633
+    cr.execute(
+        """
+            UPDATE account_move_line
+               SET currency_id = NULL
+             WHERE currency_id IS NOT NULL
+               AND company_currency_id IS NOT NULL
+               AND company_currency_id = currency_id
+               AND (amount_currency = 0 OR amount_currency = balance)
+        """
+    )
+
     # ==== others ====
     util.remove_field(cr, "account.journal", "group_invoice_lines")
 
