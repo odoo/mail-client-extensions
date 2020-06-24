@@ -51,3 +51,5 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("stock.view_{procurement,stock}_rule_form"))
 
     util.remove_field(cr, "stock.change.product.qty", "lot_id")
+
+    util.remove_view(cr, "stock.view_pack_operation_lot_form")
