@@ -203,3 +203,15 @@ def migrate(cr, version):
     util.convert_field_to_property(
         cr, "product.template", "responsible_id", type="many2one", target_model="res.users"
     )
+
+    # stock move line
+    cr.execute(
+         """
+           UPDATE stock_move_line l
+              SET company_id = p.company_id
+              FROM stock_picking p
+              WHERE l.picking_id = p.id
+              AND l.company_id IS NULL
+              AND l.move_id IS NULL
+         """
+    )
