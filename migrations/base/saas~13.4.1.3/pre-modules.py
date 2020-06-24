@@ -37,19 +37,11 @@ def migrate(cr, version):
     util.new_module(
         cr, "website_event_crm_questions", deps={"website_event_crm", "website_event_questions"}, auto_install=True
     )
-    util.new_module(
-        cr,
-        "test_event_full",
-        deps={
-            "event",
-            "event_crm",
-            "event_sale",
-            "website_event_crm_questions",
-            "website_event_questions",
-            "website_event_sale",
-            "website_event_track",
-        },
-    )
+    util.module_deps_diff(
+        cr, "test_event_full",
+        plus={"event", "event_crm", "event_sale",
+              "website_event_crm_questions", "website_event_sale",
+              "website_event_track"})
     util.module_deps_diff(cr, "mass_mailing", plus={"digest"})
     util.module_deps_diff(cr, "hr_timesheet", minus={"timer"})
     util.module_deps_diff(cr, "stock", plus={"digest"})

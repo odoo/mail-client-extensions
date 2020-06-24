@@ -18,3 +18,7 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("website_event_track.event_track_tag{2,_business}"), noupdate=True)
     util.rename_xmlid(cr, *eb("website_event_track.event_track_tag{3,11}"), noupdate=True)
     util.rename_xmlid(cr, *eb("website_event_track.event_track_tag{4,12}"), noupdate=True)
+
+    # event-online requirements
+    util.update_record_from_xml(cr, "website_event_track.agenda")
+    util.update_record_from_xml(cr, "website_event_track.event_track_proposal")
