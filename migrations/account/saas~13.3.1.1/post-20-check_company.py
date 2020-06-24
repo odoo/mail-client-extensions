@@ -53,6 +53,18 @@ def migrate(cr, version):
     if util.table_exists(cr, "account_account_type_rel"):
         fields_to_check["account.journal"].append("account_control_ids")
 
+    if util.version_gte("saas~13.4"):
+        # in saas~13.4, `account.payment` is now an _inherits on `account.move`
+        fields_to_check["account.move.line"].remove("payment_id")
+        del fields_to_check["account.payment"]
+
+        # And some fields have been removed
+        fields_to_check["account.tax"].remove("cash_basis_base_account_id")
+        fields_to_check["account.bank.statement.line"].remove("account_id")
+        # and renamed
+        fields_to_check["account.move"].remove("invoice_partner_bank_id")
+        fields_to_check["account.move"].append("partner_bank_id")
+
     for model_name, field_names in fields_to_check.items():
         for field_name in field_names:
             util.check_company_consistency(cr, model_name, field_name)
