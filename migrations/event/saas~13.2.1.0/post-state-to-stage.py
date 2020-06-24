@@ -6,7 +6,7 @@ def migrate(cr, version):
     cr.execute(
         """
         UPDATE event_event
-           SET stage_id = CASE state WHEN 'confrim' THEN %s
+           SET stage_id = CASE state WHEN 'confirm' THEN %s
                                      WHEN 'cancel' THEN %s
                                      WHEN 'done' THEN %s
                                      ELSE %s  -- when 'draft' or other
