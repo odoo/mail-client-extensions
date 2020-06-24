@@ -7,6 +7,36 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    cr.execute("UPDATE calendar_event SET byday='-1' WHERE recurrency=TRUE AND byday IN ('4', '5')")
+    cr.execute("UPDATE calendar_event SET day=1 WHERE recurrency=TRUE AND day NOT BETWEEN 1 AND 31 AND rrule_type='monthly'")
+
+    cr.execute("""
+        UPDATE calendar_event
+           SET mo=week_list='MO',
+               tu=week_list='TU',
+               we=week_list='WE',
+               th=week_list='TH',
+               fr=week_list='FR',
+               sa=week_list='SA',
+               su=week_list='SU'
+         WHERE rrule_type='weekly'
+           AND recurrency=TRUE
+           AND NOT (COALESCE(mo, FALSE) OR COALESCE(tu, FALSE) OR COALESCE(we, FALSE) OR COALESCE(th, FALSE) OR COALESCE(fr, FALSE) OR COALESCE(sa, FALSE) OR COALESCE(su, FALSE))
+    """)
+    # Sometimes, nothing gives you a day except start date...
+    cr.execute("""
+        UPDATE calendar_event
+           SET mo=date_part('dow', start_date)=1 or date_part('dow', start_datetime)=1,
+               tu=date_part('dow', start_date)=2 or date_part('dow', start_datetime)=2,
+               we=date_part('dow', start_date)=3 or date_part('dow', start_datetime)=3,
+               th=date_part('dow', start_date)=4 or date_part('dow', start_datetime)=4,
+               fr=date_part('dow', start_date)=5 or date_part('dow', start_datetime)=5,
+               sa=date_part('dow', start_date)=6 or date_part('dow', start_datetime)=6,
+               su=date_part('dow', start_date)=0 or date_part('dow', start_datetime)=0
+         WHERE rrule_type='weekly'
+           AND recurrency=TRUE
+           AND NOT (COALESCE(mo, FALSE) OR COALESCE(tu, FALSE) OR COALESCE(we, FALSE) OR COALESCE(th, FALSE) OR COALESCE(fr, FALSE) OR COALESCE(sa, FALSE) OR COALESCE(su, FALSE))
+    """)
 
     cr.execute(
         """
@@ -41,6 +71,7 @@ def migrate(cr, version):
 				final_date AS until
 			FROM calendar_event
 			WHERE recurrency=TRUE
+              AND NOT COALESCE(rrule, '')=''
 		"""
     )
     cr.execute(
