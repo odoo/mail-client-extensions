@@ -35,6 +35,20 @@ def migrate(cr, version):
     util.remove_view(cr, "account.invoice_form")
     util.remove_view(cr, "account.view_account_invoice_filter")
 
+    # Views (account_voucher)
+    if util.ENVIRON["account_voucher_installed"]:
+        util.remove_view(cr, "account.view_voucher_tree")
+        util.remove_view(cr, "account.view_voucher_tree_purchase")
+        util.remove_view(cr, "account.view_voucher_kanban")
+        util.remove_view(cr, "account.view_voucher_line_form")
+        util.remove_view(cr, "account.view_voucher_line_tree")
+        util.remove_view(cr, "account.view_voucher_filter")
+        util.remove_view(cr, "account.account_cash_statement_graph")
+        util.remove_view(cr, "account.view_voucher_filter_vendor")
+        util.remove_view(cr, "account.view_voucher_filter_sale")
+        util.remove_view(cr, "account.view_sale_receipt_form")
+        util.remove_view(cr, "account.view_purchase_receipt_form")
+
     # View (account_move) to be reloaded by the ORM as the whole view changed.
     util.remove_view(cr, "account.view_move_form")
 
