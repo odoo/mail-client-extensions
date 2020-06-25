@@ -33,11 +33,20 @@ class Field(models.Model):
         unlink_fields = self.env["ir.model.fields"]
         for field in self:
             if field.model in self.env:
-                f = self.env[field.model]._fields.get(field.name)
+                model = self.env[field.model]
+                f = model._fields.get(field.name)
                 if f and f.inherited:
                     # See https://github.com/odoo/odoo/pull/53632
                     util._logger.critical(
                         "The field %s.%s is deleted but is still in the registry. It may come from a delegated field.",
+                        field.model,
+                        field.name,
+                    )
+                    continue
+                elif any("mixin" in m and f.name in self.env[m]._fields for m in model._inherit):
+                    # See https://github.com/odoo/odoo/issues/49354
+                    util._logger.critical(
+                        "The field %s.%s is deleted but is still in the registry. It comes from a mixin model.",
                         field.model,
                         field.name,
                     )
