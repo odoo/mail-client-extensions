@@ -1952,11 +1952,19 @@ def _get_inv_journal_and_account(env, tax):
         }
         if jrnl_type == "purchase":
             invoice_account.update({"name": "Payable", "user_type_id": env.ref("account.data_account_type_payable").id})
+            property_account = "property_account_payable_id"
         else:
             invoice_account.update(
                 {"name": "Receivable", "user_type_id": env.ref("account.data_account_type_receivable").id}
             )
+            property_account = "property_account_receivable_id"
         invoice_account = env["account.account"].create(invoice_account)
+        field_id = env["ir.model.fields"]._get_id("res.partner", property_account)
+        Prop = env["ir.property"]
+        Prop.search([("fields_id", "=", field_id), ("company_id", "=", company_id), ("res_id", "=", False)]).unlink()
+        value = "account.account,%s" % invoice_account.id
+        Prop.create({"name": property_account, "company_id": company_id, "fields_id": field_id, "value": value})
+
     env.registry["account.account"]._check_user_type_id = _check_user_type_id
     return journal, invoice_account
 
