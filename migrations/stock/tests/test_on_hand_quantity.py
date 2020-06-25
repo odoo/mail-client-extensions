@@ -3,6 +3,7 @@
 
 import decimal
 
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
 from odoo.tools import float_repr
 from odoo.tools.parse_version import parse_version
@@ -46,12 +47,14 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
                 else ("", "")
             )
         )
-        products = self.env["product.product"].browse([row[0] for row in self.env.cr.fetchall()])
-        # If a product is created or deleted, this can lead to an issue.
-        # So, only compare products having quantities != 0
-        results = [
-            [p.id, float_repr(p.qty_available, -decimal.Decimal(str(p.uom_id.rounding)).as_tuple().exponent)]
-            for p in products
-            if p.qty_available
-        ]
+        results = []
+        for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
+            products = self.env["product.product"].browse(sub_ids)
+            # If a product is created or deleted, this can lead to an issue.
+            # So, only compare products having quantities != 0
+            results += [
+                [p.id, float_repr(p.qty_available, -decimal.Decimal(str(p.uom_id.rounding)).as_tuple().exponent)]
+                for p in products
+                if p.qty_available
+            ]
         return [release.series, results]
