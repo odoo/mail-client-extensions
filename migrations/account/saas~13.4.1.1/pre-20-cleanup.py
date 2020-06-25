@@ -17,6 +17,7 @@ def migrate(cr, version):
         'action_move_line_graph_posted',
         'action_account_common_menu',
         'action_product_default_list',
+        'actions_account_fiscal_year',
     ]
     to_move_list = [
         'group_fiscal_year',
@@ -31,6 +32,17 @@ def migrate(cr, version):
 
     for record in to_move_list:
         util.rename_xmlid(cr, *eb("account{,_accountant}.%s" % record))
+
+    views = """
+        action_account_fiscal_year_form
+        action_account_fiscal_year_search
+        action_account_fiscal_year_tree
+
+        view_account_payment_form_multi
+        view_account_payment_invoice_form
+    """
+    for view in util.splitlines(views):
+        util.remove_view(cr, f"account.{view}")
 
     util.move_field_to_module(cr, 'res.config.settings', 'group_fiscal_year', *eb("account{,_accountant}"))
     util.move_model(cr, 'account.fiscal.year', *eb("account{,_accountant}"))

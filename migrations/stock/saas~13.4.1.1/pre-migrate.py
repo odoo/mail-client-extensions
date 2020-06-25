@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, 'stock.stock_warehouse_view_form_editable')
-    util.remove_view(cr, 'stock.stock_warehouse_view_tree_editable')
+    eb = util.expand_braces
 
-    util.remove_field(cr, 'res.config.settings', 'group_stock_multi_warehouses')
+    util.remove_field(cr, "res.config.settings", "group_stock_multi_warehouses")
+
+    util.rename_xmlid(cr, *eb("stock.action_orderpoint{_form,}"))
+    util.remove_record(cr, "stock.product_open_orderpoint")
+    util.remove_record(cr, "stock.product_open_orderpoint")
+
+    util.remove_view(cr, "stock.stock_warehouse_view_form_editable")
+    util.remove_view(cr, "stock.stock_warehouse_view_tree_editable")
+    util.remove_view(cr, "stock.view_warehouse_orderpoint_tree")
