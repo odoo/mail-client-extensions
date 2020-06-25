@@ -33,7 +33,7 @@ def migrate(cr, version):
     removed_noupdate_data = """
         mail_act_appraisal_form mail_act_appraisal_send mail_template_appraisal_reminder"""
     for removed_data in removed_noupdate_data.split():
-        util.remove_record(cr, "hr_appraisal.%s" % removed_data)
+        util.remove_record(cr, "hr_appraisal.%s" % removed_data, deactivate=True)
 
     # The action_plan (Char) old data could be moved to new field manager_feedback (Html)
     cr.execute("UPDATE hr_appraisal SET manager_feedback=%s" % util.pg_text2html("action_plan"))
