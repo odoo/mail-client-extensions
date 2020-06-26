@@ -67,6 +67,13 @@ def migrate(cr, version):
     util.remove_view(cr, 'stock.view_move_form')
     util.remove_view(cr, 'stock.view_pack_operation_details_form')
 
+    # clean the stock.move.operation.link table (kind of m2m)
+    cr.execute("""
+        DELETE FROM stock_move_operation_link l
+         WHERE NOT EXISTS (SELECT 1 FROM stock_pack_operation WHERE id = l.operation_id)
+            OR NOT EXISTS (SELECT 1 FROM stock_move WHERE id = l.move_id)
+    """)
+
     # Create column lot_id/lot_name on stock_pack_operation, product_qty is renamed to product_uom_qty to be consistent with stock.move
     util.create_column(cr, 'stock_pack_operation', 'lot_id', 'int4')
     util.create_column(cr, 'stock_pack_operation', 'lot_name', 'varchar')
