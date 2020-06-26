@@ -67,7 +67,6 @@ def migrate(cr, version):
     util.remove_view(cr, 'stock.view_move_form')
     util.remove_view(cr, 'stock.view_pack_operation_details_form')
 
-
     # Create column lot_id/lot_name on stock_pack_operation, product_qty is renamed to product_uom_qty to be consistent with stock.move
     util.create_column(cr, 'stock_pack_operation', 'lot_id', 'int4')
     util.create_column(cr, 'stock_pack_operation', 'lot_name', 'varchar')
@@ -127,7 +126,7 @@ def migrate(cr, version):
                   AND p.location_id = l.id
                   AND NOT (pt.type = 'consu' AND p.state = 'assigned')
                   AND NOT (l.usage IN ('supplier', 'production', 'inventory') AND p.state = 'assigned')""")
-                  
+
     # Pack operations will appear for every (done) move, so this won't always be in a picking
     cr.execute("""ALTER TABLE stock_move_line ALTER COLUMN picking_id DROP NOT NULL""")
 
@@ -160,7 +159,7 @@ def migrate(cr, version):
     # But added to the stock_move
     cr.execute("""UPDATE stock_move SET state='partially_available' WHERE partially_available='t' AND state in ('confirmed', 'waiting')""")
 
-    # The move_orig_ids, move_dest many2one for chained moves, 
+    # The move_orig_ids, move_dest many2one for chained moves,
     # together with the split_from needs to be replaced by a many2many
     util.create_m2m(cr, 'stock_move_move_rel', 'stock_move', 'stock_move', 'move_orig_id', 'move_dest_id')
     # First: make the m2m chained links for those where it is easy (no split_froms)
@@ -311,17 +310,17 @@ def migrate(cr, version):
     # Create quants in supplier, production, inventory locations
     cr.execute("""INSERT INTO stock_quant (product_id, lot_id, package_id, location_id, owner_id, qty, company_id, in_date)
                     SELECT q.product_id, q.lot_id, NULL, m.location_id, m.restrict_partner_id, -SUM(q.qty), NULL, MIN(date)
-                    FROM stock_quant q, stock_quant_move_rel sqmr, stock_move m, stock_location l 
-                    WHERE sqmr.move_id =  m.id AND sqmr.quant_id = q.id 
+                    FROM stock_quant q, stock_quant_move_rel sqmr, stock_move m, stock_location l
+                    WHERE sqmr.move_id =  m.id AND sqmr.quant_id = q.id
                         AND m.location_id = l.id AND l.usage IN ('supplier', 'production', 'inventory')
                         AND m.state = 'done'
                     GROUP BY q.product_id, q.lot_id, m.location_id, m.restrict_partner_id""")
-    
-    
-    # min_date/max_date on test_picking -> faster in sql than in migration 
+
+
+    # min_date/max_date on test_picking -> faster in sql than in migration
     util.create_column(cr, 'stock_picking', 'scheduled_date', 'timestamp without time zone')
     cr.execute("""
-        UPDATE stock_picking 
+        UPDATE stock_picking
         SET scheduled_date = min_date
         WHERE move_type = 'direct'
     """)
@@ -343,10 +342,10 @@ def migrate(cr, version):
     """)
     for f in oldfields:
         util.remove_field(cr, 'stock.picking', f)
-    
+
     util.create_column(cr, 'stock_move', 'reference', 'varchar')
     cr.execute("""
-        UPDATE stock_move m SET reference = p.name 
+        UPDATE stock_move m SET reference = p.name
             FROM stock_picking p
             WHERE m.picking_id = p.id
     """)
@@ -354,7 +353,7 @@ def migrate(cr, version):
         UPDATE stock_move m SET reference = m.name
         WHERE m.picking_id IS NULL
     """)
-    
+
     util.create_column(cr, 'stock_move_line', 'reference', 'varchar')
     util.create_column(cr, 'stock_move_line', 'state', 'varchar')
     cr.execute("""UPDATE stock_move_line ml
