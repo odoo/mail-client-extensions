@@ -29,10 +29,9 @@ def migrate(cr, version):
     # but its field in the table `ir.model.fields` was not correctly removed in any upgrade script.
     # If this field is there, and we attempt to rename `needaction_partner_ids` to `notified_partner_ids`
     # It raise an unique constraint in the `ir_model_fields` table
-    if util.ref(cr, "mail.field_mail_mail__notified_partner_ids"):
-        util.remove_field(cr, "mail.mail", "notified_partner_ids", drop_column=False)
-    if util.ref(cr, "mail.field_mail_message__notified_partner_ids"):
-        util.remove_field(cr, "mail.message", "notified_partner_ids", drop_column=False)
+    util.remove_field(cr, "mail.mail", "notified_partner_ids", drop_column=False)
+    util.remove_field(cr, "mail.message", "notified_partner_ids", drop_column=False)
+    util.ENVIRON["__renamed_fields"]["mail.message"].remove("notified_partner_ids")
 
     util.rename_field(cr, "mail.message", "needaction_partner_ids", "notified_partner_ids")
 
@@ -41,7 +40,8 @@ def migrate(cr, version):
     # Function `format_tz` has been renamed to `format_datetime`.
     # Key word argument `format` has been renamed to `dt_format`.
     # `mail_template` and `ir_translation` records must be updated.
-    cr.execute(r"""
+    cr.execute(
+        r"""
         UPDATE ir_translation
            SET src = regexp_replace(
                        regexp_replace(src,
@@ -62,9 +62,11 @@ def migrate(cr, version):
          WHERE name = 'mail.template,body_html'
            AND src ~ '\yformat_tz\y'
             OR value ~ '\yformat_tz\y'
-    """)
+    """
+    )
 
-    cr.execute(r"""
+    cr.execute(
+        r"""
         UPDATE mail_template
            SET body_html = regexp_replace(
                              regexp_replace(body_html,
@@ -75,4 +77,5 @@ def migrate(cr, version):
                              'format_datetime',
                              'g')
          WHERE body_html ~ '\yformat_tz\y'
-    """)
+    """
+    )
