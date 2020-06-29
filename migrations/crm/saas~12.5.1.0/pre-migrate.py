@@ -21,11 +21,19 @@ def migrate(cr, version):
     eb = util.expand_braces
 
     util.remove_record(cr, "crm.crm_opportunity_report_action_graph")
-    util.remove_view(cr, "crm.crm_case_form_view_leads")
-    util.remove_view(cr, "crm.crm_case_form_view_oppor")
     util.remove_view(cr, "crm.view_create_opportunity_simplified")
     util.remove_record(cr, "crm.create_opportunity_simplified")
     util.remove_record(cr, "crm.crm_lead_opportunities_view_form")
+
+    # Special case for the lead/opp form: They have been merged into one view
+    # odoo/odoo@e28d3aa4d3851d72deba08c236072d002f83216a
+    # Rename lead form xmlid, then assign former references to opp form to the new lead form
+    # This is to keep the customization has much as possible.
+    util.rename_xmlid(cr, "crm.crm_case_form_view_leads", "crm.crm_lead_view_form")
+    old = util.ref(cr, "crm.crm_case_form_view_oppor")
+    new = util.ref(cr, "crm.crm_lead_view_form")
+    util.replace_record_references_batch(cr, {old: new}, "ir.ui.view", replace_xmlid=False)
+    util.remove_view(cr, "crm.crm_case_form_view_oppor")
 
     util.rename_xmlid(cr, *eb("crm.crm_lead_{opportunities_tree_view,action_pipeline}"))
     for view in {"kanban", "tree", "calendar", "pivot", "graph"}:
