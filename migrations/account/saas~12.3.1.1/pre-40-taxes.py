@@ -47,5 +47,5 @@ def migrate(cr, version):
         JOIN account_partial_reconcile caba_partial_rec ON caba_partial_rec.id = caba_move.tax_cash_basis_rec_id
         JOIN account_move_line invoice_aml ON invoice_aml.id IN (caba_partial_rec.credit_move_id, caba_partial_rec.debit_move_id)
         JOIN account_journal invoice_journal ON invoice_journal.id = invoice_aml.journal_id AND invoice_journal.type in ('sale', 'purchase')
-        JOIN account_invoice invoice ON invoice.id = invoice_aml.invoice_id
+        JOIN account_invoice invoice ON invoice.move_id = invoice_aml.move_id
     """)

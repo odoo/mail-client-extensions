@@ -16,16 +16,16 @@ def migrate(cr, version):
     if util.version_gte("saas~12.4"):
         sql_dict = {
             "invoice_table": "account_move",
-            "invoice_id_field": "move_id",
             "move_join": "JOIN account_move move ON aml.move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
             "where_criteria": "",
+            "invoice_move_id_field": "id",
         }
     else:
         sql_dict = {
             "invoice_table": "account_invoice",
-            "invoice_id_field": "invoice_id",
             "move_join": "",
-            "where_criteria": "AND aml.invoice_id IS NULL",
+            "where_criteria": "AND NOT EXISTS(SELECT id FROM account_invoice WHERE move_id = move.id)",
+            "invoice_move_id_field": "move_id",
         }
 
     if not util.table_exists(cr, "tax_accounts_v12_bckp"):
@@ -99,7 +99,7 @@ def migrate(cr, version):
             SELECT aml.id, tx_rep.id as rep_id
               FROM account_move_line aml
               JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.refund_tax_id AND tx_rep.repartition_type = 'tax'
-              JOIN %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+              JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
          LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
              WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_refund', 'out_refund')
         )
@@ -118,7 +118,7 @@ def migrate(cr, version):
               FROM account_move_line aml
               JOIN account_tax_repartition_line tx_rep
                    ON aml.tax_line_id = tx_rep.invoice_tax_id AND tx_rep.repartition_type = 'tax'
-              JOIN %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+              JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
          LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
              WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')
         )
@@ -430,7 +430,7 @@ def migrate(cr, version):
                     account_account_tag_account_tax_repartition_line_rel rep_tags,
                     account_move_line_account_tax_rel aml_tx
                JOIN account_move_line aml ON aml.id = aml_tx.account_move_line_id
-               JOIN  %(invoice_table)s move ON aml.%(invoice_id_field)s = move.id
+               JOIN  %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
                LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
               WHERE tx_rep.repartition_type = 'base'
                 AND aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
