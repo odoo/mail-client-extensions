@@ -208,5 +208,5 @@ class IrUiView(models.Model):
         def unlink(self):
             for view in self:
                 if view.xml_id:
-                    _logger.critical("It's look like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
+                    _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
             return super().unlink()
