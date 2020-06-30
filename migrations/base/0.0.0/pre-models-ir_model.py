@@ -35,22 +35,23 @@ class Field(models.Model):
             if field.model in self.env:
                 model = self.env[field.model]
                 f = model._fields.get(field.name)
-                if f and f.inherited:
-                    # See https://github.com/odoo/odoo/pull/53632
-                    util._logger.critical(
-                        "The field %s.%s is deleted but is still in the registry. It may come from a delegated field.",
-                        field.model,
-                        field.name,
-                    )
-                    continue
-                elif any("mixin" in m and f.name in self.env[m]._fields for m in model._inherit):
-                    # See https://github.com/odoo/odoo/issues/49354
-                    util._logger.critical(
-                        "The field %s.%s is deleted but is still in the registry. It comes from a mixin model.",
-                        field.model,
-                        field.name,
-                    )
-                    continue
+                if f:
+                    if f.inherited:
+                        # See https://github.com/odoo/odoo/pull/53632
+                        util._logger.critical(
+                            "The field %s.%s is deleted but is still in the registry. It may come from a delegated field.",
+                            field.model,
+                            field.name,
+                        )
+                        continue
+                    elif any("mixin" in m and f.name in self.env[m]._fields for m in model._inherit):
+                        # See https://github.com/odoo/odoo/issues/49354
+                        util._logger.critical(
+                            "The field %s.%s is deleted but is still in the registry. It comes from a mixin model.",
+                            field.model,
+                            field.name,
+                        )
+                        continue
             unlink_fields |= field
         if unlink_fields:
             fields = ["%s.%s" % (f.model, f.name) for f in unlink_fields]
