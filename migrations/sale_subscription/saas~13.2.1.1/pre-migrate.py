@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.upgrade import util
+from odoo.osv.expression import TERM_OPERATORS_NEGATION
 
 
 def migrate(cr, version):
@@ -7,7 +8,16 @@ def migrate(cr, version):
     util.create_column(cr, "sale_subscription", "fiscal_position_id", "integer")
     util.create_column(cr, "sale_subscription", "stage_category", "varchar")  # fill in `end-`
     util.create_column(cr, "sale_subscription", "payment_term_id", "integer")
+
+    def in_progress(op, value):
+        if not value:
+            op = TERM_OPERATORS_NEGATION.get(op, op)
+        return op, "progress"
+
+    util.adapt_domains(cr, "sale.subscription", "in_progress", "stage_category", adapter=in_progress)
+
     util.remove_field(cr, "sale.subscription", "in_progress")
+
     for suffix in ["tax{,}", "total{,_incl}"]:
         suffix_from, suffix_to = eb(suffix)
         util.rename_field(cr, "sale.subscription", f"recurring_amount_{suffix_from}", f"recurring_{suffix_to}")
