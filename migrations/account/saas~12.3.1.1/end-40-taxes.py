@@ -11,3 +11,4 @@ def migrate(cr, version):
         cr.execute("DROP TABLE v12_financial_tags_registry")
         cr.execute("DROP TABLE taxes_not_to_merge")
         cr.execute("DROP TABLE caba_aml_invoice_info")
+        cr.execute("DROP TABLE tags_to_replace")

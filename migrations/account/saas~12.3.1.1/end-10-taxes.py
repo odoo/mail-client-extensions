@@ -17,15 +17,19 @@ def migrate(cr, version):
         sql_dict = {
             "invoice_table": "account_move",
             "move_join": "JOIN account_move move ON aml.move_id = move.id AND move.type NOT IN ('in_refund', 'in_invoice', 'out_refund', 'out_invoice')",
-            "where_criteria": "",
+            "no_invoice_where": "NOT EXISTS(SELECT id FROM account_move WHERE id = line.move_id and type in ('in_invoice', 'out_invoice', 'in_refund', 'out_refund'))",
             "invoice_move_id_field": "id",
+            "reversed_move_condition": "reversed_move.id = move.reversed_entry_id",
+            "misc_entry_condition": "move.type = 'entry'",
         }
     else:
         sql_dict = {
             "invoice_table": "account_invoice",
             "move_join": "",
-            "where_criteria": "AND NOT EXISTS(SELECT id FROM account_invoice WHERE move_id = move.id)",
+            "no_invoice_where": "NOT EXISTS(SELECT id FROM account_invoice WHERE move_id = line.move_id)",
             "invoice_move_id_field": "move_id",
+            "reversed_move_condition": "reversed_move.reverse_entry_id = move.id",
+            "misc_entry_condition": "move.id IS NULL",
         }
 
     if not util.table_exists(cr, "tax_accounts_v12_bckp"):
@@ -49,59 +53,31 @@ def migrate(cr, version):
         else:
             raise UserError("Tax %s has already some repartition lines. It should not at this point." % tax.id)
 
-    base_query = """
-    WITH new_repartition AS (
-      SELECT aml.id, tx_rep.id as rep_id
-        FROM account_move_line aml
-        JOIN account_tax_repartition_line tx_rep ON %(txrep_join)s AND tx_rep.repartition_type = 'tax'
-        JOIN account_move m ON aml.move_id = m.id
-        JOIN account_journal j ON m.journal_id = j.id
-        %(move_join)s
-       WHERE NOT EXISTS (SELECT 1 from caba_aml_invoice_info WHERE aml_id=aml.id)
-         %(additional_where)s
-         %(where_criteria)s
-    )
-
-     UPDATE account_move_line aml
-        SET tax_repartition_line_id = new_repartition.rep_id
-       FROM new_repartition
-      WHERE new_repartition.id=aml.id
-    """
-
-    util.parallel_execute(
-        cr,
-        [
-            base_query
-            % {
-                **sql_dict,
-                "txrep_join": "aml.tax_line_id = tx_rep.invoice_tax_id",
-                "additional_where": """AND NOT (aml.credit > 0.0 AND j.type='purchase')
-                                       AND NOT (aml.debit > 0.0 AND j.type='sale')""",
-            },
-            base_query
-            % {
-                **sql_dict,
-                "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
-                "additional_where": "AND aml.credit > 0.0 AND j.type='purchase'",
-            },
-            base_query
-            % {
-                **sql_dict,
-                "txrep_join": "tax_line_id = tx_rep.refund_tax_id",
-                "additional_where": "AND aml.debit > 0.0 AND j.type='sale'",
-            },
-        ],
-    )
-
     cr.execute(
         """
         WITH new_repartition AS (
             SELECT aml.id, tx_rep.id as rep_id
-              FROM account_move_line aml
-              JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.refund_tax_id AND tx_rep.repartition_type = 'tax'
-              JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
-         LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
-             WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_refund', 'out_refund')
+            FROM account_move_line aml
+            JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.refund_tax_id AND tx_rep.repartition_type = 'tax'
+            JOIN account_journal journal ON journal.id = aml.journal_id
+            JOIN account_tax tax ON tax.id = aml.tax_line_id
+            LEFT JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
+            LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+            GROUP BY aml.id, tx_rep.id, journal.id, tax.id, move.id
+            HAVING
+                CASE
+                    -- To manage CABA and invoice entries
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('in_refund' as varchar)] THEN NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('in_invoice' as varchar)] OR aml.credit > 0
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('out_refund' as varchar)] THEN NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('out_invoice' as varchar)] OR aml.debit > 0
+
+                    -- To manage payment with taxes (created from the reconciliation widget as writeoff) and misc operations
+                    WHEN %(misc_entry_condition)s AND array_to_string(array_agg(caba_info.invoice_type),',') = '' THEN CASE WHEN (CASE WHEN tax.type_tax_use='sale' THEN -1 ELSE 1 END
+                                                                                                                                      * CASE WHEN tx_rep.factor_percent < 0 THEN -1 ELSE 1 END)
+                                                                                                                                      < 0 THEN aml.debit > 0
+                                                                                                                           ELSE aml.credit > 0
+                                                                                                                           END
+                    ELSE false
+                END
         )
         UPDATE account_move_line aml
            SET tax_repartition_line_id = new_repartition.rep_id
@@ -115,12 +91,27 @@ def migrate(cr, version):
         """
         WITH new_repartition AS (
             SELECT aml.id, tx_rep.id as rep_id
-              FROM account_move_line aml
-              JOIN account_tax_repartition_line tx_rep
-                   ON aml.tax_line_id = tx_rep.invoice_tax_id AND tx_rep.repartition_type = 'tax'
-              JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
-         LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
-             WHERE COALESCE(caba_info.invoice_type, move.type) IN ('in_invoice', 'out_invoice')
+            FROM account_move_line aml
+            JOIN account_tax_repartition_line tx_rep ON aml.tax_line_id = tx_rep.invoice_tax_id AND tx_rep.repartition_type = 'tax'
+            JOIN account_journal journal ON journal.id = aml.journal_id
+            JOIN account_tax tax ON tax.id = aml.tax_line_id
+            LEFT JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
+            LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+            GROUP BY aml.id, tx_rep.id, journal.id, tax.id, move.id
+            HAVING
+                CASE
+                    -- To manage CABA and invoice entries
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('in_invoice' as varchar)] THEN NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('in_refund' as varchar)] OR aml.debit > 0
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('out_invoice' as varchar)] THEN NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('out_refund' as varchar)] OR aml.credit > 0
+
+                    -- To manage payment with taxes (created from the reconciliation widget as writeoff) and misc operations
+                    WHEN %(misc_entry_condition)s AND array_to_string(array_agg(caba_info.invoice_type),',') = '' THEN CASE WHEN (CASE WHEN tax.type_tax_use='sale' THEN -1 ELSE 1 END
+                                                                                                                                  * CASE WHEN tx_rep.factor_percent < 0 THEN -1 ELSE 1 END)
+                                                                                                                                  < 0 THEN aml.credit > 0
+                                                                                                                       ELSE aml.debit > 0
+                                                                                                                       END
+                    ELSE false
+                END
         )
         UPDATE account_move_line aml
            SET tax_repartition_line_id = new_repartition.rep_id
@@ -426,23 +417,154 @@ def migrate(cr, version):
         """
         INSERT INTO account_account_tag_account_move_line_rel
              SELECT aml_tx.account_move_line_id as account_move_line_id, rep_tags.account_account_tag_id as account_account_tag_id
-               FROM account_tax_repartition_line tx_rep,
-                    account_account_tag_account_tax_repartition_line_rel rep_tags,
-                    account_move_line_account_tax_rel aml_tx
-               JOIN account_move_line aml ON aml.id = aml_tx.account_move_line_id
-               JOIN  %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
-               LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
-              WHERE tx_rep.repartition_type = 'base'
-                AND aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
-                AND rep_tags.account_tax_repartition_line_id  = tx_rep.id
-                AND ((COALESCE(caba_info.invoice_type, move.type) in ('in_refund', 'out_refund')
-                      AND tx_rep.refund_tax_id is not null)
-                     OR (tx_rep.invoice_tax_id is not null and COALESCE(caba_info.invoice_type, move.type)
-                         IN ('in_invoice', 'out_invoice')))
+             FROM account_tax_repartition_line tx_rep,
+                  account_account_tag_account_tax_repartition_line_rel rep_tags,
+                  account_move_line_account_tax_rel aml_tx
+
+             JOIN account_move_line aml ON aml.id = aml_tx.account_move_line_id
+             JOIN account_tax tax on tax.id = aml_tx.account_tax_id
+             JOIN account_journal journal on journal.id = aml.journal_id
+             LEFT JOIN  account_invoice move ON aml.move_id = move.move_id
+             LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+
+             WHERE tx_rep.repartition_type = 'base'
+             AND aml_tx.account_tax_id = coalesce(tx_rep.invoice_tax_id, tx_rep.refund_tax_id)
+             AND rep_tags.account_tax_repartition_line_id  = tx_rep.id
+
+             GROUP BY aml.id, journal.id, tax.id, aml_tx.account_move_line_id, rep_tags.account_account_tag_id, tx_rep.id
+
+             HAVING
+               CASE
+                    -- To manage CABA and invoice entries
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('in_refund' as varchar)] AND (NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('in_invoice' as varchar)] OR aml.credit > 0) THEN tx_rep.refund_tax_id IS NOT NULL
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('out_refund' as varchar)] AND (NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('out_invoice' as varchar)] OR aml.debit > 0) THEN tx_rep.refund_tax_id IS NOT NULL
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('out_invoice' as varchar)] AND (NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('out_refund' as varchar)] OR aml.credit > 0) THEN tx_rep.invoice_tax_id IS NOT NULL
+                    WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('in_invoice' as varchar)] AND (NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('in_refund' as varchar)] OR aml.debit > 0) THEN tx_rep.invoice_tax_id IS NOT NULL
+
+                    -- To manage payment with taxes (created from the reconciliation widget as writeoff) and misc operations
+                    WHEN array_to_string(array_agg(caba_info.invoice_type),',') = '' AND ((tax.type_tax_use='sale' AND aml.debit > 0) OR (tax.type_tax_use='purchase' and aml.credit > 0)) THEN tx_rep.refund_tax_id IS NOT NULL
+                    ELSE tx_rep.invoice_tax_id IS NOT NULL
+               END
         ON conflict do nothing; -- for lines that are the base of multiple taxes sharing some tags
     """
         % sql_dict
     )
+
+    # In some cases, the sign of the tags taken from the repartition lines
+    # needs to be inverted:
+    # - for cash basis entries of in_refund and out_invoice invoices: so that
+    #   the CABA entry can be evaluated as a miscellaneous operation by the tax report
+    # - for miscellaneous operations using taxes, for equivalent of out_invoice and in_refund
+    cr.execute("""
+        CREATE TABLE tags_to_replace(line_id, tag_id, opposite_tag_id) AS (
+
+            -- For CABA entries
+
+            SELECT
+                line.id,
+                tag.id,
+                opposite_tag.id,
+                CASE
+                     WHEN tax_rep_ln.invoice_tax_id IS NOT NULL AND 'out_invoice' = any(array_agg(caba_origin_invoice.type)) THEN -1
+                     WHEN tax_rep_ln.refund_tax_id IS NOT NULL AND 'in_refund' = any(array_agg(caba_origin_invoice.type)) THEN -1
+                     WHEN tax_rep_ln.id IS NULL AND 'out_invoice' = any(array_agg(caba_origin_invoice.type)) AND (NOT 'out_refund' = any(array_agg(caba_origin_invoice.type)) OR line.credit > 0) THEN -1
+                     WHEN tax_rep_ln.id IS NULL AND 'in_refund' = any(array_agg(caba_origin_invoice.type)) AND (NOT 'in_invoice' = any(array_agg(caba_origin_invoice.type)) OR line.credit > 0) THEN -1
+                     ELSE 1 END
+                AS multiplicator
+            FROM account_move_line line
+            JOIN account_move move ON move.id = line.move_id
+            JOIN account_account_tag_account_move_line_rel tag_rel ON tag_rel.account_move_line_id = line.id
+            JOIN account_account_tag tag ON tag.id = tag_rel.account_account_tag_id
+            JOIN account_account_tag opposite_tag ON (opposite_tag.name = '-' || SUBSTRING(tag.name, 2) OR opposite_tag.name = '+' || SUBSTRING(tag.name, 2)) AND opposite_tag.name != tag.name
+            JOIN account_partial_reconcile caba_partial_rec ON caba_partial_rec.id = move.tax_cash_basis_rec_id
+            JOIN account_move_line caba_origin_aml ON caba_origin_aml.id IN (caba_partial_rec.credit_move_id, caba_partial_rec.debit_move_id)
+            JOIN %(invoice_table)s caba_origin_invoice ON caba_origin_invoice.%(invoice_move_id_field)s = caba_origin_aml.move_id
+            LEFT JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = line.tax_repartition_line_id
+            LEFT JOIN account_tax tax_tax ON tax_tax.id = COALESCE(tax_rep_ln.invoice_tax_id, tax_rep_ln.refund_tax_id)
+            LEFT JOIN account_move_line_account_tax_rel tax_rel ON tax_rel.account_move_line_id = line.id
+            LEFT JOIN  account_tax tax_base ON tax_base.id = tax_rel.account_tax_id
+            GROUP BY line.id, tag.id, opposite_tag.id, tax_rep_ln.id
+
+            UNION ALL
+
+            -- For other misc operations using taxes (like payments made from the reconciliation widget), but not CABA reversals
+
+            SELECT
+                line.id,
+                tag.id,
+                opposite_tag.id,
+                CASE
+                     WHEN tax_rep_ln.invoice_tax_id IS NOT NULL AND tax_tax.type_tax_use = 'sale' THEN -1
+                     WHEN tax_rep_ln.refund_tax_id IS NOT NULL AND tax_tax.type_tax_use = 'purchase' THEN -1
+                     WHEN tax_rep_ln.id IS NULL AND 'sale' = any(array_agg(tax_base.type_tax_use)) AND line.credit > 0 THEN -1 --condition on credit to only match invoices, not refunds
+                     WHEN tax_rep_ln.id IS NULL AND 'purchase' = any(array_agg(tax_base.type_tax_use)) AND line.credit > 0 THEN -1
+                     ELSE 1 END
+                AS multiplicator
+            FROM account_move_line line
+            JOIN account_move move ON move.id = line.move_id
+            JOIN account_account_tag_account_move_line_rel tag_rel ON tag_rel.account_move_line_id = line.id
+            JOIN account_account_tag tag ON tag.id = tag_rel.account_account_tag_id
+            JOIN account_account_tag opposite_tag ON (opposite_tag.name = '-' || SUBSTRING(tag.name, 2) OR opposite_tag.name = '+' || SUBSTRING(tag.name, 2)) AND opposite_tag.name != tag.name
+            LEFT JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = line.tax_repartition_line_id
+            LEFT JOIN account_tax tax_tax ON tax_tax.id = COALESCE(tax_rep_ln.invoice_tax_id, tax_rep_ln.refund_tax_id)
+            LEFT JOIN account_move_line_account_tax_rel tax_rel ON tax_rel.account_move_line_id = line.id
+            LEFT JOIN  account_tax tax_base ON tax_base.id = tax_rel.account_tax_id
+            WHERE %(no_invoice_where)s
+            AND NOT EXISTS(SELECT reversed_move.id FROM account_move reversed_move WHERE %(reversed_move_condition)s AND reversed_move.tax_cash_basis_rec_id IS NOT NULL) -- reversals of CABA are handled below
+            AND move.tax_cash_basis_rec_id IS NULL
+            GROUP BY line.id, tag.id, opposite_tag.id, tax_rep_ln.id, tax_tax.type_tax_use
+
+            UNION ALL
+
+            -- For reversals of CABA entries (which hence don't have tax_cash_basis_rec_id)
+            -- TODO OCO à tester, sans doute quand même utile, même si pas chez decrolux apparemment
+            SELECT
+                line.id,
+                tag.id,
+                opposite_tag.id,
+                CASE WHEN tax_rep_ln.invoice_tax_id IS NOT NULL AND 'out_invoice' = any(array_agg(caba_origin_invoice.type)) THEN -1
+                     WHEN tax_rep_ln.refund_tax_id IS NOT NULL AND 'in_refund' = any(array_agg(caba_origin_invoice.type)) THEN -1
+                     WHEN tax_rep_ln.id IS NULL AND 'out_invoice' = any(array_agg(caba_origin_invoice.type)) AND (NOT 'out_refund' = any(array_agg(caba_origin_invoice.type)) OR line.credit > 0) THEN -1
+                     WHEN tax_rep_ln.id IS NULL AND 'in_refund' = any(array_agg(caba_origin_invoice.type)) AND (NOT 'in_invoice' = any(array_agg(caba_origin_invoice.type)) OR line.credit > 0) THEN -1
+                     ELSE 1 END
+                 AS multiplicator
+            FROM account_move_line line
+            JOIN account_move move ON move.id = line.move_id
+            JOIN account_move reversed_move ON %(reversed_move_condition)s
+            JOIN account_account_tag_account_move_line_rel tag_rel ON tag_rel.account_move_line_id = line.id
+            JOIN account_account_tag tag ON tag.id = tag_rel.account_account_tag_id
+            JOIN account_account_tag opposite_tag ON (opposite_tag.name = '-' || SUBSTRING(tag.name, 2) OR opposite_tag.name = '+' || SUBSTRING(tag.name, 2)) AND opposite_tag.name != tag.name
+            JOIN account_partial_reconcile caba_partial_rec ON caba_partial_rec.id = reversed_move.tax_cash_basis_rec_id
+            JOIN account_move_line caba_origin_aml ON caba_origin_aml.id IN (caba_partial_rec.credit_move_id, caba_partial_rec.debit_move_id)
+            JOIN %(invoice_table)s caba_origin_invoice ON caba_origin_invoice.%(invoice_move_id_field)s = caba_origin_aml.move_id
+            LEFT JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = line.tax_repartition_line_id
+            LEFT JOIN account_tax tax_tax ON tax_tax.id = COALESCE(tax_rep_ln.invoice_tax_id, tax_rep_ln.refund_tax_id)
+            LEFT JOIN account_move_line_account_tax_rel tax_rel ON tax_rel.account_move_line_id = line.id
+            LEFT JOIN  account_tax tax_base ON tax_base.id = tax_rel.account_tax_id
+            GROUP BY line.id, tag.id, opposite_tag.id, tax_rep_ln.id
+        )
+    """
+        % sql_dict
+    )
+
+    # Replace the tags that need to be, using the temporary table
+    cr.execute("""
+        DELETE FROM account_account_tag_account_move_line_rel
+        USING tags_to_replace
+        WHERE tags_to_replace.line_id = account_account_tag_account_move_line_rel.account_move_line_id
+        AND tags_to_replace.tag_id = account_account_tag_account_move_line_rel.account_account_tag_id
+        AND tags_to_replace.multiplicator = -1;
+    """)
+
+    cr.execute("""
+        INSERT INTO account_account_tag_account_move_line_rel
+            SELECT
+                tags_to_replace.line_id AS account_move_line_id,
+                tags_to_replace.opposite_tag_id AS account_account_tag_id
+            FROM tags_to_replace
+            WHERE tags_to_replace.multiplicator = -1
+        ON CONFLICT DO NOTHING; -- for lines that are the base of multiple taxes sharing some tags
+    """)
 
     env["account.move.line"].invalidate_cache(fnames=["tag_ids"])
 

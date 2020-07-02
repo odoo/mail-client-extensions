@@ -29,13 +29,13 @@ def migrate(cr, version):
         cr.execute(
             """
             UPDATE tax_accounts_v12_bckp
-               SET account_id = account_tax.cash_basis_transition_account_id
+               SET account_id = account_tax.cash_basis_transition_account_id, refund_account_id=account_tax.cash_basis_transition_account_id
               FROM account_tax
              WHERE account_tax.id = tax_accounts_v12_bckp.id
                AND account_tax.cash_basis_transition_account_id is not null;
 
             UPDATE account_tax
-               SET cash_basis_transition_account_id = account_id, account_id = cash_basis_transition_account_id
+               SET cash_basis_transition_account_id = account_id, account_id = cash_basis_transition_account_id, refund_account_id = cash_basis_transition_account_id
              WHERE cash_basis_transition_account_id is not null;
         """
         )
