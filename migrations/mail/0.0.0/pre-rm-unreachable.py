@@ -10,6 +10,7 @@ def migrate(cr, version):
 
     # start by fixing the one2one of mail.alias.mixin records
     alias_queries = []
+    alias_indexes = {}
     cr.execute(
         """
             SELECT m.id, m.model
@@ -24,6 +25,9 @@ def migrate(cr, version):
         if not util.column_exists(cr, table, "alias_id"):
             # XXX delete all aliases?
             continue
+
+        if not util.get_index_on(cr, table, "alias_id"):
+            alias_indexes[table] = f"upgrade_fk_alias_idx_{mid}"
 
         alias_queries.append(
             cr.mogrify(
@@ -40,6 +44,10 @@ def migrate(cr, version):
                 [mid],
             )
         )
+
+    util.parallel_execute(cr, [f"CREATE INDEX {idx} ON {tbl}(alias_id)" for tbl, idx in alias_indexes.items()])
+    util.ENVIRON["__created_fk_idx"].extend(alias_indexes.values())
+
     util.parallel_execute(cr, alias_queries)
 
     mail_queries = []
