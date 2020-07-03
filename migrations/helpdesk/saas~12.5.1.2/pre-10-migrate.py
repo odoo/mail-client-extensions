@@ -47,6 +47,56 @@ def migrate(cr, version):
     INNER JOIN helpdesk_sla s on t.sla_id=s.id
     """
     )
+    cr.execute(
+        """
+        UPDATE helpdesk_ticket t
+           SET sla_deadline=NULL
+          FROM helpdesk_stage stage
+         WHERE t.stage_id = stage.id
+           AND stage.is_close='t'
+    """
+    )
+    cr.execute(
+        """
+        WITH extracted_date AS
+            (
+            SELECT DISTINCT ON (status.id)
+               status.id,
+               msg.date
+              FROM helpdesk_sla_status status
+              JOIN helpdesk_ticket t ON status.ticket_id = t.id
+              JOIN helpdesk_stage stage ON status.sla_stage_id = stage.id
+              JOIN mail_message msg ON (t.id = msg.res_id AND msg.model = 'helpdesk.ticket')
+              JOIN mail_message_subtype msg_subtype ON (msg.subtype_id = msg_subtype.id AND msg_subtype.name = 'Stage Changed')
+              JOIN mail_tracking_value track ON (msg.id = track.mail_message_id AND track.field = 'stage_id')
+              JOIN helpdesk_stage other_stage ON track.new_value_integer = other_stage.id
+             WHERE (stage.id = track.new_value_integer OR stage.sequence <= other_stage.sequence)
+          GROUP BY status.id, msg.date
+          ORDER BY status.id, msg.date DESC
+            )
+        UPDATE helpdesk_sla_status status
+           SET reached_datetime = extracted_date.date
+          FROM extracted_date
+         WHERE status.id = extracted_date.id
+    """
+    )
+    cr.execute(
+        """
+        WITH compute_sla_reached_late AS
+            (
+            SELECT t.id AS ticket_id
+              FROM helpdesk_ticket t
+              JOIN helpdesk_sla_status status ON t.id = status.ticket_id
+             WHERE status.deadline < status.reached_datetime
+          GROUP BY t.id
+            HAVING COUNT(status.id) > 0
+            )
+        UPDATE helpdesk_ticket
+           SET sla_reached_late = True
+          FROM compute_sla_reached_late
+         WHERE id = ticket_id
+    """
+    )
     # cr.execute(
     #     """
     #         SELECT ticket_id, COUNT(id) AS reached_late_count
