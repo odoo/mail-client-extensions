@@ -27,7 +27,7 @@ def migrate(cr, version):
             continue
 
         if not util.get_index_on(cr, table, "alias_id"):
-            alias_indexes[table] = f"upgrade_fk_alias_idx_{mid}"
+            alias_indexes[table] = "upgrade_fk_alias_idx_{mid}".format(mid=mid)
 
         alias_queries.append(
             cr.mogrify(
@@ -45,7 +45,9 @@ def migrate(cr, version):
             )
         )
 
-    util.parallel_execute(cr, [f"CREATE INDEX {idx} ON {tbl}(alias_id)" for tbl, idx in alias_indexes.items()])
+    util.parallel_execute(
+        cr, ["CREATE INDEX {idx} ON {tbl}(alias_id)".format(tbl=tbl, idx=idx) for tbl, idx in alias_indexes.items()]
+    )
     util.ENVIRON["__created_fk_idx"].extend(alias_indexes.values())
 
     util.parallel_execute(cr, alias_queries)
