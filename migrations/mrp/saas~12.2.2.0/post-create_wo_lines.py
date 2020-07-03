@@ -14,6 +14,7 @@ def migrate(cr, version):
                product_qty, product_uom_qty, qty_done
           FROM stock_move_line
          WHERE workorder_id IS NOT NULL
+           AND product_id IS NOT NULL
            AND done_wo = true
     """.format(
             wo
