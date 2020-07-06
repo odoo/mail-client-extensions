@@ -7,14 +7,19 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "sale.order", "tag_ids", "sale_crm", "sale")
     util.create_column(cr, "sale_order", "currency_id", "int4")
 
-    cr.execute(
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
         """
             UPDATE sale_order s
                SET currency_id = p.currency_id
               FROM product_pricelist p
              WHERE p.id = s.pricelist_id
-        """
-    )
+        """,
+        prefix="s.",
+    ),
+)
 
     gone = """
         access_sale_order_invoicing_payments_readonly
