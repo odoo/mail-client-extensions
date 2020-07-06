@@ -34,6 +34,7 @@ def migrate(cr, version):
     """
     )
     # change payment_type from 'transfer' to 'inbound', update partner_id & move_name
+    cr.commit()
     cr.execute(
         """
     UPDATE account_payment pay
@@ -84,6 +85,7 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "account_payment", "company_id", "int4")
+    cr.commit()
     cr.execute(
         """
         UPDATE account_payment pay
