@@ -17,14 +17,19 @@ def migrate(cr, version):
     util.create_column(cr, "sale_subscription_line", "price_tax", "float8")
     util.create_column(cr, "sale_subscription_line", "price_total", "float8")
     util.create_column(cr, "sale_subscription_line", "currency_id", "integer")
-    cr.execute(
-        """
-        UPDATE sale_subscription_line l
-           SET currency_id = p.currency_id
-          FROM sale_subscription s
-          JOIN product_pricelist p ON p.id = s.pricelist_id
-         WHERE s.id = l.analytic_account_id
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
+            UPDATE sale_subscription_line l
+               SET currency_id = p.currency_id
+              FROM sale_subscription s
+              JOIN product_pricelist p ON p.id = s.pricelist_id
+             WHERE s.id = l.analytic_account_id
+        """,
+        prefix="l.",
+    ),
     )
 
     util.create_m2m(cr, "account_tax_sale_subscription_line_rel", "account_tax", "sale_subscription_line")
