@@ -23,16 +23,18 @@ def migrate(cr, version):
     util.create_column(cr, "mail_tracking_value", "field", "int4")
     util.parallel_execute(
         cr,
-        util.explode_query(
+        util.explode_query_range(
             cr,
             """
                 UPDATE mail_tracking_value t
                    SET field = f.id
-                  FROM mail_message m, ir_model_fields f
-                 WHERE t.mail_message_id = m.id
-                   AND f.name = t._field
-                   AND m.model = f.model
+                  FROM mail_tracking_value mtv
+                  JOIN mail_message m ON mtv.mail_message_id = m.id
+                  JOIN ir_model_fields f ON f.name = t._field AND m.model = f.model
+                 WHERE t.id=mtv.id
             """,
+            table="mail_tracking_value",
+            bucket_size=250_000,
             prefix="t.",
         ),
     )
