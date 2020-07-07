@@ -6,7 +6,7 @@ def migrate(cr, version):
 
     if util.column_exists(cr, "mail_message", "website_published"):
         # from website_mail, see odoo/odoo@5649fc88e8f3022f4143400a124f2e3c1e5c0df8
-        # NOTE uses `!= true` instead of `not` to handle NULL values
+        # NOTE uses `is not true` instead of `not` to handle NULL values
         if util.column_exists(cr, "mail_message", "is_internal"):
             util.update_field_references(
                 cr,
@@ -18,7 +18,8 @@ def migrate(cr, version):
             util.parallel_execute(
                 cr,
                 util.explode_query(
-                    cr, "UPDATE mail_message SET is_internal = (website_published != true) WHERE is_internal IS NULL",
+                    cr,
+                    "UPDATE mail_message SET is_internal = (website_published is not true) WHERE is_internal IS NULL",
                 ),
             )
             util.remove_field(cr, "mail.message", "website_published")
@@ -30,7 +31,7 @@ def migrate(cr, version):
             # XXX took ~15 minutes with `ALTER TABLE`
             #          ~60 minutes with `UPDATE`
             #          ~30 minutes with parallized `UPDATE` (8 workers, 100k bucket)
-            cr.execute("ALTER TABLE mail_message ALTER COLUMN is_internal TYPE boolean USING (is_internal != true)")
+            cr.execute("ALTER TABLE mail_message ALTER COLUMN is_internal TYPE boolean USING (is_internal is not true)")
 
     else:
         util.create_column(cr, "mail_message", "is_internal", "boolean", default=True)
