@@ -33,13 +33,16 @@ def add_snippet_names(cr, table, column, snippets, select_query):
     for res_id, regex_matches, arch in it:
         regex_matches = [match[0] for match in regex_matches]
         body = html.fromstring(arch, parser=utf8_parser)
+        changed = False
         for snippet in snippets:
             if snippet.klass in regex_matches:
                 body_snippets = body.xpath(snippet.selector)
                 for body_snippet in body_snippets:
                     body_snippet.attrib["data-snippet"] = snippet.name
-        body = etree.tostring(body, encoding="unicode")
-        cr.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s", [body, res_id])
+                    changed = True
+        if changed:
+            body = etree.tostring(body, encoding="unicode")
+            cr.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s", [body, res_id])
 
 
 def add_snippet_names_on_html_field(cr, table, column, snippets, regex):
