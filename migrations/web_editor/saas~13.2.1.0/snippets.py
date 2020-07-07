@@ -47,6 +47,10 @@ def add_snippet_names_on_html_field(cr, table, column, snippets, regex):
     Will search for all the snippets in the fields mentionned (should be html fields) and add
     the corresponding data-snippet on them.
     """
+    if not (util.column_exists(cr, table, column) and util.table_exists(cr, table)):
+        # Should be a regular table (cannot update views)
+        return
+
     select_query = cr.mogrify(
         f"""
             SELECT id, array((SELECT regexp_matches({column}, %(regex)s, 'g'))), {column}
