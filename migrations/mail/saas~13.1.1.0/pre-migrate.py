@@ -30,7 +30,7 @@ def migrate(cr, version):
                    SET field = f.id
                   FROM mail_tracking_value mtv
                   JOIN mail_message m ON mtv.mail_message_id = m.id
-                  JOIN ir_model_fields f ON f.name = t._field AND m.model = f.model
+                  JOIN ir_model_fields f ON f.name = mtv._field AND m.model = f.model
                  WHERE t.id=mtv.id
             """,
             table="mail_tracking_value",
