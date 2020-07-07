@@ -1298,7 +1298,35 @@ def migrate_invoice_lines(cr):
                 "accounting. To correct the accounts to use for these contacts, access the contact form and set the "
                 "accounts for each company available in the dropdown multi-company menu. The contact ids are: %s."
                 % ", ".join([str(id) for id, in cr.fetchall()]),
-                category="Partner accounts",
+                category="Accounting",
+            )
+
+        # Before creating account moves, be sure that property_account_income_id and property_account_expense_id
+        # properties of products are valid (i.e with an account_id in the same company than the
+        # property itself). If it's not the case, drop them.
+        cr.execute(
+            """
+               DELETE FROM ir_property p
+                USING account_account a
+                WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
+                  AND p.res_id IS NOT NULL
+                  AND p.name IN ('property_account_income_id', 'property_account_expense_id')
+                  AND p.company_id != a.company_id
+                  AND p.company_id IS NOT NULL
+            RETURNING replace(p.res_id, 'product.template,', '')
+            """
+        )
+
+        if cr.rowcount:
+            util.add_to_migration_reports(
+                message="The following products have a problem with the company of their income and/or expense "
+                "account. When accessed with a specific company using the multi-company dropdown menu, in the right of "
+                "the top menu bar, these products use accounts belonging to another company then the currently used "
+                "company. These invalid accounts have been unset from these contacts to be able to upgrade the "
+                "accounting. To correct the accounts to use for these contacts, access the contact form and set the "
+                "accounts for each company available in the dropdown multi-company menu. The product ids are: %s."
+                % ", ".join(set(str(id) for id, in cr.fetchall())),
+                category="Accounting",
             )
 
         # Manage account_invoice_line
