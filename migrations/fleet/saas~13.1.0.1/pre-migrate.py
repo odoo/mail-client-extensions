@@ -82,7 +82,8 @@ def migrate(cr, version):
     """
     )
 
-    util.remove_column(cr, "fleet_vehicle_log_services", "purchaser_id")
+    if not util.version_gte("saas~13.3"):
+        util.remove_column(cr, "fleet_vehicle_log_services", "purchaser_id")
     util.rename_field(cr, "fleet.vehicle.log.services", "cost_subtype_id", "service_type_id")
     for field in {
         "cost_id",
