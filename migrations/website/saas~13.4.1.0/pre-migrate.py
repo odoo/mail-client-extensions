@@ -23,3 +23,5 @@ def migrate(cr, version):
         """
     )
     util.remove_field(cr, "ir.ui.view", "visibility_group")
+
+    util.update_record_from_xml(cr, "website.digest_tip_website_0")

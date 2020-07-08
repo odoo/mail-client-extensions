@@ -52,8 +52,14 @@ def migrate(cr, version):
     )
     util.module_deps_diff(cr, "mass_mailing", plus={"digest"})
     util.module_deps_diff(cr, "hr_timesheet", minus={"timer"})
+    util.module_deps_diff(cr, "stock", plus={"digest"})
 
     if util.has_enterprise():
+        util.new_module(cr, "digest_enterprise",
+                        deps={"web_enterprise", "digest"},
+                        auto_install=True)
+        util.module_deps_diff(cr, "documents", plus={"digest"})
+
         util.new_module_dep(cr, "l10n_mx_edi", "product_unspsc")
         util.module_deps_diff(cr, "test_mail_enterprise", plus={"marketing_automation_sms"})
         util.module_deps_diff(
@@ -63,6 +69,7 @@ def migrate(cr, version):
         )
         util.new_module_dep(cr, "voip", "web_mobile")
         util.new_module(cr, "hr_appraisal_survey", deps={"hr_appraisal", "survey"})
+        util.module_deps_diff(cr, "planning", plus={"digest"})
         util.module_deps_diff(cr, "snailmail_account_followup", plus={"snailmail_account"}, minus={"snailmail"})
         util.module_deps_diff(cr, "timesheet_grid", plus={"timer"})
         util.module_deps_diff(cr, "helpdesk_timesheet", minus={"timer"}, plus={"timesheet_grid"})

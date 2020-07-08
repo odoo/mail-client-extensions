@@ -34,3 +34,5 @@ def migrate(cr, version):
         """,
         (group_subtask.id,),
     )
+
+    util.update_record_from_xml(cr, "project.digest_tip_project_0")
