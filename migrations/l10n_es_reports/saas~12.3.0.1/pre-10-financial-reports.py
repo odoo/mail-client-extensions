@@ -4,14 +4,19 @@
 def migrate(cr, version):
     # Records with XML ids mod_347_operations_real_estates_bought and mod_347_operations_regular_sold
     # were swapped in 12.0
-    cr.execute(
-        """
-        UPDATE ir_model_data
-           SET res_id = (
-               SELECT id
-                 FROM account_financial_html_report_line
-                WHERE code = 'aeat_' || ir_model_data.name
-           )
-         WHERE name IN ('mod_347_operations_regular_bought', 'mod_347_operations_regular_sold')
-    """
-    )
+    for xmlid, codes in [
+        ("mod_347_operations_regular_sold", ("_mod_347_temp", "aeat_mod_347_operations_regular_bought")),
+        ("mod_347_operations_regular_bought", ("aeat_mod_347_operations_regular_sold",)),
+    ]:
+        cr.execute(
+            """
+            UPDATE ir_model_data
+               SET res_id = (
+                   SELECT id
+                   FROM account_financial_html_report_line
+                   WHERE code in %s
+                   )
+             WHERE module = 'l10n_es_reports' AND name = %s
+          """,
+            (codes, xmlid),
+        )
