@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo.upgrade import util
-
 import re
+import itertools
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -9,70 +9,120 @@ def migrate(cr, version):
     # Sequence Performances (PR:53393)
     # ===========================================================
     util.create_column(cr, "account_journal", "sequence_override_regex", "varchar")
-    for table in ['account_move', 'account_bank_statement']:
-        util.create_column(cr, table, 'sequence_prefix', 'varchar')
-        util.create_column(cr, table, 'sequence_number', 'int4')
+    for table in ["account_move", "account_bank_statement"]:
+        util.create_column(cr, table, "sequence_prefix", "varchar")
+        util.create_column(cr, table, "sequence_number", "int4")
 
-    cr.execute("""
-        SELECT journal.id,
-               journal.name,
-               COALESCE(prefix, '') AS prefix,
-               COALESCE(suffix, '') AS suffix
-          FROM account_journal journal
-          JOIN ir_sequence sequence ON journal.sequence_id = sequence.id
-    """)
+    class Substitue:
+        def __init__(self, placeholder, match, group):
+            self.placeholder = f"%({placeholder})s"
+            self.regex = rf"(?P<{group}>({match})?)" if group else match
+            self.deprecated = not group
 
-    for res in cr.dictfetchall():
-        substitute = {'year': 0, 'month': 0, 'range_year': 0, 'range_month': 0, 'y': 0, 'range_y': 0}
-        try:
-            res['prefix'] % substitute
-            res['suffix'] % substitute
-        except KeyError:
-            raise util.MigrationError(
-                "Only 'range_year', 'range_y', 'range_month', 'year' and 'month' are valid"
-                " placeholders in prefix and suffix for ir.sequence on %s." % res['name']
-            )
-        if re.search(r'%\(\w+\)s', res['prefix']) and re.search(r'%\(\w+\)s', res['suffix']):
-            raise util.MigrationError("Placeholders can not be in both prefix and suffix")
+        @classmethod
+        def make(cls, placeholder, match, group):
+            return [
+                cls(placeholder, match, group),
+                cls(f"range_{placeholder}", match, group),
+                cls(f"current_{placeholder}", match, group),
+            ]
 
-        if res['suffix'] and re.search(r'(\d|%\(\w+\)s)', res['suffix']):
-            suffix_regex = res['suffix'].replace('%(year)s', r'(?P<year>(\d{4})?)')\
-                                        .replace('%(y)s', r'(?P<year>(\d{2})?)')\
-                                        .replace('%(month)s', r'(?P<month>(\d{2})?)')\
-                                        .replace('%(range_year)s', r'(?P<year>(\d{4})?)')\
-                                        .replace('%(range_y)s', r'(?P<year>(\d{2})?)')\
-                                        .replace('%(range_month)s', r'(?P<month>(\d{2})?)')
-            regex = r'^(?P<prefix1>.*?)(?P<seq>\d*)(?P<suffix>{})$'.format(suffix_regex)
-            cr.execute("""
-                UPDATE account_journal
-                   SET sequence_override_regex = %(regex)s
-                 WHERE id = %(journal_id)s;
-            """, {
-                'regex': regex,
-                'journal_id': res['id'],
-            })
-            number = re.sub(r'\?P<\w+>', '?:', regex.replace(r'?P<seq>', ''))
-            prefix = re.sub(r'\?P<\w+>', '', re.sub(r'(\?<seq>.*)', '(?:.*)', regex))
-            for table in ['account_move', 'account_bank_statement']:
-                cr.execute("""
-                    UPDATE {}
-                       SET sequence_prefix = (regexp_match(name, %(prefix)s))[1],
-                           sequence_number = ('0' || (regexp_match(name, %(number)s))[1])::integer
-                     WHERE journal_id = %(journal_id)s;
-                """.format(table), {
-                    'prefix': prefix,
-                    'number': number,
-                    'journal_id': res['id'],
-                })
+    substitutes = list(
+        itertools.chain.from_iterable(
+            [
+                Substitue.make("year", r"\d{4}", "year"),
+                Substitue.make("month", r"\d{2}", "month"),
+                Substitue.make("y", r"\d{2}", "year"),
+                Substitue.make("day", r"\d{2}", None),
+                Substitue.make("doy", r"\d{3}", None),
+                Substitue.make("woy", r"\d{2}", None),
+                Substitue.make("weekday", r"\d", None),
+                Substitue.make("h24", r"\d{2}", None),
+                Substitue.make("h12", r"\d{2}", None),
+                Substitue.make("min", r"\d{2}", None),
+                Substitue.make("sec", r"\d{2}", None),
+            ]
+        )
+    )
+    deprecated_placeholders = {s.placeholder for s in substitutes if s.deprecated}
+    bad_journals = []
 
-    for table in ['account_move', 'account_bank_statement']:
-        cr.execute(r"""
-            UPDATE %s
-               SET sequence_prefix = (regexp_match(name, '^(.*?)(?:\d*)(?:\D*?)$'))[1],
-                   sequence_number = ('0' || (regexp_match(name, '^(?:.*?)(\d*)(?:\D*?)$'))[1])::integer
-             WHERE sequence_number IS NULL;
-        """ % (table,))
+    cr.execute(
+        """
+            SELECT j.id,
+                   j.name,
+                   j.active,
+                   COALESCE(s.prefix, '') AS prefix,
+                   COALESCE(s.suffix, '') AS suffix
+              FROM account_journal j
+              JOIN ir_sequence s ON j.sequence_id = s.id
+        """
+    )
 
+    for jid, name, active, prefix, suffix in cr.fetchall():
+        if active:
+            deactivate = False
+            if re.search(r"%\(\w+\)s", prefix) and re.search(r"%\(\w+\)s", suffix):
+                deactivate = True
+                bad_journals.append(
+                    f"The journal {name} (id={jid}) use placeholders in both prefix and suffix. This not supported anymore."
+                )
+
+            xfix = prefix + suffix
+            if any(p in xfix for p in deprecated_placeholders):
+                deactivate = True
+                bad_journals.append(
+                    f"The journal {name} (id={jid} use deprecated placeholders that are not supported anymore."
+                )
+
+            if deactivate:
+                cr.execute("UPDATE account_journal SET active = false WHERE id = %s", [jid])
+
+        if suffix and re.search(r"(\d|%\(\w+\)s)", suffix):
+            suffix_regex = suffix
+            for sub in substitutes:
+                suffix_regex = suffix_regex.replace(sub.placeholder, sub.regex)
+            regex = rf"^(?P<prefix1>.*?)(?P<seq>\d*)(?P<suffix>{suffix_regex})$"
+            cr.execute("UPDATE account_journal SET sequence_override_regex = %s WHERE id = %s", [regex, jid])
+
+            number = re.sub(r"\?P<\w+>", "?:", regex.replace(r"?P<seq>", ""))
+            prefix = re.sub(r"\?P<\w+>", "", re.sub(r"(\?<seq>.*)", "(?:.*)", regex))
+            for table in ["account_move", "account_bank_statement"]:
+                cr.execute(
+                    f"""
+                        UPDATE {table}
+                           SET sequence_prefix = (regexp_match(name, %s))[1],
+                               sequence_number = ('0' || (regexp_match(name, %s))[1])::integer
+                         WHERE journal_id = %s;
+                    """,
+                    [prefix, number, jid],
+                )
+
+    if bad_journals:
+        util.add_to_migration_reports(
+            """<details>
+                 <summary>Some account journals has been deactivated</summary>
+                 <ul>{}</ul>
+               </details>
+            """.format(
+                "".join(f"<li>{b}</li>" for b in bad_journals)
+            ),
+            format="html",
+            category="Accounting",
+        )
+
+    # default match
+    for table in ["account_move", "account_bank_statement"]:
+        cr.execute(
+            rf"""
+                UPDATE {table}
+                   SET sequence_prefix = (regexp_match(name, '^(.*?)(?:\d*)(?:\D*?)$'))[1],
+                       sequence_number = ('0' || (regexp_match(name, '^(?:.*?)(\d*)(?:\D*?)$'))[1])::integer
+                 WHERE sequence_number IS NULL;
+            """
+        )
+
+    # ===
     util.remove_field(cr, "account.journal", "sequence_id")
     util.remove_field(cr, "account.journal", "refund_sequence_id")
     util.remove_field(cr, "account.journal", "sequence_number_next")
