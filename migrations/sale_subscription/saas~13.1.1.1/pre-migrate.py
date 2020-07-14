@@ -7,8 +7,8 @@ def migrate(cr, version):
     cr.execute(
         """
         UPDATE sale_subscription_line l
-           SET company_id = a.company_id
-          FROM account_analytic_account a
-         WHERE a.id = l.analytic_account_id
+           SET company_id = s.company_id
+          FROM sale_subscription s
+         WHERE s.id = l.analytic_account_id
     """
     )
