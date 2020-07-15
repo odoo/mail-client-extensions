@@ -151,7 +151,7 @@ def _get_mapping_exceptions(name):
     return {int(a): int(b) for each in os.environ.get(name, "").split(",") for a, _, b in [each.partition(":")] if each}
 
 
-def _compute_invoice_line_move_line_mapping(cr):
+def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
     """ Compute the mapping between account_invoice_line and its corresponding account_move_line.
     :param cr:      The database cursor.
     :return:        A map <invoice_line_id> -> <account_move_line_id>.
@@ -503,9 +503,14 @@ def _compute_invoice_line_move_line_mapping(cr):
 
     cr.execute(
         """
-        SELECT l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
+        SELECT l.id, i.move_id, l.name, l.product_id, l.uom_id,
                l.price_unit, l.discount, l.sequence,
                l.account_analytic_id,
+               CASE WHEN i.company_id != account.company_id AND i.state in ('draft', 'cancelled')
+                    THEN NULL
+                    ELSE l.account_id
+               END AS account_id,
+               i.id as invoice_id, i.type as invoice_type, i.journal_id, i.fiscal_position_id,
                array_remove(array_agg(x.tax_id), NULL) as taxes,
                array_remove(array_agg(g.account_analytic_tag_id), NULL) as tags
 
@@ -514,18 +519,25 @@ def _compute_invoice_line_move_line_mapping(cr):
      LEFT JOIN account_invoice_line_tax x ON x.invoice_line_id = l.id
      LEFT JOIN account_analytic_tag_account_invoice_line_rel g ON g.account_invoice_line_id = l.id
      LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
+     LEFT JOIN account_account account ON account.id = l.account_id
          WHERE l.display_type IS NULL
            AND m.invl_id IS NULL
            AND l.price_subtotal = 0
       GROUP BY l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
                l.price_unit, l.discount, l.sequence,
-               l.account_analytic_id
+               l.account_analytic_id, i.id, account.id
     """
     )
     mls = []
     line_ids = []
     for line in util.log_progress(cr.dictfetchall(), qualifier="zero-line", logger=_logger):
         line_ids.append(line["id"])
+        if not line["account_id"]:
+            line["account_id"] = guess_account(
+                env, line["invoice_type"], line["journal_id"], line["product_id"], line["fiscal_position_id"]
+            ).id
+            updated_invoices.setdefault(line["invoice_id"], []).append(line["name"])
+
         mls.append(
             {
                 "move_id": line["move_id"],
@@ -1177,6 +1189,17 @@ def _compute_invoice_line_grouped_in_move_line(cr):
     cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig124_invl_id")
 
 
+def guess_account(env, invoice_type, journal_id, product_id, fiscal_position_id):
+    account_type = "income" if invoice_type.startswith("out") else "expense"
+    journal = env["account.journal"].browse(journal_id)
+    product = env["product.product"].browse(product_id)
+    product = product.with_context(force_company=journal.company_id.id)
+    fiscal_pos = env["account.fiscal.position"].browse(fiscal_position_id)
+    accounts = product.product_tmpl_id.get_product_accounts(fiscal_pos=fiscal_pos)
+    account = accounts[account_type]
+    return account
+
+
 def migrate_invoice_lines(cr):
     env = util.env(cr)
     invoices = {}
@@ -1269,6 +1292,7 @@ def migrate_invoice_lines(cr):
     for inv_vals in cr.dictfetchall():
         invoices[inv_vals["id"]] = inv_vals
 
+    updated_invoices = {}
     if invoices:
 
         # Before creating account moves, be sure that account_receivable_id and account_payable_id
@@ -1378,9 +1402,18 @@ def migrate_invoice_lines(cr):
             [tuple(invoices)],
         )
 
-        updated_invoices = {}
         for line_vals in cr.dictfetchall():
-            invoices[line_vals["invoice_id"]].setdefault("invoice_line_ids", []).append(line_vals)
+            inv_vals = invoices[line_vals["invoice_id"]]
+            inv_vals.setdefault("invoice_line_ids", []).append(line_vals)
+
+            if not line_vals["account_id"]:
+                line_vals["account_id"] = guess_account(
+                    env,
+                    inv_vals["type"],
+                    inv_vals["journal_id"],
+                    line_vals["product_id"],
+                    inv_vals["fiscal_position_id"],
+                ).id
 
             if line_vals["account_id"] != line_vals["original_account_id"]:
                 updated_invoices.setdefault(line_vals["invoice_id"], []).append(line_vals["name"])
@@ -1410,7 +1443,7 @@ def migrate_invoice_lines(cr):
     # Post fix account_moves
     # =======================================================================================
 
-    _compute_invoice_line_move_line_mapping(cr)
+    _compute_invoice_line_move_line_mapping(cr, updated_invoices)
 
     if invoices and updated_invoices:
         mapping = {invoice_id: move_id for move_id, invoice_id in mappings}
