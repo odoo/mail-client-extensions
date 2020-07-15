@@ -1197,6 +1197,23 @@ def guess_account(env, invoice_type, journal_id, product_id, fiscal_position_id)
     fiscal_pos = env["account.fiscal.position"].browse(fiscal_position_id)
     accounts = product.product_tmpl_id.get_product_accounts(fiscal_pos=fiscal_pos)
     account = accounts[account_type]
+    if not account:
+        user_type = "data_account_type_revenue" if account_type == "income" else "data_account_type_expenses"
+        user_type = env.ref("account.%s" % user_type)
+        base_domain = [
+            ("company_id", "=", journal.company_id.id),
+            ("account_id.company_id", "=", journal.company_id.id),
+            ("account_id.user_type_id", "=", user_type.id),
+        ]
+        for leaf in [
+            ("product_id", "=", product.id),
+            ("product_id.categ_id", "=", product.categ_id.id),
+            ("product_id", "!=", False),
+            ("product_id", "=", False),
+        ]:
+            account = env["account.move.line"].search(base_domain + [leaf], limit=1).account_id
+            if account:
+                break
     return account
 
 
