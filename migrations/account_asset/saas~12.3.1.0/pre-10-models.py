@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.tools import float_compare
 from odoo.addons.base.maintenance.migrations import util
 
 def _convert_to_account_move_vals(depr_line):
@@ -143,6 +144,254 @@ def migrate(cr, version):
         [res['depreciated_value'] for res in result],
         move_ids.ids
     )))
+
+    cr.execute(
+        """
+              SELECT move_id
+                FROM account_asset_depreciation_line
+               WHERE move_id IS NOT NULL
+            GROUP BY move_id
+              HAVING COUNT(*) > 1
+        """
+    )
+    grouped_depreciation_move_ids = tuple(m[0] for m in cr.fetchall())
+    if grouped_depreciation_move_ids:
+        # Assets grouped by categories
+        # Meaning one move can group the accounting entries of multiple assets.
+        # This is no longer possible from `saas-12.3`, considering the depreciation lines are now
+        # a one2many on `account.move`.
+        # We therefore split such moves into pieces, so we can have one move by depreciation lines.
+
+        # Initial checks, to make sure we don't upgrade things we do not consider (yet!)
+        cr.execute(
+            """
+                  SELECT COUNT(*), SUM(coalesce(amount_currency, 0))
+                    FROM account_move_line
+                   WHERE move_id in %s
+                GROUP BY move_id
+            """,
+            (grouped_depreciation_move_ids,),
+        )
+        moves = cr.fetchall()
+        if any(move[0] != 2 for move in moves):
+            raise NotImplementedError(
+                """
+                Upgrading grouped asset moves having more than one debit and one credit line
+                is currently not supported.
+            """
+            )
+        if any(move[1] != 0 for move in moves):
+            raise NotImplementedError(
+                """
+                Upgrading grouped asset moves in foreign currencies is currently not supported.
+            """
+            )
+
+        # Method used to check the global debit/credit/balance is unchanged
+        def get_global_amounts():
+            cr.execute(
+                """
+                      SELECT account_id, SUM(debit), SUM(credit), SUM(balance)
+                        FROM account_move_line
+                       WHERE account_id in (SELECT DISTINCT account_id FROM account_move_line WHERE move_id in %s)
+                    GROUP BY account_id
+                    ORDER BY account_id
+                """,
+                (grouped_depreciation_move_ids,),
+            )
+            return cr.fetchall()
+
+        # Method used to check the initial moves and its splitted pieces
+        # have the same debit/credit/balance by account after the split.
+        def get_amounts(col):
+            query = """
+                  SELECT m.%(col)s as move_id, ml.account_id,
+                         SUM(ml.debit) as debit,
+                         SUM(ml.credit) as credit,
+                         SUM(ml.balance) as balance
+                    FROM account_move m
+                    JOIN account_move_line ml ON ml.move_id = m.id
+                   WHERE m.%(col)s in %%s
+                GROUP BY m.%(col)s, ml.account_id
+            """ % {
+                "col": col
+            }
+            cr.execute(query, (tuple(grouped_depreciation_move_ids),))
+            return {(r["move_id"], r["account_id"]): r for r in cr.dictfetchall()}
+
+        if util.version_gte("saas~12.4"):
+            amount_col = "amount_total"
+        else:
+            amount_col = "amount"
+
+        # Prepare the columns we will copy from the initial move,
+        # ignore the columns we assign specifically in the pieces resulting from the move split.
+        m_cols = [
+            list(cols)
+            for cols in util.get_columns(
+                cr,
+                "account_move",
+                ignore=("id", amount_col, "asset_id", "name", "asset_remaining_value", "asset_depreciated_value"),
+                extra_prefixes=("m",),
+            )
+        ]
+        ml_cols = [
+            list(cols)
+            for cols in util.get_columns(
+                cr,
+                "account_move_line",
+                ignore=(
+                    "id",
+                    "move_id",
+                    "debit",
+                    "credit",
+                    "balance",
+                ),
+                extra_prefixes=("ml",),
+            )
+        ]
+
+        # Get the global amounts before upgrade
+        global_before = get_global_amounts()
+
+        # Add a temporary column that will be used to do the mapping move -> depreciated line.
+        cr.execute(
+            """
+                ALTER TABLE account_move
+                  ADD COLUMN _upg_depreciation_line_id INTEGER,
+                  ADD COLUMN _upg_origin_move_id INTEGER,
+                  ADD COLUMN _upg_depreciation_remaining BOOLEAN
+            """
+        )
+
+        # Iterate on each move to split.
+        # Get the rounding from the currency
+        cr.execute(
+            """
+                      SELECT m.id, c.rounding
+                        FROM account_move m
+                   LEFT JOIN res_currency c ON c.id = m.currency_id
+                       WHERE m.id in %s
+            """,
+            (grouped_depreciation_move_ids,),
+        )
+        roundings = dict(cr.fetchall())
+
+        # Get the amounts by move before upgrade
+        before = get_amounts("id")
+
+        # Create one move by depreciation line
+        cr.execute(
+            """
+                INSERT INTO account_move(
+                                _upg_origin_move_id, name, asset_id, %(amount_col)s,
+                                asset_remaining_value, asset_depreciated_value, _upg_depreciation_line_id,
+                                %(cols)s
+                            )
+                     SELECT m.id, m.name || '/' || rank() over (partition by l.move_id order by l.id),
+                            l.asset_id, l.amount,
+                            l.remaining_value, l.depreciated_value, l.id,
+                            %(m_cols)s
+                       FROM account_asset_depreciation_line l
+                       JOIN account_move m ON m.id = l.move_id
+                      WHERE m.id in %%s
+            """
+            % {"cols": ", ".join(m_cols[0]), "m_cols": ", ".join(m_cols[1]), "amount_col": amount_col},
+            (grouped_depreciation_move_ids,),
+        )
+
+        # For each move created in the previous step,
+        # copy the lines from the original move,
+        # and assign the debit/credit/balance/move specific to the piece
+        cr.execute(
+            """
+                INSERT INTO account_move_line(
+                                move_id, debit, credit, balance,
+                                %(cols)s
+                            )
+                     SELECT max(new_move.id),
+                            CASE WHEN debit > 0 THEN l.amount ELSE 0 END,
+                            CASE WHEN credit > 0 THEN l.amount ELSE 0 END,
+                            CASE WHEN debit > 0 THEN l.amount ELSE -l.amount END,
+                            %(ml_cols)s
+                        FROM account_asset_depreciation_line l
+                        JOIN account_move m ON m.id = l.move_id
+                        JOIN account_move_line ml ON ml.move_id = m.id
+                        JOIN account_move new_move ON new_move._upg_depreciation_line_id = l.id
+                        WHERE m.id in %%s
+                    GROUP BY l.id, ml.id
+                    RETURNING id
+            """
+            % {"cols": ", ".join(ml_cols[0]), "ml_cols": ", ".join(ml_cols[1])},
+            (grouped_depreciation_move_ids,),
+        )
+
+        # Create a remaining move if there is a difference between the sum of the resulting pieces and the initial move
+        cr.execute(
+            """
+                INSERT INTO account_move(_upg_origin_move_id, _upg_depreciation_remaining, name, %(amount_col)s, %(cols)s)
+                     SELECT m.id, true, m.name || '/' || (COUNT(new_move.id) + 1)::text,
+                            ROUND(m.%(amount_col)s - SUM(new_move.%(amount_col)s), currency.decimal_places), %(m_cols)s
+                       FROM account_move m
+                       JOIN account_move new_move ON new_move._upg_origin_move_id = m.id
+                  LEFT JOIN res_currency currency ON currency.id = m.currency_id
+                      WHERE m.id in %%s
+                   GROUP BY m.id, currency.id
+                     HAVING ROUND(m.%(amount_col)s - SUM(new_move.%(amount_col)s), currency.decimal_places) != 0
+            """
+            % {"cols": ", ".join(m_cols[0]), "m_cols": ", ".join(m_cols[1]), "amount_col": amount_col},
+            (grouped_depreciation_move_ids,),
+        )
+        cr.execute(
+            """
+                INSERT INTO account_move_line(
+                                move_id, debit, credit, balance,
+                                %(cols)s
+                            )
+                     SELECT new.id,
+                            CASE WHEN ml.debit > 0 THEN new.%(amount_col)s ELSE 0 END,
+                            CASE WHEN ml.credit > 0 THEN new.%(amount_col)s ELSE 0 END,
+                            CASE WHEN ml.debit > 0 THEN new.%(amount_col)s ELSE -new.%(amount_col)s END,
+                            %(ml_cols)s
+                       FROM account_move m
+                       JOIN account_move new ON new._upg_origin_move_id = m.id AND new._upg_depreciation_remaining
+                       JOIN account_move_line ml ON ml.move_id = m.id
+                      WHERE m.id in %%s
+            """
+            % {"cols": ", ".join(ml_cols[0]), "ml_cols": ", ".join(ml_cols[1]), "amount_col": amount_col},
+            (grouped_depreciation_move_ids,),
+        )
+
+        # Get the amounts by move after upgrade
+        after = get_amounts("_upg_origin_move_id")
+
+        # Check the amounts by move before upgrade are the same than after upgrade
+        for (move_id, account_id), values in before.items():
+            for k, v in values.items():
+                assert (
+                    float_compare(after[(move_id, account_id)][k], v, precision_rounding=roundings.get(move_id, 2)) == 0
+                )
+
+        # The grouped moves have been split into pieces. We can get rid of the initial moves.
+        cr.execute("DELETE FROM account_move WHERE id in %s", (grouped_depreciation_move_ids,))
+
+        # Get the global amounts after upgrade
+        global_after = get_global_amounts()
+
+        # Extra check: make sure the total debit/credit/balance globally on the accounts did not change.
+        for before, after in zip(global_before, global_after):
+            for value_before, value_after in zip(before, after):
+                assert float_compare(value_before, value_after, precision_rounding=2) == 0
+
+        # Cleanup the temporary columns
+        cr.execute(
+            """
+                ALTER TABLE account_move
+                 DROP COLUMN _upg_depreciation_line_id,
+                 DROP COLUMN _upg_origin_move_id,
+                 DROP COLUMN _upg_depreciation_remaining
+            """
+        )
 
     cr.execute("""
         UPDATE account_move
