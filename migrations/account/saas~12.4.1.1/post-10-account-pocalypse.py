@@ -1535,8 +1535,10 @@ def migrate_invoice_lines(cr):
             """
             SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
               INTO TEMPORARY TABLE am_total
-              FROM account_move_line
-             WHERE account_internal_type NOT IN ('receivable', 'payable')
+              FROM account_move_line ml
+              JOIN account_move m ON m.id = ml.move_id
+             WHERE (m.type != 'entry' AND account_internal_type NOT IN ('receivable', 'payable'))
+                OR (m.type = 'entry' AND ml.debit != 0)
           GROUP BY move_id
         """
         )
@@ -1675,21 +1677,6 @@ def migrate_invoice_lines(cr):
         }
 
         util.parallel_execute(cr, queries.values())
-
-        cr.execute(
-            """
-            WITH am_amounts AS ( SELECT am.id,
-                                        SUM(aml.credit) as credit
-                                   FROM account_move am
-                                   JOIN account_move_line aml ON aml.move_id=am.id
-                                  WHERE am.type='entry'
-                               GROUP BY am.id)
-            UPDATE account_move am
-               SET amount_total_signed=am_amounts.credit
-              FROM am_amounts
-             WHERE am_amounts.id=am.id
-            """
-        )
 
         _logger.info("Fix invoice_payment_state.")
         # A move is paid if all its payable/receivable lines (at least 1) are reconciled

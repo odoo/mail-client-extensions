@@ -8,6 +8,7 @@ from odoo.tests import tagged
 @change_version("12.4")
 class CheckTotalSigned(UpgradeCase):
     def prepare(self):
+        move_ids = []
         currency_eur = self.env.ref("base.EUR")
         currency_usd = self.env.ref("base.USD")
         company = self.env["res.company"].create({"name": "company 1", "currency_id": currency_usd.id})
@@ -38,28 +39,47 @@ class CheckTotalSigned(UpgradeCase):
             }
         )
         user_type_receivable = self.env.ref('account.data_account_type_receivable')
+        user_type_payable = self.env.ref('account.data_account_type_payable')
         receivable_account_id = self_sudo.env['account.account'].create({
             'code': 'TR1',
             'name': 'Test Receivable Account',
             'user_type_id': user_type_receivable.id,
             'reconcile': True,
         })
+        payable_account_id = self_sudo.env['account.account'].create({
+            'code': 'TP1',
+            'name': 'Test Payable Account',
+            'user_type_id': user_type_payable.id,
+            'reconcile': True,
+        })
         partner_id = self_sudo.env["res.partner"].create({
             'name': 'Test upgrade partner',
             'email': 't@test.com',
-            'property_account_receivable_id': receivable_account_id.id
+            'property_account_receivable_id': receivable_account_id.id,
+            'property_account_payable_id': payable_account_id.id,
         })
         user_type_income = self.env.ref('account.data_account_type_revenue')
+        user_type_expense = self.env.ref('account.data_account_type_expenses')
         account_income_id = self_sudo.env['account.account'].create({
-            'code': 'PC211',
+            'code': 'PC200',
             'name': 'Product Sale',
             'user_type_id': user_type_income.id
+        })
+        account_expense_id = self_sudo.env['account.account'].create({
+            'code': 'PC220',
+            'name': 'Product Purchase',
+            'user_type_id': user_type_expense.id
         })
 
         journal_sale = self_sudo.env['account.journal'].create({
             'name': 'Sale Journal Test',
             'code': 'SALE-JT',
             'type': 'sale'
+        })
+        journal_purchase = self_sudo.env['account.journal'].create({
+            'name': 'Purchase Journal Test',
+            'code': 'PURC-JT',
+            'type': 'purchase'
         })
         journal_general = self_sudo.env['account.journal'].create({
             'name': 'General Test',
@@ -69,84 +89,100 @@ class CheckTotalSigned(UpgradeCase):
         tax_15 = self_sudo.env["account.tax"].create(
             {"name": "Tax 15%", "amount": 15, "amount_type": "percent", "type_tax_use": "sale", "sequence": 10}
         )
-        invoice = self_sudo.env['account.invoice'].create(
-            {
-                "name": "Test Upgrades",
-                "journal_id": journal_sale.id,
-                "partner_id": partner_id.id,
-                "currency_id": currency_eur.id,
-                "invoice_line_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "quantity": 1,
-                            "account_id": account_income_id.id,
-                            "name": "update test",
-                            "price_unit": 100,
-                            "invoice_line_tax_ids": [(6, 0, [tax_15.id])],
+        tax_15_P = self_sudo.env["account.tax"].create(
+            {"name": "Tax 15%", "amount": 15, "amount_type": "percent", "type_tax_use": "purchase", "sequence": 10}
+        )
 
-                        },
-                    )
-                ]
-                ,
+        for _type, journal, account, tax in [
+            ("out", journal_sale, account_income_id, tax_15),
+            ("in", journal_purchase, account_expense_id, tax_15_P),
+        ]:
+            for subtype in ("invoice", "refund"):
+                invoice_type = "%s_%s" % (_type, subtype)
+                invoice = self_sudo.env["account.invoice"].create(
+                    {
+                        "name": "Test Upgrades",
+                        "type": invoice_type,
+                        "journal_id": journal.id,
+                        "partner_id": partner_id.id,
+                        "currency_id": currency_eur.id,
+                        "invoice_line_ids": [
+                            (
+                                0,
+                                0,
+                                {
+                                    "quantity": 1,
+                                    "account_id": account.id,
+                                    "name": "update test",
+                                    "price_unit": 100,
+                                    "invoice_line_tax_ids": [(6, 0, [tax.id])],
+                                },
+                            )
+                        ],
+                    }
+                )
+                invoice.action_invoice_open()
+                move_ids.append(invoice.move_id.id)
+
+        # Create a miscellaneous move (type 'entry') to check its totals are correctly computed by the upgrade
+        # See previous comment
+        account_asset_id = self_sudo.env["account.account"].create(
+            {
+                "code": "PC241",
+                "name": "Assets",
+                "user_type_id": self.env.ref("account.data_account_type_non_current_assets").id,
             }
         )
-        invoice.action_invoice_open()
-        return {"move": invoice.move_id.id}
+        account_depreciation_id = self_sudo.env["account.account"].create(
+            {
+                "code": "PC630",
+                "name": "Depreciation",
+                "user_type_id": self.env.ref("account.data_account_type_depreciation").id,
+            }
+        )
+        misc_move = self_sudo.env["account.move"].create(
+            {
+                "journal_id": journal_general.id,
+                "currency_id": currency_eur.id,
+                "line_ids": [
+                    (0, 0, {"account_id": account_asset_id.id, "credit": 200}),
+                    (0, 0, {"account_id": account_depreciation_id.id, "debit": 200}),
+                ],
+            }
+        )
+        misc_move.action_post()
+        move_ids.append(misc_move.id)
+
+        return {"move_ids": move_ids}
 
     def check(self, init):
         result = init
-        #company currency USD:
-        #invoice in currrency EUR with rate 2.0
-        move = self.env["account.move"].browse(result['move'])
-        self.env.cr.execute(
-            """
-            SELECT sum(balance) as amount, sum(amount_currency) as amount_curr
-              FROM account_move_line
-             WHERE exclude_from_invoice_tab = false
-               AND move_id= %s
-          GROUP BY move_id
-          """, [move.id]
-        )
-        move_amount_untaxed = self.cr.dictfetchone()
-        self.cr.execute(
-            """
-            SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr
-              FROM account_move_line
-             WHERE tax_line_id IS NOT NULL
-               AND move_id= %s
-          GROUP BY move_id
-        """, [move.id]
-        )
-        move_amount_taxed = self.cr.dictfetchone()
-        self.env.cr.execute(
-            """
-            SELECT sum(balance) as amount, sum(amount_currency) as amount_curr
-              FROM account_move_line
-             WHERE account_internal_type NOT IN ('receivable', 'payable')
-               AND move_id= %s
-          GROUP BY move_id
-          """, [move.id]
-        )
-        move_amount_total = self.cr.dictfetchone()
-        self.env.cr.execute(
-            """
-            SELECT sum(amount_residual) as amount,
-                   sum(amount_residual_currency) as amount_curr
-              FROM account_move_line
-             WHERE account_internal_type IN ('receivable', 'payable')
-               AND move_id=%s
-          GROUP BY move_id
-          """, [move.id]
-        )
-        move_amount_residual = self.cr.dictfetchone()
+        check_fields = [
+            "amount_untaxed",
+            "amount_untaxed_signed",
+            "amount_tax",
+            "amount_tax_signed",
+            "amount_total",
+            "amount_total_signed",
+            "amount_residual",
+            "amount_residual_signed",
+        ]
 
-        self.assertEqual(move.amount_untaxed, move_amount_untaxed['amount_curr'] * (-1))
-        self.assertEqual(move.amount_untaxed_signed, move_amount_untaxed['amount'] * (-1))
-        self.assertEqual(move.amount_tax, move_amount_taxed['amount_curr'] * (-1))
-        self.assertEqual(move.amount_tax_signed, move_amount_taxed['amount'] * (-1))
-        self.assertEqual(move.amount_total, move_amount_total['amount_curr'] * (-1))
-        self.assertEqual(move.amount_total_signed, move_amount_total['amount'] * (-1))
-        self.assertEqual(move.amount_residual, move_amount_residual['amount_curr'])
-        self.assertEqual(move.amount_residual_signed, move_amount_residual['amount'])
+        for move in self.env["account.move"].browse(result["move_ids"]):
+            origin = {}
+
+            # 1. Recover the value computed by the upgrade
+            for field in check_fields:
+                origin[field] = move[field]
+
+            # 2. Force the recomputation by the ORM
+            move._compute_amount()
+
+            # 3. Assert the value computed by the upgrade and the ORM are the same
+            for field in check_fields:
+                self.assertEqual(
+                    move[field],
+                    origin[field],
+                    "The move field '%s' value computed by the upgrade is different than the value computed by the ORM"
+                    % field,
+                )
