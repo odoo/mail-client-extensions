@@ -31,3 +31,6 @@ def migrate(cr, version):
     util.remove_field(cr, "mrp.production", "delay_alert")
     util.remove_field(cr, "mrp.production", "propagate_date")
     util.remove_field(cr, "mrp.production", "propagate_date_minimum_delta")
+
+    util.remove_field(cr, "mrp.routing.workcenter", "batch")
+    util.remove_field(cr, "mrp.routing.workcenter", "batch_size")
