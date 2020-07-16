@@ -56,3 +56,6 @@ def migrate(cr, version):
         util.fixup_m2m(cr, m2m, "event_event", "event_tag")
     else:
         util.create_m2m(cr, m2m, "event_event", "event_tag")
+
+    util.rename_xmlid(cr, "website_event.event_category", "website_event.event_category_tag")
+    util.force_noupdate(cr, 'website_event.event_category_tag', False)
