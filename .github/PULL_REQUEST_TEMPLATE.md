@@ -1,11 +1,3 @@
----
-name: 🐞 Bugfix
-about: Houston, we have a problem
-title: [FIX] module@version
-labels: bug
-
----
-
 #### How many databases are impacted by this issue? *[one, all, when module X is installed, ...]*
 
 
