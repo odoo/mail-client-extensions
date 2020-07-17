@@ -1583,7 +1583,8 @@ def migrate_invoice_lines(cr):
         )
         cr.execute(
             """
-            SELECT COALESCE(SUM(balance), 0.0) as amount, COALESCE(SUM(amount_currency), 0.0) as amount_curr, move_id
+            SELECT COALESCE(SUM(ml.balance), 0.0) as amount, COALESCE(SUM(ml.amount_currency), 0.0) as amount_curr,
+                   ml.move_id
               INTO TEMPORARY TABLE am_total
               FROM account_move_line ml
               JOIN account_move m ON m.id = ml.move_id
