@@ -15,10 +15,11 @@ def migrate(cr, version):
     cr.execute(
         """
         SELECT product_tmpl_id, combination_indices, array_agg(id) ids, count(*) cnt
-        FROM product_product
-        WHERE active
-        GROUP BY product_tmpl_id, combination_indices
-        HAVING COUNT(*)>1"""
+          FROM product_product
+         WHERE active
+      GROUP BY product_tmpl_id, combination_indices
+        HAVING COUNT(*)>1
+        """
     )
     problematic_templates = cr.dictfetchall()
 
@@ -68,9 +69,10 @@ The following variants has been archived: {archived_product_list}""".format(
         cr.execute(
             """
             INSERT INTO product_attribute
-            (name, create_variant, type)
-            VALUES ('odoo_technical','dynamic','radio')
-            RETURNING id"""
+                        (name, create_variant, type)
+                 VALUES ('odoo_technical','dynamic','radio')
+              RETURNING id
+            """
         )
         created_product_attribute = cr.fetchone()[0]
 
@@ -80,9 +82,10 @@ The following variants has been archived: {archived_product_list}""".format(
         cr.execute(
             """
             INSERT INTO product_attribute_value ("name", "sequence", attribute_id)
-            SELECT concat('upgrade_', gs::varchar), gs, %s
-                FROM (SELECT generate_series(1, %s) gs) x
-            RETURNING id""",
+                 SELECT concat('upgrade_', gs::varchar), gs, %s
+                  FROM (SELECT generate_series(1, %s) gs) x
+             RETURNING id
+             """,
             [created_product_attribute, max_variant_to_create],
         )
         created_product_attribute_values = [i["id"] for i in cr.dictfetchall()]
@@ -92,11 +95,12 @@ The following variants has been archived: {archived_product_list}""".format(
             cr.execute(
                 """
                 INSERT INTO product_template_attribute_line (active, product_tmpl_id, attribute_id)
-                VALUES(true, %s, %s) RETURNING id""",
+                    VALUES (true, %s, %s)
+                 RETURNING id
+                 """,
                 [template, created_product_attribute],
             )
             created_attribute_line = cr.fetchone()[0]
-            ids = []
             insert_tuples_query1 = []
             insert_tuples_query2 = []
             for i in range(max_variant_to_create):
@@ -116,10 +120,13 @@ The following variants has been archived: {archived_product_list}""".format(
                 cr._obj,
                 """
                 INSERT INTO product_template_attribute_value
-                (ptav_active, product_attribute_value_id, attribute_line_id, price_extra, product_tmpl_id, attribute_id)
-                VALUES %s
-                RETURNING id""",
+                            (ptav_active, product_attribute_value_id, attribute_line_id,
+                            price_extra, product_tmpl_id, attribute_id)
+                     VALUES %s
+                  RETURNING id
+                  """,
                 insert_tuples_query1,
+                page_size=max_variant_to_create,
             )
             product_template_attribute_line_ids[template] = [i["id"] for i in cr.dictfetchall()]
 
@@ -127,23 +134,25 @@ The following variants has been archived: {archived_product_list}""".format(
                 cr._obj,
                 """
                 INSERT INTO product_attribute_value_product_template_attribute_line_rel
-                    (product_template_attribute_line_id, product_attribute_value_id)
-                    VALUES %s""",
+                            (product_template_attribute_line_id, product_attribute_value_id)
+                     VALUES %s
+                     """,
                 insert_tuples_query2,
             )
 
         insert_tuples_query3 = []
         for template in problematic_templates:
             tmpl_id = template["product_tmpl_id"]
+            related_product_template_attribute_line_ids = product_template_attribute_line_ids[tmpl_id]
             for i, product_product in enumerate(template["ids"]):
                 # optimization, prepare the inserts, insert in one query
-                related_product_template_attribute_line_ids = product_template_attribute_line_ids[tmpl_id]
                 insert_tuples_query3.append((product_product, related_product_template_attribute_line_ids[i]))
         execute_values(
             cr._obj,
             """
             INSERT INTO product_variant_combination (product_product_id, product_template_attribute_value_id)
-            VALUES %s""",
+                 VALUES %s
+            """,
             insert_tuples_query3,
         )
 
@@ -156,18 +165,17 @@ The following variants has been archived: {archived_product_list}""".format(
                 UPDATE product_product a SET combination_indices=b.new_combination_indices
                 FROM
                 (
-                    SELECT product_product_id,
-                        string_agg(product_template_attribute_value_id::varchar, ',') new_combination_indices
-                    FROM product_variant_combination
-                    GROUP BY product_product_id
-                )b
+                    SELECT product_product_id, string_agg(product_template_attribute_value_id::varchar, ',') new_combination_indices
+                      FROM product_variant_combination
+                  GROUP BY product_product_id
+                ) b
                 WHERE a.id = b.product_product_id
-                AND a.id =ANY(%s)
-                RETURNING b.product_product_id AS id
+                  AND a.id =ANY(%s)
+            RETURNING b.product_product_id AS id
             )
             UPDATE product_product a SET combination_indices=''
-            WHERE a.id =ANY(%s)
-            AND a.id NOT IN (SELECT id FROM updated)""",
+             WHERE a.id =ANY(%s)
+               AND a.id NOT IN (SELECT id FROM updated)""",
             [distinct_products, distinct_products],
         )
 
