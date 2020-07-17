@@ -58,6 +58,7 @@ def migrate(cr, version):
                           'project.project_tags_0%d' % i)
         util.force_noupdate(cr, 'project.project_stage_%d' % i, True)
     util.force_noupdate(cr, 'project.view_project_project_filter', False)
+    util.force_noupdate(cr, 'project.all_projects_account', True)
 
     # cleanup filters
     cr.execute("""
