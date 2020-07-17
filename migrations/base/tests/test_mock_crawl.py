@@ -107,7 +107,7 @@ class TestCrawler(IntegrityCase):
             "time": time,
             "relativedelta": relativedelta,
             "current_date": time.strftime("%Y-%m-%d"),
-            "allowed_company_ids": self.env.user.company_ids.ids,
+            "allowed_company_ids": [self.env.user.company_id.id],
             "context": {},
         }
         # JS Framework added a non standard `to_utc` method on datetime
