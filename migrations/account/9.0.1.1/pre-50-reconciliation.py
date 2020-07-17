@@ -25,7 +25,7 @@ def find_pair_currency(debit_move_lines, credit_move_lines):
     credit_move = credit_move_lines[0]
     return (debit_move, credit_move)
 
-def compute_amount_currency(cr, amount, currency_id, company_id, date):
+def compute_amount_currency(cr, amount, currency_id, company_id, date, line_amount, line_amount_currency):
     cr.execute("""SELECT r.rate, c.rounding FROM res_currency_rate r
                    LEFT JOIN res_currency c ON c.id = r.currency_id
                    WHERE r.currency_id = %s
@@ -34,8 +34,16 @@ def compute_amount_currency(cr, amount, currency_id, company_id, date):
                          OR r.company_id = %s)
                 ORDER BY r.company_id, r.name desc LIMIT 1""",
                (currency_id, date, company_id))
-    res = cr.dictfetchone()
-    return float_round(amount * res['rate'], precision_rounding=res['rounding'])
+    res = cr.fetchone()
+    if res:
+        rate, rounding = res
+    elif line_amount_currency and line_amount:
+        rate = abs(line_amount_currency) / line_amount
+        cr.execute("SELECT rounding FROM res_currency WHERE id = %s", (currency_id,))
+        rounding = cr.fetchone()[0]
+    else:
+        raise util.MigrationError("No currency rate can be found for the currency %s at date %s" % (currency_id, date))
+    return float_round(amount * rate, precision_rounding=rounding)
 
 def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currency, create_date):
     debit_aml_currency = []
@@ -76,10 +84,14 @@ def migrate_reconciliation(cr, debit_move_lines, credit_move_lines, same_currenc
             if debit_move_lines[debit_move_index]['currency_id']:
                 date = credit_move_lines[credit_move_index]['date']
                 line_info['currency_id'] = debit_move_lines[debit_move_index]['currency_id']
+                line_amount = debit_move_lines[debit_move_index]["debit"]
+                line_amount_currency = debit_move_lines[debit_move_index]["amount_currency"]
             else:
                 line_info['currency_id'] = credit_move_lines[credit_move_index]['currency_id']
+                line_amount = credit_move_lines[credit_move_index]["credit"]
+                line_amount_currency = credit_move_lines[credit_move_index]["amount_currency"]
             if line_info['currency_id'] and line_info['currency_id'] != debit_move_lines[debit_move_index]['company_currency_id']:
-                line_info['amount_currency'] = compute_amount_currency(cr, amount, line_info['currency_id'], debit_move_lines[debit_move_index]['company_id'], date)
+                line_info['amount_currency'] = compute_amount_currency(cr, amount, line_info['currency_id'], debit_move_lines[debit_move_index]['company_id'], date, line_amount, line_amount_currency)
             else:
                 line_info['amount_currency'] = 0
 
