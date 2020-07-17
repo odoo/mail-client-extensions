@@ -15,7 +15,7 @@ def migrate(cr, version):
     util.create_m2m(cr, "account_reconcile_model_account_tax_bis_rel", "account_reconcile_model", "account_tax")
     cr.execute(
         """
-        INSERT INTO account_reconcile_model_account_tax_rel(account_reconcile_model_id, account_tax_id)
+        INSERT INTO account_reconcile_model_account_tax_bis_rel(account_reconcile_model_id, account_tax_id)
              SELECT id, second_tax_id
                FROM account_reconcile_model
               WHERE second_tax_id IS NOT NULL
