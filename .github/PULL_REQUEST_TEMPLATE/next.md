@@ -1,6 +1,6 @@
 ---
-name: 🔜 New changes
-about: R&D task needs an ugprade script
+name: 🔮 Odoo changes
+about: R&D task that needs an ugprade script
 title: [ADD] module@version
 labels: next
 
