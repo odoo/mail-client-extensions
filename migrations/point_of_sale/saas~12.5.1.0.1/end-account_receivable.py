@@ -24,6 +24,17 @@ def migrate(cr, version):
                     AND a.code LIKE CONCAT(substr(t.code, 0, length(t.code) - 1), '%')  -- s/%/_/ ?
               )
              WHERE a.internal_type = 'receivable'
+
+            UNION
+
+            SELECT a.id, a.company_id, c.chart_template_id, 2 as ob
+              FROM account_bank_statement stmt
+              JOIN account_move_line aml ON stmt.id = aml.statement_id
+              JOIN account_account a ON aml.account_id = a.id
+              JOIN account_account_type a_type ON a.user_type_id = a_type.id
+              JOIN res_company c ON a.company_id = c.id
+             WHERE stmt.pos_session_id IS NOT NULL
+               AND a_type.type = 'receivable'
         )
         UPDATE res_company c
            SET account_default_pos_receivable_account_id = (
