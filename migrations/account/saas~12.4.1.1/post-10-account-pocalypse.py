@@ -1423,7 +1423,7 @@ def migrate_invoice_lines(cr):
             inv_vals = invoices[line_vals["invoice_id"]]
             inv_vals.setdefault("invoice_line_ids", []).append(line_vals)
 
-            if not line_vals["account_id"]:
+            if not line_vals["account_id"] and not line_vals['display_type']:
                 line_vals["account_id"] = guess_account(
                     env,
                     inv_vals["type"],
