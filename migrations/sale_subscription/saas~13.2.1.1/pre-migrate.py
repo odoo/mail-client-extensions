@@ -32,14 +32,14 @@ def migrate(cr, version):
         util.explode_query(
             cr,
             """
-            UPDATE sale_subscription_line l
-               SET currency_id = p.currency_id
-              FROM sale_subscription s
-              JOIN product_pricelist p ON p.id = s.pricelist_id
-             WHERE s.id = l.analytic_account_id
-        """,
-        prefix="l.",
-    ),
+                UPDATE sale_subscription_line l
+                   SET currency_id = p.currency_id
+                  FROM sale_subscription s
+                  JOIN product_pricelist p ON p.id = s.pricelist_id
+                 WHERE s.id = l.analytic_account_id
+            """,
+            prefix="l.",
+        ),
     )
 
     util.create_m2m(cr, "account_tax_sale_subscription_line_rel", "account_tax", "sale_subscription_line")
@@ -60,6 +60,11 @@ def migrate(cr, version):
            SET category = CASE in_progress WHEN true THEN 'progress' ELSE 'closed' END
     """
     )
+    cr.execute(
+        "UPDATE sale_subscription_stage SET category = 'draft' WHERE id = %s",
+        [util.ref(cr, "sale_subscription.sale_subscription_stage_draft")],
+    )
+
     util.remove_field(cr, "sale.subscription.stage", "in_progress")
     # Do not update name & sequence of builtin stages.
     # We should also keep `to upsell` as we don't know if it is in use in the current database.
