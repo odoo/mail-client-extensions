@@ -15,4 +15,4 @@ def migrate(cr, version):
         util.remove_record(cr, "l10n_th." + name[0])
 
     util.remove_record(cr, "l10n_th.tax_group_7")
-    util.remove_record(cr, "l10n_th.acc_type_other")
+    util.delete_unused(cr, "l10n_th.acc_type_other")
