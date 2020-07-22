@@ -1178,6 +1178,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
      LEFT JOIN account_account_type aat ON aat.id=a.user_type_id
 
          WHERE l.id NOT IN (SELECT invl_id FROM invl_aml_mapping)
+           AND l.display_type IS NULL
     """
     )
     cr.execute(
@@ -1423,7 +1424,7 @@ def migrate_invoice_lines(cr):
             inv_vals = invoices[line_vals["invoice_id"]]
             inv_vals.setdefault("invoice_line_ids", []).append(line_vals)
 
-            if not line_vals["account_id"] and not line_vals['display_type']:
+            if not line_vals["account_id"] and not line_vals["display_type"]:
                 line_vals["account_id"] = guess_account(
                     env,
                     inv_vals["type"],
@@ -1474,71 +1475,41 @@ def migrate_invoice_lines(cr):
 
     # Fix lines having display_type != False.
     _logger.info("invoices: fix lines having display_type IS NOT NULL")
-    if created_moves.ids:
-        cr.execute(
-            """
+
+    cr.execute(
+        """
             UPDATE account_move_line aml_upd
-               SET sequence=invoices.line_nb*10,
-                   quantity=invoices.quantity,
-                   price_unit=invoices.price_unit,
-                   discount=invoices.discount,
-                   price_subtotal=invoices.price_subtotal,
-                   price_total=invoices.price_total
-              FROM (
-            SELECT invl.invoice_id,
-                   invl.id,
-                   invl.quantity,
-                   invl.discount,
-                   invl.price_unit,
-                   invl.price_subtotal,
-                   invl.price_total,
-                   mapping.aml_id,
-                   rank() over (PARTITION BY invl.invoice_id ORDER BY invl.invoice_id, invl.sequence, invl.id) as line_nb
-            FROM account_invoice_line invl
-      INNER JOIN account_invoice inv ON inv.id = invl.invoice_id
-      INNER JOIN invl_aml_mapping mapping ON mapping.invl_id = invl.id
-           WHERE inv.move_id NOT IN %s
-             AND invl.display_type IS NULL
-        ORDER BY invl.invoice_id, invl.sequence, invl.id) AS invoices
-           WHERE aml_upd.id=invoices.aml_id
-            """,
-            [tuple(created_moves.ids)],
-        )
+               SET sequence=il.sequence,
+                   quantity=il.quantity,
+                   price_unit=il.price_unit,
+                   discount=il.discount,
+                   price_subtotal=il.price_subtotal,
+                   price_total=il.price_total
+              FROM invl_aml_mapping m
+              JOIN account_invoice_line il ON m.invl_id = il.id
+              JOIN account_invoice i ON i.id = il.invoice_id
+             WHERE aml_upd.id = m.aml_id
+               AND il.display_type IS NULL
+               AND i.move_id != ALL(%s)
+        """,
+        [list(created_moves.ids)],
+    )
 
-    # Fix lines having display_type != False.
-    if created_moves.ids:
-        cr.execute(
-            """
-            SELECT invl.invoice_id,
-                   invl.id,
-                   invl.display_type,
-                   invl.name,
-                   inv.move_id,
-                   inv.currency_id,
-                   comp.currency_id as company_currency_id
-            FROM account_invoice_line invl
-      INNER JOIN account_invoice inv ON inv.id = invl.invoice_id
-      INNER JOIN res_company comp ON comp.id=inv.company_id
-             AND inv.move_id NOT IN %s
-             AND invl.display_type IS NOT NULL
-        ORDER BY invl.invoice_id, invl.sequence, invl.id
-            """,
-            [tuple(created_moves.ids)],
-        )
-
-        create_todo = []
-        for res in cr.dictfetchall():
-            create_todo.append(
-                {
-                    "move_id": res["move_id"],
-                    "name": res["name"],
-                    "currency_id": res["currency_id"] != res["company_currency_id"] and res["currency_id"] or False,
-                    "display_type": res["display_type"],
-                }
-            )
-
-        if create_todo:
-            env["account.move.line"].create(create_todo)
+    cr.execute(
+        """
+            SELECT il.name, i.move_id, il.sequence, il.display_type,
+                   CASE WHEN i.currency_id != c.currency_id THEN i.currency_id ELSE NULL END as currency_id
+              FROM account_invoice_line il
+              JOIN account_invoice i ON i.id = il.invoice_id
+              JOIN res_company c ON c.id = i.company_id
+             WHERE il.display_type IS NOT NULL
+               AND i.move_id != ALL(%s)
+          ORDER BY i.id, il.sequence, il.id
+        """,
+        [list(created_moves.ids)],
+    )
+    if cr.rowcount:
+        env["account.move.line"].create(cr.dictfetchall())
 
     with util.disable_triggers(cr, "account_move"):
         # First un-exclude from invoice tab so that we can reuse exclude_from_invoice_tab field when computing amounts
