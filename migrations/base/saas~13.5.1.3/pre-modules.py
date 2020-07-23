@@ -8,8 +8,17 @@ def migrate(cr, version):
     util.remove_module(cr, "pos_reprint")
 
     if util.has_enterprise():
+        util.new_module(
+            cr, "crm_enterprise_iap_lead_website",
+            deps={"crm_enterprise", "crm_iap_lead_website"},
+            auto_install=True
+        )
+        util.new_module(
+            cr, "crm_enterprise_partner_assign",
+            deps={"crm_enterprise", "website_crm_partner_assign"},
+            auto_install=True
+        )
         util.merge_module(cr, "iot_pairing", "iot")
-
         util.merge_module(cr, 'l10n_co_edi_ubl_2_1', 'l10n_co_edi')
         util.module_deps_diff(cr, 'l10n_co_edi', plus={'product_unspsc'})
 
