@@ -18,11 +18,14 @@ class Base(models.AbstractModel):
 
     @api.model
     def create(self, values):
+        if not getattr(self, "_match_uniq", False):
+            return super(Base, self).create(values)
+
         try:
             with self.env.cr.savepoint():
                 return super(Base, self).create(values)
         except IntegrityError as e:
-            if e.pgcode == "23505" and not self.pool.ready and getattr(self, "_match_uniq", False):
+            if e.pgcode == "23505" and not self.pool.ready:
                 self.env.cr.execute(
                     """
                     SELECT a.attname
