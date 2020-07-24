@@ -45,6 +45,7 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.expire_coupon_cron"))
     util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.report_coupon"))
     util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.report_coupon_i18n"))
+    util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.report_coupon_code"))
 
     # 4. Some fields remained at sale_coupon module
     util.move_field_to_module(cr, "coupon.coupon", "order_id", "coupon", "sale_coupon")
