@@ -28,3 +28,4 @@ def migrate(cr, version):
         util.new_module(
             cr, "social_linkedin_company_support", deps={"social_linkedin"}, auto_install=True
         )
+        util.new_module(cr, "sale_amazon_authentication", deps={"sale_amazon"}, auto_install=True)
