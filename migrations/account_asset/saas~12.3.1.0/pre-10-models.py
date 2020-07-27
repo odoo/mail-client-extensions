@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+
+import os
+
 from odoo.tools import float_compare
 from odoo.addons.base.maintenance.migrations import util
+
 
 def _convert_to_account_move_vals(depr_line):
     return {
@@ -54,9 +58,10 @@ def migrate(cr, version):
     cr.execute("UPDATE account_asset SET prorata_date = first_depreciation_date WHERE prorata_date IS NULL")
 
     # these columns are "not null". Remove them now to avoid having to specify them in the next query
-    util.remove_field(cr, "account.asset", "date")
     util.remove_field(cr, "account.asset", "date_first_depreciation")
     util.remove_field(cr, "account.asset", "method_time")
+    # We need to keep the purchase date to get the right currency rate in case assets are in foreign currencies
+    cr.execute("ALTER TABLE account_asset ALTER COLUMN date DROP NOT NULL")
 
     cr.execute("""
         INSERT INTO account_asset
@@ -95,55 +100,227 @@ def migrate(cr, version):
     util.create_column(cr, 'account_move', 'asset_remaining_value', 'numeric')
     util.create_column(cr, 'account_move', 'asset_depreciated_value', 'numeric')
     util.create_column(cr, 'account_move', 'asset_manually_modified', 'boolean')
-    cr.execute("""
-        SELECT
-            asset.code AS asset_code,
-            line.depreciation_date,
-            category.journal_id,
-            asset.id AS asset_id,
-            line.remaining_value,
-            line.depreciated_value,
-            asset.name AS asset_name,
-            category.account_depreciation_id,
-            category.account_depreciation_expense_id,
-            line.amount,
-            asset.partner_id,
-            asset.account_analytic_id,
-            array_remove(ARRAY_AGG(tags.account_analytic_tag_id), NULL) AS analytic_tag_ids
-        FROM account_asset_depreciation_line line
-        JOIN account_asset asset ON line.asset_id = asset.id
-        JOIN account_asset_category category ON asset.category_id = category.id
-        LEFT JOIN account_analytic_tag_account_asset_asset_rel tags ON account_asset_asset_id = asset.id
-        WHERE line.move_id IS NULL
-        GROUP BY
-            asset.code,
-            line.depreciation_date,
-            category.journal_id,
-            asset.id,
-            line.remaining_value,
-            line.depreciated_value,
-            asset.name,
-            category.account_depreciation_id,
-            category.account_depreciation_expense_id,
-            line.amount,
-            asset.partner_id,
-            asset.account_analytic_id
-    """)
-    env = util.env(cr)
-    result = cr.dictfetchall()
-    move_ids = env["account.move"].create([_convert_to_account_move_vals(res) for res in result])
-    cr.executemany("""
-        UPDATE account_move SET
-            asset_id=%s,
-            asset_remaining_value=%s,
-            asset_depreciated_value=%s
-        WHERE id=%s
-    """, list(zip(
-        [res['asset_id'] for res in result],
-        [res['remaining_value'] for res in result],
-        [res['depreciated_value'] for res in result],
-        move_ids.ids
-    )))
+
+    if util.version_gte("saas~12.4"):
+        amount_col = "amount_total"
+    else:
+        amount_col = "amount"
+
+    if os.environ.get('ODOO_MIG_ACCOUNT_ASSET_MOVE_CREATION_SQL'):
+        cr.execute("ALTER TABLE account_move ADD COLUMN _upg_depreciation_line_id INTEGER")
+        cr.execute(
+            """
+                INSERT INTO account_move(
+                                name, state, ref, journal_id, company_id, asset_id, _upg_depreciation_line_id,
+                                date, partner_id, matched_percentage, currency_id,
+                                asset_remaining_value, asset_depreciated_value,
+                                %(amount_col)s
+                            )
+                     SELECT '/', 'draft', asset.code, category.journal_id,
+                            journal.company_id, line.asset_id, line.id,
+                            line.depreciation_date, partner.commercial_partner_id, 1.0, company.currency_id,
+                            CASE
+                                WHEN asset.currency_id = company.currency_id THEN line.remaining_value
+                                ELSE ROUND(
+                                     line.remaining_value::numeric * (1 / COALESCE(rate.rate, 1)),
+                                     currency.decimal_places
+                                     )
+                            END,
+                            CASE
+                                WHEN asset.currency_id = company.currency_id THEN line.depreciated_value
+                                ELSE ROUND(
+                                     line.depreciated_value::numeric * (1 / COALESCE(rate.rate, 1)),
+                                     currency.decimal_places
+                                     )
+                            END,
+                            CASE
+                                WHEN asset.currency_id = company.currency_id THEN line.amount
+                                ELSE ROUND(line.amount * (1 / COALESCE(rate.rate, 1)), currency.decimal_places)
+                            END
+                       FROM account_asset_depreciation_line line
+                       JOIN account_asset asset ON line.asset_id = asset.id
+                       JOIN account_asset_category category ON asset.category_id = category.id
+                       JOIN account_journal journal ON journal.id = category.journal_id
+                       JOIN res_company company ON company.id = journal.company_id
+                  LEFT JOIN res_partner partner ON partner.id = asset.partner_id
+                  LEFT JOIN res_currency currency ON currency.id = asset.currency_id
+                  LEFT JOIN LATERAL
+                            (
+                                  SELECT rate
+                                    FROM res_currency_rate
+                                   WHERE currency_id = currency.id AND company_id = company.id AND name <= asset.date
+                                ORDER BY name DESC LIMIT 1
+                            ) rate ON true
+                      WHERE line.move_id IS NULL
+            """ % {"amount_col": amount_col}
+        )
+        cr.execute(
+            """
+                INSERT INTO account_move_line(
+                                move_id, name, company_id, account_id,
+                                partner_id, analytic_account_id, date, date_maturity,
+                                journal_id, user_type_id, tax_exigible,
+                                company_currency_id, currency_id, amount_currency,
+                                debit, credit, balance
+                            )
+
+                     SELECT move.id, asset.name, journal.company_id, category.account_depreciation_id, asset.partner_id,
+                            asset.account_analytic_id, line.depreciation_date, line.depreciation_date, journal.id,
+                            account.user_type_id, true, company.currency_id,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN NULL
+                                 ELSE asset.currency_id
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN NULL
+                                 ELSE -line.amount
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, -line.amount)
+                                 ELSE GREATEST(0, ROUND(
+                                                  -line.amount * (1 / COALESCE(rate.rate, 1)),
+                                                  currency.decimal_places)
+                                                  )
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, line.amount)
+                                 ELSE GREATEST(0, ROUND(
+                                                  line.amount * (1 / COALESCE(rate.rate, 1)),
+                                                  currency.decimal_places)
+                                                  )
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN -line.amount
+                                 ELSE ROUND(-line.amount * (1 / COALESCE(rate.rate, 1)), currency.decimal_places)
+                            END
+                       FROM account_asset_depreciation_line line
+                       JOIN account_asset asset ON line.asset_id = asset.id
+                       JOIN account_asset_category category ON asset.category_id = category.id
+                       JOIN account_journal journal ON journal.id = category.journal_id
+                       JOIN res_company company ON company.id = journal.company_id
+                       JOIN account_move move ON move._upg_depreciation_line_id = line.id
+                       JOIN account_account account ON account.id = category.account_depreciation_id
+                  LEFT JOIN res_currency currency ON currency.id = asset.currency_id
+                  LEFT JOIN LATERAL
+                            (
+                                  SELECT rate
+                                    FROM res_currency_rate
+                                   WHERE currency_id = currency.id AND company_id = company.id AND name <= asset.date
+                                ORDER BY name DESC LIMIT 1
+                            ) rate ON true
+
+                      UNION
+
+                     SELECT move.id, asset.name, journal.company_id, category.account_depreciation_expense_id,
+                            asset.partner_id, asset.account_analytic_id, line.depreciation_date, line.depreciation_date,
+                            journal.id,account.user_type_id, true, company.currency_id,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN NULL
+                                 ELSE asset.currency_id
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id
+                                 THEN NULL ELSE line.amount
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, line.amount)
+                                 ELSE GREATEST(0, ROUND(
+                                                  line.amount * (1 / COALESCE(rate.rate, 1)),
+                                                  currency.decimal_places)
+                                                  )
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, -line.amount)
+                                 ELSE GREATEST(0, ROUND(
+                                                  -line.amount * (1 / COALESCE(rate.rate, 1)),
+                                                  currency.decimal_places)
+                                                  )
+                            END,
+                            CASE
+                                 WHEN asset.currency_id = company.currency_id THEN line.amount
+                                 ELSE ROUND(line.amount * (1 / COALESCE(rate.rate, 1)), currency.decimal_places)
+                            END
+                       FROM account_asset_depreciation_line line
+                       JOIN account_asset asset ON line.asset_id = asset.id
+                       JOIN account_asset_category category ON asset.category_id = category.id
+                       JOIN account_journal journal ON journal.id = category.journal_id
+                       JOIN res_company company ON company.id = journal.company_id
+                       JOIN account_move move ON move._upg_depreciation_line_id = line.id
+                       JOIN account_account account ON account.id = category.account_depreciation_expense_id
+                  LEFT JOIN res_currency currency ON currency.id = asset.currency_id
+                  LEFT JOIN LATERAL
+                            (
+                                  SELECT rate
+                                    FROM res_currency_rate
+                                   WHERE currency_id = currency.id AND company_id = company.id AND name <= asset.date
+                                ORDER BY name DESC LIMIT 1
+                            ) rate ON true
+            """
+        )
+        cr.execute(
+            """
+                INSERT INTO account_analytic_tag_account_move_line_rel(
+                                account_move_line_id, account_analytic_tag_id
+                            )
+                     SELECT move_line.id, tag.account_analytic_tag_id FROM account_asset_depreciation_line line
+                       JOIN account_asset asset ON asset.id = line.asset_id
+                       JOIN account_move move ON move._upg_depreciation_line_id = line.id
+                       JOIN account_move_line move_line ON move_line.move_id = move.id
+                       JOIN account_analytic_tag_account_asset_asset_rel tag
+                         ON tag.account_asset_asset_id = asset.id
+            """
+        )
+        cr.execute("ALTER TABLE account_move DROP COLUMN _upg_depreciation_line_id")
+    else:
+        cr.execute("""
+            SELECT
+                asset.code AS asset_code,
+                line.depreciation_date,
+                category.journal_id,
+                asset.id AS asset_id,
+                line.remaining_value,
+                line.depreciated_value,
+                asset.name AS asset_name,
+                category.account_depreciation_id,
+                category.account_depreciation_expense_id,
+                line.amount,
+                asset.partner_id,
+                asset.account_analytic_id,
+                array_remove(ARRAY_AGG(tags.account_analytic_tag_id), NULL) AS analytic_tag_ids
+            FROM account_asset_depreciation_line line
+            JOIN account_asset asset ON line.asset_id = asset.id
+            JOIN account_asset_category category ON asset.category_id = category.id
+            LEFT JOIN account_analytic_tag_account_asset_asset_rel tags ON account_asset_asset_id = asset.id
+            WHERE line.move_id IS NULL
+            GROUP BY
+                asset.code,
+                line.depreciation_date,
+                category.journal_id,
+                asset.id,
+                line.remaining_value,
+                line.depreciated_value,
+                asset.name,
+                category.account_depreciation_id,
+                category.account_depreciation_expense_id,
+                line.amount,
+                asset.partner_id,
+                asset.account_analytic_id
+        """)
+        env = util.env(cr)
+        result = cr.dictfetchall()
+        move_ids = env["account.move"].create([_convert_to_account_move_vals(res) for res in result])
+        cr.executemany("""
+            UPDATE account_move SET
+                asset_id=%s,
+                asset_remaining_value=%s,
+                asset_depreciated_value=%s
+            WHERE id=%s
+        """, list(zip(
+            [res['asset_id'] for res in result],
+            [res['remaining_value'] for res in result],
+            [res['depreciated_value'] for res in result],
+            move_ids.ids
+        )))
 
     cr.execute(
         """
@@ -218,11 +395,6 @@ def migrate(cr, version):
             }
             cr.execute(query, (tuple(grouped_depreciation_move_ids),))
             return {(r["move_id"], r["account_id"]): r for r in cr.dictfetchall()}
-
-        if util.version_gte("saas~12.4"):
-            amount_col = "amount_total"
-        else:
-            amount_col = "amount"
 
         # Prepare the columns we will copy from the initial move,
         # ignore the columns we assign specifically in the pieces resulting from the move split.
@@ -394,12 +566,34 @@ def migrate(cr, version):
         )
 
     cr.execute("""
-        UPDATE account_move
-           SET asset_id=d.asset_id,
-               asset_remaining_value=d.remaining_value,
-               asset_depreciated_value=d.depreciated_value
-          FROM account_asset_depreciation_line d
-         WHERE d.move_id=account_move.id
+           UPDATE account_move
+              SET asset_id = line.asset_id,
+                  asset_remaining_value = CASE
+                      WHEN asset.currency_id = company.currency_id THEN line.remaining_value
+                      ELSE ROUND(
+                           line.remaining_value::numeric * (1 / COALESCE(rate.rate, 1)),
+                           currency.decimal_places
+                           )
+                  END,
+                  asset_depreciated_value = CASE
+                      WHEN asset.currency_id = company.currency_id THEN line.depreciated_value
+                      ELSE ROUND(
+                           line.depreciated_value::numeric * (1 / COALESCE(rate.rate, 1)),
+                           currency.decimal_places
+                           )
+                  END
+             FROM account_asset_depreciation_line line
+             JOIN account_asset asset ON asset.id = line.asset_id
+             JOIN res_company company ON company.id = asset.company_id
+        LEFT JOIN res_currency currency ON currency.id = asset.currency_id
+        LEFT JOIN LATERAL
+                  (
+                        SELECT rate
+                          FROM res_currency_rate
+                         WHERE currency_id = currency.id AND company_id = company.id AND name <= asset.date
+                      ORDER BY name DESC LIMIT 1
+                  ) rate ON true
+         WHERE line.move_id=account_move.id
     """)
     cr.execute("""
         UPDATE account_move
@@ -422,6 +616,7 @@ def migrate(cr, version):
     for field in fields.split():
         util.remove_field(cr, "account.asset", field)
 
+    util.remove_field(cr, "account.asset", "date")
     util.remove_field(cr, 'account.move', 'asset_depreciation_ids')
     util.remove_field(cr, 'account.invoice.line', 'asset_category_id')
     util.remove_field(cr, 'account.invoice.line', 'asset_mrr')
