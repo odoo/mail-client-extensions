@@ -592,6 +592,12 @@ def create_invoice(cr, partner, tax, journal, account, amount=100, type="out_inv
     else:
         model = "account.invoice"
         vals["account_id"] = account.id
+
+    if model == "account.invoice":
+        # Temporary bypass the constraint as it's pointless for the tax configuration,
+        # and the invoices are rollbacked anyway.
+        validate_partner_bank_id = env.registry["account.invoice"].validate_partner_bank_id
+        env.registry[model].validate_partner_bank_id = lambda self: True
     invoice = (
         env[model]
         .with_context(
@@ -608,6 +614,8 @@ def create_invoice(cr, partner, tax, journal, account, amount=100, type="out_inv
     else:
         invoice_ctx._onchange_invoice_line_ids()
         invoice_ctx.action_invoice_open()
+    if model == "account.invoice":
+        env.registry[model].validate_partner_bank_id = validate_partner_bank_id
     return invoice
 
 
