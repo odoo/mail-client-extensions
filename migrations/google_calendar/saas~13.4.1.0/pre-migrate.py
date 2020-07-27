@@ -4,9 +4,10 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.create_column(cr, "calendar_event", "google_id", "varchar")
-    util.create_column(cr, "calendar_event", "need_sync", "boolean")
+    util.create_column(cr, "calendar_event", "need_sync", "boolean", default=False)
     util.create_column(cr, "calendar_recurrence", "google_id", "varchar")
-    util.create_column(cr, "calendar_recurrence", "need_sync", "boolean")
+    util.create_column(cr, "calendar_recurrence", "need_sync", "boolean", default=False)
+    util.create_column(cr, "res_users", "google_calendar_sync_token", "varchar")
 
     # Google id is currently stored in calendar_attendee
     # Ids are usually the same for all attendees of an event.
@@ -86,3 +87,5 @@ def migrate(cr, version):
     util.remove_field(cr, "calendar.attendee", "oe_synchro_date")
     util.remove_field(cr, "res.users", "google_calendar_last_sync_date")
     util.remove_field(cr, "res.config.settings", "server_uri")
+
+    util.remove_model(cr, "google.calendar")
