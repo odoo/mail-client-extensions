@@ -94,9 +94,11 @@ def migrate(cr, version):
         "cost_ids",
         "contract_id",
         "auto_generated",
-        "description",
     }:
         util.remove_field(cr, "fleet.vehicle.log.services", field)
+
+    if not util.version_gte("saas~13.4"):
+        util.remove_field(cr, "fleet.vehicle.log.services", "description")
 
     # Model
     util.create_column(cr, "fleet_vehicle_model", "active", "boolean")
