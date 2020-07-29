@@ -52,6 +52,7 @@ def migrate(cr, version):
         util.module_deps_diff(
             cr, "test_l10n_be_hr_payroll_account", plus={"l10n_generic_coa", "l10n_be", "account_accountant"}
         )
+        util.new_module(cr, "pos_account_reports", deps={"point_of_sale", "account_reports"}, auto_install=True)
 
         for cc in "ae ar at au bo br do et gr hr hu jp lu ma no pl ro si th uy vn za".split():
             util.remove_module(cr, "l10n_%s_reports" % cc)
