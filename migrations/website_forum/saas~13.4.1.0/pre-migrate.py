@@ -3,6 +3,17 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "forum_forum", "teaser", "text")
+    cr.execute(
+        r"""
+            UPDATE forum_forum
+               SET teaser = CASE WHEN length(description) > 180
+                                 THEN concat(left(replace(description, E'\n', ' '), 180), '...')
+                                 ELSE description
+                             END
+        """
+    )
+
     cr.execute(
         """
         UPDATE forum_post_reason
