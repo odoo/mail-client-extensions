@@ -151,20 +151,25 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH lot_companies AS (
-            SELECT l.id,
+            SELECT DISTINCT ON (l.id)
+                   l.id,
+                   sml.company_id as sml_company,
                    t.company_id as product_company,
                    c.company_id as create_company,
                    w.company_id as write_company
               FROM stock_production_lot l
+         LEFT JOIN stock_move_line sml ON l.id = sml.lot_id
          LEFT JOIN product_product p ON p.id = l.product_id
               JOIN product_template t ON t.id = p.product_tmpl_id
          LEFT JOIN res_users c ON c.id = l.create_uid
          LEFT JOIN res_users w ON w.id = l.write_uid
+         ORDER BY l.id, sml.date DESC
         )
         UPDATE stock_production_lot l
-           SET company_id = COALESCE(c.product_company, c.create_company, c.write_company)
+           SET company_id = COALESCE(c.sml_company, c.product_company, c.create_company, c.write_company)
           FROM lot_companies c
          WHERE c.id = l.id
+         AND l.company_id IS NULL
     """
     )
 
