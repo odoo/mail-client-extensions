@@ -4,11 +4,11 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     cr.execute(
-        """
+        r"""
         UPDATE ir_attachment
-           SET url = '/'||url
+           SET url = '/' || url
          WHERE type='url'
-           AND url ilike 'theme_%'
+           AND url ilike 'theme\_%'
            AND res_model = 'ir.module.module'
     """
     )
@@ -25,3 +25,11 @@ def migrate(cr, version):
     util.remove_field(cr, "ir.ui.view", "visibility_group")
 
     util.update_record_from_xml(cr, "website.digest_tip_website_0")
+
+    def rm_aboutus(*_):
+        util.remove_record(cr, "website.aboutus_page")
+        util.remove_view(cr, "website.aboutus")
+
+    util.if_unchanged(cr, "website.aboutus", rm_aboutus)
+    util.force_noupdate(cr, "website.aboutus")
+    util.force_noupdate(cr, "website.aboutus_page")
