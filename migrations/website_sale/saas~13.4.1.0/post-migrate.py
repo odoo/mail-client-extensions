@@ -16,6 +16,17 @@ def migrate(cr, version):
     """,
         (sale_ribbon_id, promo_style_id),
     )
+    cr.execute(
+        "SELECT 1 FROM product_style_product_template_rel WHERE product_style_id = %s LIMIT 1",
+        [util.ref(cr, "website_sale.image_full")],
+    )
+    if cr.rowcount:
+        cr.execute(
+            "UPDATE ir_ui_view SET active = true WHERE id = %s", [util.ref(cr, "website_sale.products_images_full")]
+        )
+
     util.remove_field(cr, "product.template", "website_style_ids")
     util.remove_field(cr, "product.product", "website_style_ids")
+    cr.execute("DROP TABLE IF EXISTS product_style_product_template_rel")
+
     util.remove_model(cr, "product.style")
