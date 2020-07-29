@@ -16,7 +16,10 @@ def migrate(cr, version):
                 'property_stock_account_input',
                 'property_stock_account_output',
                 'property_stock_account_input_categ_id',
-                'property_stock_account_output_categ_id'
+                'property_stock_account_output_categ_id',
+                'property_valuation',
+                'property_account_creditor_price_difference',
+                'property_account_creditor_price_difference_categ'
             )
         )
         AND account.id = aml.account_id
