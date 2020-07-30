@@ -25,3 +25,5 @@ def migrate(cr, version):
     )
 
     util.rename_field(cr, "pos.config", "module_pos_reprint", "manage_orders")
+
+    util.create_column(cr, "pos_order_line", "full_product_name", "varchar")
