@@ -66,14 +66,23 @@ The following variants has been archived: {archived_product_list}""".format(
         distinct_templates = set(i["product_tmpl_id"] for i in problematic_templates)
 
         # create a new product_attribute
-        cr.execute(
-            """
-            INSERT INTO product_attribute
-                        (name, create_variant, type)
-                 VALUES ('odoo_technical','dynamic','radio')
-              RETURNING id
-            """
-        )
+        if util.column_exists(cr, "product_attribute", "type"):
+            cr.execute(
+                """
+                INSERT INTO product_attribute (name, create_variant, type)
+                     VALUES ('odoo_technical','dynamic','radio')
+                  RETURNING id
+                """
+            )
+        else:
+            cr.execute(
+                """
+                INSERT INTO product_attribute (name, create_variant)
+                     VALUES ('odoo_technical','dynamic')
+                  RETURNING id
+                """
+            )
+
         created_product_attribute = cr.fetchone()[0]
 
         # Create all the needed product_attribute_value
