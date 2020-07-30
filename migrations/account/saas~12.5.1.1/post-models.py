@@ -3,8 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    # Deleted in post-12.5 because used in post-12.4
-    util.remove_field(cr, "account.journal", "post_at_bank_rec")
     account_account_type = {
         "asset": [
             util.ref(cr, "account.data_account_type_receivable"),

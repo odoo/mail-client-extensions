@@ -10,15 +10,3 @@ def migrate(cr, version):
         return
 
     util.create_column(cr, "account_move_line", "l10n_mx_edi_customs_number", "varchar")
-
-    if util.column_exists(cr, "account_invoice_line", "l10n_mx_edi_customs_number"):
-        # if run from `l10n_mx_edi@saas~12.5`, column may not exists if the module was not installed
-        cr.execute(
-            """
-            UPDATE account_move_line aml
-               SET l10n_mx_edi_customs_number = invl.l10n_mx_edi_customs_number
-              FROM invl_aml_mapping m
-              JOIN account_invoice_line invl ON invl.id = m.invl_id
-             WHERE m.aml_id = aml.id
-            """
-        )

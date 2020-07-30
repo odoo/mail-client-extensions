@@ -1805,3 +1805,4 @@ def migrate(cr, version):
         if util.ENVIRON["account_voucher_installed"]:
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)
+    util.remove_field(cr, "account.journal", "post_at_bank_rec")
