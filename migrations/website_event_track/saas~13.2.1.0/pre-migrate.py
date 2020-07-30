@@ -22,8 +22,6 @@ def migrate(cr, version):
     """
     )
 
-    util.remove_column(cr, "event_track", "color")  # now related
-
     renames = {
         "event_sponsor_type": {"form", "tree"},
         "event_sponsor": {"tree", "search"},
