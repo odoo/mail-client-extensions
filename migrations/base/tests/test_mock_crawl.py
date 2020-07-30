@@ -356,9 +356,9 @@ class TestCrawler(IntegrityCase):
     def mock_web_read_group(self, model, view, domain, group_by, fields_list, limit=80, limit_group=None):
         _logger.info("read_group, %s, %s, %s", model, domain, group_by)
         if hasattr(model, "web_read_group"):
-            data = model.web_read_group(domain, fields_list, group_by)["groups"]
+            data = model.web_read_group(domain, fields_list, group_by, limit=limit)["groups"]
         else:
-            data = model.read_group(domain, fields_list, group_by)
+            data = model.read_group(domain, fields_list, group_by, limit=limit)
 
         if limit_group and data:
             # take samples at regular intervals
