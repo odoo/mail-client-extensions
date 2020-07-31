@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # util.recompute_fields(cr, "account.move.line", ["tax_audit"])
@@ -9,7 +10,9 @@ def migrate(cr, version):
           SELECT aml.id,
                  TRIM(LEADING FROM to_char((CASE WHEN t.tax_negate THEN -1 ELSE 1 END)
                                            *(CASE WHEN move.tax_cash_basis_rec_id IS NULL AND j.type = 'sale' THEN -1 ELSE 1 END)
-                                           *(CASE WHEN move.tax_cash_basis_rec_id IS NULL AND i.type IN ('in_refund', 'out_refund') THEN -1 ELSE 1 END)
+                                           *(CASE WHEN move.tax_cash_basis_rec_id IS NULL AND (i.type IN ('in_refund', 'out_refund')
+                                                                                               OR %(pos_order_condition)s)
+                                               THEN -1 ELSE 1 END)
                                            * aml.balance,
                                           '999,999,999,999,999,999,990.99')  -- should be enough, even for IRR
                  ) AS tag_amount,
@@ -45,5 +48,6 @@ def migrate(cr, version):
     FROM tag_values
    WHERE tag_values.id = account_move_line.id
 
-    """
-    )
+    """ % {
+        'pos_order_condition': "(EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = aml.move_id) AND i.id IS NULL AND debit > 0)" if util.table_exists(cr, 'pos_order') else "false",
+    })

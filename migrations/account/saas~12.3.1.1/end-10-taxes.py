@@ -511,13 +511,13 @@ def migrate(cr, version):
             LEFT JOIN  account_tax tax_base ON tax_base.id = tax_rel.account_tax_id
             WHERE %(no_invoice_where)s
             AND NOT EXISTS(SELECT reversed_move.id FROM account_move reversed_move WHERE %(reversed_move_condition)s AND reversed_move.tax_cash_basis_rec_id IS NOT NULL) -- reversals of CABA are handled below
+            AND %(pos_orders_condition)s -- pos orders' account moves are handled like invoices, not like misc. operations. Their tags are already correct.
             AND move.tax_cash_basis_rec_id IS NULL
             GROUP BY line.id, tag.id, opposite_tag.id, tax_rep_ln.id, tax_tax.type_tax_use
 
             UNION ALL
 
             -- For reversals of CABA entries (which hence don't have tax_cash_basis_rec_id)
-            -- TODO OCO à tester, sans doute quand même utile, même si pas chez decrolux apparemment
             SELECT
                 line.id,
                 tag.id,
@@ -544,7 +544,10 @@ def migrate(cr, version):
             GROUP BY line.id, tag.id, opposite_tag.id, tax_rep_ln.id
         )
     """
-        % sql_dict
+        % {
+            **sql_dict,
+            'pos_orders_condition': "NOT EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = move.id)" if util.table_exists(cr, 'pos_order') else "true",
+        }
     )
 
     # Replace the tags that need to be, using the temporary table
