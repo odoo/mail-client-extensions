@@ -9,9 +9,9 @@ def migrate(cr, version):
     cr.execute("SELECT model FROM ir_model WHERE transient = true")
     models = cr.fetchall()
 
-    # Before saas~15, we cannot ensure that there is no Model that link to a TramsientModel
+    # Before saas~15, we cannot ensure that there is no Model that link to a TransientModel
     # See odoo/odoo@f8e573db2350b025afec8407eeb5849c7a31afa4
-    tables = [util.table_of_model(cr, model) for model, in models]
+    tables = get_tables_of_models(cr, models)
     for table in tables:
         for fk_table, fk_column, fk_constraint, deltype in util.get_fk(cr, table):
             if deltype != "c":
@@ -25,3 +25,13 @@ def migrate(cr, version):
         query = 'DELETE FROM "{0}" WHERE {1} AND "{2}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
         with ignore(psycopg2.Error), util.savepoint(cr):
             cr.executemany(query, models)
+
+
+def get_tables_of_models(cr, models):
+    """Return the table names of the models from the list that have an associated table."""
+    tables = []
+    for (model,) in models:
+        table_name = util.table_of_model(cr, model)
+        if util.table_exists(cr, table_name):
+            tables.append(table_name)
+    return tables
