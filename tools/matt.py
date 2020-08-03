@@ -223,9 +223,17 @@ def process_module(module: str, options: Namespace) -> None:
 
     odoo(["-i", module], version=options.source)
 
+    # tests: preparation
+    if options.run_tests:
+        odoo(["--test-tags", "upgrade.test_prepare"], version=options.source)
+
     # upgrade
     logger.info("upgrade db %s in version %s", dbname, options.target)
     success = odoo(["-u", "all"], version=options.target)
+
+    # tests: validation
+    if options.run_tests:
+        odoo(["--test-tags", "upgrade.test_check"], version=options.target)
 
     if success and not options.keep_dbs:
         subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
@@ -249,6 +257,14 @@ def matt(options: Namespace) -> int:
             options.target,
         )
         return 2
+
+    # Verify that tests can actually be run by grepping the `--test-tags` options on command line
+    if options.run_tests:
+        grep = subprocess.run(
+            ["git", "grep", "-q", "test-tags", "--", "odoo/tools/config.py"],
+            cwd=(options.path / "odoo" / options.source),
+        )
+        options.run_tests = grep.returncode == 0
 
     # Patch YAML import to allow creation of new records during update.
     # This is a long standing bug present since the start (yeah, even in 6.0).
@@ -388,6 +404,7 @@ def main() -> int:
     parser.add_argument(
         "--no-demo", action="store_false", dest="demo", default=True, help="Create databases without demo data"
     )
+    parser.add_argument("-t", "--tests", action="store_true", dest="run_tests", default=False, help="Run upgrade tests")
 
     parser.add_argument("source")
     parser.add_argument("target")
