@@ -17,20 +17,10 @@ def fix_fk(cr, target, update_query):
 
     for table, column, constraint_name, delete_action in util.get_fk(cr, target, quote_ident=False):
         # Skip some already fixed fields
-        if (table, column) not in [
-            ("account_invoice_account_move_line_rel", "account_invoice_id"),
-            ("account_invoice_account_move_line_rel", "account_invoice_id"),
-            ("account_invoice_line", "invoice_id"),
-            ("account_invoice", "refund_invoice_id"),
-            ("account_invoice_tax", "invoice_id"),
-            ("account_invoice_line_tax", "invoice_line_id"),
-            ("account_invoice", "auto_invoice_id"),  # defined (and handled) in inter_company_rules
-        ]:
+        if column.endswith("_mig_s124"):
+            old_column = column
+            column = old_column[:-9]
             _logger.info("Fix %s FK on %s.%s", target, table, column)
-            old_column = "{}_mig_s124".format(column)
-
-            cr.execute(f'ALTER TABLE "{table}" RENAME COLUMN "{column}" TO "{old_column}"')
-            util.create_column(cr, table, column, "int4")
 
             cr.execute(update_query.format_map(locals()))
 

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
@@ -11,3 +12,5 @@ def migrate(cr, version):
          WHERE m.aml_id = aml.id
         """
     )
+    util.remove_column(cr, "account_move_purchase_order_rel", "account_move_id")
+    cr.execute("ALTER TABLE account_move_purchase_order_rel RENAME COLUMN account_invoice_id TO account_move_id")

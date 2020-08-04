@@ -10,9 +10,9 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_move_line", "purchase_line_id", "int4")
 
-    #Fixing foreign keys and datas is already done by account migration script
+    # Fixing foreign keys and datas is already done by account migration script
     cr.execute("ALTER TABLE account_invoice_purchase_order_rel RENAME TO account_move_purchase_order_rel")
-    cr.execute("ALTER TABLE account_move_purchase_order_rel RENAME COLUMN account_invoice_id TO account_move_id")
+    util.create_column(cr, "account_move_purchase_order_rel", "account_move_id", "int4")
 
     cr.execute("ALTER TABLE purchase_order ALTER COLUMN date_approve TYPE timestamp without time zone")
 
