@@ -561,9 +561,12 @@ def set_fiscal_country(env):
         env["ir.config_parameter"].set_param("account_fiscal_country_%s" % company_id, coa_country_code)
 
 
-def create_invoice(cr, partner, tax, journal, account, amount=100, type="out_invoice"):
+def create_invoice(cr, partner, tax, journal, account, type="out_invoice"):
     """ Returns an open invoice """
     env = util.env(cr)
+    amount = 100
+    if tax.amount_type == "fixed" and tax.amount < 0:
+        amount += abs(tax.amount)
     vals = {
         "partner_id": partner.id,
         "currency_id": tax.company_id.currency_id.id,
