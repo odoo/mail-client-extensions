@@ -333,7 +333,7 @@ class TestCrawler(IntegrityCase):
                     if isinstance(context, dict) and context.get("group_by"):
                         group_bys.append(context["group_by"])
                 if node.tag == "field":
-                    domains.append("[('%s', '=', %s)]" % (default_filter, value))
+                    domains.append("[('%s', '=', %r)]" % (default_filter, value))
 
         domains = [self._safe_eval(domain) for domain in domains]
         if action_domain:
