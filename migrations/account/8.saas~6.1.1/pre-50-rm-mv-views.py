@@ -14,6 +14,8 @@ def migrate(cr, version):
             cr.execute("UPDATE ir_ui_view SET type = %s WHERE id = %s",
                        ('pivot', res_id))
 
+    util.remove_view(cr, 'account.sequence_inherit_form')
+
     # and sql views
     util.drop_depending_views(cr, 'account_account', 'type')
     util.drop_depending_views(cr, 'account_invoice', 'state')
