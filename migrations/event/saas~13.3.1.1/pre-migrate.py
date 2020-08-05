@@ -59,3 +59,6 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, "website_event.event_category", "website_event.event_category_tag")
     util.force_noupdate(cr, 'website_event.event_category_tag', False)
+
+    util.if_unchanged(cr, "event.event_subscription", util.update_record_from_xml)
+    util.if_unchanged(cr, "event.event_reminder", util.update_record_from_xml)
