@@ -4,6 +4,7 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     renames = {
         'view_order_form_inherit': 'view_order_form_inherit_sale_stock',
+        'view_order_line_tree_inherit': 'view_order_line_tree_inherit_sale_stock',
         'view_invoice_form_inherit': 'invoice_form_inherit_sale_stock',
         'report_invoice_incoterm': 'report_invoice_document_inherit_sale_stock',
     }
