@@ -33,6 +33,9 @@ def migrate(cr, version):
     cr.execute("UPDATE purchase_order_line pol SET state=po.state FROM purchase_order AS po WHERE po.id=pol.order_id")  # field is now related
 
     # fields will be computed in `post-` script
+    util.create_column(cr, "purchase_order_line", "price_tax", "numeric")
+    util.create_column(cr, "purchase_order_line", "price_subtotal", "numeric")
+    util.create_column(cr, "purchase_order_line", "price_total", "numeric")
     util.create_column(cr, "purchase_order_line", "qty_invoiced", "numeric")
     util.create_column(cr, "purchase_order_line", "qty_received", "numeric")
 
