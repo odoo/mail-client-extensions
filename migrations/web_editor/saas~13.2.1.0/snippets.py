@@ -50,10 +50,6 @@ def add_snippet_names_on_html_field(cr, table, column, snippets, regex):
     Will search for all the snippets in the fields mentionned (should be html fields) and add
     the corresponding data-snippet on them.
     """
-    if not (util.column_exists(cr, table, column) and util.table_exists(cr, table)):
-        # Should be a regular table (cannot update views)
-        return
-
     select_query = cr.mogrify(
         f"""
             SELECT id, array((SELECT regexp_matches({column}, %(regex)s, 'g'))), {column}
@@ -67,3 +63,23 @@ def add_snippet_names_on_html_field(cr, table, column, snippets, regex):
 
 def get_regex_from_snippets_list(snippets):
     return "(%s)" % "|".join(snippet.klass for snippet in snippets)
+
+
+def get_html_fields(cr):
+    # yield (table, column) of stored html fields (that needs snippets updates)
+    cr.execute(
+        """
+        SELECT f.model, f.name
+          FROM ir_model_fields f
+          JOIN ir_model m ON m.id = f.model_id
+         WHERE f.ttype = 'html'
+           AND f.store = true
+           AND m.transient = false
+           AND f.model NOT LIKE 'ir.actions%'
+           AND f.model != 'mail.message'
+    """
+    )
+    for model, column in cr.fetchall():
+        table = util.table_of_model(cr, model)
+        if util.table_exists(cr, table) and util.column_exists(cr, table, column):
+            yield table, column

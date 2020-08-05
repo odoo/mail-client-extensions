@@ -127,18 +127,5 @@ def migrate(cr, version):
     snip.add_snippet_names(cr, "ir_ui_view", "arch_db", snippets, select_query)
 
     # Add the snippet name on all snippets located in an html field
-    cr.execute(
-        """
-        SELECT f.model, f.name
-          FROM ir_model_fields f
-          JOIN ir_model m ON m.id = f.model_id
-         WHERE f.ttype = 'html'
-           AND f.store = true
-           AND m.transient = false
-           AND f.model NOT LIKE 'ir.actions%'
-           AND f.model != 'mail.message'
-    """
-    )
-    for model, column in cr.fetchall():
-        table = util.table_of_model(cr, model)
+    for table, column in snip.get_html_fields(cr):
         snip.add_snippet_names_on_html_field(cr, table, column, snippets, regex)
