@@ -10,6 +10,7 @@ def migrate(cr, version):
         "purchase_order_line_form",
         "view_purchase_line_invoice",
         "view_request_for_quotation_filter",
+        "view_purchase_order_group",
     ]
     for view in view_list:
         util.remove_view(cr, "purchase." + view)
