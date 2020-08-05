@@ -11,3 +11,5 @@ def migrate(cr, version):
 
     util.create_column(cr, 'res_country', 'zip_required', 'boolean', default=True)
     util.create_column(cr, 'res_country', 'state_required', 'boolean', default=False)
+    util.new_module(cr, "microsoft_account", deps={"base_setup"})
+    util.new_module(cr, "microsoft_calendar", deps={"microsoft_account", "calendar"})
