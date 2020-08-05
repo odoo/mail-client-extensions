@@ -24,3 +24,6 @@ def migrate(cr, version):
 
     util.remove_model(cr, "hr.holidays.summary.dept")
     util.remove_record(cr, "hr_holidays.menu_hr_holidays_summary_dept")
+
+    env = util.env(cr)
+    env.ref('hr_holidays.menu_hr_holidays_dashboard').write({'groups_id': [(5,)]})
