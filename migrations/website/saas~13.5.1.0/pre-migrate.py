@@ -98,6 +98,8 @@ def migrate(cr, version):
     util.remove_view(cr, "website.s_color_blocks_2_options")
     util.remove_view(cr, "website.s_masonry_block_options")
     util.remove_view(cr, "website.s_text_highlight_options")
+    util.remove_view(cr, "website.option_custom_body_image")
+    util.remove_view(cr, "website.option_custom_body_pattern")
     util.rename_xmlid(cr, "website.snippet_options_border", "website.snippet_options_border_widgets")
     util.rename_xmlid(cr, "website.snippet_options_shadow", "website.snippet_options_shadow_widgets")
 
