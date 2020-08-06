@@ -33,3 +33,14 @@ def migrate(cr, version):
         util.module_deps_diff(cr, 'l10n_ar_edi', minus={'account_debit_note'})
 
     util.module_deps_diff(cr, 'l10n_latam_invoice_document', plus={'account_debit_note'})
+
+    # ===========================================================
+    # account_edi + refactoring l10n_mx_edi (PR: 52407 & 12226)
+    # ===========================================================
+
+    if util.has_enterprise():
+        # l10n_mx_edi splitted into two modules: l10n_mx_edi & l10n_mx_edi_extended
+        util.module_deps_diff(cr, 'l10n_mx_edi', plus={'account_edi', 'l10n_mx'}, minus={'account'})
+        util.new_module(cr, 'l10n_mx_edi_extended', deps={'l10n_mx_edi'})
+        if util.module_installed(cr, 'l10n_mx_edi'):
+            util.force_install_module(cr, 'l10n_mx_edi_extended')
