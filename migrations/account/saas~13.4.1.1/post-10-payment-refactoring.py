@@ -193,7 +193,7 @@ def migrate(cr, version):
         WHERE move.state = 'draft'
     ''')
 
-    env['account.move'].browse(row[0] for row in cr.fetchall()).post()
+    env['account.move'].browse(row[0] for row in cr.fetchall()).action_post()
 
     # 'payment_id' on account.move.line is now a related field.
 
