@@ -12,6 +12,11 @@ repos:
         entry: Bad directory name. `saas` versions must have a tilde separator, not a dash.
         language: fail
         files: 'migrations/.*/(\d+\.)?saas-.*/.*\.py$'
+      - id: saas-in-version
+        name: full saas
+        entry: Bad directory name. `saas` versions should be fully named.
+        language: fail
+        files: 'migrations/.*/\d+\.[1-9]+\..*/.*\.py$'
 
   - repo: https://github.com/psf/black
     rev: 19.10b0
