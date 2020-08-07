@@ -30,9 +30,9 @@ def migrate(cr, version):
                         SET balance = (aml.debit-aml.credit),
                             company_currency_id = c.currency_id,
                             user_type_id = acc.user_type,
-                            amount_residual = CASE WHEN acc.reconcile = false THEN 0 ELSE NULL END,
-                            amount_residual_currency = CASE WHEN acc.reconcile = false THEN 0 ELSE NULL END,
-                            reconciled = CASE WHEN acc.reconcile = false THEN false ELSE NULL END,
+                            amount_residual = CASE WHEN acc.reconcile = false THEN 0 ELSE amount_residual END,
+                            amount_residual_currency = CASE WHEN acc.reconcile = false THEN 0 ELSE amount_residual_currency END,
+                            reconciled = CASE WHEN acc.reconcile = false THEN false ELSE reconciled END,
                             debit_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.debit ELSE NULL END,
                             credit_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.credit ELSE NULL END,
                             balance_cash_basis = CASE WHEN j.type not in ('sale', 'purchase') THEN aml.debit-aml.credit ELSE NULL END
