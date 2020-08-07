@@ -29,7 +29,12 @@ def migrate(cr, version):
               INNER JOIN ir_sequence s
                       ON s.id = a.sequence_id
                """)
+    sub_sequences = set()
     for asf_id, main_seq_id, seq_id, impl, number_next, date_start, date_stop in cr.fetchall():
+        if main_seq_id in sub_sequences:
+            # sequence doesn't exist anymore as it was replaced by another main sequence
+            continue
+        sub_sequences.add(seq_id)
         cr.execute("""INSERT INTO ir_sequence_date_range
                                   (sequence_id, number_next, date_from, date_to)
                            VALUES (%s, %s, %s, %s)
@@ -56,7 +61,7 @@ def migrate(cr, version):
 
             cr.execute("""ALTER TABLE account_sequence_fiscalyear
                       DROP CONSTRAINT IF EXISTS account_sequence_fiscalyear_main_id""")
-        # we need to delete the record ourself to avoid integrity constraint violation
+        # we need to delete the record ourselves to avoid integrity constraint violation
         cr.execute("DELETE FROM account_sequence_fiscalyear WHERE id=%s", [asf_id])
         util.replace_record_references(cr, ('ir.sequence', seq_id), ('ir.sequence', main_seq_id), False)
         cr.execute("DELETE FROM ir_sequence WHERE id=%s", [seq_id])
