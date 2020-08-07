@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
 import re
 from odoo import tools
 from odoo.addons.base.maintenance.migrations import util
+
+NS = "odoo.addons.base.maintenance.migrations.account.saas~12.3."
+_logger = logging.getLogger(NS + __name__)
+
 
 FORCE_COPY = re.split(r"[,\s]+", os.getenv("MIG_S122_FORCE_COPY_IMAGES_MODELS", ""))
 
@@ -63,6 +68,18 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
         else:
             not_ids.append(res_id)
 
+    if has_ids:
+        compute_fields = list(fields)
+        if zoom:
+            compute_fields += [zoom]
+        for record_id in util.log_progress(has_ids, qualifier="records", logger=_logger):
+            try:
+                util.recompute_fields(cr, model, compute_fields, ids=[record_id])
+            except Exception:
+                # If the image is broken, fuck it
+                _logger.exception("Cannot resize images, %s.%s,%s", model, compute_fields, record_id)
+                not_ids.append(record_id)
+
     if not_ids:
         cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content"))[0])
         size = (len(not_ids) + chunk_size - 1) / chunk_size
@@ -93,11 +110,6 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
             cron_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resize-images-cron.xml")
             with open(cron_file, "rb") as fp:
                 tools.convert_xml_import(cr, "__upgrade__", fp, {})
-
-    if has_ids:
-        if zoom:
-            fields += [zoom]
-        util.recompute_fields(cr, model, fields, ids=has_ids, chunk_size=chunk_size)
 
 
 def migrate(cr, version):
