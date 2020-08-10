@@ -51,3 +51,8 @@ def migrate(cr, version):
     # Setup_wizard
     util.remove_field(cr, "account.setup.bank.manual.config", "new_journal_code")
     util.remove_field(cr, "account.setup.bank.manual.config", "related_acc_type")
+
+    # ===========================================================
+    # Accounting Tour - Onboarding (PR: 55850 & 12389)
+    # ===========================================================
+    util.remove_view(cr, "account.dashboard_onboarding_company_step")
