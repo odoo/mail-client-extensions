@@ -682,6 +682,27 @@ def no_fiscal_lock(cr):
     )
 
 
+@contextmanager
+def skip_failing_python_taxes(env, skipped):
+    if util.module_installed(env.cr, "account_tax_python"):
+        origin_compute_amount = env.registry["account.tax"]._compute_amount
+
+        def _compute_amount(self, *args, **kwargs):
+            if self.amount_type != "code":
+                return origin_compute_amount(self, *args, **kwargs)
+            try:
+                return origin_compute_amount(self, *args, **kwargs)
+            except ValueError as e:
+                skipped[self.id] = (self.name, e.args[0])
+                return 0
+
+        env.registry["account.tax"]._compute_amount = _compute_amount
+        yield
+        env.registry["account.tax"]._compute_amount = origin_compute_amount
+    else:
+        yield
+
+
 def migrate_voucher_lines(cr):
     def _get_voucher_conditions():
         yield from _get_conditions()
@@ -1442,20 +1463,57 @@ def migrate_invoice_lines(cr):
     _logger.info("Create missing account moves")
 
     # Create account_move
-    Move = env["account.move"].with_context(check_move_validity=False)
-    created_moves = Move.browse()
-    mappings = []
-    for record_id, inv_vals in util.log_progress(invoices.items(), qualifier="invoices", logger=_logger):
-        try:
-            with util.savepoint(cr):
-                created_move = Move.create(_convert_to_account_move_vals(inv_vals))
-                created_moves |= created_move
-                # Store link to newly created account_moves.
-                mappings.append((created_move.id, record_id))
-        except Exception:
-            _logger.exception("Cannot create move from draft/cancel/custom invoice")
-        cr.commit()
-    cr.executemany("UPDATE account_invoice SET move_id=%s WHERE id=%s", mappings)
+    skipped_taxes = {}
+    with skip_failing_python_taxes(env, skipped_taxes):
+        Move = env["account.move"].with_context(check_move_validity=False)
+        created_moves = Move.browse()
+        mappings = []
+        for record_id, inv_vals in util.log_progress(invoices.items(), qualifier="invoices", logger=_logger):
+            try:
+                with util.savepoint(cr):
+                    created_move = Move.create(_convert_to_account_move_vals(inv_vals))
+                    created_moves |= created_move
+                    # Store link to newly created account_moves.
+                    mappings.append((created_move.id, record_id))
+            except Exception:
+                _logger.exception("Cannot create move from draft/cancel/custom invoice")
+            cr.commit()
+        cr.executemany("UPDATE account_invoice SET move_id=%s WHERE id=%s", mappings)
+    if skipped_taxes:
+        cr.execute(
+            """
+                  SELECT move.id
+                    FROM account_move move
+                    JOIN account_move_line line ON line.move_id = move.id
+                    JOIN account_move_line_account_tax_rel rel ON rel.account_move_line_id = line.id
+                   WHERE move.id in %s
+                     AND rel.account_tax_id in %s
+                GROUP BY move.id
+            """,
+            (tuple(created_moves.ids), tuple(skipped_taxes.keys()),),
+        )
+        recompute_tax_move_ids = [r[0] for r in cr.fetchall()]
+        util.add_to_migration_reports(
+            """
+                <details>
+                    <summary>
+                        The taxes for the following invoices couldn't be computed
+                        because they use custom code not available during the upgrade.
+                        You need to recompute the taxes amount of these invoices.
+                    </summary>
+                    <h4>Taxes</h4>
+                    <ul>%s</ul>
+                    <h4>Invoices</h4>
+                    <ul>%s</ul>
+                </details>
+            """
+            % (
+                ", ".join(f"<li>{name} (#{tax_id}, {error})</li>" for tax_id, (name, error) in skipped_taxes.items()),
+                ", ".join(f"<li>{move_id}</li>" for move_id in recompute_tax_move_ids),
+            ),
+            "Accounting",
+            format="html",
+        )
 
     # =======================================================================================
     # Post fix account_moves
