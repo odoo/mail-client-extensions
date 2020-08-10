@@ -155,7 +155,7 @@ def migrate(cr, version):
         util.new_module(cr, "social_crm", deps={"social", "crm"}, auto_install=True)
         util.new_module(cr, "social_facebook", deps={"social"}, auto_install=True)
         util.new_module(cr, "social_linkedin", deps={"social", "iap"}, auto_install=True)  # ?
-        util.new_module(cr, "social_push_notification", deps={"social", "website"}, auto_install=True)
+        util.new_module(cr, "social_push_notifications", deps={"social", "website"}, auto_install=True)
         util.new_module(cr, "social_sale", deps={"social", "sale"}, auto_install=True)
         util.new_module(cr, "social_twitter", deps={"social", "iap"}, auto_install=True)
         util.new_module(cr, "website_event_track_gantt", deps={"website_event_track", "web_gantt"}, auto_install=True)
