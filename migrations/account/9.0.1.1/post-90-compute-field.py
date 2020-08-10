@@ -34,6 +34,8 @@ def migrate(cr, version):
             """)
 
     # Compute other fields via ORM
+    # If slow, see below for a way to bootstrap these fields using a specific upgrade script
+    # https://github.com/odoo/migration-scripts/commit/f4caab2e581d87d03a6f3d0399686dc4a411ad2b#diff-a9eb42ce1e369248e123f58aeb36443f
     cr.execute("""SELECT id FROM account_move_line WHERE amount_residual IS NULL""")
     ids = [row[0] for row in cr.fetchall()]
     util.recompute_fields(
