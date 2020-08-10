@@ -70,7 +70,8 @@ def migrate(cr, version):
 
     cr.execute("SELECT id FROM documents_document")
     ids = {d: d for d, in cr.fetchall()}
-    util.replace_record_references_batch(cr, ids, "ir.attachment", "documents.document")
+    if ids:
+        util.replace_record_references_batch(cr, ids, "ir.attachment", "documents.document")
 
     for field in {
         "thumbnail",
