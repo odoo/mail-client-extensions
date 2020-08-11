@@ -34,3 +34,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "mrp.routing.workcenter", "batch")
     util.remove_field(cr, "mrp.routing.workcenter", "batch_size")
+    util.remove_field(cr, "stock.move", "needs_lots")
+    util.remove_field(cr, "stock.move", "finished_lots_exist")
+    util.remove_field(cr, "stock.move.line", "done_move")
