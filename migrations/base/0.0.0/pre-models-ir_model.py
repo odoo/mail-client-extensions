@@ -39,7 +39,8 @@ class Field(models.Model):
                 if f and f.inherited:
                     # See https://github.com/odoo/odoo/pull/53632
                     util._logger.critical(
-                        "The field %s.%s is deleted but is still in the registry. It may come from a delegated field.",
+                        "The field %s.%s is being deleted but is still in the registry. "
+                        "It may come from a delegated field.",
                         field.model,
                         field.name,
                     )
@@ -47,7 +48,7 @@ class Field(models.Model):
                 elif f and any("mixin" in m and f.name in self.env[m]._fields for m in model._inherit):
                     # See https://github.com/odoo/odoo/issues/49354
                     util._logger.critical(
-                        "The field %s.%s is deleted but is still in the registry. It comes from a mixin model.",
+                        "The field %s.%s is being deleted but is still in the registry. It comes from a mixin model.",
                         field.model,
                         field.name,
                     )
@@ -71,6 +72,15 @@ class Field(models.Model):
                             ignore_fields |= field
                             break
                         model = r.relation
+                    else:
+                        util._logger.critical(
+                            "The field %s.%s is being deleted. Either you forgot to call `util.remove_field`, "
+                            "either it is a custom field marked as coming from a standard module "
+                            "due to odoo/odoo#49354.",
+                            field.model,
+                            field.name,
+                        )
+                        continue
 
             unlink_fields |= field
         invalid_unlink_fields = unlink_fields - ignore_fields
