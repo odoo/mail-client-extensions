@@ -26,7 +26,8 @@ def migrate(cr, version):
         UPDATE ir_model_data
            SET noupdate = 't'
          WHERE model in (
-                 'account.account.type'
+                 'account.account.type',
+                 'res.currency'
                )
       """
     )
