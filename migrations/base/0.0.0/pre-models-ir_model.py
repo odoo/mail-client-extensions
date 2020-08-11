@@ -33,54 +33,63 @@ class Field(models.Model):
         unlink_fields = self.env["ir.model.fields"]
         ignore_fields = self.env["ir.model.fields"]
         for field in self:
-            if field.model in self.env:
-                model = self.env[field.model]
-                f = model._fields.get(field.name)
-                if f and f.inherited:
-                    # See https://github.com/odoo/odoo/pull/53632
-                    util._logger.critical(
-                        "The field %s.%s is being deleted but is still in the registry. "
-                        "It may come from a delegated field.",
-                        field.model,
-                        field.name,
-                    )
-                    continue
-                elif f and any("mixin" in m and f.name in self.env[m]._fields for m in model._inherit):
-                    # See https://github.com/odoo/odoo/issues/49354
-                    util._logger.critical(
-                        "The field %s.%s is being deleted but is still in the registry. It comes from a mixin model.",
-                        field.model,
-                        field.name,
-                    )
-                    continue
-                elif not f and field.related:
-                    model = field.model
-                    for name in field.related.split("."):
-                        r = self.env["ir.model.fields"].search([("model", "=", model), ("name", "=", name)])
-                        if not r:
-                            # See https://github.com/odoo/odoo/issues/49354
-                            util._logger.critical(
-                                """
-                                    The field %s.%s is deleted during the upgrade.
-                                    Since this is a related field for which the related doesn't exist,
-                                    this might be due to the bug of the mixins
-                                    not marking the fields on their rightful module"
-                                """,
-                                field.model,
-                                field.name,
-                            )
-                            ignore_fields |= field
-                            break
-                        model = r.relation
-                    else:
+            model = self.env[field.model] if field.model in self.env else None
+            f = model._fields.get(field.name) if model else None
+            if f and f.inherited:
+                # See https://github.com/odoo/odoo/pull/53632
+                util._logger.critical(
+                    "The field %s.%s is being deleted but is still in the registry. "
+                    "It may come from a delegated field.",
+                    field.model,
+                    field.name,
+                )
+                continue
+            elif f and any("mixin" in m and f.name in self.env[m]._fields for m in model._inherit):
+                # See https://github.com/odoo/odoo/issues/49354
+                util._logger.critical(
+                    "The field %s.%s is being deleted but is still in the registry. It comes from a mixin model.",
+                    field.model,
+                    field.name,
+                )
+                continue
+            elif not f and field.related:
+                model = field.model
+                for name in field.related.split("."):
+                    r = self.env["ir.model.fields"].search([("model", "=", model), ("name", "=", name)])
+                    if not r:
+                        # See https://github.com/odoo/odoo/issues/49354
                         util._logger.critical(
-                            "The field %s.%s is being deleted. Either you forgot to call `util.remove_field`, "
-                            "either it is a custom field marked as coming from a standard module "
-                            "due to odoo/odoo#49354.",
+                            """
+                                The field %s.%s is deleted during the upgrade.
+                                Since this is a related field for which the related doesn't exist,
+                                this might be due to the bug of the mixins
+                                not marking the fields on their rightful module"
+                            """,
                             field.model,
                             field.name,
                         )
-                        continue
+                        ignore_fields |= field
+                        break
+                    model = r.relation
+                else:
+                    util._logger.critical(
+                        "The field %s.%s is being deleted. Either you forgot to call `util.remove_field`, "
+                        "either it is a custom field marked as coming from a standard module "
+                        "due to odoo/odoo#49354.",
+                        field.model,
+                        field.name,
+                    )
+                    continue
+            elif not f and self.env["ir.model"].search([("model", "=", field.model)]).transient:
+                # As it's a transient model, no hard-fail, as transient data is temporary anyway.
+                util._logger.critical(
+                    "The field %s.%s is being deleted. Either you forgot to call `util.remove_field`, "
+                    "either it is a custom field coming from a transient model marked as coming from a standard module",
+                    field.model,
+                    field.name,
+                )
+                # Let it be deleted, so the ORM creates it back, hopefully marked with the correct module this time.
+                ignore_fields |= field
 
             unlink_fields |= field
         invalid_unlink_fields = unlink_fields - ignore_fields
