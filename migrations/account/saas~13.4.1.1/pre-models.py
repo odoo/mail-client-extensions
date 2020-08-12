@@ -1,0 +1,24 @@
+# -*- coding: utf-8 -*-
+from odoo import models
+from odoo.addons.account.models import account_journal as _ignore  # noqa
+
+
+def migrate(cr, version):
+    pass
+
+
+class Journal(models.Model):
+    _inherit = "account.journal"
+    _module = "account"
+
+    def _check_journal_not_shared_accounts(self):
+        pass
+
+
+class Account(models.Model):
+    _inherit = "account.account"
+    _module = "account"
+
+    def write(self, vals):
+        vals.pop("currency_id", False)
+        return super().write(vals)
