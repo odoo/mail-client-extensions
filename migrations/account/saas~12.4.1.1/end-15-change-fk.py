@@ -110,6 +110,35 @@ def fix_indirect(cr):
             #         % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model}
             #     )
 
+    cr.execute(
+        """
+            UPDATE ir_translation d
+               SET res_id = i.move_id,
+                    name = replace(d.name, 'account.invoice,', 'account.move,')
+              FROM account_invoice i
+             WHERE i.id = d.res_id
+               AND d.type = 'model'
+               AND d.name LIKE 'account.invoice,%'
+               AND i.move_id IS NOT NULL
+        """
+    )
+    if util.table_exists(cr, "invl_aml_mapping"):
+        cr.execute(
+            """
+                UPDATE ir_translation d
+                   SET res_id = i.aml_id,
+                       name = replace(d.name, 'account.invoice.line,', 'account.move.line,')
+                  FROM invl_aml_mapping i
+                 WHERE i.invl_id = d.res_id
+                   AND d.type = 'model'
+                   AND d.name LIKE 'account.invoice.line,%'
+                   AND i.aml_id IS NOT NULL
+            """
+        )
+    # Cleanup remaining: translations to invoices or lines no longer existing.
+    cr.execute("DELETE FROM ir_translation WHERE type = 'model' AND name LIKE 'account.invoice,%'")
+    cr.execute("DELETE FROM ir_translation WHERE type = 'model' AND name LIKE 'account.invoice.line,%'")
+
 
 def fix_custom_m2o(cr):
     for target_model, source_model in [
