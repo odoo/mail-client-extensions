@@ -27,3 +27,23 @@ def migrate(cr, version):
     util.rename_field(cr, "pos.config", "module_pos_reprint", "manage_orders")
 
     util.create_column(cr, "pos_order_line", "full_product_name", "varchar")
+
+    util.create_column(cr, "pos_order", "is_tipped", "boolean")
+    util.create_column(cr, "pos_order", "tip_amount", "numeric")
+
+    cr.execute(
+        """
+          WITH tips AS (
+            SELECT pos_order_line.order_id as order_id, pos_order_line.price_subtotal_incl as tip_amount
+              FROM pos_order_line
+              JOIN pos_order ON pos_order_line.order_id = pos_order.id
+              JOIN pos_session ON pos_order.session_id = pos_session.id
+              JOIN pos_config ON pos_session.config_id = pos_config.id
+             WHERE pos_config.tip_product_id = pos_order_line.product_id
+        )
+        UPDATE pos_order
+           SET tip_amount = tips.tip_amount, is_tipped = TRUE
+          FROM tips
+         WHERE tips.order_id = pos_order.id
+        """
+    )
