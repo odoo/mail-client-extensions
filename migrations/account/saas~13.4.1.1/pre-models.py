@@ -22,3 +22,10 @@ class Account(models.Model):
     def write(self, vals):
         vals.pop("currency_id", False)
         return super().write(vals)
+
+class Move(models.Model):
+    _inherit = "account.move"
+    _module = "account"
+
+    def _check_unique_sequence_number(self):
+        return True

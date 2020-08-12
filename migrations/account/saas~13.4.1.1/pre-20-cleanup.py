@@ -8,23 +8,23 @@ def migrate(cr, version):
     # Action Cleanup (PR: 46110 & 8706)
     # ===========================================================
     to_remove_list = [
-        'action_bank_statement_draft_tree',
-        'action_account_template_form',
-        'action_account_fiscal_position_template_form',
-        'action_move_line_select_by_partner',
-        'action_move_line_select_tax_audit',
-        'action_move_line_graph',
-        'action_move_line_graph_posted',
-        'action_account_common_menu',
-        'action_product_default_list',
-        'actions_account_fiscal_year',
+        "action_bank_statement_draft_tree",
+        "action_account_template_form",
+        "action_account_fiscal_position_template_form",
+        "action_move_line_select_by_partner",
+        "action_move_line_select_tax_audit",
+        "action_move_line_graph",
+        "action_move_line_graph_posted",
+        "action_account_common_menu",
+        "action_product_default_list",
+        "actions_account_fiscal_year",
     ]
     to_move_list = [
-        'group_fiscal_year',
-        'access_account_fiscal_year_readonly',
-        'account_tag_action',
-        'action_account_group_tree',
-        'action_tax_group',
+        "group_fiscal_year",
+        "access_account_fiscal_year_readonly",
+        "account_tag_action",
+        "action_account_group_tree",
+        "action_tax_group",
     ]
 
     for record in to_remove_list:
@@ -44,5 +44,8 @@ def migrate(cr, version):
     for view in util.splitlines(views):
         util.remove_view(cr, f"account.{view}")
 
-    util.move_field_to_module(cr, 'res.config.settings', 'group_fiscal_year', *eb("account{,_accountant}"))
-    util.move_model(cr, 'account.fiscal.year', *eb("account{,_accountant}"))
+    util.move_field_to_module(cr, "res.config.settings", "group_fiscal_year", *eb("account{,_accountant}"))
+    util.move_model(cr, "account.fiscal.year", *eb("account{,_accountant}"))
+
+    for seq in "customer_invoice customer_refund supplier_invoice supplier_refund transfer".split():
+        util.delete_unused(cr, f"account.sequence_payment_{seq}")
