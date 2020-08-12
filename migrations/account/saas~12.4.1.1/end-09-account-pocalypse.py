@@ -777,6 +777,7 @@ def migrate_voucher_lines(cr):
     # create moves for draft/cancel vouchers
     _logger.info("vouchers: create missing account moves")
     vouchers = {}
+    updated_vouchers = {}
     cr.execute(
         """
         SELECT inv.id,
@@ -806,7 +807,11 @@ def migrate_voucher_lines(cr):
                 inv_line.sequence,
                 inv_line.voucher_id,
                 inv_line.product_id,
-                inv_line.account_id,
+                CASE
+                    WHEN account.internal_type in ('payable', 'receivable')
+                    THEN NULL ELSE inv_line.account_id
+                END as account_id,
+                inv_line.account_id AS original_account_id,
                 inv_line.price_unit,
                 inv_line.quantity,
                 array_remove(ARRAY_AGG(inv_line_tax.account_tax_id), NULL) AS tax_ids,
@@ -815,6 +820,7 @@ def migrate_voucher_lines(cr):
             FROM account_voucher_line inv_line
             LEFT JOIN account_tax_account_voucher_line_rel inv_line_tax ON inv_line_tax.account_voucher_line_id = inv_line.id
             LEFT JOIN account_analytic_tag_account_invoice_line_rel tags ON tags.account_invoice_line_id = inv_line.id
+            LEFT JOIN account_account account ON account.id = inv_line.account_id
             WHERE inv_line.voucher_id IN %s
             GROUP BY
                 inv_line.id,
@@ -823,6 +829,7 @@ def migrate_voucher_lines(cr):
                 inv_line.voucher_id,
                 inv_line.product_id,
                 inv_line.account_id,
+                account.id,
                 inv_line.price_unit,
                 inv_line.quantity,
                 inv_line.account_analytic_id
@@ -833,8 +840,12 @@ def migrate_voucher_lines(cr):
         for line_vals in cr.dictfetchall():
             vouchers[line_vals["voucher_id"]].setdefault("invoice_line_ids", []).append(line_vals)
 
+            if line_vals["account_id"] != line_vals["original_account_id"]:
+                updated_vouchers.setdefault(line_vals["voucher_id"], []).append(line_vals["name"])
+
     Move = env["account.move"].with_context(check_move_validity=False)
     created_moves = Move.browse()
+    mappings = []
     for record_id, vals in util.log_progress(vouchers.items(), qualifier="vouchers", logger=_logger):
         try:
             with util.savepoint(cr):
@@ -842,9 +853,21 @@ def migrate_voucher_lines(cr):
                 created_moves |= created_move
                 # Store link to newly created account_moves.
                 cr.execute("UPDATE account_voucher SET move_id=%s WHERE id=%s", [created_move.id, record_id])
+                mappings.append((created_move.id, record_id))
         except Exception:
             _logger.exception("Cannot create move from draft/cancel voucher")
         cr.commit()
+
+    if updated_vouchers:
+        mapping = {voucher_id: move_id for move_id, voucher_id in mappings}
+        util.add_to_migration_reports(
+            message="The following vouchers had lines set with an account of type receivable/payable, "
+            "which is invalid. As these are draft or cancelled vouchers, "
+            "these lines have been reset with the default account. "
+            "You should have a look at the lines of these vouchers to choose the right account: "
+            "%s." % ", ".join("%s (%s)" % (mapping[id], ", ".join(lines)) for id, lines in updated_vouchers.items()),
+            category="Accounting",
+        )
 
     _logger.info("vouchers: compute voucher line -> move line mapping")
     cr.execute(
