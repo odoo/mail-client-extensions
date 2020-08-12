@@ -22,3 +22,8 @@ def migrate(cr, version):
     util.remove_module(cr, 'hr_expense_check')
 
     util.module_deps_diff(cr, "l10n_ec", plus={"l10n_latam_invoice_document", "l10n_latam_base"})
+
+    if util.has_enterprise():
+        util.module_deps_diff(cr, 'l10n_ar_edi', minus={'account_debit_note'})
+
+    util.module_deps_diff(cr, 'l10n_latam_invoice_document', plus={'account_debit_note'})
