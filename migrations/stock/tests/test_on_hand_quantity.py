@@ -23,29 +23,26 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         )
         self.env.cr.execute(
             """
-                SELECT DISTINCT ON (pp.id) pp.id
+                SELECT pp.id
                 FROM product_product pp
                 JOIN product_template pt ON pp.product_tmpl_id = pt.id
                 AND pp.active = TRUE AND pt.TYPE = 'product'
                 %s
-                ORDER BY pp.id%s
+                GROUP BY pp.id
+                ORDER BY pp.id
             """
-            % (
-                (
-                    """
-                    LEFT JOIN mrp_bom bom
-                           ON
-                            (
-                              bom.product_id = pp.id
-                              OR (bom.product_tmpl_id = pt.id AND bom.product_id is NULL AND bom.type = 'phantom')
-                            )
-                    WHERE coalesce(bom.type, '') != 'phantom'
-                """,
-                    ", bom.product_id, bom.sequence",
-                )
-                if ignore_kits
-                else ("", "")
-            )
+            % """
+                LEFT JOIN LATERAL (
+                    SELECT type
+                    FROM mrp_bom
+                    WHERE type = 'phantom'
+                    AND (product_tmpl_id = pt.id OR product_id = pp.id)
+                    LIMIT 1
+                ) bom ON true
+                WHERE coalesce(bom.type, '') != 'phantom'
+                """
+            if ignore_kits
+            else ""
         )
         results = []
         for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
