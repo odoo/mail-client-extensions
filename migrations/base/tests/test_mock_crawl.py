@@ -89,7 +89,12 @@ class TestCrawler(IntegrityCase):
         # 2. Mute the exceptions due to the missing filestore
         with util.custom_module_field_as_manual(self.env), mute_logger("odoo.addons.base.models.ir_attachment"):
             # 3. Do not validate manual selection fields
-            with patch("odoo.fields.Selection.convert_to_cache", lambda s, v, r, validate=True: v or False):
+            #    Do not validate reference fields adding new possible custom model to their values
+            origin_reference_convert_to_cache = fields.Reference.convert_to_cache
+            with patch("odoo.fields.Selection.convert_to_cache", lambda s, v, r, validate=True: v or False), patch(
+                "odoo.fields.Reference.convert_to_cache",
+                lambda s, v, r, validate=True: origin_reference_convert_to_cache(s, v, r, False),
+            ):
                 _logger.info("Mocking menus with user %s(#%s) ", self.env.user.login, self.env.user.id)
                 root = self.env["ir.ui.menu"].load_menus(debug=False)
                 for menu in root["children"]:
