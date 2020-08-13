@@ -21,3 +21,5 @@ def migrate(cr, version):
         util.create_column(cr, table, 'match_text_location_label', 'boolean', default=True)
         util.create_column(cr, table, 'match_text_location_note', 'boolean', default=False)
         util.create_column(cr, table, 'match_text_location_reference', 'boolean', default=False)
+
+    util.remove_view(cr, 'account.report_invoice_document_with_payments')
