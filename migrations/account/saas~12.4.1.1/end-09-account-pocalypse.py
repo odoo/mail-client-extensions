@@ -506,7 +506,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
         SELECT l.id, i.move_id, l.name, l.product_id, l.uom_id,
                l.price_unit, l.discount, l.sequence,
                l.account_analytic_id,
-               CASE WHEN i.company_id != account.company_id AND i.state in ('draft', 'cancelled')
+               CASE WHEN i.company_id != account.company_id AND i.state in ('draft', 'cancel')
                     THEN NULL
                     ELSE l.account_id
                END AS account_id,
