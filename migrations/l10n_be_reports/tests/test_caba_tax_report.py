@@ -107,8 +107,12 @@ class TestCABATaxReport(UpgradeCase):
             'invoice_line_tax_ids': [(6, 0, [tax.id])],
         }))
 
+        partner = self.env['res.partner'].create({
+            'name': 'Jean-Claude Dus',
+        })
+
         rslt = self.env['account.invoice'].create({
-            'partner_id': self.env.ref("base.res_partner_2").id,#TODO OCO à voir
+            'partner_id': partner.id,
             'currency_id': self.env.ref('base.USD').id,
             'name': 'invoice test rounding',
             #'account_id': rec_account.id,
