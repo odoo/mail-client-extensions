@@ -139,6 +139,41 @@ def fix_indirect(cr):
     cr.execute("DELETE FROM ir_translation WHERE type = 'model' AND name LIKE 'account.invoice,%'")
     cr.execute("DELETE FROM ir_translation WHERE type = 'model' AND name LIKE 'account.invoice.line,%'")
 
+    # "model-comma" fields
+    cr.execute(
+        """
+        SELECT model, name
+          FROM ir_model_fields
+         WHERE ttype='reference'
+    """
+    )
+    for model, column in cr.fetchall():
+        table = util.table_of_model(cr, model)
+        if util.column_exists(cr, table, column):
+            cr.execute(
+                """
+                    UPDATE "{table}" d
+                       SET {column}='account.move,' || i.move_id
+                      FROM account_invoice i
+                     WHERE d.{column} = 'account.invoice,' || i.id
+                       AND i.move_id IS NOT NULL
+            """.format(
+                    table=table, column=column
+                )
+            )
+            if util.table_exists(cr, "invl_aml_mapping"):
+                cr.execute(
+                    """
+                        UPDATE "{table}" d
+                        SET {column}='account.move.line,' || i.aml_id
+                        FROM invl_aml_mapping i
+                        WHERE d.{column} = 'account.invoice.line,' || i.invl_id
+                        AND i.aml_id IS NOT NULL
+                """.format(
+                        table=table, column=column
+                    )
+                )
+
 
 def fix_custom_m2o(cr):
     for target_model, source_model in [
