@@ -19,3 +19,5 @@ def migrate(cr, version):
     util.remove_record(cr, 'base.module_category_localization')
 
     util.remove_module(cr, 'hr_expense_check')
+
+    util.module_deps_diff(cr, "l10n_ec", plus={"l10n_latam_invoice_document", "l10n_latam_base"})
