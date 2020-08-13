@@ -45,6 +45,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "mass_mailing", plus={"digest"})
     util.module_deps_diff(cr, "hr_timesheet", minus={"timer"})
     util.module_deps_diff(cr, "stock", plus={"digest"})
+    util.module_deps_diff(cr, "website", plus={"digest"})
 
     if util.has_enterprise():
         util.new_module(cr, "digest_enterprise",
