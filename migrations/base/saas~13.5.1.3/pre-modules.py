@@ -17,6 +17,7 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *eb('base.module_category_{localization,accounting_localizations}_account_charts'))
     util.remove_record(cr, 'base.module_category_localization')
+    util.remove_record(cr, 'base.module_category_operations')
 
     util.remove_module(cr, 'hr_expense_check')
 
