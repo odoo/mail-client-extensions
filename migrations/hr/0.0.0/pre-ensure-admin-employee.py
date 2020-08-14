@@ -14,4 +14,10 @@ def migrate(cr, version):
         # Upper than 12.0, then it's `hr.employee_admin`
         xml_id_employee = "hr.employee_admin"
 
-    util.ensure_xmlid_match_record(cr, xml_id_employee, "hr.employee", {"user_id": util.ref(cr, xml_id_user)})
+    user_id = util.ref(cr, xml_id_user)
+    if user_id:
+        cr.execute("SELECT id FROM resource_resource WHERE user_id = %s LIMIT 1", [user_id])
+        resource_id = cr.fetchone()
+        if resource_id:
+            (resource_id,) = resource_id
+            util.ensure_xmlid_match_record(cr, xml_id_employee, "hr.employee", {"resource_id": resource_id})
