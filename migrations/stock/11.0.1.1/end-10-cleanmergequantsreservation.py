@@ -72,6 +72,15 @@ def migrate(cr, version):
     """)
 
     cr.execute(""" UPDATE stock_quant SET reserved_quantity = quantity WHERE reservation_id IS NOT NULL""")
+    # In the mean-time odoo/upgrade#1081 or odoo/upgrade#1485 get merged
+    cr.execute(
+        """
+            DELETE FROM ir_cron
+                  USING ir_act_server
+                  WHERE ir_actions_server_id = ir_act_server.id
+                    AND ir_act_server.model_name = 'procurement.order'
+        """
+    )
     util.remove_model(cr, 'procurement.order')
     util.remove_model(cr, 'stock.history')
     util.remove_model(cr, 'stock.move.lots')
