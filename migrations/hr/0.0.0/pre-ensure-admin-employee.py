@@ -2,6 +2,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if not util.version_gte("11.0"):
+        # For 9.0 to 10.0, there is already
+        # hr/9.saas~12.1.1/pre-migrate.py
+        # doing a similar job
+        return
     xml_id_employee = "hr.employee_root"
     xml_id_user = "base.user_root"
     if util.version_gte("saas~11.5"):
