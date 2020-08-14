@@ -31,7 +31,8 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
                 GROUP BY pp.id
                 ORDER BY pp.id
             """
-            % """
+            % (
+                """
                 LEFT JOIN LATERAL (
                     SELECT type
                     FROM mrp_bom
@@ -41,8 +42,9 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
                 ) bom ON true
                 WHERE coalesce(bom.type, '') != 'phantom'
                 """
-            if ignore_kits
-            else ""
+                if ignore_kits
+                else ""
+            )
         )
         results = []
         for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
