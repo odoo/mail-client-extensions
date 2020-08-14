@@ -434,9 +434,7 @@ def migrate(cr, version):
             """
                 ALTER TABLE account_move
                   ADD COLUMN _upg_depreciation_line_id INTEGER,
-                  ADD COLUMN _upg_origin_move_id INTEGER,
-                  ADD COLUMN _upg_depreciation_remaining BOOLEAN,
-                  ADD COLUMN _upg_negative_amount BOOLEAN
+                  ADD COLUMN _upg_origin_move_id INTEGER
             """
         )
 
@@ -526,53 +524,86 @@ def migrate(cr, version):
             (grouped_depreciation_move_ids,),
         )
 
-        # Create a remaining move if there is a difference between the sum of the resulting pieces and the initial move
+        # If necessary, create any remaining moves to make up for balance changes due to rounding errors etc
         cr.execute(
             """
-            INSERT INTO account_move(_upg_origin_move_id, _upg_depreciation_remaining, name,
-                                     %(amount_col)s, _upg_negative_amount, %(cols)s)
-                    SELECT m.id, true, m.name || '/' || (COUNT(new_move.id) + 1)::text,
-                        ABS(ROUND(m.%(amount_col)s - SUM(new_move.%(amount_col)s), currency.decimal_places)),
-                        ROUND(m.%(amount_col)s - SUM(new_move.%(amount_col)s), currency.decimal_places) < 0,
-                        %(m_cols)s
-                    FROM account_move m
-                    JOIN account_move new_move ON new_move._upg_origin_move_id = m.id
-                LEFT JOIN res_currency currency ON currency.id = m.currency_id
-                    WHERE m.id in %%s
-                GROUP BY m.id, currency.id
-                    HAVING ROUND(m.%(amount_col)s - SUM(new_move.%(amount_col)s), currency.decimal_places) != 0
-            """
-            % {"cols": ", ".join(m_cols[0]), "m_cols": ", ".join(m_cols[1]), "amount_col": amount_col},
-            (grouped_depreciation_move_ids,),
+            WITH origin AS (
+                SELECT l.move_id,
+                       l.account_id,
+                       SUM(l.balance) AS balance
+                  FROM account_move_line l
+                 WHERE l.move_id IN (
+                     SELECT _upg_origin_move_id
+                       FROM account_move
+                      WHERE _upg_origin_move_id IS NOT NULL
+                    )
+            GROUP BY l.move_id, l.account_id
+            ),
+            new AS (
+                SELECT m._upg_origin_move_id,
+                       l.account_id,
+                       SUM(l.balance) AS balance,
+                       COUNT(m.id) AS move_count
+                  FROM account_move_line l
+                  JOIN account_move m ON m.id = l.move_id
+                 WHERE m._upg_origin_move_id IS NOT NULL
+              GROUP BY m._upg_origin_move_id, l.account_id
+            )
+            SELECT move_id, account_id, move_name, SUM(remaining) AS balance_diff
+              FROM (
+                  SELECT origin.move_id,
+                         origin.account_id,
+                         m.name || '/' || (new.move_count + 1)::text AS move_name,
+                         ROUND(SUM(new.balance) - SUM(origin.balance), c.decimal_places) AS remaining
+                    FROM origin
+                    JOIN new ON new._upg_origin_move_id = origin.move_id AND new.account_id = origin.account_id
+                    JOIN account_move m ON m.id = origin.move_id
+               LEFT JOIN res_currency c ON c.id = m.currency_id
+                GROUP BY origin.move_id, origin.account_id, m.name, c.id, new.move_count
+                  HAVING ROUND(SUM(origin.balance) - SUM(new.balance), c.decimal_places) != 0
+                ) AS ml
+                JOIN account_move m ON m.id = ml.move_id
+            GROUP BY move_id, m.id, move_name, account_id;
+        """
         )
-        cr.execute(
-            """
-            INSERT INTO account_move_line(
-                            move_id, debit, credit, balance,
-                            %(cols)s
-                        )
-                    SELECT new.id,
-                        CASE
-                            WHEN (ml.debit > 0 AND NOT new._upg_negative_amount)
-                              OR (ml.credit > 0 AND new._upg_negative_amount) THEN new.%(amount_col)s
-                            ELSE 0 END,
-                        CASE
-                            WHEN (ml.credit > 0 AND NOT new._upg_negative_amount)
-                              OR (ml.debit > 0 AND new._upg_negative_amount) THEN new.%(amount_col)s
-                            ELSE 0 END,
-                        CASE
-                            WHEN (ml.debit > 0 AND NOT new._upg_negative_amount)
-                              OR (ml.credit > 0 AND new._upg_negative_amount) THEN new.%(amount_col)s
-                            ELSE -new.%(amount_col)s END,
-                        %(ml_cols)s
-                    FROM account_move m
-                    JOIN account_move new ON new._upg_origin_move_id = m.id AND new._upg_depreciation_remaining
-                    JOIN account_move_line ml ON ml.move_id = m.id
-                    WHERE m.id in %%s
-            """
-            % {"cols": ", ".join(ml_cols[0]), "ml_cols": ", ".join(ml_cols[1]), "amount_col": amount_col},
-            (grouped_depreciation_move_ids,),
-        )
+        results = cr.dictfetchall()
+        if results:
+            # Map original move ids to the newly created move ids
+            moves_created = {}
+            for r in results:
+                move_id = r["move_id"]
+                if move_id not in moves_created:
+                    cr.execute(
+                        """
+                        INSERT INTO account_move(_upg_origin_move_id, name, {amount_col}, {cols})
+                             SELECT m.id, '{move_name}', {amount}, {m_cols}
+                               FROM account_move m
+                               JOIN account_move new ON new._upg_origin_move_id = m.id
+                              WHERE m.id = {move_id}
+                           GROUP BY m.id
+                          RETURNING id
+                    """.format(cols=", ".join(m_cols[0]), m_cols=", ".join(m_cols[1]), amount_col=amount_col,
+                               move_id=move_id, move_name=r["move_name"], amount=abs(r["balance_diff"]))
+                    )
+                    (new_id,) = cr.fetchone()
+                    moves_created[move_id] = new_id
+                query = """
+                        INSERT INTO account_move_line(id, move_id, debit, credit, balance, {cols})
+                             SELECT nextval('account_move_line_id_seq'),
+                                    new.id,
+                                    CASE WHEN {amount} > 0 THEN 0 ELSE ABS({amount}) END,
+                                    CASE WHEN {amount} > 0 THEN {amount} ELSE 0 END,
+                                    CASE WHEN {amount} > 0 THEN -ABS({amount}) ELSE ABS({amount}) END,
+                                    {ml_cols}
+                               FROM account_move m
+                               JOIN account_move new ON new._upg_origin_move_id = m.id
+                               JOIN account_move_line ml ON ml.move_id = m.id
+                              WHERE new.id = {new_id}
+                                AND ml.account_id = {account_id}
+
+                    """.format(cols=", ".join(ml_cols[0]), ml_cols=", ".join(ml_cols[1]),
+                               account_id=r["account_id"], new_id=moves_created[move_id], amount=r["balance_diff"])
+                cr.execute(query, [grouped_depreciation_move_ids])
 
         # Get the amounts by move after upgrade
         after = get_amounts("_upg_origin_move_id")
@@ -613,9 +644,7 @@ def migrate(cr, version):
             """
                 ALTER TABLE account_move
                  DROP COLUMN _upg_depreciation_line_id,
-                 DROP COLUMN _upg_origin_move_id,
-                 DROP COLUMN _upg_depreciation_remaining,
-                 DROP COLUMN _upg_negative_amount
+                 DROP COLUMN _upg_origin_move_id
             """
         )
 
