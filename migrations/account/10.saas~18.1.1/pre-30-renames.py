@@ -4,6 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb('account{_reports,}.account_reports_legal_statements_menu'))
+    util.remove_view(cr, "account.view_move_line_form2")
 
     # in 10.saas~17, the module `website_account` steal records from `website_portal_sale`.
     # Now that `website_account` has been merged into `account`, we need to do it also.
