@@ -1571,9 +1571,9 @@ def migrate_invoice_lines(cr):
               JOIN account_invoice i ON i.id = il.invoice_id
              WHERE aml_upd.id = m.aml_id
                AND il.display_type IS NULL
-               AND i.move_id != ALL(%s)
-        """,
-        [list(created_moves.ids)],
+               %s
+        """
+        % ("AND i.move_id < %s" % min(created_moves.ids) if created_moves else "",),
     )
 
     cr.execute(
@@ -1584,10 +1584,10 @@ def migrate_invoice_lines(cr):
               JOIN account_invoice i ON i.id = il.invoice_id
               JOIN res_company c ON c.id = i.company_id
              WHERE il.display_type IS NOT NULL
-               AND i.move_id != ALL(%s)
+                %s
           ORDER BY i.id, il.sequence, il.id
-        """,
-        [list(created_moves.ids)],
+        """
+        % ("AND i.move_id < %s" % min(created_moves.ids) if created_moves else "",),
     )
     if cr.rowcount:
         env["account.move.line"].create(cr.dictfetchall())
