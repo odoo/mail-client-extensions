@@ -147,7 +147,7 @@ def migrate(cr, version):
             'account_id': res['account_id'],
             'analytic_account_id': res['ang_analytic_account_id'],
             'analytic_tag_ids': [(6, 0, [t for t in res['ang_analytic_tag_ids'] if t])],
-            'amount_currency': res['ang_amount_currency'],
+            'amount_currency': -res['ang_amount_currency'],
             'debit': -res['ang_balance'] if res['ang_balance'] < 0.0 else 0.0,
             'credit': res['ang_balance'] if res['ang_balance'] > 0.0 else 0.0,
             'exclude_from_invoice_tab': True,
