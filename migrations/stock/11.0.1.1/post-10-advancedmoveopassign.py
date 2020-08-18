@@ -43,7 +43,7 @@ def migrate(cr, version):
                 move_lots[mq[0]][mq[1]] = mq[2]
             for move in moves:
                 for ml in move.move_line_ids:
-                    if move_lots[move.id].get(ml.lot_id.id):
+                    if move.id in move_lots and move_lots[move.id].get(ml.lot_id.id):
                         move_lots[move.id][ml.lot_id.id] -= ml.product_qty
         
         # Use operation links between moves and move_lines to assign move_line to move and maybe split them
