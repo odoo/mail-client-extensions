@@ -54,6 +54,20 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "snailmail",
                           plus={"iap_mail"},
                           minus={"iap"})
+    util.module_deps_diff(cr, "test_event_full",
+                          minus={"website_event_track_online", "website_event_track_session"})
+    util.module_deps_diff(cr, "website_event_meet",
+                          plus={"website_event"},
+                          minus={"website_event_track_online"})
+    util.module_deps_diff(cr, "website_event_track_exhibitor",
+                          plus={"website_event_track"},
+                          minus={"website_event_track_online", "website_event_track_session"})
+    util.module_deps_diff(cr, "website_event_track_live",
+                          plus={"website_event_track"},
+                          minus={"website_event_track_online"})
+    util.module_deps_diff(cr, "website_event_track_quiz",
+                          plus={"website_event_track"},
+                          minus={"website_event_track_session"})
 
     util.rename_xmlid(cr, *eb('base.module_category_{localization,accounting_localizations}_account_charts'))
     util.remove_record(cr, 'base.module_category_localization')
@@ -68,6 +82,16 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "mail_mobile",
                               plus={"iap_mail"},
                               minus={"iap"})
+        util.module_deps_diff(cr, "website_event_social",
+                              plus={"website_event"},
+                              minus={"website_event_online"})
+        util.module_deps_diff(cr, "website_event_track_social",
+                              plus={"website_event_track_session"},
+                              minus={"website_event_track"})
+        util.module_deps_diff(cr, "website_event_twitter_wall",
+                              plus={"website_event"},
+                              minus={"website_event_track_online"})
+
         util.merge_module(cr, "sale_amazon_authentication", "sale_amazon")
 
     util.force_migration_of_fresh_module(cr, "iap_mail")
@@ -89,6 +113,7 @@ def migrate(cr, version):
     # ===========================================================
     # Add account_disallowed_expenses (PR: 49675 & 8480)
     # ===========================================================
+
     util.rename_module(cr, 'fleet_account', 'account_fleet')
     if util.has_enterprise():
         util.new_module(cr, 'account_disallowed_expenses', deps={'account_reports'})
