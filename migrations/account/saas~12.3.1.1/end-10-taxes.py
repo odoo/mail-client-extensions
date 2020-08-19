@@ -13,6 +13,11 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
+    with util.no_fiscal_lock(cr):
+        return _migrate(cr, version)
+
+
+def _migrate(cr, version):
     if util.version_gte("saas~12.4"):
         sql_dict = {
             "invoice_table": "account_move",
