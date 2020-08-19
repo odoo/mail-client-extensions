@@ -14,37 +14,45 @@ def migrate(cr, version):
     util.module_auto_install(cr, "crm_iap_lead_enrich", True)
 
     # new Event Online support
-    util.new_module(cr, "website_jitsi",
-                    deps={"website"})
-    util.new_module(cr, "website_event_online",
-                    deps={"website_event"})
-    util.new_module(cr, "website_event_meet",
-                    deps={"website_event_online", "website_event_track_online",
-                          "website_jitsi"})
-    util.new_module(cr, "website_event_track_online",
-                    deps={"sms", "website_event_track", "website_event_online"})
-    util.new_module(cr, "website_event_track_exhibitor",
-                    deps={"website_event_track_online", "website_jitsi"})
-    util.new_module(cr, "website_event_track_session",
-                    deps={"website_event_track_online"})
-    util.new_module(cr, "website_event_track_live",
-                    deps={"website_event_track_online", "website_event_track_session"})
-    util.new_module(cr, "website_event_track_quiz",
-                    deps={"website_profile", "website_event_track_session"})
-    util.new_module(cr, "website_event_track_live_quiz",
-                    deps={"website_event_track_live",
-                          "website_event_track_quiz"})
-    util.new_module(cr, "website_event_meet_quiz",
-                    deps={"website_event_meet", "website_event_track_quiz"})
-    util.new_module(cr, "test_event_full",
-                    deps={"website_event_online", "website_event_questions",
-                          "website_event_meet", "website_event_sale",
-                          "website_event_track_online",
-                          "website_event_track_exhibitor",
-                          "website_event_track_session",
-                          "website_event_track_live",
-                          "website_event_track_quiz"
-                         })
+    util.new_module(cr, "website_jitsi", deps={"website"})
+    util.new_module(cr, "website_event_online", deps={"website_event"})
+    util.new_module(
+        cr, "website_event_meet", deps={"website_event_online", "website_event_track_online", "website_jitsi"},
+    )
+    util.new_module(
+        cr, "website_event_track_online", deps={"sms", "website_event_track", "website_event_online"},
+    )
+    util.new_module(
+        cr, "website_event_track_exhibitor", deps={"website_event_track_online", "website_jitsi"},
+    )
+    util.new_module(cr, "website_event_track_session", deps={"website_event_track_online"})
+    util.new_module(
+        cr, "website_event_track_live", deps={"website_event_track_online", "website_event_track_session"},
+    )
+    util.new_module(
+        cr, "website_event_track_quiz", deps={"website_profile", "website_event_track_session"},
+    )
+    util.new_module(
+        cr, "website_event_track_live_quiz", deps={"website_event_track_live", "website_event_track_quiz"},
+    )
+    util.new_module(
+        cr, "website_event_meet_quiz", deps={"website_event_meet", "website_event_track_quiz"},
+    )
+    util.new_module(
+        cr,
+        "test_event_full",
+        deps={
+            "website_event_online",
+            "website_event_questions",
+            "website_event_meet",
+            "website_event_sale",
+            "website_event_track_online",
+            "website_event_track_exhibitor",
+            "website_event_track_session",
+            "website_event_track_live",
+            "website_event_track_quiz",
+        },
+    )
 
     if util.has_enterprise():
         util.new_module(
@@ -79,12 +87,6 @@ def migrate(cr, version):
         util.merge_module(cr, "social_linkedin_company_support", "social_linkedin")
 
         # new Event Online support
-        util.new_module(cr, "website_event_social",
-                        deps={"website_event_online",
-                              "social_push_notifications"})
-        util.new_module(cr, "website_event_track_social",
-                        deps={"website_event_social",
-                              "website_event_track_session"})
-        util.new_module(cr, "website_event_twitter_wall",
-                        deps={"website_twitter_wall",
-                              "website_event_track_online"})
+        util.new_module(cr, "website_event_social", deps={"website_event_online", "social_push_notifications"})
+        util.new_module(cr, "website_event_track_social", deps={"website_event_social", "website_event_track_session"})
+        util.new_module(cr, "website_event_twitter_wall", deps={"website_twitter_wall", "website_event_track_online"})
