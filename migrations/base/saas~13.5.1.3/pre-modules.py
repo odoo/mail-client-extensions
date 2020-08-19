@@ -73,6 +73,8 @@ def migrate(cr, version):
     util.force_migration_of_fresh_module(cr, "iap_mail")
     util.force_migration_of_fresh_module(cr, "iap_crm")
 
+    util.new_module(cr, "pos_restaurant_adyen", deps={"pos_adyen", "pos_restaurant", "payment_adyen"}, auto_install=True)
+
     # ===========================================================
     # account_edi + refactoring l10n_mx_edi (PR: 52407 & 12226)
     # ===========================================================
