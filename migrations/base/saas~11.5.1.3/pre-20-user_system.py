@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from ast import literal_eval
 from collections import defaultdict
 import itertools
+import os
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -130,6 +132,8 @@ def migrate(cr, version):
         ("mail_alias", "alias_user_id"),
         ("res_company", "intercompany_user_id"),  # always SUPERUSER (uid=1)
     ]
+    if os.environ.get("ODOO_MIG_USER_SYSTEM_IGNORES"):
+        ignored += literal_eval(os.environ["ODOO_MIG_USER_SYSTEM_IGNORES"])
 
     # regroup queries per table to avoid updating the same table (and records) in parallel.
     all_queries = defaultdict(list)
