@@ -17,10 +17,10 @@ def migrate(cr, version):
     util.new_module(cr, "website_jitsi", deps={"website"})
     util.new_module(cr, "website_event_online", deps={"website_event"})
     util.new_module(
-        cr, "website_event_meet", deps={"website_event_online", "website_event_track_online", "website_jitsi"},
+        cr, "website_event_track_online", deps={"sms", "website_event_track", "website_event_online"},
     )
     util.new_module(
-        cr, "website_event_track_online", deps={"sms", "website_event_track", "website_event_online"},
+        cr, "website_event_meet", deps={"website_event_online", "website_event_track_online", "website_jitsi"},
     )
     util.new_module(
         cr, "website_event_track_exhibitor", deps={"website_event_track_online", "website_jitsi"},
