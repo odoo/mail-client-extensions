@@ -68,6 +68,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "mail_mobile",
                               plus={"iap_mail"},
                               minus={"iap"})
+        util.merge_module(cr, "sale_amazon_authentication", "sale_amazon")
 
     util.force_migration_of_fresh_module(cr, "iap_mail")
     util.force_migration_of_fresh_module(cr, "iap_crm")
