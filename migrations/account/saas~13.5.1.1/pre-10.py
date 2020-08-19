@@ -2,6 +2,7 @@
 from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
+    eb = util.expand_braces
     # ===========================================================
     # Fusion of automatic entry wizards (PR:48651)
     # ===========================================================
@@ -23,3 +24,11 @@ def migrate(cr, version):
         util.create_column(cr, table, 'match_text_location_reference', 'boolean', default=False)
 
     util.remove_view(cr, 'account.report_invoice_document_with_payments')
+
+    # ===========================================================
+    # Tour refactor (PR:55624)
+    # ===========================================================
+    util.rename_field(cr, 'res.company', *eb('account_onboarding_{sample,create}_invoice_state'))
+    util.remove_view(cr, 'account.onboarding_sample_invoice_step')
+    util.remove_view(cr, 'account.email_compose_onboarding_sample_invoice')
+    util.remove_record(cr, 'account.action_open_account_onboarding_sample_invoice')
