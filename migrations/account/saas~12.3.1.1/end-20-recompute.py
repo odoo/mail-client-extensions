@@ -2,8 +2,13 @@
 
 from odoo.addons.base.maintenance.migrations import util
 
-def migrate(cr, version):
-    # util.recompute_fields(cr, "account.move.line", ["tax_audit"])
+
+def recompute_tax_audit_string(cr, aml_ids=None):
+    if aml_ids:
+        where_clause = 'WHERE aml.id IN %s' % str(tuple(aml_ids))
+    else:
+        where_clause = ''
+
     cr.execute(
         """
   WITH tags AS (
@@ -29,6 +34,7 @@ def migrate(cr, version):
        LEFT JOIN account_invoice i ON aml.move_id = i.move_id
        LEFT JOIN account_tax_report_line_tags_rel tr ON tr.account_account_tag_id = t.id
        LEFT JOIN account_tax_report_line trl ON tr.account_tax_report_line_id = trl.id
+       %(where_clause)s
     ),
     tag_values AS (
         SELECT id,
@@ -50,4 +56,9 @@ def migrate(cr, version):
 
     """ % {
         'pos_order_condition': "(EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = aml.move_id) AND i.id IS NULL AND debit > 0)" if util.table_exists(cr, 'pos_order') else "false",
+        'where_clause': where_clause,
     })
+
+
+def migrate(cr, version):
+    recompute_tax_audit_string(cr)

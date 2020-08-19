@@ -30,6 +30,8 @@ def migrate(cr, version):
     # stock input account   |               |           |       3.0 |                     t |
     # price diff account    |               |       3.0 |           |                     t |
 
+    # Note: during the migration, the taxes need to be fixed because the anglo saxon lines don't need taxes anymore.
+
     cr.execute('''
         SELECT
             move.type,
@@ -102,6 +104,8 @@ def migrate(cr, version):
     to_write = {}
     processed_line_ids = set()
     to_unreconcile_line_ids = set()
+    to_unlink_tax_line_ids = set()
+    to_recompute_audit_string_line_ids = set()
     query_res = cr.dictfetchall()
     for res in query_res:
         if res['id'] in processed_line_ids or res['ang_id'] in processed_line_ids:
@@ -126,6 +130,10 @@ def migrate(cr, version):
 
             if not float_is_zero((res['price_subtotal'] * factor) - res['amount_currency'] - res['ang_amount_currency'], precision_digits=res['curr_decimal_places']):
                 continue
+
+        to_unlink_tax_line_ids.add(res['ang_id'])
+        to_recompute_audit_string_line_ids.add(res['id'])
+        to_recompute_audit_string_line_ids.add(res['ang_id'])
 
         to_write.setdefault(res['move_id'], {'line_ids': []})
 
@@ -159,12 +167,42 @@ def migrate(cr, version):
         if res['reconcile']:
             to_unreconcile_line_ids.add(res['id'])
 
+    # ============================================================
+    # Fix taxes on anglo-saxon lines that are not needed anymore
+    # ============================================================
+
+    if to_unlink_tax_line_ids:
+        cr.execute('''
+            DELETE FROM account_move_line_account_tax_rel rel
+            WHERE rel.account_move_line_id IN %s
+        ''', [tuple(to_unlink_tax_line_ids)])
+
+    # ============================================================
+    # Fix journal items in order to fix the anglo saxon lines
+    # ============================================================
+
     if to_unreconcile_line_ids:
         env['account.move.line'].browse(list(to_unreconcile_line_ids)).remove_move_reconcile()
+
     m = util.import_script('account/saas~12.4.1.1/end-09-account-pocalypse.py')
     with m.no_fiscal_lock(cr):
         for move_id, vals in to_write.items():
             env['account.move'].browse(move_id).write(vals)
+
+    # Ensure 'balance' is well computed in following queries.
+    env['account.move'].flush()
+
+    # ============================================================
+    # Fix tax audit string since taxes are different.
+    # ============================================================
+
+    m = util.import_script('account/saas~12.3.1.1/end-20-recompute.py')
+    if to_recompute_audit_string_line_ids:
+        m.recompute_tax_audit_string(cr, aml_ids=to_recompute_audit_string_line_ids)
+
+    # ============================================================
+    # Fix amount_untaxed
+    # ============================================================
 
     if to_write:
         cr.execute('''
