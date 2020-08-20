@@ -19,3 +19,6 @@ def migrate(cr, version):
     # the ir_config_param for the proxy URL needs to be renamed if it is present
     # force update from xmli
     util.update_record_from_xml(cr, "sale_amazon.proxy_url")
+
+    # old view from the bugfix module, no longer needed
+    util.remove_view(cr, 'sale_amazon.amazon_account_view_form_inherit')
