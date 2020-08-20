@@ -39,6 +39,9 @@ def migrate(cr, version):
     util.remove_view(cr, xml_id="stock.view_move_tree_receipt_picking_board")
     util.remove_view(cr, xml_id="stock.view_stock_move_kanban")
 
+    util.rename_xmlid(cr, "stock.report_location_barcode", "stock.report_generic_barcode")
+    util.force_noupdate(cr, "stock.report_picking_type_label", noupdate=False)
+
     util.create_column(cr, "stock_move", "date_deadline", "timestamp without time zone")
     util.create_column(cr, "stock_picking", "date_deadline", "timestamp without time zone")
     util.create_column(cr, "stock_picking", "has_deadline_issue", "boolean", default=False)
