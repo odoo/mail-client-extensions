@@ -11,3 +11,4 @@ def migrate(cr, version):
     """
     )
     util.remove_field(cr, 'account.move', 'is_tax_closing')
+    util.remove_model(cr, 'account.multicurrency.revaluation.report')
