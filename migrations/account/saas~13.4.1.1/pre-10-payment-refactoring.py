@@ -226,8 +226,8 @@ def migrate(cr, version):
     # Fix the relational link between account.payment & account.move.
     # Both are linked by a one2one (move_id in account.payment & payment_id in account.move).
 
-    cr.execute(
-        """
+    # Regular case: at least one move line is still linked to the payment.
+    cr.execute('''
         WITH mapping AS (
             SELECT
                 line.payment_id,
@@ -244,11 +244,31 @@ def migrate(cr, version):
         FROM mapping
         WHERE id = mapping.payment_id
         AND mapping.nbr = 1
-    """
+    '''
     )
 
-    cr.execute(
-        """
+    # Corner case: no link left between account.payment & account.move.line due to manual
+    # user edition.
+    cr.execute('''
+        WITH mapping AS (
+            SELECT
+                pay.id AS payment_id,
+                move.id AS move_id
+            FROM account_payment_pre_backup pay_backup
+            JOIN account_payment pay ON pay.id = pay_backup.id
+            JOIN account_move move ON move.name = pay_backup.move_name
+            WHERE move.state IN ('posted', 'cancel')
+            AND pay_backup.move_name IS NOT NULL
+            AND pay.move_id IS NULL
+        )
+
+        UPDATE account_payment
+        SET move_id = mapping.move_id
+        FROM mapping
+        WHERE id = mapping.payment_id
+    ''')
+
+    cr.execute("""
         UPDATE account_move
         SET payment_id = pay.id
         FROM account_payment pay
