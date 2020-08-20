@@ -1220,8 +1220,8 @@ def _compute_invoice_line_grouped_in_move_line(cr):
      LEFT JOIN res_company c ON m.company_id=c.id
      LEFT JOIN account_account a ON l.account_id=a.id
      LEFT JOIN account_account_type aat ON aat.id=a.user_type_id
-
-         WHERE l.id NOT IN (SELECT invl_id FROM invl_aml_mapping)
+     LEFT JOIN invl_aml_mapping map ON map.invl_id = l.id
+         WHERE map.aml_id IS NULL
            AND l.display_type IS NULL
     """
     )
