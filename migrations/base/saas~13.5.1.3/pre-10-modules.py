@@ -92,6 +92,10 @@ def migrate(cr, version):
                               plus={"website_event"},
                               minus={"website_event_track_online"})
 
+        util.module_auto_install(cr, "website_event_social", True)
+        util.module_auto_install(cr, "website_event_track_social", True)
+        util.module_auto_install(cr, "website_event_twitter_wall", True)
+
         util.merge_module(cr, "sale_amazon_authentication", "sale_amazon")
 
     util.force_migration_of_fresh_module(cr, "iap_mail")

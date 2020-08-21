@@ -18,3 +18,6 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("{website_event_track,website_event}.website_event_menu_view_tree"))
     util.rename_xmlid(cr, *eb("{website_event_track,website_event}.website_event_menu_action"))
     util.rename_xmlid(cr, *eb("{website_event_track,website_event}.menu_website_event_menu"))
+
+    # type improvement
+    util.create_column(cr, "event_type", "menu_register_cta", "boolean")
