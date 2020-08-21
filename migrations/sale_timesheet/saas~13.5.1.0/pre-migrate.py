@@ -41,3 +41,5 @@ def migrate(cr, version):
     util.create_column(cr, "project_task", "timesheet_product_id", "int4")
     util.create_column(cr, "account_analytic_line", "non_allow_billable", "boolean")
     util.create_column(cr, "project_sale_line_employee_map", "timesheet_product_id", "int4")
+
+    util.create_column(cr, "project_task", "non_allow_billable", "boolean")
