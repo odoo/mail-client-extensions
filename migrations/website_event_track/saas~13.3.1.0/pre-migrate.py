@@ -21,4 +21,5 @@ def migrate(cr, version):
 
     # event-online requirements
     util.update_record_from_xml(cr, "website_event_track.agenda")
+    util.update_record_from_xml(cr, "website_event_track.track_view")
     util.update_record_from_xml(cr, "website_event_track.event_track_proposal")

@@ -62,3 +62,8 @@ def migrate(cr, version):
 
     util.if_unchanged(cr, "event.event_subscription", util.update_record_from_xml)
     util.if_unchanged(cr, "event.event_reminder", util.update_record_from_xml)
+
+    # ensure rule for acls update
+    util.force_noupdate(cr, "event.access_event_registration_all", noupdate=False)
+    util.force_noupdate(cr, "event.access_event_tag", noupdate=False)
+    util.remove_record(cr, "event.event_registration_portal")
