@@ -8,7 +8,7 @@ from odoo.addons.base.maintenance.migrations import util
 if util.version_gte("10.0"):
     from odoo.modules.module import get_resource_path, get_resource_from_path
 
-    if util.version_gte("saas~11.4"):
+    if util.version_gte("saas~11.1"):
         from odoo.addons.base.models.ir_ui_view import get_view_arch_from_file
     else:
         from odoo.addons.base.ir.ir_ui_view import get_view_arch_from_file
