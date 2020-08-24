@@ -103,6 +103,24 @@ def migrate(cr, version):
     util.rename_xmlid(cr, "website.snippet_options_border", "website.snippet_options_border_widgets")
     util.rename_xmlid(cr, "website.snippet_options_shadow", "website.snippet_options_shadow_widgets")
 
+    # Reattach the base and COWed views for the cookie bar to the right
+    # inherited view. The cookie bar template was
+    # inheriting the footer_custom view before so we have to remove the COWed
+    # ones before moving on the footer template migration. By simplicity, just
+    # remove the view before it is re-created correctly when upgrading website.
+    cr.execute("SELECT website_id, id FROM ir_ui_view WHERE key = 'website.layout'")
+    layout_views = dict(cr.fetchall())
+    cr.execute("SELECT id, website_id FROM ir_ui_view WHERE key = 'website.cookies_bar'")
+    for (view_id, website_id) in cr.fetchall():
+        inherit_id = layout_views.get(website_id, layout_views.get(None))
+        cr.execute(
+            "UPDATE ir_ui_view SET inherit_id = %s WHERE id = %s", [inherit_id, view_id],
+        )
+    # Note: this is done in website and not website_twitter_wall as the
+    # COWed views need to be removed before moving on the footer template
+    # migration.
+    util.remove_view(cr, "website_twitter_wall.twitter_wall_footer_custom")
+
     # Parallax feature
     # -> For the views
     migrate_parallax(cr, "ir_ui_view", "arch_db")
