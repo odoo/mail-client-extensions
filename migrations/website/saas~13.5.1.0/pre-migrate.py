@@ -121,6 +121,41 @@ def migrate(cr, version):
     # migration.
     util.remove_view(cr, "website_twitter_wall.twitter_wall_footer_custom")
 
+    util.rename_xmlid(cr, "website.website_name", "website.option_header_brand_name")
+    util.rename_xmlid(cr, "website.layout_logo_show", "website.option_header_brand_logo")
+
+    # All old header templates have been replaced by new ones. We have to remove
+    # all the old ones and let the new default one being created, active. The
+    # associated css variable have also been changed so we have to ensure the
+    # users continue with the default header, which has no related css.
+    util.remove_view(cr, "website.template_header_hamburger")
+    util.remove_view(cr, "website.template_header_navbar_text_center")
+    util.remove_view(cr, "website.template_header_hamburger_left")
+
+    util.remove_view(cr, "website.header_shadow")
+
+    # All old footer templates have been replaced by new ones. We have to remove
+    # all the old ones and reenabling the "footer_custom" one which is still
+    # there. For that, we delete the views which were COW'ed.
+    cr.execute(
+        """
+           SELECT id
+             FROM ir_ui_view
+            WHERE key = 'website.footer_custom'
+              AND website_id IS NOT NULL
+              AND active = false
+        """
+    )
+    for (vid,) in cr.fetchall():
+        util.remove_view(cr, view_id=vid, key="website.footer_custom")
+    util.remove_view(cr, "website.template_footer_logo_about_us_below")
+    util.remove_view(cr, "website.template_footer_links_address_logo")
+    util.remove_view(cr, "website.template_footer_name_logo_links_about_us")
+    util.remove_view(cr, "website.template_footer_logo_only")
+    util.remove_view(cr, "website.template_footer_address_logo")
+
+    util.remove_view(cr, "website.option_layout_boxed_variables")
+
     # Parallax feature
     # -> For the views
     migrate_parallax(cr, "ir_ui_view", "arch_db")
