@@ -8,3 +8,7 @@ def migrate(cr, version):
 
     # Old snippet options (UI)
     util.remove_record(cr, "theme_bewise.options_colorpicker")
+
+    util.remove_record(cr, "theme_bewise._assets_frontend_helpers")
+    util.remove_record(cr, "theme_bewise.assets_frontend")
+    util.remove_record(cr, "theme_bewise.bewise_snippet_options")
