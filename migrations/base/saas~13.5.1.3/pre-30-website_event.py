@@ -9,9 +9,6 @@ def migrate(cr, version):
     # fields move from _online, directly to event
     util.move_field_to_module(cr, "event.tag", "color", "website_event_online", "event")
 
-    # fields move from _online, directly to event
-    util.move_field_to_module(cr, "website", "app_icon", "website_event_track_online", "website_event_track")
-
     # fields move from _online: remaining in website_event
     util.move_field_to_module(cr, "event.event", "menu_register_cta", "website_event_online", "website_event")
     util.move_field_to_module(cr, "event.event", "is_ongoing", "website_event_online", "website_event")

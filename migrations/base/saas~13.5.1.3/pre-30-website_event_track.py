@@ -83,6 +83,8 @@ def migrate(cr, version):
     util.move_field_to_module(
         cr, "website.visitor", "event_track_wishlisted_count", "website_event_track_online", "website_event_track"
     )
+    util.move_field_to_module(cr, "website", "app_icon", "website_event_track_online", "website_event_track")
+    util.move_field_to_module(cr, "website", "events_app_name", "website_event_track_online", "website_event_track")
 
     # fields move from website_event_track_session
     util.move_field_to_module(cr, "event.track", "website_cta", "website_event_track_session", "website_event_track")
