@@ -15,72 +15,29 @@ def migrate(cr, version):
         for field in fields:
             util.move_field_to_module(cr, model, field, "hr_contract_salary", "l10n_be_hr_contract_salary")
 
-    # Moved field from l10n_be_hr_payroll -> hr_contract_salary
-    util.move_field_to_module(cr, "hr.contract", "final_yearly_costs", "l10n_be_hr_payroll", "hr_contract_salary")
+    # Moved fields from l10n_be_hr_payroll -> hr_contract_salary
+    fields = """
+        holidays
+        wage_with_holidays
+        final_yearly_costs
+        monthly_yearly_costs
+    """
+    for field in util.splitlines(fields):
+        util.move_field_to_module(cr, "hr.contract", field, "l10n_be_hr_payroll", "hr_contract_salary")
+
+    util.move_field_to_module(
+        cr, "hr.contract.employee.report", "final_yearly_costs", "l10n_be_hr_payroll", "hr_contract_salary"
+    )
+
+    util.create_column(cr, "hr_contract", "holidays", "float8")
 
     # Renamed field
     util.rename_field(cr, "generate.simulation.link", "vehicle_id", "car_id")
-
-    # Created field
-    util.create_column(cr, "hr_contract", "holidays", "float8")
-
-    # Fields spouse_net_revenue/spouse_other_net_revenue
-    # The selection for the fields spouse_fiscal_status has moved from
-    # spouse_fiscal_status = fields.Selection([
-    #     ('without income', 'Without Income'),
-    #     ('with income', 'With Income')
-    # To
-    #     ('without_income', 'Without Income'),
-    #     ('high_income', 'With High income'),
-    #     ('low_income', 'With Low Income'),
-    #     ('low_pension', 'With Low Pensions'),
-    #     ('high_pension', 'With High Pensions')
-    # Here are the different use cases
-    # 1/ spouse_net_revenue == 0 and spouse_other_net_revenue == 0 --> without_income
-    # 2/ 0 < spouse_net_revenue <= 233 --> low_income
-    # 3/ spouse_net_revenue > 233 --> high_income
-    # 4/ spouse_net_revenue == 0 and 0 < spouse_other_net_revenue <= 466 --> low_pension
-    # 5/ spouse_net_revenue == 0 and spouse_other_net_revenue > 466 --> high_pension
-
-    cr.execute(
-        """
-        UPDATE hr_employee
-        SET spouse_fiscal_status =
-            CASE
-                WHEN
-                    (spouse_net_revenue = 0
-                    OR spouse_net_revenue IS NULL)
-                    AND (spouse_other_net_revenue = 0
-                    OR spouse_other_net_revenue IS NULL)
-                    THEN 'without_income'
-                WHEN
-                    spouse_net_revenue != 0
-                    AND spouse_net_revenue <= 233
-                    THEN 'low_income'
-                WHEN
-                    spouse_net_revenue > 233
-                    THEN 'high_income'
-                WHEN
-                    (spouse_net_revenue = 0
-                    OR spouse_net_revenue IS NULL)
-                    AND spouse_other_net_revenue != 0
-                    AND spouse_other_net_revenue <= 466
-                    THEN 'low_pension'
-                WHEN
-                    (spouse_net_revenue = 0
-                    OR spouse_net_revenue IS NULL)
-                    AND spouse_other_net_revenue > 466
-                    THEN 'high_pension'
-                ELSE 'without_income'
-            END"""
-    )
 
     # Removed fields
     removed_fields = {
         "generate.simulation.link": ["new_car_model_id"],
         "hr.contract": ["country_code"],
-        "hr.employee": ["spouse_other_net_revenue", "spouse_net_revenue"],
-        "res.users": ["spouse_other_net_revenue", "spouse_net_revenue"],
     }
     for model, fields in removed_fields.items():
         for field in fields:
