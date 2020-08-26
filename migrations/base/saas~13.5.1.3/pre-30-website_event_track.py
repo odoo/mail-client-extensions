@@ -130,6 +130,7 @@ def migrate(cr, version):
         "track_view_wishlist",
     ]:
         util.rename_xmlid(cr, *eb("{website_event_track_online,website_event_track}.%s" % xml_id))
+    util.rename_xmlid(cr, "website_event_track_online.offline", "website_event_track.pwa_offline")
 
     # templates move: track_session
     for xml_id in [
