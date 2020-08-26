@@ -18,10 +18,10 @@ def migrate(cr, version):
     # For historical reasons, there's some Lost stages that should not exist anymore...
     # https://www.odoo.com/web#id=1925439&model=project.task&view_type=form&menu_id=
     lost_stage_ids = [s for s in [util.ref(cr, "crm.stage_lead7"), util.ref(cr, "crm.stage_lead8")] if s]
-    cr.execute("select id from crm_stage order by sequence,id limit 1")
-    first_stage_id = cr.fetchone()[0]
 
     if lost_stage_ids:
+        cr.execute("SELECT id FROM crm_stage WHERE id NOT IN %s ORDER BY sequence,id LIMIT 1", [tuple(lost_stage_ids)])
+        first_stage_id = cr.fetchone()[0]
         cr.execute(
             """
             UPDATE crm_lead
