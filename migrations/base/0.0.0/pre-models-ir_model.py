@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 from odoo import models
 from odoo.addons.base.maintenance.migrations import util
 
@@ -90,6 +92,10 @@ class Field(models.Model):
                 )
                 # Let it be deleted, so the ORM creates it back, hopefully marked with the correct module this time.
                 ignore_fields |= field
+            elif "field:%s.%s" % (field.model, field.name) in os.environ.get('suppress_upgrade_warnings', '').split(','):
+                ignore_fields |= field
+                util._logger.log(25, "Field suppression %s.%s explicitly ignored, skipping" % (field.model, field.name))
+                continue
 
             unlink_fields |= field
         invalid_unlink_fields = unlink_fields - ignore_fields

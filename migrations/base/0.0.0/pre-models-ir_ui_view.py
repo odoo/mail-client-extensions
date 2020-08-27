@@ -1,5 +1,6 @@
 import logging
 import re
+import os
 
 from odoo import api, models
 from odoo.modules.module import get_modules
@@ -208,5 +209,9 @@ class IrUiView(models.Model):
         def unlink(self):
             for view in self:
                 if view.xml_id:
-                    _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
+                    if "view:%s" % (view.xml_id) in os.environ.get('suppress_upgrade_warnings', '').split(','):
+                        _logger.log(25, "View suppression %s explicitly ignored", (view.xml_id))
+                    else:
+                        _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
+
             return super().unlink()
