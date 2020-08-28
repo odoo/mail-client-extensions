@@ -21,6 +21,6 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *eb("mrp.mrp_production_work{center,order}_tree_view_inherit"))
     util.rename_xmlid(cr, *eb("mrp.mrp_production_work{center,order}_form_view_inherit"))
-    util.rename_xmlid(cr, *eb("mrp.mrp_production_work{center,order}_form_view_filter"))
+    util.rename_xmlid(cr, *eb("mrp.view_mrp_production_work{center,order}_form_view_filter"))
 
     util.move_field_to_module(cr, "mrp.workcenter", "costs_hour", "mrp_account", "mrp")
