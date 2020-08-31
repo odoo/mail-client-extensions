@@ -296,7 +296,7 @@ index a26d1885ea6..b092f3c836e 100644
 
     # create symlink
     maintenance = odoodir / pkgdir / "addons" / "base" / "maintenance"
-    if maintenance.exists():
+    if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
         maintenance.unlink()
     if options.upgrade_branch == ".":
         upgrade_path = Path(__file__).resolve().parent.parent
