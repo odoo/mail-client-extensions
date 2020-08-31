@@ -62,3 +62,6 @@ def migrate(cr, version):
 
     util.remove_record(cr, "helpdesk.helpdesk_sla_cron")
     util.remove_record(cr, "helpdesk.helpdesk_sla_cron_ir_actions_server")
+
+    for field, value in [('helpdesk_target_closed', 1), ('helpdesk_target_rating', 100), ('helpdesk_target_success', 100)]:
+        cr.execute(f"UPDATE res_users set {field}={value} WHERE COALESCE({field}, 0) <= 0")
