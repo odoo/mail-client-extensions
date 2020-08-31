@@ -85,7 +85,9 @@ def init_repos(options: Namespace) -> None:
         if not (p / "master").exists():
             logger.info("init %s repo", repo.name)
             subprocess.run(
-                ["git", "clone", "-q", repo.remote, "--branch", "master", "master"], cwd=str(p), check=True,
+                ["git", "clone", "-q", repo.remote, "--branch", "master", "master"],
+                cwd=str(p),
+                check=True,
             )
             # also fetch PR under pr/ namespace
             subprocess.run(
@@ -172,7 +174,8 @@ def process_module(module: str, options: Namespace) -> None:
     subprocess.run(["createdb", dbname], check=True)  # version 7.0 does not create database itself
 
     re_warn = re.compile(
-        rf"^(\d{{4}}-\d\d-\d\d \d\d:\d\d:\d\d,\d{{3}} \d+ (?:WARNING|ERROR|CRITICAL) {dbname} .*)$", re.M,
+        rf"^(\d{{4}}-\d\d-\d\d \d\d:\d\d:\d\d,\d{{3}} \d+ (?:WARNING|ERROR|CRITICAL) {dbname} .*)$",
+        re.M,
     )
 
     def odoo(cmd: List[str], version: str) -> bool:
@@ -201,16 +204,12 @@ def process_module(module: str, options: Namespace) -> None:
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout = p.stdout.decode()
         if p.returncode:
-            logger.error(
-                "Error (returncode=%s) while upgrading module %s:\n%s", p.returncode, module, stdout,
-            )
+            logger.error("Error (returncode=%s) while upgrading module %s:\n%s", p.returncode, module, stdout)
             p.check_returncode()
 
         warns = "\n".join(re_warn.findall(stdout))
         if warns:
-            logger.warning(
-                "Some warnings/errors emitted while upgrading module %s:\n%s", module, warns,
-            )
+            logger.warning("Some warnings/errors emitted while upgrading module %s:\n%s", module, warns)
             return False
         return True
 
