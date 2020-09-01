@@ -3,9 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    u2id = util.ENVIRON.get("user2_id")
-    assert isinstance(u2id, int)
-    one_user_type_group(cr, [1, u2id])
+    one_user_type_group(cr, {1, util.guess_admin_id(cr)})
 
 
 def one_user_type_group(cr, admin_ids):
