@@ -4,8 +4,5 @@
 
 - cd to the addin-in sources directory
 - `npm install`
-- `npm run-script build`
-- copy the `manifest.xml` to the `dist` directory
-- open the `manifest.xml` and replace all `https://localhost:3000` instances with the actual address
-- do the same operation with `api.js`
-- serve
+- `npm run-script build  -- --env.DOMAIN=127.0.0.1:8080` (replace `127.0.0.1:8080` with the actual domain)
+- serve the dist folder

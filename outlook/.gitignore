@@ -62,5 +62,7 @@ typings/
 .next
 
 # VS CODE
-.vscode/*
+.vscode/
 *.code-workspace
+
+dist/

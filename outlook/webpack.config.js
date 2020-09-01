@@ -7,6 +7,10 @@ const webpack = require('webpack');
 
 module.exports = async (env, options)  => {
   const dev = options.mode === "development";
+  let domain = "localhost:3000";
+  if (env && env.DOMAIN) {
+    domain = env.DOMAIN;
+  }
   const config = {
     devtool: "source-map",
     entry: {
@@ -57,10 +61,29 @@ module.exports = async (env, options)  => {
             {
               to: "taskpane.css",
               from: "./src/taskpane/taskpane.css"
-            }
+            },
+            {
+              from: './assets',
+              to: 'assets',
+              globOptions: {
+                ignore: ['*.scss'],
+              }
+            },
+            {
+              to: "manifest.xml",
+              from: "./manifest.xml",
+              transform(content) {
+                return content
+                  .toString()
+                  .replace(/localhost:3000/g, domain);
+              },
+            },
           ]
         }
       ),
+      new webpack.DefinePlugin({
+        __DOMAIN__: JSON.stringify(domain)
+      }),
       new ExtractTextPlugin('[name].[hash].css'),
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
@@ -71,15 +94,6 @@ module.exports = async (env, options)  => {
         filename: "dialog.html",
         template: "./src/taskpane/components/Login/dialog.html"
       }),
-      new CopyWebpackPlugin({ patterns: [
-          {
-              from: './assets',
-              to: 'assets',
-              globOptions: {
-                ignore: ['*.scss'],
-              }
-          }
-      ]}),
       new webpack.ProvidePlugin({
         Promise: ["es6-promise", "Promise"]
       })
