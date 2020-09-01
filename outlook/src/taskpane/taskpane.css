@@ -1,0 +1,110 @@
+ body {
+     margin: 0;
+     background-color: whitesmoke;
+ }
+ 
+.full-width {
+    width: 100%;
+}
+
+.form-line {
+    margin-top: 15px;
+}
+
+.form-line-compact {
+    margin-top: 10px;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.tile {
+    padding: 10px;
+    background-color: white;
+}
+
+.bounded-tile {
+    padding: 10px;
+    background-color: white;
+    border-top: 1px #d6d5d5 solid;
+    border-bottom: 1px #d6d5d5 solid;
+}
+
+.lower-bounded-tile { 
+    padding: 10px;
+    background-color: white;
+    border-bottom: 1px #d6d5d5 solid;
+}
+
+.tile-regular-space {
+    height: 30px;
+}
+
+.tile-title-space {
+    /*height: 50px;*/
+    height: 25px;
+    position: relative;
+}
+
+.tile-title {
+    padding-left: 15px;
+    font-size: 13px;
+    color: #56565b;
+    position: absolute;
+    bottom: 5px;
+    display: flex;
+    width: calc(100% - 30px);
+}
+
+.tile-title > .text {
+    flex: 1;
+}
+
+.tile-title > .button {
+    text-align: right;
+    cursor: pointer;
+    color: blue
+}
+
+.link-like-button {
+    cursor: pointer;
+    color: blue;
+    text-decoration: none;
+}
+
+.odoo-filled-button {
+    /*border: 2px solid #8a8886;*/
+    background-color: #a2478a;
+    color: white;
+    font-size: large;
+}
+
+.odoo-filled-button:hover {
+    background-color: #96417e;
+}
+
+.odoo-clear-button {
+    /*border: 2px solid #8a8886;*/
+    font-size: large;
+    color: #a2478a;
+    background-color: white;
+}
+
+.odoo-clear-button:hover {
+    color: #a2478a;
+}
+
+.horizontal-line {
+    width: 100%; 
+    text-align: center; 
+    border-bottom: 1px solid #56565b; 
+    line-height: 0.1em;
+    margin: 20px 0 20px; 
+} 
+
+ .horizontal-line > span { 
+    background:#fff; 
+    padding:0 10px;
+    color:#56565b;
+}

@@ -1,0 +1,44 @@
+.opportunity {
+	display: flex;
+    align-items: center;
+    /*border: 1px solid #000000;*/
+    width: 100%;
+    padding-right: 5px;
+}
+
+.opportunity .body {
+	display: flex;
+    align-items: center;
+    /*border: 1px solid yellow;*/
+}
+
+.opportunity .body:hover {
+    background-color: WhiteSmoke;
+    cursor: pointer;
+}
+
+.opportunity .title {
+	/*border: 1px solid red;*/
+	width: 200px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.opportunity .title:hover {
+	white-space: normal;
+}
+
+.opportunity .price {
+	/*border: 1px solid green;*/
+	width: 70px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin-left: 5px;
+}
+
+.opportunity .logicon {
+    margin-left: auto;
+    cursor: pointer;
+}

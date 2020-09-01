@@ -1,0 +1,22 @@
+.main-page {
+    padding: 10px;
+}
+
+.message-bars {
+    margin-bottom: 5px;
+}
+
+.message-bar-show {
+    display: block;
+}
+
+.message-bar-hide {
+    display: none;
+}
+
+.connect-button {
+    margin: 10px auto;
+    text-align: center; /* Edge */
+    width: fit-content;
+}
+
