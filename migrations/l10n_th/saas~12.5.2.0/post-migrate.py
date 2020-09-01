@@ -34,7 +34,7 @@ def migrate(cr, version):
                 FROM account_tax_report_line_tags_rel atrl_tag
                 JOIN ir_model_data ir_md ON res_id = atrl_tag.account_tax_report_line_id and model = 'account.tax.report.line'
                 JOIN account_account_tag tag ON tag.id = atrl_tag.account_account_tag_id
-                WHERE tag.tax_negate != true AND trm.old_tax_report_line_xml_ref = %s AND ir_md.name = %s
+                WHERE tag.tax_negate = true AND trm.old_tax_report_line_xml_ref = %s AND ir_md.name = %s
             """, (old_ref, new_ref)
             )
 
