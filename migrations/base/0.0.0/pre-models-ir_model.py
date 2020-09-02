@@ -37,7 +37,11 @@ class Field(models.Model):
         for field in self:
             model = self.env[field.model] if field.model in self.env else None
             f = model._fields.get(field.name) if model else None
-            if f and f.inherited:
+            if "field:%s.%s" % (field.model, field.name) in os.environ.get('suppress_upgrade_warnings', '').split(','):
+                ignore_fields |= field
+                util._logger.log(25, "Field unlink %s.%s explicitly ignored, skipping" % (field.model, field.name))
+                continue
+            elif f and f.inherited:
                 # See https://github.com/odoo/odoo/pull/53632
                 util._logger.critical(
                     "The field %s.%s is being deleted but is still in the registry. "
@@ -92,10 +96,6 @@ class Field(models.Model):
                 )
                 # Let it be deleted, so the ORM creates it back, hopefully marked with the correct module this time.
                 ignore_fields |= field
-            elif "field:%s.%s" % (field.model, field.name) in os.environ.get('suppress_upgrade_warnings', '').split(','):
-                ignore_fields |= field
-                util._logger.log(25, "Field suppression %s.%s explicitly ignored, skipping" % (field.model, field.name))
-                continue
 
             unlink_fields |= field
         invalid_unlink_fields = unlink_fields - ignore_fields
