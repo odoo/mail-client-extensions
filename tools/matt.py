@@ -245,17 +245,20 @@ def matt(options: Namespace) -> int:
     if options.upgrade_branch != ".":
         checkout(UPGRADE_REPO, options.upgrade_branch, options)
 
-    odoodir = options.path / "odoo" / options.target
-    if (odoodir / "odoo" / "__init__.py").is_file():
-        pkgdir = "odoo"
-    elif (odoodir / "openerp" / "__init__.py").is_file():
-        pkgdir = "openerp"
-    else:
-        logger.critical(
-            "No `odoo` nor `openerp` directory found in odoo branch %s. This tool only works from version 7.0",
-            options.target,
-        )
-        return 2
+    pkgdir = dict()
+    for loc in ["source", "target"]:
+        version = getattr(options, loc)
+        odoodir = options.path / "odoo" / version
+        if (odoodir / "odoo" / "__init__.py").is_file():
+            pkgdir[loc] = "odoo"
+        elif (odoodir / "openerp" / "__init__.py").is_file():
+            pkgdir[loc] = "openerp"
+        else:
+            logger.critical(
+                "No `odoo` nor `openerp` directory found in odoo branch %s. This tool only works from version 7.0",
+                version,
+            )
+            return 2
 
     # Verify that tests can actually be run by grepping the `--test-tags` options on command line
     if options.run_tests:
@@ -284,10 +287,11 @@ index a26d1885ea6..b092f3c836e 100644
              #context = self.get_context(record, self.eval_context)
 """
 
-    if (odoodir / pkgdir / "tools" / "yaml_import.py").exists():
+    odoodir = options.path / "odoo" / options.target
+    if (odoodir / pkgdir["target"] / "tools" / "yaml_import.py").exists():
         logger.info("patching yaml_import.py")
         subprocess.run(
-            ["git", "apply", "-p0", "--directory", pkgdir, "-"],
+            ["git", "apply", "-p0", "--directory", pkgdir["target"], "-"],
             input=YAML_PATCH.encode(),
             check=True,
             cwd=odoodir,
@@ -295,7 +299,7 @@ index a26d1885ea6..b092f3c836e 100644
         )
 
     # create symlink
-    maintenance = odoodir / pkgdir / "addons" / "base" / "maintenance"
+    maintenance = odoodir / pkgdir["target"] / "addons" / "base" / "maintenance"
     if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
         maintenance.unlink()
     if options.upgrade_branch == ".":
@@ -304,9 +308,12 @@ index a26d1885ea6..b092f3c836e 100644
         upgrade_path = options.path / "upgrade" / options.upgrade_branch
     maintenance.symlink_to(upgrade_path)
 
-    modules = [
+    # We should also search modules in the $pkgdir/addons of the source
+    base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
+
+    modules = {
         m.parent.name
-        for repo in REPOSITORIES
+        for repo in [base_ad] + REPOSITORIES
         for mod_glob in options.module_globs or ["*"]
         for wd in [options.path / repo.name / options.source / repo.addons_dir]
         for m in itertools.chain(
@@ -316,7 +323,7 @@ index a26d1885ea6..b092f3c836e 100644
         )
         if repo.addons_dir
         if all(not m.parent.relative_to(wd).match(mod_ign) for mod_ign in options.module_ignores or [])
-    ]
+    }
     if not modules:
         logger.error("No module found")
         return 1
