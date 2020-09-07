@@ -132,7 +132,7 @@
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="GroupLabel" DefaultValue="Odoo for Outlook"/>
-          <bt:String id="TaskpaneButton.Label" DefaultValue="Open contact profile"/>
+          <bt:String id="TaskpaneButton.Label" DefaultValue="Open sender profile"/>
         </bt:ShortStrings>
         <bt:LongStrings>
           <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Opens a pane displaying all available options."/>
