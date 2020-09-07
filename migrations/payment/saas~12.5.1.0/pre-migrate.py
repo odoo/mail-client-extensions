@@ -5,13 +5,6 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("payment.payment_acquirer_{ogone,ingenico}"))
-    util.replace_record_references(
-        cr,
-        ("payment.acquirer", util.ref(cr, "payment.payment_acquirer_custom")),
-        ("payment.acquirer", util.ref(cr, "payment.payment_acquirer_transfer")),
-        replace_xmlid=False,
-    )
-    util.remove_record(cr, "payment.payment_acquirer_custom")
     util.remove_view(cr, "payment.assets_backend")
     util.remove_menus(cr, [util.ref(cr, "payment.root_payment_menu")])
 
