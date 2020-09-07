@@ -4,6 +4,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.force_noupdate(cr, "mass_mailing.mass_mailing_kpi_link_trackers", False)
+
     # remove date schedule wizard
     util.remove_model(cr, "mailing.mailing.schedule.date")
     util.remove_view(cr, "mass_mailing.mailing_mailing_schedule_date_view_form")
