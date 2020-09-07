@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter, Action, ArgumentError
 
 from concurrent.futures import ProcessPoolExecutor
 from functools import wraps
@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 from typing import Callable, Generic, NamedTuple, Optional, Union, TypeVar, List
+from collections import namedtuple
 
 import re
 import logging
@@ -66,6 +67,10 @@ class Repo(NamedTuple):
     def remote(self):
         return f"git@github.com:odoo/{self.name}.git"
 
+    @property
+    def ident(self):
+        return self.name.split("-")[-1]
+
 
 REPOSITORIES = [
     Repo("odoo", Path("addons")),
@@ -73,6 +78,9 @@ REPOSITORIES = [
     Repo("design-themes", Path(".")),
 ]
 UPGRADE_REPO = Repo("upgrade")
+
+
+Version = namedtuple("Version", [r.ident for r in REPOSITORIES])
 
 
 def init_repos(options: Namespace) -> None:
@@ -179,12 +187,11 @@ def process_module(module: str, options: Namespace) -> None:
     )
 
     def odoo(cmd: List[str], version: str) -> bool:
-        cwd = options.path / "odoo" / version
+        cwd = options.path / "odoo" / version.odoo
         ad_path = ",".join(
             str(ad)
             for repo in reversed(REPOSITORIES)  # reverse order to have `enterprise` before `odoo` in 9.0
-            # if (ad := options.path / repo.name / version / repo.addons_dir).exists()
-            for ad in [options.path / repo.name / version / repo.addons_dir]
+            for ad in [options.path / repo.name / getattr(version, repo.ident) / repo.addons_dir]
             if ad.exists()
         )
 
@@ -240,15 +247,15 @@ def process_module(module: str, options: Namespace) -> None:
 
 def matt(options: Namespace) -> int:
     for repo in REPOSITORIES:
-        checkout(repo, options.source, options)
-        checkout(repo, options.target, options)
+        checkout(repo, getattr(options.source, repo.ident), options)
+        checkout(repo, getattr(options.target, repo.ident), options)
     if options.upgrade_branch != ".":
         checkout(UPGRADE_REPO, options.upgrade_branch, options)
 
     pkgdir = dict()
     for loc in ["source", "target"]:
         version = getattr(options, loc)
-        odoodir = options.path / "odoo" / version
+        odoodir = options.path / "odoo" / version.odoo
         if (odoodir / "odoo" / "__init__.py").is_file():
             pkgdir[loc] = "odoo"
         elif (odoodir / "openerp" / "__init__.py").is_file():
@@ -256,7 +263,7 @@ def matt(options: Namespace) -> int:
         else:
             logger.critical(
                 "No `odoo` nor `openerp` directory found in odoo branch %s. This tool only works from version 7.0",
-                version,
+                version.odoo,
             )
             return 2
 
@@ -264,7 +271,7 @@ def matt(options: Namespace) -> int:
     if options.run_tests:
         grep = subprocess.run(
             ["git", "grep", "-q", "test-tags", "--", "odoo/tools/config.py"],
-            cwd=(options.path / "odoo" / options.source),
+            cwd=(options.path / "odoo" / options.source.odoo),
         )
         options.run_tests = grep.returncode == 0
 
@@ -287,7 +294,7 @@ index a26d1885ea6..b092f3c836e 100644
              #context = self.get_context(record, self.eval_context)
 """
 
-    odoodir = options.path / "odoo" / options.target
+    odoodir = options.path / "odoo" / options.target.odoo
     if (odoodir / pkgdir["target"] / "tools" / "yaml_import.py").exists():
         logger.info("patching yaml_import.py")
         subprocess.run(
@@ -315,7 +322,7 @@ index a26d1885ea6..b092f3c836e 100644
         m.parent.name
         for repo in [base_ad] + REPOSITORIES
         for mod_glob in options.module_globs or ["*"]
-        for wd in [options.path / repo.name / options.source / repo.addons_dir]
+        for wd in [options.path / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
         for m in itertools.chain(
             wd.glob(f"{mod_glob}/__manifest__.py"),
             wd.glob(f"{mod_glob}/__openerp__.py"),
@@ -344,9 +351,48 @@ index a26d1885ea6..b092f3c836e 100644
     return rc
 
 
+class VersionAction(Action):
+    def __call__(self, parser: ArgumentParser, namespace: Namespace, values: str, option_string=None) -> None:
+        v = Version(*[None] * len(Version._fields))
+        fallback = None
+        for part in values.split(":"):
+            for sep in "#/":
+                repo, _, pr = part.partition(sep)
+                if pr:
+                    try:
+                        v = v._replace(**{repo: f"pr/{pr}"})
+                    except ValueError:
+                        raise ArgumentError(self, f"Invalid repository defined in version: {values!r}")
+                    break
+            else:
+                if fallback is not None:
+                    raise ArgumentError(self, f"Invalid version definition: {values!r}")
+                fallback = part
+
+        for field in Version._fields:
+            if getattr(v, field) is None:
+                if fallback is None:
+                    raise ArgumentError(self, f"Incomplete version definition: {values!r}")
+                v = v._replace(**{field: fallback})
+
+        setattr(namespace, self.dest, v)
+
+
 def main() -> int:
 
-    parser = ArgumentParser(description="matt :: Migrate All The Things")
+    parser = ArgumentParser(
+        description="matt :: Migrate All The Things",
+        epilog="""\
+The `source` and `target` arguments have the following format:
+    BRANCH
+    BRANCH:odoo#3303
+    BRANCH:odoo#3303:enterprise#40
+    BRANCH:odoo/3303                ; a `/` is also allowed as separator
+
+It allows to test upgrades against development branches.
+        """,
+        formatter_class=RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "-p",
         "--path",
@@ -412,8 +458,8 @@ def main() -> int:
     )
     parser.add_argument("-t", "--tests", action="store_true", dest="run_tests", default=False, help="Run upgrade tests")
 
-    parser.add_argument("source")
-    parser.add_argument("target")
+    parser.add_argument("source", action=VersionAction)
+    parser.add_argument("target", action=VersionAction)
 
     options = parser.parse_args()
     level = [logging.INFO, logging.WARNING, logging.ERROR][min(options.quiet, 2)]
