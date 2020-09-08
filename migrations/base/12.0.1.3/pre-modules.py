@@ -21,3 +21,4 @@ def migrate(cr, version):
         )
 
         util.new_module(cr, "iot_pairing", deps={"iot"}, auto_install=True)
+        util.new_module(cr, "account_ponto", deps={"account_online_sync"}, auto_install=True)
