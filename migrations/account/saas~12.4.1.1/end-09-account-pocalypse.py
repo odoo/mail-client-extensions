@@ -1363,11 +1363,13 @@ def migrate_invoice_lines(cr):
         cr.execute(
             """
                DELETE FROM ir_property p
-                USING account_account a
+                USING account_account a, ir_model_fields f
                 WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
+                  AND f.id = p.fields_id
                   AND p.res_id IS NOT NULL
                   AND replace(p.res_id, 'res.partner,', '')::integer IN %s
-                  AND p.name IN ('property_account_receivable_id', 'property_account_payable_id')
+                  AND f.model = 'res.partner'
+                  AND f.name IN ('property_account_receivable_id', 'property_account_payable_id')
                   AND p.company_id != a.company_id
                   AND p.company_id IS NOT NULL
             RETURNING replace(p.res_id, 'res.partner,', '')
@@ -1393,10 +1395,12 @@ def migrate_invoice_lines(cr):
         cr.execute(
             """
                DELETE FROM ir_property p
-                USING account_account a
+                USING account_account a, ir_model_fields f
                 WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
+                  AND f.id = p.fields_id
                   AND p.res_id IS NOT NULL
-                  AND p.name IN ('property_account_income_id', 'property_account_expense_id')
+                  AND f.model = 'product.template'
+                  AND f.name IN ('property_account_income_id', 'property_account_expense_id')
                   AND p.company_id != a.company_id
                   AND p.company_id IS NOT NULL
             RETURNING replace(p.res_id, 'product.template,', '')
