@@ -83,15 +83,21 @@ UPGRADE_REPO = Repo("upgrade")
 Version = namedtuple("Version", [r.ident for r in REPOSITORIES])
 
 
-def init_repos(options: Namespace) -> None:
+def init_repos(options: Namespace) -> bool:
     options.path.mkdir(parents=True, exist_ok=True)
 
     # TODO parallalize?
-    for repo in REPOSITORIES + [UPGRADE_REPO]:
+    repos = list(REPOSITORIES)
+    if options.upgrade_branch != ".":
+        repos += [UPGRADE_REPO]
+    for repo in repos:
         p = options.path / repo.name
         p.mkdir(exist_ok=True)
         if not (p / "master").exists():
-            logger.info("init %s repo", repo.name)
+            if not options.fetch:
+                logger.critical("missing %s repository with `--no-fetch` option", repo.name)
+                return False
+            logger.info("init %s repository", repo.name)
             subprocess.run(
                 ["git", "clone", "-q", repo.remote, "--branch", "master", "master"],
                 cwd=str(p),
@@ -134,12 +140,14 @@ http_enable = False
 log_handler = {log_handlers}
 """
     )
+    return True
 
 
 def checkout(repo: Repo, version: str, options: Namespace) -> None:
     logger.info("checkout %s at version %s", repo.name, version)
     wd = options.path / repo.name
-    subprocess.run(["git", "fetch", "-q"], cwd=wd / "master", check=True)
+    if options.fetch:
+        subprocess.run(["git", "fetch", "-q"], cwd=wd / "master", check=True)
     if (wd / version).exists():
         subprocess.run(["git", "reset", "-q", "--hard", "@{upstream}"], cwd=wd / version, check=True)
     else:
@@ -457,6 +465,9 @@ It allows to test upgrades against development branches.
         "--no-demo", action="store_false", dest="demo", default=True, help="Create databases without demo data"
     )
     parser.add_argument("-t", "--tests", action="store_true", dest="run_tests", default=False, help="Run upgrade tests")
+    parser.add_argument(
+        "--no-fetch", action="store_false", dest="fetch", default=True, help="Do not fetch repositories from remote"
+    )
 
     parser.add_argument("source", action=VersionAction)
     parser.add_argument("target", action=VersionAction)
@@ -467,7 +478,8 @@ It allows to test upgrades against development branches.
 
     setproctitle(f"matt :: {options.source} -> {options.target}")
 
-    init_repos(options)
+    if not init_repos(options):
+        return 2
     return matt(options)
 
 
