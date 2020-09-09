@@ -15,7 +15,7 @@ const api = {
     loginPage: "/web/login", // Should be the usual Odoo login page.
     authCodePage: "/mail_client_extension/auth", // The page where to allow or deny access. You get an auth code.
     getAccessToken: "/mail_client_extension/auth/access_token", // The address where to post to exchange an auth code for an access token.
-    addInRedirect: "https://" + __DOMAIN__ + "/taskpane.html", // The address of the outlook add-in to redirect to at the end of the auth flow. See the webpack.config.js for the __DOMAIN__ variable.
+    addInBaseURL: "https://" + __DOMAIN__,
     outlookScope: "outlook",
     outlookFriendlyName: "Outlook",
 };

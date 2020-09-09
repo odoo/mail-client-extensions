@@ -41,10 +41,10 @@ export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardSt
 
         // If the size of the text is smaller than the cutoff, the social links should be on the right of the name.
         const social = <div className={`social-links ${nameSize < nameSizeCutoff ? 'right' : null}`}>
-            {twitter ? <a href={'https://twitter.com/' + twitter} target='_blank' rel="noreferrer noopener"><img src='../../../../assets/social/twitter.ico'/></a> : null}
-            {facebook ? <a href={'https://facebook.com/' + twitter} target='_blank' rel="noreferrer noopener"><img src='../../../../assets/social/facebook.ico'/></a> : null}
-            {linkedin ? <a href={'https://linkedin.com/' + linkedin} target='_blank' rel="noreferrer noopener"><img src='../../../../assets/social/linkedin.ico'/></a> : null}
-            {crunchbase ? <a href={'https://crunchbase.com/' + crunchbase} target='_blank' rel="noreferrer noopener"><img src='../../../../assets/social/crunchbase.ico'/></a> : null}
+            {twitter ? <a href={'https://twitter.com/' + twitter} target='_blank' rel="noreferrer noopener"><img src='assets/social/twitter.ico'/></a> : null}
+            {facebook ? <a href={'https://facebook.com/' + twitter} target='_blank' rel="noreferrer noopener"><img src='assets/social/facebook.ico'/></a> : null}
+            {linkedin ? <a href={'https://linkedin.com/' + linkedin} target='_blank' rel="noreferrer noopener"><img src='assets/social/linkedin.ico'/></a> : null}
+            {crunchbase ? <a href={'https://crunchbase.com/' + crunchbase} target='_blank' rel="noreferrer noopener"><img src='assets/social/crunchbase.ico'/></a> : null}
         </div>
 
         return (

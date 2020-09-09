@@ -60,11 +60,11 @@ class Login extends React.Component<LoginProps, LoginState> {
         promptBeforeOpen: true,
         };
 
-        const redirectToAddin = encodeURIComponent(api.addInRedirect);
+        const redirectToAddin = encodeURIComponent(api.addInBaseURL + '/taskpane.html');
         const redirectToAuthPage = encodeURIComponent(api.authCodePage + '?scope=' + api.outlookScope + '&friendlyname=' + api.outlookFriendlyName + '&info=some info' + '&redirect=' + redirectToAddin);
         const loginURL = api.baseURL + api.loginPage + '?redirect=' + redirectToAuthPage;
 
-        Office.context.ui.displayDialogAsync(window.location.origin + '/dialog.html?dialogredir=' + loginURL, options , (asyncResult) => {
+        Office.context.ui.displayDialogAsync(api.addInBaseURL + '/dialog.html?dialogredir=' + loginURL, options , (asyncResult) => {
             console.log(asyncResult);
             let dialog = asyncResult.value;
             dialog.addEventHandler(Office.EventType.DialogMessageReceived, (_arg) => {
@@ -93,7 +93,7 @@ class Login extends React.Component<LoginProps, LoginState> {
             </div>
             
             <div className='bounded-tile'>
-                <div style={{fontSize: '30px', width: '200px', margin:'auto', textAlign:'center'}}>Connect Your <img src='../../../../assets/odoo-full.png' style={{height: '30px'}}/> Database</div>
+                <div style={{fontSize: '30px', width: '200px', margin:'auto', textAlign:'center'}}>Connect Your <img src='assets/odoo-full.png' style={{height: '30px'}}/> Database</div>
                 <TextField
                     className="form-line"
                     label="Database URL"
