@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo import fields
 
 
 @change_version('12.4')
@@ -111,6 +112,30 @@ class TestAccountPocalypse(UpgradeCase):
         # self.assertEqual(move.invoice_payment_ref, 'name_payable_line')
         self.assertEqual(payable_line.name, 'name_payable_line')    # line remains untouched.
 
+    def _prepare_test_invoice_no_accounting_date(self, env_user):
+        invoice = env_user['account.invoice'].create({
+            'partner_id': self.partner.id,
+            'type': 'out_invoice',
+            'date_invoice': '2016-01-01',
+            'date': False,
+            'account_id': self.account_receivable.id,
+            'reference': 'CUST123456789',       # Payment Ref.
+            'name': 'name_receivable_line',     # Reference/Description
+            'invoice_line_ids': [(0, 0, {
+                'name': 'line',
+                'product_id': self.product.id,
+                'account_id': self.account_income.id,
+                'price_unit': 1.0,
+                'quantity': 1.0,
+            })],
+        })
+        return invoice.id
+
+    def _check_test_invoice_no_accounting_date(self, config, invoice_id):
+        move = self.env['account.move'].browse(self._get_move_id_from_invoice_id(invoice_id))
+
+        self.assertEqual(move.date, fields.Date.from_string('2016-01-01'))
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -179,6 +204,7 @@ class TestAccountPocalypse(UpgradeCase):
                 self._prepare_test_out_invoice_payment_reference_posted(env_user),
                 self._prepare_test_in_invoice_payment_reference_draft(env_user),
                 self._prepare_test_in_invoice_payment_reference_posted(env_user),
+                self._prepare_test_invoice_no_accounting_date(env_user),
             ],
             'config': {
                 'account_income_id': self.account_income.id,
@@ -194,3 +220,4 @@ class TestAccountPocalypse(UpgradeCase):
         self._check_test_out_invoice_payment_reference_posted(config, init['tests'][1])
         self._check_test_in_invoice_payment_reference_draft(config, init['tests'][2])
         self._check_test_in_invoice_payment_reference_posted(config, init['tests'][3])
+        self._check_test_invoice_no_accounting_date(config, init['tests'][4])

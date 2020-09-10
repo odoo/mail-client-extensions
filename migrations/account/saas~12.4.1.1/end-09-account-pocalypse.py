@@ -24,7 +24,7 @@ def _convert_to_account_move_vals(inv_vals):
     return {
         # Mandatory fields.
         "type": inv_vals["type"],
-        "date": inv_vals["date"] or fields.Date.today(),
+        "date": inv_vals["date"] or inv_vals["invoice_date"] or fields.Date.today(),
         "state": inv_vals["state"],
         "partner_id": inv_vals["partner_id"],
         "journal_id": inv_vals["journal_id"],
