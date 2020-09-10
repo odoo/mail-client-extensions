@@ -1331,7 +1331,8 @@ def migrate_invoice_lines(cr):
             inv.incoterm_id                         AS invoice_incoterm_id,
             inv.origin                              AS invoice_origin,
             inv.partner_bank_id                     AS invoice_bank_partner_id,
-            inv.reference                           AS invoice_payment_ref,
+            CASE WHEN inv.type IN ('out_invoice', 'out_refund') THEN inv.reference ELSE inv.name END
+                                                    AS invoice_payment_ref,
             CASE WHEN inv.state = 'cancel' THEN 'cancel' ELSE 'draft' END
                                                     AS state,
             inv.payment_term_id                     AS invoice_payment_term_id,
@@ -1340,7 +1341,8 @@ def migrate_invoice_lines(cr):
             inv.user_id                             AS invoice_user_id,
             inv.vendor_display_name                 AS invoice_partner_display_name,
             inv.journal_id,
-            inv.name                                AS ref,
+            CASE WHEN inv.type IN ('out_invoice', 'out_refund') THEN NULL ELSE inv.reference END
+                                                    AS ref,
             inv.number                              AS name,
             inv.comment                             AS narration,
             inv.partner_id,
