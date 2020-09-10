@@ -89,49 +89,44 @@ def init_repos(options: Namespace) -> bool:
     # TODO parallalize?
     repos = list(REPOSITORIES)
     if options.upgrade_branch != ".":
-        repos += [UPGRADE_REPO]
+        repos.append(UPGRADE_REPO)
     for repo in repos:
         p = options.path / repo.name
-        p.mkdir(exist_ok=True)
-        if not (p / "master").exists():
+        if not p.exists():
             if not options.fetch:
                 logger.critical("missing %s repository with `--no-fetch` option", repo.name)
                 return False
-            logger.info("init %s repository", repo.name)
-            subprocess.run(
-                ["git", "clone", "-q", repo.remote, "--branch", "master", "master"],
-                cwd=str(p),
-                check=True,
-            )
-            # also fetch PR under pr/ namespace
-            subprocess.run(
-                [
-                    "git",
-                    "config",
-                    "--local",
-                    "--add",
-                    "remote.origin.fetch",
-                    "+refs/pull/*/head:refs/remotes/origin/pr/*",
-                ],
-                cwd=str(p / "master"),
-                check=True,
-            )
 
-    # create a cross-version config file
-    log_handlers = ":WARNING,py.warnings:ERROR," + ",".join(
-        itertools.chain.from_iterable(
-            [f"openerp.{ll}", f"odoo.{ll}"]
-            for ll in """
-        osv.orm.schema:INFO models.schema:INFO
-        tools.misc:INFO
-        modules.loading:DEBUG modules.graph:CRITICAL
-        modules.migration:DEBUG
-        addons.base.maintenance.migrations:DEBUG upgrade:DEBUG
-    """.split()
+            logger.info("init %s repository", repo.name)
+            subprocess.check_call(
+                ["git", "clone", "--bare", "-q", repo.remote, repo.name],
+                cwd=str(options.path),
+            )
+            for fetch in ["+refs/heads/*:refs/remotes/origin/*", "+refs/pull/*/head:refs/remotes/origin/pr/*"]:
+                subprocess.check_call(
+                    ["git", "config", "--local", "--add", "remote.origin.fetch", fetch],
+                    cwd=str(p),
+                )
+
+        if options.fetch:
+            subprocess.check_call(["git", "fetch", "-q"], cwd=str(p))
+
+    conffile = options.path / "odoo.conf"
+    if not conffile.exists():
+        log_handlers = ":WARNING,py.warnings:ERROR," + ",".join(
+            itertools.chain.from_iterable(
+                [f"openerp.{ll}", f"odoo.{ll}"]
+                for ll in """
+            osv.orm.schema:INFO models.schema:INFO
+            tools.misc:INFO
+            modules.loading:DEBUG modules.graph:CRITICAL
+            modules.migration:DEBUG
+            addons.base.maintenance.migrations:DEBUG upgrade:DEBUG
+        """.split()
+            )
         )
-    )
-    (options.path / "odoo.conf").write_text(
-        f"""\
+        conffile.write_text(
+            f"""\
 [options]
 xmlrpc = False
 xmlrpcs = False
@@ -139,48 +134,43 @@ netrpc = False
 http_enable = False
 log_handler = {log_handlers}
 """
+        )
+    return True
+
+
+def checkout(repo: Repo, version: str, workdir: Path, options: Namespace) -> bool:
+    logger.info("checkout %s at version %s", repo.name, version)
+    wd = workdir / repo.name
+    wd.mkdir(exist_ok=True)
+    gitdir = str(options.path / repo.name)
+    # verify branch exists before checkout
+    hasref = subprocess.run(["git", "show-ref", "-q", "--verify", f"refs/remotes/origin/{version}"], cwd=gitdir)
+    if hasref.returncode != 0:
+        logger.critical("unknown ref %r in repository %r", version, repo.name)
+        return False
+    subprocess.run(
+        [
+            "git",
+            "--git-dir",
+            gitdir,
+            "worktree",
+            "add",
+            "--force",
+            wd / version,
+            f"origin/{version}",
+        ],
+        cwd=str(wd),
+        check=True,
+        # "git worktree" command learned "--quiet" option only in git version 2.19.0
+        # In order to handle all git versions, we simply redirect stdout and stderr to /dev/null
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
     return True
 
 
-def checkout(repo: Repo, version: str, options: Namespace) -> None:
-    logger.info("checkout %s at version %s", repo.name, version)
-    wd = options.path / repo.name
-    if options.fetch:
-        subprocess.run(["git", "fetch", "-q"], cwd=wd / "master", check=True)
-    if (wd / version).exists():
-        subprocess.run(["git", "reset", "-q", "--hard", "@{upstream}"], cwd=wd / version, check=True)
-    else:
-        # verify branch exists before checkout
-        hasref = subprocess.run(
-            ["git", "show-ref", "-q", "--verify", f"refs/remotes/origin/{version}"], cwd=wd / "master"
-        )
-        if hasref.returncode != 0:
-            return
-        subprocess.run(
-            [
-                "git",
-                "--git-dir",
-                "master/.git",
-                "worktree",
-                "add",
-                "--guess-remote",
-                "--track",
-                "-B",
-                version,
-                version,
-                f"origin/{version}",
-            ],
-            cwd=wd,
-            check=True,
-            # "git worktree" command learned "--quiet" option only in git version 2.19.0
-            # In order to handle all git versions, we simply redirect stdout to /dev/null
-            stdout=subprocess.DEVNULL,
-        )
-
-
 @result
-def process_module(module: str, options: Namespace) -> None:
+def process_module(module: str, workdir: Path, options: Namespace) -> None:
     setproctitle(f"matt :: {options.source} -> {options.target} // {module}")
     dbname = f"matt-{module}"
 
@@ -195,11 +185,11 @@ def process_module(module: str, options: Namespace) -> None:
     )
 
     def odoo(cmd: List[str], version: str) -> bool:
-        cwd = options.path / "odoo" / version.odoo
+        cwd = workdir / "odoo" / version.odoo
         ad_path = ",".join(
             str(ad)
             for repo in reversed(REPOSITORIES)  # reverse order to have `enterprise` before `odoo` in 9.0
-            for ad in [options.path / repo.name / getattr(version, repo.ident) / repo.addons_dir]
+            for ad in [workdir / repo.name / getattr(version, repo.ident) / repo.addons_dir]
             if ad.exists()
         )
 
@@ -254,39 +244,45 @@ def process_module(module: str, options: Namespace) -> None:
 
 
 def matt(options: Namespace) -> int:
-    for repo in REPOSITORIES:
-        checkout(repo, getattr(options.source, repo.ident), options)
-        checkout(repo, getattr(options.target, repo.ident), options)
-    if options.upgrade_branch != ".":
-        checkout(UPGRADE_REPO, options.upgrade_branch, options)
+    with tempfile.TemporaryDirectory() as workdir:
+        workdir = Path(workdir)
+        # __import__('pudb').set_trace()
+        for repo in REPOSITORIES:
+            if not checkout(repo, getattr(options.source, repo.ident), workdir, options):
+                return 3
+            if not checkout(repo, getattr(options.target, repo.ident), workdir, options):
+                return 3
+        if options.upgrade_branch != ".":
+            if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options):
+                return 3
 
-    pkgdir = dict()
-    for loc in ["source", "target"]:
-        version = getattr(options, loc)
-        odoodir = options.path / "odoo" / version.odoo
-        if (odoodir / "odoo" / "__init__.py").is_file():
-            pkgdir[loc] = "odoo"
-        elif (odoodir / "openerp" / "__init__.py").is_file():
-            pkgdir[loc] = "openerp"
-        else:
-            logger.critical(
-                "No `odoo` nor `openerp` directory found in odoo branch %s. This tool only works from version 7.0",
-                version.odoo,
+        pkgdir = dict()
+        for loc in ["source", "target"]:
+            version = getattr(options, loc)
+            odoodir = workdir / "odoo" / version.odoo
+            if (odoodir / "odoo" / "__init__.py").is_file():
+                pkgdir[loc] = "odoo"
+            elif (odoodir / "openerp" / "__init__.py").is_file():
+                pkgdir[loc] = "openerp"
+            else:
+                logger.critical(
+                    "No `odoo` nor `openerp` directory found in odoo branch %s. This tool only works from version 7.0",
+                    version.odoo,
+                )
+                return 2
+
+        # Verify that tests can actually be run by grepping the `--test-tags` options on command line
+        if options.run_tests:
+            grep = subprocess.run(
+                ["git", "grep", "-q", "test-tags", "--", "odoo/tools/config.py"],
+                cwd=(workdir / "odoo" / options.source.odoo),
             )
-            return 2
+            options.run_tests = grep.returncode == 0
 
-    # Verify that tests can actually be run by grepping the `--test-tags` options on command line
-    if options.run_tests:
-        grep = subprocess.run(
-            ["git", "grep", "-q", "test-tags", "--", "odoo/tools/config.py"],
-            cwd=(options.path / "odoo" / options.source.odoo),
-        )
-        options.run_tests = grep.returncode == 0
-
-    # Patch YAML import to allow creation of new records during update.
-    # This is a long standing bug present since the start (yeah, even in 6.0).
-    # It's only problematic when upgrading with demo data.
-    YAML_PATCH = """\
+        # Patch YAML import to allow creation of new records during update.
+        # This is a long standing bug present since the start (yeah, even in 6.0).
+        # It's only problematic when upgrading with demo data.
+        YAML_PATCH = """\
 diff --git tools/yaml_import.py tools/yaml_import.py
 index a26d1885ea6..b092f3c836e 100644
 --- tools/yaml_import.py
@@ -302,58 +298,58 @@ index a26d1885ea6..b092f3c836e 100644
              #context = self.get_context(record, self.eval_context)
 """
 
-    odoodir = options.path / "odoo" / options.target.odoo
-    if (odoodir / pkgdir["target"] / "tools" / "yaml_import.py").exists():
-        logger.info("patching yaml_import.py")
-        subprocess.run(
-            ["git", "apply", "-p0", "--directory", pkgdir["target"], "-"],
-            input=YAML_PATCH.encode(),
-            check=True,
-            cwd=odoodir,
-            capture_output=True,
-        )
+        odoodir = workdir / "odoo" / options.target.odoo
+        if (odoodir / pkgdir["target"] / "tools" / "yaml_import.py").exists():
+            logger.info("patching yaml_import.py")
+            subprocess.run(
+                ["git", "apply", "-p0", "--directory", pkgdir["target"], "-"],
+                input=YAML_PATCH.encode(),
+                check=True,
+                cwd=odoodir,
+                capture_output=True,
+            )
 
-    # create symlink
-    maintenance = odoodir / pkgdir["target"] / "addons" / "base" / "maintenance"
-    if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
-        maintenance.unlink()
-    if options.upgrade_branch == ".":
-        upgrade_path = Path(__file__).resolve().parent.parent
-    else:
-        upgrade_path = options.path / "upgrade" / options.upgrade_branch
-    maintenance.symlink_to(upgrade_path)
+        # create symlink
+        maintenance = odoodir / pkgdir["target"] / "addons" / "base" / "maintenance"
+        if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
+            maintenance.unlink()
+        if options.upgrade_branch == ".":
+            upgrade_path = Path(__file__).resolve().parent.parent
+        else:
+            upgrade_path = workdir / "upgrade" / options.upgrade_branch
+        maintenance.symlink_to(upgrade_path)
 
-    # We should also search modules in the $pkgdir/addons of the source
-    base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
+        # We should also search modules in the $pkgdir/addons of the source
+        base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
 
-    modules = {
-        m.parent.name
-        for repo in [base_ad] + REPOSITORIES
-        for mod_glob in options.module_globs or ["*"]
-        for wd in [options.path / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
-        for m in itertools.chain(
-            wd.glob(f"{mod_glob}/__manifest__.py"),
-            wd.glob(f"{mod_glob}/__openerp__.py"),
-            wd.glob(f"{mod_glob}/__terp__.py"),
-        )
-        if repo.addons_dir
-        if all(not m.parent.relative_to(wd).match(mod_ign) for mod_ign in options.module_ignores or [])
-    }
-    if not modules:
-        logger.error("No module found")
-        return 1
-    total = len(modules)
-    logger.info("Upgrading %d modules", total)
+        modules = {
+            m.parent.name
+            for repo in [base_ad] + REPOSITORIES
+            for mod_glob in options.module_globs or ["*"]
+            for wd in [workdir / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
+            for m in itertools.chain(
+                wd.glob(f"{mod_glob}/__manifest__.py"),
+                wd.glob(f"{mod_glob}/__openerp__.py"),
+                wd.glob(f"{mod_glob}/__terp__.py"),
+            )
+            if repo.addons_dir
+            if all(not m.parent.relative_to(wd).match(mod_ign) for mod_ign in options.module_ignores or [])
+        }
+        if not modules:
+            logger.error("No module found")
+            return 1
+        total = len(modules)
+        logger.info("Upgrading %d modules", total)
 
-    rc = 0
-    with ProcessPoolExecutor(max_workers=min(options.workers, total)) as executor:
-        it = executor.map(process_module, modules, itertools.repeat(options))
-        for i, r in enumerate(it, 1):
-            if isinstance(r, Ok):
-                logger.info("Processed module %d/%d", i, total)
-            elif isinstance(r, Err):
-                logger.error("Failed to process module %d/%d: %s", i, total, str(r.err()))
-                rc = 1
+        rc = 0
+        with ProcessPoolExecutor(max_workers=min(options.workers, total)) as executor:
+            it = executor.map(process_module, modules, itertools.repeat(workdir), itertools.repeat(options))
+            for i, r in enumerate(it, 1):
+                if isinstance(r, Ok):
+                    logger.info("Processed module %d/%d", i, total)
+                elif isinstance(r, Err):
+                    logger.error("Failed to process module %d/%d: %s", i, total, str(r.err()))
+                    rc = 1
 
     logger.info("Job done!")
     return rc
@@ -479,8 +475,17 @@ It allows to test upgrades against development branches.
     setproctitle(f"matt :: {options.source} -> {options.target}")
 
     if not init_repos(options):
-        return 2
-    return matt(options)
+        return 3
+    ret = matt(options)
+
+    # cleanup
+    repos = list(REPOSITORIES)
+    if options.upgrade_branch != ".":
+        repos.append(UPGRADE_REPO)
+    for repo in repos:
+        subprocess.run(["git", "worktree", "prune"], cwd=str(options.path / repo.name))
+
+    return ret
 
 
 if __name__ == "__main__":
