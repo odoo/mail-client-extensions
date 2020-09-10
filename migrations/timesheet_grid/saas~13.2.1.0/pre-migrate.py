@@ -12,3 +12,8 @@ def migrate(cr, version):
     )
 
     util.remove_record(cr, "timesheet_grid.hr_timesheet_rule_approver_update")
+
+    # Upgrade view mode as it changed from 'primary' to 'extension'
+    view = util.ref(cr, "timesheet_grid.timesheet_view_search")
+    if view:
+        cr.execute("UPDATE ir_ui_view SET mode='extension' WHERE id=%s", [view])
