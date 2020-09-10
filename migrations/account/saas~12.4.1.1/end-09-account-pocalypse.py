@@ -1362,19 +1362,26 @@ def migrate_invoice_lines(cr):
         # property itself). If it's not the case, drop them.
         cr.execute(
             """
+                SELECT array_agg(id)
+                  FROM ir_model_fields
+                 WHERE model = 'res.partner'
+                   AND name in ('property_account_receivable_id', 'property_account_payable_id')
+            """
+        )
+        [property_fields_ids] = cr.fetchone()
+        cr.execute(
+            """
                DELETE FROM ir_property p
-                USING account_account a, ir_model_fields f
+                USING account_account a
                 WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
-                  AND f.id = p.fields_id
+                  AND p.fields_id IN %s
                   AND p.res_id IS NOT NULL
                   AND replace(p.res_id, 'res.partner,', '')::integer IN %s
-                  AND f.model = 'res.partner'
-                  AND f.name IN ('property_account_receivable_id', 'property_account_payable_id')
                   AND p.company_id != a.company_id
                   AND p.company_id IS NOT NULL
             RETURNING replace(p.res_id, 'res.partner,', '')
             """,
-            [tuple(inv["partner_id"] for inv in invoices.values())],
+            [tuple(property_fields_ids), tuple(inv["partner_id"] for inv in invoices.values())],
         )
 
         if cr.rowcount:
@@ -1394,17 +1401,25 @@ def migrate_invoice_lines(cr):
         # property itself). If it's not the case, drop them.
         cr.execute(
             """
+                SELECT array_agg(id)
+                  FROM ir_model_fields
+                 WHERE model = 'product.template'
+                   AND name in ('property_account_income_id', 'property_account_expense_id')
+            """
+        )
+        [property_fields_ids] = cr.fetchone()
+        cr.execute(
+            """
                DELETE FROM ir_property p
                 USING account_account a, ir_model_fields f
                 WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
-                  AND f.id = p.fields_id
+                  AND p.fields_id IN %s
                   AND p.res_id IS NOT NULL
-                  AND f.model = 'product.template'
-                  AND f.name IN ('property_account_income_id', 'property_account_expense_id')
                   AND p.company_id != a.company_id
                   AND p.company_id IS NOT NULL
             RETURNING replace(p.res_id, 'product.template,', '')
-            """
+            """,
+            [tuple(property_fields_ids)],
         )
 
         if cr.rowcount:
