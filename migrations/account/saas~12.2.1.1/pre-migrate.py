@@ -5,14 +5,6 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.remove_field(cr, "account.invoice.line", "product_image")
 
-    cr.execute(
-        """
-        UPDATE account_payment_term_line
-           SET "option" = 'day_following_month'
-         WHERE "option" = 'after_invoice_month'
-    """
-    )
-
     util.create_column(cr, "account_move_line", "reconcile_model_id", "int4")
 
     for table in {"account_move", "account_reconcile_model", "account_reconcile_model_template"}:
