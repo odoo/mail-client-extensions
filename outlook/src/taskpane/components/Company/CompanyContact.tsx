@@ -11,6 +11,7 @@ const iconClass = mergeStyles({
 const classNames = mergeStyleSets({
     address: [{ color: '#31B3B5' }, iconClass],
     phone: [{color: '#A24689'}, iconClass],
+    website: [{color: '#0645AD'}, iconClass]
 });
 
 type CompanyContactProps = {
@@ -25,6 +26,12 @@ class CompanyContact extends React.Component<CompanyContactProps, CompanyContact
 
     public render(): JSX.Element {
         const {company} = this.context.partner;
+        
+        let websiteSection = null;
+        if (company.getDomain()) {
+            websiteSection = <InfoCell hrefContent={company.getDomain()} iconName="Link" iconClassName={classNames.website} title="Website" value={company.getDomain()} />
+        }
+        
         let phoneSection = null;
         if (company.getPhone()){
             phoneSection = <InfoCell hrefContent={`tel:${company.getPhone()}`} iconName="Phone" iconClassName={classNames.phone} title="Phone" value={company.getPhone()} />
@@ -34,13 +41,15 @@ class CompanyContact extends React.Component<CompanyContactProps, CompanyContact
         if (company.getLocation()) {
             addressSection = <InfoCell hrefContent={`http://maps.google.com/?q=${company.getLocation()}`} iconName="MapPin" iconClassName={classNames.address} title="Address" value={company.getLocation()} />
         }
-        
-        if (!phoneSection && !addressSection)
+
+        if (!websiteSection && !phoneSection && !addressSection)
             return null;
         return (
             <div className='bounded-tile'>
+                {websiteSection}
+                {websiteSection && phoneSection ? <Separator /> : null}
                 {phoneSection}
-                {phoneSection && addressSection ? <Separator /> : null}
+                {(websiteSection || phoneSection) && addressSection ? <Separator /> : null}
                 {addressSection}
             </div>
         );

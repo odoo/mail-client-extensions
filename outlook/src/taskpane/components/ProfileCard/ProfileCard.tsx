@@ -2,6 +2,7 @@ import * as React from "react";
 import './ProfileCard.css';
 
 export type ProfileCardProps = {
+    domain: string;
     icon: string;
     initials: string;
     name: string;
@@ -31,11 +32,15 @@ export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardSt
     }
 
     render() {
-        const {icon, name, initials, job, phone, description, twitter, facebook, linkedin, crunchbase} = this.props;
+        const {domain, icon, name, initials, job, phone, description, twitter, facebook, linkedin, crunchbase} = this.props;
         let iconOrInitials = <img className='icon' src={icon}/>;
         if (!icon) {
             iconOrInitials = <div data-initials={initials}></div>
         }
+        if (domain) {
+            iconOrInitials = <a href={domain} target='_blank' rel="noreferrer noopener">{iconOrInitials}</a>
+        }
+
         const nameSize = this.getTextWidth(name, 'bold 20px Arial')
         const nameSizeCutoff = 150;
 
