@@ -45,6 +45,7 @@ def migrate(cr, version):
             unit_cost,
             value,
             remaining_qty,
+            remaining_value,
             description,
             stock_move_id
         )
@@ -62,6 +63,7 @@ def migrate(cr, version):
             sm.price_unit,
             sm.value,
             sm.remaining_qty,
+            sm.remaining_value,
             sm.reference,
             sm.id
         FROM stock_move sm
@@ -96,6 +98,7 @@ def migrate(cr, version):
             value,
             unit_cost,
             remaining_qty,
+            remaining_value,
             description,
             stock_move_id,
             account_move_id
@@ -111,6 +114,7 @@ def migrate(cr, version):
             aml.debit - aml.credit,
             sm.price_unit,
             sm.remaining_qty,
+            sm.remaining_value,
             aml.ref,
             am.stock_move_id,
             aml.move_id
@@ -138,3 +142,4 @@ def migrate(cr, version):
 
     util.remove_field(cr, "stock.move", "value")
     util.remove_field(cr, "stock.move", "remaining_qty")
+    util.remove_field(cr, "stock.move", "remaining_value")
