@@ -35,15 +35,9 @@ class Company extends React.Component<CompanyProps, CompanyState> {
             <div className='tile-title-space'>
                 <div className='tile-title'>COMPANY INSIGHTS</div>
             </div>
-            <div className='bounded-tile'>
-                <ProfileCard {...profileCardData}/>
-            </div>
-            <div className='bounded-tile'>
-                <CompanyContact />
-            </div>
-            <div className='bounded-tile'>
-                <CompanyInsights />
-            </div>
+            <ProfileCard {...profileCardData}/>
+            <CompanyContact />
+            <CompanyInsights />
             </div>
         );
     }

@@ -87,7 +87,7 @@ class CompanyInsights extends React.Component<CompanyInsightsProps, CompanyInsig
 
   public render(): JSX.Element {
     const { company } = this.context.partner;
-    const items = [
+    let items = [
         { title: "Industry", value: company.getIndustry() },
         { title: "Employees", value: company.getEmployees() },
         { title: "Year Founded", value: company.getYearFounded() },
@@ -96,7 +96,12 @@ class CompanyInsights extends React.Component<CompanyInsightsProps, CompanyInsig
         { title: "Revenue", value: company.getRevenue() }
     ];
 
+    items = items.filter(x => x.value)
+    if (!items.length)
+      return null;
+
     return (
+      <div className='bounded-tile'>
         <div className="company-insights">
             <FocusZone direction={FocusZoneDirection.vertical}>
                 <div className={classNames.container} data-is-scrollable={true}>
@@ -104,6 +109,7 @@ class CompanyInsights extends React.Component<CompanyInsightsProps, CompanyInsig
                 </div>
             </FocusZone>
         </div>
+      </div>
     );
     }
 

@@ -34,12 +34,15 @@ class CompanyContact extends React.Component<CompanyContactProps, CompanyContact
         if (company.getLocation()) {
             addressSection = <InfoCell hrefContent={`http://maps.google.com/?q=${company.getLocation()}`} iconName="MapPin" iconClassName={classNames.address} title="Address" value={company.getLocation()} />
         }
-
-        return (<>
-            {phoneSection}
-            {phoneSection && addressSection ? <Separator /> : null}
-            {addressSection}
-            </>
+        
+        if (!phoneSection && !addressSection)
+            return null;
+        return (
+            <div className='bounded-tile'>
+                {phoneSection}
+                {phoneSection && addressSection ? <Separator /> : null}
+                {addressSection}
+            </div>
         );
     }
 }

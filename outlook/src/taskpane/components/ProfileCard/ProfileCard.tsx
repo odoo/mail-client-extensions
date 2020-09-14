@@ -48,7 +48,7 @@ export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardSt
         </div>
 
         return (
-            <>
+            <div className='bounded-tile'>
                 <div className='profile-card'>
                     {iconOrInitials}
                     <div>
@@ -60,7 +60,7 @@ export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardSt
                 </div>
                 <div className='profile-card'>{nameSize > nameSizeCutoff ? social : null}</div>
                 <div className='profile-card description'>{description}</div>
-            </>
+            </div>
         );
     }
 }

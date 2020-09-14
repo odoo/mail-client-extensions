@@ -54,9 +54,7 @@ class Contact extends React.Component<ContactProps, ContactState> {
             </div>
         </div>
         
-        <div className='bounded-tile'>
-            <ProfileCard {...profileCardData} />
-        </div>
+        <ProfileCard {...profileCardData} />
       </React.Fragment>;
   }
 }
