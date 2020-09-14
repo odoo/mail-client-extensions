@@ -7,3 +7,11 @@
     left: 0px;
     opacity: .3;
 }
+
+.overlay-spinner {
+    position: fixed;
+    height: 45px;
+    width: 45px;
+    top: calc(50% - 22px);
+    left: calc(50% - 22px);
+}
