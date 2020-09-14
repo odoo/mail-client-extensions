@@ -24,7 +24,7 @@ class Company {
 
     getDomain() : string {
         let domain = this.domain || this.additionalInfo['domain']
-        if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+        if (domain && !domain.startsWith('http://') && !domain.startsWith('https://')) {
             domain = 'https://' + domain;
         }
         return domain;
