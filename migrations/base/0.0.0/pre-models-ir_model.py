@@ -20,10 +20,16 @@ class Model(models.Model):
     _module = "base"
 
     def unlink(self):
-        models = self.mapped("model")
-        raise util.MigrationError(
-            "💥 It looks like you forgot to call `util.remove_model` on the following models: %s" % ", ".join(models)
-        )
+        invalid_models = []
+        for model in self.mapped("model"):
+            if "model:%s" % model in os.environ.get('suppress_upgrade_warnings', '').split(','):
+                util._logger.log(25, "Model unlink %s explicitly ignored, skipping" % model)
+            else:
+                invalid_models.append(model)
+        if invalid_models:
+            raise util.MigrationError(
+                "💥 It looks like you forgot to call `util.remove_model` on the following models: %s" % ", ".join(invalid_models)
+            )
         return super(Model, self).unlink()
 
 
