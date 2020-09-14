@@ -33,6 +33,8 @@ def migrate(cr, version):
     util.remove_field(cr, "ir.translation", "source")
     util.update_field_references(cr, "source", "src", only_models=("ir.translation",))
 
+    if util.ref(cr, "base.field_res_company__font"):
+        util.remove_field(cr, "res.company", "font")
     util.create_column(cr, "res_company", "font", "varchar")
     util.create_column(cr, "res_company", "primary_color", "varchar")
     util.create_column(cr, "res_company", "secondary_color", "varchar")
