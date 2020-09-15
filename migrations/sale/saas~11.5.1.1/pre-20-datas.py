@@ -49,3 +49,5 @@ def migrate(cr, version):
              group by res_id) as c
         WHERE c.res_id=sale_order.id
     """, (subtype_id, ))
+
+    util.rename_xmlid(cr, "website_sale.modal", "sale.optional_products_modal")
