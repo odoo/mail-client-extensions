@@ -5,3 +5,4 @@ def migrate(cr, version):
     util.rename_xmlid(cr,
                       'website_project_issue.issues_followup',
                       'website_project_issue.my_issues_issue')
+    util.rename_xmlid(cr, 'website_project_issue.portal_project_issue', 'website_project_issue.my_issues')
