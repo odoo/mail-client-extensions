@@ -20,6 +20,9 @@ def migrate(cr, version):
         view_project_kanban_inherited
         view_project_form_inherited
         res_partner_issues_button_view
+
+        my_issues
+        my_issues_issue
     """)
     for view in views:
         util.remove_view(cr, 'project.' + view)
