@@ -4,8 +4,10 @@ from odoo.osv.expression import TERM_OPERATORS_NEGATION
 
 
 def migrate(cr, version):
+    if not util.version_gte("saas~13.3"):
+        raise util.MigrationError("Please upgrade to at least saas~13.3")
+
     eb = util.expand_braces
-    util.create_column(cr, "sale_subscription", "fiscal_position_id", "integer")
     util.create_column(cr, "sale_subscription", "stage_category", "varchar")  # fill in `end-`
     util.create_column(cr, "sale_subscription", "payment_term_id", "integer")
 
@@ -24,8 +26,6 @@ def migrate(cr, version):
         util.create_column(cr, "sale_subscription", f"recurring_{suffix_to}", "float8")
 
     cr.execute("DELETE FROM sale_subscription_line WHERE analytic_account_id IS NULL")
-    util.create_column(cr, "sale_subscription_line", "price_tax", "float8")
-    util.create_column(cr, "sale_subscription_line", "price_total", "float8")
     util.create_column(cr, "sale_subscription_line", "currency_id", "integer")
     util.parallel_execute(
         cr,
@@ -40,17 +40,6 @@ def migrate(cr, version):
             """,
             prefix="l.",
         ),
-    )
-
-    util.create_m2m(cr, "account_tax_sale_subscription_line_rel", "account_tax", "sale_subscription_line")
-    cr.execute(
-        """
-        INSERT INTO account_tax_sale_subscription_line_rel(account_tax_id, sale_subscription_line_id)
-             SELECT r.tax_id, l.id
-               FROM sale_subscription_line l
-               JOIN product_product p ON p.id = l.product_id
-               JOIN product_taxes_rel r ON r.prod_id = p.product_tmpl_id
-    """
     )
 
     util.create_column(cr, "sale_subscription_stage", "category", "varchar")
