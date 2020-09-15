@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations import util
 from odoo.tools import misc
 
 import base64
@@ -239,8 +240,9 @@ class TestRefactoringEDI(UpgradeCase):
             )
         )
 
+        type_field = "move_type" if util.version_gte("saas~13.3") else "type"
         invoice_vals = {
-            "move_type": "out_invoice",
+            type_field: "out_invoice",
             "partner_id": partner.id,
             "invoice_date": "2017-01-01",
             "date": "2017-01-01",

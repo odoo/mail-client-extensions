@@ -28,7 +28,14 @@ def _new_account(self, acc, currency_id):
 
     return (
         self.env["account.account"]
-        .create({"name": f"10000{acc}", "code": f"MIG_{acc}", "user_type_id": type_id, "currency_id": currency_id},)
+        .create(
+            {
+                "name": f"10000{acc}",
+                "code": f"MIG_{acc}",
+                "user_type_id": type_id,
+                "currency_id": currency_id,
+            }
+        )
         .id
     )
 
@@ -55,6 +62,7 @@ class CheckPayments(UpgradeCase):
             move_ids = []
             payment_ids = []
             _logger.info("Generate invoices")
+            type_field = "move_type" if util.version_gte("saas~13.3") else "type"
             for partner_id in partner_ids:
                 for _ in range(0, invoice_per_partner):
                     move_ids.append(
@@ -62,7 +70,7 @@ class CheckPayments(UpgradeCase):
                         .create(
                             {
                                 "partner_id": partner_id.id,
-                                "move_type": "out_invoice",
+                                type_field: "out_invoice",
                                 "invoice_line_ids": [(0, 0, {"name": "line", "price_unit": 100, "quantity": 5})],
                             }
                         )
@@ -204,29 +212,25 @@ class CheckPayments(UpgradeCase):
             )
             shared_1 = _new_account(self, "019", currency_eur.id)
             shared_2 = _new_account(self, "020", currency_eur.id)
-            aj_ids.append(
-                self.env["account.journal"].create(
-                    {
-                        "code": "mig_shared_1",
-                        "currency_id": currency_eur.id,
-                        "name": "Shared account 1",
-                        "type": "bank",
-                        "default_debit_account_id": shared_2,
-                        "default_credit_account_id": shared_1,
-                    }
-                )
+            aj_ids |= self.env["account.journal"].create(
+                {
+                    "code": "mig_shared_1",
+                    "currency_id": currency_eur.id,
+                    "name": "Shared account 1",
+                    "type": "bank",
+                    "default_debit_account_id": shared_2,
+                    "default_credit_account_id": shared_1,
+                }
             )
-            aj_ids.append(
-                self.env["account.journal"].create(
-                    {
-                        "code": "mig_shared_2",
-                        "currency_id": currency_eur.id,
-                        "name": "Shared account 2",
-                        "type": "bank",
-                        "default_debit_account_id": shared_1,
-                        "default_credit_account_id": shared_2,
-                    }
-                )
+            aj_ids |= self.env["account.journal"].create(
+                {
+                    "code": "mig_shared_2",
+                    "currency_id": currency_eur.id,
+                    "name": "Shared account 2",
+                    "type": "bank",
+                    "default_debit_account_id": shared_1,
+                    "default_credit_account_id": shared_2,
+                }
             )
 
             for _validate_payments in (True, False):
