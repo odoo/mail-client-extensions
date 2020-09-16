@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
+from odoo.tools import image
 
 
 def rename_mixin_fields(cr, model, skip_inherit=()):
@@ -47,3 +48,6 @@ def migrate(cr, version):
 
     # do not recompute on non-concrete models
     util.ENVIRON["s125_image_mixin_recompute"]["512"].remove("image.mixin")
+
+    # Do not limit the size of images already in the database during upgrades.
+    image.IMAGE_MAX_RESOLUTION = float("inf")
