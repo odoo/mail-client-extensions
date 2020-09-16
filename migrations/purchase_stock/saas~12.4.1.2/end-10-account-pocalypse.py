@@ -99,7 +99,7 @@ def migrate(cr, version):
             anglo_line.amount_currency,
             anglo_line.balance,
             currency.decimal_places,
-            comp_currency.decimal_places            
+            comp_currency.decimal_places
     ''')
 
     to_write = {}
@@ -190,8 +190,7 @@ def migrate(cr, version):
     if to_unreconcile_line_ids:
         env['account.move.line'].browse(list(to_unreconcile_line_ids)).remove_move_reconcile()
 
-    m = util.import_script('account/saas~12.4.1.1/end-09-account-pocalypse.py')
-    with m.no_fiscal_lock(cr):
+    with util.no_fiscal_lock(cr):
         for move_id, vals in to_write.items():
             env['account.move'].browse(move_id).write(vals)
 
