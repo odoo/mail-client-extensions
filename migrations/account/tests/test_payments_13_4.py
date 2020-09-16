@@ -48,7 +48,8 @@ class CheckPayments(UpgradeCase):
             invoice_per_partner = 10
             abs_numbers = 30
 
-            apm_ids = self.env["account.payment.method"].search([]).ids
+            sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
+            apm_ids = self.env["account.payment.method"].search([("id", "!=", sepa)]).ids
             aj_ids = self.env["account.journal"].search([("type", "in", ["bank", "cash"])]).ids
             non_aj_ids = self.env["account.journal"].search(["!", ("type", "in", ["bank", "cash"])], limit=5)
 
