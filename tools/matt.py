@@ -10,7 +10,7 @@ import tempfile
 import os
 import subprocess
 import sys
-from typing import Callable, Generic, NamedTuple, Optional, Union, TypeVar, List
+from typing import Callable, Generic, NamedTuple, Optional, Union, TypeVar, List, Sequence, Any
 from collections import namedtuple
 
 import re
@@ -80,7 +80,11 @@ REPOSITORIES = [
 UPGRADE_REPO = Repo("upgrade")
 
 
-Version = namedtuple("Version", [r.ident for r in REPOSITORIES])
+# Version = namedtuple("Version", [r.ident for r in REPOSITORIES])
+# Mypy doesn't like namedtuple with non-static field list. See:
+# https://github.com/python/mypy/issues/848
+# https://github.com/python/mypy/issues/4128#issuecomment-598206548
+Version = namedtuple("Version", "odoo enterprise themes")
 
 
 def init_repos(options: Namespace) -> bool:
@@ -184,7 +188,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         re.M,
     )
 
-    def odoo(cmd: List[str], version: str) -> bool:
+    def odoo(cmd: List[str], version: Version) -> bool:
         cwd = workdir / "odoo" / version.odoo
         ad_path = ",".join(
             str(ad)
@@ -229,6 +233,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
     # tests: preparation
     if options.run_tests:
+        logger.info("prepare upgrade tests in db %s", dbname)
         odoo(["--test-tags", "upgrade.test_prepare"], version=options.source)
 
     # upgrade
@@ -237,6 +242,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
     # tests: validation
     if options.run_tests:
+        logger.info("validate upgrade tests in db %s", dbname)
         odoo(["--test-tags", "upgrade.test_check"], version=options.target)
 
     if success and not options.keep_dbs:
@@ -244,9 +250,8 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
 
 def matt(options: Namespace) -> int:
-    with tempfile.TemporaryDirectory() as workdir:
-        workdir = Path(workdir)
-        # __import__('pudb').set_trace()
+    with tempfile.TemporaryDirectory() as workdir_s:
+        workdir = Path(workdir_s)
         for repo in REPOSITORIES:
             if not checkout(repo, getattr(options.source, repo.ident), workdir, options):
                 return 3
@@ -278,6 +283,8 @@ def matt(options: Namespace) -> int:
                 cwd=(workdir / "odoo" / options.source.odoo),
             )
             options.run_tests = grep.returncode == 0
+            if not options.run_tests:
+                logger.warning("Deactivate tests running as version %r doesn't support them", options.source.odoo)
 
         # Patch YAML import to allow creation of new records during update.
         # This is a long standing bug present since the start (yeah, even in 6.0).
@@ -309,15 +316,18 @@ index a26d1885ea6..b092f3c836e 100644
                 capture_output=True,
             )
 
-        # create symlink
-        maintenance = odoodir / pkgdir["target"] / "addons" / "base" / "maintenance"
-        if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
-            maintenance.unlink()
+        # create "maintenance" symlinks
         if options.upgrade_branch == ".":
             upgrade_path = Path(__file__).resolve().parent.parent
         else:
             upgrade_path = workdir / "upgrade" / options.upgrade_branch
-        maintenance.symlink_to(upgrade_path)
+        # We need to create the symlink in both versions (source and target) to allow upgrade tests discovery
+        for loc in ["source", "target"]:
+            version = getattr(options, loc)
+            maintenance = workdir / "odoo" / version.odoo / pkgdir[loc] / "addons" / "base" / "maintenance"
+            if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
+                maintenance.unlink()
+            maintenance.symlink_to(upgrade_path)
 
         # We should also search modules in the $pkgdir/addons of the source
         base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
@@ -356,8 +366,11 @@ index a26d1885ea6..b092f3c836e 100644
 
 
 class VersionAction(Action):
-    def __call__(self, parser: ArgumentParser, namespace: Namespace, values: str, option_string=None) -> None:
+    def __call__(
+        self, parser: ArgumentParser, namespace: Namespace, values: Union[str, Sequence[Any], None], option_string=None
+    ) -> None:
         v = Version(*[None] * len(Version._fields))
+        assert isinstance(values, str)
         fallback = None
         for part in values.split(":"):
             for sep in "#/":
@@ -373,6 +386,7 @@ class VersionAction(Action):
                     raise ArgumentError(self, f"Invalid version definition: {values!r}")
                 fallback = part
 
+        field: str
         for field in Version._fields:
             if getattr(v, field) is None:
                 if fallback is None:
@@ -465,8 +479,8 @@ It allows to test upgrades against development branches.
         "--no-fetch", action="store_false", dest="fetch", default=True, help="Do not fetch repositories from remote"
     )
 
-    parser.add_argument("source", action=VersionAction)
-    parser.add_argument("target", action=VersionAction)
+    parser.add_argument("source", action=VersionAction, type=str)
+    parser.add_argument("target", action=VersionAction, type=str)
 
     options = parser.parse_args()
     level = [logging.INFO, logging.WARNING, logging.ERROR][min(options.quiet, 2)]
