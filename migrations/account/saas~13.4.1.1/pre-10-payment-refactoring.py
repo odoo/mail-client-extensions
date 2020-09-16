@@ -6,19 +6,23 @@ _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saa
 
 
 def migrate(cr, version):
-    cr.execute('''
+    cr.execute(
+        """
         UPDATE account_bank_statement_line st_line
            SET move_name = NULL
          WHERE move_name IN (SELECT name FROM account_move)
-    ''')
+    """
+    )
 
-    cr.execute('''
+    cr.execute(
+        """
         UPDATE account_bank_statement_line st_line
            SET move_name = NULL
           FROM account_bank_statement_line older_st_line
          WHERE st_line.move_name = older_st_line.move_name
            AND st_line.id > older_st_line.id
-    ''')
+    """
+    )
 
     # ===========================================================
     # Invoice Analysis (PR:47066)
@@ -78,6 +82,20 @@ def migrate(cr, version):
     util.create_column(cr, "account_journal", "payment_credit_account_id", "int4")
     util.create_column(cr, "account_journal", "suspense_account_id", "int4")
     util.remove_field(cr, "account.journal", "post_at")
+
+    # ensure used bank/cash journals have default credit/debit account set
+    cr.execute(
+        """
+            UPDATE account_journal
+               SET default_debit_account_id = COALESCE(default_debit_account_id, default_credit_account_id),
+                   default_credit_account_id = COALESCE(default_debit_account_id, default_credit_account_id)
+             WHERE type IN ('bank', 'cash')
+               AND NOT ( -- not both set
+                    default_credit_account_id IS NOT NULL
+                AND default_debit_account_id IS NOT NULL
+               )
+        """
+    )
 
     util.create_column(cr, "account_bank_statement", "is_valid_balance_start", "boolean")
     util.remove_field(cr, "account.bank.statement", "accounting_date")
@@ -227,7 +245,8 @@ def migrate(cr, version):
     # Both are linked by a one2one (move_id in account.payment & payment_id in account.move).
 
     # Regular case: at least one move line is still linked to the payment.
-    cr.execute('''
+    cr.execute(
+        """
         WITH mapping AS (
             SELECT
                 line.payment_id,
@@ -244,12 +263,13 @@ def migrate(cr, version):
         FROM mapping
         WHERE id = mapping.payment_id
         AND mapping.nbr = 1
-    '''
+    """
     )
 
     # Corner case: no link left between account.payment & account.move.line due to manual
     # user edition.
-    cr.execute('''
+    cr.execute(
+        """
         WITH mapping AS (
             SELECT
                 pay.id AS payment_id,
@@ -266,9 +286,11 @@ def migrate(cr, version):
         SET move_id = mapping.move_id
         FROM mapping
         WHERE id = mapping.payment_id
-    ''')
+    """
+    )
 
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_move
         SET payment_id = pay.id
         FROM account_payment pay

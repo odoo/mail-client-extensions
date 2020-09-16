@@ -18,7 +18,7 @@ def migrate(cr, version):
         for company in env["res.company"].search([]):
             company.account_journal_suspense_account_id = env[
                 "account.chart.template"
-            ]._create_liquidity_journal_suspense_account(company, company.chart_template_id.code_digits or 6,)
+            ]._create_liquidity_journal_suspense_account(company, company.chart_template_id.code_digits or 6)
 
         cr.execute(
             """
@@ -107,12 +107,6 @@ def migrate(cr, version):
                 [j1, j2, journal.company_id.account_journal_suspense_account_id.id, journal.id],
             )
 
-            has_both_default_accounts = journal.default_debit_account_id and journal.default_credit_account_id
-            has_at_least_one_default_account = journal.default_debit_account_id or journal.default_credit_account_id
-            if has_at_least_one_default_account and not has_both_default_accounts:
-                journal.default_debit_account_id = has_at_least_one_default_account
-                journal.default_credit_account_id = has_at_least_one_default_account
-
         # Some partners can have a company != move company...
         cr.execute(
             """
@@ -152,7 +146,11 @@ def migrate(cr, version):
         """
         )
 
-        moves = env["account.move"].with_context(skip_account_move_synchronization=True, tracking_disable=True).create(cr.dictfetchall())
+        moves = (
+            env["account.move"]
+            .with_context(skip_account_move_synchronization=True, tracking_disable=True)
+            .create(cr.dictfetchall())
+        )
 
         for partner_id in partner_ids.keys():
             cr.execute("UPDATE res_partner SET company_id=%s WHERE id=%s", [partner_ids[partner_id], partner_id])
@@ -192,13 +190,14 @@ def migrate(cr, version):
             # Find deprecated accounts
             deprecated_account = set()
             move_lines_to_create = []
-            for field in ("debit", "credit"):
+            infixes = [""] if util.version_gte("saas~13.5") else ["debit_", "credit_"]
+            for infix in infixes:
                 cr.execute(
                     f"""
                     SELECT a.id
                       FROM account_journal j
                       JOIN account_move m ON m.journal_id=j.id
-                      JOIN account_account a ON a.id=j.default_{field}_account_id
+                      JOIN account_account a ON a.id=j.default_{infix}account_id
                      WHERE m.id in %s
                        AND a.deprecated=TRUE
                 """,
@@ -235,7 +234,9 @@ def migrate(cr, version):
                     "UPDATE account_account SET deprecated=FALSE WHERE id in %s", [tuple(inactive_account_ids.ids)]
                 )
             inactive_account_ids.invalidate_cache()
-            env["account.move.line"].with_context(skip_account_move_synchronization=True, tracking_disable=True).create(move_lines_to_create)
+            env["account.move.line"].with_context(skip_account_move_synchronization=True, tracking_disable=True).create(
+                move_lines_to_create
+            )
             if inactive_account_ids:
                 cr.execute(
                     "UPDATE account_account SET deprecated=TRUE WHERE id in %s", [tuple(inactive_account_ids.ids)]
@@ -270,10 +271,18 @@ def migrate(cr, version):
         # This part is done in 'post' because new account.account are created in 'post' to migrate
         # the account.journal.
         # //execute (thanks to line balce split)
-        # avoid to set a null value: new row for relation "account_move_line" violates check constraint "account_move_line_check_accountable_required_fields"
+        # avoid to set a null value: new row for relation "account_move_line" violates check
+        # constraint "account_move_line_check_accountable_required_fields"
 
-        util.parallel_execute(cr,[
-            """
+        if util.version_gte("saas~13.5"):
+            account_cmp = " = journal.default_account_id"
+        else:
+            account_cmp = "IN (journal.default_debit_account_id, journal.default_credit_account_id)"
+
+        util.parallel_execute(
+            cr,
+            [
+                f"""
             UPDATE account_move_line line
                SET account_id = journal.payment_debit_account_id
               FROM account_payment pay
@@ -281,10 +290,11 @@ def migrate(cr, version):
               JOIN account_journal journal ON journal.id = move.journal_id
              WHERE move.statement_line_id IS NULL
                AND line.move_id = move.id
-               AND line.account_id IN (journal.default_debit_account_id, journal.default_credit_account_id)
+               AND line.account_id {account_cmp}
                AND line.balance < 0.0
                AND journal.payment_debit_account_id IS NOT NULL
-            """, """
+            """,
+                f"""
             UPDATE account_move_line line
                SET account_id = journal.payment_credit_account_id
               FROM account_payment pay
@@ -292,10 +302,11 @@ def migrate(cr, version):
               JOIN account_journal journal ON journal.id = move.journal_id
              WHERE move.statement_line_id IS NULL
                AND line.move_id = move.id
-               AND line.account_id IN (journal.default_debit_account_id, journal.default_credit_account_id)
+               AND line.account_id {account_cmp}
                AND line.balance >= 0.0
                AND journal.payment_credit_account_id IS NOT NULL
-            """]
+            """,
+            ],
         )
 
         # Create account.move for draft/cancel payments.
@@ -315,7 +326,11 @@ def migrate(cr, version):
             AND pay.move_id IS NULL
         """
         )
-        moves = env["account.move"].with_context(skip_account_move_synchronization=True, tracking_disable=True).create(cr.dictfetchall())
+        moves = (
+            env["account.move"]
+            .with_context(skip_account_move_synchronization=True, tracking_disable=True)
+            .create(cr.dictfetchall())
+        )
 
         cr.executemany(
             """
@@ -360,7 +375,9 @@ def migrate(cr, version):
             [("id", "in", list(set(account_to_check_ids))), ("deprecated", "=", True)]
         )
         account_deprecated_ids.write({"deprecated": False})
-        env["account.move.line"].with_context(skip_account_move_synchronization=True, tracking_disable=True).create(move_lines_to_create)
+        env["account.move.line"].with_context(skip_account_move_synchronization=True, tracking_disable=True).create(
+            move_lines_to_create
+        )
         # Set back accounts to deprecated as they were before migration
         account_deprecated_ids.write({"deprecated": True})
 
