@@ -12,3 +12,5 @@ def migrate(cr, version):
     util.create_column(cr, "hr_contract_salary_advantage", "activity_responsible_id", "int4")
 
     util.create_column(cr, "generate_simulation_link", "contract_start_date", "date")
+
+    util.create_column(cr, 'hr_contract_salary_resume', 'active', 'boolean', default=True)
