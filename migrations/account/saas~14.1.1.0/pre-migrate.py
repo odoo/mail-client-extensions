@@ -87,3 +87,10 @@ def migrate(cr, version):
             "allowed anymore, a unique short code has been computed for them. "
             "The sequences of their entries stay unchanged, you can change "
             "them manually if you wish to.", "Accounting")
+
+    # ==========================================================================
+    # Task 2116063 : Rewrite online synchronization for Odoo Finance
+    # ==========================================================================
+
+    util.remove_field(cr, 'res.config.settings', 'module_account_yodlee')
+    util.remove_field(cr, 'res.config.settings', 'module_account_plaid')
