@@ -2,6 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo.tests import tagged, Form
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations import util
 
 
 @change_version('12.4')
@@ -22,10 +23,10 @@ class TestPurchaseStock(UpgradeCase):
         # Purchase order.
         po_form = Form(env_user['purchase.order'])
         po_form.partner_id = self.partner
-        with po_form.order_line.new() as line:
-            line.product_id = self.product
-            line.product_qty = 1.0
-            line.price_unit = 9.0
+        with po_form.order_line.new() as line_form:
+            line_form.product_id = self.product
+            line_form.product_qty = 1.0
+            line_form.price_unit = 9.0
         po = po_form.save()
 
         po.button_approve()
@@ -37,6 +38,8 @@ class TestPurchaseStock(UpgradeCase):
         with invoice_form.invoice_line_ids.edit(0) as line_form:
             line_form.quantity = 1.0
             line_form.price_unit = 12.0
+            line_form.invoice_line_tax_ids.clear()
+            line_form.invoice_line_tax_ids.add(self.tax_purchase)
         invoice = invoice_form.save()
         invoice.action_invoice_open()
 
@@ -64,9 +67,12 @@ class TestPurchaseStock(UpgradeCase):
 
         self.assertRecordValues(invoice, [{'amount_untaxed': 12.0}])
         self.assertRecordValues(invoice.line_ids.filtered('product_id').sorted(lambda line: (line.account_id.id, line.balance)), [
-            {'account_id': config['account_stock_in_id'],           'price_unit': -3.0, 'balance': -3.0,   'tax_ids': [],                           'is_anglo_saxon_line': True},
-            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0, 'balance': 12.0,   'tax_ids': [config['tax_purchase_id']],  'is_anglo_saxon_line': False},
-            {'account_id': config['account_stock_price_diff_id'],   'price_unit': 0.0,  'balance': 3.0,    'tax_ids': [],                           'is_anglo_saxon_line': True},
+            {'account_id': config['account_stock_in_id'],           'price_unit': -3.0, 'balance': -3.0,   'tax_ids': [],                           'tag_ids': [],                      'is_anglo_saxon_line': True,    'tax_audit': ''},
+            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0, 'balance': 12.0,   'tax_ids': [config['tax_purchase_id']],  'tag_ids': [config['tag_base_id']], 'is_anglo_saxon_line': False,   'tax_audit': 'tag_1: $ 12.00'},
+            {'account_id': config['account_stock_price_diff_id'],   'price_unit': 0.0,  'balance': 3.0,    'tax_ids': [],                           'tag_ids': [],                      'is_anglo_saxon_line': True,    'tax_audit': ''},
+        ])
+        self.assertRecordValues(invoice.line_ids.filtered('tax_line_id'), [
+            {'account_id': config['account_stock_in_id'],   'tax_ids': [],  'tag_ids': [config['tag_tax_id']],  'tax_audit': 'tag_2: $ 1.80'},
         ])
 
     def _prepare_test_2_foreign_currency(self, env_user):
@@ -85,10 +91,10 @@ class TestPurchaseStock(UpgradeCase):
         po_form = Form(env_user['purchase.order'])
         po_form.partner_id = self.partner
         po_form.currency_id = self.gold_currency
-        with po_form.order_line.new() as line:
-            line.product_id = self.product
-            line.product_qty = 1.0
-            line.price_unit = 9.0
+        with po_form.order_line.new() as line_form:
+            line_form.product_id = self.product
+            line_form.product_qty = 1.0
+            line_form.price_unit = 9.0
         po = po_form.save()
 
         po.button_approve()
@@ -100,6 +106,8 @@ class TestPurchaseStock(UpgradeCase):
         with invoice_form.invoice_line_ids.edit(0) as line_form:
             line_form.quantity = 1.0
             line_form.price_unit = 12.0
+            line_form.invoice_line_tax_ids.clear()
+            line_form.invoice_line_tax_ids.add(self.tax_purchase)
         invoice = invoice_form.save()
         invoice.action_invoice_open()
 
@@ -129,9 +137,12 @@ class TestPurchaseStock(UpgradeCase):
 
         self.assertRecordValues(invoice, [{'amount_untaxed': 12.0}])
         self.assertRecordValues(invoice.line_ids.filtered('product_id').sorted(lambda line: (line.account_id.id, line.balance)), [
-            {'account_id': config['account_stock_in_id'],           'price_unit': -3.0, 'amount_currency': -3.0,   'balance': -1.5,    'tax_ids': [],                           'is_anglo_saxon_line': True},
-            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0, 'amount_currency': 12.0,   'balance': 6.0,     'tax_ids': [config['tax_purchase_id']],  'is_anglo_saxon_line': False},
-            {'account_id': config['account_stock_price_diff_id'],   'price_unit': 0.0,  'amount_currency': 3.0,    'balance': 1.5,     'tax_ids': [],                           'is_anglo_saxon_line': True},
+            {'account_id': config['account_stock_in_id'],           'price_unit': -3.0, 'amount_currency': -3.0,   'balance': -1.5,    'tax_ids': [],                           'tag_ids': [],                      'is_anglo_saxon_line': True,    'tax_audit': ''},
+            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0, 'amount_currency': 12.0,   'balance': 6.0,     'tax_ids': [config['tax_purchase_id']],  'tag_ids': [config['tag_base_id']], 'is_anglo_saxon_line': False,   'tax_audit': 'tag_1: $ 6.00'},
+            {'account_id': config['account_stock_price_diff_id'],   'price_unit': 0.0,  'amount_currency': 3.0,    'balance': 1.5,     'tax_ids': [],                           'tag_ids': [],                      'is_anglo_saxon_line': True,    'tax_audit': ''},
+        ])
+        self.assertRecordValues(invoice.line_ids.filtered('tax_line_id'), [
+            {'account_id': config['account_stock_in_id'],   'tax_ids': [],  'tag_ids': [config['tag_tax_id']],  'tax_audit': 'tag_2: $ 0.90'},
         ])
 
     def _prepare_test_3_confusing_invoice_line_move_line_mapping(self, env_user):
@@ -152,10 +163,10 @@ class TestPurchaseStock(UpgradeCase):
         # Purchase order.
         po_form = Form(env_user['purchase.order'])
         po_form.partner_id = self.partner
-        with po_form.order_line.new() as line:
-            line.product_id = self.product
-            line.product_qty = 1.0
-            line.price_unit = 24.0
+        with po_form.order_line.new() as line_form:
+            line_form.product_id = self.product
+            line_form.product_qty = 1.0
+            line_form.price_unit = 24.0
         po = po_form.save()
 
         po.button_approve()
@@ -167,6 +178,8 @@ class TestPurchaseStock(UpgradeCase):
         with invoice_form.invoice_line_ids.edit(0) as line_form:
             line_form.quantity = 1.0
             line_form.price_unit = 12.0
+            line_form.invoice_line_tax_ids.clear()
+            line_form.invoice_line_tax_ids.add(self.tax_purchase)
         invoice = invoice_form.save()
         invoice.action_invoice_open()
 
@@ -194,13 +207,24 @@ class TestPurchaseStock(UpgradeCase):
 
         self.assertRecordValues(invoice, [{'amount_untaxed': 12.0}])
         self.assertRecordValues(invoice.line_ids.filtered('product_id').sorted(lambda line: (line.account_id.id, line.balance)), [
-            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0,     'balance': 12.0,    'tax_ids': [config['tax_purchase_id']], 'is_anglo_saxon_line': False},
-            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0,     'balance': 12.0,    'tax_ids': [],                          'is_anglo_saxon_line': True},
-            {'account_id': config['account_stock_price_diff_id'],   'price_unit': 0.0,      'balance': -12.0,   'tax_ids': [],                          'is_anglo_saxon_line': True},
+            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0,     'balance': 12.0,    'tax_ids': [config['tax_purchase_id']], 'tag_ids': [config['tag_base_id']], 'is_anglo_saxon_line': False,   'tax_audit': 'tag_1: $ 12.00'},
+            {'account_id': config['account_stock_in_id'],           'price_unit': 12.0,     'balance': 12.0,    'tax_ids': [],                          'tag_ids': [],                      'is_anglo_saxon_line': True,    'tax_audit': ''},
+            {'account_id': config['account_stock_price_diff_id'],   'price_unit': 0.0,      'balance': -12.0,   'tax_ids': [],                          'tag_ids': [],                      'is_anglo_saxon_line': True,    'tax_audit': ''},
+        ])
+        self.assertRecordValues(invoice.line_ids.filtered('tax_line_id'), [
+            {'account_id': config['account_stock_in_id'],   'tax_ids': [],  'tag_ids': [config['tag_tax_id']],  'tax_audit': 'tag_2: $ 1.80'},
         ])
 
     def prepare(self):
-        company = self.env['res.company'].create({'name': "company for TestPurchaseStock"})
+        # When the migration is made directly from an older version than saas-12.3, this test won't work because the
+        # tax configuration is completely different.
+        if not util.version_gte('saas~12.3'):
+            self.skipTest("TestPurchaseStock skipped because the current version is older than saas-12.3.")
+
+        company = self.env['res.company'].create({
+            'name': "company for TestPurchaseStock",
+            'country_id': self.env.ref('base.be').id,
+        })
 
         # Create user.
         user = self.env['res.users'].with_context(no_reset_password=True).create({
@@ -216,7 +240,7 @@ class TestPurchaseStock(UpgradeCase):
 
         chart_template = env_user.ref('l10n_generic_coa.configurable_chart_template', raise_if_not_found=False)
         if not chart_template:
-            self.skipTest(self, "Accounting Tests skipped because the user's company has no chart of accounts.")
+            self.skipTest("TestPurchaseStock skipped because the user's company has no chart of accounts.")
 
         chart_template.try_loading_for_current_company()
 
@@ -224,7 +248,42 @@ class TestPurchaseStock(UpgradeCase):
         company.anglo_saxon_accounting = True
 
         # Setup taxes.
-        self.tax_purchase = company.account_purchase_tax_id
+        self.tags = env_user['account.account.tag'].create([
+            {'name': 'tag_1', 'applicability': 'taxes', 'country_id': company.country_id.id},
+            {'name': 'tag_2', 'applicability': 'taxes', 'country_id': company.country_id.id},
+        ])
+        self.tax_purchase = env_user['account.tax'].create({
+            'name': "Tax TestPurchaseStock",
+            'amount_type': 'percent',
+            'type_tax_use': 'purchase',
+            'amount': 15,
+            'invoice_repartition_line_ids': [
+                (0, 0, {
+                    'factor_percent': 100,
+                    'repartition_type': 'base',
+                    'tag_ids': [(6, 0, [self.tags[0].id])],
+                }),
+                (0, 0, {
+                    'factor_percent': 100,
+                    'repartition_type': 'tax',
+                    'tag_ids': [(6, 0, [self.tags[1].id])],
+                }),
+            ],
+            'refund_repartition_line_ids': [
+                (0, 0, {
+                    'factor_percent': 100,
+                    'repartition_type': 'base',
+                    'tag_ids': [(6, 0, [self.tags[0].id])],
+                }),
+                (0, 0, {
+                    'factor_percent': 100,
+                    'repartition_type': 'tax',
+                    'tag_ids': [(6, 0, [self.tags[1].id])],
+                }),
+            ],
+        })
+
+        company.account_purchase_tax_id = self.tax_purchase
 
         # Setup accounts.
         self.account_expense = env_user['account.account'].search([
@@ -318,6 +377,8 @@ class TestPurchaseStock(UpgradeCase):
                 'tax_purchase_id': self.tax_purchase.id,
                 'account_stock_in_id': self.account_stock_in.id,
                 'account_stock_price_diff_id': self.account_stock_price_diff.id,
+                'tag_base_id': self.tags[0].id,
+                'tag_tax_id': self.tags[1].id,
             },
         }
 

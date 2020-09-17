@@ -445,6 +445,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
                     JOIN res_company comp ON comp.id = i.company_id
                     JOIN res_currency curr ON curr.id = i.currency_id
                 WHERE il.display_type IS NULL
+                  AND ml.tax_line_id IS NULL
                   AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
                   AND NOT EXISTS (SELECT aml_id FROM invl_aml_mapping WHERE aml_id=ml.id)
                   AND i.id = ANY(%s)

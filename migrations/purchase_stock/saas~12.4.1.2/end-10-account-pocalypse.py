@@ -73,6 +73,7 @@ def migrate(cr, version):
         LEFT JOIN account_analytic_tag_account_move_line_rel analytic_rel ON analytic_rel.account_move_line_id = anglo_line.id
         WHERE move.type IN ('in_invoice', 'in_refund', 'in_receipt')
         AND NOT line.exclude_from_invoice_tab
+        AND line.display_type IS NULL
         GROUP BY
             move.type,
             move.currency_id,
