@@ -55,9 +55,12 @@ class Leads extends React.Component<LeadsProps, LeadsState> {
 
     log = (leadId: number) => {
         Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, (result) => {
+        const msgHeader = '<div>From: '+ Office.context.mailbox.item.sender.emailAddress + '</div><br/>';
+        const msgFooter = '<br/><div class="text-muted font-italic">Logged from <a href="https://www.odoo.com/documentation/user/crm/optimize/mail_client_extension.html" target="_blank">Outlook Inbox</a></div>';
+        const message = msgHeader + result.value + msgFooter;
         const requestJson = {
             lead: leadId,
-            message: result.value
+            message: message
         }
         const cancellableRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.logMail, ContentType.Json, this.context.getConnectionToken(), requestJson, true);
         this.context.addRequestCanceller(cancellableRequest.cancel);
