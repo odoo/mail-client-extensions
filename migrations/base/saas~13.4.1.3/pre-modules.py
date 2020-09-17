@@ -43,8 +43,10 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "website", plus={"digest"})
     util.module_deps_diff(cr, "website_form", plus={"google_recaptcha"})
 
-    util.new_module(cr, "website_project", deps={"website", "project"}, auto_install=True)
-    util.force_migration_of_fresh_module(cr, "website_project")
+    if not util.version_gte("saas~13.5"):
+        # module already gone in saas~13.5 ¯\_(ツ)_/¯
+        util.new_module(cr, "website_project", deps={"website", "project"}, auto_install=True)
+        util.force_migration_of_fresh_module(cr, "website_project")
 
     # test modules
     util.module_deps_diff(
