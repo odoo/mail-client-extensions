@@ -1296,8 +1296,9 @@ def migrate_invoice_lines(cr):
             )
             if not journal:
                 raise util.MigrationError(
-                    "Company {company.id} has `draft` or `canceled` vouchers on journals belonging to a different company, "
-                    "but does not have any equivalent journal allowing to fix that. Manual intervention is required."
+                    f"Company {company.id} has `draft` or `canceled` vouchers on journals belonging to a different "
+                    f"company, but does not have any equivalent journal allowing to fix that. Manual intervention is "
+                    f"required. Invoice ids: {ids}"
                 )
 
             cr.execute(
