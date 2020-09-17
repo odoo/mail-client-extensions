@@ -49,7 +49,7 @@ class CheckPayments(UpgradeCase):
             abs_numbers = 30
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
-            apm_ids = self.env["account.payment.method"].search([("id", "!=", sepa)]).ids
+            apm_ids = self.env["account.payment.method"].search([("id", "!=", sepa), ("code", "!=", "sdd")]).ids
             aj_ids = self.env["account.journal"].search([("type", "in", ["bank", "cash"])]).ids
             non_aj_ids = self.env["account.journal"].search(["!", ("type", "in", ["bank", "cash"])], limit=5)
 
