@@ -6,20 +6,58 @@ import os
 def migrate(cr, version):
     cr.execute(
         """
-        SELECT count(*), array_agg(id)
+        SELECT array_agg(id ORDER BY id)
           FROM account_invoice
          WHERE state IN ('draft', 'cancel')
            AND move_id IS NOT NULL
     """
     )
-    inconsistent_invoices_count, invoices_ids = cr.fetchone()
-    if inconsistent_invoices_count:
-        raise util.MigrationError(
-            "%s invoices are in 'draft' or 'cancelled' state in pre-migration database, "
-            "yet they are linked to an account.move. This is inconsistent and could come from an old bug or "
-            "customization. Please investigate and fix it in pre-migration db. Invoice ids: (%s)"
-            % (inconsistent_invoices_count, ", ".join([str(r) for r in invoices_ids]))
+    [inconsistent_invoice_ids] = cr.fetchone()
+    if inconsistent_invoice_ids:
+        # Try to fix the inconsistencies automatically
+
+        # 1. The move associated to the invoice have no lines. It is pointless -> break the link (set move_id to null)
+        inconsistent_invoice_ids = set(inconsistent_invoice_ids)
+        cr.execute(
+            """
+                UPDATE account_invoice SET move_id = NULL WHERE id IN (
+                       SELECT invoice.id
+                         FROM account_invoice invoice
+                         JOIN account_move move ON move.id = invoice.move_id
+                    LEFT JOIN account_move_line move_line ON move_line.move_id = move.id
+                        WHERE invoice.state in ('draft', 'cancel')
+                          AND invoice.move_id IS NOT NULL
+                     GROUP BY invoice.id, move.id HAVING COUNT(move_line.id) = 0
+                )
+                RETURNING id
+            """
         )
+        unlink_because_empty = [r[0] for r in cr.fetchall()]
+        if unlink_because_empty:
+            inconsistent_invoice_ids -= set(unlink_because_empty)
+            util.add_to_migration_reports(
+                f"""
+                    <details>
+                    <summary>
+                        {len(unlink_because_empty)} draft and cancelled invoices were linked to empty accounting
+                        entries, which is inconsistent. To be able to upgrade properly, the links between the invoices
+                        and their entry have been removed.
+                        The moves, even if empty, have been kept, for history purposes.
+                    </summary>
+                    Invoice ids: {unlink_because_empty}
+                    </details>
+                """,
+                "Accounting",
+                format="html",
+            )
+
+        if inconsistent_invoice_ids:
+            raise util.MigrationError(
+                "%s invoices are in 'draft' or 'cancelled' state in pre-migration database, "
+                "yet they are linked to an account.move. This is inconsistent and could come from an old bug or "
+                "customization. Please investigate and fix it in pre-migration db. Invoice ids: (%s)"
+                % (len(inconsistent_invoice_ids), ", ".join([str(r) for r in inconsistent_invoice_ids]))
+            )
 
     cr.execute(
         """
