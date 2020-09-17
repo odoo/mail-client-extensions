@@ -176,6 +176,11 @@ def migrate(cr, version):
             DELETE FROM account_move_line_account_tax_rel rel
             WHERE rel.account_move_line_id IN %s
         ''', [tuple(to_unlink_tax_line_ids)])
+        cr.execute('''
+            DELETE FROM account_account_tag_account_move_line_rel rel
+            USING account_account_tag tag
+            WHERE rel.account_move_line_id IN %s AND tag.id = rel.account_account_tag_id AND tag.applicability = 'taxes'
+        ''', [tuple(to_unlink_tax_line_ids)])
 
     # ============================================================
     # Fix journal items in order to fix the anglo saxon lines
