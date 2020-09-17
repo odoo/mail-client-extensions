@@ -3,6 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_field(cr, "res.partner", "opportunity_count_ids")
     util.remove_field(cr, "crm.lead", "partner_address_email")
     util.remove_view(cr, "crm.assets_tests")
 
