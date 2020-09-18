@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from collections import defaultdict
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import change_version, UpgradeCase
-from odoo.tools import float_compare
 
 
 @change_version("12.3")
 class GroupedAssetsCase(UpgradeCase):
     def prepare(self):
-
-        if util.version_gte("saas~12.4"):
-            amount_col = "amount_total"
-        else:
-            amount_col = "amount"
-
         type_asset = self.env.ref("account.data_account_type_non_current_assets")
         type_depreciation = self.env.ref("account.data_account_type_depreciation")
 
@@ -35,38 +29,34 @@ class GroupedAssetsCase(UpgradeCase):
             "account_asset_id": account_asset.id,
             "account_depreciation_id": account_depreciation.id,
             "account_depreciation_expense_id": account_depreciation_expense.id,
-            "group_entries": True,
         }
 
-        category_1 = self.env["account.asset.category"].create(dict(category_common_vals, name="Computers"))
-        category_2 = self.env["account.asset.category"].create(dict(category_common_vals, name="Cars"))
+        categories = self.env["account.asset.category"].create([
+            {**category_common_vals, 'name': "Computers", "group_entries": True},
+            {**category_common_vals, 'name': "Cars", "group_entries": True},
+            {**category_common_vals, 'name': "Misc", "group_entries": False, "open_asset": True},
+        ])
+        category_1, category_2, category_3 = categories
 
-        asset_1 = self.env["account.asset.asset"].create(
-            {"name": "Laptop 1", "category_id": category_1.id, "value": 1000.33, "salvage_value": 100}
-        )
-        asset_2 = self.env["account.asset.asset"].create(
-            {"name": "Laptop 2", "category_id": category_1.id, "value": 800.34, "salvage_value": 50}
-        )
-        asset_3 = self.env["account.asset.asset"].create(
-            {"name": "Laptop 3", "category_id": category_1.id, "value": 500.67, "salvage_value": 20}
-        )
-        asset_4 = self.env["account.asset.asset"].create(
-            {"name": "Car 1", "category_id": category_2.id, "value": 16543.97, "salvage_value": 980}
-        )
-        asset_5 = self.env["account.asset.asset"].create(
-            {"name": "Car 2", "category_id": category_2.id, "value": 35004.34, "salvage_value": 2040}
-        )
-
-        assets = asset_1 + asset_2 + asset_3 + asset_4 + asset_5
+        assets = self.env["account.asset.asset"].create([
+            {"name": "Laptop 1", "category_id": category_1.id, "value": 1000.33, "salvage_value": 100},
+            {"name": "Laptop 2", "category_id": category_1.id, "value": 800.34, "salvage_value": 50},
+            {"name": "Laptop 3", "category_id": category_1.id, "value": 500.67, "salvage_value": 20},
+            {"name": "Car 1", "category_id": category_2.id, "value": 16543.97, "salvage_value": 980},
+            {"name": "Car 2", "category_id": category_2.id, "value": 35004.34, "salvage_value": 2040},
+            {"name": "Misc 1", "category_id": category_3.id, "value": 450},
+            {"name": "Misc 2", "category_id": category_3.id, "value": 666},
+        ])
         assets.validate()
+
         with util.no_fiscal_lock(self.env.cr):
             self.env["account.asset.asset"].compute_generated_entries(datetime.today())
             moves = assets.mapped("depreciation_line_ids.move_id")
-            self.assertEquals(len(moves), 2)  # 2 categories, 2 moves
+            self.assertEquals(len(moves), 4)  # 2 categories, 2 moves for grouped + 2 moves for 1 ungrouped category
 
             # Modify the first asset move on purpose, to handle a difference between the assets amount and the move amount
             # Leave the second asset untouched to check it doesn't create a remaining move
-            move_group_1 = asset_1.mapped("depreciation_line_ids.move_id")
+            move_group_1 = assets[0].mapped("depreciation_line_ids.move_id")
             move_group_1.journal_id.update_posted = True
             move_group_1.button_cancel()
             debit_line = move_group_1.line_ids.filtered(lambda l: l.debit)
@@ -76,7 +66,7 @@ class GroupedAssetsCase(UpgradeCase):
 
         return (
             assets.ids,
-            [(m.name, m[amount_col]) for m in moves],
+            [(m.name, m.amount) for m in moves],
             [len(a.depreciation_line_ids) for a in assets],
             assets.mapped("entry_count"),
         )
@@ -84,21 +74,25 @@ class GroupedAssetsCase(UpgradeCase):
     def check(self, init):
         asset_ids, moves, line_count, entry_count = init
 
-        if util.version_gte("saas~12.4"):
-            amount_col = "amount_total"
-        else:
-            amount_col = "amount"
-
         assets = self.env["account.asset"].browse(asset_ids)
-        # 4 moves are expected for the first grouped move: 3 depreciation lines + 1 remaining,
-        # as the move was edited manually.
-        # 2 moves are expected for the second grouped move: 2 depreciation lines.
-        expected_move_count = [4, 2]
-        for (name, amount), move_count in zip(moves, expected_move_count):
-            moves = self.env["account.move"].search([("name", "=like", name + "/%")], order="name")
-            self.assertTrue(float_compare(sum(moves.mapped(amount_col)), amount, precision_rounding=2) == 0)
-            self.assertEquals(len(moves), move_count)
-            for i, move in enumerate(moves, start=1):
-                self.assertTrue(move.name.endswith("/%s" % i))
+        # The number of depreciation has not changed
         self.assertEquals([len(asset.depreciation_move_ids) for asset in assets], line_count)
+        # The number of posted depreciation has not changed
         self.assertEquals(assets.mapped("depreciation_entries_count"), entry_count)
+
+        # Check content of migration journal
+        mig_journal = self.env["account.journal"].search([
+            ("code", "=", "UPGAS"),
+            ("company_id", "=", assets[0].company_id.id),
+            ("active", "=", False),
+        ])
+        mig_moves = self.env["account.move"].search([("journal_id", "=", mig_journal.id)])
+        # 2 grouped depreciations + the 5 details of it + the manual change
+        # Unmodified/ungrouped moves are not in this journal
+        self.assertEquals(len(mig_moves), 8)
+        # balance is 0 per account
+        balance_per_account = defaultdict(float)
+        for line in mig_moves.mapped('line_ids'):
+            balance_per_account[line.account_id] += line.balance
+        for balance in balance_per_account.values():
+            self.assertAlmostEquals(balance, 0)
