@@ -65,6 +65,11 @@ def migrate(cr, version):
         fields_to_check["account.move"].remove("invoice_partner_bank_id")
         fields_to_check["account.move"].append("partner_bank_id")
 
+    if util.version_gte("saas~13.5"):
+        fields_to_check["account.journal"].remove("default_credit_account_id")
+        fields_to_check["account.journal"].remove("default_debit_account_id")
+        fields_to_check["account.journal"].append("default_account_id")
+
     for model_name, field_names in fields_to_check.items():
         for field_name in field_names:
             util.check_company_consistency(cr, model_name, field_name)
