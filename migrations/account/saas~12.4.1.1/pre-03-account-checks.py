@@ -27,7 +27,7 @@ def migrate(cr, version):
                     LEFT JOIN account_move_line move_line ON move_line.move_id = move.id
                         WHERE invoice.state in ('draft', 'cancel')
                           AND invoice.move_id IS NOT NULL
-                     GROUP BY invoice.id, move.id HAVING COUNT(move_line.id) = 0
+                     GROUP BY invoice.id, move.id HAVING SUM(COALESCE(move_line.debit, 0)) = 0
                 )
                 RETURNING id
             """
