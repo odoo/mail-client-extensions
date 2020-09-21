@@ -84,7 +84,19 @@ UPGRADE_REPO = Repo("upgrade")
 # Mypy doesn't like namedtuple with non-static field list. See:
 # https://github.com/python/mypy/issues/848
 # https://github.com/python/mypy/issues/4128#issuecomment-598206548
-Version = namedtuple("Version", "odoo enterprise themes")
+class Version(namedtuple("Version", "odoo enterprise themes")):
+    def __str__(self):
+        result = []
+        main = None
+        for repo, value in zip(self._fields, self):
+            if value.startswith("pr/"):
+                pr = value[3:]
+                result.append(f"{repo}#{pr}")
+            elif main is None:
+                main = value
+        if main is not None:
+            result.insert(0, main)
+        return ":".join(result)
 
 
 def init_repos(options: Namespace) -> bool:
