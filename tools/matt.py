@@ -355,6 +355,7 @@ index a26d1885ea6..b092f3c836e 100644
         with ProcessPoolExecutor(max_workers=min(options.workers, total)) as executor:
             it = executor.map(process_module, modules, itertools.repeat(workdir), itertools.repeat(options))
             for i, r in enumerate(it, 1):
+                setproctitle(f"matt :: {options.source} -> {options.target} [{i}/{total}]")
                 if isinstance(r, Ok):
                     logger.info("Processed module %d/%d", i, total)
                 elif isinstance(r, Err):
