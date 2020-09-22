@@ -74,7 +74,6 @@ def migrate(cr, version):
         LEFT JOIN product_category pc ON pc.id = pt.categ_id
         WHERE
             sm.state = 'done' AND
-            sm.value != 0 AND
             'product.category,' || pc.id NOT IN
                 (SELECT res_id FROM ir_property
                 WHERE
