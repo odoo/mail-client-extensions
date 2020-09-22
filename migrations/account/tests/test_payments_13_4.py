@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
+import itertools
 import random
 import logging
 
@@ -43,74 +44,67 @@ def _new_account(self, acc, currency_id):
 @change_version("13.4")
 class CheckPayments(UpgradeCase):
     def prepare(self):
+        PARTNER_COUNT = 100
+        INVOICE_PER_PARTNER = 10
+        BANK_STATEMENT_COUNT = 30
+        SAMPLE_BANK_STATEMENTS = 512
+
         with util.no_fiscal_lock(self.env.cr):
-            generate_size = 100
-            invoice_per_partner = 10
-            abs_numbers = 30
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
             apm_ids = self.env["account.payment.method"].search([("id", "!=", sepa), ("code", "!=", "sdd")]).ids
             aj_ids = self.env["account.journal"].search([("type", "in", ["bank", "cash"])]).ids
-            non_aj_ids = self.env["account.journal"].search(["!", ("type", "in", ["bank", "cash"])], limit=5)
 
             deprecated_accounts = self.env["account.account"].search([("deprecated", "=", True)])
             deprecated_accounts.write({"deprecated": False})
 
             _logger.info("Generate partners")
             partner_ids = self.env["res.partner"].create(
-                [{"name": "Partner %i for payments migration" % i} for i in range(0, generate_size)]
+                [{"name": "Partner {i} for payments upgrade"} for i in range(PARTNER_COUNT)]
             )
-            move_ids = []
-            payment_ids = []
+
             _logger.info("Generate invoices")
             type_field = "move_type" if util.version_gte("saas~13.3") else "type"
-            for partner_id in partner_ids:
-                for _ in range(0, invoice_per_partner):
-                    move_ids.append(
-                        self.env["account.move"]
-                        .create(
-                            {
-                                "partner_id": partner_id.id,
-                                type_field: "out_invoice",
-                                "invoice_line_ids": [(0, 0, {"name": "line", "price_unit": 100, "quantity": 5})],
-                            }
-                        )
-                        .id
-                    )
+            moves = self.env["account.move"].create(
+                [
+                    {
+                        "partner_id": partner.id,
+                        type_field: "out_invoice",
+                        "invoice_line_ids": [(0, 0, {"name": "line", "price_unit": 100, "quantity": 5})],
+                    }
+                    for partner in partner_ids
+                    for _ in range(INVOICE_PER_PARTNER)
+                ]
+            )
 
-            _logger.info("Validate 80%% of invoices")
-            self.env["account.move"].browse([m for m in move_ids if not m % 5 == 0]).post()
+            _logger.info("Validate 80% of invoices")
+            moves.filtered(lambda m: m.id % 5 == 0).post()
 
             _logger.info("Generate payments")
-            for partner_id in partner_ids:
-                payment_ids.append(
-                    self.env["account.payment"]
-                    .create(
-                        {
-                            "partner_id": partner_id.id,
-                            "payment_type": "inbound",
-                            "partner_type": "customer",
-                            "payment_method_id": random.choice(apm_ids),
-                            "journal_id": random.choice(aj_ids),
-                            "amount": 1000 if partner_id.id % 3 == 0 else 750 if partner_id.id % 3 == 1 else 300,
-                        }
-                    )
-                    .id
-                )
+            payments = self.env["account.payment"].create(
+                [
+                    {
+                        "partner_id": partner.id,
+                        "payment_type": "inbound",
+                        "partner_type": "customer",
+                        "payment_method_id": random.choice(apm_ids),
+                        "journal_id": random.choice(aj_ids),
+                        "amount": [1000, 750, 300][partner.id % 3],
+                    }
+                    for partner in partner_ids
+                ]
+            )
 
             _logger.info("post 2 payments over 3")
-            for payment_id in payment_ids:
-                if not payment_id % 3 == 0:
-                    self.env["account.payment"].browse(payment_id).post()
+            payments.filtered(lambda p: p.id % 3 == 0).post()
 
             _logger.info("Generate account.bank.statement without move on deprecated accounts")
-            abs_ids = self.env["account.bank.statement"].create(
+            journals = self.env["account.journal"].search(_journal_domain(0), limit=1000)
+            bank_statements = self.env["account.bank.statement"].create(
                 [
                     {
                         "date": datetime.now().isoformat(),
-                        "journal_id": random.choice(
-                            self.env["account.journal"].search(_journal_domain(i), limit=1000)
-                        ).id,
+                        "journal_id": random.choice(journals.ids),
                         "line_ids": [
                             (
                                 0,
@@ -124,7 +118,7 @@ class CheckPayments(UpgradeCase):
                             )
                         ],
                     }
-                    for i in range(0, abs_numbers)
+                    for _ in range(BANK_STATEMENT_COUNT)
                 ]
             )
 
@@ -234,7 +228,8 @@ class CheckPayments(UpgradeCase):
                 }
             )
 
-            for _validate_payments in (True, False):
+            # for _validate_payments in (True, False):
+            if True:
                 for curr in (currency_usd, currency_eur, currency_aud):
                     for journal in aj_ids:
                         for apm in apm_ids:
@@ -252,121 +247,50 @@ class CheckPayments(UpgradeCase):
                                 )
                                 # if validate_payments:
                                 #     payment_new.post()
-                                payment_ids.append(payment_new.id)
+                                payments |= payment_new
 
             _logger.info("create some account.bank.statement")
-            mig_test = 0
-            mig_test_dt = datetime.now().strftime("%Y/%m")
-            for _validate_payments in (True, False):
-                for journal in aj_ids:
-                    for curr in (currency_usd, currency_eur, currency_aud, False):
-                        for amnt in (-10, 0, 33):
-                            mig_test += 1
-                            mig_test_str = f"00000{mig_test}"[-5:]
-                            for name in (
-                                f"BNK_mig_{mig_test}",
-                                "",
-                                False,
-                                f"BNK/{mig_test_dt}/{mig_test_str}",
-                                f"BNK/{mig_test_dt}/00001",
-                            ):
-                                for lname in ("_", ""):
-                                    self.env["account.bank.statement"].create(
-                                        {
-                                            "name": name,
-                                            "date": datetime.now().isoformat(),
-                                            "line_ids": [
-                                                (
-                                                    0,
-                                                    0,
-                                                    {
-                                                        "name": lname,
-                                                        "amount": amnt,
-                                                        "currency_id": curr.id
-                                                        if curr and curr.id != journal.currency_id.id
-                                                        else False,
-                                                    },
-                                                )
-                                            ],
-                                            "journal_id": journal.id,
-                                            "currency_id": curr.id
-                                            if curr and curr.id != journal.currency_id.id
-                                            else False,
-                                        }
-                                    )
 
-            # This test doesn't migrate at all
-            # _logger.info("create some payments on crappy journal")
-            # for journal in non_aj_ids:
-            #     for curr in (currency_usd, currency_eur, False):
-            #         for amnt in (-10, 33):
-            #             mig_test += 1
-            #             mig_test_str = f'00000{mig_test}'[-5:]
-            #             for name in (
-            #                f"BNK_mig_{mig_test}",
-            #                "",
-            #                False,
-            #                f"BNK/{mig_test_dt}/{mig_test_str}",
-            #                f"BNK/{mig_test_dt}/00001",
-            #             ):
-            #                 for lname in ('_', ''):
-            #                     self.env['account.bank.statement'].create({
-            #                         'name': name,
-            #                         'date': datetime.now().isoformat(),
-            #                         'line_ids': [(0, 0, {
-            #                             'name': lname,
-            #                             'amount': amnt,
-            #                             # 'currency_id': curr.id if curr and curr.id!=journal.currency_id.id else False,
-            #                         })],
-            #                         'journal_id': journal.id,
-            #                         'currency_id': curr.id if curr and curr.id!=journal.currency_id.id else False,
-            #                     })
-
-            for _ in non_aj_ids:
-                pass  # dummy loop to keep variable used
-
-            _logger.info("create some account.bank.statement on various account and various currencies")
+            this_month = datetime.now().strftime("%Y/%m")
+            self.env["account.move.line"].flush()
             cr = self.env.cr
-            cr.execute("select account_id,count(*) as nbr from account_move_line group by 1 having count(*)>1")
-            for acc in cr.fetchall():
-                account_id = acc[0]
-                for journal in aj_ids:
-                    for curr in (currency_usd, currency_eur, currency_aud, False):
-                        mig_test += 1
-                        mig_test_str = f"00000{mig_test}"[-5:]
-                        for name in (
-                            f"BNK_mig_{mig_test}",
-                            "",
-                            False,
-                            f"BNK/{mig_test_dt}/{mig_test_str}",
-                            f"BNK/{mig_test_dt}/00001",
-                        ):
-                            for lname in ("_", ""):
-                                self.env["account.bank.statement"].create(
-                                    {
-                                        "name": name,
-                                        "date": datetime.now().isoformat(),
-                                        "line_ids": [
-                                            (
-                                                0,
-                                                0,
-                                                {
-                                                    "name": lname,
-                                                    "amount": amnt,
-                                                    "currency_id": curr.id
-                                                    if curr and curr.id != journal.currency_id.id
-                                                    else False,
-                                                    "account_id": account_id,
-                                                },
-                                            )
-                                        ],
-                                        "journal_id": journal.id,
-                                        "currency_id": curr.id if curr and curr.id != journal.currency_id.id else False,
-                                    }
-                                )
+            cr.execute(
+                "SELECT account_id FROM account_move_line WHERE move_id IN %s GROUP BY account_id HAVING count(*) > 1",
+                [tuple(moves.ids)],
+            )
+            accounts = [a for a, in cr.fetchall()] + [False]
+
+            combinations = itertools.product(
+                accounts,
+                aj_ids,
+                (currency_usd, currency_eur, currency_aud, False),
+                (-10, 0, 33),  # amount
+                ("BNK_mig_{i:05}", "", False, "BNK/{this_month}/{i:05}", "BNK/{this_month}/00001"),
+                ("_", ""),
+            )
+            for i, (account, journal, curr, amnt, name, lname) in enumerate(
+                random.sample(list(combinations), SAMPLE_BANK_STATEMENTS)
+            ):
+                line = {
+                    "name": lname,
+                    "amount": amnt,
+                    "currency_id": curr.id if curr and curr.id != journal.currency_id.id else False,
+                }
+                if account:
+                    line["account_id"] = account
+                data = {
+                    "name": name.format(i=i, this_month=this_month) if name else False,
+                    "date": datetime.now().isoformat(),
+                    "line_ids": [(0, 0, line)],
+                    "journal_id": journal.id,
+                    "currency_id": curr.id if curr and curr.id != journal.currency_id.id else False,
+                }
+                self.env["account.bank.statement"].create(data)
 
             _logger.info("Some account.payment from res.partner.bank on wrong company")
             last_company_id = -1
+            mig_test = SAMPLE_BANK_STATEMENTS + 1
+            mig_test_dt = this_month
             for partner in partner_ids:
                 mig_test += 1
                 mig_test_str = f"00000{mig_test}"[-5:]
@@ -384,14 +308,14 @@ class CheckPayments(UpgradeCase):
                                 0,
                                 {
                                     "name": "_",
-                                    "amount": amnt,
-                                    "currency_id": curr.id if curr and curr.id != journal.currency_id.id else False,
+                                    "amount": 27,
+                                    "currency_id": False,
                                     "bank_account_id": rpb_id.id,
                                 },
                             )
                         ],
                         "journal_id": random.choice(aj_ids.ids),
-                        "currency_id": curr.id if curr and curr.id != journal.currency_id.id else False,
+                        "currency_id": False,
                     }
                 )
 
@@ -407,12 +331,12 @@ class CheckPayments(UpgradeCase):
                 # })
 
             # Deprecate accounts deprecated before test
-            abs_ids[0].line_ids[0].write({"account_id": False})
-            abs_ids[1].line_ids[0].account_id.write({"deprecated": True})
+            bank_statements[0].line_ids[0].write({"account_id": False})
+            bank_statements[1].line_ids[0].account_id.write({"deprecated": True})
 
             # Deprecate an account
             for payment in self.env["account.payment"].search(
-                [("id", "in", payment_ids), ("state", "=", "draft")], limit=3
+                [("id", "in", payments.ids), ("state", "=", "draft")], limit=3
             ):
                 payment.destination_account_id.write({"deprecated": True})
                 _logger.info(
@@ -446,9 +370,9 @@ class CheckPayments(UpgradeCase):
             """
             )
             return {
-                "move_ids": move_ids,
+                "move_ids": moves.ids,
                 "partner_ids": partner_ids.ids,
-                "payment_ids": payment_ids,
+                "payment_ids": payments.ids,
             }
 
     def check(self, init):
