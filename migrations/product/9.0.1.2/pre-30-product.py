@@ -8,7 +8,7 @@ def migrate(cr, version):
     cr.execute("""
         UPDATE product_product p
            SET volume=t.volume,
-               weight=t.weight
+               weight=COALESCE(NULLIF(t.weight, 0.0), t.weight_net)
           FROM product_template t
          WHERE t.id = p.product_tmpl_id
     """)
