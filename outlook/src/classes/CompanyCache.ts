@@ -5,9 +5,11 @@ import Address from "./Address";
     cache to prune. And compare the perfs */
 
     class CacheObject {
+        version: number;
         timestamp: number;
         company: Company;
-        constructor(timestamp: number, company: Company) {
+        constructor(version: number, timestamp: number, company: Company) {
+            this.version = version;
             this.timestamp = timestamp;
             this.company = company;
         }
@@ -17,16 +19,24 @@ import Address from "./Address";
         size: number;
         occupancy: number;
         pruningRatio: number;
+        version: number;
 
-        constructor(size: number, pruningRatio: number) {
+        constructor(version: number, size: number, pruningRatio: number) {
             this.size = size;
             this.pruningRatio = pruningRatio;
+            this.version = version;
             
             // Compute the actual occupancy of the current localstoage.
             this.occupancy = 0;
             for (const key in localStorage) {
                 if (this._isCompanyDomain(key)) {
-                    ++this.occupancy;
+                    const cacheObject : CacheObject = JSON.parse(localStorage.getItem(key))
+                    // Remove old cache objects. Objects whose version differ from this cache's version.
+                    if (!('version' in cacheObject) || cacheObject.version != this.version) {
+                        localStorage.removeItem(key)
+                    } else {
+                        ++this.occupancy;
+                    }
                 }
             }
             
@@ -43,7 +53,7 @@ import Address from "./Address";
 
         _getCacheKeyForCompany(company: Company): string {
             const assignedCompany = Object.assign(new Company(), company); // to get the methods on the basic object.
-            return '@' + assignedCompany.getDomain();
+            return '@' + assignedCompany.getBareDomain();
         }
 
         _getCacheKeyForDomain(domain: string): string {
@@ -91,7 +101,7 @@ import Address from "./Address";
     
         add(company: Company) {
             const cacheKey : string = this._getCacheKeyForCompany(company);
-            const cacheObject = new CacheObject(new Date().getTime(), company);
+            const cacheObject = new CacheObject(this.version, new Date().getTime(), company);
 
             // Check whether it's just a replace.
             if (localStorage.getItem(cacheKey)) {

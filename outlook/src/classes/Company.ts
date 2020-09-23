@@ -23,9 +23,17 @@ class Company {
     }
 
     getDomain() : string {
-        let domain = this.domain || this.additionalInfo['domain']
+        let domain = this.domain || this.additionalInfo['domain'];
         if (domain && !domain.startsWith('http://') && !domain.startsWith('https://')) {
             domain = 'https://' + domain;
+        }
+        return domain;
+    }
+
+    getBareDomain() {
+        let domain = this.domain || this.additionalInfo['domain'];
+        if (domain) {
+            domain = domain.replace(/(^\w+:|^)\/\//, '');
         }
         return domain;
     }

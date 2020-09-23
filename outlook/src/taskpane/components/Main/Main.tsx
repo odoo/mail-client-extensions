@@ -46,7 +46,7 @@ class Main extends React.Component<MainProps, MainState> {
             partnerCreated: false,
         };
 
-        this.companyCache = new CompanyCache(200, 25); // TODO param somewhere
+        this.companyCache = new CompanyCache(1, 200, 25); // TODO param somewhere
     }
 
     componentDidMount() {
@@ -120,9 +120,9 @@ class Main extends React.Component<MainProps, MainState> {
             this.context.addRequestCanceller(cancellableRequest.cancel);
             cancellableRequest.promise.then(response => {
                 const parsed = JSON.parse(response);
-                if ('error' in parsed.result) {
+                if ('error' in parsed) {
                     this.setState({ 
-                        EnrichmentInfo: new EnrichmentInfo(parsed.result['error']) ,
+                        EnrichmentInfo: new EnrichmentInfo(parsed.error.data.exception_type) ,
                         showEnrichmentInfoMessage: true
                     });
                     this.context.setPartner(partner, false);
