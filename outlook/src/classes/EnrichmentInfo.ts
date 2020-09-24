@@ -4,6 +4,7 @@ export enum EnrichmentInfoType {
     NoData = 'no_data',
     InsufficientCredit = 'insufficient_credit',
     Other = 'other',
+    ConnectionError = 'connection_error',
     NotConnected_NoData = 'missing_data',
     NotConnected_InsufficientCredit = 'exhausted_requests',
     NotConnected_InternalError = 'internal_error'
@@ -31,8 +32,11 @@ class EnrichmentInfo {
             case EnrichmentInfoType.NotConnected_InsufficientCredit:
                 return "Oops, looks like you have exhausted your free enrichment requests. Please log in to try again";
             case EnrichmentInfoType.Other:
+                return "Something bad happened. Please, try again later."
             case EnrichmentInfoType.NotConnected_InternalError:
                 return "Could not autocomplete the company. Internal error. Try again later...";
+            case EnrichmentInfoType.ConnectionError:
+                return "There was a problem contacting the service, please try again later."
             default:
                 return "";
         }

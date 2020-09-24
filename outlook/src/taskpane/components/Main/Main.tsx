@@ -77,8 +77,19 @@ class Main extends React.Component<MainProps, MainState> {
                 showPartnerCreatedMessage: true
             });
             this.context.setPartner(partner, false);
-        }).catch(function(error) {
+        }).catch((error) => {
             console.log("Error catched: " + error);
+            if (error.message == '0') {
+                this.setState({
+                    EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
+                    showEnrichmentInfoMessage: true
+                });
+            } else {
+                this.setState({
+                    EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
+                    showEnrichmentInfoMessage: true
+                });    
+            }
             this.context.setPartner(new PartnerData(), false);
         });
 
@@ -135,10 +146,17 @@ class Main extends React.Component<MainProps, MainState> {
                 this.context.setPartner(partner, false);
             }).catch(error => {
                 console.log("Error catched: " + error);
-                this.setState({
-                    EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.NotConnected_InternalError),
-                    showEnrichmentInfoMessage: true
-                })
+                if (error.message == '0') {
+                    this.setState({
+                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
+                        showEnrichmentInfoMessage: true
+                    });
+                } else {
+                    this.setState({
+                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
+                        showEnrichmentInfoMessage: true
+                    });    
+                }
                 // At least the info present in the mail will be displayed, not an empty screen.
                 this.context.setPartner(partner, false);
             });
@@ -184,10 +202,9 @@ class Main extends React.Component<MainProps, MainState> {
                 </MessageBar>);
                 break;
             case EnrichmentInfoType.NotConnected_InsufficientCredit:
-                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
-                break;
-            case EnrichmentInfoType.Other:
             case EnrichmentInfoType.NotConnected_InternalError:
+            case EnrichmentInfoType.Other:
+            case EnrichmentInfoType.ConnectionError:
                 bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
                 break;
             }
