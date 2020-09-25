@@ -1284,14 +1284,6 @@ def migrate_invoice_lines(cr):
             )
 
     # Create account_move for draft account_invoice.
-    no_create_state = (
-        "in_payment",
-        "open",
-        "paid",
-    )
-    if os.getenv("MIG_CREATE_MISSING_MOVES"):
-        # if env var is set, allow to create draft dor open and paid invoices
-        no_create_state = ("in_payment",)
     cr.execute(
         """
         SELECT
@@ -1307,8 +1299,7 @@ def migrate_invoice_lines(cr):
             inv.partner_bank_id                     AS invoice_bank_partner_id,
             CASE WHEN inv.type IN ('out_invoice', 'out_refund') THEN inv.reference ELSE inv.name END
                                                     AS invoice_payment_ref,
-            CASE WHEN inv.state = 'cancel' THEN 'cancel' ELSE 'draft' END
-                                                    AS state,
+            inv.state                               AS state,
             inv.payment_term_id                     AS invoice_payment_term_id,
             inv.sent                                AS invoice_sent,
             inv.source_email                        AS invoice_source_email,
@@ -1322,13 +1313,32 @@ def migrate_invoice_lines(cr):
             inv.partner_id,
             inv.type
         FROM account_invoice inv
-        WHERE inv.state NOT IN %s
-          AND inv.move_id IS NULL
-    """,
-        [no_create_state],
+        WHERE inv.move_id IS NULL
+    """
     )
+    open_invoices_without_move = []
     for inv_vals in cr.dictfetchall():
+        if inv_vals["state"] in ("open", "paid", "in_payment"):
+            open_invoices_without_move.append((inv_vals["name"], inv_vals["invoice_date"]))
+        inv_vals["state"] = "cancel" if inv_vals["state"] == "cancel" else "draft"
         invoices[inv_vals["id"]] = inv_vals
+
+    if open_invoices_without_move:
+        util.add_to_migration_reports(
+            f"""
+                <details>
+                <summary>
+                    {len(open_invoices_without_move)} open/paid invoices are not associated to an accounting entry,
+                    which is inconsistent. These invoices have been set back to draft invoices during the upgrade.
+                    If there is already a move for these invoices, you should assign the move on the invoice before
+                    sending your database for upgrade (set the `move_id` field on the invoice).
+                </summary>
+                Invoices: {", ".join(f"{number}({date})" for number, date in open_invoices_without_move)}
+                </details>
+            """,
+            "Accounting",
+            format="html",
+        )
 
     updated_invoices = {}
     if invoices:
