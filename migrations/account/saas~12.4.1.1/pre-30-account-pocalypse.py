@@ -168,7 +168,7 @@ def migrate(cr, version):
             invoice_incoterm_id = inv.incoterm_id,
             invoice_origin = inv.origin,
             invoice_partner_bank_id = inv.partner_bank_id,
-            invoice_payment_ref = inv.reference,
+            invoice_payment_ref = CASE WHEN inv.type IN ('out_invoice', 'out_refund') THEN inv.reference ELSE inv.name END,
             invoice_payment_term_id = inv.payment_term_id,
             invoice_sent = inv.sent,
             invoice_source_email = inv.source_email,
@@ -178,6 +178,27 @@ def migrate(cr, version):
         JOIN res_company comp ON comp.id = inv.company_id
         WHERE am.id = inv.move_id
     """
+    )
+    cr.execute(
+        """
+        UPDATE account_move am
+           SET ref = inv.name
+          FROM account_invoice inv
+         WHERE am.id = inv.move_id
+           AND inv.type IN ('out_invoice', 'out_refund')
+           AND am.ref = am.invoice_payment_ref
+        """
+    )
+    cr.execute(
+        """
+        UPDATE account_move_line aml
+           SET name = am.invoice_payment_ref
+          FROM account_move am, account_account account
+         WHERE aml.move_id = am.id
+           AND am.type IN ('out_invoice', 'out_refund')
+           AND account.id = aml.account_id
+           AND account.internal_type = 'receivable'
+        """
     )
 
     if is_account_voucher_installed:

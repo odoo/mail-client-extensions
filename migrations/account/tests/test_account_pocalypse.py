@@ -69,9 +69,9 @@ class TestAccountPocalypse(UpgradeCase):
         move = self.env["account.move"].browse(move_id)
         receivable_line = move.line_ids.filtered(lambda line: line.account_id.id == config["account_receivable_id"])
 
-        self.assertEqual(move.ref, "CUST123456789")
+        self.assertEqual(move.ref, "name_receivable_line")
         self.assertEqual(move.invoice_payment_ref, "CUST123456789")
-        self.assertEqual(receivable_line.name, "name_receivable_line")  # line remains untouched.
+        self.assertEqual(receivable_line.name, "CUST123456789")
 
     def _prepare_test_in_invoice_payment_reference_draft(self, env_user):
         invoice = env_user["account.invoice"].create(
@@ -125,7 +125,7 @@ class TestAccountPocalypse(UpgradeCase):
         payable_line = move.line_ids.filtered(lambda line: line.account_id.id == config["account_payable_id"])
 
         self.assertEqual(move.ref, "VENDOR22222")
-        # self.assertEqual(move.invoice_payment_ref, 'name_payable_line')
+        self.assertEqual(move.invoice_payment_ref, "name_payable_line")
         self.assertEqual(payable_line.name, "name_payable_line")  # line remains untouched.
 
     def _prepare_test_invoice_no_accounting_date(self, env_user):
