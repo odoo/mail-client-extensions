@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-	util.remove_model(cr, "google.calendar")
+    util.create_column(cr, "stock_warehouse_orderpoint", "supplier_id", "int4")

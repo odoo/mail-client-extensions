@@ -59,19 +59,20 @@ class GroupedAssetsCase(UpgradeCase):
 
         assets = asset_1 + asset_2 + asset_3 + asset_4 + asset_5
         assets.validate()
-        self.env["account.asset.asset"].compute_generated_entries(datetime.today())
-        moves = assets.mapped("depreciation_line_ids.move_id")
-        self.assertEquals(len(moves), 2)  # 2 categories, 2 moves
+        with util.no_fiscal_lock(self.env.cr):
+            self.env["account.asset.asset"].compute_generated_entries(datetime.today())
+            moves = assets.mapped("depreciation_line_ids.move_id")
+            self.assertEquals(len(moves), 2)  # 2 categories, 2 moves
 
-        # Modify the first asset move on purpose, to handle a difference between the assets amount and the move amount
-        # Leave the second asset untouched to check it doesn't create a remaining move
-        move_group_1 = asset_1.mapped("depreciation_line_ids.move_id")
-        move_group_1.journal_id.update_posted = True
-        move_group_1.button_cancel()
-        debit_line = move_group_1.line_ids.filtered(lambda l: l.debit)
-        credit_line = move_group_1.line_ids.filtered(lambda l: l.credit)
-        move_group_1.write({"line_ids": [(1, debit_line.id, {"debit": 480}), (1, credit_line.id, {"credit": 480})]})
-        move_group_1.action_post()
+            # Modify the first asset move on purpose, to handle a difference between the assets amount and the move amount
+            # Leave the second asset untouched to check it doesn't create a remaining move
+            move_group_1 = asset_1.mapped("depreciation_line_ids.move_id")
+            move_group_1.journal_id.update_posted = True
+            move_group_1.button_cancel()
+            debit_line = move_group_1.line_ids.filtered(lambda l: l.debit)
+            credit_line = move_group_1.line_ids.filtered(lambda l: l.credit)
+            move_group_1.write({"line_ids": [(1, debit_line.id, {"debit": 480}), (1, credit_line.id, {"credit": 480})]})
+            move_group_1.action_post()
 
         return (
             assets.ids,

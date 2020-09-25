@@ -50,6 +50,7 @@ def migrate(cr, version):
                 ELSE NULL
             END
         FROM snailmail_letter l
-        WHERE NOT EXISTS(SELECT 1 FROM mail_message_res_partner_needaction_rel WHERE letter_id = l.id)
+       WHERE NOT EXISTS(SELECT 1 FROM mail_message_res_partner_needaction_rel WHERE letter_id = l.id)
+         AND l.message_id IS NOT NULL
     """
     )

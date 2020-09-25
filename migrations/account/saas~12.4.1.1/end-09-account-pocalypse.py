@@ -656,34 +656,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
 
 
 @contextmanager
-def no_fiscal_lock(cr):
-    cr.execute(
-        """
-        UPDATE res_company c
-           SET tax_lock_date = NULL,
-               period_lock_date = NULL,
-               fiscalyear_lock_date = NULL
-          FROM res_company old
-         WHERE old.id = c.id
-     RETURNING old.tax_lock_date, old.period_lock_date, old.fiscalyear_lock_date, old.id
-    """
-    )
-    data = cr.fetchall()
-    yield
-    cr.executemany(
-        """
-        UPDATE res_company
-           SET tax_lock_date = %s,
-               period_lock_date = %s,
-               fiscalyear_lock_date = %s
-         WHERE id = %s
-
-    """,
-        data,
-    )
-
-
-@contextmanager
 def skip_failing_python_taxes(env, skipped):
     if util.module_installed(env.cr, "account_tax_python"):
         origin_compute_amount = env.registry["account.tax"]._compute_amount
@@ -1905,7 +1877,7 @@ def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
     cr.execute("REINDEX TABLE account_tax")
-    with no_fiscal_lock(cr):
+    with util.no_fiscal_lock(cr):
         if util.ENVIRON["account_voucher_installed"]:
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)

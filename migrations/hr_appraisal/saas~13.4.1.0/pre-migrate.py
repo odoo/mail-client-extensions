@@ -28,22 +28,45 @@ def migrate(cr, version):
     cr.execute(
         """
         DELETE FROM ir_config_parameter
-        WHERE key IN ('hr_appraisal.appraisal_min_period', 'hr_appraisal.appraisal_max_period')"""
+        WHERE key IN ('hr_appraisal.appraisal_min_period', 'hr_appraisal.appraisal_max_period')
+        """
     )
     removed_noupdate_data = """
-        mail_act_appraisal_form mail_act_appraisal_send mail_template_appraisal_reminder"""
-    for removed_data in removed_noupdate_data.split():
-        util.remove_record(cr, "hr_appraisal.%s" % removed_data)
+        # activity types
+        mail_act_appraisal_form
+        mail_act_appraisal_send
+
+        # config parameters
+        config_appraisal_min_period
+        config_appraisal_max_period
+
+        # actions
+        mail_activity_type_action_config_hr_appraisal
+    """
+    for removed_data in util.splitlines(removed_noupdate_data):
+        util.remove_record(cr, f"hr_appraisal.{removed_data}", deactivate=True)
+
+    util.remove_view(cr, "hr_appraisal.mail_template_appraisal_reminder")
+    util.remove_menus(
+        cr,
+        [
+            util.ref(cr, "hr_appraisal.menu_appraisal_reminder"),
+            util.ref(cr, "hr_appraisal.hr_appraisal_menu_config_activity_type"),
+        ],
+    )
 
     # The action_plan (Char) old data could be moved to new field manager_feedback (Html)
     cr.execute("UPDATE hr_appraisal SET manager_feedback=%s" % util.pg_text2html("action_plan"))
 
     # company_id become a stored related field. Force recomputation be sure.
-    cr.execute("""
-        UPDATE hr_appraisal a
-        SET company_id = e.company_id
-        FROM hr_employee e
-        WHERE e.id=a.employee_id""")
+    cr.execute(
+        """
+            UPDATE hr_appraisal a
+               SET company_id = e.company_id
+              FROM hr_employee e
+             WHERE e.id = a.employee_id
+        """
+    )
 
     all_fields_to_remove = {
         "res.users": """

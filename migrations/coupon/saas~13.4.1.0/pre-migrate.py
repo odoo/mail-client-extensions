@@ -4,20 +4,20 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    ## 1. Models were moved from sale_coupon to coupon
+    # 1. Models were moved from sale_coupon to coupon
     util.move_model(cr, "sale.coupon", "sale_coupon", "coupon", move_data=True)
     util.move_model(cr, "sale.coupon.program", "sale_coupon", "coupon", move_data=True)
     util.move_model(cr, "sale.coupon.rule", "sale_coupon", "coupon", move_data=True)
     util.move_model(cr, "sale.coupon.reward", "sale_coupon", "coupon", move_data=True)
     util.move_model(cr, "sale.coupon.generate", "sale_coupon", "coupon", move_data=True)
-    ## 2. Moved models were renamed
+    # 2. Moved models were renamed
     util.rename_model(cr, "sale.coupon", "coupon.coupon")
     util.rename_model(cr, "sale.coupon.program", "coupon.program")
     util.rename_model(cr, "sale.coupon.rule", "coupon.rule")
     util.rename_model(cr, "sale.coupon.reward", "coupon.reward")
     util.rename_model(cr, "sale.coupon.generate", "coupon.generate.wizard")
     util.rename_model(cr, "report.sale_coupon.report_coupon", "report.coupon.report_coupon", rename_table=False)
-    ## 3. Views were renamed as well
+    # 3. Views were renamed as well
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.mail_template_sale_coupon"))
     util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.sale_coupon_generate_rule"))
@@ -43,7 +43,11 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("{sale_coupon.sale_,coupon.}coupon_generate_view_form"))
     util.rename_xmlid(cr, *eb("{sale_coupon.sale_,coupon.}coupon_generate_action"))
     util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.expire_coupon_cron"))
-    ## 4. Some fields remained at sale_coupon module
+    util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.report_coupon"))
+    util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.report_coupon_i18n"))
+    util.rename_xmlid(cr, *eb("{sale_coupon,coupon}.report_coupon_code"))
+
+    # 4. Some fields remained at sale_coupon module
     util.move_field_to_module(cr, "coupon.coupon", "order_id", "coupon", "sale_coupon")
     util.move_field_to_module(cr, "coupon.coupon", "sale_order_id", "coupon", "sale_coupon")
     util.move_field_to_module(cr, "coupon.program", "order_count", "coupon", "sale_coupon")

@@ -1,71 +1,41 @@
 # -*- coding: utf-8 -*-
-
-from datetime import datetime
+import re
 from psycopg2.extras import execute_values
 
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    recurrence_fields = """
+        event_tz,
+        rrule_type, rrule,
+        end_type, interval, count,
+        mo, tu, we, th, fr, sa, su,
+        month_by, day, weekday, byday, until
+    """.strip()
 
     cr.execute(
+        f"""
+            INSERT INTO calendar_recurrence (base_event_id, {recurrence_fields})
+            SELECT id, {recurrence_fields}
+              FROM calendar_event
+             WHERE recurrency = TRUE
+               AND COALESCE(rrule, '') != ''
         """
-		INSERT INTO calendar_recurrence (
-			base_event_id,
-			event_tz,
-			rrule_type,
-			rrule,
-			end_type,
-			interval,
-			count,
-			mo, tu, we, th, fr, sa, su,
-			month_by,
-			day,
-			weekday,
-			byday,
-			until
-		)
-			SELECT
-				id AS base_event_id,
-				event_tz,
-				rrule_type,
-				rrule,
-				end_type,
-				interval,
-				count,
-				mo, tu, we, th, fr, sa, su,
-				month_by,
-				day,
-				week_list AS weekday,
-				byday,
-				final_date AS until
-			FROM calendar_event
-			WHERE recurrency=TRUE
-		"""
     )
     cr.execute(
         """
-		UPDATE calendar_event e SET recurrence_id = r.id
-		FROM calendar_recurrence r
-		WHERE e.id = r.base_event_id;
-		"""
+            UPDATE calendar_event e
+               SET recurrence_id = r.id
+              FROM calendar_recurrence r
+             WHERE e.id = r.base_event_id
+        """
     )
-    # Recurrence fields
-    for col in "event_tz rrule_type rrule interval count mo tu we th fr sa su day byday".split():
+    for col in re.split(r"\W+", recurrence_fields):
         util.remove_column(cr, "calendar_event", col)
 
-    util.remove_field(cr, "calendar.event", "week_list")
-    util.remove_field(cr, "calendar.event", "final_date")
-
-    # Other fields
-    for field in "start_datetime stop_datetime display_start state is_attendee recurrent_id recurrent_id_date".split():
-        util.remove_field(cr, "calendar.event", field)
-
-    util.remove_column(cr, "calendar_attendee", "email")  # now a related field
-
-    # overwrite mail templates :/
-    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_invitation")
-    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_changedate")
+    util.remove_field(cr, "calendar.event", "weekday")
+    util.remove_field(cr, "calendar.event", "until")
 
     env = util.env(cr)
     recurrences = env["calendar.recurrence"].search([])
@@ -75,60 +45,32 @@ def migrate(cr, version):
         duration = event.stop - event.start
         ranges = recurrence._get_ranges(event.start, duration)
         ranges = ((start, stop) for start, stop in ranges if start != event.start and stop != event.stop)
-        event_vals += [
-            (
-                event.name,
-                start,
-                stop,
-                event.allday,
-                event.start_date or None,
-                event.stop_date or None,
-                event.duration,
-                event.description,
-                event.privacy or None,
-                event.location,
-                event.show_as or None,
-                event.res_id,
-                event.res_model_id.id or None,
-                event.res_model,
-                event.user_id.id or None,
-                event.active,
-                event.recurrency,
-                recurrence.id,
-            )
-            for start, stop in ranges
-        ]
+        # fmt:off
+        event_vals += [(
+            event.name, start, stop, event.allday, event.start_date or None, event.stop_date or None, event.duration,
+            event.description, event.privacy or None, event.location, event.show_as or None,
+            event.res_id, event.res_model_id.id or None, event.res_model,
+            event.user_id.id or None, event.active,
+            event.recurrency, recurrence.id,
+        ) for start, stop in ranges]
+        # fmt:on
 
-    cr.executemany(
+    execute_values(
+        cr._obj,
         """
-        INSERT INTO calendar_event (
-            name,
-            start,
-            stop,
-            allday,
-            start_date,
-            stop_date,
-            duration,
-            description,
-            privacy,
-            location,
-            show_as,
-            res_id,
-            res_model_id,
-            res_model,
-            user_id,
-            active,
-            recurrency,
-            recurrence_id
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO calendar_event(
+                name, start, stop, allday, start_date, stop_date, duration,
+                description, privacy, location, show_as,
+                res_id, res_model_id, res_model,
+                user_id, active,
+                recurrency, recurrence_id
+            )
+            VALUES %s
     """,
-        event_vals
+        event_vals,
     )
 
-    # Copy all X2many fields from the original event to the newly created events
-    # for the recurrence.
-
+    # Copy all X2many fields from the original event to the newly created events for the recurrence.
     # tags
     cr.execute(
         """
@@ -184,3 +126,9 @@ def migrate(cr, version):
                JOIN calendar_event e ON r.id = e.recurrence_id AND e.id != r.base_event_id
         """
     )
+
+    util.recompute_fields(cr, "calendar.recurrence", ["name"])
+
+    # overwrite mail templates
+    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_invitation")
+    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_changedate")

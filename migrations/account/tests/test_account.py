@@ -2,7 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo.tests import tagged
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, IntegrityCase, change_version
-from odoo.addons.base.maintenance.migrations.util import version_gte
+from odoo.addons.base.maintenance.migrations.util import version_gte, no_fiscal_lock
 
 
 def _amount_query(additionnal_condition=""):
@@ -11,10 +11,9 @@ def _amount_query(additionnal_condition=""):
     # other values independently of their ids.
     # this solution aggregates all column, only using data that are not demo
 
-
     if version_gte("12.4"):  # 12.4 -> master post accountpocalypse
         model_name = "account.move"
-    else:  #  -> 12.3
+    else:  # -> 12.3
         model_name = "account.invoice"
 
     table_name = model_name.replace(".", "_")
@@ -90,100 +89,101 @@ class AmountTotalSignedCornerCase(UpgradeCase):
     """
 
     def prepare(self):
-        res_users_account_manager = self.env.ref("account.group_account_manager")
-        partner_manager = self.env.ref("base.group_partner_manager")
-        currency = self.env.ref("base.USD")
-        company = self.env["res.company"].create({"name": "company for upgrade tests", "currency_id": currency.id})
+        with no_fiscal_lock(self.env.cr):
+            res_users_account_manager = self.env.ref("account.group_account_manager")
+            partner_manager = self.env.ref("base.group_partner_manager")
+            currency = self.env.ref("base.USD")
+            company = self.env["res.company"].create({"name": "company for upgrade tests", "currency_id": currency.id})
 
-        account_user = (
-            self.env["res.users"]
-            .with_context({"no_reset_password": True})
-            .create(
+            account_user = (
+                self.env["res.users"]
+                .with_context({"no_reset_password": True})
+                .create(
+                    {
+                        "name": "Accountant for upgrade tests",
+                        "company_id": company.id,
+                        "company_ids": [(4, company.id)],
+                        "login": "acc",
+                        "email": "accountuser@yourcompany.com",
+                        "groups_id": [(6, 0, [res_users_account_manager.id, partner_manager.id])],
+                    }
+                )
+            )
+            self_sudo = account_user.sudo(account_user)
+            journal = self_sudo.env["account.journal"].create(
+                {"name": "Sale tests upgrade", "type": "sale", "code": "SALEUP"}
+            )
+            account = self_sudo.env["account.account"].create(
                 {
-                    "name": "Accountant for upgrade tests",
-                    "company_id": company.id,
-                    "company_ids": [(4, company.id)],
-                    "login": "acc",
-                    "email": "accountuser@yourcompany.com",
-                    "groups_id": [(6, 0, [res_users_account_manager.id, partner_manager.id])],
+                    "name": "Test account account for amount total signed",
+                    "user_type_id": self_sudo.env.ref("account.data_account_type_revenue").id,
+                    "code": "aaaaa",
                 }
             )
-        )
-        self_sudo = account_user.sudo(account_user)
-        journal = self_sudo.env["account.journal"].create(
-            {"name": "Sale tests upgrade", "type": "sale", "code": "SALEUP"}
-        )
-        account = self_sudo.env["account.account"].create(
-            {
-                "name": "Test account account for amount total signed",
-                "user_type_id": self_sudo.env.ref("account.data_account_type_revenue").id,
-                "code": "aaaaa",
-            }
-        )
-        tax_0 = self_sudo.env["account.tax"].create(
-            {"name": "Tax 0.0", "amount": 5.31, "amount_type": "percent", "type_tax_use": "sale", "sequence": 10}
-        )
-        tax_rec = self_sudo.env["account.tax"].create(
-            {
-                "name": "Tax REC",
-                "amount": 10.0,
-                "amount_type": "fixed",
-                "type_tax_use": "sale",
-                "include_base_amount": True,
-                "sequence": 5,
-            }
-        )
-        uom_id = self_sudo.env.ref("uom.product_uom_hour").id
-
-        template = self_sudo.env["account.account.template"].create(
-            {
-                "name": "Test account template for amount total signed",
-                "code": "aaaa",
-                "user_type_id": self_sudo.env.ref("account.data_account_type_revenue").id,
-            }
-        )
-        partner = self_sudo.env["res.partner"].create(
-            {"name": "Test partner for amount total signed", "property_account_receivable_id": template.id,}
-        )
-        product = self_sudo.env["product.product"].create(
-            {
-                "name": "Test product for amount total signed",
-                "standard_price": 20.5,
-                "list_price": 30.75,
-                "type": "service",
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-            }
-        )
-        invoice_line_data_rec = [
-            (
-                0,
-                0,
+            tax_0 = self_sudo.env["account.tax"].create(
+                {"name": "Tax 0.0", "amount": 5.31, "amount_type": "percent", "type_tax_use": "sale", "sequence": 10}
+            )
+            tax_rec = self_sudo.env["account.tax"].create(
                 {
-                    "product_id": product.id,
-                    "quantity": 40.0,
-                    "account_id": account.id,
-                    "name": "product test 1",
-                    "discount": 10.00,
-                    "price_unit": 2.27,
-                    "invoice_line_tax_ids": [(6, 0, [tax_rec.id, tax_0.id])],
-                    "partner_id": partner.id,
-                },
+                    "name": "Tax REC",
+                    "amount": 10.0,
+                    "amount_type": "fixed",
+                    "type_tax_use": "sale",
+                    "include_base_amount": True,
+                    "sequence": 5,
+                }
             )
-        ]
-        invoice_rec = self_sudo.env["account.invoice"].create(
-            dict(
-                name="Test Upgrades",
-                journal_id=journal.id,
-                partner_id=partner.id,
-                invoice_line_ids=invoice_line_data_rec,
+            uom_id = self_sudo.env.ref("uom.product_uom_hour").id
+
+            template = self_sudo.env["account.account.template"].create(
+                {
+                    "name": "Test account template for amount total signed",
+                    "code": "aaaa",
+                    "user_type_id": self_sudo.env.ref("account.data_account_type_revenue").id,
+                }
             )
-        )
+            partner = self_sudo.env["res.partner"].create(
+                {"name": "Test partner for amount total signed", "property_account_receivable_id": template.id}
+            )
+            product = self_sudo.env["product.product"].create(
+                {
+                    "name": "Test product for amount total signed",
+                    "standard_price": 20.5,
+                    "list_price": 30.75,
+                    "type": "service",
+                    "uom_id": uom_id,
+                    "uom_po_id": uom_id,
+                }
+            )
+            invoice_line_data_rec = [
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": product.id,
+                        "quantity": 40.0,
+                        "account_id": account.id,
+                        "name": "product test 1",
+                        "discount": 10.00,
+                        "price_unit": 2.27,
+                        "invoice_line_tax_ids": [(6, 0, [tax_rec.id, tax_0.id])],
+                        "partner_id": partner.id,
+                    },
+                )
+            ]
+            invoice_rec = self_sudo.env["account.invoice"].create(
+                dict(
+                    name="Test Upgrades",
+                    journal_id=journal.id,
+                    partner_id=partner.id,
+                    invoice_line_ids=invoice_line_data_rec,
+                )
+            )
 
-        invoice_rec.action_invoice_open()
+            invoice_rec.action_invoice_open()
 
-        self.env.cr.execute(_amount_query("AND journal_id = %s"), [journal.id])
-        result = self.env.cr.fetchall()
+            self.env.cr.execute(_amount_query("AND journal_id = %s"), [journal.id])
+            result = self.env.cr.fetchall()
         return journal.id, result
 
     def check(self, init):
@@ -193,14 +193,18 @@ class AmountTotalSignedCornerCase(UpgradeCase):
         self.assertEqual(
             init_result,
             result,
-            "Some difference found in aggregates totals:\n(journal_id, amount_untaxed, amount_tax, amount_total, amount_untaxed_signed, amount_total_signed)",
+            "Some difference found in aggregates totals:\n"
+            "(journal_id, amount_untaxed, amount_tax, amount_total, amount_untaxed_signed, amount_total_signed)",
         )
 
 
 @tagged("-upgrade", "to_fix", "-integrity_case")
 class AmountTotalSignedIntegrity(IntegrityCase):
 
-    message = "Some difference found in aggregates totals:\n(journal_id, amount_untaxed, amount_tax, amount_total, amount_untaxed_signed, amount_total_signed)"
+    message = (
+        "Some difference found in aggregates totals:\n"
+        "(journal_id, amount_untaxed, amount_tax, amount_total, amount_untaxed_signed, amount_total_signed)"
+    )
 
     def invariant(self):
         self.env.cr.execute(_amount_query())

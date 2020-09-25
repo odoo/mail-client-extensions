@@ -3,11 +3,16 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    pv = util.parse_version
+
     util.rename_model(cr, "mail.test.full", "mail.test.ticket")
     util.rename_model(cr, "mail.test", "mail.test.container")
     util.rename_model(cr, "test_performance.mail", "mail.performance.thread")
-    util.rename_model(cr, "mail.test.tracking", "mail.performance.tracking")
-    util.rename_model(cr, "mail.test.compute", "mail.test.track.compute")
+
+    if pv(version) >= pv("saas~13.1"):
+        util.rename_model(cr, "mail.test.tracking", "mail.performance.tracking")
+    if pv(version) >= pv("saas~13.2"):
+        util.rename_model(cr, "mail.test.compute", "mail.test.track.compute")
 
     util.rename_field(cr, "mail.test.ticket", "umbrella_id", "container_id")
     util.rename_field(cr, "mail.test.track", "umbrella_id", "container_id")

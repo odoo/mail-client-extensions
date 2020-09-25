@@ -3,48 +3,36 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
-    # ===========================================================
-    # Misc-improvements (PR: 54494 & 11862)
-    # ===========================================================
-
     # Res_company
     util.create_column(cr, "res_company", "expense_currency_exchange_account_id", "int4")
     util.create_column(cr, "res_company", "income_currency_exchange_account_id", "int4")
-
     cr.execute(
         """
-                UPDATE res_company
-                SET
-                   expense_currency_exchange_account_id = journal.default_debit_account_id,
+            UPDATE res_company
+               SET expense_currency_exchange_account_id = journal.default_debit_account_id,
                    income_currency_exchange_account_id = journal.default_credit_account_id
-                FROM account_journal journal
-                WHERE journal.id = res_company.currency_exchange_journal_id
-            """
+              FROM account_journal journal
+             WHERE journal.id = res_company.currency_exchange_journal_id
+        """
     )
 
     # Account_payment
     util.create_column(cr, "account_payment_method", "sequence", "int4")
-
-    cr.execute(
-        """
-                UPDATE account_payment_method
-                SET
-                   sequence = id
-            """
-    )
+    cr.execute("UPDATE account_payment_method SET sequence = id")
 
     # Account_journal
     util.create_column(cr, "account_journal", "default_account_id", "int4")
+    for infix in {"credit", "debit"}:
+        util.update_field_references(
+            cr, f"default_{infix}_account_id", "default_account_id", only_models=("account.journal",)
+        )
 
     cr.execute(
         """
-                UPDATE account_journal
-                SET
-                   default_account_id = COALESCE(default_credit_account_id,default_debit_account_id)
-            """
+            UPDATE account_journal
+               SET default_account_id = COALESCE(default_credit_account_id, default_debit_account_id)
+        """
     )
-
     util.remove_field(cr, "account.journal", "default_debit_account_id")
     util.remove_field(cr, "account.journal", "default_credit_account_id")
 
@@ -52,7 +40,4 @@ def migrate(cr, version):
     util.remove_field(cr, "account.setup.bank.manual.config", "new_journal_code")
     util.remove_field(cr, "account.setup.bank.manual.config", "related_acc_type")
 
-    # ===========================================================
-    # Accounting Tour - Onboarding (PR: 55850 & 12389)
-    # ===========================================================
     util.remove_view(cr, "account.dashboard_onboarding_company_step")

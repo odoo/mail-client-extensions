@@ -123,3 +123,7 @@ def migrate(cr, version):
         util.new_module(cr, 'account_disallowed_expenses', deps={'account_reports'})
         util.new_module(cr, 'account_disallowed_expenses_fleet', deps={'account_disallowed_expenses', 'account_fleet'}, auto_install=True)
         util.new_module(cr, 'l10n_be_disallowed_expenses', deps={'account_disallowed_expenses', 'l10n_be'}, auto_install=True)
+
+    # account_edi add a new field on account_move and bootstrap it using SQL instead of letting
+    # the ORM compute it slowly
+    util.force_migration_of_fresh_module(cr, "account_edi")
