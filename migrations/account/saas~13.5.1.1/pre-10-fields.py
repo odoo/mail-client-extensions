@@ -63,7 +63,7 @@ def migrate(cr, version):
             UPDATE res_company
                SET account_tax_fiscal_country_id = COALESCE(parameter_country.id, company_partner.country_id)
               FROM res_partner company_partner
-              JOIN res_company company ON company.partner_id = company.partner_id
+              JOIN res_company company ON company_partner.id = company.partner_id
          LEFT JOIN ir_config_parameter fiscal_country_param
                 ON fiscal_country_param.key = CONCAT('account_fiscal_country_', company.id)
          LEFT JOIN res_country parameter_country ON LOWER(parameter_country.code) = LOWER(fiscal_country_param.value)
