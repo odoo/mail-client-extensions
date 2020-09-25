@@ -107,11 +107,36 @@ def migrate(cr, version):
             )
 
         if inconsistent_invoice_ids:
-            raise util.MigrationError(
-                "%s invoices are in 'draft' or 'cancelled' state in pre-migration database, "
-                "yet they are linked to an account.move. This is inconsistent and could come from an old bug or "
-                "customization. Please investigate and fix it in pre-migration db. Invoice ids: (%s)"
-                % (len(inconsistent_invoice_ids), ", ".join([str(r) for r in inconsistent_invoice_ids]))
+            # If there are still draft/cancelled invoices associated to non-zero moves of different amount:
+            # 1. If the move is posted, break the link, and re-create a new move in draft/cancel
+            # 2. If the move is unposted, let the link, and let the mapping figures it out.
+            cr.execute(
+                """
+                       UPDATE account_invoice invoice
+                          SET move_id = NULL
+                         FROM account_move move
+                        WHERE move.id = invoice.move_id
+                          AND invoice.id in %s
+                          AND move.state = 'posted'
+                    RETURNING number, date_invoice
+                """,
+                [tuple(inconsistent_invoice_ids)],
+            )
+            inconsistent_invoices = cr.fetchall()
+            util.add_to_migration_reports(
+                f"""
+                    <details>
+                    <summary>
+                        {len(inconsistent_invoice_ids)} draft and cancelled invoices were linked to posted accounting
+                        entries with a different total, which is inconsistent.
+                        To be able to upgrade properly, the links between the invoices and their entry have been
+                        removed. The moves have been kept as is.
+                    </summary>
+                    Invoices: {", ".join(f"{number}({date})" for number, date in inconsistent_invoices)}
+                    </details>
+                """,
+                "Accounting",
+                format="html",
             )
 
     cr.execute(
