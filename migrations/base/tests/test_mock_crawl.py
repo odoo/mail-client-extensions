@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import datetime
 import logging
 import math
-import time
 
 from ast import literal_eval
 from dateutil.relativedelta import relativedelta
@@ -16,6 +14,13 @@ from odoo.exceptions import UserError
 from odoo.osv import expression
 from odoo.tools import mute_logger, table_kind
 from odoo.tools.safe_eval import safe_eval
+
+try:
+    # v14+ forbids raw modules in eval context, use the wrapped ones instead
+    from odoo.tools.safe_eval import datetime, time
+except ImportError:
+    import datetime
+    import time
 
 NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
