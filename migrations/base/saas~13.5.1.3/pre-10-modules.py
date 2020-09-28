@@ -1,10 +1,30 @@
 # -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
     eb = util.expand_braces
+
+    util.new_module(cr, "auth_password_policy_portal", deps={"auth_password_policy", "portal"}, auto_install=True)
+    util.new_module(cr, "auth_totp", deps={"web"}, auto_install=True)
+    util.new_module(cr, "auth_totp_portal", deps={"portal", "auth_totp"}, auto_install=True)
+    util.new_module(cr, "mail_client_extension", deps={"web", "crm", "crm_iap_lead_enrich"})
+    util.new_module(cr, "test_apikeys", deps={"web_tour"})
+    util.new_module(cr, "test_auth_custom", deps={})
+
+    util.module_auto_install(cr, "mail_bot", auto_install=True)
+
+    if util.has_enterprise():
+        util.new_module(cr, "documents_spreadsheet_account", deps={"documents_spreadsheet", "account"}, auto_install=True)
+        util.new_module(cr, "documents_spreadsheet_crm", deps={"documents_spreadsheet", "crm"}, auto_install=True)
+        util.module_deps_diff(cr, "event_barcode_mobile", plus={"barcodes_mobile"}, minus={"web_mobile"})
+        util.new_module(cr, "hr_attendance_mobile", deps={"hr_attendance", "barcodes_mobile"}, auto_install=True)
+        util.new_module(cr, "hr_gantt", deps={"hr", "web_gantt"}, auto_install=True)
+        util.module_deps_diff(cr, "planning", plus={"hr_gantt"})
+        util.new_module(cr, "pos_hr_mobile", deps={"pos_hr", "web_mobile"}, auto_install=True)
+        util.module_auto_install(cr, "pos_loyalty", auto_install=True)
+
+    util.remove_module(cr, "hw_proxy")
     util.remove_module(cr, "pos_reprint")
 
     if util.has_enterprise():
@@ -55,19 +75,21 @@ def migrate(cr, version):
                           plus={"iap_mail"},
                           minus={"iap"})
     util.module_deps_diff(cr, "test_event_full",
-                          minus={"website_event_track_online", "website_event_track_session"})
+                          minus={"website_event_track_online", "website_event_track_session", "website_event_online"})
     util.module_deps_diff(cr, "website_event_meet",
                           plus={"website_event"},
-                          minus={"website_event_track_online"})
+                          minus={"website_event_track_online", "website_event_online"})
     util.module_deps_diff(cr, "website_event_track_exhibitor",
                           plus={"website_event_track"},
-                          minus={"website_event_track_online", "website_event_track_session"})
+                          minus={"website_event_track_online"})
     util.module_deps_diff(cr, "website_event_track_live",
                           plus={"website_event_track"},
-                          minus={"website_event_track_online"})
+                          minus={"website_event_track_online", "website_event_track_session"})
     util.module_deps_diff(cr, "website_event_track_quiz",
                           plus={"website_event_track"},
                           minus={"website_event_track_session"})
+
+    # website_event_*_online modules are manually merged in `pre-30-*` scripts
 
     util.rename_xmlid(cr, *eb('base.module_category_{localization,accounting_localizations}_account_charts'))
     util.remove_record(cr, 'base.module_category_localization')
@@ -111,6 +133,7 @@ def migrate(cr, version):
         # l10n_mx_edi splitted into two modules: l10n_mx_edi & l10n_mx_edi_extended
         util.module_deps_diff(cr, 'l10n_mx_edi', plus={'account_edi', 'l10n_mx'}, minus={'account'})
         util.new_module(cr, 'l10n_mx_edi_extended', deps={'l10n_mx_edi'})
+        util.module_deps_diff(cr, "l10n_mx_edi_landing", plus={"l10n_mx_edi_extended"}, minus={"l10n_mx_edi"})
         if util.module_installed(cr, 'l10n_mx_edi'):
             util.force_install_module(cr, 'l10n_mx_edi_extended')
 
