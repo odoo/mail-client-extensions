@@ -11,3 +11,7 @@ def migrate(cr, version):
     util.move_model(cr, "base.document.layout", "base", "web")
     util.create_column(cr, "report_layout", "sequence", "integer")
     cr.execute("UPDATE report_layout SET sequence = id")
+
+    util.rename_xmlid(cr, *eb("base.module_category_{localization,accounting_localizations}_account_charts"))
+    util.remove_record(cr, "base.module_category_localization")
+    util.remove_record(cr, "base.module_category_operations")

@@ -3,8 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    eb = util.expand_braces
-
     util.new_module(cr, "auth_password_policy_portal", deps={"auth_password_policy", "portal"}, auto_install=True)
     util.new_module(cr, "auth_totp", deps={"web"}, auto_install=True)
     util.new_module(cr, "auth_totp_portal", deps={"portal", "auth_totp"}, auto_install=True)
@@ -43,9 +41,6 @@ def migrate(cr, version):
         util.module_deps_diff(cr, 'l10n_co_edi', plus={'product_unspsc'})
 
     util.module_deps_diff(cr, 'l10n_co', plus={'base_address_city', 'account_debit_note', 'l10n_latam_base'})
-
-    util.create_column(cr, 'res_country', 'zip_required', 'boolean', default=True)
-    util.create_column(cr, 'res_country', 'state_required', 'boolean', default=False)
 
     util.new_module(cr, "iap_mail", deps={"iap", "mail"}, auto_install=True)
     util.new_module(cr, "iap_crm", deps={"crm", "iap_mail"}, auto_install=True)
@@ -90,10 +85,6 @@ def migrate(cr, version):
                           minus={"website_event_track_session"})
 
     # website_event_*_online modules are manually merged in `pre-30-*` scripts
-
-    util.rename_xmlid(cr, *eb('base.module_category_{localization,accounting_localizations}_account_charts'))
-    util.remove_record(cr, 'base.module_category_localization')
-    util.remove_record(cr, 'base.module_category_operations')
 
     util.remove_module(cr, 'hr_expense_check')
     util.remove_module(cr, 'website_project')
