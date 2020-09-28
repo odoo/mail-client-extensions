@@ -18,9 +18,11 @@ from odoo.tools.safe_eval import safe_eval
 try:
     # v14+ forbids raw modules in eval context, use the wrapped ones instead
     from odoo.tools.safe_eval import datetime, time
+    to_patch = 'odoo.tools.safe_eval.datetime.datetime'
 except ImportError:
     import datetime
     import time
+    to_patch = 'datetime.datetime'
 
 NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
@@ -125,7 +127,7 @@ class TestCrawler(IntegrityCase):
         # Can't directly patch `to_utc` to existing `datetime.datetime`:
         # `TypeError: can't set attributes of built-in/extension type 'datetime.datetime'`
         # https://stackoverflow.com/a/4482067
-        with patch("datetime.datetime", datetime_extended):
+        with patch(to_patch, datetime_extended):
             return safe_eval(value, eval_context)
 
     def crawl_menu(self, menu, parent=None):
