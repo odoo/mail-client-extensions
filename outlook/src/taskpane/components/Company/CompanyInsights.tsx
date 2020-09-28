@@ -36,6 +36,7 @@ const classNames: IListGhostingExampleClassObject = mergeStyleSets({
       borderBottom: `1px solid ${semanticColors.bodyDivider}`,
       display: "flex",
       /*cursor: 'pointer',*/
+      /*
       selectors: {
         "&:hover .CompanyInsightValue": {
           whiteSpace: "normal",
@@ -43,7 +44,7 @@ const classNames: IListGhostingExampleClassObject = mergeStyleSets({
           textOverflow: "-",
           overflowWrap: "break-word"
         }
-      }
+      }*/
     }
   ],
   itemImage: {
@@ -63,12 +64,14 @@ const classNames: IListGhostingExampleClassObject = mergeStyleSets({
     marginLeft: "1em"
   },
   itemIndex: [
+    /*
     fonts.medium,
     {
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
+    */
     /*marginBottom: 10*/
   ],
   chevron: {

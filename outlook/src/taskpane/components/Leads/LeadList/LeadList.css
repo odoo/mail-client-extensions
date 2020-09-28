@@ -20,13 +20,15 @@
 .opportunity .title {
 	/*border: 1px solid red;*/
 	width: 200px;
+    /*
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    */
 }
 
 .opportunity .title:hover {
-	white-space: normal;
+	/*white-space: normal;*/
 }
 
 .opportunity .price {
