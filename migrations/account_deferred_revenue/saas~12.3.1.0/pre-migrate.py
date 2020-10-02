@@ -8,3 +8,4 @@ def migrate(cr, version):
     util.remove_view(cr, module + ".view_account_invoice_asset_form")
     util.remove_view(cr, module + ".view_invoice_revenue_recognition_category")
     util.remove_view(cr, module + ".res_config_settings_view_form")
+    util.force_noupdate(cr, module + ".action_account_revenue_form", False)
