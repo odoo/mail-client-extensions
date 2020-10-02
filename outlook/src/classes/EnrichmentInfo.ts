@@ -15,7 +15,9 @@ class EnrichmentInfo {
 
     constructor(type?:EnrichmentInfoType, info?:string) {
         this.type = type || EnrichmentInfoType.None;
-        this.info = info || this.getTypicalMessage(this.type);
+        // Override the info returned by the service, unless we don't actually have a typical message.
+        // Messages' content should come from only one place, and ideally the front end.
+        this.info = this.getTypicalMessage(this.type) || info;
     }
 
     public getTypicalMessage(type: EnrichmentInfoType) {
@@ -26,11 +28,11 @@ class EnrichmentInfo {
                 return "Company created!"
             case EnrichmentInfoType.NoData:
             case EnrichmentInfoType.NotConnected_NoData:
-                return "Could not autocomplete the company: no data found";
+                return "No data found for this email address.";
             case EnrichmentInfoType.InsufficientCredit:
-                return "You don't have enough credit to enrich";
+                return "You don't have enough credit to enrich.";
             case EnrichmentInfoType.NotConnected_InsufficientCredit:
-                return "Oops, looks like you have exhausted your free enrichment requests. Please log in to try again";
+                return "Oops, looks like you have exhausted your free enrichment requests. Please log in to try again.";
             case EnrichmentInfoType.Other:
                 return "Something bad happened. Please, try again later."
             case EnrichmentInfoType.NotConnected_InternalError:

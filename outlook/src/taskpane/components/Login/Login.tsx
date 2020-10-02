@@ -109,15 +109,15 @@ class Login extends React.Component<LoginProps, LoginState> {
                 <DefaultButton className="full-width odoo-clear-button" text='Sign up' onClick={this.signup}/>
 
                 <div className='login-info'>
-                    <div className='login-info-icon'><FontAwesomeIcon icon={faEnvelope} size="2x" /></div>
+                    <div className='login-info-icon'><FontAwesomeIcon icon={faEnvelope} size="2x" className="fa-fw"/></div>
                     <div>Create leads from Emails sent to your personal email address.</div>
                 </div>
                 <div className='login-info'>
-                    <div className='login-info-icon'><FontAwesomeIcon icon={faHandshake} size="2x" /></div>
+                    <div className='login-info-icon'><FontAwesomeIcon icon={faHandshake} size="2x" className="fa-fw"/></div>
                     <div>Centralize Prospects&apos; emails into a CRM.</div>
                 </div>
                 <div className='login-info'>
-                    <div className='login-info-icon'><FontAwesomeIcon icon={faSearch} size="2x" /></div>
+                    <div className='login-info-icon'><FontAwesomeIcon icon={faSearch} size="2x" className="fa-fw"/></div>
                     <div>Search and store insights on your contacts.</div>
                 </div>
             </div>

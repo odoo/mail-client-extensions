@@ -4,7 +4,7 @@ import LeadList from './LeadList/LeadList';
 import LeadData from '../../../classes/Lead';
 import AppContext from '../AppContext';
 import { HttpVerb, sendHttpRequest, ContentType } from "../../../utils/httpRequest";
-
+import './Leads.css';
 
 type LeadsProps = {};
 type LeadsState = {
@@ -101,7 +101,7 @@ class Leads extends React.Component<LeadsProps, LeadsState> {
         if (this.state.leads.length) {
             content = <LeadList leads={this.state.leads} more={this.loadMore} log={this.log} showMore={this.state.showMore}></LeadList>;
         } else if (this.context.partner.id === -1) {
-            content = <div>Add the contact to your database to be able to create opportunities</div>
+            content = <div className='add-to-db-txt'>Add the contact to create opportunities</div>
         }
 
         return (

@@ -71,7 +71,7 @@ class Main extends React.Component<MainProps, MainState> {
             const parsed = JSON.parse(response);
             var partner = PartnerData.fromJSON(parsed.result.partner);
             this.setState({
-                EnrichmentInfo: EnrichmentInfo.fromJSON(parsed.result['enrichment_info']),
+                EnrichmentInfo: new EnrichmentInfo(parsed.result['enrichment_info'].type, parsed.result['enrichment_info'].info),
                 partnerCreated: parsed.result['created'],
                 showEnrichmentInfoMessage: true,
                 showPartnerCreatedMessage: true
@@ -131,9 +131,11 @@ class Main extends React.Component<MainProps, MainState> {
             this.context.addRequestCanceller(cancellableRequest.cancel);
             cancellableRequest.promise.then(response => {
                 const parsed = JSON.parse(response);
-                if ('error' in parsed) {
+                //if ('error' in parsed) {
+                if ('error' in parsed.result) {
                     this.setState({ 
-                        EnrichmentInfo: new EnrichmentInfo(parsed.error.data.exception_type) ,
+                        //EnrichmentInfo: new EnrichmentInfo(parsed.error.data.exception_type), // TODO: investigate
+                        EnrichmentInfo: new EnrichmentInfo(parsed.result.error),
                         showEnrichmentInfoMessage: true
                     });
                     this.context.setPartner(partner, false);
@@ -191,6 +193,7 @@ class Main extends React.Component<MainProps, MainState> {
                 //setTimeout(this._hideEnrichmentInfoMessage, 3500);
                 break;
             case EnrichmentInfoType.NoData:
+            case EnrichmentInfoType.NotConnected_NoData:
                 bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
                 break;
             case EnrichmentInfoType.InsufficientCredit:
