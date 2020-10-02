@@ -9,3 +9,19 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.picking.type", "rate_picking_backorders")
     util.remove_field(cr, "stock.warehouse", "warehouse_count")
     util.remove_field(cr, "stock.warehouse", "show_resupply")
+
+    # Remove duplicate reordering rules
+    cr.execute(
+        """
+            DELETE FROM stock_warehouse_orderpoint
+            WHERE id IN (
+              SELECT unnest((array_agg(id
+                                       ORDER BY id))[2:])
+              FROM stock_warehouse_orderpoint
+            GROUP BY product_id,
+                     location_id,
+                     company_id
+            HAVING count(*) > 1
+        )
+    """
+    )
