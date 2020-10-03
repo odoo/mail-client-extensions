@@ -92,6 +92,22 @@ class Field(models.Model):
                         field.name,
                     )
                     continue
+            elif not f and (not field.store or field.ttype == "one2many"):
+                # As the field is not stored, no data is actually deleted, so no worries to delete the field
+                # Let it be deleted, so the ORM creates it back, hopefully marked with the correct module this time.
+                util._logger.critical(
+                    """
+                        The field %s.%s is deleted during the upgrade.
+                        This might be due to the bug of the mixins, not marking the fields on their rightful module.
+                        Since this is not a stored field,
+                        we let it be deleted, it will be created back by the ORM on the first
+                        `-u` on the according module if needed, hopefully marked with the correct module this time
+                        "
+                    """,
+                    field.model,
+                    field.name,
+                )
+                ignore_fields |= field
             elif not f and self.env["ir.model"].search([("model", "=", field.model)]).transient:
                 # As it's a transient model, no hard-fail, as transient data is temporary anyway.
                 util._logger.critical(
