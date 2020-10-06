@@ -7,7 +7,7 @@ def migrate(cr, version):
 
     cr.execute("""
         UPDATE
-            payment_token SET partner_id = p.partner_id
+            payment_token SET partner_id = COALESCE(p.partner_id, payment_token.partner_id)
         FROM
             payment_transaction AS p
         WHERE
