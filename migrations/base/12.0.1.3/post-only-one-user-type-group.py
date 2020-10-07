@@ -15,34 +15,59 @@ def one_user_type_group(cr, admin_ids):
     accessrights = util.ref(cr, "base.group_erp_manager")
     usability = util.ref(cr, "base.module_category_usability")
     # remove public users from all other non usability groups
-    cr.execute("""
+    cr.execute(
+        """
         DELETE FROM res_groups_users_rel
               WHERE gid != %(public)s
                 AND gid NOT IN (SELECT id FROM res_groups WHERE category_id = %(usability)s)
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %(public)s)
                 AND uid NOT IN %(admin_ids)s
-    """, locals())
+    """,
+        locals(),
+    )
 
     # remove portal users from all other non usability group
-    cr.execute("""
+    cr.execute(
+        """
         DELETE FROM res_groups_users_rel
               WHERE gid != %(portal)s
                 AND gid NOT IN (SELECT id FROM res_groups WHERE category_id = %(usability)s)
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %(portal)s)
                 AND uid NOT IN %(admin_ids)s
-    """, locals())
+    """,
+        locals(),
+    )
 
-    # remove SUPERUSER and user2 from `portal` and `public` groups
-    cr.execute("""
+    # remove SUPERUSER and user2 from `portal` and `public` groups, or groups that implicitly inherit those
+    cr.execute(
+        """
+        WITH RECURSIVE groups AS (
+            SELECT gid, hid
+              FROM (
+                  VALUES (%(portal)s, NULL::int4), (%(public)s, NULL::int4)
+                ) g(gid, hid)
+            UNION
+            SELECT r.gid, r.hid
+              FROM res_groups_implied_rel r
+              JOIN groups g ON g.gid = r.hid
+        )
         DELETE FROM res_groups_users_rel
-              WHERE gid IN (%(portal)s, %(public)s)
+              WHERE gid IN (
+                  SELECT gid FROM groups
+                )
                 AND uid IN %(admin_ids)s
-    """, locals())
+    """,
+        locals(),
+    )
+
     # and force them to `employee`, `settings` and `access rights` groups
-    util.fixup_m2m(cr, 'res_groups_users_rel', 'res_users', 'res_groups', 'uid', 'gid')
-    for admin_id in admin_ids:
-        cr.execute("""
+    util.fixup_m2m(cr, "res_groups_users_rel", "res_users", "res_groups", "uid", "gid")
+    for admin_id in admin_ids:  # noqa
+        cr.execute(
+            """
             INSERT INTO res_groups_users_rel(uid, gid)
                  VALUES (%(admin_id)s, %(user)s), (%(admin_id)s, %(settings)s), (%(admin_id)s, %(accessrights)s)
             ON CONFLICT DO NOTHING
-        """, locals())
+        """,
+            locals(),
+        )
