@@ -16,7 +16,10 @@ def migrate(cr, version):
     util.ENVIRON["account_tags_pre_config"] = cr.fetchall()
 
     # `account.tax` tags
-    if util.table_exists(cr, "account_tax_account_tag"):
+    if all(
+        util.table_exists(cr, table)
+        for table in ["account_tax_account_tag", "account_account_tag_account_tax_template_rel"]
+    ):
         cr.execute("SELECT COUNT(*) FROM account_tax_account_tag")
         if not cr.fetchone()[0]:
             # There is no tags configured on any taxes
