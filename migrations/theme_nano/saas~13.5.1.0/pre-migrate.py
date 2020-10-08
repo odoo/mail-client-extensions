@@ -10,3 +10,5 @@ def migrate(cr, version):
     util.remove_record(cr, "theme_nano.option_icons_sidebar")
     util.remove_record(cr, "theme_nano.option_icons_sidebar_right")
     util.remove_record(cr, "theme_nano.option_icons_sidebar_none_variables")
+    util.remove_record(cr, "theme_nano.option_side_nav_variables")
+    util.remove_record(cr, "theme_nano.s_selection")

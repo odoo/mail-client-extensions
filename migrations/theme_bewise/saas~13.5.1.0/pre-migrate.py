@@ -12,3 +12,4 @@ def migrate(cr, version):
     util.remove_record(cr, "theme_bewise._assets_frontend_helpers")
     util.remove_record(cr, "theme_bewise.assets_frontend")
     util.remove_record(cr, "theme_bewise.bewise_snippet_options")
+    util.remove_record(cr, "theme_bewise.snippet_selection")

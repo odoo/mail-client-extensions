@@ -21,3 +21,6 @@ def migrate(cr, version):
     util.remove_record(cr, "theme_treehouse.assets_snippet_s_blockquote_css_000")
     util.remove_record(cr, "theme_treehouse._assets_snippet_s_masonry_block_css_000_variables")
     util.remove_record(cr, "theme_treehouse.assets_snippet_s_three_columns_css_000")
+    util.remove_record(cr, "theme_treehouse._assets_utils")
+    util.remove_record(cr, "theme_treehouse.snippets_selection")
+    util.remove_record(cr, "theme_treehouse.s_share_extended")
