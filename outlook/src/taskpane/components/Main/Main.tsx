@@ -70,8 +70,12 @@ class Main extends React.Component<MainProps, MainState> {
         cancellablePartnerRequest.promise.then(response => {
             const parsed = JSON.parse(response);
             var partner = PartnerData.fromJSON(parsed.result.partner);
+            let enrichmentInfo = new EnrichmentInfo();
+            if (parsed.result['enrichment_info']) {
+                enrichmentInfo = new EnrichmentInfo(parsed.result['enrichment_info'].type, parsed.result['enrichment_info'].info)
+            }
             this.setState({
-                EnrichmentInfo: new EnrichmentInfo(parsed.result['enrichment_info'].type, parsed.result['enrichment_info'].info),
+                EnrichmentInfo: enrichmentInfo,
                 partnerCreated: parsed.result['created'],
                 showEnrichmentInfoMessage: true,
                 showPartnerCreatedMessage: true
