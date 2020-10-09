@@ -71,6 +71,12 @@ class Repo(NamedTuple):
     def ident(self):
         return self.name.split("-")[-1]
 
+    def branch_required(self, branch):
+        if branch.startswith("pr/"):
+            return True
+        # midly hacky. a non-pr branch is required for non addons-only repositories
+        return self.addons_dir != Path(".")
+
 
 REPOSITORIES = [
     Repo("odoo", Path("addons")),
@@ -162,6 +168,9 @@ def checkout(repo: Repo, version: str, workdir: Path, options: Namespace) -> boo
     # verify branch exists before checkout
     hasref = subprocess.run(["git", "show-ref", "-q", "--verify", f"refs/remotes/origin/{version}"], cwd=gitdir)
     if hasref.returncode != 0:
+        if not repo.branch_required(version):
+            logger.info("unknown ref %r in repository %r: ignoring", version, repo.name)
+            return True
         logger.critical("unknown ref %r in repository %r", version, repo.name)
         return False
     subprocess.run(
