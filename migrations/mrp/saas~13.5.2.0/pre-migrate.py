@@ -3,10 +3,9 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, "mrp.mrp_production_workorder_form_view_inherit_gantt")
     # remove mail.thread and mail.activity.mixin inheritance
-    util.remove_inherit_from_model(cr, 'mrp.workorder', 'mail.thread')
-    util.remove_inherit_from_model(cr, 'mrp.workorder', 'mail.activity.mixin')
+    util.remove_inherit_from_model(cr, "mrp.workorder", "mail.thread")
+    util.remove_inherit_from_model(cr, "mrp.workorder", "mail.activity.mixin")
 
     cr.execute(
         """
@@ -31,6 +30,7 @@ def migrate(cr, version):
     util.remove_field(cr, "mrp.production", "delay_alert")
     util.remove_field(cr, "mrp.production", "propagate_date")
     util.remove_field(cr, "mrp.production", "propagate_date_minimum_delta")
+    util.remove_field(cr, "mrp.production", "is_partially_planned")  # new from saas~13.4
 
     util.remove_field(cr, "mrp.routing.workcenter", "batch")
     util.remove_field(cr, "mrp.routing.workcenter", "batch_size")
