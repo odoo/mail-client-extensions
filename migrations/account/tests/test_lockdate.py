@@ -8,7 +8,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 class LockDateCase(UpgradeCase):
     """
-        Set lock_date to ensure it's handled by migration
+    Set lock_date to ensure it's handled by migration
     """
 
     def prepare(self):
