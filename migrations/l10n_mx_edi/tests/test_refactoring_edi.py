@@ -138,7 +138,7 @@ class TestRefactoringEDI(UpgradeCase):
 
         chart_template = self.env.ref("l10n_mx.mx_coa", raise_if_not_found=False)
         if not chart_template:
-            self.skipTest(self, "Accounting Tests skipped because the user's company has no chart of accounts.")
+            self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
 
         chart_template.try_loading(company=company)
 

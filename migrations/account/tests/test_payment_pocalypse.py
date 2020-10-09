@@ -91,7 +91,7 @@ class TestPaymentPocalypse(UpgradeCase):
 
         chart_template = self.env.ref("l10n_generic_coa.configurable_chart_template", raise_if_not_found=False)
         if not chart_template:
-            self.skipTest(self, "Accounting Tests skipped because the user's company has no chart of accounts.")
+            self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
 
         chart_template.try_loading_for_current_company()
 
