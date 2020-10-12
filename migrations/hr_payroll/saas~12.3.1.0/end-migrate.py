@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import psycopg2
+
+from odoo.tools.misc import ignore
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -16,8 +19,18 @@ def migrate(cr, version):
     """)
     for name in cr.fetchall():
         util.remove_record(cr, name[0] + '.' + name[1])
+    with ignore(psycopg2.Error), util.savepoint(cr):
+        cr.execute("ALTER TABLE hr_salary_rule ALTER COLUMN struct_id SET NOT NULL")
 
     env = util.env(cr)
+
+    if hasattr(env.registry, "_notnull_errors"):
+        # Avoid the warning "unable to set constraint NOT NULL" raised by the ORM for Odoo <= saas~12.3
+        # Rules without `struct_id` are deleted just above
+        env.registry._notnull_errors.pop(("hr_salary_rule", "struct_id"), None)
+        # Structure without `type_id` are assigned to a default type in hr_payroll/saas~12.3.1.0/post-migrate.py
+        env.registry._notnull_errors.pop(("hr_payroll_structure", "type_id"), None)
+
     loaded_xmlids = env['ir.model'].pool.loaded_xmlids
     hsr_xmlids = env['ir.model.data'].search([('model', '=', 'hr.salary.rule')])
 
