@@ -21,6 +21,8 @@ def _journal_domain(i):
 
 def _next_company(self, last_id):
     company_ids = self.env["res.company"].search(["!", ("id", "=", last_id)])
+    if not company_ids:
+        return last_id
     return random.choice(company_ids.ids)
 
 
@@ -59,18 +61,38 @@ class CheckPayments(UpgradeCase):
             deprecated_accounts.write({"deprecated": False})
 
             _logger.info("Generate partners")
+            belgium = self.env["ir.model.data"].xmlid_to_res_id("base.be")
             partner_ids = self.env["res.partner"].create(
-                [{"name": "Partner {i} for payments upgrade"} for i in range(PARTNER_COUNT)]
+                [
+                    {
+                        "name": f"Partner {i} for payments upgrade",
+                        "street": f"Main Street {i}",
+                        "zip": f"{i:04}",
+                        "city": "City",
+                        "country_id": belgium,
+                    }
+                    for i in range(PARTNER_COUNT)
+                ]
             )
 
             _logger.info("Generate invoices")
             type_field = "move_type" if util.version_gte("saas~13.3") else "type"
+
+            if util.module_installed(self.env.cr, "l10n_it_edi"):
+                # l10n_it_edi require to have exactly one tax set on the invoice line
+                # see https://github.com/odoo/odoo/blob/13.0/addons/l10n_it_edi/models/account_invoice.py#L131-L133
+                domain = [("type_tax_use", "=", "sale"), ("amount_type", "=", "percent"), ("amount", "=", 0)]
+                tax0 = self.env["account.tax"].search(domain, limit=1).ids
+            else:
+                tax0 = []
             moves = self.env["account.move"].create(
                 [
                     {
                         "partner_id": partner.id,
                         type_field: "out_invoice",
-                        "invoice_line_ids": [(0, 0, {"name": "line", "price_unit": 100, "quantity": 5})],
+                        "invoice_line_ids": [
+                            (0, 0, {"name": "line", "price_unit": 100, "quantity": 5, "tax_ids": [(6, 0, tax0)]})
+                        ],
                     }
                     for partner in partner_ids
                     for _ in range(INVOICE_PER_PARTNER)
