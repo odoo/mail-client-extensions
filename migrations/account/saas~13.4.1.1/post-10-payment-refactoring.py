@@ -35,16 +35,18 @@ def migrate(cr, version):
         # suspense_account_id is the same as the one set on the company but allowing to have a custom one by journal.
         cr.execute(
             """
-            SELECT distinct journal_id from account_bank_statement
+            SELECT journal_id from account_bank_statement
             UNION
-            SELECT distinct journal_id from account_payment
+            SELECT journal_id from account_payment
         """
         )
         possible_journal_ids = [journal_id for journal_id, in cr.fetchall()]
         util.remove_column(cr, "account_payment", "journal_id")
         current_assets_type = env.ref("account.data_account_type_current_assets")
-        for journal in env["account.journal"].search(
-            ["|", ("type", "in", ("bank", "cash")), ("id", "in", possible_journal_ids)]
+        for journal in (
+            env["account.journal"]
+            .with_context(active_test=False)
+            .search(["|", ("type", "in", ("bank", "cash")), ("id", "in", possible_journal_ids)])
         ):
             digits = journal.company_id.chart_template_id.code_digits or 6
 
