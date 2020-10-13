@@ -8,10 +8,12 @@ from pathlib import Path
 
 import tempfile
 import os
+import socket
 import subprocess
 import sys
 from typing import Callable, Generic, NamedTuple, Optional, Union, TypeVar, List, Sequence, Any
 from collections import namedtuple
+from contextlib import closing
 
 import re
 import logging
@@ -194,6 +196,12 @@ def checkout(repo: Repo, version: str, workdir: Path, options: Namespace) -> boo
     return True
 
 
+def free_port():
+    with closing(socket.socket()) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
+
+
 @result
 def process_module(module: str, workdir: Path, options: Namespace) -> None:
     setproctitle(f"matt :: {options.source} -> {options.target} // {module}")
@@ -231,6 +239,8 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             "" if options.demo else "1",  # option not read from config file; should be on command line
             "--stop-after-init",
         ] + cmd
+        if options.run_tests:
+            cmd += ["--http-port", str(free_port())]
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout = p.stdout.decode()
         if p.returncode:
