@@ -45,6 +45,7 @@ def migrate(cr, version):
     # Backup tables to use the old relational structure in post-* scripts.
     cr.execute("CREATE TABLE account_payment_pre_backup AS TABLE account_payment")
     cr.execute("CREATE TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
+    cr.execute('CREATE TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)')
 
     # Migrate columns / fields.
 
@@ -198,11 +199,11 @@ def migrate(cr, version):
         WITH mapping AS (
             SELECT
                 line.statement_line_id,
-                MAX(DISTINCT line.move_id) as move_id,
-                COUNT(DISTINCT line.move_id) AS nbr
+                MAX(DISTINCT line.move_id) as move_id
             FROM account_move_line line
             WHERE line.statement_line_id IS NOT NULL
             GROUP BY line.statement_line_id
+            HAVING COUNT(DISTINCT line.move_id) = 1
         )
 
         UPDATE account_bank_statement_line
@@ -210,7 +211,6 @@ def migrate(cr, version):
             is_reconciled = TRUE
         FROM mapping
         WHERE id = mapping.statement_line_id
-        AND mapping.nbr = 1;
     """
     )
 
@@ -255,19 +255,16 @@ def migrate(cr, version):
         WITH mapping AS (
             SELECT
                 line.payment_id,
-                MAX(DISTINCT line.move_id) as move_id,
-                COUNT(DISTINCT line.move_id) AS nbr
+                MAX(DISTINCT line.move_id) as move_id
             FROM account_move_line line
-            JOIN account_payment_pre_backup pay_backup ON pay_backup.id = line.payment_id
-            WHERE line.journal_id = pay_backup.journal_id
             GROUP BY line.payment_id
+            HAVING COUNT(DISTINCT line.move_id) = 1
         )
 
         UPDATE account_payment
         SET move_id = mapping.move_id
         FROM mapping
         WHERE id = mapping.payment_id
-        AND mapping.nbr = 1
     """
     )
 
@@ -294,13 +291,31 @@ def migrate(cr, version):
     """
     )
 
-    cr.execute(
-        """
-        UPDATE account_move
-        SET payment_id = pay.id
-        FROM account_payment pay
-        WHERE pay.move_id = account_move.id
-    """
+    # In case of internal transfer, link only one move to the payment. Other will become a misc. operation except if
+    # already linked to an existing bank statement line.
+
+    util.parallel_execute(cr,
+        util.explode_query(cr, '''
+            UPDATE account_payment pay
+            SET move_id = NULL
+            FROM account_move, account_payment_pre_backup pay_backup
+            WHERE pay.move_id = account_move.id
+            AND pay_backup.id = pay.id
+            AND pay.is_internal_transfer
+            AND account_move.journal_id != pay_backup.journal_id
+        ''',
+        prefix='pay.'),
+    )
+
+    util.parallel_execute(cr,
+        util.explode_query(cr, '''
+            UPDATE account_move
+            SET payment_id = account_payment.id
+            FROM account_payment
+            WHERE account_payment.move_id = account_move.id
+            AND account_move.payment_id IS NULL
+        ''',
+        prefix='account_move.'),
     )
 
     # Update existing account.move.
@@ -499,6 +514,36 @@ def migrate(cr, version):
         SET is_matched = FALSE
         WHERE is_matched IS NULL
     """
+    )
+
+    # ==== Migrate the bank statement lines ====
+
+    cr.execute('''
+        WITH mapping AS (
+            SELECT
+                line.statement_line_id,
+                MAX(DISTINCT line.move_id) as move_id
+            FROM account_move_line line
+            WHERE line.statement_line_id IS NOT NULL
+            GROUP BY line.statement_line_id
+            HAVING COUNT(DISTINCT line.move_id) = 1
+        )
+
+        UPDATE account_bank_statement_line
+        SET move_id = mapping.move_id
+        FROM mapping
+        WHERE id = mapping.statement_line_id
+    ''')
+
+    util.parallel_execute(cr,
+        util.explode_query(cr, '''
+            UPDATE account_move
+            SET statement_line_id = account_bank_statement_line.id
+            FROM account_bank_statement_line
+            WHERE account_bank_statement_line.move_id = account_move.id
+            AND account_move.statement_line_id IS NULL
+        ''',
+        prefix='account_move.'),
     )
 
     # ==== Check ====

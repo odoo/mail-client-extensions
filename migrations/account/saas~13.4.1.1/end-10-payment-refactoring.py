@@ -9,3 +9,4 @@ def migrate(cr, version):
 
     cr.execute("DROP TABLE account_payment_pre_backup CASCADE")
     cr.execute("DROP TABLE account_bank_statement_line_pre_backup CASCADE")
+    cr.execute("DROP TABLE account_journal_backup CASCADE")
