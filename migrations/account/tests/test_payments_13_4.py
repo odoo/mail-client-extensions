@@ -51,6 +51,9 @@ class CheckPayments(UpgradeCase):
         BANK_STATEMENT_COUNT = 30
         SAMPLE_BANK_STATEMENTS = 512
 
+        if not self.env["account.journal"].search_count([("type", "=", "sale")]):
+            self.skipTest("No sale journal found. Is a CoA installed?")
+
         with util.no_fiscal_lock(self.env.cr):
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
