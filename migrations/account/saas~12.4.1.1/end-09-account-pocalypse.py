@@ -342,7 +342,17 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
                           AND ol.id != il.id
                           AND NOT EXISTS(SELECT 1
                                            FROM invl_aml_mapping m
-                                          WHERE m.invl_id = ol.id))""",
+                                          WHERE m.invl_id = ol.id))
+            AND
+            -- The invoice line and the move line must share the same account type
+            -- To avoid matching an income/expense/other invoice line with a receivable/payable move line
+            -- In other words, to avoid matching the last line of the invoice with the counter-balance line of the move
+            (
+                SELECT COUNT(DISTINCT internal_type)
+                  FROM account_account
+                 WHERE id IN (il.account_id, ml.account_id)
+            ) = 1
+        """,
     }
 
     # precompute to speedup queries
@@ -1015,7 +1025,17 @@ def migrate_voucher_lines(cr):
                           AND ol.id != il.id
                           AND NOT EXISTS(SELECT 1
                                            FROM vl_ml_mapping m
-                                          WHERE m.vl_id = ol.id))""",
+                                          WHERE m.vl_id = ol.id))
+            AND
+            -- The voucher line and the move line must share the same account type
+            -- To avoid matching an income/expense/other voucher line with a receivable/payable move line
+            -- In other words, to avoid matching the last line of the voucher with the counter-balance line of the move
+            (
+                SELECT COUNT(DISTINCT internal_type)
+                  FROM account_account
+                 WHERE id IN (il.account_id, ml.account_id)
+            ) = 1
+        """,
     }
 
     for cond in _get_voucher_conditions():
