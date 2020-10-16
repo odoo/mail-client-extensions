@@ -13,13 +13,13 @@ def one_user_type_group(cr, admin_ids):
     public = util.ref(cr, "base.group_public")
     settings = util.ref(cr, "base.group_system")
     accessrights = util.ref(cr, "base.group_erp_manager")
-    usability = util.ref(cr, "base.module_category_usability")
+    usability = (util.ref(cr, "base.module_category_usability"), util.ref(cr, "base.module_category_hidden"))
     # remove public users from all other non usability groups
     cr.execute(
         """
         DELETE FROM res_groups_users_rel
               WHERE gid != %(public)s
-                AND gid NOT IN (SELECT id FROM res_groups WHERE category_id = %(usability)s)
+                AND gid NOT IN (SELECT id FROM res_groups WHERE category_id IN %(usability)s)
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %(public)s)
                 AND uid NOT IN %(admin_ids)s
     """,
@@ -31,7 +31,7 @@ def one_user_type_group(cr, admin_ids):
         """
         DELETE FROM res_groups_users_rel
               WHERE gid != %(portal)s
-                AND gid NOT IN (SELECT id FROM res_groups WHERE category_id = %(usability)s)
+                AND gid NOT IN (SELECT id FROM res_groups WHERE category_id IN  %(usability)s)
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %(portal)s)
                 AND uid NOT IN %(admin_ids)s
     """,
