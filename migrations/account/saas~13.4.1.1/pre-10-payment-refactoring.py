@@ -174,14 +174,19 @@ def migrate(cr, version):
     """
     )
 
+    # the journal_id of a statement line is a related stored field to the journal_id
+    # of the parent statement which is a required field.
+    # to avoid using a possibly broken journal_id from statement lines, directly use the
+    # journal_id from the parent statement.
     cr.execute(
         """
         UPDATE account_bank_statement_line st_line
-        SET currency_id = COALESCE(journal.currency_id, comp.currency_id)
-        FROM account_bank_statement_line_pre_backup st_line_backup
-        JOIN account_journal journal ON journal.id = st_line_backup.journal_id
-        JOIN res_company comp ON comp.id = st_line_backup.company_id
-        WHERE st_line_backup.id = st_line.id
+           SET currency_id = COALESCE(journal.currency_id, comp.currency_id)
+          FROM account_bank_statement_line_pre_backup st_line_backup
+          JOIN account_bank_statement st ON st.id = st_line_backup.statement_id
+          JOIN account_journal journal ON journal.id = st.journal_id
+          JOIN res_company comp ON comp.id = st_line_backup.company_id
+         WHERE st_line_backup.id = st_line.id
     """
     )
 
