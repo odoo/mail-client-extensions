@@ -10,6 +10,9 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.warehouse", "warehouse_count")
     util.remove_field(cr, "stock.warehouse", "show_resupply")
 
+    util.move_field_to_module(cr, "stock.quant.package", "package_use", "stock_barcode_picking_batch", "stock")
+    util.create_column(cr, "stock_quant_package", "package_use", "varchar", default="disposable")
+
     # Remove duplicate reordering rules
     cr.execute(
         """
