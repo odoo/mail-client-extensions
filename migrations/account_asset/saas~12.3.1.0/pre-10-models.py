@@ -92,7 +92,7 @@ def migrate(cr, version):
         'type': 'general',
         'company_id': cid[0],
         'active': False,
-    } for cid in cr.fetchall()])
+    } for cid in cr.fetchall() or [[env.user.company_id.id]]])
     cr.execute("SELECT DISTINCT date_part('year', date)::int FROM account_move")
     years = [d[0] for d in cr.fetchall()]
 
