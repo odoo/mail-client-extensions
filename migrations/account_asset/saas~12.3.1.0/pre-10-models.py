@@ -93,12 +93,6 @@ def migrate(cr, version):
         'company_id': cid[0],
         'active': False,
     } for cid in cr.fetchall() or [[env.user.company_id.id]]])
-    cr.execute("SELECT DISTINCT date_part('year', date)::int FROM account_move")
-    years = [d[0] for d in cr.fetchall()]
-
-    for journal in migration_journals:
-        for year in years:
-            cr.execute("CREATE TEMP SEQUENCE temp_sequence_%s_%s", [year, journal.id])
 
     cr.execute("ALTER TABLE account_move ADD COLUMN _upg_depreciation_line_id INTEGER")
     cr.execute(f"""
@@ -377,6 +371,12 @@ def migrate(cr, version):
     } for (journal_id, date), values in unbalanced_by_journal.items()])
 
     # Post the created moves
+    cr.execute("SELECT DISTINCT date_part('year', date)::int FROM account_move")
+    years = [d[0] for d in cr.fetchall()]
+
+    for journal in migration_journals:
+        for year in years:
+            cr.execute("CREATE TEMP SEQUENCE temp_sequence_%s_%s", [year, journal.id])
     cr.execute("""
         -- Use a CTE to control the order of updates
         WITH cte AS (
