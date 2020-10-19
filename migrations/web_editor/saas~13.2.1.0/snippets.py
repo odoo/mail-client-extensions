@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from lxml import etree, html
+from psycopg2.extensions import quote_ident
 from odoo.upgrade import util
 
 _logger = logging.getLogger("odoo.upgrade.web_editor.132." + __name__)
@@ -82,4 +83,4 @@ def get_html_fields(cr):
     for model, column in cr.fetchall():
         table = util.table_of_model(cr, model)
         if util.table_exists(cr, table) and util.column_exists(cr, table, column):
-            yield table, column
+            yield table, quote_ident(column, cr._cnx)
