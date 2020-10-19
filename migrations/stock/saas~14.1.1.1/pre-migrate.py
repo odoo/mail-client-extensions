@@ -34,3 +34,7 @@ def migrate(cr, version):
     util.create_column(cr, "stock_location", "next_inventory_date", "date")
     util.create_column(cr, "stock_inventory", "is_conflict_inventory", "boolean")
     util.create_m2m(cr, "stock_inventory_stock_production_lot_rel", "stock_inventory", "stock_production_lot")
+
+    util.create_column(cr, "stock_move", "reservation_date", "date")
+    util.create_column(cr, "stock_picking_type", "reservation_method", "character varying", default='at_confirm')
+    util.create_column(cr, "stock_picking_type", "reservation_days_before", "integer")
