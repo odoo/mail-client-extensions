@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.rename_xmlid(cr, "event_barcode.event_event_view_form_inherit_barcode",
-                      "event_barcode.event_event_view_form")
+    eb = util.expand_braces
+    util.rename_xmlid(cr, *eb("event_barcode.event_event_view_form{_inherit_barcode,}"))
