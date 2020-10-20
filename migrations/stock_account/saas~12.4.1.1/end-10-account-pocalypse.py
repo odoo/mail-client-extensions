@@ -181,6 +181,91 @@ def migrate(cr, version):
     """
     )
 
+    # In some databases, the customer has played with valuation mode/costing method so the total valuation
+    # of a product in stock quants may not be the same than the one in stock valuation layers.
+    # For these cases, we create a new stock valuation layer per product/per company, to adjust this difference
+    cr.execute(
+        """
+        -- get the list of products with their valuation according to existing stock quants
+        WITH quant_with_sumed_values AS (
+              SELECT  q.company_id,
+                      q.product_id,
+                      SUM(
+                        ROUND(
+                            CAST (
+                                q.quantity
+                                * COALESCE(ir.value_float, 0)
+                                AS numeric
+                            ),
+                            cur.decimal_places
+                        )
+                      ) AS sum_value
+                 FROM stock_quant q
+            LEFT JOIN stock_location lo ON lo.id = q.location_id
+                 JOIN res_company cp ON cp.id = q.company_id
+                 JOIN res_currency cur ON cur.id = cp.currency_id
+                 JOIN product_product pp ON pp.id = q.product_id
+                 JOIN ir_property ir ON ir.name = 'standard_price'
+                      AND ir.company_id = q.company_id
+                      AND ir.res_id = 'product.product,' || pp.id
+                WHERE lo.usage = 'internal' OR lo.usage = 'transit'
+                                    AND lo.company_id IS NOT NULL
+             GROUP BY q.company_id, q.product_id
+        ),
+
+        -- get the list of products with their valuation according to existing stock valuation layer
+        svl_with_sumed_values AS (
+              SELECT company_id, product_id, SUM(COALESCE(value, 0)) AS sum_value
+                FROM stock_valuation_layer
+            GROUP BY company_id, product_id
+        )
+
+        -- add a new layer for every products which have a not the same global valuation in stock moves
+        -- and in stock valuation layers
+        INSERT INTO stock_valuation_layer(
+            company_id,
+            product_id,
+            quantity,
+            value,
+            unit_cost,
+            description
+        )
+        SELECT qt.company_id,
+               pp.id,
+               0,
+               qt.sum_value - svl.sum_value,
+               0,
+               'upgrade: adjust valuation inconsistency'
+          FROM product_product pp
+          JOIN quant_with_sumed_values qt ON qt.product_id = pp.id
+          JOIN svl_with_sumed_values svl ON svl.product_id = pp.id
+          JOIN product_template pt ON pt.id = pp.product_tmpl_id
+          JOIN product_category pc ON pc.id = pt.categ_id
+         WHERE 'product.category,' || pc.id IN (
+                SELECT res_id FROM ir_property
+                 WHERE name = 'property_cost_method'
+                   AND value_text = 'standard'
+                   AND company_id = qt.company_id
+         )
+            OR (
+                NOT EXISTS (
+                    SELECT 1 FROM ir_property
+                    WHERE name = 'property_cost_method'
+                    AND company_id = qt.company_id
+                    AND res_id = 'product.category,' || pc.id
+                )
+                AND EXISTS (
+                    SELECT 1 FROM ir_property
+                    WHERE name = 'Cost Method Property'
+                    AND value_text = 'standard'
+                )
+            )
+           AND qt.company_id = svl.company_id
+           AND qt.product_id = svl.product_id
+           AND qt.sum_value != svl.sum_value
+    """
+    )
+
     util.remove_field(cr, "stock.move", "value")
     util.remove_field(cr, "stock.move", "remaining_qty")
     util.remove_field(cr, "stock.move", "remaining_value")
