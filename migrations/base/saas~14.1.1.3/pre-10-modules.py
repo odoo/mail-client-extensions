@@ -27,3 +27,5 @@ def migrate(cr, version):
         util.remove_module(cr, "account_online_sync")
 
     util.remove_module(cr, "odoo_referral")
+    util.ENVIRON['procurement_jit_uninstalled'] = not util.module_installed(cr, 'procurement_jit')
+    util.remove_module(cr, "procurement_jit")

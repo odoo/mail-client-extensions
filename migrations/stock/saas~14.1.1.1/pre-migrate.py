@@ -38,3 +38,4 @@ def migrate(cr, version):
     util.create_column(cr, "stock_move", "reservation_date", "date")
     util.create_column(cr, "stock_picking_type", "reservation_method", "character varying", default='at_confirm')
     util.create_column(cr, "stock_picking_type", "reservation_days_before", "integer")
+    util.remove_field(cr, "res.config.settings", "module_procurement_jit")
