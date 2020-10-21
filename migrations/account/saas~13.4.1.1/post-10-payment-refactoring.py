@@ -260,7 +260,16 @@ def migrate(cr, version):
                 .create(move_lines_to_create)
 
             # Newly created moves for cancelled payments must be cancelled as well.
-            cr.execute("SELECT id FROM account_payment_pre_backup pay_backup WHERE state = 'cancelled'")
+            cr.execute(
+                """
+                SELECT pay_backup.id
+                  FROM account_payment_pre_backup pay_backup
+                  JOIN account_move m ON pay_backup.id = m.payment_id
+                 WHERE pay_backup.state = 'cancelled'
+                   AND m.id IN %s
+                """,
+                [tuple(moves.ids)],
+            )
             cancelled_payment_ids = [res[0] for res in cr.fetchall()]
             if cancelled_payment_ids:
                 env["account.payment"].browse(cancelled_payment_ids).action_cancel()
