@@ -151,7 +151,7 @@ def _get_mapping_exceptions(name):
     return {int(a): int(b) for each in os.environ.get(name, "").split(",") for a, _, b in [each.partition(":")] if each}
 
 
-def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
+def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unposted_invoices):
     """ Compute the mapping between account_invoice_line and its corresponding account_move_line.
     :param cr:      The database cursor.
     :return:        A map <invoice_line_id> -> <account_move_line_id>.
@@ -633,12 +633,18 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices):
          WHERE l.display_type IS NULL
            AND m.invl_id IS NULL
     """
-    cr.execute(search_missing_mapping)
+    search_missing_mapping_params = []
+
+    if ignored_unposted_invoices:
+        search_missing_mapping += "AND l.invoice_id NOT IN %s"
+        search_missing_mapping_params.append(tuple(ignored_unposted_invoices.keys()))
+
+    cr.execute(search_missing_mapping, search_missing_mapping_params)
     cnt, ids = cr.fetchone()
     if cnt:
         _compute_invoice_line_grouped_in_move_line(cr)
 
-    cr.execute(search_missing_mapping)
+    cr.execute(search_missing_mapping, search_missing_mapping_params)
     cnt, ids = cr.fetchone()
     if cnt:
         _logger.error("Missing move line for %s invoice lines: %s", cnt, ids)
@@ -1511,6 +1517,7 @@ def migrate_invoice_lines(cr):
     _logger.info("Create missing account moves")
 
     # Create account_move
+    ignored_unposted_invoices = {}
     skipped_taxes = {}
     with skip_failing_python_taxes(env, skipped_taxes):
         Move = env["account.move"].with_context(check_move_validity=False)
@@ -1520,13 +1527,35 @@ def migrate_invoice_lines(cr):
             try:
                 with util.savepoint(cr):
                     created_move = Move.create(_convert_to_account_move_vals(inv_vals))
-                    created_moves |= created_move
-                    # Store link to newly created account_moves.
-                    mappings.append((created_move.id, record_id))
-            except Exception:
+                created_moves |= created_move
+                # Store link to newly created account_moves.
+                mappings.append((created_move.id, record_id))
+            except Exception as e:
                 _logger.exception("Cannot create move from draft/cancel/custom invoice")
+                ignored_unposted_invoices[inv_vals["id"]] = e.args[0].split("\nDETAIL:")[0]
             cr.commit()
         cr.executemany("UPDATE account_invoice SET move_id=%s WHERE id=%s", mappings)
+    if ignored_unposted_invoices:
+        util.add_to_migration_reports(
+            """
+                <details>
+                    <summary>
+                        %s unposted invoices couldn't be upgraded because they were invalid.
+                        These invoices have therefore been lost during the upgrade.
+                        If you want to recover these unposted (draft/cancelled) invoices, please correct them
+                        in your current production database.
+                    </summary>
+                    <h4>Invoice ID: Error</h4>
+                    <ul>%s</ul>
+                </details>
+            """
+            % (
+                len(ignored_unposted_invoices),
+                ", ".join(f"<li>{invoice_id}: {error}</li>" for invoice_id, error in ignored_unposted_invoices.items()),
+            ),
+            "Accounting",
+            format="html",
+        )
     if skipped_taxes:
         cr.execute(
             """
@@ -1567,7 +1596,7 @@ def migrate_invoice_lines(cr):
     # Post fix account_moves
     # =======================================================================================
 
-    _compute_invoice_line_move_line_mapping(cr, updated_invoices)
+    _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unposted_invoices)
 
     if invoices and updated_invoices:
         mapping = {invoice_id: move_id for move_id, invoice_id in mappings}
