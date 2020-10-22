@@ -45,6 +45,14 @@ def _new_account(self, acc, currency_id):
 
 @change_version("13.4")
 class CheckPayments(UpgradeCase):
+
+    # TODO move this to base class
+    def patch(self, obj, key, val):
+        """ Do the patch ``setattr(obj, key, val)``, and prepare cleanup. """
+        old = getattr(obj, key)
+        setattr(obj, key, val)
+        self.addCleanup(setattr, obj, key, old)
+
     def prepare(self):
         PARTNER_COUNT = 100
         INVOICE_PER_PARTNER = 10
@@ -53,6 +61,10 @@ class CheckPayments(UpgradeCase):
 
         if not self.env["account.journal"].search_count([("type", "=", "sale")]):
             self.skipTest("No sale journal found. Is a CoA installed?")
+
+        if hasattr(self.env["account.move"], "_l10n_co_edi_is_l10n_co_edi_required"):
+            # Do not upload test invoices
+            self.patch(type(self.env["account.move"]), "_l10n_co_edi_is_l10n_co_edi_required", lambda s: False)
 
         with util.no_fiscal_lock(self.env.cr):
 
