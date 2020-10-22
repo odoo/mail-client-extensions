@@ -25,7 +25,8 @@ def migrate(cr, version):
         util.merge_module(cr, "account_reports_cash_flow", "account_reports")
         util.new_module(cr, "hr_holidays_gantt_calendar", deps={"hr_holidays_calendar", "web_gantt"}, auto_install=True)
 
-        util.new_module(
-            cr, "social_linkedin_company_support", deps={"social_linkedin"}, auto_install=True
-        )
+        util.new_module(cr, "social_linkedin_company_support", deps={"social_linkedin"}, auto_install=True)
         util.new_module(cr, "sale_amazon_authentication", deps={"sale_amazon"}, auto_install=True)
+        util.new_module(
+            cr, "sale_subscription_timesheet", deps={"sale_subscription", "sale_timesheet"}, auto_install=True
+        )
