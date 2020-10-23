@@ -1170,6 +1170,55 @@ def migrate_voucher_lines(cr):
 def _compute_invoice_line_grouped_in_move_line(cr):
     # "tax_ids": [(6, 0, [] if inv_line_vals.get("display_type") else inv_line_vals["tax_ids"])],
     # "analytic_tag_ids": [(6, 0, inv_line_vals["analytic_tag_ids"])],
+    cr.execute(
+        """
+            WITH invl AS (
+                   SELECT inv.move_id, invl.product_id, invl.account_id,
+                          ARRAY_AGG(taxes.tax_id ORDER BY taxes.tax_id) as taxes,
+                          invl.price_unit, invl.price_subtotal, invl.price_total
+                     FROM account_invoice_line invl
+                     JOIN account_invoice inv ON inv.id = invl.invoice_id
+                     LEFT JOIN invl_aml_mapping map ON map.invl_id = invl.id
+                LEFT JOIN account_invoice_line_tax taxes ON taxes.invoice_line_id = invl.id
+                    WHERE map.aml_id IS NULL
+                      AND invl.display_type IS NULL
+                 GROUP BY invl.id, inv.id
+            ),
+            grouped_invl AS (
+                  SELECT invl.move_id, invl.product_id, invl.account_id, taxes,
+                         AVG(invl.price_unit) as price_unit,
+                         SUM(price_subtotal) as price_subtotal,
+                         SUM(price_total) as price_total
+                    FROM invl
+                GROUP BY invl.move_id, invl.product_id, invl.account_id, taxes
+                HAVING COUNT(*) > 1
+            ),
+            grouped_aml AS (
+                SELECT aml.id, aml.move_id, aml.product_id, aml.account_id,
+                       ARRAY_AGG(taxes.account_tax_id ORDER BY taxes.account_tax_id) as taxes
+                  FROM account_move_line aml
+             LEFT JOIN account_move_line_account_tax_rel taxes ON taxes.account_move_line_id = aml.id
+                 WHERE aml.move_id IN (SELECT move_id FROM grouped_invl)
+              GROUP BY aml.id
+            ),
+            updated_aml AS (
+                   UPDATE account_move_line aml
+                      SET exclude_from_invoice_tab = false,
+                          price_unit = grouped_invl.price_unit,
+                          price_subtotal = grouped_invl.price_subtotal,
+                          price_total = grouped_invl.price_total
+                     FROM grouped_aml
+                     JOIN grouped_invl
+                       ON grouped_invl.move_id = grouped_aml.move_id
+                      AND grouped_invl.product_id = grouped_aml.product_id
+                      AND grouped_invl.account_id = grouped_aml.account_id
+                      AND grouped_invl.taxes = grouped_aml.taxes
+                    WHERE grouped_aml.id = aml.id
+                RETURNING aml.id
+            )
+            DELETE FROM invl_aml_mapping map USING updated_aml u WHERE map.aml_id = u.id
+        """
+    )
     cr.execute("ALTER TABLE account_move_line ADD COLUMN _mig124_invl_id int4")
     cr.execute(
         """
