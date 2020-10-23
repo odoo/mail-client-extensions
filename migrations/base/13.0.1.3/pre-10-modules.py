@@ -3,6 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.new_module(cr, "account_debit_note", deps={"account"})
     util.new_module(cr, "l10n_il", deps={"account"})
     util.new_module(cr, "l10n_lt", deps={"l10n_multilang"})
     util.new_module(cr, "l10n_dk", deps={"account", "base_iban", "base_vat"})
@@ -17,6 +18,8 @@ def migrate(cr, version):
     util.new_module(cr, "pos_six", deps={"point_of_sale"})
 
     if util.has_enterprise():
+        util.new_module(cr, "l10n_ar_edi", deps={"account_debit_note", "l10n_ar"}, auto_install=True)
+        util.new_module(cr, "l10n_cl_edi", deps={"account_debit_note", "l10n_cl"}, auto_install=True)
         util.new_module(cr, "l10n_lu_reports_electronic", deps={"l10n_lu_reports"}, auto_install=True)
         util.new_module(cr, "pos_hr_l10n_be", deps={"pos_hr", "pos_blackbox_be"}, auto_install=True)
         util.module_deps_diff(cr, "pos_blackbox_be", plus={"pos_iot"})
