@@ -166,7 +166,8 @@ class TestPaymentPocalypse(UpgradeCase):
         })
         bank_statement_line = bank_statement.line_ids
 
-        counterpart_line = payments.move_line_ids.filtered(lambda line: line.account_id in self.get_bank_accounts(self.bank_journal_2))
+        bank_accounts = self.get_bank_accounts(self.bank_journal_2)
+        counterpart_line = payments.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
         bank_statement_line.process_reconciliation(payment_aml_rec=counterpart_line)
 
         bank_statement.check_confirm_bank()
@@ -236,7 +237,8 @@ class TestPaymentPocalypse(UpgradeCase):
         })
         bank_statement_line = bank_statement.line_ids
 
-        counterpart_line = payment.move_line_ids.filtered(lambda line: line.account_id in self.get_bank_accounts(self.bank_journal))
+        bank_accounts = self.get_bank_accounts(self.bank_journal)
+        counterpart_line = payment.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
         bank_statement_line.process_reconciliation(payment_aml_rec=counterpart_line)
 
         return [payment.id, bank_statement_line.id]
@@ -326,6 +328,254 @@ class TestPaymentPocalypse(UpgradeCase):
         payment = self.env['account.payment'].browse(payment_id)
         self.assertRecordValues(payment.move_id, [{'state': 'posted'}])
 
+    def _prepare_test_7_manual_internal_transfer_using_statement_lines(self):
+        bank_accounts_1 = self.get_bank_accounts(self.bank_journal)
+        bank_accounts_2 = self.get_bank_accounts(self.bank_journal_2)
+
+        bank_statement_debit = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal.id,
+            'date': fields.Date.from_string('2017-01-01'),
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': -100.0,
+                'date': fields.Date.from_string('2017-01-01'),
+            })],
+        })
+        bank_statement_line_debit = bank_statement_debit.line_ids
+
+        bank_statement_line_debit.process_reconciliation(new_aml_dicts=[{
+            'name': 'test',
+            'debit': 100.0,
+            'credit': 0.0,
+            'account_id': self.company.transfer_account_id.id,
+        }])
+        payment_debit = bank_statement_debit.move_line_ids.payment_id
+
+        bank_statement_credit = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal_2.id,
+            'date': fields.Date.from_string('2017-01-01'),
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 100.0,
+                'date': fields.Date.from_string('2017-01-01'),
+            })],
+        })
+        bank_statement_line_credit = bank_statement_credit.line_ids
+
+        counterpart_line = bank_statement_debit.move_line_ids\
+            .filtered(lambda line: line.account_id == self.company.transfer_account_id)
+        bank_statement_line_credit.process_reconciliation(counterpart_aml_dicts=[{
+            'move_line': counterpart_line,
+            'debit': 0.0,
+            'credit': 100.0,
+        }])
+        payment_credit = bank_statement_credit.move_line_ids.payment_id
+
+        self.assertRecordValues(
+            bank_statement_debit.move_line_ids.sorted(lambda line: (line.account_id, line.balance)),
+            [
+                {
+                    'account_id': self.company.transfer_account_id.id,
+                    'debit': 100.0,
+                    'credit': 0.0,
+                    'payment_id': payment_debit.id,
+                    'statement_line_id': bank_statement_line_debit.id,
+                },
+                {
+                    'account_id': bank_accounts_1[0].id,
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'payment_id': payment_debit.id,
+                    'statement_line_id': bank_statement_line_debit.id,
+                },
+            ],
+        )
+        self.assertRecordValues(
+            bank_statement_credit.move_line_ids.sorted(lambda line: (line.account_id, line.balance)),
+            [
+                {
+                    'account_id': self.company.transfer_account_id.id,
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'payment_id': payment_credit.id,
+                    'statement_line_id': bank_statement_line_credit.id,
+                },
+                {
+                    'account_id': bank_accounts_2[0].id,
+                    'debit': 100.0,
+                    'credit': 0.0,
+                    'payment_id': payment_credit.id,
+                    'statement_line_id': bank_statement_line_credit.id,
+                },
+            ],
+        )
+
+        return [bank_statement_line_debit.id, payment_debit.id, bank_statement_line_credit.id, payment_credit.id]
+
+    def _check_test_7_manual_internal_transfer_using_statement_lines(
+        self, config, st_debit_line_id, pay_debit_id, st_credit_line_id, pay_credit_id
+    ):
+        ''' Check result of '_prepare_test_7_manual_internal_transfer_using_statement_lines'. '''
+        bank_journal = self.env['account.journal'].browse(config['bank_journal_id'])
+        bank_journal_2 = self.env['account.journal'].browse(config['bank_journal_2_id'])
+        bank_accounts_1 = self.get_bank_accounts(bank_journal)
+        bank_accounts_2 = self.get_bank_accounts(bank_journal_2)
+        company = bank_journal.company_id
+
+        bank_statement_line_debit = self.env['account.bank.statement.line'].browse(st_debit_line_id)
+        payment_debit = self.env['account.payment'].browse(pay_debit_id)
+        bank_statement_line_credit = self.env['account.bank.statement.line'].browse(st_credit_line_id)
+        payment_credit = self.env['account.payment'].browse(pay_credit_id)
+
+        self.assertRecordValues(
+            bank_statement_line_debit.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
+            [
+                {
+                    'account_id': company.transfer_account_id.id,
+                    'debit': 100.0,
+                    'credit': 0.0,
+                    'payment_id': payment_debit.id,
+                    'statement_line_id': bank_statement_line_debit.id,
+                },
+                {
+                    'account_id': bank_accounts_1[0].id,
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'payment_id': payment_debit.id,
+                    'statement_line_id': bank_statement_line_debit.id,
+                },
+            ],
+        )
+        self.assertRecordValues(
+            bank_statement_line_credit.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
+            [
+                {
+                    'account_id': company.transfer_account_id.id,
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'payment_id': payment_credit.id,
+                    'statement_line_id': bank_statement_line_credit.id,
+                },
+                {
+                    'account_id': bank_accounts_2[0].id,
+                    'debit': 100.0,
+                    'credit': 0.0,
+                    'payment_id': payment_credit.id,
+                    'statement_line_id': bank_statement_line_credit.id,
+                },
+            ],
+        )
+
+    def _prepare_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(self):
+        ''' Same as _prepare_test_7_manual_internal_transfer_using_statement_lines but without the following fix:
+        https://github.com/odoo/odoo/commit/f08204c69c684a6614bbbebc834178355b4aad03
+
+        In that case, one journal entry is shared between two statement lines.
+        '''
+        bank_statement_debit = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal.id,
+            'date': fields.Date.from_string('2017-01-01'),
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': -100.0,
+                'date': fields.Date.from_string('2017-01-01'),
+            })],
+        })
+        bank_statement_line_debit = bank_statement_debit.line_ids
+
+        bank_statement_line_debit.process_reconciliation(new_aml_dicts=[{
+            'name': 'test',
+            'debit': 100.0,
+            'credit': 0.0,
+            'account_id': self.company.transfer_account_id.id,
+        }])
+        payment_debit = bank_statement_debit.move_line_ids.payment_id
+
+        bank_statement_credit = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal_2.id,
+            'date': fields.Date.from_string('2017-01-01'),
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 100.0,
+                'date': fields.Date.from_string('2017-01-01'),
+            })],
+        })
+        bank_statement_line_credit = bank_statement_credit.line_ids
+
+        counterpart_line = bank_statement_debit.move_line_ids\
+            .filtered(lambda line: line.account_id == self.company.transfer_account_id)
+        bank_statement_line_credit.process_reconciliation(counterpart_aml_dicts=[{
+            'move_line': counterpart_line,
+            'debit': 0.0,
+            'credit': 100.0,
+        }])
+        payment_credit = bank_statement_credit.move_line_ids.payment_id
+
+        # Reproduce the bug before the fix.
+        wrong_move_line = bank_statement_debit.move_line_ids\
+            .filtered(lambda line: line.account_id == self.company.transfer_account_id)
+        wrong_move_line.statement_line_id = bank_statement_line_credit
+
+        return [bank_statement_line_debit.id, payment_debit.id, bank_statement_line_credit.id, payment_credit.id]
+
+    def _check_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(
+        self, config, st_debit_line_id, pay_debit_id, st_credit_line_id, pay_credit_id
+    ):
+        ''' Check result of '_prepare_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix'. '''
+        bank_journal = self.env['account.journal'].browse(config['bank_journal_id'])
+        bank_journal_2 = self.env['account.journal'].browse(config['bank_journal_2_id'])
+        bank_accounts_1 = self.get_bank_accounts(bank_journal)
+        bank_accounts_2 = self.get_bank_accounts(bank_journal_2)
+        company = bank_journal.company_id
+
+        bank_statement_line_debit = self.env['account.bank.statement.line'].browse(st_debit_line_id)
+        payment_debit = self.env['account.payment'].browse(pay_debit_id)
+        bank_statement_line_credit = self.env['account.bank.statement.line'].browse(st_credit_line_id)
+        payment_credit = self.env['account.payment'].browse(pay_credit_id)
+
+        self.assertRecordValues(
+            bank_statement_line_debit.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
+            [
+                {
+                    'account_id': company.transfer_account_id.id,
+                    'debit': 100.0,
+                    'credit': 0.0,
+                    'payment_id': payment_debit.id,
+                    'statement_line_id': bank_statement_line_debit.id,
+                },
+                {
+                    'account_id': bank_accounts_1[0].id,
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'payment_id': payment_debit.id,
+                    'statement_line_id': bank_statement_line_debit.id,
+                },
+            ],
+        )
+        self.assertRecordValues(
+            bank_statement_line_credit.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
+            [
+                {
+                    'account_id': company.transfer_account_id.id,
+                    'debit': 0.0,
+                    'credit': 100.0,
+                    'payment_id': payment_credit.id,
+                    'statement_line_id': bank_statement_line_credit.id,
+                },
+                {
+                    'account_id': bank_accounts_2[0].id,
+                    'debit': 100.0,
+                    'credit': 0.0,
+                    'payment_id': payment_credit.id,
+                    'statement_line_id': bank_statement_line_credit.id,
+                },
+            ],
+        )
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -365,8 +615,9 @@ class TestPaymentPocalypse(UpgradeCase):
         chart_template.try_loading_for_current_company()
 
         # Setup accounts.
+        revenue = self.env.ref('account.data_account_type_revenue').id
         self.account_income = self.env['account.account'].search(
-            [('company_id', '=', self.company.id), ('user_type_id', '=', self.env.ref('account.data_account_type_revenue').id)], limit=1,
+            [('company_id', '=', self.company.id), ('user_type_id', '=', revenue)], limit=1
         )
         self.account_receivable = self.env["account.account"].search(
             [("company_id", "=", self.company.id), ("user_type_id.type", "=", "receivable")], limit=1
@@ -431,6 +682,8 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_4_statement_line_payment_shared_move(),
                 self._prepare_test_5_post_at_bank_rec_reconciled_payment(),
                 self._prepare_test_6_post_at_bank_rec_not_reconciled_payment(),
+                self._prepare_test_7_manual_internal_transfer_using_statement_lines(),
+                self._prepare_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -457,3 +710,5 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_4_statement_line_payment_shared_move(config, *init['tests'][3])
         self._check_test_5_post_at_bank_rec_reconciled_payment(config, *init['tests'][4])
         self._check_test_6_post_at_bank_rec_not_reconciled_payment(config, *init['tests'][5])
+        self._check_test_7_manual_internal_transfer_using_statement_lines(config, *init['tests'][6])
+        self._check_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(config, *init['tests'][7])
