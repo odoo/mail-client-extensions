@@ -38,3 +38,20 @@ def migrate(cr, version):
              WHERE name = 'work_time_rate' AND model = 'hr.contract'
         )
     """)
+
+    # Before this commit and related community and enterprise PR commits, the time credit contracts were using
+    # the time_credit_type_id field of their structure_type_id field in order to find the work entry type to use for
+    # credit time work entries. The goal of the PR is to let the user choose the work item type in the
+    # credit time wizard. The field is thus moved into the l10n_be.hr.payroll.credit.time.wizard and hr.contract models.
+    # That's why we need to migrate that information.
+    util.create_column(cr, "hr_contract", "time_credit_type_id", "int4")
+    util.create_column(cr, "l10n_be_hr_payroll_credit_time_wizard", "time_credit_type_id", "int4")
+    cr.execute("""
+        UPDATE hr_contract c
+           SET time_credit_type_id = st.time_credit_type_id
+          FROM hr_payroll_structure_type AS st
+         WHERE c.structure_type_id = st.id
+           AND c.time_credit = true
+    """)
+    util.remove_view(cr, "l10n_be_hr_payroll.hr_payroll_structure_type_view_form")
+    util.remove_field(cr, "hr.payroll.structure.type", "time_credit_type_id")
