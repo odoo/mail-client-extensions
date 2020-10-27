@@ -7,3 +7,4 @@ from . import test_payments_13_4
 from . import test_total_amount_signed
 from . import test_payment_pocalypse
 from . import test_account_pocalypse
+from . import test_14_1_journal_codes
