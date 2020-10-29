@@ -1696,7 +1696,7 @@ def migrate_invoice_lines(cr):
               JOIN account_move m ON m.id = ml.move_id
              WHERE (m.type != 'entry' AND account_internal_type NOT IN ('receivable', 'payable'))
                 OR (m.type = 'entry' AND ml.debit != 0)
-          GROUP BY move_id
+          GROUP BY ml.move_id
         """
         )
         cr.execute(
