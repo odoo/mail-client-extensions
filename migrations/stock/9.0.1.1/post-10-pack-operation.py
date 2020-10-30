@@ -9,6 +9,15 @@ NS = 'openerp.addons.base.maintenance.migrations.base.9.'
 _logger = logging.getLogger(NS + __name__)
 
 def migrate(cr, version):
+    # Fix qty_done bug in V8 and saas-6 (qty_done is always 0.0 so fix that here)
+    cr.execute("""
+        UPDATE stock_pack_operation p SET qty_done = p.product_qty
+           FROM stock_picking pick
+           WHERE pick.id = p.picking_id
+           AND pick.state = 'done'
+           AND p.qty_done = 0.00
+           AND p.product_qty > 0.00
+        """)
     # Pack operations were actually created when opening the wizard to move product.
     # now behaviour changed, pack operations are created on Ready stage.
 
