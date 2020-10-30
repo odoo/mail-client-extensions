@@ -25,6 +25,9 @@ def search_new_account_code(cr, company_id, digits, prefix):
 
 
 def migrate(cr, version):
+
+    util.recompute_fields(cr, "account.bank.statement.line", ["amount_residual", "is_reconciled"])
+
     with util.no_fiscal_lock(cr):
         env = util.env(cr)
 

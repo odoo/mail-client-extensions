@@ -103,6 +103,7 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_bank_statement_line", "move_id", "int4")
     cr.execute("CREATE index ON account_bank_statement_line(move_id)")
+    util.create_column(cr, "account_bank_statement_line", "amount_residual", "float8")
     util.create_column(cr, "account_bank_statement_line", "is_reconciled", "boolean")
     util.create_column(cr, "account_bank_statement_line", "foreign_currency_id", "int4")
     util.rename_field(cr, "account.bank.statement.line", "name", "payment_ref")
