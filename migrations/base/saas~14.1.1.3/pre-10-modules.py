@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_module(cr, "odoo_referral")
     util.new_module(cr, "sale_sms", deps={"sale", "sms"}, auto_install=True)
     util.merge_module(cr, 'payment_fix_register_token', 'payment')
 
