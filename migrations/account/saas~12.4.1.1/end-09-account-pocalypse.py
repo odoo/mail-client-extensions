@@ -338,7 +338,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                          FROM account_invoice_line ol
                         WHERE ol.display_type IS NULL
                           AND ol.invoice_id = il.invoice_id
-                          AND ol.price_subtotal = il.price_subtotal
                           AND ol.id != il.id
                           AND NOT EXISTS(SELECT 1
                                            FROM invl_aml_mapping m
@@ -1027,7 +1026,6 @@ def migrate_voucher_lines(cr):
             NOT EXISTS(SELECT 1
                          FROM account_voucher_line ol
                         WHERE ol.voucher_id = il.voucher_id
-                          AND ol.price_subtotal = il.price_subtotal
                           AND ol.id != il.id
                           AND NOT EXISTS(SELECT 1
                                            FROM vl_ml_mapping m
