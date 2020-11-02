@@ -53,21 +53,14 @@ def migrate(cr, version):
               FROM account_journal
              WHERE type IN ('bank', 'cash')
                 OR id IN (
-                     SELECT journal_id from account_bank_statement
+                     SELECT journal_id from account_bank_statement_line_pre_backup
                       UNION
-                     SELECT journal_id from account_payment
+                     SELECT journal_id from account_payment_pre_backup
                )
             """
         )
         journal_ids = [journal_id for journal_id, in cr.fetchall()]
-        util.remove_column(cr, "account_payment", "journal_id")
         current_assets_type = env.ref("account.data_account_type_current_assets")
-
-        # for journal in (
-        #     env["account.journal"]
-        #     .with_context(active_test=False)
-        #     .search(["|", ("type", "in", ("bank", "cash")), ("id", "in", possible_journal_ids)])
-        # ):
         for journal in util.iter_browse(env["account.journal"], journal_ids):
             digits = journal.company_id.chart_template_id.code_digits or 6
 
@@ -173,6 +166,23 @@ def migrate(cr, version):
             )
 
         # ===== Posted account.payment =====
+
+        # Manually deleted journal entries for posted payments.
+
+        cr.execute('''
+            SELECT pay.id
+            FROM account_payment pay
+            JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
+            WHERE pay_backup.state NOT IN ('draft', 'cancelled')
+            AND pay.move_id IS NULL
+        ''')
+        payment_ids = [res[0] for res in cr.fetchall()]
+        if payment_ids:
+            util.add_to_migration_reports(
+                "The following payments have been deleted during the migration because there were posted but no longer"
+                "linked to any journal entry: %s" % payment_ids
+            )
+            env['account.payment'].browse(payment_ids).unlink()
 
         # Change the liquidity account of payments that are not yet reconciled with a statement line.
         # This should be done because the payment is no longer impacting directly the bank/cash account like the

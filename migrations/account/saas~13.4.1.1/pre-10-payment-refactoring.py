@@ -122,7 +122,7 @@ def migrate(cr, version):
     util.create_column(cr, "account_payment", "destination_account_id", "int4")
     util.create_column(cr, "account_payment", "is_reconciled", "boolean")
     util.create_column(cr, "account_payment", "is_matched", "boolean")
-    for field_name in ("company_id", "name", "state"):
+    for field_name in ("company_id", "name", "state", "journal_id"):
         util.remove_column(cr, "account_payment", field_name)
     util.rename_field(cr, "account.payment", "partner_bank_account_id", "partner_bank_id")
     for field_name in (
@@ -252,6 +252,21 @@ def migrate(cr, version):
     """
     )
 
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
+                UPDATE account_move
+                   SET statement_line_id = account_bank_statement_line.id
+                  FROM account_bank_statement_line
+                 WHERE account_bank_statement_line.move_id = account_move.id
+                   AND account_move.statement_line_id IS NULL
+            """,
+            prefix="account_move.",
+        ),
+    )
+
     # Update existing account.move.
 
     cr.execute(
@@ -275,30 +290,11 @@ def migrate(cr, version):
 
     # ==== Migrate the payments ====
 
-    # In case of internal transfer, link only one move to the payment. Other will become a misc. operation except if
-    # already linked to an existing bank statement line.
-
-    util.parallel_execute(
-        cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_move_line line
-                   SET payment_id = NULL
-                  FROM account_payment_pre_backup pay_backup,
-                       account_journal journal
-                 WHERE pay_backup.id = line.payment_id
-                   AND journal.id = line.journal_id
-                   AND journal.id != pay_backup.journal_id
-            """,
-            prefix="line.",
-        ),
-    )
-
     # Fix the relational link between account.payment & account.move.
     # Both are linked by a one2one (move_id in account.payment & payment_id in account.move).
 
-    # Regular case: at least one move line is still linked to the payment.
+    # At least one move line is still linked to the payment on the same journal.
+    # In case of internal transfer, only one move will be linked.
     cr.execute(
         """
         WITH mapping AS (
@@ -306,16 +302,40 @@ def migrate(cr, version):
                 line.payment_id,
                 MAX(line.move_id) as move_id
             FROM account_move_line line
+            JOIN account_payment_pre_backup pay_backup ON
+                pay_backup.id = line.payment_id
+                AND
+                line.journal_id = pay_backup.journal_id
             GROUP BY line.payment_id
             HAVING COUNT(DISTINCT line.move_id) = 1
         )
 
-        UPDATE account_payment
+        UPDATE account_payment pay
         SET move_id = mapping.move_id
         FROM mapping
-        WHERE id = mapping.payment_id
+        WHERE pay.id = mapping.payment_id
     """
     )
+
+    # At least one move line is still linked to the payment but not necessarily on the same journal.
+    cr.execute('''
+        WITH mapping AS (
+            SELECT
+                line.payment_id,
+                MAX(line.move_id) as move_id
+            FROM account_move_line line
+            JOIN account_payment_pre_backup pay_backup ON pay_backup.id = line.payment_id
+            JOIN account_payment pay ON pay.id = line.payment_id
+            WHERE pay.move_id IS NULL
+            GROUP BY line.payment_id
+            HAVING COUNT(DISTINCT line.move_id) = 1
+        )
+
+        UPDATE account_payment pay
+        SET move_id = mapping.move_id
+        FROM mapping
+        WHERE pay.id = mapping.payment_id
+    ''')
 
     # Corner case: no link left between account.payment & account.move.line due to manual
     # user edition.
@@ -338,10 +358,10 @@ def migrate(cr, version):
             AND pay_backup.currency_id = move.currency_id
         )
 
-        UPDATE account_payment
+        UPDATE account_payment pay
         SET move_id = mapping.move_id
         FROM mapping
-        WHERE id = mapping.payment_id
+        WHERE pay.id = mapping.payment_id
     """
     )
 
@@ -556,42 +576,6 @@ def migrate(cr, version):
         SET is_matched = FALSE
         WHERE is_matched IS NULL
     """
-    )
-
-    # ==== Migrate the bank statement lines ====
-
-    cr.execute(
-        """
-        WITH mapping AS (
-            SELECT
-                line.statement_line_id,
-                MAX(line.move_id) as move_id
-            FROM account_move_line line
-            WHERE line.statement_line_id IS NOT NULL
-            GROUP BY line.statement_line_id
-            HAVING COUNT(DISTINCT line.move_id) = 1
-        )
-
-        UPDATE account_bank_statement_line
-        SET move_id = mapping.move_id
-        FROM mapping
-        WHERE id = mapping.statement_line_id
-    """
-    )
-
-    util.parallel_execute(
-        cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_move
-                   SET statement_line_id = account_bank_statement_line.id
-                  FROM account_bank_statement_line
-                 WHERE account_bank_statement_line.move_id = account_move.id
-                   AND account_move.statement_line_id IS NULL
-            """,
-            prefix="account_move.",
-        ),
     )
 
     # ==== Check ====

@@ -576,6 +576,55 @@ class TestPaymentPocalypse(UpgradeCase):
             ],
         )
 
+    def _prepare_test_9_manual_payment_journal_entry_deletion(self):
+        ''' Nothing was preventing to delete a journal entry linked to a posted payment. '''
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': fields.Date.from_string('2017-01-01'),
+            'amount': 100.0,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        })
+        payment.post()
+
+        move = payment.move_line_ids.move_id
+        self.cr.execute('DELETE FROM account_move WHERE id = %s', [move.id])
+        return [payment.id]
+
+    def _check_test_9_manual_payment_journal_entry_deletion(self, config, payment_id):
+        ''' Check result of '_prepare_test_9_manual_payment_journal_entry_deletion'. '''
+        payment = self.env['account.payment'].browse(payment_id)
+        self.assertFalse(payment.exists())
+
+    def _prepare_test_10_unconsistent_journal_on_payment_journal_entry(self):
+        ''' Check the case when the journal entry and the payment are not sharing the same journal. '''
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': fields.Date.from_string('2017-01-01'),
+            'amount': 100.0,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        })
+        payment.post()
+
+        move = payment.move_line_ids.move_id
+        self.cr.execute('UPDATE account_move SET journal_id = %s WHERE id = %s', [self.bank_journal_2.id, move.id])
+        return [payment.id, move.id]
+
+    def _check_test_10_unconsistent_journal_on_payment_journal_entry(self, config, payment_id, move_id):
+        ''' Check result of '_prepare_test_10_unconsistent_journal_on_payment_journal_entry'. '''
+        payment = self.env['account.payment'].browse(payment_id)
+        self.assertRecordValues(payment, [{
+            'journal_id': config['bank_journal_2_id'],
+            'move_id': move_id,
+        }])
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -684,6 +733,8 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_6_post_at_bank_rec_not_reconciled_payment(),
                 self._prepare_test_7_manual_internal_transfer_using_statement_lines(),
                 self._prepare_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(),
+                self._prepare_test_9_manual_payment_journal_entry_deletion(),
+                self._prepare_test_10_unconsistent_journal_on_payment_journal_entry(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -712,3 +763,5 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_6_post_at_bank_rec_not_reconciled_payment(config, *init['tests'][5])
         self._check_test_7_manual_internal_transfer_using_statement_lines(config, *init['tests'][6])
         self._check_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(config, *init['tests'][7])
+        self._check_test_9_manual_payment_journal_entry_deletion(config, *init['tests'][8])
+        self._check_test_10_unconsistent_journal_on_payment_journal_entry(config, *init['tests'][9])
