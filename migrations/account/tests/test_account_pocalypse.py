@@ -160,6 +160,65 @@ class TestAccountPocalypse(UpgradeCase):
 
         self.assertEqual(move.date, fields.Date.from_string("2016-01-01"))
 
+    def _prepare_test_invoice_grouped(self, env_user):
+        journal_grouped = env_user["account.journal"].create(
+            {
+                "name": "Sale grouped journal",
+                "type": "sale",
+                "code": "SJGRP",
+                "group_invoice_lines": True,
+            }
+        )
+        invoice = env_user["account.invoice"].create(
+            {
+                "journal_id": journal_grouped.id,
+                "partner_id": self.partner.id,
+                "type": "out_invoice",
+                "date_invoice": "2016-01-01",
+                "date": False,
+                "account_id": self.account_receivable.id,
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "name": product.name,
+                            "product_id": product.id,
+                            "account_id": self.account_income.id,
+                            "price_unit": price_unit,
+                            "quantity": quantity,
+                        },
+                    )
+                    for product, price_unit, quantity in [
+                        (self.product1, 10.0, 1),
+                        (self.product2, 20.0, 2),
+                        (self.product2, 20.0, 2),  # Two lines with the same product and same subtotal
+                        (self.product3, 30.0, 3),
+                        (self.product3, 30.0, 4),  # Two lines with the same product but different subtotals
+                    ]
+                ],
+            }
+        )
+        invoice.action_invoice_open()
+        result = [
+            (line["product_id"][0], line["quantity"], line["price_subtotal"])
+            for line in env_user["account.invoice.line"].read_group(
+                [("invoice_id", "=", invoice.id)], ["product_id", "quantity", "price_subtotal"], ["product_id"]
+            )
+        ]
+        return invoice.id, result
+
+    def _check_test_invoice_grouped(self, config, args):
+        invoice_id, expected = args
+        move = self.env["account.move"].browse(self._get_move_id_from_invoice_id(invoice_id))
+        result = self.env["account.invoice.report"].read_group(
+            [("move_id", "=", move.id)], ["product_id", "quantity", "price_subtotal"], ["product_id"]
+        )
+        for product_id, quantity, price_subtotal in expected:
+            line = next(r for r in result if r["product_id"][0] == product_id)
+            self.assertEquals(quantity, line["quantity"])
+            self.assertEquals(price_subtotal, line["price_subtotal"])
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -219,15 +278,21 @@ class TestAccountPocalypse(UpgradeCase):
 
         # Setup product.
         self.uom_unit = env_user.ref("uom.product_uom_unit")
-        self.product = env_user["product.product"].create(
-            {
-                "name": "Test product %s" % test_name,
-                "uom_id": self.uom_unit.id,
-                "uom_po_id": self.uom_unit.id,
-                "property_account_income_id": self.account_income.id,
-                "property_account_expense_id": self.account_expense.id,
-            }
-        )
+        for i in range(1, 4):
+            setattr(
+                self,
+                "product%s" % i,
+                env_user["product.product"].create(
+                    {
+                        "name": "Test product %s %s" % (test_name, i),
+                        "uom_id": self.uom_unit.id,
+                        "uom_po_id": self.uom_unit.id,
+                        "property_account_income_id": self.account_income.id,
+                        "property_account_expense_id": self.account_expense.id,
+                    }
+                ),
+            )
+        self.product = self.product1
 
         # Setup partner.
         self.partner = env_user["res.partner"].create(
@@ -246,6 +311,7 @@ class TestAccountPocalypse(UpgradeCase):
                 self._prepare_test_in_invoice_payment_reference_draft(env_user),
                 self._prepare_test_in_invoice_payment_reference_posted(env_user),
                 self._prepare_test_invoice_no_accounting_date(env_user),
+                self._prepare_test_invoice_grouped(env_user),
             ],
             "config": {
                 "account_income_id": self.account_income.id,
@@ -262,3 +328,4 @@ class TestAccountPocalypse(UpgradeCase):
         self._check_test_in_invoice_payment_reference_draft(config, init["tests"][2])
         self._check_test_in_invoice_payment_reference_posted(config, init["tests"][3])
         self._check_test_invoice_no_accounting_date(config, init["tests"][4])
+        self._check_test_invoice_grouped(config, init["tests"][5])
