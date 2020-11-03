@@ -31,7 +31,8 @@ def migrate(cr, version):
         WHERE NOT aml.exclude_from_invoice_tab
     ''')
 
-    # Product in manual valuation
+    # For other settings than (auto valuation (real_time) and FIFO costing method), stock valuation layers (SVL)
+    # are created based on stock moves.
     cr.execute(
         """
         INSERT INTO stock_valuation_layer(
@@ -47,7 +48,8 @@ def migrate(cr, version):
             remaining_qty,
             remaining_value,
             description,
-            stock_move_id
+            stock_move_id,
+            account_move_id
         )
         SELECT
             sm.create_uid,
@@ -65,25 +67,36 @@ def migrate(cr, version):
             sm.remaining_qty,
             sm.remaining_value,
             sm.reference,
-            sm.id
+            sm.id,
+            am.id
         FROM stock_move sm
         LEFT JOIN stock_location ls ON (ls.id = sm.location_id)
         LEFT JOIN stock_location ld ON (ld.id = sm.location_dest_id)
         LEFT JOIN product_product pp ON pp.id = sm.product_id
         LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
         LEFT JOIN product_category pc ON pc.id = pt.categ_id
+        LEFT JOIN account_move am ON am.stock_move_id = sm.id
         WHERE
             sm.state = 'done' AND
             'product.category,' || pc.id NOT IN
-                (SELECT res_id FROM ir_property
+                (
+                SELECT res_id FROM ir_property
                 WHERE
                     name = 'property_valuation' AND
                     value_text = 'real_time' AND
-                    company_id = sm.company_id)
+                    company_id = sm.company_id
+                INTERSECT
+                SELECT res_id FROM ir_property
+                WHERE
+                    name = 'property_cost_method' AND
+                    value_text = 'fifo' AND
+                    company_id = sm.company_id
+                )
     """
     )
 
-    # Product in automated valuation
+    # For auto valuation (real_time) and FIFO costing method, stock valuation layers (SVL)
+    # are created based on account move lines.
     cr.execute(
         """
         INSERT INTO stock_valuation_layer(
@@ -102,40 +115,62 @@ def migrate(cr, version):
             stock_move_id,
             account_move_id
         )
+        WITH aml_value AS (
+            SELECT am.stock_move_id, sum(aml.debit - aml.credit) as value, min(am.id) as move_id
+              FROM account_move_line aml
+              JOIN account_move am ON am.id = aml.move_id
+              JOIN product_product pp ON pp.id = aml.product_id
+              JOIN product_template pt ON pt.id = pp.product_tmpl_id
+              WHERE am.stock_move_id IS NOT NULL
+                AND 'account.account,' || aml.account_id IN
+                    (SELECT value_reference FROM ir_property
+                    WHERE
+                        name = 'property_stock_valuation_account_id' AND
+                        (res_id IS NULL OR res_id = 'product.category,' || pt.categ_id) AND
+                        company_id = aml.company_id ORDER BY res_id LIMIT 1)
+              GROUP BY am.stock_move_id
+        )
         SELECT
-            aml.create_uid,
-            aml.create_date,
-            aml.write_uid,
-            aml.write_date,
-            aml.company_id,
-            aml.product_id,
-            aml.quantity,
-            aml.debit - aml.credit,
+            sm.create_uid,
+            sm.create_date,
+            sm.write_uid,
+            sm.write_date,
+            sm.company_id,
+            sm.product_id,
+            CASE
+                WHEN (ls.usage = 'internal' OR ls.usage = 'transit' AND ls.company_id IS NOT NULL) AND ld.usage != 'internal' THEN -sm.product_qty
+                WHEN ls.usage != 'internal' AND (ld.usage = 'internal' OR ld.usage = 'transit' AND ld.company_id IS NOT NULL) THEN sm.product_qty
+            END as quantity,
+            aml_value.value,
             sm.price_unit,
             sm.remaining_qty,
             sm.remaining_value,
-            aml.ref,
-            am.stock_move_id,
-            aml.move_id
-        FROM account_move_line aml
-        LEFT JOIN account_move am ON am.id = aml.move_id
-        INNER JOIN stock_move sm ON am.stock_move_id = sm.id
-        LEFT JOIN product_product pp ON pp.id = aml.product_id
+            sm.reference,
+            sm.id,
+            aml_value.move_id
+        FROM stock_move sm
+        LEFT JOIN stock_location ls ON (ls.id = sm.location_id)
+        LEFT JOIN stock_location ld ON (ld.id = sm.location_dest_id)
+        LEFT JOIN aml_value ON aml_value.stock_move_id = sm.id
+        LEFT JOIN product_product pp ON pp.id = sm.product_id
         LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
         LEFT JOIN product_category pc ON pc.id = pt.categ_id
         WHERE
-            'account.account,' || aml.account_id IN
-                (SELECT value_reference FROM ir_property
-                WHERE
-                    name = 'property_stock_valuation_account_id' AND
-                    (res_id IS NULL OR res_id = 'product.category,' || pt.categ_id) AND
-                    company_id = aml.company_id ORDER by res_id LIMIT 1) AND
+            sm.state = 'done' AND
             'product.category,' || pc.id IN
-                (SELECT res_id FROM ir_property
+                (
+                SELECT res_id FROM ir_property
                 WHERE
                     name = 'property_valuation' AND
                     value_text = 'real_time' AND
-                    company_id = aml.company_id)
+                    company_id = sm.company_id
+                INTERSECT
+                SELECT res_id FROM ir_property
+                WHERE
+                    name = 'property_cost_method' AND
+                    value_text = 'fifo' AND
+                    company_id = sm.company_id
+                )
     """
     )
 
