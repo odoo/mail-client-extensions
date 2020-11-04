@@ -57,7 +57,8 @@ class Leads extends React.Component<LeadsProps, LeadsState> {
         Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, (result) => {
         const msgHeader = '<div>From: '+ Office.context.mailbox.item.sender.emailAddress + '</div><br/>';
         const msgFooter = '<br/><div class="text-muted font-italic">Logged from <a href="https://www.odoo.com/documentation/user/crm/optimize/mail_client_extension.html" target="_blank">Outlook Inbox</a></div>';
-        const message = msgHeader + result.value + msgFooter;
+        const body = result.value.split('<div id="x_appendonsend"></div>')[0]; // Remove the history and only log the most recent message.
+        const message = msgHeader + body + msgFooter;
         const requestJson = {
             lead: leadId,
             message: message

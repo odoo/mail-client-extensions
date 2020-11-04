@@ -53,13 +53,21 @@ class Main extends React.Component<MainProps, MainState> {
         this.loadOrReload();
     }
 
+
     _connectedFlow = () => {
         if (!Office.context.mailbox.item) {
             return;
         }
-        
-        const email = Office.context.mailbox.item.from.emailAddress;
-        const displayName = Office.context.mailbox.item.from.displayName;
+
+        // If outlook is showing the oultook user's answer, we pick the sender of the original email.
+        // Which is most likely the first "to" address, until proven otherwise.
+        let email = Office.context.mailbox.item.from.emailAddress;
+        let displayName = Office.context.mailbox.item.from.displayName;
+        if (Office.context.mailbox.userProfile.emailAddress == Office.context.mailbox.item.from.emailAddress) {
+            email = Office.context.mailbox.item.to[0].emailAddress;
+            displayName = Office.context.mailbox.item.to[0].displayName;
+        }
+
         this.context.setIsLoading(true);
 
         const cancellablePartnerRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.getPartner, ContentType.Json, this.context.getConnectionToken(), {
@@ -110,8 +118,16 @@ class Main extends React.Component<MainProps, MainState> {
   _disconnectedFlow() {
     Office.context.mailbox.getUserIdentityTokenAsync(idTokenResult=>{
         const userEmail = Office.context.mailbox.userProfile.emailAddress;
-        const senderEmail = Office.context.mailbox.item.from.emailAddress;
-        const senderDisplayName = Office.context.mailbox.item.from.displayName;
+
+        // The "sender" is the sender of the original mail.
+        // If outlook is showing the oultook user's answer, we pick the sender of the original email.
+        // Which is most likely the first "to" address, until proven otherwise.
+        let senderEmail = Office.context.mailbox.item.from.emailAddress;
+        let senderDisplayName = Office.context.mailbox.item.from.displayName;
+        if (Office.context.mailbox.userProfile.emailAddress == Office.context.mailbox.item.from.emailAddress) {
+            senderEmail = Office.context.mailbox.item.to[0].emailAddress;
+            senderDisplayName = Office.context.mailbox.item.to[0].displayName;
+        }
         const senderDomain = senderEmail.split('@')[1];
 
         const partner = new PartnerData();
