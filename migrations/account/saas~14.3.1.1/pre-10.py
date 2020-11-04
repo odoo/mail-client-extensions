@@ -83,3 +83,10 @@ def migrate(cr, version):
         FROM res_company company
         WHERE tax.company_id = company.id
     """)
+
+    # ===============================================================
+    # Carry over tax grids between periods (PR:58523 & 13230)
+    # ===============================================================
+
+    util.create_column(cr, "account_tax_report_line", "carry_over_condition_method", "varchar")
+    util.create_column(cr, "account_tax_report_line", "carry_over_destination_line_id", "int4")
