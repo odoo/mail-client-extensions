@@ -22,5 +22,8 @@ def migrate(cr, version):
                SET recurring_revenue = COALESCE(recurring_revenue, 0),
                    recurring_revenue_monthly = COALESCE(recurring_revenue_monthly, 0),
                    recurring_revenue_monthly_prorated = COALESCE(recurring_revenue_monthly_prorated, 0)
+             WHERE (recurring_revenue IS NULL
+                OR recurring_revenue_monthly IS NULL
+                OR recurring_revenue_monthly_prorated IS NULL)
         """
         util.parallel_execute(cr, util.explode_query(cr, query))
