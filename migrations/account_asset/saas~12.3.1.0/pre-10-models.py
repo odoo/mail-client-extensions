@@ -320,17 +320,6 @@ def migrate(cr, version):
                JOIN account_move_line original ON original.move_id = original_move.id
     """)
 
-    # Remove useless journals when it was not needed
-    cr.execute("""
-        SELECT journal.id
-          FROM account_journal journal
-         WHERE id IN %(journal_ids)s
-           AND NOT EXISTS (SELECT 1 FROM account_move WHERE journal_id = journal.id)
-    """, {
-        'journal_ids': tuple(migration_journals.ids),
-    })
-    env['account.journal'].browse(j[0] for j in cr.fetchall()).unlink()
-
     cr.execute("""
         UPDATE account_asset_depreciation_line line
            SET move_id = move.id
@@ -359,6 +348,13 @@ def migrate(cr, version):
     unbalanced_by_journal = defaultdict(list)
     for unbalanced in cr.fetchall():
         unbalanced_by_journal[(unbalanced[0], unbalanced[1])].append((unbalanced[2], unbalanced[3]))
+
+    # Ignore roundings, in case the rounding of the currency has been changed after the asset move lines were created
+    origin_rounding = {}
+    for currency in migration_journals.mapped('company_id.currency_id'):
+        origin_rounding[currency] = currency.rounding
+        currency.rounding = 0.00001
+
     balance_moves = env['account.move'].create([{
         'journal_id': journal_id,
         'date': date,
@@ -369,6 +365,9 @@ def migrate(cr, version):
             'credit': max(0, balance),
         }) for account_id, balance in values]
     } for (journal_id, date), values in unbalanced_by_journal.items()])
+
+    for currency, rounding in origin_rounding.items():
+        currency.rounding = rounding
 
     # Post the created moves
     cr.execute("SELECT DISTINCT date_part('year', date)::int FROM account_move")
@@ -397,6 +396,17 @@ def migrate(cr, version):
     """, {
         'journal_ids': tuple(migration_journals.ids),
     })
+
+    # Remove useless journals when it was not needed
+    cr.execute("""
+        SELECT journal.id
+          FROM account_journal journal
+         WHERE id IN %(journal_ids)s
+           AND NOT EXISTS (SELECT 1 FROM account_move WHERE journal_id = journal.id)
+    """, {
+        'journal_ids': tuple(migration_journals.ids),
+    })
+    env['account.journal'].browse(j[0] for j in cr.fetchall()).unlink()
 
     if balance_moves:
         balance_moves.invalidate_cache()
