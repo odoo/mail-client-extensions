@@ -25,7 +25,7 @@ def migrate(cr, version):
         UPDATE calendar_event e
            SET opportunity_id = c.opportunity_id
           FROM events c
-         WHERE c.id = c.id
+         WHERE e.id = c.id
     """
     )
 
