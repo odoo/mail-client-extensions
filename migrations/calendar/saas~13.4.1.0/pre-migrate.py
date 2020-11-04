@@ -18,7 +18,7 @@ def migrate(cr, version):
              WHERE partner_id IS NULL
                AND email IS NOT NULL
           GROUP BY email
-             UNION
+             UNION ALL
             SELECT NULL, common_name, array_agg(id)
               FROM calendar_attendee
              WHERE partner_id IS NULL
