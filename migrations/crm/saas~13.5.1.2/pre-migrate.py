@@ -26,4 +26,4 @@ def migrate(cr, version):
                 OR recurring_revenue_monthly IS NULL
                 OR recurring_revenue_monthly_prorated IS NULL)
         """
-        util.parallel_execute(cr, util.explode_query(cr, query))
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead"))
