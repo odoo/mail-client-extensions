@@ -48,8 +48,7 @@ def migrate(cr, version):
             remaining_qty,
             remaining_value,
             description,
-            stock_move_id,
-            account_move_id
+            stock_move_id
         )
         SELECT
             sm.create_uid,
@@ -67,15 +66,13 @@ def migrate(cr, version):
             sm.remaining_qty,
             sm.remaining_value,
             sm.reference,
-            sm.id,
-            am.id
+            sm.id
         FROM stock_move sm
         LEFT JOIN stock_location ls ON (ls.id = sm.location_id)
         LEFT JOIN stock_location ld ON (ld.id = sm.location_dest_id)
         LEFT JOIN product_product pp ON pp.id = sm.product_id
         LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
         LEFT JOIN product_category pc ON pc.id = pt.categ_id
-        LEFT JOIN account_move am ON am.stock_move_id = sm.id
         WHERE
             sm.state = 'done' AND
             'product.category,' || pc.id NOT IN
