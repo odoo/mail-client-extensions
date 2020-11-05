@@ -26,3 +26,10 @@ def migrate(cr, version):
     for currency in currencies:
         if not util.delete_unused(cr, f"base.{currency}"):
             util.force_noupdate(cr, f"base.rate{currency}")
+
+    util.create_column(cr, "ir_mail_server", "from_filter", "varchar")
+    util.create_column(cr, "ir_mail_server", "smtp_authentication", "varchar", default="login")
+    util.create_column(cr, "ir_mail_server", "smtp_ssl_certificate", "bytea")
+    util.create_column(cr, "ir_mail_server", "smtp_ssl_private_key", "bytea")
+    util.rename_xmlid(cr, "mail.icp_mail_catchall_alias", "base.icp_mail_catchall_alias")
+    util.rename_xmlid(cr, "mail.icp_mail_bounce_alias", "base.icp_mail_bounce_alias")
