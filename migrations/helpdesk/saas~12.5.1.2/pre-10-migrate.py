@@ -91,10 +91,10 @@ def migrate(cr, version):
           GROUP BY t.id
             HAVING COUNT(status.id) > 0
             )
-        UPDATE helpdesk_ticket
+        UPDATE helpdesk_ticket t
            SET sla_reached_late = True
-          FROM compute_sla_reached_late
-         WHERE id = ticket_id
+          FROM compute_sla_reached_late c
+         WHERE t.id = c.ticket_id
     """
     )
     # cr.execute(
