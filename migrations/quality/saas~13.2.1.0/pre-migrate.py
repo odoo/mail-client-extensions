@@ -12,6 +12,7 @@ def migrate(cr, version):
             INSERT INTO product_product_quality_point_rel(quality_point_id, product_product_id)
                  SELECT id, product_id
                    FROM quality_point
+                  WHERE product_id IS NOT NULL
     """
     )
     util.create_m2m(cr, "quality_point_stock_picking_type_rel", "quality_point", "stock_picking_type")
