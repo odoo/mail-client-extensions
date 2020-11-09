@@ -214,6 +214,7 @@ def migrate(cr, version):
                AND line.account_id {account_cmp}
                AND line.balance >= 0.0
                AND journal.payment_debit_account_id IS NOT NULL
+               AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.debit_move_id = line.id)
             """,
                 f"""
             UPDATE account_move_line line
@@ -226,6 +227,7 @@ def migrate(cr, version):
                AND line.account_id {account_cmp}
                AND line.balance < 0.0
                AND journal.payment_credit_account_id IS NOT NULL
+               AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.credit_move_id = line.id)
             """,
             ],
         )

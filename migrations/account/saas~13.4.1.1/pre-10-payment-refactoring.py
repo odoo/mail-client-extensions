@@ -348,6 +348,7 @@ def migrate(cr, version):
             FROM account_payment_pre_backup pay_backup
             JOIN account_payment pay ON pay.id = pay_backup.id
             JOIN account_move move ON move.name = pay_backup.move_name
+            LEFT JOIN account_payment pay2 ON pay2.move_id = move.id
             WHERE move.state IN ('posted', 'cancel')
             AND move.statement_line_id IS NULL
             AND pay_backup.move_name IS NOT NULL
@@ -356,6 +357,7 @@ def migrate(cr, version):
             AND pay_backup.journal_id = move.journal_id
             AND pay_backup.partner_id = move.partner_id
             AND pay_backup.currency_id = move.currency_id
+            AND pay2.move_id IS NULL
         )
 
         UPDATE account_payment pay

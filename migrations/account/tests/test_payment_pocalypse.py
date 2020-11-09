@@ -614,7 +614,10 @@ class TestPaymentPocalypse(UpgradeCase):
         payment.post()
 
         move = payment.move_line_ids.move_id
-        self.cr.execute('UPDATE account_move SET journal_id = %s WHERE id = %s', [self.bank_journal_2.id, move.id])
+        self.cr.execute(
+            'UPDATE account_move SET name = %s, journal_id = %s WHERE id = %s',
+            ['TURLUTUTU2017/01', self.bank_journal_2.id, move.id],
+        )
         return [payment.id, move.id]
 
     def _check_test_10_unconsistent_journal_on_payment_journal_entry(self, config, payment_id, move_id):
@@ -624,6 +627,38 @@ class TestPaymentPocalypse(UpgradeCase):
             'journal_id': config['bank_journal_2_id'],
             'move_id': move_id,
         }])
+
+    def _prepare_test_11_reconciled_liquidity_line_payment(self):
+        ''' Ensure the liquidity account are not replaced if reconciled. '''
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': fields.Date.from_string('2017-01-01'),
+            'amount': 100.0,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        })
+        payment.post()
+        payment.move_line_ids.move_id._reverse_moves(default_values_list=[{'date': '2017-01-01'}], cancel=True)
+        return [payment.id]
+
+    def _check_test_11_reconciled_liquidity_line_payment(self, config, payment_id):
+        ''' Check result of '_prepare_test_11_reconciled_liquidity_line_payment'. '''
+        payment = self.env['account.payment'].browse(payment_id)
+        bank_journal = self.env['account.journal'].browse(config['bank_journal_id'])
+        bank_accounts = self.get_bank_accounts(bank_journal)
+
+        lines = payment.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance))
+        self.assertRecordValues(
+            lines,
+            [
+                {'account_id': config['account_receivable_id']},
+                {'account_id': bank_accounts[0].id},
+            ],
+        )
+        self.assertTrue(len(lines.full_reconcile_id), 2)
 
     # -------------------------------------------------------------------------
     # SETUP
@@ -735,6 +770,7 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(),
                 self._prepare_test_9_manual_payment_journal_entry_deletion(),
                 self._prepare_test_10_unconsistent_journal_on_payment_journal_entry(),
+                self._prepare_test_11_reconciled_liquidity_line_payment(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -765,3 +801,4 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_8_manual_internal_transfer_using_statement_lines_no_f08204_fix(config, *init['tests'][7])
         self._check_test_9_manual_payment_journal_entry_deletion(config, *init['tests'][8])
         self._check_test_10_unconsistent_journal_on_payment_journal_entry(config, *init['tests'][9])
+        self._check_test_11_reconciled_liquidity_line_payment(config, *init['tests'][10])
