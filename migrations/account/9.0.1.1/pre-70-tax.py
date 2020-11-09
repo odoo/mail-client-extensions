@@ -61,7 +61,6 @@ def migrate(cr, version):
         SET tax_group_id = %s
         """, (group_id,))
 
-
     """
         Migrate tax on account_move_line
 
@@ -76,7 +75,10 @@ def migrate(cr, version):
 
     # Create index for faster update
     cr.execute("""create index account_move_line_tax_line_idx on account_move_line (tax_line_id)""")
-    cr.execute("""create index account_tax_code_ids_idx on account_tax (tax_code_id, base_code_id, ref_tax_code_id, ref_base_code_id)""")
+    cr.execute(
+        """create index account_tax_code_ids_idx on account_tax
+        (tax_code_id, base_code_id, ref_tax_code_id, ref_base_code_id)"""
+    )
 
     # Perform several pass to increase performance
     cr.execute("""UPDATE account_move_line a
@@ -94,7 +96,9 @@ def migrate(cr, version):
               a.tax_line_id IS NULL AND
               a.tax_code_id IS NOT NULL AND (t.tax_code_id IS NOT NULL OR t.ref_tax_code_id IS NOT NULL) AND
               a.tax_amount != 0 AND
-              (a.name LIKE '%' || t.name OR a.name LIKE t.name || '%' OR t.name LIKE '%' || a.name  OR t.name LIKE a.name || '%')  AND char_length(a.name) / char_length(t.name) BETWEEN 0.6 AND 1.4
+              (a.name LIKE '%' || t.name OR a.name LIKE t.name || '%' OR
+               t.name LIKE '%' || a.name OR t.name LIKE a.name || '%') AND
+              char_length(a.name) / char_length(t.name) BETWEEN 0.6 AND 1.4
         """)
 
     cr.execute("""UPDATE account_move_line a
@@ -104,14 +108,15 @@ def migrate(cr, version):
               a.tax_code_id IS NOT NULL AND (t.tax_code_id IS NOT NULL OR t.ref_tax_code_id IS NOT NULL) AND
               a.tax_amount != 0 AND
               a.tax_line_id IS NULL AND
-              (a.name LIKE '%' || t.name || '%' OR t.name LIKE '%' || a.name || '%')  AND char_length(a.name) / char_length(t.name) BETWEEN 0.6 AND 1.4
+              (a.name LIKE '%' || t.name || '%' OR t.name LIKE '%' || a.name || '%') AND
+              char_length(a.name) / char_length(t.name) BETWEEN 0.6 AND 1.4
         """)
 
     # Mapping between invoice_id and list of tax on those invoices
     cr.execute("""SELECT i.move_id, t.tax_id, l.name FROM account_invoice i, account_invoice_line l, account_invoice_line_tax t
                     WHERE l.invoice_id = i.id AND t.invoice_line_id = l.id
             """)
-    
+
     invoices_mapping = {}
     for invoice in cr.dictfetchall():
         if invoices_mapping.get(invoice['move_id'], False):
@@ -119,7 +124,7 @@ def migrate(cr, version):
         else:
             invoices_mapping[invoice['move_id']] = [(invoice['tax_id'], invoice['name'])]
 
-    with util.disabled_index_on(cr, 'account_move_line_account_tax_rel'):
+    if True:
         cr.execute("""SELECT a.id, a.debit, a.credit, a.account_id, t.id AS tax_id, t.parent_id as parent_tax_id,
                             t.name, a.move_id, a.name as aml_name
                         FROM account_move_line a, account_tax t
@@ -158,14 +163,14 @@ def migrate(cr, version):
                                 """, (aml['id'], tax_id))
                     mapped[aml['id']] = tax_id
 
-        for k,v in invoiced_mapped.items():
+        for k, v in invoiced_mapped.items():
             if not mapped.get(k, False):
                 cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id)
                                     VALUES(%s, %s)
                                 """, (k, v))
                 mapped[k] = v
 
-        for k,v in not_mapped.items():
+        for k, v in not_mapped.items():
             if not mapped.get(k, False):
                 cr.execute("""INSERT INTO account_move_line_account_tax_rel(account_move_line_id, account_tax_id)
                                     VALUES(%s, %s)
@@ -212,13 +217,13 @@ def migrate(cr, version):
                             """, (tax_id, aml['id']))
                 mapped[aml['id']] = tax_id
 
-    for k,v in invoiced_mapped.items():
+    for k, v in invoiced_mapped.items():
         if not mapped.get(k, False):
             cr.execute("""UPDATE account_move_line SET tax_line_id = %s WHERE id = %s AND tax_line_id IS NULL
                             """, (v, k))
             mapped[k] = v
 
-    for k,v in not_mapped.items():
+    for k, v in not_mapped.items():
         if not mapped.get(k, False):
             cr.execute("""UPDATE account_move_line SET tax_line_id = %s WHERE id = %s AND tax_line_id IS NULL
                             """, (v, k))
