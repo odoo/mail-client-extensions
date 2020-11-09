@@ -27,6 +27,14 @@ class Account(models.Model):
         return True
 
 
+class SequenceMixin(models.AbstractModel):
+    _inherit = "sequence.mixin"
+    _module = "account"
+
+    def _constrains_date_sequence(self):
+        return True
+
+
 class Move(models.Model):
     _inherit = "account.move"
     _module = "account"
