@@ -10,7 +10,7 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH ptt AS (
-            SELECT p.id, bool_or(t.timesheet_timer) as timer
+            SELECT p.id, (bool_or(t.timesheet_timer) AND p.allow_timesheets) as timer
               FROM project_project p
          LEFT JOIN helpdesk_team t ON t.project_id = p.id
           GROUP BY p.id
