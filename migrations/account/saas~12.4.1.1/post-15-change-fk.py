@@ -18,6 +18,7 @@ def fix_fk(cr, target):
             ("account_invoice_tax", "invoice_id"),
             ("account_invoice_line_tax", "invoice_line_id"),
             ("account_invoice", "auto_invoice_id"),  # defined (and handled) in inter_company_rules
+            ("account_analytic_tag_account_invoice_line_rel", "account_invoice_line_id"),
         ]:
             old_column = "{}_mig_s124".format(column)
             cr.execute(f'ALTER TABLE "{table}" RENAME COLUMN "{column}" TO "{old_column}"')
