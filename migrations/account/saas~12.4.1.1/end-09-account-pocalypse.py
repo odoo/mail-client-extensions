@@ -1173,7 +1173,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
             WITH invl AS (
                    SELECT inv.move_id, invl.product_id, invl.account_id,
                           ARRAY_AGG(taxes.tax_id ORDER BY taxes.tax_id) as taxes,
-                          invl.price_unit, invl.price_subtotal, invl.price_total
+                          invl.price_unit, invl.price_subtotal, invl.price_total, invl.quantity, invl.discount
                      FROM account_invoice_line invl
                      JOIN account_invoice inv ON inv.id = invl.invoice_id
                      LEFT JOIN invl_aml_mapping map ON map.invl_id = invl.id
@@ -1186,7 +1186,8 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                   SELECT invl.move_id, invl.product_id, invl.account_id, taxes,
                          AVG(invl.price_unit) as price_unit,
                          SUM(price_subtotal) as price_subtotal,
-                         SUM(price_total) as price_total
+                         SUM(price_total) as price_total,
+                         ROUND(SUM(quantity * discount) / SUM(quantity), 3) as discount -- weighted average
                     FROM invl
                 GROUP BY invl.move_id, invl.product_id, invl.account_id, taxes
                 HAVING COUNT(*) > 1
@@ -1204,7 +1205,8 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                       SET exclude_from_invoice_tab = false,
                           price_unit = grouped_invl.price_unit,
                           price_subtotal = grouped_invl.price_subtotal,
-                          price_total = grouped_invl.price_total
+                          price_total = grouped_invl.price_total,
+                          discount = grouped_invl.discount
                      FROM grouped_aml
                      JOIN grouped_invl
                        ON grouped_invl.move_id = grouped_aml.move_id
