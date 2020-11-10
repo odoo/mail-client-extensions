@@ -197,51 +197,82 @@ def migrate(cr, version):
     # /!\ Take care about the fact some journal entry could be linked to multiple statement lines. This is the case for
     # some entries generated before the following fix:
     # https://github.com/odoo/odoo/commit/f08204c69c684a6614bbbebc834178355b4aad03
+    # /!\ A statement could be reconciled with multiple black/blue lines in the reconciliation widget. In that case,
+    # keep the auto generated move first. If not, keep the first move you found.
+    mapping_queries = []
 
-    # Get the statement line from liquidity account first.
-    cr.execute(
-        """
-        WITH mapping AS (
-            SELECT
-                line.statement_line_id,
-                MAX(line.move_id) as move_id
-            FROM account_move_line line
-            JOIN account_account account ON account.id = line.account_id
-            WHERE line.statement_line_id IS NOT NULL
-            AND account.internal_type = 'liquidity'
-            GROUP BY line.statement_line_id
-            HAVING COUNT(DISTINCT line.move_id) = 1
-        )
+    # Retrieve the journal entry using the field set on the journal item using the liquidity account.
+    # This query is probably the one that will do most of the job for regular reconciliation using the reconciliation
+    # widget. It works for:
+    # - matching a single blue line (payment).
+    # - matching one or more black lines. In that case, a single payment will be generated.
+    mapping_queries.append('''
+        SELECT
+            line.statement_line_id,
+            MAX(line.move_id) as move_id
+        FROM account_move_line line
+        JOIN account_account account ON account.id = line.account_id
+        JOIN account_bank_statement_line st_line ON st_line.id = line.statement_line_id
+        WHERE st_line.move_id IS NULL
+        AND account.internal_type = 'liquidity'
+        GROUP BY line.statement_line_id
+        HAVING COUNT(DISTINCT line.move_id) = 1
+    ''')
 
-        UPDATE account_bank_statement_line
-        SET move_id = mapping.move_id,
-            is_reconciled = TRUE
-        FROM mapping
-        WHERE id = mapping.statement_line_id
-    """
-    )
+    # Retrieve the right journal entry based on the move_name stored on the statement line.
+    # It works for all reconciliation having at least one black line.
+    mapping_queries.append('''
+        SELECT
+            line.statement_line_id,
+            MAX(line.move_id) as move_id
+        FROM account_move_line line
+        JOIN account_account account ON account.id = line.account_id
+        JOIN account_move move ON move.id = line.move_id
+        JOIN account_bank_statement_line st_line ON st_line.id = line.statement_line_id
+        WHERE st_line.move_id IS NULL
+        AND account.internal_type = 'liquidity'
+        AND move.name = line.move_name
+        AND line.move_name != '/'
+        AND line.move_name IS NOT NULL
+        GROUP BY line.statement_line_id
+        HAVING COUNT(DISTINCT line.move_id) = 1
+    ''')
 
-    # Get the statement line from the whole move as fallback.
-    cr.execute(
-        """
-        WITH mapping AS (
-            SELECT
-                line.statement_line_id,
-                MAX(line.move_id) as move_id
-            FROM account_move_line line
-            JOIN account_bank_statement_line st_line ON st_line.id = line.statement_line_id
-            WHERE st_line.move_id IS NULL
-            GROUP BY line.statement_line_id
-            HAVING COUNT(DISTINCT line.move_id) = 1
-        )
+    # Keep the first journal entry found on the same journal. This is needed when the statement line is reconciled with
+    # multiple blue lines (payments).
+    mapping_queries.append('''
+        SELECT
+            line.statement_line_id,
+            MAX(line.move_id) as move_id
+        FROM account_move_line line
+        JOIN account_bank_statement_line st_line ON st_line.id = line.statement_line_id
+        JOIN account_bank_statement_line_pre_backup st_line_backup ON st_line_backup.id = st_line.id
+        WHERE st_line.move_id IS NULL
+        AND st_line_backup.journal_id = line.journal_id
+        GROUP BY line.statement_line_id
+    ''')
 
-        UPDATE account_bank_statement_line
-        SET move_id = mapping.move_id,
-            is_reconciled = TRUE
-        FROM mapping
-        WHERE id = mapping.statement_line_id
-    """
-    )
+    # Keep the first journal entry found as fallback.
+    mapping_queries.append('''
+        SELECT
+            line.statement_line_id,
+            MAX(line.move_id) as move_id
+        FROM account_move_line line
+        JOIN account_bank_statement_line st_line ON st_line.id = line.statement_line_id
+        WHERE st_line.move_id IS NULL
+        GROUP BY line.statement_line_id
+    ''')
+
+    for mapping in mapping_queries:
+        cr.execute('''
+            WITH mapping AS ({mapping})
+
+            UPDATE account_bank_statement_line st_line
+            SET move_id = mapping.move_id,
+                is_reconciled = TRUE
+            FROM mapping
+            WHERE id = mapping.statement_line_id AND st_line.move_id IS NULL
+        '''.format(mapping=mapping))
 
     cr.execute(
         """

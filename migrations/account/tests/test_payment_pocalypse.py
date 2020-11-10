@@ -708,6 +708,117 @@ class TestPaymentPocalypse(UpgradeCase):
             res['account_bank']
         )
 
+    def _prepare_test_13_statement_line_black_and_blue_lines_reconciliation(self):
+        ''' Test the migration of a statement line reconciled with a lot of things. '''
+        bank_accounts = self.get_bank_accounts(self.bank_journal)
+        payments = self.env['account.payment'].create([{
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': '2017-01-01',
+            'amount': amount,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        } for amount in (100.0, 200.0, 300.0)])
+        payments.post()
+        blue_lines = payments.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
+
+        move = self.env['account.move'].create({
+            'journal_id': self.sale_journal.id,
+            'date': '2017-01-01',
+            'line_ids': [
+                (0, 0, {
+                    'name': 'black_line',
+                    'account_id': self.account_receivable.id,
+                    'debit': 400.0,
+                    'credit': 0.0,
+                }),
+                (0, 0, {
+                    'name': 'black_line',
+                    'account_id': self.account_receivable.id,
+                    'debit': 500.0,
+                    'credit': 0.0,
+                }),
+                (0, 0, {
+                    'name': 'credit_line',
+                    'account_id': self.account_income.id,
+                    'debit': 0.0,
+                    'credit': 900.0,
+                }),
+            ],
+        })
+        move.action_post()
+        black_lines = move.line_ids.filtered('debit')
+
+        bank_statement = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal.id,
+            'date': '2017-01-01',
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 1500.0,
+                'date': '2017-01-01',
+            })],
+        })
+        bank_statement_line = bank_statement.line_ids
+
+        counterpart_aml_dicts = [{'move_line': counterpart_line, 'debit': 0.0, 'credit': counterpart_line.debit}
+                                 for counterpart_line in black_lines]
+        bank_statement_line.process_reconciliation(
+            payment_aml_rec=blue_lines,
+            counterpart_aml_dicts=counterpart_aml_dicts,
+        )
+
+        auto_generated_move = black_lines.matched_credit_ids.credit_move_id.move_id
+        linked_moves = blue_lines.move_id + auto_generated_move
+        self.assertEqual(bank_statement_line.journal_entry_ids.move_id.sorted(), linked_moves.sorted())
+
+        return [bank_statement_line.id, auto_generated_move.id]
+
+    def _check_test_13_statement_line_black_and_blue_lines_reconciliation(self, config, bank_statement_line_id, move_id):
+        ''' Check result of '_prepare_test_13_statement_line_black_and_blue_lines_reconciliation'. '''
+        st_line = self.env['account.bank.statement.line'].browse(bank_statement_line_id)
+        self.assertRecordValues(st_line, [{'move_id': move_id}])
+
+    def _prepare_test_14_statement_line_blue_lines_reconciliation(self):
+        ''' Test the migration of a statement line reconciled with multiple payments. '''
+        bank_accounts = self.get_bank_accounts(self.bank_journal)
+        payments = self.env['account.payment'].create([{
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': '2017-01-01',
+            'amount': amount,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        } for amount in (100.0, 200.0, 300.0)])
+        payments.post()
+        blue_lines = payments.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
+
+        bank_statement = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal.id,
+            'date': '2017-01-01',
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 1500.0,
+                'date': '2017-01-01',
+            })],
+        })
+        bank_statement_line = bank_statement.line_ids
+        bank_statement_line.process_reconciliation(payment_aml_rec=blue_lines)
+
+        self.assertEqual(bank_statement_line.journal_entry_ids.move_id.sorted(), blue_lines.move_id.sorted())
+
+        return [bank_statement_line.id, blue_lines.move_id.ids]
+
+    def _check_test_14_statement_line_blue_lines_reconciliation(self, config, bank_statement_line_id, move_ids):
+        ''' Check result of '_prepare_test_12_statement_line_black_and_blue_lines_reconciliation'. '''
+        st_line = self.env['account.bank.statement.line'].browse(bank_statement_line_id)
+        self.assertRecordValues(st_line, [{'move_id': max(move_ids)}])
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -759,9 +870,14 @@ class TestPaymentPocalypse(UpgradeCase):
         )
 
         # Setup journals.
-        self.bank_journal = self.env["account.journal"].search(
-            [("company_id", "=", self.company.id), ("type", "=", "bank")], limit=1
-        )
+        self.bank_journal = self.env['account.journal'].search([
+            ('company_id', '=', self.company.id),
+            ('type', '=', 'bank'),
+        ], limit=1)
+        self.sale_journal = self.env['account.journal'].search([
+            ('company_id', '=', self.company.id),
+            ('type', '=', 'sale'),
+        ], limit=1)
         self.bank_journal_2 = self.env['account.journal'].create({
             'name': 'bank_journal_2',
             'code': 'TEST2',
@@ -820,6 +936,8 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_10_unconsistent_journal_on_payment_journal_entry(),
                 self._prepare_test_11_reconciled_liquidity_line_payment(),
                 self._prepare_test_12_account_type(),
+                self._prepare_test_13_statement_line_black_and_blue_lines_reconciliation(),
+                self._prepare_test_14_statement_line_blue_lines_reconciliation(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -827,6 +945,7 @@ class TestPaymentPocalypse(UpgradeCase):
                 "partner_id": self.partner.id,
                 "partner_another_company_id": self.partner_another_company.id,
                 "bank_journal_id": self.bank_journal.id,
+                "sale_journal_id": self.sale_journal.id,
                 "bank_journal_2_id": self.bank_journal_2.id,
                 "bank_journal_3_post_at_bank_rec_id": self.bank_journal_3_post_at_bank_rec.id,
                 "bank_journal_deprecated_account_id": self.bank_journal_deprecated_account.id,
@@ -852,3 +971,5 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_10_unconsistent_journal_on_payment_journal_entry(config, *init['tests'][9])
         self._check_test_11_reconciled_liquidity_line_payment(config, *init['tests'][10])
         self._check_test_12_account_type(config, init['tests'][11])
+        self._check_test_13_statement_line_black_and_blue_lines_reconciliation(config, *init['tests'][12])
+        self._check_test_14_statement_line_blue_lines_reconciliation(config, *init['tests'][13])
