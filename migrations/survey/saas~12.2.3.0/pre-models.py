@@ -23,7 +23,13 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO survey_question(page_id, is_page, survey_id, title, description, sequence, question_type)
-             SELECT id, TRUE, survey_id, title, description, sequence, 'free_text'
+             SELECT id,
+                    TRUE,
+                    survey_id,
+                    COALESCE(title, id::varchar),
+                    description,
+                    sequence,
+                    'free_text'
                FROM survey_page
     """
     )
