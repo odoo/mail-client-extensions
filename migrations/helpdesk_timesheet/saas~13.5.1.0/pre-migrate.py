@@ -3,4 +3,4 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, "planning.planning_view_gantt_inherit")
+    util.remove_field(cr, "helpdesk.ticket", "display_timer")

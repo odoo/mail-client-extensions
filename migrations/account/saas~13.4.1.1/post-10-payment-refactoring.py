@@ -1,11 +1,33 @@
 # -*- coding: utf-8 -*-
+import json
 from odoo.addons.base.maintenance.migrations import util
 import logging
 
-_logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-13.4.1.1" + __name__)
+_logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
+
+MOVE_BATCH = 48
+
+
+def search_new_account_code(cr, company_id, digits, prefix):
+    cr.execute(
+        """
+            WITH codes AS (
+               SELECT left(%s || repeat('0', %s), %s-1) || generate_series as code
+                 FROM generate_series(1,10000))
+            SELECT c.code
+              FROM codes c
+             WHERE NOT EXISTS (SELECT 1 FROM account_account a WHERE a.code = c.code AND a.company_id = %s)
+             LIMIT 1
+        """,
+        [prefix, digits, digits, company_id],
+    )
+    return cr.fetchone()[0] if cr.rowcount else False
 
 
 def migrate(cr, version):
+
+    util.recompute_fields(cr, "account.bank.statement.line", ["amount_residual", "is_reconciled"])
+
     with util.no_fiscal_lock(cr):
         env = util.env(cr)
 
@@ -16,40 +38,30 @@ def migrate(cr, version):
         # ===== FIX CONFIG =====
 
         # Fix default suspense account for res.company that is the account used as counterpart on draft bank statement lines.
-
+        _create_journal = env["account.chart.template"]._create_liquidity_journal_suspense_account
         for company in env["res.company"].search([]):
-            company.account_journal_suspense_account_id = env[
-                "account.chart.template"
-            ]._create_liquidity_journal_suspense_account(company, company.chart_template_id.code_digits or 6)
+            code_digits = company.chart_template_id.code_digits or 6
+            company.account_journal_suspense_account_id = _create_journal(company, code_digits)
 
-        cr.execute(
-            """
-            UPDATE account_journal j
-               SET suspense_account_id=c.account_journal_suspense_account_id
-              FROM res_company c
-             WHERE c.id=j.company_id
-               AND j.type in ('bank', 'cash')
-        """
-        )
         # Fix additional 'payment_debit_account_id', 'payment_credit_account_id', 'suspense_account_id' on account.journal.
         # payment_debit_account_id/payment_credit_account_id are the new accounts used by the account.payments instead of
         # default_debit_account_id/default_credit_account_id.
         # suspense_account_id is the same as the one set on the company but allowing to have a custom one by journal.
         cr.execute(
             """
-            SELECT journal_id from account_bank_statement
-            UNION
-            SELECT journal_id from account_payment
-        """
+            SELECT id
+              FROM account_journal
+             WHERE type IN ('bank', 'cash')
+                OR id IN (
+                     SELECT journal_id from account_bank_statement_line_pre_backup
+                      UNION
+                     SELECT journal_id from account_payment_pre_backup
+               )
+            """
         )
-        possible_journal_ids = [journal_id for journal_id, in cr.fetchall()]
-        util.remove_column(cr, "account_payment", "journal_id")
+        journal_ids = [journal_id for journal_id, in cr.fetchall()]
         current_assets_type = env.ref("account.data_account_type_current_assets")
-        for journal in (
-            env["account.journal"]
-            .with_context(active_test=False)
-            .search(["|", ("type", "in", ("bank", "cash")), ("id", "in", possible_journal_ids)])
-        ):
+        for journal in util.iter_browse(env["account.journal"], journal_ids):
             digits = journal.company_id.chart_template_id.code_digits or 6
 
             if journal.type == "bank":
@@ -59,62 +71,40 @@ def migrate(cr, version):
                     journal.company_id.cash_account_code_prefix or journal.company_id.bank_account_code_prefix or ""
                 )
 
-            def search_new_account_code(cr, company_id, digits, prefix):
-                cr.execute(
-                    """
-                WITH codes AS (
-                   SELECT left(%s || repeat('0', %s), %s-1) || generate_series as code
-                     FROM generate_series(1,10000))
-                SELECT c.code
-                FROM codes c
-    WHERE NOT EXISTS (SELECT 1 from account_account a WHERE a.code=c.code AND a.company_id=%s)
-               LIMIT 1
-                """,
-                    [prefix, digits, digits, company_id],
-                )
-                return cr.fetchone()[0] if cr.rowcount else False
+            debit_account = {
+                "name": "Outstanding Receipts",
+                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                "reconcile": True,
+                "user_type_id": current_assets_type.id,
+                "company_id": journal.company_id.id,
+            }
+            j1 = env["account.account"].create(debit_account)
 
-            j1 = (
-                env["account.account"]
-                .create(
-                    {
-                        "name": "Outstanding Receipts",
-                        "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
-                        "reconcile": True,
-                        "user_type_id": current_assets_type.id,
-                        "company_id": journal.company_id.id,
-                    }
-                )
-                .id
-            )
-            j2 = (
-                env["account.account"]
-                .create(
-                    {
-                        "name": "Outstanding Payments",
-                        "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
-                        "reconcile": True,
-                        "user_type_id": current_assets_type.id,
-                        "company_id": journal.company_id.id,
-                    }
-                )
-                .id
-            )
+            credit_account = {
+                "name": "Outstanding Payments",
+                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                "reconcile": True,
+                "user_type_id": current_assets_type.id,
+                "company_id": journal.company_id.id,
+            }
+            j2 = env["account.account"].create(credit_account)
 
             cr.execute(
-                """UPDATE account_journal
-                             SET payment_debit_account_id=%s,
-                                 payment_credit_account_id=%s,
-                                 suspense_account_id=%s
-                           WHERE id=%s
-            """,
-                [j1, j2, journal.company_id.account_journal_suspense_account_id.id, journal.id],
+                """
+                    UPDATE account_journal
+                       SET payment_debit_account_id=%s,
+                           payment_credit_account_id=%s,
+                           suspense_account_id=%s
+                     WHERE id=%s
+                """,
+                [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, journal.id],
             )
 
         # ===== FIX res.partner's company =====
         # Some partners can have a company != move company...
 
-        cr.execute('''
+        cr.execute(
+            """
             CREATE TABLE wrong_company_partners AS (
                 SELECT
                     res_partner.id AS partner_id,
@@ -125,7 +115,7 @@ def migrate(cr, version):
                 WHERE res_partner.company_id IS NOT NULL
                 AND res_partner.company_id != journal.company_id
 
-                UNION ALL
+                UNION
 
                 SELECT res_partner.id, res_partner.company_id
                 FROM res_partner
@@ -134,45 +124,65 @@ def migrate(cr, version):
                 WHERE res_partner.company_id IS NOT NULL
                 AND res_partner.company_id != journal.company_id
             )
-        ''')
-        cr.execute('''
-            UPDATE res_partner
-            SET company_id = NULL
-            FROM wrong_company_partners mapping
-            WHERE mapping.partner_id = res_partner.id
-        ''')
+        """
+        )
+        cr.execute(
+            """
+                UPDATE res_partner
+                   SET company_id = NULL
+                  FROM wrong_company_partners mapping
+                 WHERE mapping.partner_id = res_partner.id
+            """
+        )
 
         # ===== FIX deprecated account.account =====
 
-        cr.execute('''SELECT id FROM account_account WHERE deprecated = TRUE''')
+        cr.execute("UPDATE account_account SET deprecated = false WHERE deprecated = true RETURNING id")
         deprecated_account_ids = [res[0] for res in cr.fetchall()]
-        if deprecated_account_ids:
-            cr.execute('''UPDATE account_account SET deprecated = FALSE WHERE id IN %s''', [tuple(deprecated_account_ids)])
 
         # ===== FIX res.partner.bank's company =====
         # Some res.partner.bank can have a company != move company...
 
-        cr.execute('''
+        cr.execute(
+            """
             SELECT res_partner_bank.id, res_partner_bank.company_id
             FROM account_payment_pre_backup pay_backup
             JOIN res_partner_bank ON res_partner_bank.id = pay_backup.partner_bank_account_id
             WHERE res_partner_bank.company_id IS NOT NULL
 
-            UNION ALL
+            UNION
 
             SELECT res_partner_bank.id, res_partner_bank.company_id
             FROM account_bank_statement_line_pre_backup st_line_backup
             JOIN res_partner_bank ON res_partner_bank.id = st_line_backup.bank_account_id
             WHERE res_partner_bank.company_id IS NOT NULL
-        ''')
-        wrong_company_partner_bank_ids = {res[0]: res[1] for res in cr.fetchall()}
+            """
+        )
+        wrong_company_partner_bank_ids = dict(cr.fetchall())
         if wrong_company_partner_bank_ids:
             cr.execute(
-                'UPDATE res_partner_bank SET company_id = NULL WHERE id in %s',
+                "UPDATE res_partner_bank SET company_id = NULL WHERE id in %s",
                 [tuple(wrong_company_partner_bank_ids.keys())],
             )
 
         # ===== Posted account.payment =====
+
+        # Manually deleted journal entries for posted payments.
+
+        cr.execute('''
+            SELECT pay.id
+            FROM account_payment pay
+            JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
+            WHERE pay_backup.state NOT IN ('draft', 'cancelled')
+            AND pay.move_id IS NULL
+        ''')
+        payment_ids = [res[0] for res in cr.fetchall()]
+        if payment_ids:
+            util.add_to_migration_reports(
+                "The following payments have been deleted during the migration because there were posted but no longer"
+                "linked to any journal entry: %s" % payment_ids
+            )
+            env['account.payment'].browse(payment_ids).unlink()
 
         # Change the liquidity account of payments that are not yet reconciled with a statement line.
         # This should be done because the payment is no longer impacting directly the bank/cash account like the
@@ -204,6 +214,7 @@ def migrate(cr, version):
                AND line.account_id {account_cmp}
                AND line.balance >= 0.0
                AND journal.payment_debit_account_id IS NOT NULL
+               AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.debit_move_id = line.id)
             """,
                 f"""
             UPDATE account_move_line line
@@ -216,11 +227,14 @@ def migrate(cr, version):
                AND line.account_id {account_cmp}
                AND line.balance < 0.0
                AND journal.payment_credit_account_id IS NOT NULL
+               AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.credit_move_id = line.id)
             """,
             ],
         )
 
         # ===== Draft/cancelled account.payment =====
+        env["account.payment"].flush()
+        ctx = {"skip_account_move_synchronization": True, "tracking_disable": True}
 
         cr.execute(
             """
@@ -235,29 +249,34 @@ def migrate(cr, version):
             JOIN account_payment pay ON pay.id = pay_backup.id
             WHERE pay_backup.state IN ('draft', 'cancelled')
             AND pay.move_id IS NULL
-        """
+            """
         )
-        moves = env['account.move']\
-            .with_context(skip_account_move_synchronization=True, tracking_disable=True)\
-            .create(cr.dictfetchall())
+        _logger.info("Creating %d moves for draft/cancelled payments", cr.rowcount)
 
-        if moves:
-            cr.executemany(
-                '''UPDATE account_payment SET move_id = %s WHERE id = %s''',
-                [(move.id, move.payment_id.id) for move in moves],
-            )
+        for data in util.chunks(cr.dictfetchall(), size=48, fmt=list):
+            moves = env["account.move"].with_context(**ctx).create(data)
+
+            query = """
+                UPDATE account_payment
+                   SET move_id = ('{}'::json->>id::varchar)::int4
+                 WHERE id IN %s
+            """
+            mapping = {move.payment_id.id: move.id for move in moves}
+            cr.execute(query.format(json.dumps(mapping)), [tuple(mapping)])
+            # cr.executemany(
+            #     '''UPDATE account_payment SET move_id = %s WHERE id = %s''',
+            #     [(move.id, move.payment_id.id) for move in moves],
+            # )
 
             moves.invalidate_cache()
             moves.payment_id._compute_destination_account_id()
 
             move_lines_to_create = []
-            for move in util.iter_browse(env['account.move'], moves.ids):
+            for move in moves:
                 for vals in move.payment_id._prepare_move_line_default_vals():
                     move_lines_to_create.append({**vals, "move_id": move.id, "exclude_from_invoice_tab": True})
 
-            env['account.move.line']\
-                .with_context(skip_account_move_synchronization=True, tracking_disable=True)\
-                .create(move_lines_to_create)
+            env["account.move.line"].with_context(**ctx).create(move_lines_to_create)
 
             # Newly created moves for cancelled payments must be cancelled as well.
             cr.execute(
@@ -272,24 +291,30 @@ def migrate(cr, version):
             )
             cancelled_payment_ids = [res[0] for res in cr.fetchall()]
             if cancelled_payment_ids:
-                env["account.payment"].browse(cancelled_payment_ids).action_cancel()
+                env["account.payment"].browse(cancelled_payment_ids).with_context(**ctx).action_cancel()
+
+            env["account.payment"].flush()
 
         # ===== Synchronize account.payment <=> account.move =====
 
-        cr.execute('''
+        cr.execute(
+            """
             UPDATE account_move
             SET payment_id = account_payment.id
             FROM account_payment
             WHERE account_payment.move_id = account_move.id
             AND account_move.payment_id IS NULL
-        ''')
+            """
+        )
 
-        cr.execute('''
+        cr.execute(
+            """
             UPDATE account_move_line
             SET payment_id = move.payment_id
             FROM account_move move
             WHERE account_move_line.move_id = move.id
-        ''')
+            """
+        )
 
         # ===== Draft account.bank.statement.line =====
 
@@ -310,20 +335,25 @@ def migrate(cr, version):
             JOIN account_journal journal ON journal.id = st_line.journal_id
             JOIN res_company company ON company.id = journal.company_id
             WHERE st_line.move_id IS NULL
-        """
+            """
         )
 
-        moves = (
-            env["account.move"]
-            .with_context(skip_account_move_synchronization=True, tracking_disable=True)
-            .create(cr.dictfetchall())
-        )
+        _logger.info("Creating %d moves for draft statement lines", cr.rowcount)
 
-        if moves:
-            cr.executemany(
-                "UPDATE account_bank_statement_line SET move_id = %s WHERE id = %s",
-                [(move.id, move.statement_line_id.id) for move in moves],
-            )
+        for data in util.chunks(cr.dictfetchall(), size=48, fmt=list):
+            moves = env["account.move"].with_context(**ctx).create(data)
+
+            query = """
+                UPDATE account_bank_statement_line
+                   SET move_id = ('{}'::json->>id::varchar)::int4
+                 WHERE id IN %s
+            """
+            mapping = {move.statement_line_id.id: move.id for move in moves}
+            cr.execute(query.format(json.dumps(mapping)), [tuple(mapping)])
+            # cr.executemany(
+            #     "UPDATE account_bank_statement_line SET move_id = %s WHERE id = %s",
+            #     [(move.id, move.statement_line_id.id) for move in moves],
+            # )
 
             cr.execute(
                 """
@@ -341,7 +371,7 @@ def migrate(cr, version):
                 JOIN res_company company ON company.id = journal.company_id
                 WHERE move.id = st_line.move_id
                 AND move.id IN %s
-            """,
+                """,
                 [tuple(moves.ids)],
             )
 
@@ -349,25 +379,29 @@ def migrate(cr, version):
             moves.statement_line_id.journal_id._compute_suspense_account_id()
 
             move_lines_to_create = []
-            for move in util.iter_browse(env['account.move'], moves.ids):
+            for move in moves:
                 for vals in move.statement_line_id._prepare_move_line_default_vals():
                     move_lines_to_create.append({**vals, "move_id": move.id, "exclude_from_invoice_tab": True})
 
-            env['account.move.line']\
-                .with_context(skip_account_move_synchronization=True, tracking_disable=True)\
-                .create(move_lines_to_create)
+            env["account.move.line"].with_context(**ctx).create(move_lines_to_create)
+
+            env["account.move.line"].flush()
 
         # ===== Synchronize account.bank.statement.line <=> account.move =====
 
-        cr.execute('''
+        _logger.info("Synchronize statement lines & moves")
+        cr.execute(
+            """
             UPDATE account_move
             SET statement_line_id = account_bank_statement_line.id
             FROM account_bank_statement_line
             WHERE account_bank_statement_line.move_id = account_move.id
             AND account_move.statement_line_id IS NULL
-        ''')
+            """
+        )
 
-        cr.execute('''
+        cr.execute(
+            """
             UPDATE account_move_line
             SET
                 statement_line_id = move.statement_line_id,
@@ -375,42 +409,56 @@ def migrate(cr, version):
             FROM account_move move
             JOIN account_bank_statement_line st_line ON st_line.id = move.statement_line_id
             WHERE account_move_line.move_id = move.id
-        ''')
+            """
+        )
 
         # ===== RESTORE res.partner's company =====
 
-        cr.execute('''
+        _logger.info("restore deprecated accounts and company on partners and partner banks")
+        cr.execute(
+            """
             UPDATE res_partner
             SET company_id = mapping.company_id
             FROM wrong_company_partners mapping
             WHERE mapping.partner_id = res_partner.id
-        ''')
-        cr.execute('DELETE FROM wrong_company_partners CASCADE')
+            """
+        )
+        cr.execute("DROP TABLE wrong_company_partners")
 
         # ===== RESTORE deprecated account.account =====
 
         if deprecated_account_ids:
-            cr.execute('''UPDATE account_account SET deprecated = TRUE WHERE id IN %s''', [tuple(deprecated_account_ids)])
+            cr.execute("UPDATE account_account SET deprecated = TRUE WHERE id IN %s", [tuple(deprecated_account_ids)])
 
         # ===== RESTORE res.partner.bank's company =====
-
-        for partner_bank_id, company_id in wrong_company_partner_bank_ids.items():
-            cr.execute("UPDATE res_partner_bank SET company_id=%s WHERE id=%s", [company_id, partner_bank_id])
+        if wrong_company_partner_bank_ids:
+            query = """
+                UPDATE res_partner_bank
+                   SET company_id = ('{}'::json->>id::varchar)::int4
+                 WHERE id IN %s
+            """
+            cr.execute(
+                query.format(json.dumps(wrong_company_partner_bank_ids)), [tuple(wrong_company_partner_bank_ids)]
+            )
 
         # ===== MISC =====
+        ctx = {"tracking_disable": True}
 
+        _logger.info("Post all bank statements that seem to be already processed")
         # Post all bank statements that seem to be already processed meaning the balance_end & balance_end_real must be
         # the same and not be part of a broken statement chain.
 
-        env["account.bank.statement"].search(
-            [("is_valid_balance_start", "=", True), ("difference", "=", 0.0), ("state", "=", "open")]
-        ).with_context(tracking_disable=True).button_post()
+        domain = [("is_valid_balance_start", "=", True), ("difference", "=", 0.0), ("state", "=", "open")]
+        bs_ids = env["account.bank.statement"].search(domain).ids
+        for bs in util.iter_browse(env["account.bank.statement"].with_context(**ctx), bs_ids):
+            bs.button_post()
 
+        _logger.info("Post newly created journal entries still in draft")
         # Since the 'post_at' field is gone, post the journal entries still in draft.
-
-        cr.execute('''
+        cr.execute(
+            """
             -- All reconciled entries must be posted
-            SELECT DISTINCT move.id
+            SELECT move.id
             FROM account_partial_reconcile part
             JOIN account_move_line line ON
                 line.id = part.debit_move_id
@@ -420,7 +468,7 @@ def migrate(cr, version):
             WHERE move.state = 'draft'
             AND not auto_post
 
-            UNION ALL
+            UNION
 
             -- Posted payments having a draft entry due to the post_at = 'bank_rec' on journal.
             SELECT pay.move_id
@@ -432,15 +480,17 @@ def migrate(cr, version):
             AND pay_backup.state = 'posted'
             AND move.state = 'draft'
             AND move.statement_line_id IS NULL
-        ''')
+            """
+        )
 
-        env["account.move"].browse(row[0] for row in cr.fetchall()).with_context(tracking_disable=True).action_post()
+        for move in util.iter_browse(env["account.move"].with_context(**ctx), [row[0] for row in cr.fetchall()]):
+            move.action_post()
 
         # ==== CHECK move_id that must be set on all account.payment/account.bank.statement.line ====
         cr.execute("SELECT id FROM account_payment WHERE move_id IS NULL")
-        for payment_id in cr.fetchall():
+        for (payment_id,) in cr.fetchall():
             _logger.error("Missing move_id on account.payment (id=%s)", payment_id)
 
         cr.execute("SELECT id FROM account_bank_statement_line WHERE move_id IS NULL")
-        for st_line_id in cr.fetchall():
+        for (st_line_id,) in cr.fetchall():
             _logger.error("Missing move_id on account.bank.statement.line (id=%s)", st_line_id)

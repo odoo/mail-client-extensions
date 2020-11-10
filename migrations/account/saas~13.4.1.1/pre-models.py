@@ -23,9 +23,34 @@ class Account(models.Model):
         vals.pop("currency_id", False)
         return super().write(vals)
 
+    def _check_user_type_id_unique_current_year_earning(self):
+        return True
+
+
+class SequenceMixin(models.AbstractModel):
+    _inherit = "sequence.mixin"
+    _module = "account"
+
+    def _constrains_date_sequence(self):
+        return True
+
+
 class Move(models.Model):
     _inherit = "account.move"
     _module = "account"
+    _check_company_auto = False
 
     def _check_unique_sequence_number(self):
         return True
+
+
+class MoveLine(models.Model):
+    _inherit = "account.move.line"
+    _module = "account"
+    _check_company_auto = False
+
+
+class Payment(models.Model):
+    _inherit = "account.payment"
+    _module = "account"
+    _check_company_auto = False

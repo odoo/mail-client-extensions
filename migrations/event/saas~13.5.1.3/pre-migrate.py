@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, "res_config_settings", "module_website_event_meet", "boolean")
-    util.create_column(cr, "res_config_settings", "module_website_event_track_live", "boolean")
-    util.create_column(cr, "res_config_settings", "module_website_event_track_quiz", "boolean")
-    util.create_column(cr, "res_config_settings", "module_website_event_track_exhib", "boolean")
+    util.create_column(cr, "event_tag", "color", "int4", default=0)
+    for suffix in {"meet", "track_live", "track_quiz", "track_exhibitor"}:
+        util.create_column(cr, "res_config_settings", f"module_website_event_{suffix}", "boolean")

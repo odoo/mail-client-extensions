@@ -3,7 +3,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "pos_payment_method", "active", "boolean", default=True)
     util.create_column(cr, "pos_payment", "is_change", "boolean", default=False)
+    util.create_column(cr, "pos_payment", "cardholder_name", "varchar")
     util.create_column(cr, "pos_payment", "ticket", "varchar")
 
     # Change payments are the negative cash payments in orders with positive amount.
@@ -25,6 +27,8 @@ def migrate(cr, version):
     )
 
     util.rename_field(cr, "pos.config", "module_pos_reprint", "manage_orders")
+    util.create_column(cr, "pos_config", "product_configurator", "boolean")
+    util.create_column(cr, "pos_config", "manual_discount", "boolean", default=True)
 
     util.create_column(cr, "pos_order_line", "full_product_name", "varchar")
 
@@ -47,3 +51,5 @@ def migrate(cr, version):
          WHERE tips.order_id = pos_order.id
         """
     )
+
+    cr.execute("UPDATE pos_session SET state = 'opening_control' WHERE state = 'new_session'")
