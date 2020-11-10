@@ -172,6 +172,7 @@ def migrate(cr, version):
         util.module_deps_diff(
             cr, "industry_fsm", plus={"sale_timesheet_enterprise"}, minus={"sale_project_timesheet_enterprise"}
         )
+        util.module_deps_diff(cr, "l10n_be_hr_payroll_account", plus={"l10n_be"})
         util.module_deps_diff(cr, "project_enterprise", plus={"web_gantt"})
         util.module_deps_diff(cr, "project_forecast", plus={"planning"}, minus={"web_grid", "hr", "web_gantt"})
         util.force_migration_of_fresh_module(cr, 'planning')
