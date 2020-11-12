@@ -660,6 +660,54 @@ class TestPaymentPocalypse(UpgradeCase):
         )
         self.assertTrue(len(lines.full_reconcile_id), 2)
 
+    def _prepare_test_12_account_type(self):
+        account_bancontact = self.env['account.account'].create({
+            'name': 'bancontact',
+            'code': '580070',
+            'user_type_id': self.env.ref("account.data_account_type_current_assets").id,
+            'deprecated': True,
+        })
+        account_bank = self.env['account.account'].create({
+            'name': 'bank',
+            'code': '550100',
+            'user_type_id': self.env.ref("account.data_account_type_liquidity").id,
+            'deprecated': True,
+        })
+        journal_bancontact = self.env['account.journal'].create({
+            'name': 'bancontact',
+            'code': 'bnkctc',
+            'type': 'bank',
+            'default_debit_account_id': account_bancontact.id,
+            'active': False,
+        })
+        journal_bank = self.env['account.journal'].create({
+            'name': 'bank',
+            'code': 'bank',
+            'type': 'bank',
+            'default_debit_account_id': account_bank.id,
+            'active': False,
+        })
+        return {
+            'account_bank': account_bank.id,
+            'account_bancontact': account_bancontact.id,
+            'journal_bancontact': journal_bancontact.id,
+            'journal_bank': journal_bank.id,
+        }
+
+    def _check_test_12_account_type(self, config, res):
+        journal_bank = self.env['account.journal'].browse(res['journal_bank'])
+        journal_bancontact = self.env['account.journal'].browse(res['journal_bancontact'])
+        self.assertTrue(journal_bank.payment_credit_account_id)
+        self.assertTrue(journal_bancontact.payment_credit_account_id)
+        self.assertEqual(
+            journal_bancontact.payment_credit_account_id.id,
+            res['account_bancontact']
+        )
+        self.assertNotEqual(
+            journal_bank.payment_credit_account_id.id,
+            res['account_bank']
+        )
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -771,6 +819,7 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_9_manual_payment_journal_entry_deletion(),
                 self._prepare_test_10_unconsistent_journal_on_payment_journal_entry(),
                 self._prepare_test_11_reconciled_liquidity_line_payment(),
+                self._prepare_test_12_account_type(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -802,3 +851,4 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_9_manual_payment_journal_entry_deletion(config, *init['tests'][8])
         self._check_test_10_unconsistent_journal_on_payment_journal_entry(config, *init['tests'][9])
         self._check_test_11_reconciled_liquidity_line_payment(config, *init['tests'][10])
+        self._check_test_12_account_type(config, init['tests'][11])

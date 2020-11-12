@@ -61,6 +61,7 @@ def migrate(cr, version):
         )
         journal_ids = [journal_id for journal_id, in cr.fetchall()]
         current_assets_type = env.ref("account.data_account_type_current_assets")
+        liquidity_type = env.ref("account.data_account_type_liquidity")
         for journal in util.iter_browse(env["account.journal"], journal_ids):
             digits = journal.company_id.chart_template_id.code_digits or 6
 
@@ -71,23 +72,28 @@ def migrate(cr, version):
                     journal.company_id.cash_account_code_prefix or journal.company_id.bank_account_code_prefix or ""
                 )
 
-            debit_account = {
-                "name": "Outstanding Receipts",
-                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
-                "reconcile": True,
-                "user_type_id": current_assets_type.id,
-                "company_id": journal.company_id.id,
-            }
-            j1 = env["account.account"].create(debit_account)
+            default_account_id = journal.default_account_id
+            if not default_account_id or default_account_id.user_type_id == liquidity_type:
+                debit_account = {
+                    "name": "Outstanding Receipts",
+                    "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                    "reconcile": True,
+                    "user_type_id": current_assets_type.id,
+                    "company_id": journal.company_id.id,
+                }
+                j1 = env["account.account"].create(debit_account)
 
-            credit_account = {
-                "name": "Outstanding Payments",
-                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
-                "reconcile": True,
-                "user_type_id": current_assets_type.id,
-                "company_id": journal.company_id.id,
-            }
-            j2 = env["account.account"].create(credit_account)
+                credit_account = {
+                    "name": "Outstanding Payments",
+                    "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                    "reconcile": True,
+                    "user_type_id": current_assets_type.id,
+                    "company_id": journal.company_id.id,
+                }
+                j2 = env["account.account"].create(credit_account)
+            else:
+                j1 = default_account_id
+                j2 = default_account_id
 
             cr.execute(
                 """
