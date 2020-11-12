@@ -1210,7 +1210,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                      FROM grouped_aml
                      JOIN grouped_invl
                        ON grouped_invl.move_id = grouped_aml.move_id
-                      AND grouped_invl.product_id = grouped_aml.product_id
+                      AND COALESCE(grouped_invl.product_id, 0) = COALESCE(grouped_aml.product_id, 0)
                       AND grouped_invl.account_id = grouped_aml.account_id
                       AND grouped_invl.taxes = grouped_aml.taxes
                     WHERE grouped_aml.id = aml.id
