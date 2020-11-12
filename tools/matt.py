@@ -108,14 +108,15 @@ class Version(namedtuple("Version", "odoo enterprise themes")):
 
 
 def init_repos(options: Namespace) -> bool:
-    options.path.mkdir(parents=True, exist_ok=True)
+    logger.info("Cache location: %s", options.cache_path)
+    options.cache_path.mkdir(parents=True, exist_ok=True)
 
     # TODO parallalize?
     repos = list(REPOSITORIES)
     if options.upgrade_branch != ".":
         repos.append(UPGRADE_REPO)
     for repo in repos:
-        p = options.path / repo.name
+        p = options.cache_path / repo.name
         if not p.exists():
             if not options.fetch:
                 logger.critical("missing %s repository with `--no-fetch` option", repo.name)
@@ -124,7 +125,7 @@ def init_repos(options: Namespace) -> bool:
             logger.info("init %s repository", repo.name)
             subprocess.check_call(
                 ["git", "clone", "--bare", "-q", repo.remote, repo.name],
-                cwd=str(options.path),
+                cwd=str(options.cache_path),
             )
             for fetch in ["+refs/heads/*:refs/remotes/origin/*", "+refs/pull/*/head:refs/remotes/origin/pr/*"]:
                 subprocess.check_call(
@@ -135,7 +136,7 @@ def init_repos(options: Namespace) -> bool:
         if options.fetch:
             subprocess.check_call(["git", "fetch", "-q"], cwd=str(p))
 
-    conffile = options.path / "odoo.conf"
+    conffile = options.cache_path / "odoo.conf"
     if not conffile.exists():
         log_handlers = ":WARNING,py.warnings:ERROR," + ",".join(
             itertools.chain.from_iterable(
@@ -166,7 +167,7 @@ def checkout(repo: Repo, version: str, workdir: Path, options: Namespace) -> boo
     logger.info("checkout %s at version %s", repo.name, version)
     wd = workdir / repo.name
     wd.mkdir(exist_ok=True)
-    gitdir = str(options.path / repo.name)
+    gitdir = str(options.cache_path / repo.name)
     # verify branch exists before checkout
     hasref = subprocess.run(["git", "show-ref", "-q", "--verify", f"refs/remotes/origin/{version}"], cwd=gitdir)
     if hasref.returncode != 0:
@@ -230,7 +231,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         cmd = [
             odoo_bin,
             "-c",
-            str(options.path / "odoo.conf"),
+            str(options.cache_path / "odoo.conf"),
             "--addons-path",
             ad_path,
             "-d",
@@ -444,11 +445,13 @@ It allows to test upgrades against development branches.
         formatter_class=RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "-p",
+        "--cache",
+        "-p",  # kept for retro-compatibility
         "--path",
+        dest="cache_path",
         type=Path,
-        default=Path(f"{tempfile.gettempdir()}/matt"),
-        help="Working directory (default: %(default)s)",
+        default=Path(f"{os.getenv('XDG_CACHE_HOME', '~/.cache')}/matt").expanduser(),
+        help="Cache Directory (default: %(default)s)",
     )
     parser.add_argument(
         "-b",
@@ -529,7 +532,7 @@ It allows to test upgrades against development branches.
     if options.upgrade_branch != ".":
         repos.append(UPGRADE_REPO)
     for repo in repos:
-        subprocess.run(["git", "worktree", "prune"], cwd=str(options.path / repo.name))
+        subprocess.run(["git", "worktree", "prune"], cwd=str(options.cache_path / repo.name))
 
     return ret
 
