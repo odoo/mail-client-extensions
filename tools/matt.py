@@ -25,7 +25,7 @@ except ImportError:
     setproctitle = lambda t: None
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("matt")
 
 T = TypeVar("T")
 E = TypeVar("E", bound=Exception)
@@ -516,7 +516,7 @@ It allows to test upgrades against development branches.
 
     options = parser.parse_args()
     level = [logging.INFO, logging.WARNING, logging.ERROR][min(options.quiet, 2)]
-    logging.basicConfig(level=level, filename=options.log_file)
+    logging.basicConfig(level=level, filename=options.log_file, format="%(asctime)s %(levelname)s %(message)s")
 
     setproctitle(f"matt :: {options.source} -> {options.target}")
 
