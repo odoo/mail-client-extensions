@@ -8,6 +8,15 @@ def migrate(cr, version):
     the appopriate errors and warnings.
     """
 
+    # Remove child tax relation where amount_type is not group
+    # because it's nonsense to have it.
+    cr.execute(
+        """DELETE FROM account_tax_filiation_rel atr
+            USING account_tax at
+            WHERE at.id = atr.parent_tax
+              AND at.amount_type != 'group'"""
+    )
+
     # Verify that there is no cycle between parent_tax and child_tax
     #
     # Also provide a beautiful display of the error that only show one line by issue.
