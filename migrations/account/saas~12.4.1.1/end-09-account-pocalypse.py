@@ -826,7 +826,16 @@ def migrate_voucher_lines(cr):
             [tuple(vouchers)],
         )
         for line_vals in cr.dictfetchall():
-            vouchers[line_vals["voucher_id"]].setdefault("invoice_line_ids", []).append(line_vals)
+            voucher_vals = vouchers[line_vals["voucher_id"]]
+            voucher_vals.setdefault("invoice_line_ids", []).append(line_vals)
+
+            if not line_vals["account_id"]:
+                line_vals["account_id"] = guess_account(
+                    env,
+                    voucher_vals["type"],
+                    voucher_vals["journal_id"],
+                    line_vals["product_id"],
+                ).id
 
             if line_vals["account_id"] != line_vals["original_account_id"]:
                 updated_vouchers.setdefault(line_vals["voucher_id"], []).append(line_vals["name"])
@@ -1282,7 +1291,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
     cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig124_invl_id")
 
 
-def guess_account(env, invoice_type, journal_id, product_id, fiscal_position_id):
+def guess_account(env, invoice_type, journal_id, product_id, fiscal_position_id=None):
     account_type = "income" if invoice_type.startswith("out") else "expense"
     journal = env["account.journal"].browse(journal_id)
     product = env["product.product"].browse(product_id)
