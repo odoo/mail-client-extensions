@@ -201,6 +201,7 @@ class Main extends React.Component<MainProps, MainState> {
 
     _getMessageBars = () => {
         const {type, info} = this.state.EnrichmentInfo;
+        const message = this.state.EnrichmentInfo.getTypicalMessage();
         let bars = [];
         if (this.state.showPartnerCreatedMessage && this.state.partnerCreated) {
             bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this._hidePartnerCreatedMessage}>Contact created</MessageBar>);
@@ -214,11 +215,12 @@ class Main extends React.Component<MainProps, MainState> {
                 break;
             case EnrichmentInfoType.NoData:
             case EnrichmentInfoType.NotConnected_NoData:
-                bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
+                bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this._hideEnrichmentInfoMessage}>{message}</MessageBar>);
                 break;
             case EnrichmentInfoType.InsufficientCredit:
                 bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>
-                    Could not auto-complete the company: not enough credits!
+                    {message}
+                    <br/>
                     <Link href={info} target="_blank">
                         Buy More
                     </Link>
@@ -228,7 +230,7 @@ class Main extends React.Component<MainProps, MainState> {
             case EnrichmentInfoType.NotConnected_InternalError:
             case EnrichmentInfoType.Other:
             case EnrichmentInfoType.ConnectionError:
-                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
+                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{message}</MessageBar>);
                 break;
             }
         }
