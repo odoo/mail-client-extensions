@@ -12,6 +12,18 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "l10n_be_edi", plus={"account_edi_ubl"}, minus={"account_edi"})
     util.module_deps_diff(cr, "l10n_il", minus={"account"}, plus={"l10n_multilang"})
 
+    util.rename_module(cr, "website_event_track_exhibitor", "website_event_exhibitor")
+    if not util.module_installed(cr, "website_event_exhibitor"):
+        # If website_event_track is installed (defining event_sponsor) and has
+        # any data, force installation of website_event_exhibitor that is the
+        # new module holding sponsor management
+        if util.table_exists(cr, "event_sponsor"):
+            cr.execute("SELECT count(*) FROM event_sponsor")
+            if cr.fetchone()[0]:
+                util.force_install_module(cr, "website_event_exhibitor")
+                util.force_migration_of_fresh_module(cr, "website_event_exhibitor")
+    util.module_deps_diff(cr, "website_event_exhibitor", plus={"website_event"}, minus={"website_event_track"})
+
     if util.has_enterprise():
         util.new_module(cr, "planning_holidays", deps={"planning", "hr_holidays"}, auto_install=True)
 
@@ -27,5 +39,5 @@ def migrate(cr, version):
         util.remove_module(cr, "account_online_sync")
 
     util.remove_module(cr, "odoo_referral")
-    util.ENVIRON['procurement_jit_uninstalled'] = not util.module_installed(cr, 'procurement_jit')
+    util.ENVIRON["procurement_jit_uninstalled"] = not util.module_installed(cr, "procurement_jit")
     util.remove_module(cr, "procurement_jit")
