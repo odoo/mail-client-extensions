@@ -59,7 +59,9 @@ class CheckPayments(UpgradeCase):
         BANK_STATEMENT_COUNT = 30
         SAMPLE_BANK_STATEMENTS = 512
 
-        if not self.env["account.journal"].search_count([("type", "=", "sale")]):
+        if not self.env["account.journal"].search_count(
+            [("type", "=", "sale"), ("company_id", "=", self.env.company.id)]
+        ):
             self.skipTest("No sale journal found. Is a CoA installed?")
 
         if hasattr(self.env["account.move"], "_l10n_co_edi_is_l10n_co_edi_required"):
@@ -69,8 +71,15 @@ class CheckPayments(UpgradeCase):
         with util.no_fiscal_lock(self.env.cr):
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
-            apm_ids = self.env["account.payment.method"].search([("id", "!=", sepa), ("code", "!=", "sdd")]).ids
+            aba = self.env["ir.model.data"].xmlid_to_res_id("l10n_au_aba.account_payment_method_aba_ct")
+            apm_ids = (
+                self.env["account.payment.method"].search([("id", "not in", [sepa, aba]), ("code", "!=", "sdd")]).ids
+            )
             aj_ids = self.env["account.journal"].search([("type", "in", ["bank", "cash"])]).ids
+
+            if util.module_installed(self.env.cr, "l10n_latam_invoice_document"):
+                latam_journals = self.env["account.journal"].search([("l10n_latam_use_documents", "=", True)])
+                latam_journals.write({"l10n_latam_use_documents": False})
 
             deprecated_accounts = self.env["account.account"].search([("deprecated", "=", True)])
             deprecated_accounts.write({"deprecated": False})
