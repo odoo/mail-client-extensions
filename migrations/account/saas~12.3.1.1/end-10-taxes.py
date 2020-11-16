@@ -460,7 +460,8 @@ def _migrate(cr, version):
     # - for cash basis entries of in_refund and out_invoice invoices: so that
     #   the CABA entry can be evaluated as a miscellaneous operation by the tax report
     # - for miscellaneous operations using taxes, for equivalent of out_invoice and in_refund
-    cr.execute("""
+    cr.execute(
+        """
         CREATE TABLE tags_to_replace(line_id, tag_id, opposite_tag_id) AS (
 
             -- For CABA entries
@@ -551,20 +552,25 @@ def _migrate(cr, version):
     """
         % {
             **sql_dict,
-            'pos_orders_condition': "NOT EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = move.id)" if util.table_exists(cr, 'pos_order') else "true",
+            "pos_orders_condition": "NOT EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = move.id)"
+            if util.table_exists(cr, "pos_order")
+            else "true",
         }
     )
 
     # Replace the tags that need to be, using the temporary table
-    cr.execute("""
+    cr.execute(
+        """
         DELETE FROM account_account_tag_account_move_line_rel
         USING tags_to_replace
         WHERE tags_to_replace.line_id = account_account_tag_account_move_line_rel.account_move_line_id
         AND tags_to_replace.tag_id = account_account_tag_account_move_line_rel.account_account_tag_id
         AND tags_to_replace.multiplicator = -1;
-    """)
+    """
+    )
 
-    cr.execute("""
+    cr.execute(
+        """
         INSERT INTO account_account_tag_account_move_line_rel
             SELECT
                 tags_to_replace.line_id AS account_move_line_id,
@@ -572,7 +578,8 @@ def _migrate(cr, version):
             FROM tags_to_replace
             WHERE tags_to_replace.multiplicator = -1
         ON CONFLICT DO NOTHING; -- for lines that are the base of multiple taxes sharing some tags
-    """)
+    """
+    )
 
     env["account.move.line"].invalidate_cache(fnames=["tag_ids"])
 
@@ -583,7 +590,7 @@ def _migrate(cr, version):
         tax_template = env["account.tax.template"].browse(tax_template_data.res_id)
         template_instance_data = env["ir.model.data"].search(
             [
-                ("name", "=like", r"%%\_%(name)s" % {"name": tax_template_data.name},),
+                ("name", "=like", r"%%\_%(name)s" % {"name": tax_template_data.name}),
                 ("model", "=", "account.tax"),
                 ("module", "=", tax_template_data.module),
             ]
@@ -652,7 +659,7 @@ def _migrate(cr, version):
 
 
 def set_fiscal_country(env):
-    """ Some companies may have their offices in country B, while using the chart
+    """Some companies may have their offices in country B, while using the chart
     of accounts and taxes of country A. In this case, company_id.country_id will be B,
     but country A needs to be used to fetch the tax tags and generate the tax report.
     For this, we use a config_parameter containing the country code of this "fiscal country"
@@ -798,7 +805,7 @@ def get_aml_domain(cr, invoice, domain):
 
 
 def get_financial_reports_grids_mapping(cr):
-    """ To be implemented specifically for each l10n_module.
+    """To be implemented specifically for each l10n_module.
     Returns a map between financial report line ids and the corresponding
     tax report line's tag_name in v13.
     """
@@ -1775,7 +1782,7 @@ def _fill_grids_mapping_for_za(cr, dict_to_fill):
 
 
 def erase_edi_data(cr):
-    """ Erases all edi data defined by the installed modules, so that we can
+    """Erases all edi data defined by the installed modules, so that we can
     create test invoices to check taxes repartition without sending them to the
     goverment.
     The operations made by this function need of course to be rollbacked.
@@ -1891,6 +1898,7 @@ def get_v13_migration_dicts(cr):
       GROUP BY account_tax.id
     """
     )
+    imp = util.import_script("account/account_util.py")
     for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), qualifier="taxes"):
         tax = env["account.tax"].browse(tax_id)
 
@@ -1929,8 +1937,9 @@ def get_v13_migration_dicts(cr):
         ref_type = "out_refund" if tax.type_tax_use == "sale" else "in_refund"
 
         journal, account = _get_inv_journal_and_account(env, tax)
-        inv = create_invoice(cr, partner, tax, journal, account, type=inv_type)
-        ref = create_invoice(cr, partner, tax, journal, account, type=ref_type)
+        with imp.skip_failing_python_taxes(env):
+            inv = create_invoice(cr, partner, tax, journal, account, type=inv_type)
+            ref = create_invoice(cr, partner, tax, journal, account, type=ref_type)
 
         if inv and ref:
             for tag_id in tax_tag_ids:

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from contextlib import contextmanager
 import functools
 import itertools
 import logging
@@ -14,7 +13,7 @@ _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saa
 
 
 def _convert_to_account_move_vals(inv_vals):
-    """ Convert fetched account_invoice vals / account_voucher vals to account_move vals
+    """Convert fetched account_invoice vals / account_voucher vals to account_move vals
     in order to create missing account_move for draft / cancelled invoices.
     This is needed to migrate old invoices to handle the account-pocalypse feature.
 
@@ -152,7 +151,7 @@ def _get_mapping_exceptions(name):
 
 
 def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unposted_invoices):
-    """ Compute the mapping between account_invoice_line and its corresponding account_move_line.
+    """Compute the mapping between account_invoice_line and its corresponding account_move_line.
     :param cr:      The database cursor.
     :return:        A map <invoice_line_id> -> <account_move_line_id>.
     """
@@ -670,27 +669,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
         )
 
 
-@contextmanager
-def skip_failing_python_taxes(env, skipped):
-    if util.module_installed(env.cr, "account_tax_python"):
-        origin_compute_amount = env.registry["account.tax"]._compute_amount
-
-        def _compute_amount(self, *args, **kwargs):
-            if self.amount_type != "code":
-                return origin_compute_amount(self, *args, **kwargs)
-            try:
-                return origin_compute_amount(self, *args, **kwargs)
-            except ValueError as e:
-                skipped[self.id] = (self.name, e.args[0])
-                return 0
-
-        env.registry["account.tax"]._compute_amount = _compute_amount
-        yield
-        env.registry["account.tax"]._compute_amount = origin_compute_amount
-    else:
-        yield
-
-
 def migrate_voucher_lines(cr):
     def _get_voucher_conditions():
         yield from _get_conditions()
@@ -831,10 +809,7 @@ def migrate_voucher_lines(cr):
 
             if not line_vals["account_id"]:
                 line_vals["account_id"] = guess_account(
-                    env,
-                    voucher_vals["type"],
-                    voucher_vals["journal_id"],
-                    line_vals["product_id"],
+                    env, voucher_vals["type"], voucher_vals["journal_id"], line_vals["product_id"],
                 ).id
 
             if line_vals["account_id"] != line_vals["original_account_id"]:
@@ -1584,7 +1559,8 @@ def migrate_invoice_lines(cr):
     # Create account_move
     ignored_unposted_invoices = {}
     skipped_taxes = {}
-    with skip_failing_python_taxes(env, skipped_taxes):
+    imp = util.import_script("account/account_util.py")
+    with imp.skip_failing_python_taxes(env, skipped_taxes):
         Move = env["account.move"].with_context(check_move_validity=False)
         created_moves = Move.browse()
         mappings = []
@@ -1632,7 +1608,7 @@ def migrate_invoice_lines(cr):
                      AND rel.account_tax_id in %s
                 GROUP BY move.id
             """,
-            (tuple(created_moves.ids), tuple(skipped_taxes.keys()),),
+            (tuple(created_moves.ids), tuple(skipped_taxes.keys())),
         )
         recompute_tax_move_ids = [r[0] for r in cr.fetchall()]
         util.add_to_migration_reports(
