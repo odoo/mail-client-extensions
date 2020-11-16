@@ -34,4 +34,4 @@ popd >/dev/null
 
 set -x
 # run matt via docker
-docker run --tty --network=none -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" upgrade-ci:1 /run-matt.sh "$@"
+docker run --rm --tty --network=none -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" upgrade-ci:1 /run-matt.sh "$@"
