@@ -53,13 +53,21 @@ class Main extends React.Component<MainProps, MainState> {
         this.loadOrReload();
     }
 
+
     _connectedFlow = () => {
         if (!Office.context.mailbox.item) {
             return;
         }
-        
-        const email = Office.context.mailbox.item.from.emailAddress;
-        const displayName = Office.context.mailbox.item.from.displayName;
+
+        // If outlook is showing the oultook user's answer, we pick the sender of the original email.
+        // Which is most likely the first "to" address, until proven otherwise.
+        let email = Office.context.mailbox.item.from.emailAddress;
+        let displayName = Office.context.mailbox.item.from.displayName;
+        if (Office.context.mailbox.userProfile.emailAddress == Office.context.mailbox.item.from.emailAddress) {
+            email = Office.context.mailbox.item.to[0].emailAddress;
+            displayName = Office.context.mailbox.item.to[0].displayName;
+        }
+
         this.context.setIsLoading(true);
 
         const cancellablePartnerRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.getPartner, ContentType.Json, this.context.getConnectionToken(), {
@@ -110,8 +118,16 @@ class Main extends React.Component<MainProps, MainState> {
   _disconnectedFlow() {
     Office.context.mailbox.getUserIdentityTokenAsync(idTokenResult=>{
         const userEmail = Office.context.mailbox.userProfile.emailAddress;
-        const senderEmail = Office.context.mailbox.item.from.emailAddress;
-        const senderDisplayName = Office.context.mailbox.item.from.displayName;
+
+        // The "sender" is the sender of the original mail.
+        // If outlook is showing the oultook user's answer, we pick the sender of the original email.
+        // Which is most likely the first "to" address, until proven otherwise.
+        let senderEmail = Office.context.mailbox.item.from.emailAddress;
+        let senderDisplayName = Office.context.mailbox.item.from.displayName;
+        if (Office.context.mailbox.userProfile.emailAddress == Office.context.mailbox.item.from.emailAddress) {
+            senderEmail = Office.context.mailbox.item.to[0].emailAddress;
+            senderDisplayName = Office.context.mailbox.item.to[0].displayName;
+        }
         const senderDomain = senderEmail.split('@')[1];
 
         const partner = new PartnerData();
@@ -185,6 +201,7 @@ class Main extends React.Component<MainProps, MainState> {
 
     _getMessageBars = () => {
         const {type, info} = this.state.EnrichmentInfo;
+        const message = this.state.EnrichmentInfo.getTypicalMessage();
         let bars = [];
         if (this.state.showPartnerCreatedMessage && this.state.partnerCreated) {
             bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this._hidePartnerCreatedMessage}>Contact created</MessageBar>);
@@ -198,11 +215,12 @@ class Main extends React.Component<MainProps, MainState> {
                 break;
             case EnrichmentInfoType.NoData:
             case EnrichmentInfoType.NotConnected_NoData:
-                bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
+                bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this._hideEnrichmentInfoMessage}>{message}</MessageBar>);
                 break;
             case EnrichmentInfoType.InsufficientCredit:
                 bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>
-                    Could not auto-complete the company: not enough credits!
+                    {message}
+                    <br/>
                     <Link href={info} target="_blank">
                         Buy More
                     </Link>
@@ -212,7 +230,7 @@ class Main extends React.Component<MainProps, MainState> {
             case EnrichmentInfoType.NotConnected_InternalError:
             case EnrichmentInfoType.Other:
             case EnrichmentInfoType.ConnectionError:
-                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{info}</MessageBar>);
+                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{message}</MessageBar>);
                 break;
             }
         }

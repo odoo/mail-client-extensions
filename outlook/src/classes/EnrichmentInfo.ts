@@ -15,13 +15,11 @@ class EnrichmentInfo {
 
     constructor(type?:EnrichmentInfoType, info?:string) {
         this.type = type || EnrichmentInfoType.None;
-        // Override the info returned by the service, unless we don't actually have a typical message.
-        // Messages' content should come from only one place, and ideally the front end.
-        this.info = this.getTypicalMessage(this.type) || info;
+        this.info = info;
     }
 
-    public getTypicalMessage(type: EnrichmentInfoType) {
-        switch (type) {
+    getTypicalMessage = () => {
+        switch (this.type) {
             case EnrichmentInfoType.None:
                 return "";
             case EnrichmentInfoType.CompanyCreated:
