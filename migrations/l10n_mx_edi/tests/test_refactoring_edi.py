@@ -7,6 +7,13 @@ import base64
 import os
 
 
+def coalesce(obj, *attrs):
+    for attr in attrs:
+        if hasattr(obj, attr):
+            return getattr(obj, attr)
+    raise AttributeError()
+
+
 @change_version("13.5")
 class TestRefactoringEDI(UpgradeCase):
 
@@ -23,9 +30,8 @@ class TestRefactoringEDI(UpgradeCase):
         invoice = self.env["account.move"].with_user(user).create(invoice_vals)
         self._post_no_web_services(invoice)
 
-        cfdi_str = self.env["ir.qweb"]._render(
-            self.env.ref("l10n_mx_edi.cfdiv33"), invoice._l10n_mx_edi_create_cfdi_values()
-        )
+        render = coalesce(self.env["ir.qweb"], "render", "_render")
+        cfdi_str = render(self.env.ref("l10n_mx_edi.cfdiv33"), invoice._l10n_mx_edi_create_cfdi_values())
         cfdi_str = cfdi_str.replace(b"xmlns__", b"xmlns:")
         filename = ("%s-%s-MX-Invoice-3-3.xml" % (invoice.journal_id.code, invoice.name)).replace("/", "")
         invoice.l10n_mx_edi_cfdi_name = filename
@@ -219,7 +225,6 @@ class TestRefactoringEDI(UpgradeCase):
                     "uom_id": self.env.ref("uom.product_uom_kgm").id,
                     "lst_price": 1000.0,
                     "property_account_income_id": account_income.id,
-                    "unspsc_code_id": self.env.ref("product_unspsc.unspsc_code_01010101").id,
                 }
             )
         )
