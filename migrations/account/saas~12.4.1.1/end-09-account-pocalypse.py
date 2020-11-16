@@ -1196,7 +1196,12 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                          AVG(invl.price_unit) as price_unit,
                          SUM(price_subtotal) as price_subtotal,
                          SUM(price_total) as price_total,
-                         ROUND(SUM(quantity * discount) / SUM(quantity), 3) as discount -- weighted average
+                         ROUND(
+                             CASE WHEN SUM(ABS(quantity)) > 0
+                             THEN SUM(ABS(quantity) * discount) / SUM(ABS(quantity)) -- weighted average
+                             ELSE AVG(discount)
+                             END
+                         ,3) as discount
                     FROM invl
                 GROUP BY invl.move_id, invl.product_id, invl.account_id, taxes
                 HAVING COUNT(*) > 1
