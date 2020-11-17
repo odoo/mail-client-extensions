@@ -33,6 +33,36 @@ def migrate(cr, version):
     # Note: during the migration, the taxes need to be fixed because the anglo saxon lines don't need taxes anymore.
 
     cr.execute('''
+        WITH property_account AS (
+            SELECT DISTINCT SUBSTRING(value_reference FROM '%,#"_*#"%' FOR '#')::int4 AS id
+            FROM ir_property
+            WHERE name IN (
+                    'property_stock_account_input',
+                    'property_stock_account_output',
+                    'property_stock_account_input_categ_id',
+                    'property_stock_account_output_categ_id',
+                    'property_account_creditor_price_difference',
+                    'property_account_creditor_price_difference_categ'
+            )
+        )
+        UPDATE account_move_line
+        SET is_anglo_saxon_line = 't'
+        WHERE id IN (
+            SELECT aml.id
+            FROM account_move_line aml
+            JOIN account_move move ON move.id = aml.move_id
+            JOIN account_account aa ON aa.id = aml.account_id
+            JOIN property_account prop_acc ON prop_acc.id = aml.account_id
+            WHERE move.type IN ('in_invoice', 'in_refund', 'in_receipt')
+            AND aml.product_id IS NOT NULL
+            AND aml.tax_repartition_line_id IS NULL
+            AND aml.display_type IS NULL
+            AND aml.exclude_from_invoice_tab
+            AND aa.internal_type NOT IN ('receivable', 'payable')
+        )
+    ''')
+
+    cr.execute('''
         SELECT
             move.type,
             move.currency_id AS move_currency_id,

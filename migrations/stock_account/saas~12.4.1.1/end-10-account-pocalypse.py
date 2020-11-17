@@ -3,32 +3,42 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    # Manage new is_anglo_saxon_line field.
-    cr.execute(
-        """
+    cr.execute('''
         UPDATE account_move_line aml
-        SET is_anglo_saxon_line = 't'
-        FROM account_account account
-        WHERE account.id IN (
-            SELECT DISTINCT SUBSTRING(value_reference FROM '%,#"_*#"%' FOR '#')::int4
+        SET is_anglo_saxon_line = 'f'
+        WHERE NOT aml.exclude_from_invoice_tab
+    ''')
+
+    cr.execute('''
+        WITH property_account AS (
+            SELECT DISTINCT SUBSTRING(value_reference FROM '%,#"_*#"%' FOR '#')::int4 AS id
             FROM ir_property
             WHERE name IN (
                 'property_stock_account_input',
                 'property_stock_account_output',
                 'property_stock_account_input_categ_id',
                 'property_stock_account_output_categ_id',
-                'property_valuation',
-                'property_account_creditor_price_difference',
-                'property_account_creditor_price_difference_categ'
+                'property_account_income_id',
+                'property_account_expense_id',
+                'property_account_income_categ_id',
+                'property_account_expense_categ_id'
             )
         )
-        AND account.id = aml.account_id
-    """
-    )
-    cr.execute('''
-        UPDATE account_move_line aml
-        SET is_anglo_saxon_line = 'f'
-        WHERE NOT aml.exclude_from_invoice_tab
+        UPDATE account_move_line
+        SET is_anglo_saxon_line = 't'
+        WHERE id IN (
+            SELECT aml.id
+            FROM account_move_line aml
+            JOIN account_move move ON move.id = aml.move_id
+            JOIN account_account aa ON aa.id = aml.account_id
+            JOIN property_account prop_acc ON prop_acc.id = aml.account_id
+            WHERE move.type IN ('out_invoice', 'out_refund', 'out_receipt')
+            AND aml.product_id IS NOT NULL
+            AND aml.tax_repartition_line_id IS NULL
+            AND aml.display_type IS NULL
+            AND aml.exclude_from_invoice_tab
+            AND aa.internal_type NOT IN ('receivable', 'payable')
+        )
     ''')
 
     # For other settings than (auto valuation (real_time) and FIFO costing method), stock valuation layers (SVL)
