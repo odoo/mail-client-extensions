@@ -49,7 +49,7 @@ class TestAccountPocalypse(UpgradeCase):
         move = self.env["account.move"].browse(self._get_move_id_from_invoice_id(invoice_id))
         receivable_line = move.line_ids.filtered(lambda line: line.account_id.id == config["account_receivable_id"])
 
-        self.assertFalse(move.ref)
+        self.assertEqual(move.ref, 'name_receivable_line')
         self.assertEqual(move.invoice_payment_ref, "CUST123456789")
         self.assertEqual(receivable_line.name, "CUST123456789")
 

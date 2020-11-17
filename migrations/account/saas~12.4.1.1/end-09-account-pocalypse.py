@@ -1397,7 +1397,7 @@ def migrate_invoice_lines(cr):
             inv.user_id                             AS invoice_user_id,
             inv.vendor_display_name                 AS invoice_partner_display_name,
             inv.journal_id,
-            CASE WHEN inv.type IN ('out_invoice', 'out_refund') THEN NULL ELSE inv.reference END
+            CASE WHEN inv.type IN ('out_invoice', 'out_refund') THEN inv.name ELSE inv.reference END
                                                     AS ref,
             inv.number                              AS name,
             inv.comment                             AS narration,
