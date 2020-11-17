@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     # migrate to the new edi api.
+    util.update_record_from_xml(cr, "l10n_mx_edi.edi_cfdi_3_3", force_create=True)
     mx_edi_format_id = util.ref(cr, "l10n_mx_edi.edi_cfdi_3_3")
 
     # Posted/signed invoices.
