@@ -213,9 +213,11 @@ def migrate(cr, version):
             UPDATE account_move_line line
                SET account_id = journal.payment_debit_account_id
               FROM account_payment pay
+              JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
               JOIN account_move move ON move.id = pay.move_id
               JOIN account_journal journal ON journal.id = move.journal_id
-             WHERE move.statement_line_id IS NULL
+             WHERE pay_backup.no_replace_account IS FALSE
+               AND move.statement_line_id IS NULL
                AND line.move_id = move.id
                AND line.account_id {account_cmp}
                AND line.balance >= 0.0
@@ -226,9 +228,11 @@ def migrate(cr, version):
             UPDATE account_move_line line
                SET account_id = journal.payment_credit_account_id
               FROM account_payment pay
+              JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
               JOIN account_move move ON move.id = pay.move_id
               JOIN account_journal journal ON journal.id = move.journal_id
-             WHERE move.statement_line_id IS NULL
+             WHERE pay_backup.no_replace_account IS FALSE
+               AND move.statement_line_id IS NULL
                AND line.move_id = move.id
                AND line.account_id {account_cmp}
                AND line.balance < 0.0

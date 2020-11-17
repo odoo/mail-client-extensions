@@ -812,12 +812,19 @@ class TestPaymentPocalypse(UpgradeCase):
 
         self.assertEqual(bank_statement_line.journal_entry_ids.move_id.sorted(), blue_lines.move_id.sorted())
 
-        return [bank_statement_line.id, blue_lines.move_id.ids]
+        return [bank_statement_line.id, blue_lines.move_id.ids, payments.ids]
 
-    def _check_test_14_statement_line_blue_lines_reconciliation(self, config, bank_statement_line_id, move_ids):
+    def _check_test_14_statement_line_blue_lines_reconciliation(self, config, bank_statement_line_id, move_ids, payment_ids):
         ''' Check result of '_prepare_test_12_statement_line_black_and_blue_lines_reconciliation'. '''
+        bank_journal = self.env['account.journal'].browse(config['bank_journal_id'])
         st_line = self.env['account.bank.statement.line'].browse(bank_statement_line_id)
+        payments = self.env['account.payment'].browse(payment_ids)
+        outstanding_lines = payments.move_id.line_ids\
+            .filtered(lambda line: line.account_id == bank_journal.payment_debit_account_id)
+
         self.assertRecordValues(st_line, [{'move_id': max(move_ids)}])
+        self.assertFalse(outstanding_lines)
+        self.assertTrue(min(payments.mapped('is_matched')))
 
     # -------------------------------------------------------------------------
     # SETUP

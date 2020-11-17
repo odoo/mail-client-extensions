@@ -46,6 +46,7 @@ def migrate(cr, version):
     cr.execute("CREATE TABLE account_payment_pre_backup AS TABLE account_payment")
     cr.execute("CREATE TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
     cr.execute("CREATE TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)")
+    util.create_column(cr, 'account_payment_pre_backup', 'no_replace_account', 'boolean', default=False)
 
     # Migrate columns / fields.
 
@@ -104,7 +105,7 @@ def migrate(cr, version):
     util.create_column(cr, "account_bank_statement_line", "move_id", "int4")
     cr.execute("CREATE index ON account_bank_statement_line(move_id)")
     util.create_column(cr, "account_bank_statement_line", "amount_residual", "float8")
-    util.create_column(cr, "account_bank_statement_line", "is_reconciled", "boolean")
+    util.create_column(cr, "account_bank_statement_line", "is_reconciled", "boolean", default=False)
     util.create_column(cr, "account_bank_statement_line", "foreign_currency_id", "int4")
     util.rename_field(cr, "account.bank.statement.line", "name", "payment_ref")
     for field_name in (
@@ -120,8 +121,8 @@ def migrate(cr, version):
     util.create_column(cr, "account_payment", "move_id", "int4")
     cr.execute("CREATE index ON account_payment(move_id)")
     util.create_column(cr, "account_payment", "destination_account_id", "int4")
-    util.create_column(cr, "account_payment", "is_reconciled", "boolean")
-    util.create_column(cr, "account_payment", "is_matched", "boolean")
+    util.create_column(cr, "account_payment", "is_reconciled", "boolean", default=False)
+    util.create_column(cr, "account_payment", "is_matched", "boolean", default=False)
     for field_name in ("company_id", "name", "state", "journal_id"):
         util.remove_column(cr, "account_payment", field_name)
     util.rename_field(cr, "account.payment", "partner_bank_account_id", "partner_bank_id")
@@ -145,6 +146,24 @@ def migrate(cr, version):
         "destination_journal_id",
     ):
         util.remove_field(cr, "account.payment", field_name)
+
+    # Don't replace the payment account by the outstanding account if any link to a statement line.
+    # Match the same journal to manage correctly the internal transfers.
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            '''
+                UPDATE account_payment_pre_backup pay_backup
+                SET no_replace_account = TRUE
+                FROM account_move_line line
+                WHERE line.payment_id = pay_backup.id
+                AND line.statement_line_id IS NOT NULL
+                AND line.journal_id = pay_backup.journal_id
+            ''',
+            prefix='pay_backup.'
+        ),
+    )
 
     # ==== Migrate the bank statements ====
 
@@ -584,31 +603,20 @@ def migrate(cr, version):
     """
     )
 
-    cr.execute(
-        """
-        UPDATE account_payment
-        SET is_reconciled = FALSE
-        WHERE is_reconciled IS NULL
-    """
-    )
-
     # Compute 'is_matched'.
 
-    cr.execute(
-        """
-        UPDATE account_payment pay
-        SET is_matched = (move.statement_line_id IS NOT NULL)
-        FROM account_move move
-        WHERE pay.move_id = move.id
-    """
-    )
-
-    cr.execute(
-        """
-        UPDATE account_payment
-        SET is_matched = FALSE
-        WHERE is_matched IS NULL
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            '''
+                UPDATE account_payment pay
+                SET is_matched = pay_backup.no_replace_account
+                FROM account_payment_pre_backup pay_backup
+                WHERE pay.id = pay_backup.id
+            ''',
+            prefix='pay.',
+        ),
     )
 
     # ==== Check ====
