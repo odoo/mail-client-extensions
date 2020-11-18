@@ -1196,6 +1196,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                          AVG(invl.price_unit) as price_unit,
                          SUM(price_subtotal) as price_subtotal,
                          SUM(price_total) as price_total,
+                         SUM(quantity) as quantity,
                          ROUND(
                              CASE WHEN SUM(ABS(quantity)) > 0
                              THEN SUM(ABS(quantity) * discount) / SUM(ABS(quantity)) -- weighted average
@@ -1220,6 +1221,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                           price_unit = grouped_invl.price_unit,
                           price_subtotal = grouped_invl.price_subtotal,
                           price_total = grouped_invl.price_total,
+                          quantity = grouped_invl.quantity,
                           discount = grouped_invl.discount
                      FROM grouped_aml
                      JOIN grouped_invl
