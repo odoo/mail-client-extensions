@@ -212,7 +212,10 @@ class TestAccountPocalypse(UpgradeCase):
         invoice_id, expected = args
         move = self.env["account.move"].browse(self._get_move_id_from_invoice_id(invoice_id))
         result = self.env["account.invoice.report"].read_group(
-            [("move_id", "=", move.id)], ["product_id", "quantity", "price_subtotal"], ["product_id"]
+            [("move_id", "=", move.id)],
+            ["product_id", "quantity", "price_subtotal"],
+            ["product_id"],
+            lazy=False,
         )
         for product_id, quantity, price_subtotal in expected:
             line = next(r for r in result if r["product_id"][0] == product_id)
