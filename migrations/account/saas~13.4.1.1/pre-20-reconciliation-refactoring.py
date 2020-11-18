@@ -37,7 +37,7 @@ def migrate(cr, version):
             AND line.id = part.debit_move_id
             AND line.currency_id = part.currency_id
         ''',
-        '''        
+        '''
             UPDATE account_partial_reconcile part
             SET
                 debit_currency_id = line.currency_id,
@@ -71,7 +71,7 @@ def migrate(cr, version):
             AND line.id = part.credit_move_id
             AND line.currency_id = part.currency_id
         ''',
-        '''        
+        '''
             UPDATE account_partial_reconcile part
             SET
                 credit_currency_id = line.currency_id,
@@ -84,6 +84,18 @@ def migrate(cr, version):
         ''',
     ]
     util.parallel_execute(cr, credit_queries)
+
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            '''
+                UPDATE account_move_line
+                SET amount_residual_currency = amount_residual
+                WHERE currency_id = company_currency_id
+            ''',
+        ),
+    )
 
     util.remove_field(cr, 'account.partial.reconcile', 'currency_id')
     util.remove_field(cr, 'account.partial.reconcile', 'amount_currency')
