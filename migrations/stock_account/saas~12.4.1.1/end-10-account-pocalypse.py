@@ -3,13 +3,16 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    cr.execute('''
+    cr.execute(
+        """
         UPDATE account_move_line aml
         SET is_anglo_saxon_line = 'f'
         WHERE NOT aml.exclude_from_invoice_tab
-    ''')
+    """
+    )
 
-    cr.execute('''
+    cr.execute(
+        """
         WITH property_account AS (
             SELECT DISTINCT SUBSTRING(value_reference FROM '%,#"_*#"%' FOR '#')::int4 AS id
             FROM ir_property
@@ -39,7 +42,8 @@ def migrate(cr, version):
             AND aml.exclude_from_invoice_tab
             AND aa.internal_type NOT IN ('receivable', 'payable')
         )
-    ''')
+    """
+    )
 
     # For other settings than (auto valuation (real_time) and FIFO costing method), stock valuation layers (SVL)
     # are created based on stock moves.
@@ -68,8 +72,12 @@ def migrate(cr, version):
             sm.company_id,
             pp.id,
             CASE
-                WHEN (ls.usage = 'internal' OR ls.usage = 'transit' AND ls.company_id IS NOT NULL) AND ld.usage != 'internal' THEN -sm.product_qty
-                WHEN ls.usage != 'internal' AND (ld.usage = 'internal' OR ld.usage = 'transit' AND ld.company_id IS NOT NULL) THEN sm.product_qty
+                WHEN (ls.usage = 'internal' OR (ls.usage = 'transit' AND ls.company_id IS NOT NULL))
+                    AND ld.usage != 'internal'
+                    THEN -sm.product_qty
+                WHEN ls.usage != 'internal'
+                    AND (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
+                    THEN sm.product_qty
             END as quantity,
             sm.price_unit,
             sm.value,
@@ -145,8 +153,12 @@ def migrate(cr, version):
             sm.company_id,
             sm.product_id,
             CASE
-                WHEN (ls.usage = 'internal' OR ls.usage = 'transit' AND ls.company_id IS NOT NULL) AND ld.usage != 'internal' THEN -sm.product_qty
-                WHEN ls.usage != 'internal' AND (ld.usage = 'internal' OR ld.usage = 'transit' AND ld.company_id IS NOT NULL) THEN sm.product_qty
+                WHEN (ls.usage = 'internal' OR (ls.usage = 'transit' AND ls.company_id IS NOT NULL))
+                    AND ld.usage != 'internal'
+                    THEN -sm.product_qty
+                WHEN ls.usage != 'internal'
+                    AND (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
+                    THEN sm.product_qty
             END as quantity,
             aml_value.value,
             sm.price_unit,
@@ -230,14 +242,14 @@ def migrate(cr, version):
             unit_cost,
             description
         )
-        SELECT qt.company_id,
+        SELECT svl.company_id,
                pp.id,
                0,
-               qt.sum_value - svl.sum_value,
+               COALESCE(qt.sum_value, 0) - svl.sum_value,
                0,
                'upgrade: adjust valuation inconsistency'
           FROM product_product pp
-          JOIN quant_with_sumed_values qt ON qt.product_id = pp.id
+     LEFT JOIN quant_with_sumed_values qt ON qt.product_id = pp.id
           JOIN svl_with_sumed_values svl ON svl.product_id = pp.id
           JOIN product_template pt ON pt.id = pp.product_tmpl_id
           JOIN product_category pc ON pc.id = pt.categ_id
@@ -245,13 +257,13 @@ def migrate(cr, version):
                 SELECT res_id FROM ir_property
                  WHERE name = 'property_cost_method'
                    AND value_text = 'standard'
-                   AND company_id = qt.company_id
+                   AND company_id = svl.company_id
          )
             OR (
                 NOT EXISTS (
                     SELECT 1 FROM ir_property
                     WHERE name = 'property_cost_method'
-                    AND company_id = qt.company_id
+                    AND company_id = svl.company_id
                     AND res_id = 'product.category,' || pc.id
                 )
                 AND EXISTS (
@@ -260,9 +272,9 @@ def migrate(cr, version):
                     AND value_text = 'standard'
                 )
             )
-           AND qt.company_id = svl.company_id
-           AND qt.product_id = svl.product_id
-           AND qt.sum_value != svl.sum_value
+           AND (qt.company_id IS NULL OR qt.company_id = svl.company_id)
+           AND (qt.product_id IS NULL OR qt.product_id = svl.product_id)
+           AND COALESCE(qt.sum_value, 0) != svl.sum_value
     """
     )
 
