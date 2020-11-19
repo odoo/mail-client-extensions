@@ -74,6 +74,8 @@ def migrate(cr, version):
             plus={"hr_contract_salary_payroll", "l10n_be_hr_contract_salary"},
             minus={"hr_contract_salary"},
         )
+        util.new_module(cr, "hr_payroll_edit_lines", deps={"hr_payroll"}, auto_install=True)
+        util.new_module(cr, "l10n_be_hr_payroll_proration", deps={"l10n_be_hr_payroll"}, auto_install=True)
 
         util.merge_module(cr, "social_linkedin_company_support", "social_linkedin")
 
