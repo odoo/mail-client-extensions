@@ -18,11 +18,13 @@ from odoo.tools.safe_eval import safe_eval
 try:
     # v14+ forbids raw modules in eval context, use the wrapped ones instead
     from odoo.tools.safe_eval import datetime, time
-    to_patch = 'odoo.tools.safe_eval.datetime.datetime'
+
+    to_patch = "odoo.tools.safe_eval.datetime.datetime"
 except ImportError:
     import datetime
     import time
-    to_patch = 'datetime.datetime'
+
+    to_patch = "datetime.datetime"
 
 NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
@@ -132,7 +134,7 @@ class TestCrawler(IntegrityCase):
 
     def crawl_menu(self, menu, parent=None):
         menu_name = "%s > %s" % (parent, menu["name"]) if parent else menu["name"]
-        _logger.info("Mocking menu %s" % menu_name)
+        _logger.info("Mocking menu %s", menu_name)
         failing = set()
         if menu.get("action"):
             action_id = int(menu["action"].split(",")[1])
@@ -190,7 +192,9 @@ class TestCrawler(IntegrityCase):
         # because `get_bindings` calls read without passing the list fields,
         # and it therefore reads alls the fields, and some custom fields might be broken.
         with patch.object(
-            Action, "read", lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
+            Action,
+            "read",
+            lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
         ):
             views = model.load_views(
                 action["views"], options={"action_id": action.get("id"), "toolbar": True, "load_filters": True}
@@ -308,9 +312,7 @@ class TestCrawler(IntegrityCase):
                     "colors": literal_eval(progressbar.get("colors")),
                     "sum_field": progressbar.get("sum_field"),
                 }
-                model.read_progress_bar(
-                    domain, kanban_group_by, bar,
-                )
+                model.read_progress_bar(domain, kanban_group_by, bar)
 
     def mock_view_list(self, model, view, fields_list, domain, group_by):
         return self.mock_view_tree(model, view, fields_list, domain, group_by)
@@ -330,7 +332,7 @@ class TestCrawler(IntegrityCase):
 
     def mock_view_search(self, model, view, action_domain):
         default_filters = [
-            (key[len("search_default_") :], value)
+            (key[len("search_default_"):], value)
             for key, value in model.env.context.items()
             if key.startswith("search_default_") and value
         ]
@@ -375,7 +377,7 @@ class TestCrawler(IntegrityCase):
         if limit_group and data:
             # take samples at regular intervals
             # e.g. for a limit_group of 3 and a list of 10 elements, take indexes 0, 5, and 9
-            data = data[0 : -1 : math.ceil(len(data) / (limit_group - 1))] + [data[-1]]
+            data = data[0:-1:math.ceil(len(data) / (limit_group - 1))] + [data[-1]]
 
         # Get the display name of all groups
         group_by = group_by[0]
