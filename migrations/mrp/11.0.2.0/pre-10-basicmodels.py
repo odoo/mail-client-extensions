@@ -6,7 +6,7 @@ _logger = logging.getLogger(__name__)
 
 def migrate(cr, version):
     # Add columns
-    util.create_column(cr, 'stock_move_line', 'done_wo', 'bool')
+    util.create_column(cr, 'stock_move_line', 'done_wo', 'bool', default=None)  # force default to NULL
     util.create_column(cr, 'stock_move_line', 'production_id', 'int4')
     util.create_column(cr, 'stock_move_line', 'workorder_id', 'int4')
     util.create_column(cr, 'stock_move_line', 'lot_produced_id', 'int4')
