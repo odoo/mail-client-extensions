@@ -57,7 +57,7 @@ class TestCrawler(IntegrityCase):
                 if a[i] in [b[i] for b in before]:
                     break
             else:
-                if self.env.ref(a[0]).sudo().create_date.date() == fields.date.today():
+                if self.env["ir.ui.menu"].browse(a[1]).sudo().create_date.date() == fields.date.today():
                     _logger.warning("A new menu is failing: %s", a)
                 else:
                     diff.append(a)
