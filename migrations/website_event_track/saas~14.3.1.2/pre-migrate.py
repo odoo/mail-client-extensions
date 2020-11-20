@@ -23,3 +23,6 @@ def migrate(cr, version):
     }
     for old_name, new_name in acl_name_changes.items():
         util.rename_xmlid(cr, f"website_event_track.{old_name}", f"website_event_track.access_{new_name}")
+
+    # Remove ACLs
+    util.remove_record(cr, "website_event_track.access_event_track_tag_category_manager")

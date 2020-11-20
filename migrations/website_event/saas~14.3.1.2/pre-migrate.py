@@ -15,3 +15,10 @@ def migrate(cr, version):
     }
     for old_name, new_name in acl_name_changes.items():
         util.rename_xmlid(cr, f"website_event.{old_name}", f"website_event.access_{new_name}")
+
+    # Remove ACLs
+    util.remove_record(cr, "website_event.access_event_event_public")
+    util.remove_record(cr, "website_event.access_event_event_portal")
+    util.remove_record(cr, "website_event.access_event_event_ticket_public")
+    util.remove_record(cr, "website_event.access_event_event_ticket_portal")
+    util.remove_record(cr, "website_event.access_website_event_menu_manager")

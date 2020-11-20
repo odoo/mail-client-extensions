@@ -16,3 +16,6 @@ def migrate(cr, version):
         util.rename_xmlid(
             cr, f"website_event_questions.event_question_{old_name}", f"website_event_questions.access_{new_name}"
         )
+
+    # Remove ACLs
+    util.remove_record(cr, "website_event_questions.access_event_registration_answer_user")

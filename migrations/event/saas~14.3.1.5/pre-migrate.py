@@ -69,3 +69,16 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE event_event_ticket ALTER COLUMN end_sale_date TYPE timestamp"
                " USING end_sale_date + time '23:59:59'")
     util.rename_field(cr, "event.event.ticket", "end_sale_date", "end_sale_datetime")
+    util.create_column(cr, "event_registration", "active", "boolean", default=True)
+
+    # Remove ACLs
+    util.remove_record(cr, "event.access_event_type_user")
+    util.remove_record(cr, "event.access_event_type_ticket_user")
+    util.remove_record(cr, "event.access_event_event")
+    util.remove_record(cr, "event.access_event_event_ticket_manager")
+    util.remove_record(cr, "event.access_event_registration_user")
+    util.remove_record(cr, "event.access_event_mail_manager")
+    util.remove_record(cr, "event.access_event_mail_registration_user")
+    util.remove_record(cr, "event.access_event_type_mail_user")
+    util.remove_record(cr, "event.access_event_stage_user")
+    util.remove_record(cr, "event.access_event_tag_category_manager")
