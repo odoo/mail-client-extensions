@@ -56,7 +56,7 @@ def migrate(cr, version):
     util.create_column(cr, "mailing_trace", "trace_type", "varchar")
     util.create_column(cr, "mailing_trace", "campaign_id", "int4")
 
-    with util.disable_triggers(cr, "mailing_trace"):
+    if True:
         util.parallel_execute(
             cr,
             util.explode_query(

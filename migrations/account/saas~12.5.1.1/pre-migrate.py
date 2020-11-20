@@ -94,23 +94,21 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_move_line", "account_root_id", "int4")
     util.create_column(cr, "account_move_line", "tax_group_id", "int4")
-    with util.disable_triggers(cr, "account_move_line"):
-        cr.execute(
-            """
+    query = """
             UPDATE account_move_line l
                SET account_root_id = a.root_id
               FROM account_account a
              WHERE a.id = l.account_id
-        """
-        )
-        cr.execute(
-            """
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="l."))
+
+    query = """
             UPDATE account_move_line l
                SET tax_group_id = t.tax_group_id
              FROM account_tax t
             WHERE t.id = l.tax_line_id
-        """
-        )
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="l."))
 
     for suffix in {"", "_template"}:
         table = "account_reconcile_model" + suffix

@@ -43,7 +43,7 @@ def migrate(cr, version):
            SET combination_indices = i.indice
           FROM indices i
          WHERE i.product_product_id = p.id
-    """
+    """  # noqa: B950
     )
     cr.execute("UPDATE product_product SET combination_indices = '' WHERE combination_indices IS NULL")
 
@@ -65,29 +65,31 @@ def migrate(cr, version):
     util.create_column(cr, "product_template_attribute_line", "active", "boolean")
     cr.execute("UPDATE product_template_attribute_line SET active=true")
 
-    util.create_column(cr, "product_template_attribute_value", "ptav_active", "boolean")
+    util.create_column(cr, "product_template_attribute_value", "ptav_active", "boolean", default=True)
     util.create_column(cr, "product_template_attribute_value", "attribute_id", "int4")
     util.create_column(cr, "product_template_attribute_value", "attribute_line_id", "int4")
     util.remove_field(cr, "product.template.attribute.value", "sequence")
-    with util.disable_triggers(cr, "product_template_attribute_value"):
-        cr.execute("UPDATE product_template_attribute_value SET ptav_active=true")
-        cr.execute(
-            """
+
+    query = """
             UPDATE product_template_attribute_value tv
                SET attribute_id = pv.attribute_id
               FROM product_attribute_value pv
              WHERE pv.id = tv.product_attribute_value_id
-        """
-        )
-        cr.execute(
-            """
+    """
+    util.parallel_execute(
+        cr, util.explode_query_range(cr, query, table="product_template_attribute_value", prefix="tv.")
+    )
+
+    query = """
             UPDATE product_template_attribute_value v
                SET attribute_line_id = l.id
               FROM product_template_attribute_line l
              WHERE l.product_tmpl_id = v.product_tmpl_id
                AND l.attribute_id = v.attribute_id
-        """
-        )
+    """
+    util.parallel_execute(
+        cr, util.explode_query_range(cr, query, table="product_template_attribute_value", prefix="v.")
+    )
 
     util.create_column(cr, "product_pricelist_item", "active", "boolean")
     cr.execute(

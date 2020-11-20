@@ -38,35 +38,46 @@ def validate_phone(cr, lead_ids, out_sem):
 
 
 def migrate(cr, version):
-    with util.disable_triggers(cr, "crm_lead"):
-        cr.execute("UPDATE crm_lead SET phone_state = 'empty' WHERE phone_state IS NULL AND (phone IS NULL OR phone='')")
-        _logger.info("Starting phone_valid computation")
-        cr.execute("""
-            SELECT l.id, l.phone, c.code
-              FROM crm_lead l
-         LEFT JOIN res_country c ON c.id=l.country_id
-             WHERE phone_state IS NULL
-        """)
+    _logger.info("Starting phone_valid computation")
+    query = "UPDATE crm_lead SET phone_state = 'empty' WHERE phone_state IS NULL AND (phone IS NULL OR phone='')"
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead"))
 
-        lead_ids = [(res[0], res[1], res[2]) for res in cr.fetchall()]
-        _logger.info("Computing phone_valid")
-        nbr_thd = min(util.cpu_count(), 8)
-        chunksize = int(math.ceil(len(lead_ids) / float(nbr_thd)))
-        lead_chunks = [lead_ids[i:i + chunksize] for i in range(0, len(lead_ids), chunksize)] if chunksize > 0 else [lead_ids]
-        lst_thd = []
-        out_sem = Semaphore()
-        for chunk in lead_chunks:
-            p = Process(
-                target=validate_phone,
-                args=(cr, chunk, out_sem))
-            lst_thd.append(p)
-            p.start()
+    query = """
+        SELECT l.id, l.phone, c.code
+          FROM crm_lead l
+     LEFT JOIN res_country c ON c.id=l.country_id
+         WHERE phone_state IS NULL
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead", prefix="l."))
 
-        for p in lst_thd:
-            p.join()
+    lead_ids = [(res[0], res[1], res[2]) for res in cr.fetchall()]
+    _logger.info("Computing phone_valid")
+    nbr_thd = min(util.cpu_count(), 8)
+    chunksize = int(math.ceil(len(lead_ids) / float(nbr_thd)))
+    lead_chunks = (
+        [lead_ids[i : i + chunksize] for i in range(0, len(lead_ids), chunksize)]  # noqa: E203
+        if chunksize > 0
+        else [lead_ids]
+    )
+    lst_thd = []
+    out_sem = Semaphore()
+    for chunk in lead_chunks:
+        p = Process(target=validate_phone, args=(cr, chunk, out_sem))
+        lst_thd.append(p)
+        p.start()
 
-        _logger.info("Computing email_state")
-        cr.execute("UPDATE crm_lead SET email_state = 'empty'     WHERE email_state IS NULL AND (email_from IS NULL OR email_from='')")
-        cr.execute("UPDATE crm_lead SET email_state = 'correct'   WHERE email_state IS NULL AND email_from SIMILAR TO '([^ ,;<@]+@[^> ,;]+)'")
-        cr.execute("UPDATE crm_lead SET email_state = 'incorrect' WHERE email_state IS NULL")
-        _logger.info("Finished email_state computation")
+    for p in lst_thd:
+        p.join()
+
+    _logger.info("Computing email_state")
+    query = """
+        UPDATE crm_lead
+           SET email_state = CASE WHEN email_from IS NULL or email_from = ''
+                                  THEN 'empty'
+                                  WHEN email_from SIMILAR TO '([^ ,;<@]+@[^> ,;]+)'
+                                  THEN 'correct'
+                                  ELSE 'incorrect'
+                              END
+         WHERE email_state IS NULL
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead"))

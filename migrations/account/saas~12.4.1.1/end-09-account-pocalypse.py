@@ -653,9 +653,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     cr.execute("create index on invl_aml_mapping(aml_id)")
 
     _logger.info("invoices: copy business fields from voucher lines to move lines")
-    with util.disable_triggers(cr, "account_move_line"):
-        cr.execute(
-            """
+    query = """
             UPDATE account_move_line aml
                SET quantity = invl.quantity,
                    price_unit = invl.price_unit,
@@ -665,8 +663,8 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
               FROM invl_aml_mapping mapping
         INNER JOIN account_invoice_line invl ON invl.id = mapping.invl_id
              WHERE mapping.aml_id = aml.id
-            """
-        )
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
 
 
 def migrate_voucher_lines(cr):
@@ -1687,7 +1685,7 @@ def migrate_invoice_lines(cr):
     if cr.rowcount:
         env["account.move.line"].create(cr.dictfetchall())
 
-    with util.disable_triggers(cr, "account_move"):
+    if True:
         # First un-exclude from invoice tab so that we can reuse exclude_from_invoice_tab field when computing amounts
         _logger.info("Un-exclude from invoice tab")
         cr.execute(
