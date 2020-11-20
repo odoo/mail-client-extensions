@@ -225,7 +225,8 @@ def migrate(cr, version):
     # widget. It works for:
     # - matching a single blue line (payment).
     # - matching one or more black lines. In that case, a single payment will be generated.
-    mapping_queries.append('''
+    mapping_queries.append(
+        """
         SELECT
             line.statement_line_id,
             MAX(line.move_id) as move_id
@@ -236,11 +237,13 @@ def migrate(cr, version):
         AND account.internal_type = 'liquidity'
         GROUP BY line.statement_line_id
         HAVING COUNT(DISTINCT line.move_id) = 1
-    ''')
+        """
+    )
 
     # Retrieve the right journal entry based on the move_name stored on the statement line.
     # It works for all reconciliation having at least one black line.
-    mapping_queries.append('''
+    mapping_queries.append(
+        """
         SELECT
             line.statement_line_id,
             MAX(line.move_id) as move_id
@@ -255,11 +258,13 @@ def migrate(cr, version):
         AND line.move_name IS NOT NULL
         GROUP BY line.statement_line_id
         HAVING COUNT(DISTINCT line.move_id) = 1
-    ''')
+        """
+    )
 
     # Keep the first journal entry found on the same journal. This is needed when the statement line is reconciled with
     # multiple blue lines (payments).
-    mapping_queries.append('''
+    mapping_queries.append(
+        """
         SELECT
             line.statement_line_id,
             MAX(line.move_id) as move_id
@@ -269,10 +274,12 @@ def migrate(cr, version):
         WHERE st_line.move_id IS NULL
         AND st_line_backup.journal_id = line.journal_id
         GROUP BY line.statement_line_id
-    ''')
+        """
+    )
 
     # Keep the first journal entry found as fallback.
-    mapping_queries.append('''
+    mapping_queries.append(
+        """
         SELECT
             line.statement_line_id,
             MAX(line.move_id) as move_id
@@ -280,10 +287,12 @@ def migrate(cr, version):
         JOIN account_bank_statement_line st_line ON st_line.id = line.statement_line_id
         WHERE st_line.move_id IS NULL
         GROUP BY line.statement_line_id
-    ''')
+        """
+    )
 
     for mapping in mapping_queries:
-        cr.execute('''
+        cr.execute(
+            f"""
             WITH mapping AS ({mapping})
 
             UPDATE account_bank_statement_line st_line
@@ -291,7 +300,8 @@ def migrate(cr, version):
                 is_reconciled = TRUE
             FROM mapping
             WHERE id = mapping.statement_line_id AND st_line.move_id IS NULL
-        '''.format(mapping=mapping))
+            """
+        )
 
     cr.execute(
         """
@@ -368,7 +378,8 @@ def migrate(cr, version):
     )
 
     # At least one move line is still linked to the payment but not necessarily on the same journal.
-    cr.execute('''
+    cr.execute(
+        """
         WITH mapping AS (
             SELECT
                 line.payment_id,
@@ -385,7 +396,8 @@ def migrate(cr, version):
         SET move_id = mapping.move_id
         FROM mapping
         WHERE pay.id = mapping.payment_id
-    ''')
+    """
+    )
 
     # Corner case: no link left between account.payment & account.move.line due to manual
     # user edition.
