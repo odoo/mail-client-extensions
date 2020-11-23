@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+: "${DOCKER_IMAGE:=upgrade-ci:1}"
+
 HERE=$(dirname "$0")
 UPGRADEDIR=$(realpath "$HERE/..")
 
@@ -34,4 +36,4 @@ popd >/dev/null
 
 set -x
 # run matt via docker
-docker run --rm --tty --network=none -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" upgrade-ci:1 /run-matt.sh "$@"
+docker run --rm --tty --network=none -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" "$DOCKER_IMAGE" /run-matt.sh "$@"
