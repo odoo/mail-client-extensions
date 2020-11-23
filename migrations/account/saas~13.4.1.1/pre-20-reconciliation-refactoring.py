@@ -91,8 +91,9 @@ def migrate(cr, version):
             cr,
             '''
                 UPDATE account_move_line
-                SET amount_residual_currency = amount_residual
-                WHERE currency_id = company_currency_id
+                   SET amount_residual_currency = amount_residual
+                 WHERE currency_id = company_currency_id
+                   AND amount_residual_currency != amount_residual
             ''',
         ),
     )
