@@ -52,6 +52,7 @@ def migrate(cr, version):
             event.res_id, event.res_model_id.id or None, event.res_model,
             event.user_id.id or None, event.active,
             event.recurrency, recurrence.id,
+            event.create_date, event.write_date,
         ) for start, stop in ranges]
         # fmt:on
 
@@ -63,7 +64,7 @@ def migrate(cr, version):
                 description, privacy, location, show_as,
                 res_id, res_model_id, res_model,
                 user_id, active,
-                recurrency, recurrence_id
+                recurrency, recurrence_id, create_date, write_date
             )
             VALUES %s
     """,
