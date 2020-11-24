@@ -8,6 +8,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 if util.version_gte("10.0"):
     from odoo.modules.module import get_resource_path, get_resource_from_path
+    from odoo.tools.view_validation import _validators
 
     if util.version_gte("saas~11.1"):
         from odoo.addons.base.models.ir_ui_view import get_view_arch_from_file
@@ -15,6 +16,7 @@ if util.version_gte("10.0"):
         from odoo.addons.base.ir.ir_ui_view import get_view_arch_from_file
 else:
     get_resource_path = get_resource_from_path = get_view_arch_from_file = None
+    _validators = {}
 
 try:
     from odoo.tools.pycompat import to_text
@@ -167,19 +169,43 @@ class IrUiView(models.Model):
             with the fields coming from custom modules loaded as manual fields.
             """
             super(IrUiView, self)._register_hook()
+            origin_validators = dict(_validators)
+            dummy_validators = dict.fromkeys(_validators, [lambda *args, **kwargs: True])
+            standard_modules = tuple(get_standard_modules(self))
+            queries = [
+                """
+                       SELECT max(v.id)
+                         FROM ir_ui_view v
+                    LEFT JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
+                        WHERE md.module IN %(modules)s OR md.module IS NULL
+                          AND v.active
+                     GROUP BY coalesce(v.inherit_id, v.id)
+                """,
+                """
+                       SELECT max(v.id)
+                        FROM ir_ui_view v
+                        JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
+                       WHERE md.module NOT IN %(modules)s
+                         AND v.active
+                    GROUP BY coalesce(v.inherit_id, v.id)
+                """,
+            ]
             with util.custom_module_field_as_manual(self.env):
-                query = """SELECT max(id)
-                             FROM ir_ui_view
-                            WHERE active
-                         GROUP BY coalesce(inherit_id, id)"""
-                self._cr.execute(query)
-                views = self.browse(it[0] for it in self._cr.fetchall())
-
-                for view in views.with_context(_upgrade_validate_views=True, load_all_views=True):
-                    try:
-                        view._check_xml()
-                    except Exception:
-                        _logger.exception("invalid custom view %s for model %s", view.xml_id or view.id, view.model)
+                for is_custom_modules, query in enumerate(queries):
+                    self._cr.execute(query, {"modules": standard_modules})
+                    views = self.browse(it[0] for it in self._cr.fetchall())
+                    if is_custom_modules:
+                        _validators.update(dummy_validators)
+                    for view in views.with_context(
+                        _upgrade_validate_views=True,
+                        load_all_views=is_custom_modules,
+                        _upgrade_custom_modules=is_custom_modules,
+                    ):
+                        try:
+                            view._check_xml()
+                        except Exception:
+                            _logger.exception("invalid custom view %s for model %s", view.xml_id or view.id, view.model)
+            _validators.update(origin_validators)
 
         if util.version_gte("saas~11.5"):
             # Force the update of arch_fs and the view validation even if the view has been set to noupdate.
@@ -215,3 +241,13 @@ class IrUiView(models.Model):
                         _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
 
             return super().unlink()
+
+        def _validate_tag_button(self, *args, **kwargs):
+            if self.env.context.get("_upgrade_custom_modules"):
+                return
+            return super()._validate_tag_button(*args, **kwargs)
+
+        def _validate_tag_label(self, *args, **kwargs):
+            if self.env.context.get("_upgrade_custom_modules"):
+                return
+            return super()._validate_tag_label(*args, **kwargs)
