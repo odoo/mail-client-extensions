@@ -256,7 +256,7 @@ def migrate(cr, version):
          WHERE 'product.category,' || pc.id IN (
                 SELECT res_id FROM ir_property
                  WHERE name = 'property_cost_method'
-                   AND value_text = 'standard'
+                   AND value_text IN ('standard', 'average')
                    AND company_id = svl.company_id
          )
             OR (
@@ -269,7 +269,7 @@ def migrate(cr, version):
                 AND EXISTS (
                     SELECT 1 FROM ir_property
                     WHERE name = 'Cost Method Property'
-                    AND value_text = 'standard'
+                    AND value_text IN ('standard', 'average')
                 )
             )
            AND (qt.company_id IS NULL OR qt.company_id = svl.company_id)
