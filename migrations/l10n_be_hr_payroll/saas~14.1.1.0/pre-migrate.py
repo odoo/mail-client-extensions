@@ -4,6 +4,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    eb = util.expand_braces
+
+    util.rename_xmlid(cr, *eb("l10n_be_hr_payroll{_variable_revenue,}.work_entry_type_simple_holiday_pay_variable_salary"))
 
     util.remove_view(cr, "l10n_be_hr_payroll.hr_payslip_run_tree")
 
