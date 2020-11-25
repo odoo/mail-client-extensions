@@ -3,13 +3,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute("SELECT pad_server, pad_key FROM res_company WHERE pad_server IS NOT NULL")
-    if cr.rowcount:
-        if cr.rowcount > 1:
-            raise util.MigrationError(
-                "Upgrade of multiple pad servers and keys is not supported. "
-                "Please set the same pad configuration on all your companies."
-            )
+    cr.execute("SELECT DISTINCT pad_server, pad_key FROM res_company WHERE pad_server IS NOT NULL")
+    if cr.rowcount > 1:
+        util.add_to_migration_reports("Only one pad server is supported", "Pad")
+    elif cr.rowcount == 1:
         pad_server, pad_key = cr.fetchone()
         ICP = util.env(cr)["ir.config_parameter"]
         ICP.set_param("pad.pad_server", pad_server)
