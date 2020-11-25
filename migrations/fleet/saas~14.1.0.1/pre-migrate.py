@@ -10,8 +10,8 @@ def migrate(cr, version):
     util.create_column(cr, "fleet_vehicle", "frame_size", "float8")
     util.remove_field(cr, 'res.config.settings', 'module_fleet_account')
 
-    cr.execute("UPDATE res_partner SET plan_to_change_car=False")
-    cr.execute("UPDATE fleet_vehicle SET plan_to_change_car=False")
+    util.parallel_execute(cr, util.explode_query(cr, "UPDATE res_partner SET plan_to_change_car=False WHERE plan_to_change_car=True"))
+    cr.execute("UPDATE fleet_vehicle SET plan_to_change_car=False WHERE plan_to_change_car=False")
 
     cr.execute("SELECT res_id FROM ir_model_data WHERE name='fleet_vehicle_state_waiting_list'")
     row = cr.fetchone()
