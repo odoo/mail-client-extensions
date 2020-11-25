@@ -8,6 +8,7 @@ def migrate(cr, version):
     util.new_module(cr, "sale_sms", deps={"sale", "sms"}, auto_install=True)
     util.new_module(cr, "pos_coupon", deps={"coupon", "point_of_sale"})
     util.merge_module(cr, 'payment_fix_register_token', 'payment')
+    util.module_deps_diff(cr, "l10n_il", minus={"account"}, plus={"l10n_multilang"})
 
     if util.has_enterprise():
         util.module_auto_install(cr, "crm_helpdesk", True)
