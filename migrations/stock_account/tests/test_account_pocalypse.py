@@ -12,7 +12,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
         invoice_form = Form(self.env['account.invoice'].with_context(type='out_invoice'), view='account.invoice_form')
         invoice_form.partner_id = self.partner
         with invoice_form.invoice_line_ids.new() as line_form:
-            line_form.product_id = self.product
+            line_form.product_id = self.product_auto_fifo
             line_form.quantity = 5.0
             line_form.invoice_line_tax_ids.clear()
             line_form.invoice_line_tax_ids.add(self.tax_sale)
@@ -36,6 +36,39 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             {'account_id': config['account_stock_out_id'],  'debit': 0.0,   'credit': 50.0, 'is_anglo_saxon_line': True},
             {'account_id': config['account_expense_id'],    'debit': 50.0,  'credit': 0.0,  'is_anglo_saxon_line': True},
         ])
+
+    def _prepare_test_fifo_vacuum(self):
+        result = []
+        for product in [self.product_auto_average, self.product_auto_fifo]:
+            picking_form = Form(self.env['stock.picking'])
+            picking_form.picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'outgoing')], limit=1)
+            with picking_form.move_ids_without_package.new() as line_form:
+                line_form.product_id = product
+                line_form.product_uom_qty = 5.0
+            picking = picking_form.save()
+            picking.action_confirm()
+            picking.move_ids_without_package.quantity_done = 5.0
+            picking.button_validate()
+            self.assertEquals(product.qty_available, -5.0)
+            result.append((product.id, product.standard_price, product.qty_available))
+        return result
+
+    def _check_test_fifo_vacuum(self, config, values):
+        self.env = self.env(user=self.env["res.users"].browse(config['user']))
+        for product_id, standard_price, qty_available in values:
+            product = self.env['product.product'].browse(product_id)
+            self.assertEquals(product.qty_available, qty_available)
+            inventory_form = Form(self.env['stock.inventory'])
+            inventory_form.name = 'Inventory test_fifo_vacuum check'
+            inventory_form.product_ids.clear()
+            inventory_form.product_ids.add(product)
+            inventory = inventory_form.save()
+            inventory.action_start()
+            inventory.line_ids.product_qty = 20.0
+            inventory.action_validate()
+            self.assertEquals(product.qty_available, 20.0)
+            self.assertEquals(product.standard_price, standard_price)
+            self.assertEquals(product.value_svl / product.quantity_svl, standard_price)
 
     def prepare(self):
         test_name = 'TestAccountPocalypseStockAccount'
@@ -109,19 +142,38 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
         })
 
         # Setup product.
-        self.stock_account_product_categ = self.env['product.category'].create({
-            'name': 'Test category',
+        self.stock_account_product_categ_auto_fifo = self.env['product.category'].create({
+            'name': 'Test category auto FIFO',
             'property_valuation': 'real_time',
             'property_cost_method': 'fifo',
             'property_stock_account_input_categ_id': self.account_stock_in.id,
             'property_stock_account_output_categ_id': self.account_stock_out.id,
         })
 
+        self.stock_account_product_categ_auto_average = self.env['product.category'].create({
+            'name': 'Test category auto average',
+            'property_valuation': 'real_time',
+            'property_cost_method': 'average',
+            'property_stock_account_input_categ_id': self.account_stock_in.id,
+            'property_stock_account_output_categ_id': self.account_stock_out.id,
+        })
+
         self.uom_unit = self.env.ref('uom.product_uom_unit')
-        self.product = self.env['product.product'].create({
-            'name': "Test product %s" % test_name,
+        self.product_auto_fifo = self.env['product.product'].create({
+            'name': "Test product auto FIFO %s" % test_name,
             'type': 'product',
-            'categ_id': self.stock_account_product_categ.id,
+            'categ_id': self.stock_account_product_categ_auto_fifo.id,
+            'uom_id': self.uom_unit.id,
+            'uom_po_id': self.uom_unit.id,
+            'standard_price': 10.0,
+            'lst_price': 15.0,
+            'property_account_income_id': self.account_income.id,
+            'property_account_expense_id': self.account_expense.id,
+        })
+        self.product_auto_average = self.env['product.product'].create({
+            'name': "Test product auto average %s" % test_name,
+            'type': 'product',
+            'categ_id': self.stock_account_product_categ_auto_average.id,
             'uom_id': self.uom_unit.id,
             'uom_po_id': self.uom_unit.id,
             'standard_price': 10.0,
@@ -141,7 +193,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
         invoice_form = Form(self.env['account.invoice'].with_context(type='in_invoice'), view='account.invoice_supplier_form')
         invoice_form.partner_id = self.partner
         with invoice_form.invoice_line_ids.new() as line_form:
-            line_form.product_id = self.product
+            line_form.product_id = self.product_auto_fifo
             line_form.quantity = 100.0
         invoice = invoice_form.save()
         invoice.action_invoice_open()
@@ -149,8 +201,10 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
         return {
             'tests': [
                 self._prepare_test_1_single_currency(),
+                self._prepare_test_fifo_vacuum(),
             ],
             'config': {
+                'user': user.id,
                 'tax_sale_id': self.tax_sale.id,
                 'account_income_id': self.account_income.id,
                 'account_expense_id': self.account_expense.id,
@@ -162,3 +216,4 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
     def check(self, init):
         config = init['config']
         self._check_test_1_single_currency(config, init['tests'][0])
+        self._check_test_fifo_vacuum(config, init['tests'][1])

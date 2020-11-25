@@ -79,7 +79,7 @@ def migrate(cr, version):
                     AND (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
                     THEN sm.product_qty
             END as quantity,
-            sm.price_unit,
+            abs(sm.price_unit),
             sm.value,
             sm.remaining_qty,
             sm.remaining_value,
@@ -161,7 +161,7 @@ def migrate(cr, version):
                     THEN sm.product_qty
             END as quantity,
             aml_value.value,
-            sm.price_unit,
+            abs(sm.price_unit),
             sm.remaining_qty,
             sm.remaining_value,
             sm.reference,
