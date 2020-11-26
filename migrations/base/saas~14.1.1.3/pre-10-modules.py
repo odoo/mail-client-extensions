@@ -26,12 +26,21 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.new_module(cr, "planning_holidays", deps={"planning", "hr_holidays"}, auto_install=True)
+        util.new_module(cr, "worksheet", deps={"web_studio"})
+        util.new_module(cr, "quality_control_worksheet", deps={"quality_control", "worksheet"})
+        util.new_module(
+            cr,
+            "quality_mrp_workorder_worksheet",
+            deps={"quality_control_worksheet", "mrp_workorder"},
+            auto_install=True
+        )
 
         util.merge_module(cr, "l10n_be_hr_payroll_variable_revenue", "l10n_be_hr_payroll")  # odoo/enterprise#14458
         util.module_auto_install(cr, "crm_helpdesk", True)
 
         util.module_deps_diff(cr, "account_online_synchronization", plus={"account_accountant"})
         util.module_deps_diff(cr, "l10n_be_hr_payroll", plus={"hr_payroll_holidays"})
+        util.module_deps_diff(cr, "industry_fsm_report", plus={"worksheet"}, minus={"web_studio"})
 
         util.remove_module(cr, "account_plaid")
         util.remove_module(cr, "account_yodlee")
@@ -41,6 +50,8 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_be_hr_payroll_posted_employee", "hr_work_entry_contract")
         util.merge_module(cr, "l10n_be_hr_payroll_proration", "l10n_be_hr_payroll")
         util.merge_module(cr, "hr_payroll_edit_lines", "hr_payroll")
+
+        util.force_migration_of_fresh_module(cr, 'worksheet')
 
     util.remove_module(cr, "odoo_referral")
     util.ENVIRON["procurement_jit_uninstalled"] = not util.module_installed(cr, "procurement_jit")
