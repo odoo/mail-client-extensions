@@ -94,3 +94,8 @@ def migrate(cr, version):
 
     util.remove_field(cr, 'res.config.settings', 'module_account_yodlee')
     util.remove_field(cr, 'res.config.settings', 'module_account_plaid')
+
+    # ==========================================================================
+    # Task 2363287 : Avoid tax tags inversion on aml
+    # ==========================================================================
+    util.create_column(cr, 'account_move_line', 'tax_tag_invert', 'bool')
