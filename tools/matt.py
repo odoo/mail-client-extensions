@@ -242,7 +242,8 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         ] + cmd
         if options.run_tests:
             cmd += ["--http-port", str(free_port())]
-        p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        env = dict(os.environ, MATT="1")
+        p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         stdout = p.stdout.decode()
         if p.returncode:
             logger.error("Error (returncode=%s) while upgrading module %s:\n%s", p.returncode, module, stdout)
