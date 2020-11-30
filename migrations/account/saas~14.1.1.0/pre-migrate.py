@@ -99,3 +99,17 @@ def migrate(cr, version):
     # Task 2363287 : Avoid tax tags inversion on aml
     # ==========================================================================
     util.create_column(cr, 'account_move_line', 'tax_tag_invert', 'bool')
+
+    # ==========================================================================
+    # Task 2347881 : Cut-off wizard
+    # ==========================================================================
+
+    util.remove_column(cr, 'account_automatic_entry_wizard', 'total_amount')
+    util.remove_column(cr, 'account_automatic_entry_wizard', 'account_type')
+
+    util.remove_field(cr, 'account.automatic.entry.wizard', 'percentage')
+
+    util.create_column(cr, 'account_automatic_entry_wizard', 'chg_period_date_from', 'date')
+    util.create_column(cr, 'account_automatic_entry_wizard', 'chg_period_date_to', 'date')
+    util.create_column(cr, 'account_automatic_entry_wizard', 'chg_period_time_division', 'boolean')
+    util.create_column(cr, 'account_automatic_entry_wizard', 'chg_period_percentage', 'float8')
