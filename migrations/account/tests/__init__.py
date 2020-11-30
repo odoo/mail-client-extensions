@@ -4,6 +4,7 @@ from . import (
     test_14_1_journal_codes,
     test_account,
     test_account_pocalypse,
+    test_amounts,
     test_lockdate,
     test_payment_pocalypse,
     test_payments_13_4,
