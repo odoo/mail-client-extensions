@@ -21,10 +21,16 @@ try:
 
     to_patch = "odoo.tools.safe_eval.datetime.datetime"
 except ImportError:
-    import datetime
-    import time
+    try:
+        # older versions may have wrapped modules too
+        from odoo.tools.misc import datetime, time
 
-    to_patch = "datetime.datetime"
+        to_patch = "odoo.tools.misc.datetime.datetime"
+    except ImportError:
+        import datetime
+        import time
+
+        to_patch = "datetime.datetime"
 
 NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
