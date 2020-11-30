@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
-def migrate(cr, version):
-    util.remove_theme(cr, "theme_artists_sale", "theme_artists")
-    util.remove_theme(cr, "theme_real_estate_sale", "theme_real_estate")
-    util.remove_theme(cr, "theme_odoo_experts_sale", "theme_odoo_experts")
 
+def migrate(cr, version):
+    for theme in "artists beauty bookstore odoo_experts orchid real_estate vehicle yes".split():
+        util.remove_theme(cr, f"theme_{theme}_sale", f"theme_{theme}")
