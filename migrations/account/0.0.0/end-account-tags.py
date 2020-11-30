@@ -13,10 +13,11 @@ def migrate(cr, version):
 
     cr.execute(
         """
-              SELECT at.account_account_tag_id, account.chart_template_id, ARRAY_AGG(account.code)
+              SELECT at.account_account_tag_id, company.id, ARRAY_AGG(account.code)
                 FROM account_account_template_account_tag at
                 JOIN account_account_template account ON at.account_account_template_id = account.id
-            GROUP BY at.account_account_tag_id, account.chart_template_id
+                JOIN res_company company ON company.chart_template_id = account.chart_template_id
+            GROUP BY at.account_account_tag_id, company.id
             ORDER BY at.account_account_tag_id
         """
     )
@@ -47,7 +48,7 @@ def migrate(cr, version):
 
         tags = {tag[0]: {"name": tag[1], "xmlid": tag[2]} for tag in cr.fetchall()}
 
-        for (tag_id, chart_id), codes in add_tags.items():
+        for (tag_id, company_id), codes in add_tags.items():
             added_accounts = []
             for code in codes:
                 cr.execute(
@@ -55,12 +56,11 @@ def migrate(cr, version):
                            INSERT INTO account_account_account_tag(account_account_id, account_account_tag_id)
                                 SELECT a.id, %s
                                   FROM account_account a
-                                  JOIN res_company c ON a.company_id = c.id
-                                 WHERE c.chart_template_id = %s AND a.code LIKE %s
+                                 WHERE a.company_id = %s AND a.code LIKE %s
                         ON CONFLICT DO NOTHING
                              RETURNING account_account_id
                     """,
-                    (tag_id, chart_id, code.replace("_", r"\_") + "%"),
+                    (tag_id, company_id, code.replace("_", r"\_") + "%"),
                 )
                 added_accounts += [r[0] for r in cr.fetchall()]
 
@@ -78,7 +78,7 @@ def migrate(cr, version):
                     "Accounting",
                 )
 
-        for (tag_id, chart_id), codes in remove_tags.items():
+        for (tag_id, company_id), codes in remove_tags.items():
             removed_accounts = []
             for code in codes:
                 cr.execute(
@@ -88,11 +88,10 @@ def migrate(cr, version):
                                 AND account_account_id in (
                                     SELECT a.id
                                       FROM account_account a
-                                      JOIN res_company c ON a.company_id = c.id
-                                     WHERE c.chart_template_id = %s AND a.code LIKE %s)
+                                     WHERE a.company_id = %s AND a.code LIKE %s)
                           RETURNING account_account_id
                     """,
-                    (tag_id, chart_id, code.replace("_", r"\_") + "%"),
+                    (tag_id, company_id, code.replace("_", r"\_") + "%"),
                 )
                 removed_accounts += [r[0] for r in cr.fetchall()]
 

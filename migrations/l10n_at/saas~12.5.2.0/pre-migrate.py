@@ -25,5 +25,10 @@ def migrate(cr, version):
         for name in cr.fetchall():
             util.remove_record(cr, "l10n_at." + name[0])
 
+    cr.execute(
+        "SELECT ARRAY_AGG(id) FROM res_company WHERE chart_template_id = %s",
+        [util.ref(cr, "l10n_at.austria_chart_template")],
+    )
+    util.ENVIRON["austria_chart_template_company_ids"] = cr.fetchone()[0]
     util.remove_record(cr, "l10n_at.austria_chart_template")
     util.delete_unused(cr, "l10n_at.account_type_other")

@@ -6,10 +6,11 @@ def migrate(cr, version):
     # `account.account` tags
     cr.execute(
         """
-              SELECT at.account_account_tag_id, account.chart_template_id, ARRAY_AGG(account.code)
+              SELECT at.account_account_tag_id, company.id, ARRAY_AGG(account.code)
                 FROM account_account_template_account_tag at
                 JOIN account_account_template account ON at.account_account_template_id = account.id
-            GROUP BY at.account_account_tag_id, account.chart_template_id
+                JOIN res_company company ON company.chart_template_id = account.chart_template_id
+            GROUP BY at.account_account_tag_id, company.id
             ORDER BY at.account_account_tag_id
         """
     )
