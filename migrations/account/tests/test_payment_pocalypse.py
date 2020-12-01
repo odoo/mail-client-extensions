@@ -815,7 +815,7 @@ class TestPaymentPocalypse(UpgradeCase):
         return [bank_statement_line.id, blue_lines.move_id.ids, payments.ids]
 
     def _check_test_14_statement_line_blue_lines_reconciliation(self, config, bank_statement_line_id, move_ids, payment_ids):
-        ''' Check result of '_prepare_test_12_statement_line_black_and_blue_lines_reconciliation'. '''
+        ''' Check result of '_prepare_test_14_statement_line_blue_lines_reconciliation'. '''
         bank_journal = self.env['account.journal'].browse(config['bank_journal_id'])
         st_line = self.env['account.bank.statement.line'].browse(bank_statement_line_id)
         payments = self.env['account.payment'].browse(payment_ids)
@@ -825,6 +825,126 @@ class TestPaymentPocalypse(UpgradeCase):
         self.assertRecordValues(st_line, [{'move_id': max(move_ids)}])
         self.assertFalse(outstanding_lines)
         self.assertTrue(min(payments.mapped('is_matched')))
+
+    def _prepare_test_15_draft_statement_line_locked_period(self):
+        ''' Test the migration of a draft statement line that is inside a locked period but owned by a validated
+        statement.
+        '''
+        bank_accounts = self.get_bank_accounts(self.bank_journal_comp2)
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal_comp2.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': '2017-01-01',
+            'amount': 200.0,
+            'currency_id': self.company_2.currency_id.id,
+            'partner_id': self.partner_another_company.id,
+        })
+        payment.post()
+        blue_lines = payment.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
+
+        bank_statement = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal_comp2.id,
+            'date': '2017-01-01',
+            'balance_end_real': 200.0,
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner_another_company.id,
+                'amount': 200.0,
+                'date': '2017-01-01',
+            })],
+        })
+        bank_statement_line = bank_statement.line_ids
+        bank_statement_line.process_reconciliation(payment_aml_rec=blue_lines)
+        bank_statement.button_confirm_bank()
+
+        payment.move_name = False
+        payment.action_draft()
+        payment.unlink()
+
+        return [bank_statement_line.id]
+
+    def _check_test_15_draft_statement_line_locked_period(self, config, bank_statement_line_id):
+        ''' Check result of '_prepare_test_15_draft_statement_line_locked_period'. '''
+        st_line = self.env['account.bank.statement.line'].browse(bank_statement_line_id)
+        self.assertRecordValues(st_line.move_id, [{'state': 'cancel'}])
+
+    def _prepare_test_16_posted_payment_locked_period(self):
+        ''' Test the migration of a posted payment that is inside a locked period but not already matched with a
+        statement line.
+        '''
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal_comp2.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': '2017-01-01',
+            'amount': 200.0,
+            'currency_id': self.company_2.currency_id.id,
+            'partner_id': self.partner_another_company.id,
+        })
+        payment.post()
+
+        return [payment.id]
+
+    def _check_test_16_posted_payment_locked_period(self, config, payment_id):
+        ''' Check result of '_prepare_test_16_posted_payment_locked_period'. '''
+        payment = self.env['account.payment'].browse(payment_id)
+        bank_journal = self.env['account.journal'].browse(config['bank_journal_comp2_id'])
+
+        outstanding_lines = payment.move_id.line_ids.filtered(lambda line: line.account_id in (
+            bank_journal.payment_debit_account_id,
+            bank_journal.payment_credit_account_id,
+        ))
+        self.assertFalse(outstanding_lines)
+
+    def _prepare_test_17_matched_payment_with_writeoff(self):
+        ''' Test the migration of a statement line matched to a payment but with an additional write-off line. '''
+        bank_accounts = self.get_bank_accounts(self.bank_journal)
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': '2017-01-01',
+            'amount': 100.0,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        })
+        payment.post()
+        blue_line = payment.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
+
+        bank_statement = self.env['account.bank.statement'].create({
+            'journal_id': self.bank_journal.id,
+            'date': '2017-01-01',
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 200.0,
+                'date': '2017-01-01',
+            })],
+        })
+        bank_statement_line = bank_statement.line_ids
+
+        bank_statement_line.process_reconciliation(
+            payment_aml_rec=blue_line,
+            new_aml_dicts=[{
+                'name': 'test',
+                'debit': 0.0,
+                'credit': 100.0,
+                'account_id': self.account_income.id,
+            }],
+        )
+        return [bank_statement_line.id, payment.id]
+
+    def _check_test_17_matched_payment_with_writeoff(self, config, st_line_id, payment_id):
+        ''' Check result of '_prepare_test_17_matched_payment_with_writeoff'. '''
+        st_line = self.env['account.bank.statement.line'].browse(st_line_id)
+        payment = self.env['account.payment'].browse(payment_id)
+
+        self.assertRecordValues(st_line, [{'is_reconciled': True}])
+        self.assertRecordValues(payment, [{'is_reconciled': False, 'is_matched': True}])
 
     # -------------------------------------------------------------------------
     # SETUP
@@ -862,7 +982,8 @@ class TestPaymentPocalypse(UpgradeCase):
         if not chart_template:
             self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
 
-        chart_template.try_loading_for_current_company()
+        chart_template.try_loading(company=self.company)
+        chart_template.try_loading(company=self.company_2)
 
         # Setup accounts.
         revenue = self.env.ref('account.data_account_type_revenue').id
@@ -872,6 +993,10 @@ class TestPaymentPocalypse(UpgradeCase):
         self.account_receivable = self.env["account.account"].search(
             [("company_id", "=", self.company.id), ("user_type_id.type", "=", "receivable")], limit=1
         )
+        self.account_receivable_comp2 = self.env['account.account'].search([
+            ('company_id', '=', self.company_2.id),
+            ('user_type_id.type', '=', 'receivable'),
+        ], limit=1)
         self.account_payable = self.env["account.account"].search(
             [("company_id", "=", self.company.id), ("user_type_id.type", "=", "payable")], limit=1
         )
@@ -879,6 +1004,10 @@ class TestPaymentPocalypse(UpgradeCase):
         # Setup journals.
         self.bank_journal = self.env['account.journal'].search([
             ('company_id', '=', self.company.id),
+            ('type', '=', 'bank'),
+        ], limit=1)
+        self.bank_journal_comp2 = self.env['account.journal'].search([
+            ('company_id', '=', self.company_2.id),
             ('type', '=', 'bank'),
         ], limit=1)
         self.sale_journal = self.env['account.journal'].search([
@@ -929,7 +1058,7 @@ class TestPaymentPocalypse(UpgradeCase):
         self.pay_method_manual_in = self.env.ref("account.account_payment_method_manual_in")
         self.pay_method_manual_out = self.env.ref("account.account_payment_method_manual_out")
 
-        return {
+        res = {
             "tests": [
                 self._prepare_test_1_payment_without_move_lines(),
                 self._prepare_test_2_payment_draft_wrong_partner_company_deprecated_account(),
@@ -945,6 +1074,9 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_12_account_type(),
                 self._prepare_test_13_statement_line_black_and_blue_lines_reconciliation(),
                 self._prepare_test_14_statement_line_blue_lines_reconciliation(),
+                self._prepare_test_15_draft_statement_line_locked_period(),
+                self._prepare_test_16_posted_payment_locked_period(),
+                self._prepare_test_17_matched_payment_with_writeoff(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -952,16 +1084,23 @@ class TestPaymentPocalypse(UpgradeCase):
                 "partner_id": self.partner.id,
                 "partner_another_company_id": self.partner_another_company.id,
                 "bank_journal_id": self.bank_journal.id,
+                "bank_journal_comp2_id": self.bank_journal_comp2.id,
                 "sale_journal_id": self.sale_journal.id,
                 "bank_journal_2_id": self.bank_journal_2.id,
                 "bank_journal_3_post_at_bank_rec_id": self.bank_journal_3_post_at_bank_rec.id,
                 "bank_journal_deprecated_account_id": self.bank_journal_deprecated_account.id,
                 "account_receivable_id": self.account_receivable.id,
                 "account_payable_id": self.account_payable.id,
+                "account_receivable_comp2_2": self.account_receivable_comp2.id,
                 "pay_method_manual_in_id": self.pay_method_manual_in.id,
                 "pay_method_manual_out_id": self.pay_method_manual_out.id,
             },
         }
+
+        # Lock the period.
+        self.company_2.fiscalyear_lock_date = '2019-12-31'
+
+        return res
 
     def check(self, init):
         config = init["config"]
@@ -980,3 +1119,6 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_12_account_type(config, init['tests'][11])
         self._check_test_13_statement_line_black_and_blue_lines_reconciliation(config, *init['tests'][12])
         self._check_test_14_statement_line_blue_lines_reconciliation(config, *init['tests'][13])
+        self._check_test_15_draft_statement_line_locked_period(config, *init['tests'][14])
+        self._check_test_16_posted_payment_locked_period(config, *init['tests'][15])
+        self._check_test_17_matched_payment_with_writeoff(config, *init['tests'][16])

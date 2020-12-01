@@ -28,223 +28,229 @@ def migrate(cr, version):
 
     util.recompute_fields(cr, "account.bank.statement.line", ["amount_residual", "is_reconciled"])
 
-    with util.no_fiscal_lock(cr):
-        env = util.env(cr)
+    env = util.env(cr)
 
-        # ===========================================================
-        # Payment-pocalypse (PR: 41301 & 7019)
-        # ===========================================================
+    # ===========================================================
+    # Payment-pocalypse (PR: 41301 & 7019)
+    # ===========================================================
 
-        # ===== FIX CONFIG =====
+    # ===== FIX CONFIG =====
 
-        # Fix default suspense account for res.company that is the account used as counterpart on draft bank statement lines.
-        _create_journal = env["account.chart.template"]._create_liquidity_journal_suspense_account
-        for company in env["res.company"].search([]):
-            code_digits = company.chart_template_id.code_digits or 6
-            company.account_journal_suspense_account_id = _create_journal(company, code_digits)
+    # Fix default suspense account for res.company that is the account used as counterpart on draft bank statement lines.
+    _create_journal = env["account.chart.template"]._create_liquidity_journal_suspense_account
+    for company in env["res.company"].search([]):
+        code_digits = company.chart_template_id.code_digits or 6
+        company.account_journal_suspense_account_id = _create_journal(company, code_digits)
 
-        # Fix additional 'payment_debit_account_id', 'payment_credit_account_id', 'suspense_account_id' on account.journal.
-        # payment_debit_account_id/payment_credit_account_id are the new accounts used by the account.payments instead of
-        # default_debit_account_id/default_credit_account_id.
-        # suspense_account_id is the same as the one set on the company but allowing to have a custom one by journal.
-        cr.execute(
-            """
-            SELECT id
-              FROM account_journal
-             WHERE type IN ('bank', 'cash')
-                OR id IN (
-                     SELECT journal_id from account_bank_statement_line_pre_backup
-                      UNION
-                     SELECT journal_id from account_payment_pre_backup
-               )
-            """
-        )
-        journal_ids = [journal_id for journal_id, in cr.fetchall()]
-        current_assets_type = env.ref("account.data_account_type_current_assets")
-        liquidity_type = env.ref("account.data_account_type_liquidity")
-        for journal in util.iter_browse(env["account.journal"], journal_ids):
-            digits = journal.company_id.chart_template_id.code_digits or 6
-
-            if journal.type == "bank":
-                liquidity_account_prefix = journal.company_id.bank_account_code_prefix or ""
-            else:
-                liquidity_account_prefix = (
-                    journal.company_id.cash_account_code_prefix or journal.company_id.bank_account_code_prefix or ""
-                )
-
-            default_account_id = journal.default_account_id
-            if not default_account_id or default_account_id.user_type_id == liquidity_type:
-                debit_account = {
-                    "name": "Outstanding Receipts",
-                    "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
-                    "reconcile": True,
-                    "user_type_id": current_assets_type.id,
-                    "company_id": journal.company_id.id,
-                }
-                j1 = env["account.account"].create(debit_account)
-
-                credit_account = {
-                    "name": "Outstanding Payments",
-                    "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
-                    "reconcile": True,
-                    "user_type_id": current_assets_type.id,
-                    "company_id": journal.company_id.id,
-                }
-                j2 = env["account.account"].create(credit_account)
-            else:
-                j1 = default_account_id
-                j2 = default_account_id
-
-            cr.execute(
-                """
-                    UPDATE account_journal
-                       SET payment_debit_account_id=%s,
-                           payment_credit_account_id=%s,
-                           suspense_account_id=%s
-                     WHERE id=%s
-                """,
-                [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, journal.id],
-            )
-
-        # ===== FIX res.partner's company =====
-        # Some partners can have a company != move company...
-
-        cr.execute(
-            """
-            CREATE TABLE wrong_company_partners AS (
-                SELECT
-                    res_partner.id AS partner_id,
-                    res_partner.company_id AS company_id
-                FROM res_partner
-                JOIN account_bank_statement_line_pre_backup st_line_backup ON st_line_backup.partner_id = res_partner.id
-                JOIN account_journal journal ON journal.id = st_line_backup.journal_id
-                WHERE res_partner.company_id IS NOT NULL
-                AND res_partner.company_id != journal.company_id
-
-                UNION
-
-                SELECT res_partner.id, res_partner.company_id
-                FROM res_partner
-                JOIN account_payment_pre_backup pay_backup ON pay_backup.partner_id = res_partner.id
-                JOIN account_journal journal ON journal.id = pay_backup.journal_id
-                WHERE res_partner.company_id IS NOT NULL
-                AND res_partner.company_id != journal.company_id
-            )
+    # Fix additional 'payment_debit_account_id', 'payment_credit_account_id', 'suspense_account_id' on account.journal.
+    # payment_debit_account_id/payment_credit_account_id are the new accounts used by the account.payments instead of
+    # default_debit_account_id/default_credit_account_id.
+    # suspense_account_id is the same as the one set on the company but allowing to have a custom one by journal.
+    cr.execute(
         """
-        )
+        SELECT id
+          FROM account_journal
+         WHERE type IN ('bank', 'cash')
+            OR id IN (
+                 SELECT journal_id from account_bank_statement_line_pre_backup
+                  UNION
+                 SELECT journal_id from account_payment_pre_backup
+           )
+        """
+    )
+    journal_ids = [journal_id for journal_id, in cr.fetchall()]
+    current_assets_type = env.ref("account.data_account_type_current_assets")
+    liquidity_type = env.ref("account.data_account_type_liquidity")
+    for journal in util.iter_browse(env["account.journal"], journal_ids):
+        digits = journal.company_id.chart_template_id.code_digits or 6
+
+        if journal.type == "bank":
+            liquidity_account_prefix = journal.company_id.bank_account_code_prefix or ""
+        else:
+            liquidity_account_prefix = (
+                journal.company_id.cash_account_code_prefix or journal.company_id.bank_account_code_prefix or ""
+            )
+
+        default_account_id = journal.default_account_id
+        if not default_account_id or default_account_id.user_type_id == liquidity_type:
+            debit_account = {
+                "name": "Outstanding Receipts",
+                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                "reconcile": True,
+                "user_type_id": current_assets_type.id,
+                "company_id": journal.company_id.id,
+            }
+            j1 = env["account.account"].create(debit_account)
+
+            credit_account = {
+                "name": "Outstanding Payments",
+                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                "reconcile": True,
+                "user_type_id": current_assets_type.id,
+                "company_id": journal.company_id.id,
+            }
+            j2 = env["account.account"].create(credit_account)
+        else:
+            j1 = default_account_id
+            j2 = default_account_id
+
         cr.execute(
             """
-                UPDATE res_partner
-                   SET company_id = NULL
-                  FROM wrong_company_partners mapping
-                 WHERE mapping.partner_id = res_partner.id
-            """
+                UPDATE account_journal
+                   SET payment_debit_account_id=%s,
+                       payment_credit_account_id=%s,
+                       suspense_account_id=%s
+                 WHERE id=%s
+            """,
+            [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, journal.id],
         )
 
-        # ===== FIX deprecated account.account =====
+    # ===== FIX res.partner's company =====
+    # Some partners can have a company != move company...
 
-        cr.execute("UPDATE account_account SET deprecated = false WHERE deprecated = true RETURNING id")
-        deprecated_account_ids = [res[0] for res in cr.fetchall()]
-
-        # ===== FIX res.partner.bank's company =====
-        # Some res.partner.bank can have a company != move company...
-
-        cr.execute(
-            """
-            SELECT res_partner_bank.id, res_partner_bank.company_id
-            FROM account_payment_pre_backup pay_backup
-            JOIN res_partner_bank ON res_partner_bank.id = pay_backup.partner_bank_account_id
-            WHERE res_partner_bank.company_id IS NOT NULL
+    cr.execute(
+        """
+        CREATE TABLE wrong_company_partners AS (
+            SELECT
+                res_partner.id AS partner_id,
+                res_partner.company_id AS company_id
+            FROM res_partner
+            JOIN account_bank_statement_line_pre_backup st_line_backup ON st_line_backup.partner_id = res_partner.id
+            JOIN account_journal journal ON journal.id = st_line_backup.journal_id
+            WHERE res_partner.company_id IS NOT NULL
+            AND res_partner.company_id != journal.company_id
 
             UNION
 
-            SELECT res_partner_bank.id, res_partner_bank.company_id
-            FROM account_bank_statement_line_pre_backup st_line_backup
-            JOIN res_partner_bank ON res_partner_bank.id = st_line_backup.bank_account_id
-            WHERE res_partner_bank.company_id IS NOT NULL
-            """
+            SELECT res_partner.id, res_partner.company_id
+            FROM res_partner
+            JOIN account_payment_pre_backup pay_backup ON pay_backup.partner_id = res_partner.id
+            JOIN account_journal journal ON journal.id = pay_backup.journal_id
+            WHERE res_partner.company_id IS NOT NULL
+            AND res_partner.company_id != journal.company_id
         )
-        wrong_company_partner_bank_ids = dict(cr.fetchall())
-        if wrong_company_partner_bank_ids:
-            cr.execute(
-                "UPDATE res_partner_bank SET company_id = NULL WHERE id in %s",
-                [tuple(wrong_company_partner_bank_ids.keys())],
-            )
+    """
+    )
+    cr.execute(
+        """
+            UPDATE res_partner
+               SET company_id = NULL
+              FROM wrong_company_partners mapping
+             WHERE mapping.partner_id = res_partner.id
+        """
+    )
 
-        # ===== Posted account.payment =====
+    # ===== FIX deprecated account.account =====
 
-        # Manually deleted journal entries for posted payments.
+    cr.execute("UPDATE account_account SET deprecated = false WHERE deprecated = true RETURNING id")
+    deprecated_account_ids = [res[0] for res in cr.fetchall()]
 
-        cr.execute('''
-            SELECT pay.id
-            FROM account_payment pay
-            JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
-            WHERE pay_backup.state NOT IN ('draft', 'cancelled')
-            AND pay.move_id IS NULL
-        ''')
-        payment_ids = [res[0] for res in cr.fetchall()]
-        if payment_ids:
-            util.add_to_migration_reports(
-                "The following payments have been deleted during the migration because there were posted but no longer"
-                "linked to any journal entry: %s" % payment_ids
-            )
-            env['account.payment'].browse(payment_ids).unlink()
+    # ===== FIX res.partner.bank's company =====
+    # Some res.partner.bank can have a company != move company...
 
-        # Change the liquidity account of payments that are not yet reconciled with a statement line.
-        # This should be done because the payment is no longer impacting directly the bank/cash account like the
-        # statement line does. Instead, we use a temporary liquidity account.
-        # To work retroactively, this must be done only on journal entry that are not shared between
-        # an account.bank.statement.line and an account.payment.
-        # This part is done in 'post' because new account.account are created in 'post' to migrate
-        # the account.journal.
-        # //execute (thanks to line balce split)
-        # avoid to set a null value: new row for relation "account_move_line" violates check
-        # constraint "account_move_line_check_accountable_required_fields"
+    cr.execute(
+        """
+        SELECT res_partner_bank.id, res_partner_bank.company_id
+        FROM account_payment_pre_backup pay_backup
+        JOIN res_partner_bank ON res_partner_bank.id = pay_backup.partner_bank_account_id
+        WHERE res_partner_bank.company_id IS NOT NULL
 
-        if util.version_gte("saas~13.5"):
-            account_cmp = " = journal.default_account_id"
-        else:
-            account_cmp = "IN (journal.default_debit_account_id, journal.default_credit_account_id)"
+        UNION
 
-        util.parallel_execute(
-            cr,
-            [
-                f"""
-            UPDATE account_move_line line
-               SET account_id = journal.payment_debit_account_id
-              FROM account_payment pay
-              JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
-              JOIN account_move move ON move.id = pay.move_id
-              JOIN account_journal journal ON journal.id = move.journal_id
-             WHERE pay_backup.no_replace_account IS FALSE
-               AND move.statement_line_id IS NULL
-               AND line.move_id = move.id
-               AND line.account_id {account_cmp}
-               AND line.balance >= 0.0
-               AND journal.payment_debit_account_id IS NOT NULL
-               AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.debit_move_id = line.id)
-            """,
-                f"""
-            UPDATE account_move_line line
-               SET account_id = journal.payment_credit_account_id
-              FROM account_payment pay
-              JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
-              JOIN account_move move ON move.id = pay.move_id
-              JOIN account_journal journal ON journal.id = move.journal_id
-             WHERE pay_backup.no_replace_account IS FALSE
-               AND move.statement_line_id IS NULL
-               AND line.move_id = move.id
-               AND line.account_id {account_cmp}
-               AND line.balance < 0.0
-               AND journal.payment_credit_account_id IS NOT NULL
-               AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.credit_move_id = line.id)
-            """,
-            ],
+        SELECT res_partner_bank.id, res_partner_bank.company_id
+        FROM account_bank_statement_line_pre_backup st_line_backup
+        JOIN res_partner_bank ON res_partner_bank.id = st_line_backup.bank_account_id
+        WHERE res_partner_bank.company_id IS NOT NULL
+        """
+    )
+    wrong_company_partner_bank_ids = dict(cr.fetchall())
+    if wrong_company_partner_bank_ids:
+        cr.execute(
+            "UPDATE res_partner_bank SET company_id = NULL WHERE id in %s",
+            [tuple(wrong_company_partner_bank_ids.keys())],
         )
+
+    # ===== Posted account.payment =====
+
+    # Manually deleted journal entries for posted payments.
+
+    cr.execute('''
+        SELECT pay.id
+        FROM account_payment pay
+        JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
+        WHERE pay_backup.state NOT IN ('draft', 'cancelled')
+        AND pay.move_id IS NULL
+    ''')
+    payment_ids = [res[0] for res in cr.fetchall()]
+    if payment_ids:
+        util.add_to_migration_reports(
+            "The following payments have been deleted during the migration because there were posted but no longer"
+            "linked to any journal entry: %s" % payment_ids
+        )
+        env['account.payment'].browse(payment_ids).unlink()
+
+    # Change the liquidity account of payments that are not yet reconciled with a statement line.
+    # This should be done because the payment is no longer impacting directly the bank/cash account like the
+    # statement line does. Instead, we use a temporary liquidity account.
+    # To work retroactively, this must be done only on journal entry that are not shared between
+    # an account.bank.statement.line and an account.payment.
+    # This part is done in 'post' because new account.account are created in 'post' to migrate
+    # the account.journal.
+    # //execute (thanks to line balce split)
+    # avoid to set a null value: new row for relation "account_move_line" violates check
+    # constraint "account_move_line_check_accountable_required_fields"
+
+    if util.version_gte("saas~13.5"):
+        account_cmp = " = journal.default_account_id"
+    else:
+        account_cmp = "IN (journal.default_debit_account_id, journal.default_credit_account_id)"
+
+    util.parallel_execute(
+        cr,
+        [
+            f"""
+        UPDATE account_move_line line
+           SET account_id = journal.payment_debit_account_id
+          FROM account_payment pay
+          JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
+          JOIN account_move move ON move.id = pay.move_id
+          JOIN res_company company ON move.company_id = company.id
+          JOIN account_journal journal ON journal.id = move.journal_id
+         WHERE pay_backup.no_replace_account IS FALSE
+           AND move.statement_line_id IS NULL
+           AND line.move_id = move.id
+           AND line.account_id {account_cmp}
+           AND line.balance >= 0.0
+           AND journal.payment_debit_account_id IS NOT NULL
+           AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.debit_move_id = line.id)
+           AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
+        """,
+            f"""
+        UPDATE account_move_line line
+           SET account_id = journal.payment_credit_account_id
+          FROM account_payment pay
+          JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
+          JOIN account_move move ON move.id = pay.move_id
+          JOIN res_company company ON move.company_id = company.id
+          JOIN account_journal journal ON journal.id = move.journal_id
+         WHERE pay_backup.no_replace_account IS FALSE
+           AND move.statement_line_id IS NULL
+           AND line.move_id = move.id
+           AND line.account_id {account_cmp}
+           AND line.balance < 0.0
+           AND journal.payment_credit_account_id IS NOT NULL
+           AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.credit_move_id = line.id)
+           AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
+        """,
+        ],
+    )
+
+    with util.no_fiscal_lock(cr):
 
         # ===== Draft/cancelled account.payment =====
         env["account.payment"].flush()
         ctx = {"skip_account_move_synchronization": True, "tracking_disable": True}
+        created_move_ids = set()
 
         cr.execute(
             """
@@ -273,16 +279,13 @@ def migrate(cr, version):
             """
             mapping = {move.payment_id.id: move.id for move in moves}
             cr.execute(query.format(json.dumps(mapping)), [tuple(mapping)])
-            # cr.executemany(
-            #     '''UPDATE account_payment SET move_id = %s WHERE id = %s''',
-            #     [(move.id, move.payment_id.id) for move in moves],
-            # )
 
             moves.invalidate_cache()
             moves.payment_id._compute_destination_account_id()
 
             move_lines_to_create = []
             for move in moves:
+                created_move_ids.add(move.id)
                 for vals in move.payment_id._prepare_move_line_default_vals():
                     move_lines_to_create.append({**vals, "move_id": move.id, "exclude_from_invoice_tab": True})
 
@@ -360,10 +363,6 @@ def migrate(cr, version):
             """
             mapping = {move.statement_line_id.id: move.id for move in moves}
             cr.execute(query.format(json.dumps(mapping)), [tuple(mapping)])
-            # cr.executemany(
-            #     "UPDATE account_bank_statement_line SET move_id = %s WHERE id = %s",
-            #     [(move.id, move.statement_line_id.id) for move in moves],
-            # )
 
             cr.execute(
                 """
@@ -390,6 +389,7 @@ def migrate(cr, version):
 
             move_lines_to_create = []
             for move in moves:
+                created_move_ids.add(move.id)
                 for vals in move.statement_line_id._prepare_move_line_default_vals():
                     move_lines_to_create.append({**vals, "move_id": move.id, "exclude_from_invoice_tab": True})
 
@@ -496,11 +496,25 @@ def migrate(cr, version):
         for move in util.iter_browse(env["account.move"].with_context(**ctx), [row[0] for row in cr.fetchall()]):
             move.action_post()
 
-        # ==== CHECK move_id that must be set on all account.payment/account.bank.statement.line ====
-        cr.execute("SELECT id FROM account_payment WHERE move_id IS NULL")
-        for (payment_id,) in cr.fetchall():
-            _logger.error("Missing move_id on account.payment (id=%s)", payment_id)
+    # ===== Don't alter accounting data prior to the lock date =====
 
-        cr.execute("SELECT id FROM account_bank_statement_line WHERE move_id IS NULL")
-        for (st_line_id,) in cr.fetchall():
-            _logger.error("Missing move_id on account.bank.statement.line (id=%s)", st_line_id)
+    if created_move_ids:
+        cr.execute('''
+            UPDATE account_move
+            SET auto_post = FALSE,
+                state = 'cancel'
+            FROM res_company company
+            WHERE company.id = account_move.company_id
+            AND company.fiscalyear_lock_date IS NOT NULL
+            AND account_move.date <= company.fiscalyear_lock_date
+            AND account_move.id IN %s
+        ''', [tuple(created_move_ids)])
+
+    # ==== CHECK move_id that must be set on all account.payment/account.bank.statement.line ====
+    cr.execute("SELECT id FROM account_payment WHERE move_id IS NULL")
+    for (payment_id,) in cr.fetchall():
+        _logger.error("Missing move_id on account.payment (id=%s)", payment_id)
+
+    cr.execute("SELECT id FROM account_bank_statement_line WHERE move_id IS NULL")
+    for (st_line_id,) in cr.fetchall():
+        _logger.error("Missing move_id on account.bank.statement.line (id=%s)", st_line_id)
