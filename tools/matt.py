@@ -158,6 +158,7 @@ xmlrpcs = False
 netrpc = False
 http_enable = False
 log_handler = {log_handlers}
+unaccent = True
 """
         )
     return True
@@ -212,6 +213,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
     logger.info("create db %s in version %s", dbname, options.source)
     subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
     subprocess.run(["createdb", dbname], check=True)  # version 7.0 does not create database itself
+    subprocess.run(["psql", "-Xq", "-d", dbname, "-c", "CREATE EXTENSION unaccent"], check=False)  # may fail
 
     re_warn = re.compile(
         rf"^(\d{{4}}-\d\d-\d\d \d\d:\d\d:\d\d,\d{{3}} \d+ (?:WARNING|ERROR|CRITICAL) {dbname} .*)$",
