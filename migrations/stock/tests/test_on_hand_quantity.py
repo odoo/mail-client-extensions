@@ -23,43 +23,36 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         ignore_kits = ignore_kits or (
             "mrp.bom" in self.env.registry and parse_version(release.series) < parse_version("13.0")
         )
-        self.env.cr.execute(
-            """
+        ignore_kits_query = ""
+        where_clause = []
+        where_params = []
+        query = """
                 SELECT pp.id
                 FROM product_product pp
                 JOIN product_template pt ON pp.product_tmpl_id = pt.id
-                AND pp.active = TRUE AND pt.TYPE = 'product'
-                %s
-                %s
+                     AND pp.active = TRUE AND pt.TYPE = 'product'
+                {ignore_kits_query}
+                WHERE {where_clause}
                 GROUP BY pp.id
                 ORDER BY pp.id
             """
-            % (
-                """
+        if ignore_kits:
+            ignore_kits_query = """
                 LEFT JOIN LATERAL (
                     SELECT type
                     FROM mrp_bom
                     WHERE type = 'phantom'
                     AND (product_tmpl_id = pt.id OR product_id = pp.id)
                     LIMIT 1
-                ) bom ON true
-                WHERE coalesce(bom.type, '') != 'phantom'
-                """
-                if ignore_kits
-                else "",
-                (
-                    only_product_ids
-                    and (
-                        """
-                %s pp.id IN %s
-                    """
-                        % ("AND" if ignore_kits else "WHERE", str(tuple(only_product_ids)))
-                    )
-                )
-                or (only_product_ids is not None and "%s FALSE" % ("AND" if ignore_kits else "WHERE"))
-                or "",
-            )
-        )
+                ) bom ON true"""
+            where_clause += ["coalesce(bom.type, '') != 'phantom'"]
+
+        if only_product_ids is not None:
+            where_clause += ["pp.id = ANY(%s)"]
+            where_params += [list(only_product_ids)]
+
+        query = query.format(ignore_kits_query=ignore_kits_query, where_clause=" AND ".join(where_clause or ["true"]))
+        self.env.cr.execute(query, where_params)
         results = []
         for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
             self.env["product.product"].invalidate_cache()
