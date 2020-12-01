@@ -19,3 +19,5 @@ def migrate(cr, version):
            SET schedule_type='scheduled'
          WHERE schedule_date IS NOT NULL"""
     )
+
+    util.rename_field(cr, 'mailing.list', 'contact_nbr', 'contact_count')
