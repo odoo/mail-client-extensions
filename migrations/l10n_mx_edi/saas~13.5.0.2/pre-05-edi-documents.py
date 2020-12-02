@@ -14,7 +14,7 @@ def migrate(cr, version):
             SELECT
                 move.id AS move_id,
                 attachment.id AS attachment_id,
-                ROW_NUMBER() OVER(PARTITION BY move.id ORDER BY attachment.create_date DESC) AS rank
+                ROW_NUMBER() OVER(PARTITION BY move.id ORDER BY attachment.create_date DESC, attachment.id DESC) AS rank
             FROM account_move move
             JOIN ir_attachment attachment ON
                 attachment.name = move.l10n_mx_edi_cfdi_name
