@@ -138,6 +138,7 @@ def migrate(cr, version):
     util.remove_record(cr, "l10n_mx_edi.res_partner_category_force_rep")
     util.remove_record(cr, "l10n_mx_edi.l10n_mx_edi_version_cfdi")
 
+    util.remove_view(cr, "l10n_mx_edi.res_partner_form_inherit_l10n_mx_edi")
     util.remove_view(cr, "l10n_mx_edi.view_l10n_mx_edi_invoice_filter_inherit")
     util.remove_view(cr, "l10n_mx_edi.external_tradev11")
 
