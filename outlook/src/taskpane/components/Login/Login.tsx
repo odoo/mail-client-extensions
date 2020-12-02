@@ -65,7 +65,6 @@ class Login extends React.Component<LoginProps, LoginState> {
         const loginURL = api.baseURL + api.loginPage + '?redirect=' + redirectToAuthPage;
 
         Office.context.ui.displayDialogAsync(api.addInBaseURL + '/dialog.html?dialogredir=' + loginURL, options , (asyncResult) => {
-            console.log(asyncResult);
             let dialog = asyncResult.value;
             dialog.addEventHandler(Office.EventType.DialogMessageReceived, (_arg) => {
                 dialog.close();
