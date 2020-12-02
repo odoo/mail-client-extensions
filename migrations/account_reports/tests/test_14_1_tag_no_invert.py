@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-from odoo.addons.base.maintenance.migrations.util import no_fiscal_lock
+from odoo.addons.base.maintenance.migrations.util import no_fiscal_lock, module_installed
 from odoo import fields
 from odoo.tests.common import Form
 
@@ -83,6 +83,11 @@ class TestTagNoInvert(UpgradeCase):
                 'country_id': country.id,
             })
             self.env.company.account_tax_fiscal_country_id = country
+            self.env.company.country_id = country
+
+            if module_installed(self.env.cr, "l10n_latam_invoice_document"):
+                latam_journals = self.env["account.journal"].search([("l10n_latam_use_documents", "=", True)])
+                latam_journals.write({"l10n_latam_use_documents": False})
 
             # Populate the tax report
             today = fields.Date.today()
@@ -110,7 +115,9 @@ class TestTagNoInvert(UpgradeCase):
 
             return str(today), report_balances
 
-    def _instantiate_test_data(self, tax_report, label, today, invoice_generator=None, on_invoice_created=None, on_all_invoices_created=None):
+    def _instantiate_test_data(
+        self, tax_report, label, today, invoice_generator=None, on_invoice_created=None, on_all_invoices_created=None
+    ):
         def default_invoice_generator(inv_type, partner, account, date, tax):
             return self.env['account.move'].create({
                 'move_type': inv_type,
@@ -144,9 +151,11 @@ class TestTagNoInvert(UpgradeCase):
                                                  type_tax_use, tax_exigibility)
 
                 invoices = self.env['account.move']
-                account = self.env['account.account'].search([('company_id', '=', self.env.company.id),
-                                                              ('user_type_id', '=', account_types[tax.type_tax_use])],
-                                                              limit=1)
+                domain = [
+                    ("company_id", "=", self.env.company.id),
+                    ("user_type_id", "=", account_types[tax.type_tax_use]),
+                ]
+                account = self.env['account.account'].search(domain, limit=1)
                 for inv_type in invoice_types[tax.type_tax_use]:
                     invoice = (invoice_generator or default_invoice_generator)(inv_type, partner, account, today, tax)
                     invoice.action_post()
