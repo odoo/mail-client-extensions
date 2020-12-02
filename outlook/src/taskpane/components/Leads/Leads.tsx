@@ -25,7 +25,7 @@ class Leads extends React.Component<LeadsProps, LeadsState> {
         };
     }
 
-    loadLeads = () => {
+    loadLeads = (refresh: boolean=false) => {
         const requestJson = {
             partner: this.context.partner.id,
             offset: this.leadOffset,
@@ -35,7 +35,10 @@ class Leads extends React.Component<LeadsProps, LeadsState> {
         this.context.addRequestCanceller(cancellableRequest.cancel);
         cancellableRequest.promise.then((response) => {
             const parsed = JSON.parse(response);
-            const leadsCopy = this.state.leads.map(lead => LeadData.copy(lead));
+            let leadsCopy = [];
+            if (!refresh) {
+                leadsCopy = this.state.leads.map(lead => LeadData.copy(lead));
+            }
             const newLeads = parsed.result.leads.map(l => {return LeadData.fromJSON(l);})
             const allLeads = leadsCopy.concat(newLeads)
             this.setState({leads: allLeads, loaded: true, showMore: newLeads.length === this.leadLimit})
@@ -90,7 +93,7 @@ class Leads extends React.Component<LeadsProps, LeadsState> {
     public render(): JSX.Element {
         // Modules are loaded asynchronously and crm is displayed before the partner is populated.
         if (this.state.loaded === false && this.context.partner.id !== -1) {
-            this.loadLeads();
+            this.loadLeads(true);
         }
 
         /*
