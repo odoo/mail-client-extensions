@@ -36,7 +36,7 @@ class LeadListCompact extends React.Component<LeadListProps, LeadListState> {
                 </div>
         
                 <div className='logicon' onClick={() => {this.props.log(lead.id)}}>
-                    {lead.logged ? <FontAwesomeIcon icon={faCheck}/> : <FontAwesomeIcon icon={faReply} flip='horizontal'/>}
+                    {lead.logged ? <FontAwesomeIcon title='Logged' icon={faCheck}/> : <FontAwesomeIcon title='Log mail in Odoo' icon={faReply} flip='horizontal'/>}
                 </div>
             </div>)
         }
