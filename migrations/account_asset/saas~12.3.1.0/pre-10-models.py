@@ -183,14 +183,14 @@ def migrate(cr, version):
     })
     cr.execute(f"""
                 INSERT INTO account_move_line(
-                                move_id, name, company_id, account_id,
+                                move_id, name, company_id, account_id, ref,
                                 partner_id, analytic_account_id, date, date_maturity,
                                 journal_id, user_type_id, tax_exigible,
                                 company_currency_id, currency_id, amount_currency,
                                 debit, credit, balance
                             )
 
-                     SELECT move.id, asset.name, journal.company_id, category.account_depreciation_id, asset.partner_id,
+                     SELECT move.id, asset.name, journal.company_id, category.account_depreciation_id, move.ref, asset.partner_id,
                             asset.account_analytic_id, line.depreciation_date, line.depreciation_date, journal.id,
                             account.user_type_id, true, company.currency_id,
                             CASE
@@ -231,7 +231,7 @@ def migrate(cr, version):
 
                       UNION ALL
 
-                     SELECT move.id, asset.name, journal.company_id, category.account_depreciation_expense_id,
+                     SELECT move.id, asset.name, journal.company_id, category.account_depreciation_expense_id, move.ref,
                             asset.partner_id, asset.account_analytic_id, line.depreciation_date, line.depreciation_date,
                             journal.id,account.user_type_id, true, company.currency_id,
                             CASE
