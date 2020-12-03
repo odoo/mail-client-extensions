@@ -8,5 +8,8 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "pos_adyen", plus={"adyen_platforms"})
     util.new_module(cr, "payment_fix_register_token", deps={"payment"}, auto_install=True)
 
+    if util.has_enterprise():
+        util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
+
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
