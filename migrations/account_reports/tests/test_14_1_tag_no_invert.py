@@ -86,8 +86,8 @@ class TestTagNoInvert(UpgradeCase):
             self.env.company.country_id = country
 
             if module_installed(self.env.cr, "l10n_latam_invoice_document"):
-                latam_journals = self.env["account.journal"].search([("l10n_latam_use_documents", "=", True)])
-                latam_journals.write({"l10n_latam_use_documents": False})
+                domain = [("company_id", "=", self.env.company.id), ("l10n_latam_use_documents", "=", True)]
+                self.env["account.journal"].search(domain).write({"l10n_latam_use_documents": False})
 
             # Populate the tax report
             today = fields.Date.today()
