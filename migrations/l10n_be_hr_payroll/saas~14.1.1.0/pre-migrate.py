@@ -55,3 +55,10 @@ def migrate(cr, version):
     """)
     util.remove_view(cr, "l10n_be_hr_payroll.hr_payroll_structure_type_view_form")
     util.remove_field(cr, "hr.payroll.structure.type", "time_credit_type_id")
+
+    # Move fields from l10n_be_hr_payroll_posted_employee. The module has been merged into
+    # hr_work_entry_contract on the base pre-module script.
+    util.move_field_to_module(cr, 'hr.contract', 'no_onss',
+                              'hr_work_entry_contract', 'l10n_be_hr_payroll')
+    util.move_field_to_module(cr, 'hr.contract', 'no_withholding_taxes',
+                              'hr_work_entry_contract', 'l10n_be_hr_payroll')

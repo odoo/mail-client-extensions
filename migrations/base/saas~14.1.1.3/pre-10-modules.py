@@ -38,6 +38,10 @@ def migrate(cr, version):
         util.remove_module(cr, "account_ponto")
         util.remove_module(cr, "account_online_sync")
 
+        util.merge_module(cr, "l10n_be_hr_payroll_posted_employee", "hr_work_entry_contract")
+        util.merge_module(cr, "l10n_be_hr_payroll_proration", "l10n_be_hr_payroll")
+        util.merge_module(cr, "hr_payroll_edit_lines", "hr_payroll")
+
     util.remove_module(cr, "odoo_referral")
     util.ENVIRON["procurement_jit_uninstalled"] = not util.module_installed(cr, "procurement_jit")
     util.remove_module(cr, "procurement_jit")
