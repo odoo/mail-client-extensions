@@ -10,7 +10,7 @@ from unittest.mock import patch
 from odoo import fields
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, RedirectWarning
 from odoo.osv import expression
 from odoo.tools import mute_logger, table_kind
 from odoo.tools.safe_eval import safe_eval
@@ -170,6 +170,14 @@ class TestCrawler(IntegrityCase):
                 # triggering `setting_init_bank_account_action` of `account_online_sync/models/company.py`
                 # raising a UserError to tell the user he must create a bank journal if he has not one yet.
                 return
+            except RedirectWarning as redirect:
+                # Action can redirect to another with a message.
+                # e.g. in 14.0, the method `setting_init_bank_account_action` of `account_online_sync/models/company.py`
+                # now raise a `RedirectWarning`.
+                action_id = redirect.args[1]
+                action_type = self.env["ir.actions.actions"].browse(action_id).type
+                [action] = self.env[action_type].browse(action_id).read(self.action_type_fields[action_type])
+
             return self.mock_action(action)
         elif action["type"] in ("ir.actions.client", "ir.actions.act_url"):
             return
