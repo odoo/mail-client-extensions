@@ -500,6 +500,15 @@ def migrate(cr, version):
 
     if created_move_ids:
         cr.execute('''
+            UPDATE account_move_line line
+            SET parent_state = 'cancel'
+            FROM res_company company
+            WHERE company.id = line.company_id
+            AND company.fiscalyear_lock_date IS NOT NULL
+            AND line.date <= company.fiscalyear_lock_date
+            AND line.move_id IN %s
+        ''', [tuple(created_move_ids)])
+        cr.execute('''
             UPDATE account_move
             SET auto_post = FALSE,
                 state = 'cancel'
