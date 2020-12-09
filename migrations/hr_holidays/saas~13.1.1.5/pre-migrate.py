@@ -13,7 +13,11 @@ def migrate(cr, version):
     cr.execute(
         """
         UPDATE hr_leave_type
-           SET allocation_validation_type = leave_validation_type
+           SET allocation_validation_type =
+            CASE
+              WHEN leave_validation_type = 'no_validation' THEN 'hr'
+              ELSE leave_validation_type
+            END
          WHERE allocation_validation_type IS NULL
     """
     )
