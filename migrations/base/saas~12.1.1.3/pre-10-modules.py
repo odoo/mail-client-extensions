@@ -15,7 +15,11 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "base_geolocalize", plus={"base_setup"}, minus={"base"})
     util.module_deps_diff(cr, "digest", plus={"resource"})
 
-    util.module_deps_diff(cr, "l10n_be_hr_payroll", plus={"l10n_be"})
+    if not util.version_gte("saas~12.3"):
+        # The dependence is removed in saas~12.3
+        # Avoid adding it transiently, as it will have the side effect of force-installing the `account` module
+        util.module_deps_diff(cr, "l10n_be_hr_payroll", plus={"l10n_be"})
+
     util.module_deps_diff(cr, "l10n_be_hr_payroll_account", minus={"l10n_be"})
     util.module_deps_diff(cr, "l10n_in_hr_payroll", plus={"l10n_in"})
     util.module_deps_diff(cr, "survey", plus={"web_tour"})
