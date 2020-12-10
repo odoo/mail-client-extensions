@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+
+
+def migrate(cr, version):
+
+    # Set a in_date, of quant without in_date, to the min of date because NULL was considered older
+    cr.execute(
+        """
+    UPDATE stock_quant
+       SET in_date = (SELECT coalesce(min(in_date) - interval '1s', now() at time zone 'utc') FROM stock_quant)
+     WHERE in_date IS NULL
+        """
+    )
