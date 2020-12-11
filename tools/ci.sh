@@ -6,11 +6,7 @@ set -euo pipefail
 HERE=$(dirname "$0")
 UPGRADEDIR=$(realpath "$HERE/..")
 
-DATADIR="$HOME/Library/Application Support/Odoo"
-if test ! -d "$DATADIR"; then
-    DATADIR="$HOME/.local/share/Odoo"
-fi
-
+DATADIR="$HOME/.local/share/Odoo"
 MATTDIR="$DATADIR/upgrade_ci/matt"
 
 # SETUP MATTDIR
