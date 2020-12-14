@@ -313,16 +313,16 @@ def migrate(cr, version):
     )
 
     _logger.info("Clean and recompute some fields")
-    # Delete empty move coming from split in (4.)
-    cr.execute(
-        """
-        DELETE FROM stock_move
-         WHERE (stock_move.raw_material_production_id IN {ids_mo} OR stock_move.production_id IN {ids_mo})
-           AND stock_move.product_uom_qty = 0.0
-        """.format(
-            ids_mo=tuple(ids_mo)
+    if ids_mo:
+        # Delete empty move coming from split in (4.)
+        cr.execute(
+            """
+            DELETE FROM stock_move
+             WHERE (stock_move.raw_material_production_id IN %(ids)s OR stock_move.production_id IN %(ids)s)
+               AND stock_move.product_uom_qty = 0.0
+            """,
+            {"ids": tuple(ids_mo)}
         )
-    )
     # Clean working column, temporary table and invalidate cache for model used
     util.remove_column(cr, "mrp_production", "old_id")
     util.remove_column(cr, "stock_move", "old_id")
@@ -337,18 +337,18 @@ def migrate(cr, version):
     env["stock.move"].invalidate_cache()
     env["stock.move.line"].invalidate_cache()
 
-    cr.execute(
-        """
-           SELECT id
-             FROM stock_move
-            WHERE stock_move.raw_material_production_id IN {ids_mo} OR stock_move.production_id IN {ids_mo}
-        """.format(
-            ids_mo=tuple(ids_mo)
+    if ids_mo:
+        cr.execute(
+            """
+               SELECT id
+                 FROM stock_move
+                WHERE stock_move.raw_material_production_id IN %(ids)s OR stock_move.production_id IN %(ids)s
+            """,
+            {"ids": tuple(ids_mo)}
         )
-    )
-    ids_move = [move_id for move_id, in cr.fetchall()]
-    util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids_mo)
-    util.recompute_fields(cr, "stock.move", ["product_qty"], ids=ids_move)
+        ids_move = [move_id for move_id, in cr.fetchall()]
+        util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids_mo)
+        util.recompute_fields(cr, "stock.move", ["product_qty"], ids=ids_move)
 
     # Before workorders were created with plan button, now it is done with the bom onchange, then simulate it when needed.
     env["mrp.production"].search(
