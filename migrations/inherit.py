@@ -1025,8 +1025,8 @@ inheritance_data = frozendict(
             ),
         ],
         "phone.validation.mixin": [
-            Inherit(model="crm.lead", born=parse_version("10.saas~16"), dead=None, via=None),
-            Inherit(model="res.partner", born=parse_version("10.saas~16"), dead=None, via=None),
+            Inherit(model="crm.lead", born=parse_version("10.saas~16"), dead=parse_version("saas~14.2"), via=None),
+            Inherit(model="res.partner", born=parse_version("10.saas~16"), dead=parse_version("saas~14.2"), via=None),
         ],
         "portal.mixin": [
             Inherit(
