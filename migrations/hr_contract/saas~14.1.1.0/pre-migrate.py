@@ -21,5 +21,5 @@ def migrate(cr, version):
          WHERE id = employee_first_contract.employee_id
         """
     )
-    util.create_column(cr, "hr_contract", "wage_on_signature", "numeric")
+    util.create_column(cr, "hr_contract", "contract_type_id", "int4")
     util.remove_record(cr, "hr_contract.act_hr_employee_2_hr_contract")
