@@ -16,17 +16,13 @@ def migrate(cr, version):
     # Remove duplicate reordering rules
     cr.execute(
         """
-            DELETE FROM stock_warehouse_orderpoint
-            WHERE id IN (
-              SELECT unnest((array_agg(id
-                                       ORDER BY id))[2:])
-              FROM stock_warehouse_orderpoint
-            GROUP BY product_id,
-                     location_id,
-                     company_id
-            HAVING count(*) > 1
-        )
-    """
+            DELETE FROM stock_warehouse_orderpoint WHERE id IN (
+                  SELECT unnest((array_agg(id ORDER BY id))[2:])
+                    FROM stock_warehouse_orderpoint
+                GROUP BY product_id, location_id, company_id
+                  HAVING count(*) > 1
+            )
+        """
     )
 
     util.create_column(cr, "stock_location", "cyclic_inventory_frequency", "integer", default=0)
@@ -36,6 +32,6 @@ def migrate(cr, version):
     util.create_m2m(cr, "stock_inventory_stock_production_lot_rel", "stock_inventory", "stock_production_lot")
 
     util.create_column(cr, "stock_move", "reservation_date", "date")
-    util.create_column(cr, "stock_picking_type", "reservation_method", "character varying", default='at_confirm')
+    util.create_column(cr, "stock_picking_type", "reservation_method", "character varying", default="at_confirm")
     util.create_column(cr, "stock_picking_type", "reservation_days_before", "integer")
     util.remove_field(cr, "res.config.settings", "module_procurement_jit")
