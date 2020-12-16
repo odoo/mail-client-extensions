@@ -19,5 +19,7 @@ def migrate(cr, version):
             if version and not util.version_gte(version):
                 continue
             if not odoo.modules.module.load_information_from_description_file(module):
-                util._logger.log(util.NEARLYWARN, "New module %r explicitly ignored and automaticaly removed", module)
-                util.remove_module(cr, module)
+                cr.execute("SELECT true FROM ir_module_module WHERE name = %s", [module])
+                if bool(cr.fetchone()):
+                    util._logger.log(util.NEARLYWARN, "New module %r explicitly ignored and automaticaly removed", module)
+                    util.remove_module(cr, module)
