@@ -8,8 +8,6 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *eb("l10n_be_hr_payroll{_variable_revenue,}.work_entry_type_simple_holiday_pay_variable_salary"))
 
-    util.remove_view(cr, "l10n_be_hr_payroll.hr_payslip_run_tree")
-
     util.create_column(cr, "hr_leave_allocation", "max_leaves_allocated", "float8", default=20)
 
     util.create_column(cr, "hr_payroll_alloc_paid_leave", "year", "integer")
@@ -59,8 +57,10 @@ def migrate(cr, version):
     util.remove_view(cr, "l10n_be_hr_payroll.hr_payroll_structure_type_view_form")
     util.remove_field(cr, "hr.payroll.structure.type", "time_credit_type_id")
 
-    # remove view from merged module `l10n_be_hr_payroll_variable_revenue`
+    # remove views from merged module `l10n_be_hr_payroll_variable_revenue`
     util.remove_view(cr, "l10n_be_hr_payroll.hr_payslip_employees_view_form")
+    if not util.module_installed(cr, "hr_payroll_holidays"):
+        util.remove_view(cr, "l10n_be_hr_payroll.hr_payslip_run_tree")
 
     # Move fields from l10n_be_hr_payroll_posted_employee. The module has been merged into
     # hr_work_entry_contract on the base pre-module script.
