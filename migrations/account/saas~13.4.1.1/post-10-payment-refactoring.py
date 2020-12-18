@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 from odoo.addons.base.maintenance.migrations import util
+from odoo.fields import Date
 import logging
+from datetime import date, timedelta
+
 
 _logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
 
@@ -35,6 +38,28 @@ def migrate(cr, version):
     # ===========================================================
 
     # ===== FIX CONFIG =====
+
+    # Set the fiscalyear lock date in case it was empty, in order to ensure the integrity of the accounting as much as possible
+    lock_date = date.today() - timedelta(weeks=26)
+    # If the lock date is more than 1.5 years old, reset it to a more recent date.
+    limit_date = date.today() - timedelta(weeks=78)
+    missing_lockdate_companies = env["res.company"].search([
+        "|", ("fiscalyear_lock_date", "=", False), ("fiscalyear_lock_date", "<", limit_date)
+    ])
+    if missing_lockdate_companies:
+        missing_lockdate_companies._write({"fiscalyear_lock_date": lock_date})
+        companies = ", ".join(missing_lockdate_companies.mapped("name"))
+        msg = (
+            "Following a refactoring in how the payments (bank statements) work in the accounting of Odoo 14.0, "
+            "the lock date, defining a date limit before which the accounts must be left untouched, "
+            "has to be set on your companies for the upgrade. "
+            "Without it, the upgrade could change your accounting for periods you consider as closed/locked. "
+            f"As the lock date was not set on your company(ies) {companies} (or they were very old), "
+            f"it has been set automatically to {lock_date}. "
+            "If you do not agree with this lock date, please set your lock date on your company(ies) before upgrading "
+            "your database."
+        )
+        util.add_to_migration_reports(msg, "Accounting")
 
     # Fix default suspense account for res.company that is the account used as counterpart on draft bank statement lines.
     _create_journal = env["account.chart.template"]._create_liquidity_journal_suspense_account

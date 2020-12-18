@@ -74,7 +74,7 @@ class TestPaymentPocalypse(UpgradeCase):
             payment.move_id.line_ids.sorted("account_id"),
             [
                 {"account_id": config["account_receivable_id"], "debit": 0.0, "credit": 100.0},
-                {"account_id": journal.payment_debit_account_id.id, "debit": 100.0, "credit": 0.0},
+                {"account_id": journal.default_account_id.id, "debit": 100.0, "credit": 0.0},
             ],
         )
 
@@ -192,7 +192,7 @@ class TestPaymentPocalypse(UpgradeCase):
             payment_1.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
             [
                 {'account_id': company.transfer_account_id.id,                      'debit': 100.0, 'credit': 0.0},
-                {'account_id': payment_1.journal_id.payment_credit_account_id.id,   'debit': 0.0,   'credit': 100.0},
+                {'account_id': payment_1.journal_id.default_account_id.id,   'debit': 0.0,   'credit': 100.0},
             ],
         )
 
