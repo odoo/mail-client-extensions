@@ -370,15 +370,15 @@ def _migrate(cr, version):
                 )
 
                 env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id", "tax_id", "tax_ids"])
-            else:
-                cr.execute(
-                    """
-                    UPDATE account_move_line
-                       SET tax_line_id = %(group_to_treat_id)s
-                     WHERE tax_line_id = %(child_tax_id)s
-                """,
-                    {"group_to_treat_id": group_to_treat.id, "child_tax_id": child_tax.id},
-                )
+
+            cr.execute(
+                """
+                UPDATE account_move_line
+                   SET tax_line_id = %(group_to_treat_id)s
+                 WHERE tax_line_id = %(child_tax_id)s
+            """,
+                {"group_to_treat_id": group_to_treat.id, "child_tax_id": child_tax.id},
+            )
 
         tax_to_clean_ids += list(group_to_treat.children_tax_ids.ids)
 
