@@ -6,6 +6,56 @@ _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saa
 
 
 def migrate(cr, version):
+
+    msg = """
+        <p><strong>IMPORTANT NOTICE</strong></p>
+        <p>
+            Payments have been heavily refactored in Odoo 14.0.
+            To make sure the upgrade of your payments is done correctly,
+            you should ensure a few things.
+        </p>
+        <p>
+            Before upgrading:
+            <ul>
+                <li>
+                    Check that the lock dates for all companies are correctly set ;
+                    the more recent the lock date, the better.
+                </li>
+                <li>
+                    Check if the default accounts on the bank/cash journal is of type liquidity (bank/cash):
+                <ul>
+                    <li>In case they are, new outstanding payment accounts will be created during the migration.</li>
+                    <li>In case it would be current assets accounts, no new account will be created.</li>
+                </ul>
+                </li>
+                <li>
+                    Make sure all accounting entries have a consistant number regarding the fiscal year they belong to.
+                    (e.g. a journal entry dated of 2019 shouldn’t have a name xx/2020/xx/xxxx)
+                </li>
+            </ul>
+        </p>
+        <p>
+            After upgrading:
+            <ul>
+                <li>
+                    Check the outstanding payment accounts are correctly created.
+                    You will have to change the code / name to fit your own chart of accounts.
+                </li>
+            </ul>
+        <ul>
+            <li>
+                Check that pre-recorded payments
+                (recorded before migration, using the "register payment" button on invoices)
+                in the not-locked periods can correctly be reconciled (after migration) with an incoming statement.
+            </li>
+        </ul>
+        </p>
+        <p>
+            We highly encourage you to watch <a href="https://youtu.be/ZOxsB7F6omY" target="_blank">this video</a>
+            explaining the differences between Odoo 13.0 and Odoo 14.0 when registering payments.
+        </p>
+    """
+    util.add_to_migration_reports(msg, "Accounting", format="html")
     cr.execute(
         """
         UPDATE account_bank_statement_line st_line
