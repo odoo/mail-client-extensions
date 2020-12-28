@@ -7,3 +7,6 @@ def migrate(cr, version):
     util.remove_field(cr, "helpdesk.ticket", "display_create_so_button_primary")
     util.remove_field(cr, "helpdesk.ticket", "display_create_so_button_secondary")
     util.remove_field(cr, "helpdesk.ticket", "sale_line_id_source")
+
+    # Remove view from helpdesk_sale_timesheet_edit (module merged with helpdesk_sale_timesheet)
+    util.remove_view(cr, "helpdesk_sale_timesheet.helpdesk_ticket_view_form_inherit_helpdesk_sale_timesheet_edit")
