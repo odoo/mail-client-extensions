@@ -29,3 +29,6 @@ def migrate(cr, version):
            )
         """
     )
+
+    # Remove view from sale_timesheet_edit (module merged with sale_timesheet)
+    util.remove_view(cr, "sale_timesheet.project_task_view_form_inherit_sale_timesheet_edit")
