@@ -7,3 +7,4 @@ def migrate(cr, version):
     util.remove_field(cr, "helpdesk.ticket", "_related_task_ids")
     util.remove_field(cr, "helpdesk.ticket", "is_closed")
     util.remove_field(cr, "helpdesk.ticket", "is_task_active")
+    util.create_column(cr, "helpdesk_ticket", "total_hours_spent", "float8")
