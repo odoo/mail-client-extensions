@@ -67,6 +67,8 @@ def migrate(cr, version):
             """,
             [product_uom_hour_id],
         )
+    util.remove_view(cr, "sale_timesheet.sale_order_portal_template_inherit")
+    util.remove_view(cr, "sale_timesheet.portal_invoice_page_inherit_timesheet")
 
     # Remove view from sale_timesheet_edit (module merged with sale_timesheet)
     util.remove_view(cr, "sale_timesheet.project_task_view_form_inherit_sale_timesheet_edit")
