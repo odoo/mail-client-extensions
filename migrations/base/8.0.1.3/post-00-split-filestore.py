@@ -1,4 +1,5 @@
 import base64
+import re
 from os import environ as ENV, path
 from openerp import SUPERUSER_ID
 from openerp.modules.registry import RegistryManager
@@ -23,7 +24,11 @@ def move_db_attachments_to_disk(cr):
         FOR UPDATE
         """)
     for id, db_datas in iter_cur:
-        raw = base64.b64decode(db_datas)
+        if ENV.get("ODOO_MIG_8_ATTACHMENTS_NOT_B64ENCODED") and \
+                not re.search("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$", db_datas):
+            raw = db_datas
+        else:
+            raw = base64.b64decode(db_datas)
         fname, full_path = \
             registry['ir.attachment']._get_path(cr, SUPERUSER_ID, raw)
         if not path.exists(full_path):
