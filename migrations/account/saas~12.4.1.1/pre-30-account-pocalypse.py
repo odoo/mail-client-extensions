@@ -149,6 +149,17 @@ def migrate(cr, version):
                AND move.currency_id IS NULL
         """
     )
+    cr.execute(
+        """
+            UPDATE account_move move
+               SET currency_id = journal_company.currency_id
+              FROM account_journal journal,
+                   res_company journal_company
+             WHERE move.journal_id = journal.id
+               AND journal.company_id = journal_company.id
+               AND move.currency_id IS NULL
+        """
+    )
     cr.execute("ALTER TABLE account_move ALTER COLUMN currency_id SET NOT NULL")
 
     # Some previously migrated databases already had this field with wrong values
