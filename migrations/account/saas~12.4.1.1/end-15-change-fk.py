@@ -65,7 +65,7 @@ def fix_indirect(cr):
          WHERE id IN (SELECT m.id
                         FROM mail_followers m
                   INNER JOIN account_invoice i ON m.res_id=i.id AND m.res_model='account.invoice'
-                  INNER JOIN mail_followers m2 ON i.move_id=m2.res_id AND m.partner_id=m2.partner_id AND m2.res_model='account.move'
+                  INNER JOIN mail_followers m2 ON i.move_id=m2.res_id AND (m.partner_id=m2.partner_id OR m.channel_id=m2.channel_id) AND m2.res_model='account.move'
          )
     """
     )
