@@ -29,6 +29,15 @@ def migrate(cr, version):
            )
         """
     )
+    cr.execute(
+        """
+        UPDATE project_project
+           SET pricing_type = 'task_rate'
+         WHERE bill_type = 'customer_task'
+        """
+    )
+    util.remove_field(cr, "project.project", "bill_type")
+    util.remove_field(cr, "project.task", "bill_type")
     util.create_column(cr, "sale_order_line", "remaining_hours", "float8", default=0)
 
     product_uom_hour_id = util.ref(cr, "uom.product_uom_hour")
