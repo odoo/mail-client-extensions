@@ -21,6 +21,9 @@ def migrate(cr, version):
         util.new_module(cr, "l10n_ar_edi", deps={"account_debit_note", "l10n_ar"}, auto_install=True)
         util.new_module(cr, "l10n_cl_edi", deps={"account_debit_note", "l10n_cl"}, auto_install=True)
         util.new_module(cr, "l10n_lu_reports_electronic", deps={"l10n_lu_reports"}, auto_install=True)
+        util.new_module(
+            cr, "l10n_nl_report_intrastat", deps={"l10n_nl_reports", "account_intrastat"}, auto_install=True
+        )
         util.new_module(cr, "pos_hr_l10n_be", deps={"pos_hr", "pos_blackbox_be"}, auto_install=True)
         util.module_deps_diff(cr, "pos_blackbox_be", plus={"pos_iot"})
         util.module_deps_diff(cr, "crm_enterprise", plus={"web_map"})

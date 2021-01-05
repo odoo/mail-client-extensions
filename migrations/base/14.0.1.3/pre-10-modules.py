@@ -11,8 +11,37 @@ def migrate(cr, version):
     # deps chamged by odoo/odoo@59d16513a019d52dd090e09c09be4675aa868baf (odoo/odoo#62730)
     util.module_deps_diff(cr, "l10n_be_edi", plus={"account_edi_ubl"}, minus={"account_edi"})
 
+    # https://github.com/odoo/odoo/pull/62900
+    util.new_module(cr, "sale_timesheet_edit", deps={"sale_timesheet"}, auto_install=True)
+
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/14895
+        util.new_module(cr, "account_online_synchronization", deps={"account_online_sync"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/15264
+        util.new_module(
+            cr,
+            "helpdesk_sale_timesheet_edit",
+            deps={"helpdesk_sale_timesheet", "sale_timesheet_edit"},
+            auto_install=True,
+        )
+
+        # https://github.com/odoo/enterprise/pull/15364
+        util.new_module(cr, "l10n_be_hr_payroll_273S_274", deps={"l10n_be_hr_payroll"}, auto_install=True)
+        util.new_module(
+            cr,
+            "documents_l10n_be_hr_payroll_273S_274",
+            deps={"l10n_be_hr_payroll_273S_274", "documents_l10n_be_hr_payroll"},
+            auto_install=True,
+        )
+        util.new_module(
+            cr,
+            "l10n_be_hr_payroll_273S_274_account",
+            deps={"l10n_be_hr_payroll_account", "l10n_be_hr_payroll_273S_274"},
+            auto_install=True,
+        )
 
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
