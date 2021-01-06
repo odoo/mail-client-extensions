@@ -27,7 +27,7 @@ def migrate(cr, version):
               FROM fleet_vehicle v
               JOIN fleet_vehicle_model m ON v.model_id = m.id
              WHERE v.future_driver_id IS NOT NULL
-               AND vehicle_type IN ('bike', 'car')
+               AND m.vehicle_type IN ('bike', 'car')
                AND {state_filter}
           GROUP BY v.future_driver_id
         )
@@ -41,8 +41,8 @@ def migrate(cr, version):
           FROM cte
          WHERE cte.future_driver_id = p.id
     """
-    # XXX explode query?
-    cr.execute(query)
+    query = query.replace("{", "{{").replace("}", "}}")
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="res_partner"))
 
     query = f"""
           WITH {cte}
