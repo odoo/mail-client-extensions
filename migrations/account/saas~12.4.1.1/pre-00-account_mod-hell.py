@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
 from odoo import models
+from odoo.tools.misc import str2bool
 
 from odoo.addons.account.models import account_move  # noqa
 
@@ -29,3 +31,16 @@ class MoveLine(models.Model):
     def _check_constrains_account_id(self):
         # Allow usage of deprecated accounts (during upgrade process)
         pass
+
+
+if str2bool(os.getenv("MATT", "0")):
+    # Some l10n_ modules create invoice demo data
+    # While these records are in noupdate, to determine their existance, the ORM try loading them.
+    # However, as their xmlid still point to the `account.invoice` model (because the records are only converted in `end-` script),
+    # it crash because the model doesn't exists (actually, it just log a warning with the traceback and the failed demo xml file).
+    # Avoid it by creating a minimal `account.invoice` model. It will works because the ORM, only read the record id.
+
+    class Invoice(models.Model):
+        _name = "account.invoice"
+        _module = "account"
+        _description = "Not the `account.invoice` you are looking for..."
