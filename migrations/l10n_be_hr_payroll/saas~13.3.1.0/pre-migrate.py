@@ -61,6 +61,7 @@ def migrate(cr, version):
         "hr.contract": ["transport_employer_cost", "ucm_insurance", "transport_mode_others"],
         "hr.employee": ["spouse_other_net_revenue", "spouse_net_revenue"],
         "res.users": ["spouse_other_net_revenue", "spouse_net_revenue"],
+        "res.config.settings": ["default_holidays"],
     }
     if not util.module_installed(cr, "hr_contract_salary"):
         removed_fields["hr.contract"].extend(
