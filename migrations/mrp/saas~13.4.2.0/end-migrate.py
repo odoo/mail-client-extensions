@@ -131,7 +131,7 @@ def migrate(cr, version):
         cr.execute(
             """
             WITH mo_id_lot_id AS (
-                SELECT mp.id AS mo_id,
+                SELECT DISTINCT mp.id AS mo_id,
                        mp.product_uom_id AS mo_uom_id,
                        spl.id AS lot_id
                   FROM mrp_production mp
@@ -143,6 +143,7 @@ def migrate(cr, version):
                  WHERE pt.tracking IN ('serial', 'lot')
                        AND mp.state IN ('progress', 'to_close', 'done')
                        AND sm.state != 'cancel'
+                       AND sml.qty_done > 0
             ),
             mo_to_backorder AS (
                 SELECT mo_id
@@ -204,11 +205,6 @@ def migrate(cr, version):
              WHERE b_info.backorder_sequence != 1
          RETURNING id, old_id, lot_producing_id, product_id, product_qty
         ),
-        qty_backorder AS (
-            SELECT old_id AS mo_id, SUM(product_qty) as qty
-              FROM insert_backorder_production
-          GROUP BY old_id
-        ),
         update_source_mo AS (
             UPDATE mrp_production AS mp
                SET lot_producing_id = b_info.lot_id,
@@ -216,10 +212,9 @@ def migrate(cr, version):
                                ('-' || REPEAT('0', 2 - TRUNC(LOG(b_info.backorder_sequence))::INT)
                                || b_info.backorder_sequence),
                    backorder_sequence = b_info.backorder_sequence,
-                   product_qty = mp.product_qty - qb.qty,
-                   qty_producing = mp.product_qty - qb.qty
+                   product_qty = b_info.product_qty,
+                   qty_producing = b_info.product_qty
               FROM temp_mo_backorder_info AS b_info
-                   JOIN qty_backorder AS qb ON qb.mo_id = b_info.mo_id
              WHERE mp.id = b_info.mo_id AND b_info.backorder_sequence = 1
          RETURNING id
         )
@@ -321,7 +316,7 @@ def migrate(cr, version):
              WHERE (stock_move.raw_material_production_id IN %(ids)s OR stock_move.production_id IN %(ids)s)
                AND stock_move.product_uom_qty = 0.0
             """,
-            {"ids": tuple(ids_mo)}
+            {"ids": tuple(ids_mo)},
         )
     # Clean working column, temporary table and invalidate cache for model used
     util.remove_column(cr, "mrp_production", "old_id")
@@ -344,7 +339,7 @@ def migrate(cr, version):
                  FROM stock_move
                 WHERE stock_move.raw_material_production_id IN %(ids)s OR stock_move.production_id IN %(ids)s
             """,
-            {"ids": tuple(ids_mo)}
+            {"ids": tuple(ids_mo)},
         )
         ids_move = [move_id for move_id, in cr.fetchall()]
         util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids_mo)
