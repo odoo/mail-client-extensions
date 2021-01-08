@@ -20,6 +20,9 @@ def migrate(cr, version):
     # https://github.com/odoo/odoo/pull/32685
     util.new_module(cr, "l10n_za", deps={"account", "base_vat"})
 
+    util.new_module(cr, "google_gmail", deps={"google_account", "mail"}, auto_install=True)
+    util.new_module(cr, "fetchmail_gmail", deps={"google_gmail", "fetchmail"}, auto_install=True)
+
     if util.has_enterprise():
         util.module_deps_diff(cr, "stock_account_enterprise", plus={"stock_enterprise"})
 
