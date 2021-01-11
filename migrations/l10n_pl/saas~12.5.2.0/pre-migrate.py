@@ -13,4 +13,11 @@ def migrate(cr, version):
     )
 
     util.delete_unused(cr, *[f"l10n_pl.CA{c:02}" for c in range(1, 17)])
-    util.delete_unused(cr, "l10n_pl.account_type_nonbalance")
+
+    util.replace_record_references_batch(
+        cr,
+        {util.ref(cr, "l10n_pl.account_type_nonbalance"): util.ref(cr, "account.data_account_off_sheet")},
+        "account.account.type",
+        replace_xmlid=False,
+    )
+    util.remove_record(cr, "l10n_pl.account_type_nonbalance")

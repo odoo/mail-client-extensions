@@ -244,16 +244,18 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         ] + cmd
         if options.run_tests:
             cmd += ["--http-port", str(free_port())]
+
+        step = "upgrading" if "-u" in cmd else "installing"
         env = dict(os.environ, MATT="1")
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         stdout = p.stdout.decode()
         if p.returncode:
-            logger.error("Error (returncode=%s) while upgrading module %s:\n%s", p.returncode, module, stdout)
+            logger.error("Error (returncode=%s) while %s module %s:\n%s", p.returncode, step, module, stdout)
             p.check_returncode()
 
         warns = "\n".join(re_warn.findall(stdout))
         if warns:
-            logger.warning("Some warnings/errors emitted while upgrading module %s:\n%s", module, warns)
+            logger.warning("Some warnings/errors emitted while %s module %s:\n%s", step, module, warns)
             return False
         return True
 

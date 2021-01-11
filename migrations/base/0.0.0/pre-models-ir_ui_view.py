@@ -4,6 +4,7 @@ import os
 
 from odoo import api, models
 from odoo.modules.module import get_modules
+from odoo.tools.misc import str2bool
 from odoo.addons.base.maintenance.migrations import util
 
 if util.version_gte("10.0"):
@@ -235,10 +236,15 @@ class IrUiView(models.Model):
         def unlink(self):
             for view in self:
                 if view.xml_id:
-                    if "view:%s" % (view.xml_id) in os.environ.get('suppress_upgrade_warnings', '').split(','):
+                    if "view:%s" % (view.xml_id) in os.environ.get("suppress_upgrade_warnings", "").split(","):
                         _logger.log(25, "View unlink %s explicitly ignored", (view.xml_id))
                     else:
                         _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
+                        if str2bool(os.getenv("MATT", "0")):
+                            # Hard fail only in CI.
+                            raise util.MigrationError(
+                                "It looks like you forgot to call `util.remove_view(cr, %r)`" % view.xml_id
+                            )
 
             return super().unlink()
 
