@@ -20,6 +20,9 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         self.assertEqual(before_results, self.convert_check(after_results), self.message)
 
     def invariant(self, ignore_kits=False, only_product_ids=None):
+        def trim_trailing_zeros(value):
+            return value.rstrip("0").rstrip(".")
+
         ignore_kits = ignore_kits or (
             "mrp.bom" in self.env.registry and parse_version(release.series) < parse_version("13.0")
         )
@@ -60,7 +63,12 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
             # If a product is created or deleted, this can lead to an issue.
             # So, only compare products having quantities != 0
             results += [
-                [p.id, float_repr(p.qty_available, -decimal.Decimal(str(p.uom_id.rounding)).as_tuple().exponent)]
+                [
+                    p.id,
+                    trim_trailing_zeros(
+                        float_repr(p.qty_available, -decimal.Decimal(str(p.uom_id.rounding)).as_tuple().exponent)
+                    ),
+                ]
                 for p in products
                 if p.qty_available
             ]
