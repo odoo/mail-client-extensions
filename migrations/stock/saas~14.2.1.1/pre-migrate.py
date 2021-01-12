@@ -22,3 +22,7 @@ def migrate(cr, version):
          WHERE sp.id = sm.picking_id
         """
     )
+
+    util.remove_field(cr, "stock.move", "note")
+    util.remove_field(cr, "stock.move", "picking_partner_id")
+    util.remove_field(cr, "stock.move", "backorder_id")
