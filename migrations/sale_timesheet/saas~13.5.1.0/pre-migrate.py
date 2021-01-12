@@ -15,10 +15,6 @@ def migrate(cr, version):
     util.create_column(cr, "project_create_sale_order", "sale_order_id", "int4")
     util.create_column(cr, "project_create_sale_order_line", "sale_line_id", "int4")
 
-    util.create_column(cr, "project_task_create_sale_order", "link_selection", "varchar")
-    util.create_column(cr, "project_task_create_sale_order", "sale_order_id", "int4")
-    util.create_column(cr, "project_task_create_sale_order", "sale_line_id", "int4")
-
     util.create_column(cr, "project_project", "bill_type", "varchar")
     util.create_column(cr, "project_project", "pricing_type", "varchar")
     cr.execute(
