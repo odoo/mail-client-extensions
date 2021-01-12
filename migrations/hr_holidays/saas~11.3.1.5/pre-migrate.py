@@ -8,6 +8,7 @@ def migrate(cr, version):
     util.create_column(cr, "hr_leave_type", "validity_start", "date")
     util.create_column(cr, "hr_leave_type", "validity_stop", "date")
     util.create_column(cr, "hr_leave_type", "time_type", "varchar")
+    util.create_column(cr, "hr_leave_type", "sequence", "integer")
 
     cr.execute(
         """
@@ -18,7 +19,8 @@ def migrate(cr, version):
                employee_applicability = CASE WHEN "limit" THEN 'leave'
                                              ELSE 'both'
                                          END,
-               time_type = 'leave'
+               time_type = 'leave',
+               sequence = id
     """
     )
 
