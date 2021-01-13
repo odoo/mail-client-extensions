@@ -103,10 +103,10 @@ def migrate(cr, version):
         if moves or templates:
             if fix_inconsistencies:
                 move_details = (
-                    "<h4>Stock moves</h4><ul>%s</ul>" % " ".join([f"<li>{m}</li>" for m in moves]) if moves else ""
+                    "<h4>Stock moves</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % m for m in moves]) if moves else ""
                 )
                 template_details = (
-                    "<h4>Product templates</h4><ul>%s</ul>" % " ".join([f"<li>{t}</li>" for t in templates])
+                    "<h4>Product templates</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % t for t in templates])
                     if templates
                     else ""
                 )
