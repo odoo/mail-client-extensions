@@ -1,6 +1,10 @@
 repos:
   - repo: local
     hooks:
+      - id: compile23
+        name: Compile python files using the expected runtime version
+        entry: ./tools/compile23.py
+        language: script
       - id: find-missing-links
         name: Find Missing Links
         entry: ./tools/find-missing-links.py
