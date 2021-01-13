@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -44,6 +45,17 @@ def migrate(cr, version):
           FROM zip_join_cte z
          WHERE t.id = z.tid
     """
+    rename_fields = {
+        'recurrency_monday': 'mon',
+        'recurrency_tuesday': 'tue',
+        'recurrency_wednesday': 'wed',
+        'recurrency_thursday': 'thu',
+        'recurrency_friday': 'fri',
+        'recurrency_saturday': 'sat',
+        'recurrency_sunday': 'sun',
+    }
     for model in ('lunch.alert', 'lunch.supplier'):
         table = util.table_of_model(cr, model)
         cr.execute(query.format(table=table), (model, root))
+        for old_name, new_name in rename_fields.items():
+            util.rename_field(cr, model, old_name, new_name)
