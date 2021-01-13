@@ -10,3 +10,4 @@ def migrate(cr, version):
 
     # Remove view from helpdesk_sale_timesheet_edit (module merged with helpdesk_sale_timesheet)
     util.remove_view(cr, "helpdesk_sale_timesheet.helpdesk_ticket_view_form_inherit_helpdesk_sale_timesheet_edit")
+    util.create_m2m(cr, "helpdesk_sla_sale_order_line_rel", "helpdesk_sla", "sale_order_line")
