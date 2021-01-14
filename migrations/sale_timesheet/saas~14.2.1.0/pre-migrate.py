@@ -38,6 +38,7 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "project.project", "bill_type")
     util.remove_field(cr, "project.task", "bill_type")
+    util.remove_column(cr, "project_task", "timesheet_product_id")  # This field will be a related field
     util.create_column(cr, "sale_order_line", "remaining_hours", "float8", default=0)
 
     product_uom_hour_id = util.ref(cr, "uom.product_uom_hour")
@@ -79,6 +80,7 @@ def migrate(cr, version):
     util.remove_view(cr, "sale_timesheet.sale_order_portal_template_inherit")
     util.remove_view(cr, "sale_timesheet.portal_invoice_page_inherit_timesheet")
     util.remove_view(cr, "sale_timesheet.report_invoice_document")
+    util.remove_view(cr, "sale_timesheet.quick_create_task_form_sale_timesheet")
 
     # Remove view from sale_timesheet_edit (module merged with sale_timesheet)
     util.remove_view(cr, "sale_timesheet.project_task_view_form_inherit_sale_timesheet_edit")
