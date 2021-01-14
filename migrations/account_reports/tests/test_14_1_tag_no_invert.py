@@ -62,8 +62,8 @@ class TestTagNoInvert(UpgradeCase):
                 with move_form.line_ids.new() as counterpart_line:
                     counterpart_line.name = 'test'
                     counterpart_line.account_id = reconcilable_account
-                    base_line.debit = 0 if debit_positive else 142
-                    base_line.credit = 142 if debit_positive else 0
+                    counterpart_line.debit = 0 if debit_positive else 142
+                    counterpart_line.credit = 142 if debit_positive else 0
 
             return move_form.save()
 
