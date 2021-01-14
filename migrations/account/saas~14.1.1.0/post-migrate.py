@@ -109,6 +109,28 @@ def migrate(cr, version):
                     AND tax_rep_ln.refund_tax_id IS NOT NULL
             ON CONFLICT DO NOTHING
         """,
+        """
+            INSERT INTO amls_to_invert
+                SELECT DISTINCT aml.id
+                FROM account_move_line aml
+                JOIN account_move move ON aml.move_id = move.id
+                LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
+                WHERE
+                    no_reinversion_caba_partial.id IS NULL
+                    AND NOT EXISTS(
+                        SELECT account_tax_id
+                        FROM account_move_line_account_tax_rel
+                        WHERE account_move_line_id = aml.id
+                    )
+                    AND EXISTS(
+                        SELECT account_account_tag_id
+                        FROM account_account_tag_account_move_line_rel aml_tags
+                        WHERE aml_tags.account_move_line_id = aml.id
+                    )
+                    AND aml.tax_repartition_line_id IS NULL
+                    AND move.move_type IN ('out_invoice', 'out_receipt', 'in_refund')
+            ON CONFLICT DO NOTHING
+        """,
     ]
 
     util.parallel_execute(cr, amls_to_invert_populate_queries)

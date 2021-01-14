@@ -67,6 +67,40 @@ class TestTagNoInvert(UpgradeCase):
 
             return move_form.save()
 
+        def invoice_only_tags_generator(inv_type, partner, account, date, tax):
+            rep_lines = getattr(tax, '%s_repartition_line_ids' % inv_type.split('_')[1])
+
+            tax_rep_ln = rep_lines.filtered(lambda x: x.repartition_type == 'tax')
+            base_rep_ln = rep_lines.filtered(lambda x: x.repartition_type == 'base')
+
+            rslt = self.env['account.move'].create({
+                'move_type': inv_type,
+                'partner_id': partner.id,
+                'date': date,
+                'invoice_line_ids': [
+                    (0, 0, {
+                        'name': 'test_base',
+                        'quantity': 1,
+                        'account_id': account.id,
+                        'price_unit': 100,
+                        #'tax_ids': [(5, 0, 0)],
+                    }),
+                    (0, 0, {
+                        'name': 'test_tax',
+                        'quantity': 1,
+                        'account_id': tax_rep_ln.account_id,
+                        'price_unit': 42,
+                        'tax_ids': [(5, 0, 0)],
+                        #'tax_tag_ids': [(6, 0, tax_rep_ln.tag_ids.ids)],
+                    }),
+                ],
+            })
+
+            rslt.line_ids.filtered(lambda x: x.name == 'test_base').tax_tag_ids = [(6, 0, base_rep_ln.tag_ids.ids)]
+            rslt.line_ids.filtered(lambda x: x.name == 'test_tax').tax_tag_ids = [(6, 0, tax_rep_ln.tag_ids.ids)]
+
+            return rslt
+
         with no_fiscal_lock(self.env.cr):
             # Ensure the lock dates allow what we are doing
             self.env.company.fiscalyear_lock_date = None
@@ -105,6 +139,8 @@ class TestTagNoInvert(UpgradeCase):
             # Case 5: Misc operations with taxes, reconciled together
             self._instantiate_test_data(tax_report, 'case5', today, on_all_invoices_created=match_opposite,
                                         invoice_generator=invoice_like_misc_generator)
+            # Case 6: Invoice with tags, but without taxes (could happen with stuff imported from other softwares)
+            self._instantiate_test_data(tax_report, 'case6', today, on_invoice_created=register_payment, invoice_generator=invoice_only_tags_generator)
 
             # Generate the report
             report_lines = self._get_report_lines(today)
