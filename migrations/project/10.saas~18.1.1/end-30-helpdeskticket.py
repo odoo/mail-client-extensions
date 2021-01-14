@@ -144,7 +144,7 @@ def migrate(cr, version):
                    md5(md5(random()::varchar || i.id::varchar) || clock_timestamp()::varchar)::uuid::varchar,
                    {select_columns}
             FROM project_issue i
-            JOIN helpdesk_stage s ON i.stage_id = s._tmp
+            LEFT JOIN helpdesk_stage s ON i.stage_id = s._tmp
         """.format(
                 columns=",".join(columns),
                 select_columns=",".join(["i.%s" % c for c in columns]),
