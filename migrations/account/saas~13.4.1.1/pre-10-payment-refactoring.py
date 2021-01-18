@@ -257,7 +257,7 @@ def migrate(cr, version):
           FROM account_bank_statement_line_pre_backup st_line_backup
           JOIN account_bank_statement st ON st.id = st_line_backup.statement_id
           JOIN account_journal journal ON journal.id = st.journal_id
-          JOIN res_company comp ON comp.id = st_line_backup.company_id
+          JOIN res_company comp ON comp.id = COALESCE(st_line_backup.company_id, journal.company_id)
          WHERE st_line_backup.id = st_line.id
     """
     )
