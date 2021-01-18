@@ -60,7 +60,7 @@ class TestRefactoringEDI(UpgradeCase):
         invoice.l10n_mx_edi_pac_status = "signed"
         return invoice.id, cfdi.id
 
-    def _check_invoice_posted_signed_cfdi(self, invoice, cfdi_id):
+    def _check_invoice_posted_signed_cfdi(self, invoice, cfdi_id, mx_edi_format_id):
         self.assertRecordValues(
             invoice,
             [
@@ -75,6 +75,7 @@ class TestRefactoringEDI(UpgradeCase):
                 {
                     "state": "sent",
                     "attachment_id": cfdi_id,
+                    "edi_format_id": mx_edi_format_id,
                 }
             ],
         )
@@ -84,7 +85,7 @@ class TestRefactoringEDI(UpgradeCase):
         invoice.l10n_mx_edi_pac_status = "retry"
         return invoice.id, cfdi.id
 
-    def _check_invoice_posted_not_signed_cfdi(self, invoice, cfdi_id):
+    def _check_invoice_posted_not_signed_cfdi(self, invoice, cfdi_id, mx_edi_format_id):
         self.assertRecordValues(
             invoice,
             [
@@ -99,6 +100,7 @@ class TestRefactoringEDI(UpgradeCase):
                 {
                     "state": "to_send",
                     "attachment_id": False,
+                    "edi_format_id": mx_edi_format_id,
                 }
             ],
         )
@@ -112,9 +114,18 @@ class TestRefactoringEDI(UpgradeCase):
 
         return invoice.id, cfdi_3.id
 
-    def _check_invoice_posted_signed_multiple_cfdi(self, invoice, cfdi_id):
+    def _check_invoice_posted_signed_multiple_cfdi(self, invoice, cfdi_id, mx_edi_format_id):
         self.assertRecordValues(invoice, [{"edi_state": "sent"}])
-        self.assertRecordValues(invoice.edi_document_ids, [{"state": "sent", "attachment_id": cfdi_id}])
+        self.assertRecordValues(
+            invoice.edi_document_ids,
+            [
+                {
+                    "state": "sent",
+                    "attachment_id": cfdi_id,
+                    "edi_format_id": mx_edi_format_id,
+                }
+            ],
+        )
 
     # -------------------------------------------------------------------------
     # SETUP
@@ -278,6 +289,7 @@ class TestRefactoringEDI(UpgradeCase):
         inv_id2, cfdi_id2 = init[2]
         moves = self.env["account.move"].browse([inv_id0, inv_id1, inv_id2])
 
-        self._check_invoice_posted_signed_cfdi(moves[0], cfdi_id0)
-        self._check_invoice_posted_not_signed_cfdi(moves[1], cfdi_id1)
-        self._check_invoice_posted_signed_multiple_cfdi(moves[2], cfdi_id2)
+        mx_edi_format_id = util.ref(self.env.cr, "l10n_mx_edi.edi_cfdi_3_3").id
+        self._check_invoice_posted_signed_cfdi(moves[0], cfdi_id0, mx_edi_format_id)
+        self._check_invoice_posted_not_signed_cfdi(moves[1], cfdi_id1, mx_edi_format_id)
+        self._check_invoice_posted_signed_multiple_cfdi(moves[2], cfdi_id2, mx_edi_format_id)
