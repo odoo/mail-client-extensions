@@ -62,8 +62,8 @@ class TestTagNoInvert(UpgradeCase):
                 with move_form.line_ids.new() as counterpart_line:
                     counterpart_line.name = 'test'
                     counterpart_line.account_id = reconcilable_account
-                    counterpart_line.debit = 0 if debit_positive else 142
-                    counterpart_line.credit = 142 if debit_positive else 0
+                    counterpart_line.debit = 0 if debit_positive else 145
+                    counterpart_line.credit = 145 if debit_positive else 0
 
             return move_form.save()
 
@@ -89,7 +89,7 @@ class TestTagNoInvert(UpgradeCase):
                         'name': 'test_tax',
                         'quantity': 1,
                         'account_id': tax_rep_ln.account_id,
-                        'price_unit': 42,
+                        'price_unit': 45,
                         'tax_ids': [(5, 0, 0)],
                         #'tax_tag_ids': [(6, 0, tax_rep_ln.tag_ids.ids)],
                     }),
@@ -140,7 +140,8 @@ class TestTagNoInvert(UpgradeCase):
             self._instantiate_test_data(tax_report, 'case5', today, on_all_invoices_created=match_opposite,
                                         invoice_generator=invoice_like_misc_generator)
             # Case 6: Invoice with tags, but without taxes (could happen with stuff imported from other softwares)
-            self._instantiate_test_data(tax_report, 'case6', today, on_invoice_created=register_payment, invoice_generator=invoice_only_tags_generator)
+            self._instantiate_test_data(tax_report, 'case6', today, on_invoice_created=register_payment,
+                                        invoice_generator=invoice_only_tags_generator)
 
             # Generate the report
             report_lines = self._get_report_lines(today)
@@ -213,7 +214,7 @@ class TestTagNoInvert(UpgradeCase):
 
         tax_template = self.env['account.tax.template'].create({
             'name': label,
-            'amount': '42',
+            'amount': 45,
             'amount_type': 'percent',
             'type_tax_use': type_tax_use,
             'chart_template_id': self.env.company.chart_template_id.id,
