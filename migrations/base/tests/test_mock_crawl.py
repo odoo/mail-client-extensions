@@ -290,7 +290,7 @@ class TestCrawler(IntegrityCase):
                 if field.comodel_name:
                     domain = []
                     if node.get("domain"):
-                        domain = safe_eval(node.get("domain"), processed_data)
+                        domain = safe_eval(node.get("domain"), dict(uid=self.env.user.id, **processed_data))
                     self.env[field.comodel_name].name_search(args=domain)
 
             # Skip the calls related to the attachments and the discussion thread
