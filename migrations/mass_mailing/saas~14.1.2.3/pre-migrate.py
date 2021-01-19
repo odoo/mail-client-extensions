@@ -21,5 +21,24 @@ def migrate(cr, version):
            SET schedule_type='scheduled'
          WHERE schedule_date IS NOT NULL"""
     )
+    cr.execute(
+        """
+            WITH cron AS (
+                SELECT c.nextcall
+                  FROM ir_cron c
+                  JOIN ir_model_data d ON d.model = 'ir.cron' AND d.res_id = c.id
+                  WHERE d.module = 'mass_mailing'
+                    AND d.name = 'ir_cron_mass_mailing_queue'
+            )
+            UPDATE mailing_mailing
+               SET calendar_date = CASE state WHEN 'done' THEN sent_date
+                                              WHEN 'in_queue' THEN GREATEST(schedule_date, cron.nextcall)
+                                              WHEN 'sending' THEN write_date  -- most accurate value than `now()` used by code
+                                    END
+              FROM cron
+             WHERE state IN ('done', 'in_queue', 'sending')
+               AND calendar_date IS NULL
+        """
+    )
 
-    util.rename_field(cr, 'mailing.list', 'contact_nbr', 'contact_count')
+    util.rename_field(cr, "mailing.list", "contact_nbr", "contact_count")

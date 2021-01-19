@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -14,17 +13,17 @@ def migrate(cr, version):
     util.remove_view(cr, "website_event_track.event_sponsor_view_form")
     util.remove_view(cr, "website_event_track.event_sponsor_view_search")
     util.remove_view(cr, "website_event_track.event_sponsor_view_kanban")
-    util.remove_view(cr, "website_event_track.event_sponsor_type_view_tree")
-    util.remove_view(cr, "website_event_track.event_sponsor_type_view_form")
-    # remove sponsor templates (same reason)
-    util.remove_view(cr, "website_event_track.event_sponsor")
 
     util.remove_record(cr, "website_event_track.event_sponsor_action_from_event")
-    util.remove_record(cr, "website_event_track.event_sponsor_type_action")
-    util.remove_record(cr, "website_event_track.menu_event_sponsor_type")
 
     if not util.module_installed(cr, "website_event_exhibitor"):
         util.remove_model(cr, "event.sponsor")
         util.remove_model(cr, "event.sponsor.type")
         util.remove_field(cr, "event.event", "sponsor_ids")
         util.remove_field(cr, "event.event", "sponsor_count")
+
+        util.remove_view(cr, "website_event_track.event_sponsor")
+        util.remove_view(cr, "website_event_track.event_sponsor_type_view_tree")
+        util.remove_view(cr, "website_event_track.event_sponsor_type_view_form")
+        util.remove_record(cr, "website_event_track.event_sponsor_type_action")
+        util.remove_menus(cr, [util.ref(cr, "website_event_track.menu_event_sponsor_type")])
