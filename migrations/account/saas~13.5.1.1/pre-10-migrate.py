@@ -71,7 +71,8 @@ def migrate(cr, version):
             """
                 UPDATE account_move_line
                    SET currency_id = company_currency_id,
-                       amount_currency = balance
+                       amount_currency = balance,
+                       amount_residual_currency = amount_residual
                  WHERE currency_id IS NULL
             """,
         ),
