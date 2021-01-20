@@ -4,5 +4,13 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.merge_module(cr, "sale_timesheet_edit", "sale_timesheet", without_deps=True)
     if util.has_enterprise():
         util.new_module(cr, "helpdesk_fsm_report", deps={"helpdesk_fsm", "industry_fsm_report"}, auto_install=True)
+        util.merge_module(cr, "helpdesk_sale_timesheet_edit", "helpdesk_sale_timesheet", without_deps=True)
+        util.new_module(
+            cr,
+            "helpdesk_fsm_sale",
+            deps={"helpdesk_fsm", "helpdesk_sale_timesheet", "industry_fsm_sale"},
+            auto_install=True,
+        )
