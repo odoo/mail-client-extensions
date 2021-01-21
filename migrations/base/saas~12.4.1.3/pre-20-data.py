@@ -19,11 +19,18 @@ def migrate(cr, version):
 
     # Force a more logical FK on currency rate as it will be the case in the future: odoo/odoo#46468
     # This will allow `delete_unused` to correctly remove `SDD` if not used.
-    cr.execute("""
+    cr.execute(
+        """
         ALTER TABLE res_currency_rate
         DROP CONSTRAINT IF EXISTS res_currency_rate_currency_id_fkey,
         ADD FOREIGN KEY (currency_id) REFERENCES res_currency(id) ON DELETE CASCADE
-    """)
+    """
+    )
     util.delete_unused(cr, "base.SDD")
 
     cr.execute("UPDATE ir_ui_view SET field_parent = NULL WHERE id = %s", [util.ref(cr, "base.view_company_tree")])
+
+    # `website` module adds a new field `website_form_key` on `ir.model` model.
+    # This field is filled by xml data in the related `website_*` modules
+    # Force the xmlids of models to be updatable -- opw-2439728
+    cr.execute("UPDATE ir_model_data SET noupdate = FALSE WHERE model = 'ir.model'")
