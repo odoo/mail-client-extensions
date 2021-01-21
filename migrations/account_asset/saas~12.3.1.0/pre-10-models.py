@@ -61,14 +61,24 @@ def migrate(cr, version):
 
     cr.execute("""
         UPDATE account_asset
-           SET asset_type=c.type,
-               account_asset_id=c.account_asset_id,
-               account_depreciation_id=c.account_depreciation_id,
-               account_depreciation_expense_id=c.account_depreciation_expense_id,
-               journal_id=c.journal_id
+           SET asset_type = c.type,
+               account_asset_id = c.account_asset_id,
+               account_depreciation_id = c.account_depreciation_id,
+               account_depreciation_expense_id = c.account_depreciation_expense_id,
+               journal_id = c.journal_id
           FROM account_asset_category c
-         WHERE account_asset.category_id=c.id
+         WHERE account_asset.category_id = c.id
     """)
+
+    cr.execute("""
+        UPDATE account_asset a
+           SET model_id = a2.id
+          FROM account_asset a2
+         WHERE a2.category_id = a.category_id
+           AND a2.state = 'model'
+           AND a.state <> 'model'
+    """)
+
     cr.execute("""
         ALTER TABLE account_asset
         ALTER COLUMN method_period TYPE varchar
