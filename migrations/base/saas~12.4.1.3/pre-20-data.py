@@ -33,4 +33,18 @@ def migrate(cr, version):
     # `website` module adds a new field `website_form_key` on `ir.model` model.
     # This field is filled by xml data in the related `website_*` modules
     # Force the xmlids of models to be updatable -- opw-2439728
-    cr.execute("UPDATE ir_model_data SET noupdate = FALSE WHERE model = 'ir.model'")
+    cr.execute(
+        """
+        UPDATE ir_model_data
+           SET noupdate = FALSE
+         WHERE model = 'ir.model'
+           AND CONCAT(module, '.', name) IN (
+                'crm.model_crm_lead',                 -- website_crm
+                'mail.model_mail_mail',               -- website_form
+                'project.model_project_task',         -- website_form_project
+                'hr_recruitment.model_hr_applicant',  -- website_hr_recruitment
+                'base.model_res_partner',             -- website_sale
+                'helpdesk.model_helpdesk_ticket'      -- website_helpdesk (enterprise)
+           )
+        """
+    )
