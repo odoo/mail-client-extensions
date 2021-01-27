@@ -99,6 +99,39 @@ def migrate(cr, version):
     """
     )
 
+    # update null interval as it will lead to infinite loops
+    cr.execute(
+        """
+           UPDATE calendar_event
+              SET interval = 1
+            WHERE coalesce(interval, 0) <= 0
+        RETURNING id, name
+        """
+    )
+    updated_events = [f"<li>{name} (id: {id})</li>" for id, name in cr.fetchall()]
+
+    if updated_events:
+        util.add_to_migration_reports(
+            category="Events",
+            message="""
+                 <details>
+                    <summary>
+                        While upgrading your database, we found that some recurring
+                        calendar events had invalid `interval` value (not set, set to 0 or to a negative value).
+                        These faulty intervals have been set to their default value which is 1.
+                        Please check the updated events to be sure that this default value
+                        fits your needs.
+                    </summary>
+                    <h4>Updated calendar events</h4>
+                    <ul>
+                    %s
+                    </ul>
+                </details>
+            """
+            % (" ".join(updated_events)),
+            format="html",
+        )
+
     util.update_field_references(cr, "start_datetime", "start", only_models=("calendar.event",))
     util.update_field_references(cr, "stop_datetime", "stop", only_models=("calendar.event",))
 
