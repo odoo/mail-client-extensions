@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import ast
-from pathlib import Path
 import sys
+from pathlib import Path
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
@@ -35,8 +35,8 @@ def saas(x, y):
 
 def previous_versions(version):
     """
-        returns glob-aware wildcard matches for previous versions
-        of given versions up to previous major version
+    returns glob-aware wildcard matches for previous versions
+    of given versions up to previous major version
     """
     v = list(map(int, version.replace("saas~", "").split(".")))
 

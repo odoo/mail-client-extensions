@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter, Action, ArgumentError
-
-from concurrent.futures import ProcessPoolExecutor
-from functools import wraps
-from pathlib import Path
-
-import tempfile
+import itertools
+import logging
 import os
+import re
 import socket
 import subprocess
 import sys
-from typing import Callable, Generic, NamedTuple, Optional, Union, TypeVar, List, Sequence, Any
+import tempfile
+from argparse import Action, ArgumentError, ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from collections import namedtuple
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import closing
-
-import re
-import logging
-import itertools
+from functools import wraps
+from pathlib import Path
+from typing import Any, Callable, Generic, List, NamedTuple, Optional, Sequence, TypeVar, Union
 
 try:
     from setproctitle import setproctitle  # type: ignore

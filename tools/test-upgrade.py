@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-import sys
-import subprocess
+import logging
 import os.path
 import signal
-import logging
+import subprocess
+import sys
 from logging.handlers import WatchedFileHandler
 
 import psycopg2
-
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
@@ -90,10 +89,10 @@ class Odoo:  # TODO: manage upgrade_path after 13
 
 
 def normalize_path(path, relative_to_file=False):
-    base_directory = os.getenv("PWD") # CAUTION ! dont use os.getcwd()
+    base_directory = os.getenv("PWD")  # CAUTION ! dont use os.getcwd()
     # getcwd and abspath will return realpath
     # example:
-    #root/
+    # root/
     # ├── master/
     # │   ├── odoo/
     # │   └── upgrade/
@@ -162,9 +161,10 @@ def run():
         "--checkout",
         metavar="BRANCH",
         help="Odoo source and target versions to checkout. Example `-c 12.0 13.0` to test migration from 12.0 to 13.0\
-                                BRANCH can be a branch name or commit, and can also be a comma separated list to checkout different version in each addons path.\
-                                Example: -c 12.0,12.0-my-dev-tri 13.0 --addons-path odoo/addons,enterprise to checkout 12.0-my-dev-tri in source enterprise\
-                                in enterprise when initiating database",
+                BRANCH can be a branch name or commit, and can also be a comma separated list to checkout different version\
+                in each addons path.\
+                Example: -c 12.0,12.0-my-dev-tri 13.0 --addons-path odoo/addons,enterprise to checkout 12.0-my-dev-tri in \
+                source enterprise in enterprise when initiating database",
         default=False,
         nargs=2,
     )
@@ -195,8 +195,11 @@ def run():
         default=False,
         nargs=2,
         metavar="STR",
-        help="`pattern replace`, a replace to do in addons absolutes paths to change of verse in a multiverse. Example: `-m /12.0/ /13.0/` for the multiverse example will switch from `root/12.0/odoo/addons to root/13.0/odoo/addons and `root/12.0/enterprise to root/13.0/enterprise`\
-                                      Other Example: `-m 12 13` will switch from root/odoo-12/addons to root/odoo-13/addons and root/enterprise-12 to root/enterprise-13",
+        help="`pattern replace`, a replace to do in addons absolutes paths to change of verse in a multiverse. \
+                Example: `-m /12.0/ /13.0/` for the multiverse example will switch from `root/12.0/odoo/addons` \
+                to `root/13.0/odoo/addons` and `root/12.0/enterprise` to `root/13.0/enterprise` \
+                Other Example: `-m 12 13` will switch from `root/odoo-12/addons` to `root/odoo-13/addons` \
+                and `root/enterprise-12` to `root/enterprise-13`",
     )
     custom_group = parser.add_argument_group("Custom paths")
     custom_group.add_argument(
