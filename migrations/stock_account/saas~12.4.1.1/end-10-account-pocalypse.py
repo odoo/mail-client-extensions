@@ -66,9 +66,9 @@ def migrate(cr, version):
         )
         SELECT
             sm.create_uid,
-            sm.create_date,
+            sm.date,
             sm.write_uid,
-            sm.write_date,
+            sm.date,
             sm.company_id,
             pp.id,
             CASE
@@ -147,9 +147,9 @@ def migrate(cr, version):
         )
         SELECT
             sm.create_uid,
-            sm.create_date,
+            sm.date,
             sm.write_uid,
-            sm.write_date,
+            sm.date,
             sm.company_id,
             sm.product_id,
             CASE
