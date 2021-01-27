@@ -30,7 +30,7 @@ def migrate(cr, version):
     util.create_column(cr, "utm_campaign", "is_website", "boolean")
     util.create_column(cr, "utm_campaign", "color", "int4")
 
-    if util.table_exists(cr, "mail_mass_mailing_campaign"):
+    if util.column_exists(cr, "mail_mass_mailing_campaign", "campaign_id"):
         cr.execute(
             """
             UPDATE utm_campaign u
