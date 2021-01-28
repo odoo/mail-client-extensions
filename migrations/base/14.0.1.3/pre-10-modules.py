@@ -14,6 +14,9 @@ def migrate(cr, version):
     # https://github.com/odoo/odoo/pull/62900
     util.new_module(cr, "sale_timesheet_edit", deps={"sale_timesheet"}, auto_install=True)
 
+    # https://github.com/odoo/odoo/pull/63337
+    util.new_module(cr, "account_edi_extended", deps={"account_edi"}, auto_install=False)
+
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
 
@@ -41,6 +44,21 @@ def migrate(cr, version):
             "l10n_be_hr_payroll_273S_274_account",
             deps={"l10n_be_hr_payroll_account", "l10n_be_hr_payroll_273S_274"},
             auto_install=True,
+        )
+
+        # https://github.com/odoo/enterprise/pull/15297
+        util.new_module(
+            cr,
+            "l10n_pe_edi",
+            deps={
+                "iap",
+                "l10n_pe",
+                "l10n_latam_invoice_document",
+                "product_unspsc",
+                "account_debit_note",
+                "account_edi_extended",
+            },
+            auto_install=False,
         )
 
     util.remove_module(cr, "website_gengo")
