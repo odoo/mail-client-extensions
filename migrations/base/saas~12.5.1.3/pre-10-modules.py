@@ -12,7 +12,7 @@ def migrate(cr, version):
     util.new_module(cr, "hr_work_entry", deps={"hr"})
     if util.module_installed(cr, "hr"):
         util.force_install_module(cr, "hr_work_entry")
-        util.force_migration_of_fresh_module(cr, 'hr_work_entry')
+        util.force_migration_of_fresh_module(cr, "hr_work_entry")
 
     util.new_module(cr, "l10n_latam_base", deps={"base_vat", "contacts"})
     util.new_module(cr, "l10n_latam_invoice_document", deps={"account"})
@@ -82,6 +82,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "survey", plus={"gamification"})
     util.module_deps_diff(cr, "utm", plus={"web"})
     util.module_deps_diff(cr, "website", plus={"auth_signup"})
+    util.module_deps_diff(cr, "test_inherit", plus={"test_new_api"})
 
     util.module_auto_install(cr, "website_sale_slides", False)
 
@@ -166,7 +167,7 @@ def migrate(cr, version):
 
         util.module_deps_diff(cr, "hr_appraisal", plus={"web_gantt"})
         util.module_deps_diff(cr, "hr_contract_salary", plus={"hr_contract_sign"})
-        util.force_migration_of_fresh_module(cr, 'hr_contract_sign')
+        util.force_migration_of_fresh_module(cr, "hr_contract_sign")
         util.module_deps_diff(cr, "hr_payroll", plus={"hr_work_entry", "mail"})
         util.module_deps_diff(cr, "hr_payroll_account", plus={"account_accountant"}, minus={"account"})
         util.module_deps_diff(
@@ -175,7 +176,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "l10n_be_hr_payroll_account", plus={"l10n_be"})
         util.module_deps_diff(cr, "project_enterprise", plus={"web_gantt"})
         util.module_deps_diff(cr, "project_forecast", plus={"planning"}, minus={"web_grid", "hr", "web_gantt"})
-        util.force_migration_of_fresh_module(cr, 'planning')
+        util.force_migration_of_fresh_module(cr, "planning")
         util.module_deps_diff(cr, "sale_subscription", plus={"sms"})
         util.module_deps_diff(cr, "stock_enterprise", plus={"web_grid"})
         util.module_deps_diff(
