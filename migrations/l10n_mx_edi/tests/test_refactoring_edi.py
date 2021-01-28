@@ -289,7 +289,7 @@ class TestRefactoringEDI(UpgradeCase):
         inv_id2, cfdi_id2 = init[2]
         moves = self.env["account.move"].browse([inv_id0, inv_id1, inv_id2])
 
-        mx_edi_format_id = util.ref(self.env.cr, "l10n_mx_edi.edi_cfdi_3_3").id
+        mx_edi_format_id = util.ref(self.env.cr, "l10n_mx_edi.edi_cfdi_3_3")
         self._check_invoice_posted_signed_cfdi(moves[0], cfdi_id0, mx_edi_format_id)
         self._check_invoice_posted_not_signed_cfdi(moves[1], cfdi_id1, mx_edi_format_id)
         self._check_invoice_posted_signed_multiple_cfdi(moves[2], cfdi_id2, mx_edi_format_id)
