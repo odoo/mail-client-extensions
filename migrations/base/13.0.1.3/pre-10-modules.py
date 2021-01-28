@@ -42,3 +42,38 @@ def migrate(cr, version):
         util.new_module(
             cr, "sale_subscription_timesheet", deps={"sale_subscription", "sale_timesheet"}, auto_install=True
         )
+
+    if util.has_design_themes():
+        util.new_module(
+            cr,
+            "test_themes",
+            deps={
+                # CE themes
+                "theme_bootswatch",
+                "theme_default",
+                # design-themes themes
+                "theme_anelusia",
+                "theme_artists",
+                "theme_avantgarde",
+                "theme_beauty",
+                "theme_bewise",
+                "theme_bistro",
+                "theme_bookstore",
+                "theme_clean",
+                "theme_enark",
+                "theme_graphene",
+                "theme_kea",
+                "theme_kiddo",
+                "theme_loftspace",
+                "theme_monglia",
+                "theme_nano",
+                "theme_notes",
+                "theme_odoo_experts",
+                "theme_orchid",
+                "theme_real_estate",
+                "theme_treehouse",
+                "theme_vehicle",
+                "theme_yes",
+                "theme_zap",
+            },
+        )

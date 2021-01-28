@@ -109,6 +109,30 @@ def migrate(cr, version):
         util.module_auto_install(cr, "website_event_track_social", True)
         util.module_auto_install(cr, "website_event_twitter_wall", True)
 
+    if util.has_design_themes():
+        util.new_module(cr, "theme_cobalt", deps={"website"})
+        util.new_module(cr, "theme_paptic", deps={"website"})
+        util.module_deps_diff(cr, "test_themes", plus={"theme_cobalt", "theme_paptic"})
+        util.module_deps_diff(cr, "theme_artists", plus={"theme_common"}, minus={"theme_monglia"})
+        util.module_deps_diff(cr, "theme_beauty", plus={"theme_common"}, minus={"theme_loftspace"})
+        util.module_deps_diff(cr, "theme_bistro", plus={"theme_common"}, minus={"theme_treehouse"})
+        util.module_deps_diff(cr, "theme_bookstore", plus={"theme_common"}, minus={"theme_loftspace"})
+        util.module_deps_diff(cr, "theme_odoo_experts", plus={"theme_common"}, minus={"theme_loftspace"})
+        util.module_deps_diff(cr, "theme_orchid", plus={"theme_common"}, minus={"theme_loftspace"})
+        util.module_deps_diff(cr, "theme_real_estate", plus={"theme_common"}, minus={"theme_monglia"})
+        util.module_deps_diff(cr, "theme_vehicle", plus={"theme_common"}, minus={"theme_monglia"})
+        util.module_deps_diff(cr, "theme_yes", plus={"theme_common"}, minus={"theme_kea"})
+        util.module_deps_diff(cr, "theme_zap", plus={"theme_common"}, minus={"theme_treehouse"})
+
+        if not util.module_installed(cr, "website"):
+            util.remove_module(cr, "theme_anelusia_sale")
+            util.remove_module(cr, "theme_graphene_blog")
+            util.remove_module(cr, "theme_kea_sale")
+            util.remove_module(cr, "theme_kiddo_sale")
+            util.remove_module(cr, "theme_loftspace_sale")
+            util.remove_module(cr, "theme_monglia_sale")
+            util.remove_module(cr, "theme_notes_sale")
+
     # so long old modules...
     util.remove_module(cr, "hr_expense_check")
     util.remove_module(cr, "hw_proxy")

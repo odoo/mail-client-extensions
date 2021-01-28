@@ -59,6 +59,8 @@ def migrate(cr, version):
 
     if not util.module_installed(cr, "website"):
         util.remove_module(cr, "theme_bootswatch")
+    elif util.has_design_themes():
+        util.module_deps_diff(cr, "test_themes", minus={"theme_bootswatch"})
 
     if util.has_enterprise():
         util.new_module(cr, "data_cleaning", deps={"web", "mail", "phone_validation"})
