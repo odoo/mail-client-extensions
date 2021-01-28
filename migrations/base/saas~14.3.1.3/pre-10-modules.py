@@ -20,6 +20,7 @@ def migrate(cr, version):
     util.rename_module(cr, "mail_client_extension", "mail_plugin")
 
     util.new_module(cr, "crm_mail_plugin", deps={"crm", "mail_plugin"}, auto_install=True)
+    util.merge_module(cr, "l10n_ch_qriban", "l10n_ch")
 
     if util.has_enterprise():
         util.merge_module(cr, "l10n_be_hr_payroll_273S_274", "l10n_be_hr_payroll")
