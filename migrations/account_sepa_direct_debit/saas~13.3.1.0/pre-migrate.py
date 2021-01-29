@@ -8,7 +8,7 @@ def migrate(cr, version):
     ''' sdd_mandate original_doc must be converted to ir.attachment '''
     cr.execute('''
     SELECT
-        original_doc_filename as name,
+        COALESCE(original_doc_filename, 'mandate_file') as name,
         original_doc as datas,
         'sdd.mandate' as res_model,
         id as res_id,
