@@ -230,51 +230,35 @@ def migrate(cr, version):
     else:
         account_cmp = "IN (journal.default_debit_account_id, journal.default_credit_account_id)"
 
-    util.parallel_execute(
-        cr,
-        [
-            f"""
-        UPDATE account_move_line line
-           SET account_id = journal.payment_debit_account_id
-          FROM account_payment pay
-          JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
-          JOIN account_move move ON move.id = pay.move_id
-          JOIN res_company company ON move.company_id = company.id
-          JOIN account_journal journal ON journal.id = move.journal_id
-         WHERE pay_backup.no_replace_account IS FALSE
-           AND move.statement_line_id IS NULL
-           AND line.move_id = move.id
-           AND line.account_id {account_cmp}
-           AND line.balance >= 0.0
-           AND journal.payment_debit_account_id IS NOT NULL
-           AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.debit_move_id = line.id)
-           AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
-        """,
-            f"""
-        UPDATE account_move_line line
-           SET account_id = journal.payment_credit_account_id
-          FROM account_payment pay
-          JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
-          JOIN account_move move ON move.id = pay.move_id
-          JOIN res_company company ON move.company_id = company.id
-          JOIN account_journal journal ON journal.id = move.journal_id
-         WHERE pay_backup.no_replace_account IS FALSE
-           AND move.statement_line_id IS NULL
-           AND line.move_id = move.id
-           AND line.account_id {account_cmp}
-           AND line.balance < 0.0
-           AND journal.payment_credit_account_id IS NOT NULL
-           AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.credit_move_id = line.id)
-           AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
-        """,
-        ],
-    )
+    ctx = {"skip_account_move_synchronization": True, "tracking_disable": True}
+    for debit_credit, balance_sign in (('debit', '>='), ('credit', '<')):
+        cr.execute(f'''
+            SELECT
+                journal.payment_{debit_credit}_account_id AS account_id,
+                ARRAY_AGG(line.id) AS line_ids
+            FROM account_payment pay
+            JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
+            JOIN account_move move ON move.id = pay.move_id
+            JOIN account_move_line line ON line.move_id = move.id
+            JOIN res_company company ON move.company_id = company.id
+            JOIN account_journal journal ON journal.id = move.journal_id
+            WHERE pay_backup.no_replace_account IS FALSE
+            AND move.statement_line_id IS NULL
+            AND line.account_id {account_cmp}
+            AND line.balance {balance_sign} 0.0
+            AND journal.payment_{debit_credit}_account_id IS NOT NULL
+            AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.{debit_credit}_move_id = line.id)
+            AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
+            GROUP BY 1
+        ''')
+        for account_id, line_ids in cr.fetchall():
+            for line in util.iter_browse(env['account.move.line'].with_context(**ctx), line_ids):
+                line.write({'account_id': account_id})
 
     with util.no_fiscal_lock(cr):
 
         # ===== Draft/cancelled account.payment =====
         env["account.payment"].flush()
-        ctx = {"skip_account_move_synchronization": True, "tracking_disable": True}
         created_move_ids = set()
 
         cr.execute(

@@ -946,6 +946,47 @@ class TestPaymentPocalypse(UpgradeCase):
         self.assertRecordValues(st_line, [{'is_reconciled': True}])
         self.assertRecordValues(payment, [{'is_reconciled': False, 'is_matched': True}])
 
+    def _prepare_test_18_invoice_state_paid_to_in_payment(self):
+        ''' Ensure the replacement of the bank account by the oustanding one will recompute invoice state accordingly. '''
+        move_type_field = 'move_type' if util.version_gte('saas~13.3') else 'type'
+        today = fields.Date.today()
+        invoice = self.env['account.move'].create({
+            move_type_field: 'out_invoice',
+            'partner_id': self.partner.id,
+            'invoice_date': today,
+            'date': today,
+            'invoice_line_ids': [(0, 0, {
+                'name': 'line',
+                'quantity': 1.0,
+                'price_unit': 1.0,
+                'account_id': self.account_income.id,
+            })],
+        })
+        invoice.post()
+
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': today,
+            'amount': 100.0,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        })
+        payment.post()
+
+        (invoice.line_ids + payment.move_line_ids)\
+            .filtered(lambda line: line.account_id.internal_type == 'receivable')\
+            .reconcile()
+
+        self.assertRecordValues(invoice, [{'invoice_payment_state': 'paid'}])
+        return [invoice.id]
+
+    def _check_test_18_invoice_state_paid_to_in_payment(self, config, invoice_id):
+        invoice = self.env['account.move'].browse(invoice_id)
+        self.assertRecordValues(invoice, [{'payment_state': invoice._get_invoice_in_payment_state()}])
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -1077,6 +1118,7 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_15_draft_statement_line_locked_period(),
                 self._prepare_test_16_posted_payment_locked_period(),
                 self._prepare_test_17_matched_payment_with_writeoff(),
+                self._prepare_test_18_invoice_state_paid_to_in_payment(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -1122,3 +1164,4 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_15_draft_statement_line_locked_period(config, *init['tests'][14])
         self._check_test_16_posted_payment_locked_period(config, *init['tests'][15])
         self._check_test_17_matched_payment_with_writeoff(config, *init['tests'][16])
+        self._check_test_18_invoice_state_paid_to_in_payment(config, init['tests'][17])

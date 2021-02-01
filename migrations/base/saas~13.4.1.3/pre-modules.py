@@ -98,3 +98,6 @@ def migrate(cr, version):
         # `timer` module will be removed at the end to allow other modules to remove the mixin from their models.
         # Do not try to load it.
         cr.execute("UPDATE ir_module_module SET state='uninstalled' WHERE name='timer'")
+
+    # Account payment refactoring.
+    util.ENVIRON['account_accountant_installed'] = util.module_installed(cr, 'account_accountant')

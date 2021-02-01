@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models
 from odoo.addons.account.models import account_journal as _ignore  # noqa
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
@@ -42,6 +43,12 @@ class Move(models.Model):
 
     def _check_unique_sequence_number(self):
         return True
+
+    def _get_invoice_in_payment_state(self):
+        # The code changing the bank account to the oustanding account on payments in on the 'account' module.
+        # When setting the account, _compute_amount is called on the invoices but since `account_accountant` is not yet loaded,
+        # the 'in_payment' state isn't set correctly.
+        return 'in_payment' if util.ENVIRON['account_accountant_installed'] else 'paid'
 
 
 class MoveLine(models.Model):
