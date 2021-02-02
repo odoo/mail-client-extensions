@@ -12,7 +12,7 @@ def migrate(cr, version):
         cid_changed = False
 
         if cid != old_cid:
-            if cid in u.company_ids.ids:
+            if u.active and cid in u.company_ids.ids:
                 u.company_id = cid
                 cid_changed = True
             else:
