@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import models
+
 from odoo.addons.account.models import account_journal as _ignore  # noqa
+
 from odoo.addons.base.maintenance.migrations import util
 
 

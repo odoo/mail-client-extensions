@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
 import logging
+
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-13.4.1.1." + __name__)
 

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo import fields
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("13.4")
@@ -191,8 +192,8 @@ class TestPaymentPocalypse(UpgradeCase):
         self.assertRecordValues(
             payment_1.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
             [
-                {'account_id': company.transfer_account_id.id,                      'debit': 100.0, 'credit': 0.0},
-                {'account_id': payment_1.journal_id.default_account_id.id,   'debit': 0.0,   'credit': 100.0},
+                {'account_id': company.transfer_account_id.id, 'debit': 100.0, 'credit': 0.0},
+                {'account_id': payment_1.journal_id.default_account_id.id, 'debit': 0.0, 'credit': 100.0},
             ],
         )
 
@@ -204,8 +205,8 @@ class TestPaymentPocalypse(UpgradeCase):
         self.assertRecordValues(
             bank_statement_line.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
             [
-                {'account_id': company.transfer_account_id.id,                  'debit': 0.0,   'credit': 100.0},
-                {'account_id': st_bank_accounts[0].id,                          'debit': 100.0, 'credit': 0.0},
+                {'account_id': company.transfer_account_id.id, 'debit': 0.0, 'credit': 100.0},
+                {'account_id': st_bank_accounts[0].id, 'debit': 100.0, 'credit': 0.0},
             ],
         )
 
@@ -258,8 +259,8 @@ class TestPaymentPocalypse(UpgradeCase):
         self.assertRecordValues(
             payment.move_id.line_ids.sorted(lambda line: (line.account_id, line.balance)),
             [
-                {'account_id': config['account_receivable_id'],     'debit': 0.0,   'credit': 100.0},
-                {'account_id': bank_accounts[0].id,                 'debit': 100.0, 'credit': 0.0},
+                {'account_id': config['account_receivable_id'], 'debit': 0.0, 'credit': 100.0},
+                {'account_id': bank_accounts[0].id, 'debit': 100.0, 'credit': 0.0},
             ],
         )
 

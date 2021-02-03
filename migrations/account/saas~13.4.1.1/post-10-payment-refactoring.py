@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
-from odoo.addons.base.maintenance.migrations import util
-from odoo.fields import Date
 import logging
 from datetime import date, timedelta
 
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
 
