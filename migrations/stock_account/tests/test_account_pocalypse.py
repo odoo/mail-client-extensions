@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
+
+from freezegun import freeze_time
+
 from odoo.tests import Form
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("saas~12.4")
@@ -79,6 +83,67 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             self.assertEquals(product.qty_available, 20.0)
             self.assertEquals(product.standard_price, standard_price)
             self.assertEquals(product.value_svl / product.quantity_svl, standard_price)
+
+    def _prepare_test_price_history(self):
+        with freeze_time("2020-02-01"):
+            picking_form = Form(self.env["stock.picking"])
+            picking_form.picking_type_id = self.env["stock.picking.type"].search([("code", "=", "incoming")], limit=1)
+            with picking_form.move_ids_without_package.new() as line_form:
+                line_form.product_id = self.product_auto_average_price_histo
+                line_form.product_uom_qty = 5.0
+            picking = picking_form.save()
+            picking.move_lines.price_unit = 100
+            picking.action_confirm()
+            picking.move_ids_without_package.quantity_done = 5.0
+            picking.button_validate()
+        self.assertEquals(self.product_auto_average_price_histo.standard_price, 100)
+        with freeze_time("2020-02-02"):
+            self.product_auto_average_price_histo.do_change_standard_price(200, self.account_expense.id)
+            self.product_auto_average_price_histo.do_change_standard_price(250, self.account_expense.id)
+            self.product_auto_average_price_histo.do_change_standard_price(200, self.account_expense.id)
+
+        with freeze_time("2020-02-03"):
+            picking = picking.copy()
+            picking.move_lines.price_unit = 300
+            picking.action_confirm()
+            picking.move_ids_without_package.quantity_done = 5.0
+            picking.button_validate()
+
+        self.assertEquals(self.product_auto_average_price_histo.standard_price, 250)
+        return [
+            self.product_auto_average_price_histo.id,
+            self.product_auto_average_price_histo.qty_available,
+            self.product_auto_average_price_histo.standard_price,
+            self.env["account.move.line"].search([("product_id", "=", self.product_auto_average_price_histo.id)]).ids,
+        ]
+
+    def _check_test_price_history(self, config, values):
+        self.env = self.env(user=self.env["res.users"].browse(config["user"]))
+        product_auto_average_price_histo = self.env["product.product"].browse(values[0])
+        svl = self.env["stock.valuation.layer"].search([("product_id", "=", product_auto_average_price_histo.id)])
+        # 5.0 incoming with value of 100/unit   500
+        # new cost to 200 per units             500
+        # new cost to 250 per units             250
+        # new cost to 200 per units             -250
+        # 5.0 incoming with value of 300/unit   1500
+        #
+        # 10 units 2500 -> 250 per unit as standart price
+        self.assertRecordValues(
+            svl,
+            [
+                {"quantity": 5.0, "value": 500.0},
+                {"quantity": 0.0, "value": 500.0},
+                {"quantity": 0.0, "value": 250.0},
+                {"quantity": 0.0, "value": -250.0},
+                {"quantity": 5.0, "value": 1500.0},
+            ],
+        )
+        _, qty_available, standard_price, aml_ids = values
+        current_aml = self.env["account.move.line"].search([("product_id", "=", product_auto_average_price_histo.id)])
+        # Ensure no change on functional fields
+        self.assertEqual(qty_available, 10.0)
+        self.assertEqual(standard_price, 250.0)
+        self.assertEqual(sorted(current_aml.ids), sorted(aml_ids))
 
     def prepare(self):
         test_name = "TestAccountPocalypseStockAccount"
@@ -219,6 +284,12 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
                 "property_account_expense_id": self.account_expense.id,
             }
         )
+        with freeze_time("2020-01-01"):
+            self.product_auto_average_price_histo = self.product_auto_average.copy(
+                {
+                    "name": "Test product auto average price history %s" % test_name,
+                }
+            )
 
         # Setup partner.
         self.partner = self.env["res.partner"].create(
@@ -244,6 +315,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             "tests": [
                 self._prepare_test_1_single_currency(),
                 self._prepare_test_fifo_vacuum(),
+                self._prepare_test_price_history(),
             ],
             "config": {
                 "user": user.id,
@@ -259,3 +331,4 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
         config = init["config"]
         self._check_test_1_single_currency(config, init["tests"][0])
         self._check_test_fifo_vacuum(config, init["tests"][1])
+        self._check_test_price_history(config, init["tests"][2])

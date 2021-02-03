@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo import SUPERUSER_ID
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -191,6 +192,56 @@ def migrate(cr, version):
                     company_id = sm.company_id
                 )
     """
+    )
+
+    # Migrate price history
+    cr.execute(
+        """
+        WITH svl_history AS
+        (
+            SELECT
+                svl.product_id,
+                ph.datetime AS datetime,
+                SUM(svl.quantity) AS quantity,
+                SUM(svl.value) AS value,
+                ph.cost AS new_cost,
+                SUM(svl.quantity) * ph.cost - SUM(svl.value) AS corrected_value,
+                svl.company_id AS company_id
+            FROM product_price_history ph
+            JOIN stock_valuation_layer svl ON ph.product_id = svl.product_id
+            JOIN product_product pp ON pp.id = svl.product_id
+            JOIN product_template pt ON pt.id = pp.product_tmpl_id
+            JOIN product_category pc ON pc.id = pt.categ_id
+            WHERE svl.create_date < ph.DATETIME
+            AND svl.quantity != 0
+            AND svl.company_id = ph.company_id
+            AND ph.create_uid != %s
+            AND 'product.category,' || pc.id NOT IN
+                (SELECT res_id
+                   FROM ir_property
+                  WHERE name = 'property_cost_method'
+                    AND value_text = 'fifo'
+                    AND company_id = svl.company_id
+                )
+            GROUP BY ph.id, svl.product_id, ph.datetime, ph.cost, svl.company_id
+        )
+        INSERT INTO stock_valuation_layer (create_date, write_date, product_id, quantity, VALUE, description, company_id)
+        SELECT
+            datetime,
+            datetime,
+            product_id,
+            0.0,
+            quantity
+            * new_cost
+            - value
+            - LAG(corrected_value, 1, 0.0) OVER (PARTITION BY product_id, company_id ORDER BY DATETIME)
+            AS corrected_value,
+            'Change cost to ' || new_cost,
+            company_id
+        FROM svl_history
+        WHERE corrected_value != 0;
+    """,
+        (SUPERUSER_ID,),
     )
 
     # In some databases, the customer has played with valuation mode/costing method so the total valuation
