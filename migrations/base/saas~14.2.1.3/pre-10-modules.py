@@ -5,6 +5,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.module_deps_diff(cr, "crm", plus={"web_kanban_gauge"})
+    util.module_deps_diff(cr, "website_mass_mailing", plus={"google_recaptcha"})
 
     util.merge_module(cr, "sale_timesheet_edit", "sale_timesheet", without_deps=True)
     util.merge_module(cr, "website_crm_score", "crm", without_deps=True)
