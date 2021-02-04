@@ -9,6 +9,295 @@ def migrate(cr, version):
 
     # mrp.routing removing
     if util.column_exists(cr, "mrp_routing_workcenter", "routing_id"):
+
+        # For PLM
+        if util.module_installed(cr, "mrp_plm"):
+            # Because `routing` won't exist anymore, routing type ECO should point to one (or multiple) BoM instead
+            # to keep changing information of operations, multiple case:
+            # (plm 1.) ECO of 'both' type
+            #   => Only Change the type of ECO A 'both' into a 'bom' type, because the `new_bom_id`
+            #      point to the `new_routing_id`
+            # (plm 2.) ECO of 'routing' type:
+            #   - (plm 2.A) if ECO is on state 'confirmed'
+            #       => Duplicate the ECO for each bom using this routing
+            #   - (plm 2.B) if ECO is in progress ('progress', 'rebase', 'conflict')
+            #       => To avoid to lose this change, create a ECO and a BOM where routing is used.
+            #          Note: it is not completely correct because we cannot know where this new routing will be
+            #          used, then we can suppose it will replace it for each bom using the old one.
+            #   - (plm 2.C) if ECO is 'done'
+            #       => We should reconstruct a previous_bom to keep track of historic change
+            #          Note: we cannot know if the routing_id of the bom has been changed before or after than the eco
+            #          on the related routing has been made. In this situation, we create a "fake" historic,
+            #          we prefer to get a inaccurate historic than none.
+            # Note: We choose to avoid any lost information about routing ECO, but a other strategy could
+            # be: remove all information about routing ECO, it would much more easier/cleaner technically. But we
+            # consider ECO information important to track, even if it leads to duplicate some
+            # information multiple times.
+
+            # We should do this before any other mrp migration to keep the same logic than
+            # for other routing (operations relink)
+            util.create_column(cr, "mrp_eco", "old_eco_id", "int4")  # Working column
+            util.create_column(cr, "mrp_bom", "old_bom_id", "int4")  # Working column
+            column_eco, column_eco_pre = util.get_columns(
+                cr,
+                "mrp_eco",
+                ignore=("id", "type", "product_tmpl_id", "bom_id", "new_bom_id", "old_eco_id"),
+                extra_prefixes=["me"],
+            )
+            column_bom, column_bom_pre = util.get_columns(
+                cr,
+                "mrp_bom",
+                ignore=("id", "version", "active", "previous_bom_id", "routing_id", "old_bom_id"),
+                extra_prefixes=["mb"],
+            )
+
+            # (plm 1.)
+            cr.execute(
+                """
+                UPDATE mrp_eco
+                   SET type = 'bom',
+                       routing_id = NULL,
+                       new_routing_id = NULL
+                 WHERE mrp_eco.type = 'both'
+                """
+            )
+
+            cr.execute(
+                """
+                SELECT me.name
+                  FROM mrp_eco AS me
+                       JOIN mrp_bom AS mb ON mb.routing_id = me.routing_id
+                 WHERE me.type = 'routing'
+                   AND me.state != 'done'
+             UNION ALL
+                SELECT me.name
+                  FROM mrp_eco AS me
+                       JOIN mrp_bom AS mb ON mb.routing_id = me.new_routing_id
+                 WHERE me.type = 'routing'
+                   AND me.state = 'done'
+                """
+            )
+            mrp_eco_transform = cr.fetchall()
+            if mrp_eco_transform:
+                util.add_to_migration_reports(
+                    f"""
+                        <details>
+                        <summary>
+                            Because Routing (Manufacturing) is gone in version 14,
+                            {len(mrp_eco_transform)} Engineering Change Orders (ECO - PLM) applied on routing will
+                            be duplicated and applied on new Bills of Material (BoM) instead.
+                            For the already validated ECO, we have created a history of Bills of Material
+                            related to the new routing (it can be inaccurate because we don't track `routing` in BoM).
+                            For no-validated ECO, we have duplicated ECO for each Bill of Material
+                            using the targeted routing.
+                        </summary>
+                        <h4>Impacted ECO</h4>
+                            <ul>{", ".join(f"<li>{name}</li>" for name, in mrp_eco_transform)}</ul>
+                        </details>
+                    """,
+                    "PLM",
+                    format="html",
+                )
+
+            # (plm 2.A and B) for mrp_eco.state is not 'done'
+            # For the 'confirmed', we don't create a new_bom_id
+            cr.execute(
+                """
+                WITH inserted_new_bom AS (
+                       INSERT INTO mrp_bom (
+                              {column_bom},
+                              version,
+                              active,
+                              previous_bom_id,
+                              routing_id,
+                              old_bom_id
+                       )
+                       SELECT {column_bom_pre},
+                              mb.version + 1,
+                              FALSE,
+                              mb.id,
+                              me.new_routing_id,
+                              mb.id
+                         FROM mrp_eco AS me
+                              JOIN mrp_bom AS mb ON mb.routing_id = me.routing_id
+                        WHERE me.state NOT IN ('confirmed', 'done')
+                          AND me.type = 'routing'
+                    RETURNING id, previous_bom_id, routing_id
+                )
+                INSERT INTO mrp_eco (
+                       {column_eco},
+                       type,
+                       product_tmpl_id,
+                       bom_id,
+                       new_bom_id,
+                       old_eco_id
+                )
+                SELECT {column_eco_pre},
+                      'bom',
+                       mb.product_tmpl_id,
+                       mb.id,
+                       inm.id,
+                       me.id
+                  FROM mrp_eco AS me
+                       JOIN mrp_bom AS mb
+                         ON mb.routing_id = me.routing_id
+                       LEFT JOIN inserted_new_bom AS inm
+                         ON inm.routing_id = me.new_routing_id
+                        AND inm.previous_bom_id = mb.id
+                 WHERE me.type = 'routing'
+                """.format(
+                    column_bom=", ".join(column_bom),
+                    column_bom_pre=", ".join(column_bom_pre),
+                    column_eco=", ".join(column_eco),
+                    column_eco_pre=", ".join(column_eco_pre),
+                )
+            )
+            # (plm 2.C) for mrp_eco.state = 'done'
+            cr.execute(
+                """
+                WITH inserted_new_bom AS (
+                        INSERT INTO mrp_bom (
+                               {column_bom},
+                               version,
+                               active,
+                               previous_bom_id,
+                               routing_id,
+                               old_bom_id
+                        )
+                        SELECT {column_bom_pre},
+                               mb.version - 1,
+                               FALSE,
+                               NULL,
+                               me.routing_id,
+                               mb.id
+                          FROM mrp_eco AS me
+                               JOIN mrp_bom AS mb
+                               ON mb.routing_id = me.new_routing_id
+                         WHERE me.type = 'routing'
+                           AND me.state = 'done'
+                           AND me.create_date >= mb.create_date
+                     RETURNING id, old_bom_id, routing_id
+                )
+                INSERT INTO mrp_eco (
+                       {column_eco},
+                       type,
+                       product_tmpl_id,
+                       bom_id,
+                       new_bom_id,
+                       old_eco_id
+                )
+                SELECT {column_eco_pre},
+                       'bom',
+                       mb.product_tmpl_id,
+                       inm.id,
+                       mb.id,
+                       me.id
+                  FROM mrp_eco AS me
+                       JOIN mrp_bom AS mb
+                         ON mb.routing_id = me.new_routing_id
+                       LEFT JOIN inserted_new_bom AS inm
+                         ON inm.routing_id = me.routing_id
+                        AND inm.old_bom_id = mb.id
+                 WHERE me.type = 'routing'
+                   AND me.state = 'done'
+                   AND me.create_date >= mb.create_date
+                """.format(
+                    column_bom=", ".join(column_bom),
+                    column_bom_pre=", ".join(column_bom_pre),
+                    column_eco=", ".join(column_eco),
+                    column_eco_pre=", ".join(column_eco_pre),
+                )
+            )
+
+            column_approval, column_approval_pre_1, column_approval_pre_2 = util.get_columns(
+                cr,
+                "mrp_eco_approval",
+                ignore=("id", "eco_id"),
+                extra_prefixes=["mrp_eco_approval", "delete_eco_approval"],
+            )
+            # Duplicate/Reassign ECO approvals on the duplicate ECO
+            cr.execute(
+                """
+                WITH delete_eco_approval AS (
+                        DELETE FROM mrp_eco_approval
+                         USING mrp_eco
+                         WHERE mrp_eco.old_eco_id = mrp_eco_approval.eco_id
+                     RETURNING {column_approval_pre_1}, mrp_eco_approval.eco_id
+                )
+                INSERT INTO mrp_eco_approval ({column_approval}, eco_id)
+                     SELECT {column_approval_pre_2}, me.id
+                       FROM mrp_eco AS me
+                            JOIN delete_eco_approval
+                            ON me.old_eco_id = delete_eco_approval.eco_id
+                      WHERE me.old_eco_id IS NOT NULL
+                """.format(
+                    column_approval=", ".join(column_approval),
+                    column_approval_pre_1=", ".join(column_approval_pre_1),
+                    column_approval_pre_2=", ".join(column_approval_pre_2),
+                )
+            )
+            # Reassign product documents to the correct eco (`mrp.document`)
+            cr.execute(
+                """
+                WITH mrp_document_to_update AS (
+                    SELECT mp_old.id AS old_id, mp_new.id AS new_id
+                      FROM mrp_eco AS mp_old
+                           JOIN mrp_eco AS mp_new
+                           ON mp_old.id = mp_new.old_eco_id
+                           AND mp_old.product_tmpl_id = mp_new.product_tmpl_id
+                )
+                UPDATE ir_attachment
+                   SET res_id = mrp_document_to_update.new_id
+                  FROM mrp_document_to_update
+                 WHERE ir_attachment.res_model = 'mrp.eco'
+                   AND ir_attachment.res_id = mrp_document_to_update.old_id
+                """
+            )
+
+            # Duplicate bom line and byproduct for the duplicate BoM
+            column_bom_line, column_bom_line_pre = util.get_columns(
+                cr,
+                "mrp_bom_line",
+                ignore=("id", "bom_id"),
+                extra_prefixes=["mbl"],
+            )
+            column_bom_by_product, column_bom_by_product_pre = util.get_columns(
+                cr,
+                "mrp_bom_byproduct",
+                ignore=("id", "bom_id"),
+                extra_prefixes=["mbp"],
+            )
+            cr.execute(
+                """
+                INSERT INTO mrp_bom_line ({column_bom_line}, bom_id)
+                     SELECT {column_bom_line_pre}, mb.id
+                       FROM mrp_bom_line AS mbl
+                            JOIN mrp_bom AS mb ON mb.old_bom_id = mbl.bom_id
+                      WHERE mbl.bom_id IS NOT NULL
+                """.format(
+                    column_bom_line=", ".join(column_bom_line),
+                    column_bom_line_pre=", ".join(column_bom_line_pre),
+                )
+            )
+            cr.execute(
+                """
+                INSERT INTO mrp_bom_byproduct ({column_bom_by_product}, bom_id)
+                     SELECT {column_bom_by_product_pre}, mb.id
+                       FROM mrp_bom_byproduct AS mbp
+                            JOIN mrp_bom AS mb ON mb.old_bom_id = mbp.bom_id
+                      WHERE mbp.bom_id IS NOT NULL
+                """.format(
+                    column_bom_by_product=", ".join(column_bom_by_product),
+                    column_bom_by_product_pre=", ".join(column_bom_by_product_pre),
+                )
+            )
+
+            # Remove routing ECO (already duplicate)
+            cr.execute("DELETE FROM mrp_eco WHERE type IN ('routing', 'both')")
+            # Clean working columns
+            util.remove_column(cr, "mrp_eco", "old_eco_id")
+            util.remove_column(cr, "mrp_bom", "old_bom_id")
+
         column_op, column_op_pre = util.get_columns(
             cr, "mrp_routing_workcenter", ignore=("id", "bom_id", "old_id"), extra_prefixes=["old_operation"]
         )

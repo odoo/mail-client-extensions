@@ -3,12 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    # Opened Engineering Change Orders are not handle by the migrations scripts
-    cr.execute("SELECT count(*) FROM mrp_eco WHERE state != 'done'")
-    count = cr.fetchone()[0]
-    if count:
-        raise util.MigrationError(f"{count} Engineering Change Orders are not close, cannot continue the migration!")
-
     # Update the field old_operation_id and new_operation_id depending of the related bom of mrp.eco
     # For old_operation_id: eco_id -> eco.bom_id -> new_operation.bom_id,
     #  rebase_id -> eco.bom_id -> new_operation.bom_id, eco_rebase_id -> eco.bom_id -> new_operation.bom_id
