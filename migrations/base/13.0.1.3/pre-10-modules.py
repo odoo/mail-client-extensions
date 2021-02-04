@@ -8,6 +8,11 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_lt", deps={"l10n_multilang"})
     util.new_module(cr, "l10n_dk", deps={"account", "base_iban", "base_vat"})
 
+    # odoo/odoo#40937
+    util.new_module(cr, "l10n_se", deps={"account", "base_vat"})
+    # odoo/odoo#52034
+    util.new_module(cr, "l10n_se_ocr", deps={"l10n_se"}, auto_install=True)
+
     # odoo/odoo@24b57a377fec77178aad2b433da8f743be9db747
     util.new_module(cr, "odoo_referral", deps={"base", "web"}, auto_install=True)
     util.new_module(cr, "odoo_referral_portal", deps={"website", "odoo_referral"}, auto_install=True)
