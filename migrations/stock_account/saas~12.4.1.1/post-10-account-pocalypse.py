@@ -298,7 +298,7 @@ def migrate(cr, version):
           JOIN svl_with_sumed_values svl ON svl.product_id = pp.id
           JOIN product_template pt ON pt.id = pp.product_tmpl_id
           JOIN product_category pc ON pc.id = pt.categ_id
-         WHERE 'product.category,' || pc.id IN (
+         WHERE ('product.category,' || pc.id IN (
                 SELECT res_id FROM ir_property
                  WHERE name = 'property_cost_method'
                    AND value_text IN ('standard', 'average')
@@ -317,6 +317,7 @@ def migrate(cr, version):
                     AND value_text IN ('standard', 'average')
                 )
             )
+           )
            AND (qt.company_id IS NULL OR qt.company_id = svl.company_id)
            AND (qt.product_id IS NULL OR qt.product_id = svl.product_id)
            AND COALESCE(qt.sum_value, 0) != svl.sum_value
