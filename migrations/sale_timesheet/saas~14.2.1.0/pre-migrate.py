@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-
-from odoo.addons.base.maintenance.migrations import util
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "product_product", "service_upsell_warning", "boolean", default=False)
+    util.create_column(cr, "product_product", "service_upsell_threshold", "float8")
+    util.create_column(cr, "sale_order_line", "has_displayed_warning_upsell", "boolean", default=False)
+
     util.remove_view(cr, "sale_timesheet.timesheet_view_tree_sale")
     util.remove_field(cr, "account.analytic.line", "non_allow_billable")
     util.remove_field(cr, "project.task", "display_create_order")
