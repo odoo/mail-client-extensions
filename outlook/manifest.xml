@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="MailApp">
   <Id>c5549a21-aefb-4ba8-ae7c-b77bceab4023</Id>
-  <Version>1.1.1</Version>
+  <Version>1.1.2</Version>
   <ProviderName>Odoo</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Odoo for Outlook"/>
   <Description DefaultValue="Odoo for Outlook."/>
-  <IconUrl DefaultValue="https://localhost:3000/assets/odoo-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/odoo-80.png"/>
+  <IconUrl DefaultValue="https://localhost:3000/assets/odoo-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/odoo-128.png"/>
   <SupportUrl DefaultValue="https://www.odoo.com/help"/>
   <AppDomains>
     <AppDomain>https://localhost:3000</AppDomain>
@@ -56,7 +56,9 @@
                   <Icon>
                     <bt:Image size="16" resid="Icon.16x16"/>
                     <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="64" resid="Icon.64x64"/>
                     <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="128" resid="Icon.128x128"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="Taskpane.Url"/>
@@ -72,7 +74,9 @@
       <bt:Images>
         <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/odoo-16.png"/>
         <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/odoo-32.png"/>
+        <bt:Image id="Icon.64x64" DefaultValue="https://localhost:3000/assets/odoo-64.png"/>
         <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/odoo-80.png"/>
+        <bt:Image id="Icon.128x128" DefaultValue="https://localhost:3000/assets/odoo-128.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
@@ -108,7 +112,9 @@
                     <Icon>
                       <bt:Image size="16" resid="Icon.16x16"/>
                       <bt:Image size="32" resid="Icon.32x32"/>
+                      <bt:Image size="64" resid="Icon.64x64"/>
                       <bt:Image size="80" resid="Icon.80x80"/>
+                      <bt:Image size="128" resid="Icon.128x128"/>
                     </Icon>
                     <Action xsi:type="ShowTaskpane">
                       <SourceLocation resid="Taskpane.Url"/>
@@ -125,7 +131,9 @@
         <bt:Images>
           <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/odoo-16.png"/>
           <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/odoo-32.png"/>
+          <bt:Image id="Icon.64x64" DefaultValue="https://localhost:3000/assets/odoo-64.png"/>
           <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/odoo-80.png"/>
+          <bt:Image id="Icon.128x128" DefaultValue="https://localhost:3000/assets/odoo-128.png"/>
         </bt:Images>
         <bt:Urls>
           <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
