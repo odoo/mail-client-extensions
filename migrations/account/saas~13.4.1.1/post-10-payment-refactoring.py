@@ -129,6 +129,21 @@ def migrate(cr, version):
             [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, journal.id],
         )
 
+        cr.execute("SELECT 1 FROM journal_account_control_rel WHERE journal_id=%s", [journal.id])
+        if cr.fetchall():
+            cr.execute(
+                """
+                    INSERT INTO journal_account_control_rel (journal_id, account_id)
+                    VALUES (%(journal)s, %(debit)s), (%(journal)s, %(credit)s), (%(journal)s, %(suspense)s)
+                    ON CONFLICT DO NOTHING
+                """, {
+                    "journal": journal.id,
+                    "debit": j1.id,
+                    "credit": j2.id,
+                    "suspense": journal.company_id.account_journal_suspense_account_id.id,
+                }
+            )
+
     # ===== FIX res.partner's company =====
     # Some partners can have a company != move company...
 
