@@ -97,7 +97,7 @@ def migrate(cr, version):
     cr.execute("CREATE TABLE account_payment_pre_backup AS TABLE account_payment")
     cr.execute("CREATE TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
     cr.execute("CREATE TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)")
-    util.create_column(cr, 'account_payment_pre_backup', 'no_replace_account', 'boolean', default=False)
+    util.create_column(cr, "account_payment_pre_backup", "no_replace_account", "boolean", default=False)
 
     # Migrate columns / fields.
 
@@ -205,15 +205,15 @@ def migrate(cr, version):
         cr,
         util.explode_query(
             cr,
-            '''
+            """
                 UPDATE account_payment_pre_backup pay_backup
                 SET no_replace_account = TRUE
                 FROM account_move_line line
                 WHERE line.payment_id = pay_backup.id
                 AND line.statement_line_id IS NOT NULL
                 AND line.journal_id = pay_backup.journal_id
-            ''',
-            prefix='pay_backup.'
+            """,
+            prefix="pay_backup.",
         ),
     )
 
@@ -225,11 +225,26 @@ def migrate(cr, version):
 
     cr.execute(
         """
+        WITH rows AS (
+               SELECT st.id,
+                      CASE
+                         WHEN previous_st.balance_end_real IS NOT NULL
+                            THEN ROUND(
+                                st.balance_start - previous_st.balance_end_real,
+                                cur.decimal_places
+                            ) = 0
+                         ELSE true
+                      END AS flag
+                 FROM account_bank_statement st
+            LEFT JOIN account_bank_statement previous_st ON previous_st.id = st.previous_statement_id
+                 JOIN account_journal aj ON aj.id = st.journal_id
+            LEFT JOIN res_company cp ON cp.id = st.company_id
+                 JOIN res_currency cur ON cur.id = COALESCE(aj.currency_id, cp.currency_id)
+        )
         UPDATE account_bank_statement st
-        SET is_valid_balance_start = (st.balance_start = previous_st.balance_end_real)
-        FROM account_bank_statement previous_st
-        WHERE previous_st.id = st.previous_statement_id
-        AND st.balance_start = previous_st.balance_end_real
+           SET is_valid_balance_start = r.flag
+          FROM rows r
+         WHERE r.id = st.id
     """
     )
 
@@ -674,13 +689,13 @@ def migrate(cr, version):
         cr,
         util.explode_query(
             cr,
-            '''
+            """
                 UPDATE account_payment pay
                 SET is_matched = pay_backup.no_replace_account
                 FROM account_payment_pre_backup pay_backup
                 WHERE pay.id = pay_backup.id
-            ''',
-            prefix='pay.',
+            """,
+            prefix="pay.",
         ),
     )
 
