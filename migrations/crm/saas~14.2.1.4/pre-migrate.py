@@ -24,7 +24,7 @@ def migrate(cr, version):
 
     util.rename_field(cr, "crm.team.member", "maximum_user_leads", "assignment_max")
     util.rename_field(cr, "crm.team.member", "team_user_domain", "assignment_domain")
-    util.create_column(cr, "crm_team_member", "assignment_max", "int4")
+    util.create_column(cr, "crm_team_member", "assignment_max", "int4", default=30)
     util.create_column(cr, "crm_team_member", "assignment_domain", "varchar")
 
     util.rename_field(cr, "crm.team", "score_team_domain", "assignment_domain")
