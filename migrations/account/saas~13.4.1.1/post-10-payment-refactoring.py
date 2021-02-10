@@ -475,7 +475,7 @@ def migrate(cr, version):
             )
 
         # ===== MISC =====
-        ctx = {"tracking_disable": True}
+        ctx = {"tracking_disable": True, 'skip_account_move_synchronization': True}
 
         _logger.info("Post all bank statements that seem to be already processed")
         # Post all bank statements that seem to be already processed meaning the balance_end & balance_end_real must be

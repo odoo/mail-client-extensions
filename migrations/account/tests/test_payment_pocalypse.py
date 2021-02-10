@@ -988,6 +988,78 @@ class TestPaymentPocalypse(UpgradeCase):
         invoice = self.env['account.move'].browse(invoice_id)
         self.assertRecordValues(invoice, [{'payment_state': invoice._get_invoice_in_payment_state()}])
 
+    def _prepare_test_19_invalid_statement_with_reconciled_line(self):
+        ''' Test the case when a bank statement has an invalid balance but at least one reconciled line. '''
+        bank_accounts = self.get_bank_accounts(self.bank_journal)
+        payment = self.env['account.payment'].create({
+            'journal_id': self.bank_journal.id,
+            'payment_method_id': self.pay_method_manual_in.id,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'payment_date': '2017-01-01',
+            'amount': 100.0,
+            'currency_id': self.company.currency_id.id,
+            'partner_id': self.partner.id,
+        })
+        payment.post()
+        blue_line = payment.move_line_ids.filtered(lambda line: line.account_id in bank_accounts)
+
+        # Create 2 statements making the first one invalid during the migration.
+        self.env['account.bank.statement'].create({
+            'balance_end_real': 200.0,
+            'journal_id': self.bank_journal.id,
+            'date': '2017-01-01',
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 200.0,
+                'date': '2017-01-01',
+            })],
+        })
+        bank_statement = self.env['account.bank.statement'].create({
+            'balance_end_real': 800.0,
+            'journal_id': self.bank_journal.id,
+            'date': '2017-01-02',
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 200.0,
+                'date': '2017-01-02',
+            })],
+        })
+        self.env['account.bank.statement'].create({
+            'balance_end_real': 600.0,
+            'journal_id': self.bank_journal.id,
+            'date': '2017-01-03',
+            'line_ids': [(0, 0, {
+                'name': 'test',
+                'partner_id': self.partner.id,
+                'amount': 200.0,
+                'date': '2017-01-03',
+            })],
+        })
+        bank_statement_line = bank_statement.line_ids
+
+        bank_statement_line.process_reconciliation(
+            payment_aml_rec=blue_line,
+            new_aml_dicts=[{
+                'name': 'test',
+                'debit': 0.0,
+                'credit': 100.0,
+                'account_id': self.account_income.id,
+            }],
+        )
+        return [bank_statement_line.id]
+
+    def _check_test_19_invalid_statement_with_reconciled_line(self, config, st_line_id):
+        st_line = self.env['account.bank.statement.line'].browse(st_line_id)
+
+        self.assertRecordValues(st_line.statement_id, [{
+            'state': 'open',
+            'is_valid_balance_start': False,
+        }])
+        self.assertRecordValues(st_line.move_id, [{'state': 'posted'}])
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -1120,6 +1192,7 @@ class TestPaymentPocalypse(UpgradeCase):
                 self._prepare_test_16_posted_payment_locked_period(),
                 self._prepare_test_17_matched_payment_with_writeoff(),
                 self._prepare_test_18_invoice_state_paid_to_in_payment(),
+                self._prepare_test_19_invalid_statement_with_reconciled_line(),
             ],
             "config": {
                 "company_id": self.company.id,
@@ -1166,3 +1239,4 @@ class TestPaymentPocalypse(UpgradeCase):
         self._check_test_16_posted_payment_locked_period(config, *init['tests'][15])
         self._check_test_17_matched_payment_with_writeoff(config, *init['tests'][16])
         self._check_test_18_invoice_state_paid_to_in_payment(config, init['tests'][17])
+        self._check_test_19_invalid_statement_with_reconciled_line(config, init['tests'][18])
