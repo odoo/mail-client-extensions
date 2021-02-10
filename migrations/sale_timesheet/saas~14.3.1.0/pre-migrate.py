@@ -12,3 +12,10 @@ def migrate(cr, version):
           FROM sale_order_line sol
          WHERE sol.id = l.so_line
     """)
+
+    if util.module_installed(cr, "industry_fsm_sale"):
+        util.move_field_to_module(
+            cr, "project.sale.line.employee.map", "timesheet_product_id", "sale_timesheet", "industry_fsm_sale"
+        )
+    else:
+        util.remove_field(cr, "project.sale.line.employee.map", "timesheet_product_id")
