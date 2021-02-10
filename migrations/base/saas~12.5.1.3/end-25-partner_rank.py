@@ -3,5 +3,5 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.remove_column(cr, "res_partner", "customer")
-    util.remove_column(cr, "res_partner", "supplier")
+    util.remove_field(cr, "res.partner", "customer")
+    util.remove_field(cr, "res.partner", "supplier")

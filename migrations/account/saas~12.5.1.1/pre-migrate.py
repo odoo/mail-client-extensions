@@ -176,26 +176,6 @@ def migrate(cr, version):
     cr.execute("UPDATE account_fiscal_position SET zip_to = NULL WHERE zip_to = '0'")
 
     util.remove_field(cr, "res.partner", "contracts_count")
-    util.create_column(cr, "res_partner", "supplier_rank", "int4")
-    util.create_column(cr, "res_partner", "customer_rank", "int4")
-    cr.execute(
-        """
-        WITH ranks AS (
-            SELECT p.id as partner_id,
-                   coalesce(sum((left(m.type, 3) = 'in_')::integer), 0) + coalesce(p.supplier, false)::integer as supplier_rank,
-                   coalesce(sum((left(m.type, 4) = 'out_')::integer), 0) + coalesce(p.customer, false)::integer as customer_rank
-              FROM res_partner p
-         LEFT JOIN account_move m ON p.id = m.partner_id AND m.state = 'posted'
-             WHERE (p.supplier_rank IS NULL OR p.customer_rank IS NULL)
-          GROUP BY p.id
-        )
-        UPDATE res_partner p
-           SET supplier_rank = ranks.supplier_rank,
-               customer_rank = ranks.customer_rank
-          FROM ranks
-         WHERE ranks.partner_id = p.id
-    """
-    )
 
     util.remove_field(cr, "res.config.settings", "module_account_asset")
     util.remove_field(cr, "res.config.settings", "module_account_deferred_revenue")
