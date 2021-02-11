@@ -96,7 +96,17 @@ def migrate(cr, version):
             )
 
         default_account_id = journal.default_account_id
-        if not default_account_id or default_account_id.user_type_id == liquidity_type:
+        if not default_account_id:
+            liquidity_account = {
+                "name": journal.name,
+                "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
+                "user_type_id": liquidity_type.id,
+                "company_id": journal.company_id.id,
+                "currency_id": journal.currency_id.id if journal.currency_id else journal.company_id.currency_id.id,
+            }
+            default_account_id = env["account.account"].create(liquidity_account)
+
+        if default_account_id.user_type_id == liquidity_type:
             debit_account = {
                 "name": "Outstanding Receipts",
                 "code": search_new_account_code(cr, journal.company_id.id, digits, liquidity_account_prefix),
@@ -123,10 +133,11 @@ def migrate(cr, version):
                 UPDATE account_journal
                    SET payment_debit_account_id=%s,
                        payment_credit_account_id=%s,
-                       suspense_account_id=%s
+                       suspense_account_id=%s,
+                       default_account_id=%s
                  WHERE id=%s
             """,
-            [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, journal.id],
+            [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, default_account_id.id, journal.id],
         )
 
         cr.execute("SELECT 1 FROM journal_account_control_rel WHERE journal_id=%s", [journal.id])
