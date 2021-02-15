@@ -1,0 +1,11 @@
+# -*- coding: utf-8 -*-
+
+from odoo.addons.base.maintenance.migrations import util
+
+
+def migrate(cr, version):
+    eb = util.expand_braces
+    for contract_type in ["pfi", "cdi", "cdd"]:
+        util.rename_xmlid(
+            cr, *eb("{l10n_be_hr_contract_salary,l10n_be_hr_payroll}.l10n_be_contract_type_%s" % (contract_type))
+        )
