@@ -10,7 +10,7 @@ def migrate(cr, version):
                     AND COALESCE(res_id, 0) = 0
                     AND res_field IS NULL
                     AND mimetype IN ('text/css', 'application/javascript')
-                    AND url ~ '^/web/content/\d+-[0-9a-f]+/.*\.(css|js)$'
+                    AND url ~ '^/web/(content|assets)/\d+-[0-9a-f]+/.*\.(css|js)$'
                     AND url LIKE '%assets%'
     """
     )
