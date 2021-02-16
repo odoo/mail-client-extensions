@@ -573,7 +573,13 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             }
         )
     _logger.info("invoices: creating zero-line move.line")
-    ml_ids = MoveLine.create(mls).ids
+    chunk_size = 10000
+    size = (len(mls) + chunk_size - 1) / chunk_size
+    qual = "account.move.line %d-bucket" % chunk_size
+    ml_ids = []
+    for move_lines in util.log_progress(util.chunks(mls, chunk_size, list), qualifier=qual, size=size):
+        ml_ids += MoveLine.create(move_lines).ids
+        MoveLine.flush()
     _logger.info("invoices: creating zero-line mapping")
     cr.executemany("INSERT INTO invl_aml_mapping(invl_id, aml_id,cond) VALUES (%s, %s, 0)", zip(line_ids, ml_ids))
 
