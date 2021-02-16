@@ -9,3 +9,6 @@ def migrate(cr, version):
         util.rename_xmlid(
             cr, *eb("{l10n_be_hr_contract_salary,l10n_be_hr_payroll}.l10n_be_contract_type_%s" % (contract_type))
         )
+
+    # Purpose: The related xpath has been merged into l10n_be_hr_payroll.hr_contract_view_form
+    util.remove_view(cr, "l10n_be_hr_payroll.hr_contract_view_form_inherit")
