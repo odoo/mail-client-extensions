@@ -5,9 +5,9 @@ import logging
 import operator
 import os
 
-from odoo.addons.base.maintenance.migrations import util
 from odoo import fields
 
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
@@ -813,7 +813,10 @@ def migrate_voucher_lines(cr):
 
             if not line_vals["account_id"]:
                 line_vals["account_id"] = guess_account(
-                    env, voucher_vals["type"], voucher_vals["journal_id"], line_vals["product_id"],
+                    env,
+                    voucher_vals["type"],
+                    voucher_vals["journal_id"],
+                    line_vals["product_id"],
                 ).id
 
             if line_vals["account_id"] != line_vals["original_account_id"]:
