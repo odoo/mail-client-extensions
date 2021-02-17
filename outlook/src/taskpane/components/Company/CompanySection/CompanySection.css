@@ -1,0 +1,11 @@
+.company-icon{
+    font-size: 15px;
+    margin: 0 15px 0 0;
+}
+
+.company-info-item {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}

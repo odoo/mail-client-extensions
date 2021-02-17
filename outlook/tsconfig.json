@@ -13,9 +13,11 @@
     "noImplicitReturns": true,
     "noUnusedParameters": true,
     "noUnusedLocals": true,
+    "downlevelIteration": true,
     "lib": [
       "es7",
-      "dom"
+      "dom",
+      "es2020"
     ],
     "pretty": true,
     "typeRoots": [

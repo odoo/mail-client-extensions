@@ -1,4 +1,14 @@
 import Address from './Address';
+
+/***
+ * id reserved for non empty companies which we fetch directly from IAP.
+ */
+const ID_COMPANY_FROM_REVEAL: number = -2;
+/***
+ * id reserved for empty companies.
+ */
+const ID_COMPANY_EMPTY: number = -1;
+
 class Company {
     id: number;
     domain: string;
@@ -10,8 +20,9 @@ class Company {
     email: string;
     additionalInfo: {};//Map<string, string>;
 
+
     constructor() {
-        this.id = -1;
+        this.id = ID_COMPANY_EMPTY;
         this.domain = '';
         this.name = '';
         this.website = '';
@@ -20,6 +31,26 @@ class Company {
         this.image = '';
         this.email = '';
         this.additionalInfo = {};
+    }
+
+    static fromJSON(o: Object): Company {
+        if (!o) return new Company();
+        const company = Object.assign(new Company(), o);
+        company.address = Address.fromJSON(o['address']);
+        return company;
+    }
+
+    static fromRevealJSON(o: Object): Company {
+        const company = new Company();
+        company.id = ID_COMPANY_FROM_REVEAL;
+        company.additionalInfo = o;
+        return company;
+    }
+
+    static getEmptyCompany = (): Company => {
+        const company = new Company();
+        company.id = ID_COMPANY_EMPTY;
+        return company;
     }
 
     getDomain() : string {
@@ -130,19 +161,21 @@ class Company {
 
         return initials;
     }
-
-    static fromJSON(o: Object): Company {
-        if (!o) return new Company();
-        const company = Object.assign(new Company(), o);
-        company.address = Address.fromJSON(o['address']);
-        return company;
+    
+    /***
+     * Returns True if the company exists in the Odoo database, False otherwise
+     */
+    isAddedToDatabase (): boolean {
+        return this.id > 0;
+    }
+    /***
+     * Returns True if the company is empty, i.e, could not be enriched, False otherwise
+     */
+    isEmpty (): boolean  {
+        return this.id == ID_COMPANY_EMPTY;
     }
 
-    static fromRevealJSON(o: Object): Company {
-        const company = new Company();
-        company.additionalInfo = o;
-        return company;
-    }
+
 
 }
 

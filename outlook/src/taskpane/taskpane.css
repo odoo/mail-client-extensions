@@ -1,6 +1,7 @@
  body {
      margin: 0;
      background-color: whitesmoke;
+     overflow-y: scroll;
  }
  
 .full-width {
@@ -27,8 +28,6 @@
 .bounded-tile {
     padding: 10px;
     background-color: white;
-    border-top: 1px #d6d5d5 solid;
-    border-bottom: 1px #d6d5d5 solid;
 }
 
 .lower-bounded-tile { 
@@ -57,6 +56,10 @@
     width: calc(100% - 30px);
 }
 
+.input-search {
+    width: 100%;
+}
+
 .tile-title > .text {
     flex: 1;
 }
@@ -71,6 +74,8 @@
     cursor: pointer;
     color: blue;
     text-decoration: none;
+    padding-bottom: 8px;
+    padding-top: 8px;
 }
 
 .odoo-filled-button {
@@ -101,10 +106,106 @@
     border-bottom: 1px solid #56565b; 
     line-height: 0.1em;
     margin: 20px 0 20px; 
-} 
+}
 
  .horizontal-line > span { 
     background:#fff; 
     padding:0 10px;
     color:#56565b;
 }
+
+ .section-card {
+     margin: 8px;
+     background: white;
+     border-radius: 4px;
+     display: flex;
+     flex-direction: column;
+ }
+
+ .section-content {
+     margin: 8px;
+ }
+
+
+ .section-top {
+     display: flex;
+     flex-direction: row;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 8px;
+     margin-top: 8px;
+     margin-left: 8px;
+ }
+
+ .icon-with-text-parent {
+     display: flex;
+     flex-direction: row;
+ }
+
+ .odoo-muted-button {
+     border: solid 1px #ededed;
+     border-radius: 4px;
+     padding: 4px 8px 4px 8px;
+     color: #787878;
+     font-size: medium;
+     font-weight: 500;
+     cursor: pointer;
+     width: fit-content;
+     width: -moz-fit-content;
+ }
+
+ .muted-text {
+     color: #787878;
+     font-size: medium;
+     font-weight: 400
+ }
+
+ .odoo-muted-button:hover {
+     background: #ededed;
+ }
+
+ .custom-section-title-container {
+     display: flex;
+     flex-direction: column;
+
+ }
+
+ .section-title-text {
+     color: #4b4a49;
+     font-size: large;
+     font-weight: 400;
+ }
+
+
+ .odoo-secondary-button {
+     border: 1px solid #a2478a;
+     color: #a2478a;
+     border-radius: 4px;
+     padding: 4px;
+     height: fit-content;
+     text-align: center;
+     font-size: small;
+     cursor: pointer;
+     width: fit-content;
+     width: -moz-fit-content;
+     font-weight: 600;
+ }
+
+ .odoo-secondary-button:hover {
+     background: #a2478a;
+     color: white;
+ }
+
+ .add-to-contacts-button {
+     border: solid #96417e;
+     border-width: 1px;
+     color: #96417e;
+     border-radius: 4px;
+     text-align: center;
+     margin-left: 8px;
+     margin-right: 8px;
+     margin-bottom: 8px;
+     padding: 4px;
+     font-size: medium;
+     cursor: pointer;
+ }

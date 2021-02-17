@@ -1,9 +1,10 @@
 import * as React from "react";
 import Login from "./Login/Login"
-import Progress from "./Progress";
 import Main from "./Main/Main";
 import AppContext from './AppContext';
-import Partner from "../../classes/Partner";
+import EnrichmentInfo, {EnrichmentInfoType} from "../../classes/EnrichmentInfo";
+import {IIconProps, Link, MessageBar, MessageBarType} from "office-ui-fabric-react";
+import Progress from "./GrayOverlay";
 
 enum Page {
     Login,
@@ -18,27 +19,22 @@ export interface AppProps {
 
 export interface AppState {
     pageDisplayed: Page;
-    isLoading: Boolean;
-    doReload: Boolean;
-    lastLoaded: number;
+    EnrichmentInfo: EnrichmentInfo;
+    showPartnerCreatedMessage: boolean;
+    showEnrichmentInfoMessage: boolean;
     loginErrorMessage: string;
     navigation: {
         goToLogin: () => void,
         goToMain: () => void
         },
-    partner: Partner,
-    setPartner: (p: Partner, isLoading: Boolean) => void,
-    setPartnerId: (id: number) => void,
-    modules: string[],
-    setModules: (modules: string[]) => void,
     connect: (token) => void,
     disconnect: () => void,
     getConnectionToken: () => void,
     isConnected: () => Boolean,
-    setIsLoading: (isLoading: Boolean) => void,
-    setDoReload: (doReload: Boolean) => void,
     cancelRequests: () => void,
-    addRequestCanceller: (canceller: () => void) => void
+    addRequestCanceller: (canceller: () => void) => void,
+    showTopBarMessage: (enrichmentInfo?: EnrichmentInfo) => void,
+    showHttpErrorMessage: (error) => void
 }
 
 export default class App extends React.Component<AppProps, AppState> {
@@ -50,9 +46,9 @@ export default class App extends React.Component<AppProps, AppState> {
         props.itemChangedRegister(this.itemChanged);
 
         this.state = {
-            isLoading: false,
-            doReload: false,
-            lastLoaded: Date.now(),
+            EnrichmentInfo: new EnrichmentInfo(),
+            showPartnerCreatedMessage: false,
+            showEnrichmentInfoMessage: false,
             pageDisplayed: Page.Main,
             loginErrorMessage: "",
             
@@ -60,25 +56,10 @@ export default class App extends React.Component<AppProps, AppState> {
                 goToLogin: this.goToLogin,
                 goToMain: this.goToMain
             },
-            partner: new Partner(),
-            setPartner: (p: Partner, isLoading: Boolean) => {
-                const partnerCopy = Partner.fromJSON(JSON.parse(JSON.stringify(p)));
-                this.setState({partner: partnerCopy, isLoading: isLoading})
-            },
-            setPartnerId: (id: number) => {
-                const partnerCopy = Partner.fromJSON(JSON.parse(JSON.stringify(this.state.partner)));
-                partnerCopy.id = id;
-                this.setState({partner: partnerCopy})
-            },
-            modules: [],
-            setModules: (modules: string[]) => {
-                this.setState({modules: [...modules]});
-            },
             connect: (token) => {
                 localStorage.setItem('odooConnectionToken', token);
             },
             disconnect: () => {
-                this.setState({modules: []});
                 localStorage.removeItem('odooConnectionToken');
             },
             getConnectionToken: () => {
@@ -86,16 +67,6 @@ export default class App extends React.Component<AppProps, AppState> {
             },
             isConnected: () => {
                 return !!localStorage.getItem('odooConnectionToken');
-            },
-            setIsLoading: (isLoading: Boolean) => {
-                this.setState({isLoading: isLoading});
-            },
-            setDoReload: (doReload: Boolean) => {
-                this.setState({
-                    doReload: doReload,
-                    partner: new Partner(),
-                    modules: []
-                });
             },
             cancelRequests: () => {
                 const cancellers = [...this.requestCancellers];
@@ -106,39 +77,117 @@ export default class App extends React.Component<AppProps, AppState> {
             },
             addRequestCanceller: (canceller: () => void) => {
                 this.requestCancellers.push(canceller);
-            }
+            },
+
+            showTopBarMessage: (enrichmentInfo) => {
+                if (enrichmentInfo)
+                    this.setState({
+                        EnrichmentInfo: enrichmentInfo,
+                        showEnrichmentInfoMessage: true
+                    });
+                else
+                    this.setState({
+                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
+                        showEnrichmentInfoMessage: true
+                    });
+            },
+
+            showHttpErrorMessage: (error?) => {
+                if (error && error.message == '0')
+                {
+                    this.setState({
+                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
+                        showEnrichmentInfoMessage: true
+                    });
+                }
+                else
+                {
+                    this.setState({
+                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
+                        showEnrichmentInfoMessage: true
+                    });
+                }
+            },
+
         };
     }
 
-    componentDidMount() {
-        this.setState({
-        isLoading: false,
-        });
+    private getMessageBars = () => {
+        const {type, info} = this.state.EnrichmentInfo;
+        const message = this.state.EnrichmentInfo.getTypicalMessage();
+        const warningIcon: IIconProps = {
+            iconName: 'Error',
+            style: {fontSize: "20px"},
+        };
+        let bars = [];
+        if (this.state.showPartnerCreatedMessage) {
+            bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hidePartnerCreatedMessage}>Contact created</MessageBar>);
+        }
+        if (this.state.showEnrichmentInfoMessage) {
+            switch (type) {
+                case EnrichmentInfoType.CompanyCreated:
+                    bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>Company created</MessageBar>);
+                    break;
+                case EnrichmentInfoType.NoData:
+                case EnrichmentInfoType.NotConnected_NoData:
+                    bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
+                    break;
+                case EnrichmentInfoType.InsufficientCredit:
+
+                    bars.push(<MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon}  onDismiss={this.hideEnrichmentInfoMessage}>
+                        {message}
+                        <br/>
+                        <Link href={info} target="_blank">
+                            Buy More
+                        </Link>
+                    </MessageBar>);
+                    break;
+                case EnrichmentInfoType.EnrichContactWithNoEmail:
+                case EnrichmentInfoType.NotConnected_InsufficientCredit:
+                case EnrichmentInfoType.NotConnected_InternalError:
+                case EnrichmentInfoType.Other:
+                case EnrichmentInfoType.ConnectionError:
+                    bars.push(<MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
+                    break;
+            }
+        }
+        return bars;
     }
 
-    goToLogin = () => {
+    private goToLogin = () => {
         this.setState({
         pageDisplayed: Page.Login
         })
     }
 
-    goToMain = () => {
+    private goToMain = () => {
         this.setState({
         pageDisplayed: Page.Main
         })
     }
 
-    itemChanged = () => {
-        this.setState({'doReload': true});
-        //this.forceUpdate();;
+    private itemChanged = () => {
+
+    }
+
+    private hideEnrichmentInfoMessage = () => {
+        this.setState({
+            showEnrichmentInfoMessage: false
+        })
+    }
+
+    private hidePartnerCreatedMessage = () => {
+        this.setState({
+            showPartnerCreatedMessage: false
+        })
     }
 
     render() {
-        const { title, isOfficeInitialized } = this.props;
+        const { isOfficeInitialized } = this.props;
 
         if (!isOfficeInitialized) {
             return (
-                <Progress title={title} message="Loading..." />
+                <Progress />
             );
         }
 
@@ -147,7 +196,19 @@ export default class App extends React.Component<AppProps, AppState> {
             return <AppContext.Provider value={this.state}><Login /></AppContext.Provider>
         case Page.Main:
         default:
-            return <AppContext.Provider value={this.state}><Main /></AppContext.Provider>;
+
+            return (
+                <AppContext.Provider value={this.state}>
+                    <div style={{height: "100vh", width:"100hw", display: "flex", flexDirection: "column"}}>
+                        <div>
+                            {this.getMessageBars()}
+                        </div>
+                        <div style={{flex: 1}}>
+                            <Main />
+                        </div>
+                    </div>
+                </AppContext.Provider>
+            );
         }
     }
 }

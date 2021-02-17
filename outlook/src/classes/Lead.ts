@@ -2,22 +2,23 @@ class Lead {
     id: number;
     name: string;
     expectedRevenue: string; // string because formatted
-    logged: boolean;
+    probability: number;
+    recurringRevenue?: string;
+    recurringPlan?: string;
 
     static fromJSON(o: Object): Lead {
         var lead = new Lead();
-        lead.id = o['id'];
-        lead.name = o['name'];;
-        lead.logged = o['logged'];
+        lead.id = o['lead_id'];
+        lead.name = o['name'];
+        lead.probability = o['probability'];
 
-        let expectedRevenue = o['expected_revenue'];
-        // Detects 00 decimals and remove them to make more space a reduce noise.
-        if (expectedRevenue.search(/\.00\D*$/) != -1) { // if it ends with ".00" or ".00 $" or ".00 €", etc.
-            expectedRevenue = expectedRevenue.replace(/\.00/, '');
-        } else if (expectedRevenue.search(/,00\D*$/) != -1) { // if it ends with ",00" or ",00 $" or ",00 €", etc.
-            expectedRevenue = expectedRevenue.replace(/,00/, '');
+        lead.expectedRevenue = this.removeDecimals(o['expected_revenue']);
+
+        if (o['recurring_revenue'])
+        {
+            lead.recurringRevenue = this.removeDecimals(o['recurring_revenue']);
+            lead.recurringPlan = o['recurring_plan'];
         }
-        lead.expectedRevenue = expectedRevenue;
 
         return lead;
     }
@@ -27,9 +28,20 @@ class Lead {
         newLead.id = lead.id;
         newLead.name = lead.name;
         newLead.expectedRevenue = lead.expectedRevenue;
-        newLead.logged = lead.logged;
+        newLead.probability = lead.probability;
         return newLead;
     }
+
+    private static removeDecimals (revenue: string): string
+    {
+        if (revenue.search(/\.00\D*$/) != -1) { // if it ends with ".00" or ".00 $" or ".00 €", etc.
+            return  revenue.replace(/\.00/, '');
+        } else if (revenue.search(/,00\D*$/) != -1) { // if it ends with ",00" or ",00 $" or ",00 €", etc.
+            return  revenue.replace(/,00/, '');
+        }
+        return revenue;
+    }
+
 }
 
 export default Lead;

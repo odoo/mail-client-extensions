@@ -1,6 +1,6 @@
 import * as React from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHandshake, faEnvelope, faSearch } from '@fortawesome/free-solid-svg-icons'
+import {faHandshake, faEnvelope, faSearch, faLifeRing} from '@fortawesome/free-solid-svg-icons'
 import { TextField } from "office-ui-fabric-react/lib/TextField";
 import { PrimaryButton, DefaultButton } from "office-ui-fabric-react";
 import {HttpVerb, sendHttpRequest, ContentType} from "../../../utils/httpRequest";
@@ -8,13 +8,15 @@ import api from "../../api";
 import AppContext from '../AppContext';
 import "./Login.css";
 
-type LoginProps = {};
+
 type LoginState = { 
     isLoading: boolean;
     baseURL: string;
     urlError: string;
 };
-class Login extends React.Component<LoginProps, LoginState> {
+
+
+class Login extends React.Component<{}, LoginState> {
     constructor(props) {
         super(props);
         this.state = {
@@ -68,19 +70,24 @@ class Login extends React.Component<LoginProps, LoginState> {
             let dialog = asyncResult.value;
             dialog.addEventHandler(Office.EventType.DialogMessageReceived, (_arg) => {
                 dialog.close();
-                let code = new URL(JSON.parse(_arg['message']).value).searchParams.get("auth_code");
-                sendHttpRequest(HttpVerb.POST, api.baseURL + api.getAccessToken, ContentType.Json, null, {"auth_code": code}, true)
-                .promise.then((response) => {
-                    const parsed = JSON.parse(response);
-                    this.context.connect(parsed.result.access_token);
-                    this.context.navigation.goToMain();
-                });
+                let success = new URL(JSON.parse(_arg['message']).value).searchParams.get("success");
+                if (success === "1")
+                {
+                    let code = new URL(JSON.parse(_arg['message']).value).searchParams.get("auth_code");
+                    sendHttpRequest(HttpVerb.POST, api.baseURL + api.getAccessToken, ContentType.Json, null, {"auth_code": code}, true)
+                        .promise.then((response) => {
+                        const parsed = JSON.parse(response);
+                        this.context.connect(parsed.result.access_token);
+                        this.context.navigation.goToMain();
+                    });
+                }
             });
         })
     };
 
     signup = () => {
-        window.open('https://www.odoo.com/trial?selected_app=mail_client_extension','_blank');
+        window.open('https://www.odoo.com/trial?selected_app=mail_plugin:crm_mail_plugin:helpdesk_mail_plugin'
+            ,'_blank');
     }
 
     render() {
@@ -110,6 +117,10 @@ class Login extends React.Component<LoginProps, LoginState> {
                 <div className='login-info'>
                     <div className='login-info-icon'><FontAwesomeIcon icon={faEnvelope} size="2x" className="fa-fw"/></div>
                     <div>Create leads from Emails sent to your personal email address.</div>
+                </div>
+                <div className='login-info'>
+                    <div className='login-info-icon'><FontAwesomeIcon icon={faLifeRing} size="2x" className="fa-fw"/></div>
+                    <div>Create Tickets from Emails sent to your personal email address.</div>
                 </div>
                 <div className='login-info'>
                     <div className='login-info-icon'><FontAwesomeIcon icon={faHandshake} size="2x" className="fa-fw"/></div>

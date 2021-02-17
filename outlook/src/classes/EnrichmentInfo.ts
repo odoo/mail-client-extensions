@@ -5,6 +5,7 @@ export enum EnrichmentInfoType {
     InsufficientCredit = 'insufficient_credit',
     Other = 'other',
     ConnectionError = 'connection_error',
+    EnrichContactWithNoEmail='enrich_contact_with_no_email',
     NotConnected_NoData = 'missing_data',
     NotConnected_InsufficientCredit = 'exhausted_requests',
     NotConnected_InternalError = 'internal_error'
@@ -19,7 +20,9 @@ class EnrichmentInfo {
     }
 
     getTypicalMessage = () => {
-        switch (this.type) {
+
+        switch (this.type)
+        {
             case EnrichmentInfoType.None:
                 return "";
             case EnrichmentInfoType.CompanyCreated:
@@ -37,9 +40,12 @@ class EnrichmentInfo {
                 return "Could not autocomplete the company. Internal error. Try again later...";
             case EnrichmentInfoType.ConnectionError:
                 return "There was a problem contacting the service, please try again later."
+            case EnrichmentInfoType.EnrichContactWithNoEmail:
+                return "This contact has no email address, no company could be enriched."
             default:
                 return "";
         }
+
     }
 
     static fromJSON(o: Object): EnrichmentInfo {

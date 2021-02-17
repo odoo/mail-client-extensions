@@ -1,11 +1,16 @@
 import * as React from "react";
 import './ProfileCard.css';
+import {faEnvelope, faPhone} from "@fortawesome/free-solid-svg-icons";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {TooltipHost} from "office-ui-fabric-react";
+import AppContext from "../AppContext";
 
 export type ProfileCardProps = {
     domain: string;
     icon: string;
     initials: string;
     name: string;
+    email: string;
     job: string;
     phone: string;
     description: string;
@@ -13,16 +18,17 @@ export type ProfileCardProps = {
     facebook: string;
     crunchbase: string;
     linkedin: string;
+    onClick?: () => void;
+    isBig?: boolean; //used for email overflow, TODO change maybe by obtaining the width dynamically
 };
-type ProfileCardState = {};
 
-export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardState> {
+export class ProfileCard extends React.Component<ProfileCardProps, {}> {
     constructor(props, context) {
         super(props, context);
         this.state = {};
     }
 
-    getTextWidth = (text, font) => {
+    private getTextWidth = (text, font) => {
         // re-use canvas object for better performance
         var canvas = document.createElement("canvas");
         var context = canvas.getContext("2d");
@@ -32,16 +38,20 @@ export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardSt
     }
 
     render() {
-        const {domain, icon, name, initials, job, phone, description, twitter, facebook, linkedin, crunchbase} = this.props;
+        const {domain, icon, name, email, initials, job, phone, description, twitter, facebook, linkedin, crunchbase} = this.props;
+
         let iconOrInitials = <img className='icon' src={icon}/>;
         if (!icon) {
             iconOrInitials = <div data-initials={initials}></div>
         }
+        
         if (domain) {
             iconOrInitials = <a href={domain} target='_blank' rel="noreferrer noopener">{iconOrInitials}</a>
         }
 
-        const nameSize = this.getTextWidth(name, 'bold 20px Arial')
+        let nameJob = job? name+', '+job : name;
+
+        const nameSize = this.getTextWidth(nameJob, 'bold 16px Arial')
         const nameSizeCutoff = 150;
 
         // If the size of the text is smaller than the cutoff, the social links should be on the right of the name.
@@ -52,21 +62,94 @@ export class ProfileCard extends React.Component<ProfileCardProps, ProfileCardSt
             {crunchbase ? <a href={'https://crunchbase.com/' + crunchbase} target='_blank' rel="noreferrer noopener"><img src='assets/social/crunchbase.ico'/></a> : null}
         </div>
 
-        return (
-            <div className='bounded-tile'>
-                <div className='profile-card'>
-                    {iconOrInitials}
-                    <div>
-                        <div className='name'>{name}</div>
-                        <div className='job'>{job}</div>
-                        <div className='phone'><a className="link-like-button" href={`tel:${phone}`}>{phone}</a></div>
+        let emailDiv = null;
+
+        //TODO, can we calculate width dynamically?
+        let maxEmailWidth = (this.props.isBig) ? 180 : 120;
+
+        if (email)
+        {
+            let emailTextContainer = null;
+            let emailSize = this.getTextWidth(email, "normal 14px Arial");
+            if (emailSize > maxEmailWidth)
+            {
+                emailTextContainer = (
+                    <TooltipHost content={email}>
+                        {email}
+                    </TooltipHost>
+                );
+            }
+            else
+            {
+                emailTextContainer = (
+                    <>
+                        {email}
+                    </>
+                );
+            }
+            emailDiv = (
+                    <div className='profile-card-email' style={{display: "flex", flexDirection: "row"}}>
+                        <div>
+                            <FontAwesomeIcon style = {{marginRight: '4px'}} icon={faEnvelope} color='darkgrey' className="fa-fw"/>
+                        </div>
+                        <div style={{overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", maxWidth: maxEmailWidth + "px"}}>
+                            {emailTextContainer}
+                        </div>
                     </div>
-                    {nameSize < nameSizeCutoff ? social : null}
+            );
+        }
+
+        let phoneDiv = null;
+        if (phone)
+        {
+            phoneDiv = (
+                <div className='phone'>
+                    <div>
+                        <FontAwesomeIcon style = {{marginRight: '4px'}} icon={faPhone} color='darkgrey' className="fa-fw"/>
+                    </div>
+                    <div>
+                        <a className="link-like-button" href={`tel:${phone}`}>{phone}</a>
+                    </div>
                 </div>
-                <div className='profile-card'>{nameSize > nameSizeCutoff ? social : null}</div>
-                <div className='profile-card description'>{description}</div>
-            </div>
+            );
+        }
+
+        let descriptionDiv = null;
+        if (description && description !== '')
+        {
+            descriptionDiv =
+                (
+                    <div style={{padding: "0 8px 0 8px"}}>
+                        {description}
+                    </div>
+                );
+        }
+
+        let profileCardClassName = 'profile-card';
+        if (this.props.onClick)
+        {
+            profileCardClassName += ' clickable';
+        }
+
+        return (
+            <>
+                <div>
+                    <div className={profileCardClassName} onClick={this.props.onClick}>
+                        {iconOrInitials}
+                        <div>
+                            <div className='name'>{nameJob}</div>
+                            {emailDiv}
+                            {phoneDiv}
+                        </div>
+                        {nameSize < nameSizeCutoff ? social : null}
+                    </div>
+                    <div className='profile-card'>{nameSize > nameSizeCutoff ? social : null}</div>
+                </div>
+                {descriptionDiv}
+            </>
         );
     }
 }
+
+ProfileCard.contextType = AppContext;
 

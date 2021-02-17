@@ -1,20 +1,18 @@
 const api = {
     baseURL: localStorage.getItem('baseURL'),
-    //createLead: "/mail_client_extension/lead/create",
-    getLeads: "/mail_client_extension/lead/get_by_partner_id",
-    //deleteLead: "/mail_client_extension/lead/delete",
-    getPartner: "/mail_client_extension/partner/get",
-    logMail: "/mail_client_extension/log_single_mail_content",
-    getInstalledModules: "/mail_client_extension/modules/get",
-    contactCreate: '/mail_client_extension/partner/create',
-    redirectCreateLead: "/mail_client_extension/lead/create_from_partner",
-    iapLeadEnrichmentEmail: "https://iap-services.odoo.com/iap/clearbit/1/lead_enrichment_email", // TODO remove
+    createLead: "/mail_plugin/lead/create",
+    createPartner: '/mail_plugin/partner/create',
+    createTicket: "/mail_plugin/ticket/create",
+    enrichCompany: "/mail_plugin/partner/enrich_and_create_company",
+    getPartner: "/mail_plugin/partner/get",
     iapLeadEnrichment: "https://iap-services.odoo.com/iap/mail_extension/enrich",
+    logSingleMail:"/mail_plugin/log_mail_content",
+    searchPartner: "/mail_plugin/partner/search",
 
     // Authentication
     loginPage: "/web/login", // Should be the usual Odoo login page.
-    authCodePage: "/mail_client_extension/auth", // The page where to allow or deny access. You get an auth code.
-    getAccessToken: "/mail_client_extension/auth/access_token", // The address where to post to exchange an auth code for an access token.
+    authCodePage: "/mail_plugin/auth", // The page where to allow or deny access. You get an auth code.
+    getAccessToken: "/mail_plugin/auth/access_token", // The address where to post to exchange an auth code for an access token.
     addInBaseURL: "https://" + __DOMAIN__,
     outlookScope: "outlook",
     outlookFriendlyName: "Outlook",

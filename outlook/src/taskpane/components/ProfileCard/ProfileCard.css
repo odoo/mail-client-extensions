@@ -13,8 +13,8 @@
 
 .profile-card .name {
     flex: 1;
-    font-weight: 400;
-    font-size: 20px;
+    font-weight: 600;
+    font-size: 14px;
     color: #4b4a49;
 }
 
@@ -31,8 +31,17 @@
     margin: 3px;
 }
 
-.profile-card .description {
-    margin-top: 10px;
+.description {
+    padding: 8px;
+}
+
+.clickable {
+    cursor: pointer;
+    padding: 8px;
+}
+
+.clickable:hover {
+    background: #ededed;
 }
 
 [data-initials]:before {
@@ -50,4 +59,8 @@
     height: 50px; 
     line-height: 50px; 
     text-align: center; 
+}
+
+.profile-card-email {
+
 }

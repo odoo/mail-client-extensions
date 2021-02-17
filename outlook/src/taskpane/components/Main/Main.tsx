@@ -2,285 +2,403 @@ import * as React from "react";
 
 import "./Main.css";
 
-import { Link, MessageBar, MessageBarType} from 'office-ui-fabric-react';
-
-import Contact from '../Contact/Contact';
-import Company from '../Company/Company';
-import Leads from "../Leads/Leads";
-import GrayOverlay from "../GrayOverlay";
-
-import { HttpVerb, sendHttpRequest, ContentType } from "../../../utils/httpRequest";
+import {ContentType, HttpVerb, sendHttpRequest} from "../../../utils/httpRequest";
 import api from "../../api";
 
 import PartnerData from "../../../classes/Partner";
-import EnrichmentInfo, {EnrichmentInfoType} from '../../../classes/EnrichmentInfo';
+import Partner from "../../../classes/Partner";
 import CompanyCache from "../../../classes/CompanyCache";
 import CompanyData from "../../../classes/Company";
 
 import AppContext from '../AppContext';
+import ContactPage from "../Contact/ContactPage/ContactPage";
+import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import Search, {SearchState} from "../Search/Search";
+import {faArrowLeft, faPlusCircle, faRedoAlt, faSearch} from "@fortawesome/free-solid-svg-icons";
+import EnrichmentInfo, {EnrichmentInfoType} from "../../../classes/EnrichmentInfo";
+import Progress from "../GrayOverlay";
+import {TooltipHost} from "office-ui-fabric-react";
 
-enum Page {
-    Main,
-}
 
-type MainProps = {};
 type MainState = {
-    pageDisplayed: Page,
-    showPartnerCreatedMessage: boolean;
-    showEnrichmentInfoMessage: boolean;
-    EnrichmentInfo: EnrichmentInfo,
-    partnerCreated: Boolean,
+    matchedPartners: Partner[],
+    loading: boolean,
+    searchQuery: string,
+    selectedPartner: Partner,
+    isSearching: boolean,
+    backStack: BackStackItem[],
+    poppedElement: BackStackItem,
+    contactKey: number, //used for contact refresh
+    loadPartner: boolean
 };
 
-class Main extends React.Component<MainProps, MainState> {
-    connectionToken : string;
+enum BackStackItemType {
+    partner,
+    query
+}
+
+type BackStackItem = {
+    type: BackStackItemType,
+    element: string|Partner,
+    historyState?: any
+}
+
+class Main extends React.Component<{}, MainState> {
     companyCache : CompanyCache;
 
     constructor(props) {
         super(props);
         this.state = {
-            pageDisplayed: Page.Main,
-            showPartnerCreatedMessage: false,
-            showEnrichmentInfoMessage: false,
-            EnrichmentInfo: new EnrichmentInfo(),
-            partnerCreated: false,
+            matchedPartners: undefined,
+            searchQuery: undefined,
+            selectedPartner: undefined,
+            isSearching: false,
+            loading: true,
+            backStack: [],
+            poppedElement: undefined,
+            contactKey: Math.random(),
+            loadPartner: true
         };
 
-        this.companyCache = new CompanyCache(1, 200, 25); // TODO param somewhere
+        this.companyCache = new CompanyCache(2, 200, 25);
     }
 
     componentDidMount() {
-        this.loadOrReload();
+        if (this.context.isConnected())
+        {
+            this.getAllMatchedPartnersRequest();
+        }
+        else
+        {
+            this.getPartnerDisconnectedRequest();
+        }
     }
 
+    private addPartnerToDbRequest = () => {
 
-    _connectedFlow = () => {
+        if (!this.context.isConnected())
+        {
+            this.context.navigation.goToLogin();
+            return;
+        }
+
+        this.setState({loading: true});
+
+        const addPartnerRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.createPartner,
+            ContentType.Json, this.context.getConnectionToken(), {
+                name: this.state.selectedPartner.name,
+                email: this.state.selectedPartner.email,
+                company: this.state.selectedPartner.company.id
+            }, true);
+
+        addPartnerRequest.promise.then(
+            (response) => {
+                const parsed = JSON.parse(response);
+                const newId = parsed.result.id;
+                let partner = this.state.selectedPartner;
+                partner.id = newId;
+                this.setState({selectedPartner: partner, loading: false});
+                this.onRefreshPartnerClick();
+            }
+        ).catch(error => {
+            this.setState({loading: false});
+            this.context.showHttpErrorMessage(error);
+        });
+
+    }
+
+    private getAllMatchedPartnersRequest = () => {
         if (!Office.context.mailbox.item) {
             return;
         }
 
-        // If outlook is showing the oultook user's answer, we pick the sender of the original email.
-        // Which is most likely the first "to" address, until proven otherwise.
+        let emailInfo = this.getEmailInfo();
+        let email = emailInfo.email;
+        let displayName = emailInfo.displayName;
+
+        const CancellableMatchedPartnersRequest = sendHttpRequest(HttpVerb.POST,
+            api.baseURL + api.searchPartner, ContentType.Json,
+            this.context.getConnectionToken(), {
+                search_term: email
+            }, true);
+        this.context.addRequestCanceller(CancellableMatchedPartnersRequest.cancel);
+        CancellableMatchedPartnersRequest.promise.then(response =>
+        {
+            const parsed = JSON.parse(response);
+            let partners = parsed.result.partners.map(partner_json =>
+                {
+                    return PartnerData.fromJSON(partner_json);
+                }
+            );
+            if (partners.length > 0)
+            {
+                partners = Partner.sortBestMatches(email, name, partners);
+                this.setState({matchedPartners: partners, selectedPartner: partners[0]});
+            }
+            else
+            {
+                //no partners were found in database, we create a new partner
+                const newPartner = PartnerData.createNewPartnerFromEmail(displayName, email);
+                partners.push(newPartner);
+                this.setState({matchedPartners: partners, selectedPartner: partners[0]});
+            }
+            this.setState({loading: false});
+        }).catch((error) => {
+            this.context.showHttpErrorMessage(error);
+            this.setState({loading: false});
+            console.log(error);
+        });
+    }
+
+    private getEmailInfo = () => {
         let email = Office.context.mailbox.item.from.emailAddress;
         let displayName = Office.context.mailbox.item.from.displayName;
+
         if (Office.context.mailbox.userProfile.emailAddress == Office.context.mailbox.item.from.emailAddress) {
             email = Office.context.mailbox.item.to[0].emailAddress;
             displayName = Office.context.mailbox.item.to[0].displayName;
         }
+        return {email: email, displayName: displayName}
+    }
 
-        this.context.setIsLoading(true);
+    private getPartnerDisconnectedRequest = () => {
+        Office.context.mailbox.getUserIdentityTokenAsync(idTokenResult => {
+            let email = this.getEmailInfo().email;
+            let displayName = this.getEmailInfo().displayName;
 
-        const cancellablePartnerRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.getPartner, ContentType.Json, this.context.getConnectionToken(), {
-            email: email,
-            name: displayName
-        }, true);
-        this.context.addRequestCanceller(cancellablePartnerRequest.cancel);
-        cancellablePartnerRequest.promise.then(response => {
-            const parsed = JSON.parse(response);
-            var partner = PartnerData.fromJSON(parsed.result.partner);
-            let enrichmentInfo = new EnrichmentInfo();
-            if (parsed.result['enrichment_info']) {
-                enrichmentInfo = new EnrichmentInfo(parsed.result['enrichment_info'].type, parsed.result['enrichment_info'].info)
+            const partner = PartnerData.createNewPartnerFromEmail(displayName, email);
+
+            const cachedCompany : CompanyData = this.companyCache.get(email);
+
+            if (cachedCompany)
+            {
+                partner.company = cachedCompany;
+                this.setState({matchedPartners: [partner], selectedPartner: partner});
             }
-            this.setState({
-                EnrichmentInfo: enrichmentInfo,
-                partnerCreated: parsed.result['created'],
-                showEnrichmentInfoMessage: true,
-                showPartnerCreatedMessage: true
-            });
-            this.context.setPartner(partner, false);
-        }).catch((error) => {
-            console.log("Error catched: " + error);
-            if (error.message == '0') {
-                this.setState({
-                    EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
-                    showEnrichmentInfoMessage: true
+            else
+            {
+                const senderDomain = email.split('@')[1];
+                const cancellableRequest = sendHttpRequest(HttpVerb.POST
+                    , api.iapLeadEnrichment, ContentType.Json, null, {"params": {
+                            "email": email,
+                            "domain": senderDomain,
+                            "extuid": idTokenResult.value
+                        }});
+                this.context.addRequestCanceller(cancellableRequest.cancel);
+                cancellableRequest.promise.then(response => {
+                    const parsed = JSON.parse(response);
+                    if ('error' in parsed.result) {
+                        const enrichmentInfo = new EnrichmentInfo(parsed.result.error.type,
+                            parsed.result.error.info);
+                        if (enrichmentInfo.type != EnrichmentInfoType.NoData)
+                            this.context.showTopBarMessage(enrichmentInfo);
+                        partner.company = CompanyData.getEmptyCompany();
+                        this.setState({matchedPartners: [partner], selectedPartner: partner,
+                        loading: false});
+                        return;
+                    }
+                    partner.company = CompanyData.fromRevealJSON(parsed.result);
+                    this.companyCache.add(partner.company);
+                    this.setState({matchedPartners: [partner], selectedPartner: partner
+                        , loading: false});
+                }).catch(error => {
+                    this.context.showHttpErrorMessage(error);
+                    this.setState({loading: false});
                 });
-            } else {
-                this.setState({
-                    EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
-                    showEnrichmentInfoMessage: true
-                });    
             }
-            this.context.setPartner(new PartnerData(), false);
-        });
-
-        const cancellableRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.getInstalledModules, ContentType.Json, this.context.getConnectionToken(), {})
-        this.context.addRequestCanceller(cancellableRequest.cancel);
-        cancellableRequest.promise.then(response => {
-            const parsed = JSON.parse(response);
-            this.context.setModules(parsed.result.modules);
-        }).catch(function(error) {
-            console.log("Error catched: " + error);
         });
     }
 
-  _disconnectedFlow() {
-    Office.context.mailbox.getUserIdentityTokenAsync(idTokenResult=>{
-        const userEmail = Office.context.mailbox.userProfile.emailAddress;
+    private onSearchClick = (state) => {
+        if (this.context.isConnected())
+        {
+            const backStackItem = {type: BackStackItemType.partner, element: this.state.selectedPartner,
+                historyState: state} as BackStackItem;
+            if (this.state.backStack.length > 0 || this.state.matchedPartners.length == 1)
+            {
 
-        // The "sender" is the sender of the original mail.
-        // If outlook is showing the oultook user's answer, we pick the sender of the original email.
-        // Which is most likely the first "to" address, until proven otherwise.
-        let senderEmail = Office.context.mailbox.item.from.emailAddress;
-        let senderDisplayName = Office.context.mailbox.item.from.displayName;
-        if (Office.context.mailbox.userProfile.emailAddress == Office.context.mailbox.item.from.emailAddress) {
-            senderEmail = Office.context.mailbox.item.to[0].emailAddress;
-            senderDisplayName = Office.context.mailbox.item.to[0].displayName;
-        }
-        const senderDomain = senderEmail.split('@')[1];
-
-        const partner = new PartnerData();
-        partner.email = senderEmail;
-        partner.name = senderDisplayName;
-
-        const cachedCompany : CompanyData = this.companyCache.get(senderEmail)
-
-        this.context.setIsLoading(true);
-        // Check the cache before calling the IAP.
-        if (cachedCompany) {
-            partner.company = cachedCompany;
-            this.setState({ EnrichmentInfo: new EnrichmentInfo() });
-            this.context.setPartner(partner, false);
-        } else {
-            const cancellableRequest = sendHttpRequest(HttpVerb.POST, api.iapLeadEnrichment, ContentType.Json, null, {"params": {
-            "email": userEmail,
-            "domain": senderDomain,
-            "extuid": idTokenResult.value
-            }})
-            this.context.addRequestCanceller(cancellableRequest.cancel);
-            cancellableRequest.promise.then(response => {
-                const parsed = JSON.parse(response);
-                //if ('error' in parsed) {
-                if ('error' in parsed.result) {
-                    this.setState({ 
-                        //EnrichmentInfo: new EnrichmentInfo(parsed.error.data.exception_type), // TODO: investigate
-                        EnrichmentInfo: new EnrichmentInfo(parsed.result.error),
-                        showEnrichmentInfoMessage: true
-                    });
-                    this.context.setPartner(partner, false);
-                    return;
-                }
-                const company = CompanyData.fromRevealJSON(parsed.result);
-                partner.company = company;
-                this.companyCache.add(company);
-                this.setState({ EnrichmentInfo: new EnrichmentInfo() });
-                this.context.setPartner(partner, false);
-            }).catch(error => {
-                console.log("Error catched: " + error);
-                if (error.message == '0') {
-                    this.setState({
-                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
-                        showEnrichmentInfoMessage: true
-                    });
-                } else {
-                    this.setState({
-                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
-                        showEnrichmentInfoMessage: true
-                    });    
-                }
-                // At least the info present in the mail will be displayed, not an empty screen.
-                this.context.setPartner(partner, false);
-            });
-        }
-            
-        });
-    }
-
-    _hideEnrichmentInfoMessage = () => {
-        this.setState({
-            showEnrichmentInfoMessage: false
-        })
-    }
-
-    _hidePartnerCreatedMessage = () => {
-        this.setState({
-            showPartnerCreatedMessage: false
-        })
-    }
-
-    _getMessageBars = () => {
-        const {type, info} = this.state.EnrichmentInfo;
-        const message = this.state.EnrichmentInfo.getTypicalMessage();
-        let bars = [];
-        if (this.state.showPartnerCreatedMessage && this.state.partnerCreated) {
-            bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this._hidePartnerCreatedMessage}>Contact created</MessageBar>);
-            //setTimeout(this._hidePartnerCreatedMessage, 3000);
-        }
-        if (this.state.showEnrichmentInfoMessage) {
-            switch (type) {
-            case EnrichmentInfoType.CompanyCreated:
-                bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this._hideEnrichmentInfoMessage}>Company created</MessageBar>);
-                //setTimeout(this._hideEnrichmentInfoMessage, 3500);
-                break;
-            case EnrichmentInfoType.NoData:
-            case EnrichmentInfoType.NotConnected_NoData:
-                bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this._hideEnrichmentInfoMessage}>{message}</MessageBar>);
-                break;
-            case EnrichmentInfoType.InsufficientCredit:
-                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>
-                    {message}
-                    <br/>
-                    <Link href={info} target="_blank">
-                        Buy More
-                    </Link>
-                </MessageBar>);
-                break;
-            case EnrichmentInfoType.NotConnected_InsufficientCredit:
-            case EnrichmentInfoType.NotConnected_InternalError:
-            case EnrichmentInfoType.Other:
-            case EnrichmentInfoType.ConnectionError:
-                bars.push(<MessageBar messageBarType={MessageBarType.error} onDismiss={this._hideEnrichmentInfoMessage}>{message}</MessageBar>);
-                break;
+                this.setState({isSearching: true, searchQuery: ""});
             }
+            else
+            {
+                this.setState({isSearching: true, searchQuery: this.state.selectedPartner.email});
+            }
+
+            this.pushItemBackStack(backStackItem);
         }
-        return bars;
+        else
+        {
+            this.context.navigation.goToLogin();
+        }
     }
 
-    loadOrReload = () => {
-        this.context.cancelRequests();
-        if (this.context.isConnected()) {
-            this._connectedFlow();
-        } else {
-            this._disconnectedFlow();
+    private onSearchPartnerItemClick = (partner: Partner, state: SearchState) => {
+        const backStackItem = {type: BackStackItemType.query, element: state.query, historyState: state} as BackStackItem;
+        this.pushItemBackStack(backStackItem);
+        this.setState({isSearching: false, selectedPartner: partner, contactKey: Math.random(), loadPartner: true});
+    }
+
+    private onRefreshPartnerClick = () => {
+        this.setState({contactKey: Math.random(), loadPartner: true});
+    }
+
+    private onBackClicked = () => {
+        let backStack = [...this.state.backStack];
+        const backStackItem = backStack.pop();
+        if (backStackItem.type == BackStackItemType.partner)
+        {
+            const partner = backStackItem.element as Partner;
+            this.setState({isSearching: false, selectedPartner: partner,
+                poppedElement: backStackItem, backStack: backStack, loadPartner: false});
         }
+        else
+        {
+            const query = backStackItem.element as string;
+            this.setState({isSearching: true, searchQuery: query,
+                poppedElement: backStackItem, backStack: backStack});
+        }
+    }
+
+    private pushItemBackStack = (item: BackStackItem) => {
+        let backStack = [...this.state.backStack];
+        backStack.push(item);
+        this.setState({backStack: backStack});
+    }
+
+    private updatePartner = (partner: Partner) => {
+        this.setState({selectedPartner: partner});
     }
 
     render() {
-        // Bad.
-        if (this.context.doReload) {
-            this.context.setDoReload(false);
-            this.loadOrReload();
-            return null;
+
+        if (this.state.loading)
+        {
+            return (<Progress />);
         }
 
+        let topBarContent = null;
+        let backButton = null;
 
-        switch(this.state.pageDisplayed)
+        if (this.state.backStack.length != 0)
         {
-            case Page.Main:
-            let connectionButton = <div className='link-like-button connect-button' onClick={() => this.context.navigation.goToLogin()}>Login</div>;
-            if (this.context.isConnected()){
-                connectionButton = <div className='link-like-button connect-button' onClick={() =>{this.context.disconnect();this.context.navigation.goToLogin();}}>Logout</div>
-            }
+            backButton = (
+                <div className="odoo-muted-button" onClick={this.onBackClicked} style={{border: "none"}}>
+                    <FontAwesomeIcon icon={faArrowLeft}/>
+                </div>
+            )
+        }
 
-            // In the normal disconnected flow, the company will be -1 and every info will be in additionalInfo.
-            // In that case Company should show up, it's designed to get the necessary info in addditionalInfo if not found elsewhere.
-            // In case of error with the IAP in non connected mode the company id will be -1 and additionalInfo === {}
-            // Then and only then the Company should not show.
-            return (
-                <>
-                    {this.context.isLoading ? <GrayOverlay></GrayOverlay> : null}
-                    <div className='message-bars'>
-                        {this._getMessageBars()}
+        let broadCampStyle = {display: "flex", justifyContent:"space-between",
+            alignItems: "center", fontSize: "medium", color: "#787878", fontWeight: 600};
+
+        if (this.state.isSearching)
+        {
+            topBarContent = (<div style={broadCampStyle}>
+                    {backButton}
+                    <div>
+                        Search In Database
                     </div>
-                    <Contact />
-                    {this.context.modules.includes('crm') ? <Leads /> : null}
-                    {this.context.partner.company.id !== -1 || Object.keys(this.context.partner.company.additionalInfo).length !== 0 ? <Company /> : null}
-                    {connectionButton}
-                    
-                </>
+                    <span/>
+                </div>
             );
         }
+        else
+        {
+            let refrechPartnerButton = null;
+            let addPartnerButton = null;
+
+            if (this.context.isConnected())
+            {
+                refrechPartnerButton = (
+                    <TooltipHost content="Refresh Contact">
+                        <div className="odoo-muted-button" onClick={this.onRefreshPartnerClick} style={{border: "none"}}>
+                            <FontAwesomeIcon icon={faRedoAlt} style={{cursor: "pointer"}} />
+                        </div>
+                    </TooltipHost>);
+            }
+
+            if (this.state.selectedPartner && !this.state.selectedPartner.isAddedToDatabase())
+            {
+                addPartnerButton = (
+                    <TooltipHost content="Add Contact To Database">
+                        <div className="odoo-muted-button" onClick={this.addPartnerToDbRequest} style={{border: "none"}}>
+                            <FontAwesomeIcon icon={faPlusCircle} style={{cursor: "pointer"}} />
+                        </div>
+                    </TooltipHost>
+                );
+            }
+
+            topBarContent = (
+                <div style={broadCampStyle}>
+                    {backButton}
+                    <div>
+                        Contact Details
+                    </div>
+                    <div style={{display: "flex"}}>
+                        <TooltipHost content="Search in Odoo">
+                            <div className="odoo-muted-button" onClick={this.onSearchClick} style={{border: "none"}}>
+                                <FontAwesomeIcon icon={faSearch} style={{cursor: "pointer"}} />
+                            </div>
+                        </TooltipHost>
+                        {refrechPartnerButton}
+                        {addPartnerButton}
+                    </div>
+                </div>
+            );
+        }
+
+        let topBar = (
+            <div style={{margin: "8px"}}>
+                {topBarContent}
+            </div>
+        )
+
+        let connectionButton = <div className='link-like-button connect-button'
+                                    onClick={() => this.context.navigation.goToLogin()}>Login</div>;
+        if (this.context.isConnected()){
+            connectionButton = <div className='link-like-button connect-button'
+                                    onClick={() =>{this.context.disconnect();this.context.navigation.goToLogin();}}>Logout</div>
+        }
+
+
+        let mainContent = null;
+
+        if (this.state.isSearching)
+        {
+            mainContent = (
+                <div>
+                    <Search query={this.state.searchQuery}
+                            historyState={this.state.poppedElement && this.state.poppedElement.type==BackStackItemType.query ?
+                                this.state.poppedElement.historyState : undefined}
+                            onPartnerClick={this.onSearchPartnerItemClick}/>
+                </div>
+            )
+        }
+        else
+        {
+            if (this.state.selectedPartner)
+            {
+                mainContent = (
+                    <>
+                        <ContactPage partner={this.state.selectedPartner}
+                                     onPartnerChanged={this.updatePartner} loadPartner={this.state.loadPartner} key={this.state.contactKey} />
+                    </>
+                );
+            }
+        }
+        return (
+            <div style={{display: "flex", flexDirection: "column", height: "100%"}}>
+                <div>
+                    {topBar}
+                </div>
+                <div style={{flex: 1}}>
+                    {mainContent}
+                </div>
+                <div>
+                    {connectionButton}
+                </div>
+            </div>
+        )
     }
 }
 Main.contextType = AppContext;

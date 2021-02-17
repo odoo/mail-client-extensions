@@ -1,0 +1,35 @@
+.contact-list-item-container {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.contact-profile-card-container {
+    /*word-wrap: break-word;*/
+    flex: 5;
+    padding: 8px;
+}
+
+.contact-list-item-container-selectable {
+    cursor: pointer;
+}
+
+.contact-list-item-container-selectable:hover {
+    background: #eeeeee;
+}
+
+
+.log-container {
+    height: fit-content;
+    margin: auto 8px auto auto;
+    flex: 1;
+    text-align: center;
+    cursor: pointer;
+}
+
+.logged-text {
+    height: fit-content;
+    padding: 4px;
+    color: #777;
+    font-size: smaller;
+}
