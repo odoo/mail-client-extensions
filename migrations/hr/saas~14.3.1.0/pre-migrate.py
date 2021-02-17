@@ -14,7 +14,8 @@ def migrate(cr, version):
                 create_uid integer,
                 create_date timestamp without time zone,
                 write_uid integer,
-                write_date timestamp without time zone
+                write_date timestamp without time zone,
+                location_number varchar
             )
         """
     )
