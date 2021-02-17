@@ -50,7 +50,7 @@ class Move(models.Model):
         # The code changing the bank account to the oustanding account on payments in on the 'account' module.
         # When setting the account, _compute_amount is called on the invoices but since `account_accountant` is not yet loaded,
         # the 'in_payment' state isn't set correctly.
-        return 'in_payment' if util.ENVIRON['account_accountant_installed'] else 'paid'
+        return "in_payment" if util.ENVIRON["account_accountant_installed"] else "paid"
 
 
 class MoveLine(models.Model):
@@ -61,5 +61,11 @@ class MoveLine(models.Model):
 
 class Payment(models.Model):
     _inherit = "account.payment"
+    _module = "account"
+    _check_company_auto = False
+
+
+class AccountAnalyticLine(models.Model):
+    _inherit = "account.analytic.line"
     _module = "account"
     _check_company_auto = False
