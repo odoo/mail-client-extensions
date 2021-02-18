@@ -22,3 +22,5 @@ def migrate(cr, version):
             plus={"account_edi"},
             minus={"l10n_latam_invoice_document", "account_debit_note", "account_edi_extended"},
         )
+
+        util.merge_module(cr, "l10n_be_hr_payroll_onss_restructuring", "l10n_be_hr_payroll")
