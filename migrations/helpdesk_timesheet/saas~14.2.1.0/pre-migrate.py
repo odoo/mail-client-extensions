@@ -15,6 +15,7 @@ def migrate(cr, version):
         """
         UPDATE account_analytic_line
            SET task_id = NULL
-         WHERE helpdesk_ticket_id IS NOT NULL AND task_id IS NOT NULL
+         WHERE helpdesk_ticket_id IS NOT NULL
+           AND task_id IS NOT NULL
         """
     )
