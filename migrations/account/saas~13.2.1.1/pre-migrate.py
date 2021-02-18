@@ -190,3 +190,25 @@ def migrate(cr, version):
     )
 
     util.rename_field(cr, "account.invoice.report", "invoice_payment_state", "payment_state")
+
+    util.add_to_migration_reports(
+        """
+        <p><strong>IMPORTANT NOTICE</strong></p>
+        <p>
+            The numbering of journal entries & invoices changed in Odoo 14;
+            sequences are replaced by a more robust approach, to prevent mistakes
+            (e.g. 2020/12/0003 for an invoice posted in *September*, or  2020/00003 for a document in fiscal year 2019).
+        </p>
+        <p>
+            If you had wrong journal entries,
+            you might face <a href="https://i.imgur.com/7wQW1vT.png" target="_blank">blocking messages like this</a>
+            when validating a document.
+            To fix such issues, you can either correct the number of the last journal entry for the month / year, or
+            assign a number manually on a draft document before posting it.
+            To do so, use the "Renumbering" action available from the *list* of journal entries.
+            Once you fix the latest entry, all future entries will be correct.
+        </p>
+        """,
+        "Accounting",
+        format="html",
+    )
