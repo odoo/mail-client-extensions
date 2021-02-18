@@ -35,7 +35,7 @@ class IrModelData(models.Model):
         if hasattr(self.pool, "loaded_xmlids"):
             loaded_xmlids = self.pool.loaded_xmlids
         else:
-            loaded_xmlids = [".".join([module, name]) for module, name in self.loads]
+            loaded_xmlids = set(".".join([module, name]) for module, name in self.loads)
 
         self.env.cr.execute(
             """
@@ -50,7 +50,7 @@ class IrModelData(models.Model):
             [tuple(modules), tuple(no_model_data_delete.keys())],
         )
         for model, xmlids in self.env.cr.fetchall():
-            unloaded_xmlids = set(xmlids) - set(loaded_xmlids)
+            unloaded_xmlids = set(xmlids) - loaded_xmlids
             if unloaded_xmlids:
                 # Do not consider unloaded model data having loaded children model data
                 # e.g. `res.partner` model data loaded indirectly through `res.users` model data.
