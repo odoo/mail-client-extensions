@@ -11,7 +11,7 @@ import tempfile
 from argparse import Action, ArgumentError, ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
-from contextlib import closing
+from contextlib import ExitStack, closing
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Generic, List, NamedTuple, Optional, Sequence, TypeVar, Union
@@ -161,7 +161,7 @@ unaccent = True
     return True
 
 
-def checkout(repo: Repo, version: str, workdir: Path, options: Namespace) -> bool:
+def checkout(repo: Repo, version: str, workdir: Path, options: Namespace, stack: ExitStack) -> bool:
     logger.info("checkout %s at version %s", repo.name, version)
     wd = workdir / repo.name
     wd.mkdir(exist_ok=True)
@@ -192,6 +192,7 @@ def checkout(repo: Repo, version: str, workdir: Path, options: Namespace) -> boo
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    stack.callback(subprocess.run, ["git", "--git-dir", gitdir, "worktree", "remove", "--force", wd / version])
     return True
 
 
@@ -284,15 +285,15 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
 
 def matt(options: Namespace) -> int:
-    with tempfile.TemporaryDirectory() as workdir_s:
+    with tempfile.TemporaryDirectory() as workdir_s, ExitStack() as stack:
         workdir = Path(workdir_s)
         for repo in REPOSITORIES:
-            if not checkout(repo, getattr(options.source, repo.ident), workdir, options):
+            if not checkout(repo, getattr(options.source, repo.ident), workdir, options, stack):
                 return 3
-            if not checkout(repo, getattr(options.target, repo.ident), workdir, options):
+            if not checkout(repo, getattr(options.target, repo.ident), workdir, options, stack):
                 return 3
         if options.upgrade_branch != ".":
-            if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options):
+            if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options, stack):
                 return 3
 
         pkgdir = dict()
@@ -527,16 +528,8 @@ It allows to test upgrades against development branches.
 
     if not init_repos(options):
         return 3
-    ret = matt(options)
 
-    # cleanup
-    repos = list(REPOSITORIES)
-    if options.upgrade_branch != ".":
-        repos.append(UPGRADE_REPO)
-    for repo in repos:
-        subprocess.run(["git", "worktree", "prune"], cwd=str(options.cache_path / repo.name))
-
-    return ret
+    return matt(options)
 
 
 if __name__ == "__main__":
