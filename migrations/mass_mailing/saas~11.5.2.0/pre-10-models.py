@@ -3,11 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    pk = util.get_index_on(cr, "mail_mass_mailing_contact_list_rel", "contact_id", "list_id")
+    pk = util.get_index_on(cr, "mail_mass_mailing_contact_list_rel", "contact_id", "list_id", quote_ident=False)
     if pk and pk[2]:
         # Primary key found, remove it.
         # The ORM will create the missing unique constraint
-        cr.execute("ALTER TABLE mail_mass_mailing_contact_list_rel DROP CONSTRAINT {}".format(pk[0]))
+        util.remove_constraint(cr, "mail_mass_mailing_contact_list_rel", pk[0])
 
     cr.execute("ALTER TABLE mail_mass_mailing_contact_list_rel ADD COLUMN id SERIAL NOT NULL PRIMARY KEY")
     util.create_column(cr, "mail_mass_mailing_contact_list_rel", "create_uid", "integer")

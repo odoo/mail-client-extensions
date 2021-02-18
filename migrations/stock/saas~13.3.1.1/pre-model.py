@@ -3,7 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute("ALTER TABLE stock_production_lot DROP CONSTRAINT IF EXISTS stock_production_lot_name_ref_uniq")
+    util.remove_constraint(cr, "stock_production_lot", "stock_production_lot_name_ref_uniq")
 
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("stock.access_stock_location_{_,}partner_manager"))

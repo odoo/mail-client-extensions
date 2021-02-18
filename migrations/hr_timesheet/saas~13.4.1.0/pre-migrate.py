@@ -17,7 +17,7 @@ def migrate(cr, version):
 
     if not util.module_installed(cr, "timesheet_grid"):
         util.remove_field(cr, "project.project", "allow_timesheet_timer")
-        cr.execute("ALTER TABLE project_project DROP CONSTRAINT IF EXISTS project_project_timer_only_when_timesheet")
+        util.remove_constraint(cr, "project_project", "project_project_timer_only_when_timesheet")
 
         util.remove_field(cr, "project.task", "display_timesheet_timer")
         util.remove_field(cr, "project.task", "display_timer_start_secondary")

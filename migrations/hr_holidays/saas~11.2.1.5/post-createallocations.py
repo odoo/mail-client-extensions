@@ -17,9 +17,7 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, 'hr_leave_allocation', '_tmp', 'int4')
-    cr.execute("""
-        ALTER TABLE hr_leave_allocation DROP CONSTRAINT IF EXISTS hr_leave_allocation_type_value
-    """)
+    util.remove_constraint(cr, "hr_leave_allocation", "hr_leave_allocation_type_value")
     cr.execute("""
         INSERT INTO hr_leave_allocation(_tmp, {0})
              SELECT id, {0}

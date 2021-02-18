@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    cr.execute('ALTER TABLE "res_lang" DROP CONSTRAINT "res_lang_code_uniq" CASCADE')
+    util.remove_constraint(cr, "res_lang", "res_lang_code_uniq", cascade=True)
 
     util.rename_field(cr, "ir.model.fields", "copy", "copied")
 

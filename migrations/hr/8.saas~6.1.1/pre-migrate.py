@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
+from openerp.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    cr.execute("ALTER TABLE hr_job DROP CONSTRAINT IF EXISTS hr_job_hired_employee_check")
+    util.remove_constraint(cr, "hr_job", "hr_job_hired_employee_check")

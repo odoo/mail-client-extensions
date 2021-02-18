@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from odoo.tools.misc import ignore
-from odoo.upgrade import util
-
 import psycopg2
+
+from odoo.tools.misc import ignore
+
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -59,10 +60,7 @@ def migrate(cr, version):
     # ===========================================================
 
     util.remove_field(cr, "account.move.line", "always_set_currency_id")
-
-    cr.execute(
-        "ALTER TABLE account_move_line DROP CONSTRAINT IF EXISTS account_move_line_check_amount_currency_balance_sign"
-    )
+    util.remove_constraint(cr, "account_move_line", "account_move_line_check_amount_currency_balance_sign")
 
     util.parallel_execute(
         cr,

@@ -4,7 +4,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
 
-    cr.execute("ALTER TABLE calendar_attendee DROP CONSTRAINT IF EXISTS calendar_attendee_google_id_uniq")
+    util.remove_constraint(cr, "calendar_attendee", "calendar_attendee_google_id_uniq")
 
     # partner is now required on attendees
     Partner = util.env(cr)["res.partner"]

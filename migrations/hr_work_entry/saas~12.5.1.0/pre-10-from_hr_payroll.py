@@ -35,5 +35,4 @@ def migrate(cr, version):
         util.create_column(cr, "hr_work_entry", "conflict", "boolean")  # Always false, state 'conflict' is new
         cr.execute("UPDATE hr_work_entry SET state='draft' WHERE state='confirmed'")
 
-        cr.execute("ALTER TABLE hr_work_entry DROP CONSTRAINT hr_work_entry__unique")
-        cr.execute("DELETE FROM ir_model_constraint WHERE name = 'hr_work_entry__unique'")
+        util.remove_constraint(cr, "hr_work_entry", "hr_work_entry__unique")

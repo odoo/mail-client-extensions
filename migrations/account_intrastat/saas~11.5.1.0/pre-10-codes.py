@@ -8,7 +8,7 @@ def migrate(cr, version):
     # Doing this avoid to alter account.invoice.line
     util.rename_model(cr, "report.intrastat.code", "account.intrastat.code")
     if util.module_installed(cr, "l10n_be_intrastat"):
-        cr.execute("alter table l10n_be_intrastat_transaction DROP CONSTRAINT l10n_be_intrastat_transaction_l10n_be_intrastat_trcodeunique")
+        util.remove_constraint(cr, "l10n_be_intrastat_transaction", "l10n_be_intrastat_transaction_l10n_be_intrastat_trcodeunique")
 
     # This way, we avoid to move value from name to code for thousands of records
     util.rename_field(cr, "account.intrastat.code", "name", "code")

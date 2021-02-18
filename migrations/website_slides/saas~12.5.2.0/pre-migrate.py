@@ -15,7 +15,7 @@ def migrate(cr, version):
 
     # remove leftover constraint that should have been dropped during saas~12.2 upgrade
     # (this has now be fixed by 3d30119f542fde796b4f8003a58f0976abb72a20)
-    cr.execute("ALTER TABLE slide_slide DROP CONSTRAINT IF EXISTS slide_slide_name_uniq")
+    util.remove_constraint(cr, "slide_slide", "slide_slide_name_uniq")
 
     # remove `rating.mixin` from `slide.slide`
     for suffix in {"ids", "last_value", "last_feedback", "last_image", "count", "avg"}:

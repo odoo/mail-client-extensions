@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import datetime
+
 from openerp import SUPERUSER_ID
-from openerp.addons.base.maintenance.migrations import util
 from openerp.modules.registry import RegistryManager
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT
+
+from openerp.addons.base.maintenance.migrations import util
+
 
 def migrate(cr, version):
     # synchronize `number_next` for `standard` sequences.
@@ -59,8 +62,8 @@ def migrate(cr, version):
                              AND s.id = %s
                        """, [main_seq_id, seq_id])
 
-            cr.execute("""ALTER TABLE account_sequence_fiscalyear
-                      DROP CONSTRAINT IF EXISTS account_sequence_fiscalyear_main_id""")
+            util.remove_constraint(cr, "account_sequence_fiscalyear", "account_sequence_fiscalyear_main_id")
+
         # we need to delete the record ourselves to avoid integrity constraint violation
         cr.execute("DELETE FROM account_sequence_fiscalyear WHERE id=%s", [asf_id])
         util.replace_record_references(cr, ('ir.sequence', seq_id), ('ir.sequence', main_seq_id), False)
@@ -72,6 +75,6 @@ def migrate(cr, version):
             UPDATE ir_sequence SET prefix = replace(prefix, '(%(spec)s)s', '(range_%(spec)s)s'),
                                    suffix = replace(suffix, '(%(spec)s)s', '(range_%(spec)s)s')
             WHERE use_date_range = true
-        """ % locals())
+        """ % {"spec": spec})
 
     util.delete_model(cr, 'account.sequence.fiscalyear')

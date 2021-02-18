@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     util.create_column(cr, 'ir_model', 'transient', 'boolean')
 
@@ -86,6 +87,7 @@ def migrate(cr, version):
            AND coalesce(res_id, 0) = 0
     """)
 
+    util.remove_constraint(cr, "ir_model_data", "ir_model_data_module_name_uniq")
     # ir.model.data index cleanup
     cr.execute("""
       DROP INDEX IF EXISTS ir_model_data_module_name_index;
@@ -94,7 +96,6 @@ def migrate(cr, version):
       DROP INDEX IF EXISTS ir_model_data_res_id_index;
       DROP INDEX IF EXISTS ir_model_data_model_index;
       DROP INDEX IF EXISTS ir_model_data_name_index;
-      ALTER TABLE ir_model_data DROP CONSTRAINT IF EXISTS ir_model_data_module_name_uniq;
       CREATE UNIQUE INDEX ir_model_data_module_name_uniq_index ON ir_model_data (module, name);
       CREATE INDEX ir_model_data_model_res_id_index ON ir_model_data (model, res_id);
     """)

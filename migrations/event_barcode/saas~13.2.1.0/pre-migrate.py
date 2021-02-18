@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 import random
+
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    idx = util.get_index_on(cr, "event_registration", "barcode", "event_id")
+    idx = util.get_index_on(cr, "event_registration", "barcode", "event_id", quote_ident=False)
     if idx:
         idx_name, uniq, pk = idx
         if uniq and not pk:
-            cr.execute(f"ALTER TABLE event_registration DROP CONSTRAINT {idx_name}")
+            util.remove_constraint(cr, "event_registration", idx_name)
 
     # now deduplicate barcodes
     cr.execute(

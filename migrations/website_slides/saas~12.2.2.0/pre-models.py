@@ -112,7 +112,7 @@ def migrate(cr, version):
     util.create_column(cr, "slide_category", "nbr_quizz", "int4")
 
     # slide
-    cr.execute("ALTER TABLE slide_slide DROP CONSTRAINT IF EXISTS slide_slide_name_uniq")
+    util.remove_constraint(cr, "slide_slide", "slide_slide_name_uniq")
     util.rename_field(cr, "slide.slide", "image", "image_original")
     util.rename_field(cr, "slide.slide", "image_medium", "image_medium")
     util.rename_field(cr, "slide.slide", "image_thumb", "image_small")

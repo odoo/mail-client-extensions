@@ -4,5 +4,4 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.create_column(cr, "fleet_vehicle", "first_contract_date", "date")
-
-    cr.execute("ALTER TABLE fleet_vehicle DROP CONSTRAINT IF EXISTS fleet_vehicle_driver_id_unique")
+    util.remove_constraint(cr, "fleet_vehicle", "fleet_vehicle_driver_id_unique")
