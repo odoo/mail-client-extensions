@@ -56,6 +56,7 @@ def migrate(cr, version):
               FROM res_company c
              WHERE c.id = j.company_id
                AND c.l10n_fr_secure_sequence_id IS NOT NULL
+               AND j.type not in ('cash','bank')
     """
         )
 
