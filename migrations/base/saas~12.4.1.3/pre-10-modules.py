@@ -32,9 +32,11 @@ def migrate(cr, version):
         util.new_module(cr, "industry_fsm_stock", deps={"industry_fsm", "sale_stock"}, auto_install=True)
         util.new_module(cr, "map_view_contact", deps={"contacts", "web_map"}, auto_install=True)
         util.new_module(cr, "purchase_enterprise", deps={"purchase", "web_dashboard"}, auto_install={"purchase"})
-        util.new_module(cr, "sale_rental", deps={"sale"})
-        util.new_module(cr, "sale_rental_sign", deps={"sign", "sale_rental"}, auto_install=True)
-        util.new_module(cr, "sale_stock_rental", deps={"sale_rental", "stock"}, auto_install=True)
+
+        # The `sale_rental` module create a name conflict with one module of OCA [1] and has been renamed in saas~12.5
+        # We therefore forbid upgrades to saas~12.4 (as final version). The modules will be created in the saas~12.5 script
+        # [1] https://twitter.com/PedroMBaeza/status/1151530523807891456
+        assert util.version_gte("saas~12.5")
 
         util.module_deps_diff(cr, "account_accountant", plus={"mail_enterprise"})
         util.module_deps_diff(cr, "helpdesk_timesheet", plus={"project_enterprise"})

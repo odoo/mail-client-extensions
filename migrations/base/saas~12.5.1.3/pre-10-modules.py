@@ -107,9 +107,19 @@ def migrate(cr, version):
         util.module_auto_install(cr, "account_bank_statement_import_camt", True)
 
         util.rename_module(cr, "hr_documents", "documents_hr")  # Marvelous!
-        util.rename_module(cr, "sale_rental", "sale_renting")
-        util.rename_module(cr, "sale_rental_sign", "sale_renting_sign")
-        util.rename_module(cr, "sale_stock_rental", "sale_stock_renting")
+
+        # The `sale_rental` module create a name conflict with one module of OCA [1] and has thus been renamed in saas~12.5.
+        # We rename the existing modules if the source version is saas~12.4, else we create them with the right name.
+        # [1] https://twitter.com/PedroMBaeza/status/1151530523807891456
+        if version.startswith("saas~12.4."):
+            util.rename_module(cr, "sale_rental", "sale_renting")
+            util.rename_module(cr, "sale_rental_sign", "sale_renting_sign")
+            util.rename_module(cr, "sale_stock_rental", "sale_stock_renting")
+        else:
+            util.new_module(cr, "sale_renting", deps={"sale"})
+            util.new_module(cr, "sale_renting_sign", deps={"sign", "sale_renting"}, auto_install=True)
+            util.new_module(cr, "sale_stock_renting", deps={"sale_renting", "stock"}, auto_install=True)
+
         util.rename_module(cr, "snailmail_account_reports_followup", "snailmail_account_followup")
 
         util.new_module(cr, "account_auto_transfer", deps={"account_accountant"}, auto_install=True)
