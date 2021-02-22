@@ -188,7 +188,7 @@ class TestCrawler(IntegrityCase):
         context = action.get("context") or {}
         if isinstance(context, str):
             context = self._safe_eval(context) if context else {}
-        env = self.env.user.with_context(**context).env
+        env = self.env(context=dict(self.env.context, **context))
         model = env[action["res_model"]]
         if not action.get("views"):
             # See `generate_views` in `addons/web/controllers/main.py`
@@ -399,7 +399,7 @@ class TestCrawler(IntegrityCase):
         field = model._fields[fname]
         if field.comodel_name:
             groups = [group[group_by][0] for group in data if group[group_by]]
-            model.env[field.comodel_name].browse(groups).read(["display_name"])
+            model.env[field.comodel_name].browse(groups).sudo().name_get()
 
         # Get the data in each group
         for group in data:
