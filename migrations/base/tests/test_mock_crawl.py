@@ -92,6 +92,9 @@ class TestCrawler(IntegrityCase):
                 self.env = self.env(user=user)
                 break
 
+        if hasattr(self.env, "companies"):
+            self.env = self.env(context=dict(self.env.context, allowed_company_ids=[self.env.user.company_id.id]))
+
         failing = set()
 
         # 1. Set base models and fields coming from custom modules to manual models and fields
