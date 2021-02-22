@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 import logging
 import math
-
 from ast import literal_eval
-from dateutil.relativedelta import relativedelta
-from lxml import etree
 from unittest.mock import patch
 
+from dateutil.relativedelta import relativedelta
+from lxml import etree
+
 from odoo import fields
-from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
-from odoo.exceptions import UserError, RedirectWarning
+from odoo.exceptions import RedirectWarning, UserError
 from odoo.osv import expression
 from odoo.tools import mute_logger, table_kind
 from odoo.tools.safe_eval import safe_eval
+
+from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
 
 try:
     # v14+ forbids raw modules in eval context, use the wrapped ones instead
@@ -348,8 +349,9 @@ class TestCrawler(IntegrityCase):
             self.mock_web_search_read(model, view, [domain], fields_list)
 
     def mock_view_search(self, model, view, action_domain):
+        len_search_default = len("search_default_")
         default_filters = [
-            (key[len("search_default_"):], value)
+            (key[len_search_default:], value)
             for key, value in model.env.context.items()
             if key.startswith("search_default_") and value
         ]
@@ -394,7 +396,8 @@ class TestCrawler(IntegrityCase):
         if limit_group and data:
             # take samples at regular intervals
             # e.g. for a limit_group of 3 and a list of 10 elements, take indexes 0, 5, and 9
-            data = data[0:-1:math.ceil(len(data) / (limit_group - 1))] + [data[-1]]
+            chunk = math.ceil(len(data) / (limit_group - 1))
+            data = data[0:-1:chunk] + [data[-1]]
 
         # Get the display name of all groups
         group_by = group_by[0]
