@@ -579,7 +579,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     ml_ids = []
     for move_lines in util.log_progress(util.chunks(mls, chunk_size, list), qualifier=qual, size=size):
         ml_ids += MoveLine.create(move_lines).ids
-        MoveLine.flush()
+        cr.commit()
     _logger.info("invoices: creating zero-line mapping")
     cr.executemany("INSERT INTO invl_aml_mapping(invl_id, aml_id,cond) VALUES (%s, %s, 0)", zip(line_ids, ml_ids))
 
