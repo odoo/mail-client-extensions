@@ -259,7 +259,7 @@ class TestCrawler(IntegrityCase):
             record = records[i]
             [data] = record.read(fields_list)
             for fname in relation_fields_to_read:
-                model.env[model._fields[fname].comodel_name].browse(data[fname]).read(["display_name"])
+                model.env[model._fields[fname].comodel_name].browse(data[fname]).sudo().name_get()
 
             processed_data = {}
             for fname, value in data.items():
@@ -384,7 +384,7 @@ class TestCrawler(IntegrityCase):
             for fname, values in relation_fields_to_read.items():
                 values.update(d for r in data for d in r[fname])
         for fname, values in relation_fields_to_read.items():
-            model.env[model._fields[fname].comodel_name].browse(values).read(["display_name"])
+            model.env[model._fields[fname].comodel_name].browse(values).sudo().name_get()
 
     def mock_web_read_group(self, model, view, domain, group_by, fields_list, limit=80, limit_group=None):
         _logger.info("read_group, %s, %s, %s", model, domain, group_by)
