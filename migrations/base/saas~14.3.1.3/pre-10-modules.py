@@ -24,3 +24,9 @@ def migrate(cr, version):
         )
 
         util.merge_module(cr, "l10n_be_hr_payroll_onss_restructuring", "l10n_be_hr_payroll")
+
+        util.new_module(cr, "hr_work_entry_contract_enterprise", deps={"hr_work_entry_contract"}, auto_install=True)
+        util.new_module(cr, "hr_work_entry_holidays_enterprise", deps={"hr_work_entry_holidays"}, auto_install=True)
+        util.module_deps_diff(
+            cr, "hr_payroll", plus={"hr_work_entry_contract_enterprise"}, minus={"hr_work_entry_contract"}
+        )
