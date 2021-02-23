@@ -3,7 +3,6 @@ import logging
 
 from odoo.addons.base.maintenance.migrations import util
 
-
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
 
@@ -76,6 +75,12 @@ def migrate(cr, version):
         ("account.invoice.line", "account.move.line"),
         ("account.invoice", "account.move"),
     ]
+    fields_mapping = {
+        # fields with different name
+        ("account.invoice.line", "account.move.line"): {
+            "account_analytic_id": "analytic_account_id",
+        },
+    }
     if is_account_voucher_installed:
         model_mapping += [
             ("account.voucher", "account.move"),
@@ -83,7 +88,13 @@ def migrate(cr, version):
         ]
     for model, target_model in model_mapping:
         if target_model:
-            util.merge_model(cr, model, target_model, drop_table=False)
+            util.merge_model(
+                cr,
+                model,
+                target_model,
+                drop_table=False,
+                fields_mapping=fields_mapping.get((model, target_model)),
+            )
         else:
             util.remove_model(cr, model, drop_table=False)
         for constraint in util.get_fk(cr, util.table_of_model(cr, model)):
