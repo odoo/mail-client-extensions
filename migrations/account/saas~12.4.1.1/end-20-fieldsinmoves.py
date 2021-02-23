@@ -21,12 +21,12 @@ def _get_model_id(cr, model):
 def migrate(cr, version):
     cr.execute(
         """
-        SELECT name, ttype, src_model, dst_model, transfer
+        SELECT name, src_model, dst_model, transfer
           FROM mig_s124_accountfieldstotransfer
          WHERE ttype='custom' or state='manual'
         """
     )
-    for field, type, src_model, dst_model, transfer in cr.fetchall():
+    for field, src_model, dst_model, transfer in cr.fetchall():
         src_table = util.table_of_model(cr, src_model)
         dst_table = util.table_of_model(cr, dst_model)
         if transfer:
