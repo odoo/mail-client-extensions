@@ -19,6 +19,7 @@ def fix_moves(cr):
               AND uom.id = sml.product_uom_id
               AND uom.category_id != mu.main_categ_id
               AND (sm.id = sml.move_id OR sml.move_id IS NULL)
+              AND sml.product_uom_qty != 0
         RETURNING sml.move_id, sm.name
         """
     )
@@ -60,6 +61,7 @@ def fix_with_most_used_method(cr):
               JOIN uom_uom uom2 ON uom2.id = pt.uom_id
              WHERE uom1.category_id != uom2.category_id
                AND pp.active = true
+               AND sml.product_uom_qty != 0
         ),
 
         -- for each product templates, get the main UoM category used in stock move lines
@@ -71,6 +73,7 @@ def fix_with_most_used_method(cr):
                       JOIN product_product pp ON pp.id = sml.product_id
                       JOIN product_templates pt ON pt.id = pp.product_tmpl_id
                       JOIN uom_uom uom ON uom.id = sml.product_uom_id
+                     WHERE sml.product_uom_qty != 0
                   GROUP BY pt.id, uom.category_id
                   ORDER BY pt.id, COUNT(uom.category_id) DESC, uom.category_id
             ) as rows
@@ -85,6 +88,7 @@ def fix_with_most_used_method(cr):
                     JOIN product_product pp ON pp.id = sml.product_id
                     JOIN main_categories mc ON mc.tmpl_id = pp.product_tmpl_id
                     JOIN uom_uom uom ON uom.id = sml.product_uom_id AND uom.category_id = mc.uom_category_id
+                   WHERE sml.product_uom_qty != 0
                 GROUP BY mc.tmpl_id,  uom.category_id, sml.product_uom_id
                 ORDER BY mc.tmpl_id, uom.category_id, COUNT(sml.product_uom_id) DESC, sml.product_uom_id
         ) as rows
@@ -120,6 +124,7 @@ def fix_with_from_product_method(cr):
           JOIN uom_uom uom2 ON uom2.id = pt.uom_id
          WHERE uom1.category_id != uom2.category_id
            AND pp.active = true
+           AND sml.product_uom_qty != 0
         """
     )
     moves = fix_moves(cr)
@@ -181,6 +186,7 @@ def log_faulty_objects(cr):
             JOIN uom_uom uom2 ON uom2.id = pt.uom_id
            WHERE uom1.category_id != uom2.category_id
              AND pp.active = true
+             AND sml.product_uom_qty != 0
         GROUP BY sml.move_id
         """
     )
