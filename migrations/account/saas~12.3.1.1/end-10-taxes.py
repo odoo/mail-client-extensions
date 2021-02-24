@@ -554,7 +554,7 @@ def _migrate(cr, version):
         % {
             **sql_dict,
             "pos_orders_condition": "NOT EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = move.id)"
-            if util.table_exists(cr, "pos_order")
+            if util.column_exists(cr, "pos_order", "account_move")
             else "true",
         }
     )

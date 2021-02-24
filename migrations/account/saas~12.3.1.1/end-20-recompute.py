@@ -54,10 +54,14 @@ def recompute_tax_audit_string(cr, aml_ids=None):
     FROM tag_values
    WHERE tag_values.id = account_move_line.id
 
-    """ % {
-        'pos_order_condition': "(EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = aml.move_id) AND i.id IS NULL AND debit > 0)" if util.table_exists(cr, 'pos_order') else "false",
-        'where_clause': where_clause,
-    })
+    """
+        % {
+            "pos_order_condition": "(EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = aml.move_id) AND i.id IS NULL AND debit > 0)"
+            if util.column_exists(cr, "pos_order", "account_move")
+            else "false",
+            "where_clause": where_clause,
+        }
+    )
 
 
 def migrate(cr, version):
