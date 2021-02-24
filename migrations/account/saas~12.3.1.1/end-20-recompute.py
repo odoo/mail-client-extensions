@@ -5,9 +5,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 def recompute_tax_audit_string(cr, aml_ids=None):
     if aml_ids:
-        where_clause = 'WHERE aml.id IN %s' % str(tuple(aml_ids))
+        where_clause = "WHERE aml.id IN %s" % str(tuple(aml_ids))
     else:
-        where_clause = ''
+        where_clause = ""
 
     cr.execute(
         """
