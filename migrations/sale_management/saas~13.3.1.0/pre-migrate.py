@@ -16,7 +16,7 @@ def migrate(cr, version):
                    tmpl.company_id as tmpl_cid
               FROM ir_default def
               JOIN ir_model_fields field ON field.id=def.field_id
-              JOIN sale_order_template tmpl on tmpl.id=def.json_value::int
+              JOIN sale_order_template tmpl on tmpl.id=def.json_value::decimal
              WHERE field.model = 'sale.order'
                AND field.name = 'sale_order_template_id'
                AND def.user_id IS NULL
@@ -39,7 +39,7 @@ def migrate(cr, version):
             SELECT def.id
               FROM ir_default def
               JOIN ir_model_fields field ON field.id=def.field_id
-              JOIN sale_order_template tmpl on tmpl.id=def.json_value::int
+              JOIN sale_order_template tmpl on tmpl.id=def.json_value::decimal
              WHERE field.model = 'sale.order'
                AND field.name = 'sale_order_template_id'
                AND def.user_id IS NULL
