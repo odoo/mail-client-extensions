@@ -10,6 +10,9 @@ def migrate(cr, version):
 
     util.module_deps_diff(cr, "l10n_pe", plus={"l10n_latam_invoice_document", "account_debit_note"})
 
+    util.remove_module_deps(cr, "website_hr_recruitment", {"website_partner"})
+    util.module_auto_install(cr, "website_hr_recruitment", ["hr_recruitment", "website_mail"])
+
     if util.has_enterprise():
         util.merge_module(cr, "l10n_be_hr_payroll_273S_274", "l10n_be_hr_payroll")
         util.merge_module(cr, "l10n_be_hr_payroll_273S_274_account", "l10n_be_hr_payroll_account")
