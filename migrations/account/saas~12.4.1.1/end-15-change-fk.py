@@ -134,6 +134,14 @@ def fix_indirect(cr):
                    AND d.type = 'model'
                    AND d.name LIKE 'account.invoice.line,%'
                    AND i.aml_id IS NOT NULL
+                   AND NOT EXISTS( --avoid ir_translation_model_unique
+                       SELECT *
+                         FROM ir_translation d2
+                        WHERE d2.res_id = i.aml_id
+                          AND d2.name = replace(d.name, 'account.invoice.line,', 'account.move.line,')
+                          AND d2.type = 'model'
+                          AND d2.lang = d.lang
+                   )
             """
         )
     # Cleanup remaining: translations to invoices or lines no longer existing.

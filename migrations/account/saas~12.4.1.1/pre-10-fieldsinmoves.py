@@ -38,7 +38,6 @@ def migrate(cr, version):
                     FROM ir_model_fields f2
               INNER JOIN ir_model m2 on f2.model_id=m2.id
                    WHERE m2.model=%s
-                     AND f2.store=TRUE
                )
             """,
             [src_model, dst_model, src_model, dst_model],
