@@ -3,7 +3,6 @@ import logging
 
 from odoo.addons.base.maintenance.migrations import util
 
-
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
 
@@ -55,7 +54,6 @@ def fix_fk(cr, target, update_query):
 
 
 def fix_indirect(cr):
-    is_account_voucher_installed = util.ENVIRON["account_voucher_installed"]
 
     # Delete duplicated followers:
     cr.execute(
@@ -64,8 +62,11 @@ def fix_indirect(cr):
           FROM mail_followers
          WHERE id IN (SELECT m.id
                         FROM mail_followers m
-                  INNER JOIN account_invoice i ON m.res_id=i.id AND m.res_model='account.invoice'
-                  INNER JOIN mail_followers m2 ON i.move_id=m2.res_id AND (m.partner_id=m2.partner_id OR m.channel_id=m2.channel_id) AND m2.res_model='account.move'
+                  INNER JOIN account_invoice i ON m.res_id=i.id
+                         AND m.res_model='account.invoice'
+                  INNER JOIN mail_followers m2 ON i.move_id=m2.res_id
+                         AND (m.partner_id=m2.partner_id OR m.channel_id=m2.channel_id)
+                         AND m2.res_model='account.move'
          )
     """
     )
@@ -180,7 +181,7 @@ def fix_custom_m2o(cr):
         ("account.move", "account.invoice"),
         ("account.move.line", "account.invoice.line"),
     ]:
-        _logger.info("Fix custom M2O %s" % source_model)
+        _logger.info("Fix custom M2O %s", source_model)
         cr.execute(
             """
             UPDATE ir_model_fields
