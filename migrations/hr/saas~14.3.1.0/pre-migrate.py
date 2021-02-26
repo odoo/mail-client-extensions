@@ -45,3 +45,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.users", "work_location")
     util.remove_field(cr, "hr.employee.base", "work_location")
+
+    util.create_column(cr, "hr_employee", "departure_reason_id", "int4")
+    util.remove_field(cr, "hr.departure.wizard", "departure_reason")

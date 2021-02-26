@@ -24,3 +24,4 @@ def migrate(cr, version):
 
     util.create_column(cr, "res_config_settings", "hospital_insurance_amount_child", "float8")
     util.create_column(cr, "res_config_settings", "hospital_insurance_amount_adult", "float8")
+    util.remove_field(cr, "hr.payslip.employee.depature.notice", "leaving_type")
