@@ -38,6 +38,8 @@ def migrate(cr, version):
     util.update_server_actions_fields(
         cr, src_model="account.invoice", dst_model="account.move", fields_mapping=field_name_mapping
     )
+    for old, new in field_name_mapping:
+        util.update_field_references(cr, old, new, ("account.move",))
 
     # for all fields from 'account.invoice' that have no equivalent in 'account.move'
     # we remove all the corresponding rows in ir_server_object_lines.
