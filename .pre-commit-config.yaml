@@ -15,12 +15,17 @@ repos:
         name: No `saas-*` directories
         entry: Bad directory name. `saas` versions must have a tilde separator, not a dash.
         language: fail
-        files: 'migrations/.*/(\d+\.)?saas-.*/.*\.py$'
+        files: 'migrations/.*/([0-9]+\.)?saas-.*/.*\.py$'
       - id: saas-in-version
         name: full saas
         entry: Bad directory name. `saas` versions should be fully named.
         language: fail
-        files: 'migrations/.*/\d+\.[1-9]+\..*/.*\.py$'
+        files: 'migrations/.*/[0-9]+\.[1-9]+.*/.*\.py$'
+      - id: full-version
+        name: fully-qualified version
+        entry: Bad directory name. Versions should be fully-qualified `SERVER_VERSION.MODULE_VERSION`
+        language: fail
+        files: '^migrations\/.+\/(?:(?!tests|(?:[0-9]+\.0|[0-9]+\.saas~[0-9]+|saas~[0-9]+\.[0-9])(?:\.[0-9]+)+).)+\/.*\.py$'
 
   - repo: https://github.com/psf/black
     rev: 20.8b1
