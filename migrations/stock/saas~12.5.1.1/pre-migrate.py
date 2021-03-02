@@ -89,7 +89,7 @@ def migrate(cr, version):
     )
 
     cr.execute(
-         """
+        """
          WITH package_companies AS (
                    SELECT package.id,
                           location.company_id as location_company_id,
@@ -162,7 +162,9 @@ def migrate(cr, version):
                {}, show_reserved = t.show_operations AND t.code != 'incoming'
           FROM seqcodes s
          WHERE s.id = t.id
-    """.format(dashdash)
+    """.format(
+            dashdash
+        )
     )
 
     util.create_column(cr, "stock_production_lot", "company_id", "int4")
@@ -240,13 +242,11 @@ def migrate(cr, version):
 
     util.remove_model(cr, "report.stock.forecast")
 
-    util.convert_field_to_property(
-        cr, "product.template", "responsible_id", type="many2one", target_model="res.users"
-    )
+    util.convert_field_to_property(cr, "product.template", "responsible_id", type="many2one", target_model="res.users")
 
     # stock move line
     cr.execute(
-         """
+        """
            UPDATE stock_move_line l
               SET company_id = p.company_id
               FROM stock_picking p
