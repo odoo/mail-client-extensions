@@ -88,7 +88,26 @@ def migrate(cr, version):
         """
     )
 
-
+    cr.execute(
+         """
+         WITH package_companies AS (
+                   SELECT package.id,
+                          location.company_id as location_company_id,
+                          (ARRAY_AGG(quant.company_id))[1] as quant_company_id,
+                          (ARRAY_AGG(template.company_id))[1] as product_company_id
+                     FROM stock_quant_package package
+                     JOIN stock_location location ON location.id = package.location_id
+                     JOIN stock_quant quant ON quant.package_id = package.id
+                     JOIN product_product product ON product.id = quant.product_id
+                     JOIN product_template template ON template.id = product.product_tmpl_id
+                 GROUP BY package.id, location.id
+         )
+         UPDATE stock_quant_package package
+            SET company_id = COALESCE(c.location_company_id, c.quant_company_id, c.product_company_id)
+           FROM package_companies c
+          WHERE c.id = package.id AND package.company_id IS NULL
+         """
+    )
     util.create_column(cr, "stock_package_level", "company_id", "int4")
     cr.execute(
         """
