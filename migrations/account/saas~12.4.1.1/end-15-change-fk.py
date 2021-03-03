@@ -121,6 +121,14 @@ def fix_indirect(cr):
                AND d.type = 'model'
                AND d.name LIKE 'account.invoice,%'
                AND i.move_id IS NOT NULL
+               AND NOT EXISTS( --avoid ir_translation_model_unique
+                       SELECT *
+                         FROM ir_translation d2
+                        WHERE d2.res_id = i.move_id
+                          AND d2.name = replace(d.name, 'account.invoice,', 'account.move,')
+                          AND d2.type = 'model'
+                          AND d2.lang = d.lang
+                   )
         """
     )
     if util.table_exists(cr, "invl_aml_mapping"):
