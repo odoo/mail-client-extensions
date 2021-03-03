@@ -519,7 +519,8 @@ def migrate(cr, version):
         SET partner_id = pay_backup.partner_id,
             commercial_partner_id = partner.commercial_partner_id,
             currency_id = pay_backup.currency_id,
-            partner_bank_id = pay_backup.partner_bank_account_id
+            partner_bank_id = pay_backup.partner_bank_account_id,
+            is_move_sent = (move.id = pay.move_id and pay_backup.state in ('sent', 'reconciled'))
         FROM account_payment_pre_backup pay_backup
         JOIN account_payment pay ON pay.id = pay_backup.id
         LEFT JOIN res_partner partner ON partner.id = pay_backup.partner_id
