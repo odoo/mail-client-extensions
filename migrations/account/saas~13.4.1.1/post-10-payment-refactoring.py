@@ -421,6 +421,11 @@ def migrate(cr, version):
             moves.invalidate_cache()
             moves.statement_line_id.journal_id._compute_suspense_account_id()
 
+            # for journals without type 'cash' or 'bank' that are still being used here
+            for j in moves.statement_line_id.journal_id:
+                if not j.suspense_account_id:
+                    j.suspense_account_id = j.company_id.account_journal_suspense_account_id
+
             move_lines_to_create = []
             for move in moves:
                 created_move_ids.add(move.id)
