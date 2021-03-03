@@ -246,7 +246,7 @@ def migrate(cr, version):
         query_string += ", m.purchase_line_id"
     if util.column_exists(cr, 'procurement_order', 'sale_line_id'):
         query_string += ", proc.sale_line_id"
-    query_string += """ ),  m.id, m.product_qty, m.product_uom_qty, m.picking_id, m.product_id, m.state, m.price_unit, m.product_packaging, m.procure_method,
+    query_string += """ ),  m.id, COALESCE(m.product_qty, m.product_uom_qty), m.product_uom_qty, m.picking_id, m.product_id, m.state, m.price_unit, m.product_packaging, m.procure_method,
                              m.product_uom, m.restrict_partner_id, m.scrapped, m.origin_returned_move_id
                     FROM stock_move m
                     LEFT JOIN procurement_order proc ON m.procurement_id = proc.id
