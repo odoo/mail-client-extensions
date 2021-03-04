@@ -115,3 +115,20 @@ def migrate(cr, version):
 
     for field, value in [('helpdesk_target_closed', 1), ('helpdesk_target_rating', 100), ('helpdesk_target_success', 100)]:
         cr.execute(f"UPDATE res_users set {field}={value} WHERE COALESCE({field}, 0) <= 0")
+
+    cr.execute(
+        """
+            WITH updated AS (
+                   UPDATE helpdesk_team team
+                      SET company_id = u.company_id
+                     FROM res_users u
+                    WHERE u.id = COALESCE(team.write_uid, team.create_uid, 1)
+                      AND team.company_id IS NULL
+                RETURNING team.id as team_id, team.company_id as company_id
+            )
+            UPDATE helpdesk_ticket ticket
+               SET company_id = updated.company_id
+              FROM updated
+             WHERE updated.team_id = ticket.team_id
+        """
+    )
