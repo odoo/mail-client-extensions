@@ -341,7 +341,7 @@ def migrate(cr, version):
         """
     )
 
-    cr.execute("DROP TABLE account_invoice_payment_rel_old")
+    cr.execute("DROP TABLE account_invoice_payment_rel_old CASCADE")
 
     # Fix xml_ids
     util.rename_xmlid(cr, "account.model_account_invoice_action_share", "account.model_account_move_action_share")
