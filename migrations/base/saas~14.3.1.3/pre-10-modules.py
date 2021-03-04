@@ -33,3 +33,5 @@ def migrate(cr, version):
         util.module_deps_diff(
             cr, "hr_payroll", plus={"hr_work_entry_contract_enterprise"}, minus={"hr_work_entry_contract"}
         )
+
+        util.new_module(cr, "website_calendar_crm", deps={"website_calendar", "crm"}, auto_install=True)
