@@ -56,7 +56,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.line", "counterpart")
 
     util.remove_field(cr, "account.tax", "tag_ids")
-    cr.execute("DROP TABLE IF EXISTS account_tax_account_tag")
+    cr.execute("DROP TABLE IF EXISTS account_tax_account_tag CASCADE")
     util.remove_field(cr, "account.tax.template", "tag_ids")
     cr.execute("DROP TABLE IF EXISTS account_account_tag_account_tax_template_rel")
 
