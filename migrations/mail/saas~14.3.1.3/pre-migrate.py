@@ -20,3 +20,16 @@ def migrate(cr, version):
                                     ELSE 'suggest'
                                END"""
     )
+
+    cr.execute(
+        """
+        ALTER TABLE mail_message_res_partner_needaction_rel
+          RENAME TO mail_notification
+    """
+    )
+    cr.execute(
+        """
+        ALTER SEQUENCE mail_message_res_partner_needaction_rel_id_seq
+             RENAME TO mail_notification_id_seq
+    """
+    )
