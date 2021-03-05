@@ -4,6 +4,7 @@ import logging
 import os
 
 from odoo.exceptions import UserError
+from odoo.osv import expression
 from odoo.tools import float_round
 from odoo.tools.safe_eval import safe_eval
 
@@ -776,7 +777,7 @@ def get_aml_domain(cr, invoice, domain):
     line_domain = safe_eval(domain)
 
     # We need to use the backup table in order to know which tax corresponds to which tag
-    for index, condition in enumerate(line_domain):
+    for index, condition in enumerate(map(expression.normalize_leaf, line_domain)):
         if condition[0] in ("tax_ids.tag_ids", "tax_line_id.tag_ids"):
 
             if condition[1] not in ("=", "!=", "in", "not in"):
