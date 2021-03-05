@@ -58,6 +58,9 @@ class MoveLine(models.Model):
     _module = "account"
     _check_company_auto = False
 
+    def _check_constrains_account_id_journal_id(self):
+        return True
+
 
 class Payment(models.Model):
     _inherit = "account.payment"
