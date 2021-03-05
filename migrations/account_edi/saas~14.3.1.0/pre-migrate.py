@@ -15,3 +15,10 @@ def migrate(cr, version):
                      AND error IS NOT NULL
     """)
     util.remove_view(cr, 'account_edi.view_tree_account_edi_document_inherit')
+
+    # ===========================================================
+    # cleanup edi from account_invoice_send (PR: 67282)
+    # ===========================================================
+
+    util.remove_view(cr, 'account_edi.account_invoice_send_inherit_account_wizard_form')
+    util.remove_field(cr, 'account.invoice.send', 'edi_format_ids')
