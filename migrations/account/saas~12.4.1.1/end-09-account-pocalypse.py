@@ -1474,6 +1474,7 @@ def migrate_invoice_lines(cr):
                 WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
                   AND p.fields_id IN %s
                   AND p.res_id IS NOT NULL
+                  AND p.value_reference LIKE 'account.account,%%'
                   AND p.company_id != a.company_id
                   AND p.company_id IS NOT NULL
             RETURNING replace(p.res_id, 'product.template,', '')
