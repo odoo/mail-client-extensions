@@ -23,7 +23,8 @@ def migrate(cr, version):
                legend_normal='In Progress'
     """
     )
-    cr.execute("""
+    cr.execute(
+        """
         CREATE TABLE helpdesk_sla_status (
             id SERIAL PRIMARY KEY,
             create_uid integer,
@@ -37,7 +38,8 @@ def migrate(cr, version):
             reached_datetime timestamp without time zone,
             exceeded_days float8
         )
-    """)
+    """
+    )
     cr.execute(
         """
    INSERT INTO helpdesk_sla_status
@@ -113,7 +115,11 @@ def migrate(cr, version):
     util.remove_record(cr, "helpdesk.helpdesk_sla_cron")
     util.remove_record(cr, "helpdesk.helpdesk_sla_cron_ir_actions_server")
 
-    for field, value in [('helpdesk_target_closed', 1), ('helpdesk_target_rating', 100), ('helpdesk_target_success', 100)]:
+    for field, value in [
+        ("helpdesk_target_closed", 1),
+        ("helpdesk_target_rating", 100),
+        ("helpdesk_target_success", 100),
+    ]:
         cr.execute(f"UPDATE res_users set {field}={value} WHERE COALESCE({field}, 0) <= 0")
 
     cr.execute(
