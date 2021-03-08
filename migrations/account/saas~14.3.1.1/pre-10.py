@@ -90,3 +90,19 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_tax_report_line", "carry_over_condition_method", "varchar")
     util.create_column(cr, "account_tax_report_line", "carry_over_destination_line_id", "int4")
+
+    # ===============================================================
+    # Payments Form View Improvement (PR:66069 & 16308 )
+    # ===============================================================
+    util.create_column(cr, "account_move", "amount_total_in_currency_signed", "numeric")
+    query = """
+        UPDATE account_move
+           SET amount_total_in_currency_signed =
+               CASE WHEN move_type = 'entry' THEN ABS(amount_total)
+                    WHEN move_type IN ('in_invoice', 'out_refund', 'in_receipt') THEN -amount_total
+                    ELSE amount_total
+                END
+        """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move"))
+    util.create_column(cr, "account_payment", "paired_internal_transfer_payment_id", "int4")
+    util.create_column(cr, "account_payment", "destination_journal_id", "int4")

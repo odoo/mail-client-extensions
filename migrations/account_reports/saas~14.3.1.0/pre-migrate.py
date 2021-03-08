@@ -15,3 +15,8 @@ def migrate(cr, version):
     util.create_column(cr, 'account_financial_html_report', 'country_id', 'int4')
     util.rename_field(cr, 'res.config.settings', 'account_tax_fiscal_country_id', 'account_fiscal_country_id')
     util.remove_field(cr, 'res.company', 'account_tax_original_periodicity_reminder_day')
+
+    # ===============================================================
+    # Payments Form View Improvement (PR:66069 & 16308 )
+    # ===============================================================
+    util.create_column(cr, "account_account", "exclude_from_aged_reports", "boolean", default=False)
