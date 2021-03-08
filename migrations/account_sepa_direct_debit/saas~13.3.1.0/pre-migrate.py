@@ -5,8 +5,9 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     env = util.env(cr)
 
-    ''' sdd_mandate original_doc must be converted to ir.attachment '''
-    cr.execute('''
+    """ sdd_mandate original_doc must be converted to ir.attachment """
+    cr.execute(
+        """
     SELECT
         COALESCE(original_doc_filename, 'mandate_file') as name,
         original_doc as datas,
@@ -20,13 +21,14 @@ def migrate(cr, version):
         sdd_mandate
     WHERE
         original_doc IS NOT NULL
-    ''')
-    env['ir.attachment'].create(cr.dictfetchall())
-    util.remove_field(cr, 'sdd.mandate', 'original_doc')
-    util.remove_field(cr, 'sdd.mandate', 'original_doc_filename')
+    """
+    )
+    env["ir.attachment"].create(cr.dictfetchall())
+    util.remove_field(cr, "sdd.mandate", "original_doc")
+    util.remove_field(cr, "sdd.mandate", "original_doc_filename")
 
-    ''' create sdd_scheme columns & set default value '''
-    util.create_column(cr, 'sdd_mandate', 'sdd_scheme', 'varchar')
+    """ create sdd_scheme columns & set default value """
+    util.create_column(cr, "sdd_mandate", "sdd_scheme", "varchar")
     cr.execute("UPDATE sdd_mandate SET sdd_scheme = 'CORE'")
-    util.create_column(cr, 'account_batch_payment', 'sdd_scheme', 'varchar')
+    util.create_column(cr, "account_batch_payment", "sdd_scheme", "varchar")
     cr.execute("UPDATE account_batch_payment SET sdd_scheme = 'CORE'")
