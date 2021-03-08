@@ -5,11 +5,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    idx = util.get_index_on(cr, "event_registration", "barcode", "event_id", quote_ident=False)
+    idx = util.get_index_on(cr, "event_registration", "barcode", "event_id")
     if idx:
-        idx_name, uniq, pk = idx
-        if uniq and not pk:
-            util.remove_constraint(cr, "event_registration", idx_name)
+        if idx.isunique and not idx.ispk:
+            idx.drop(cr)
 
     # now deduplicate barcodes
     cr.execute(

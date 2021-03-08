@@ -12,9 +12,9 @@ def migrate(cr, version):
     util.force_noupdate(cr, 'mail.mail_template_data_notification_email_default', False)
 
     cr.execute('ALTER TABLE res_users ALTER COLUMN alias_id DROP NOT NULL')
-    pk = util.get_index_on(cr, "mail_message_res_partner_needaction_rel", "mail_message_id", "res_partner_id", quote_ident=False)
-    if pk and pk[2]:
-        util.remove_constraint(cr, 'mail_message_res_partner_needaction_rel', pk[0])
+    pk = util.get_index_on(cr, "mail_message_res_partner_needaction_rel", "mail_message_id", "res_partner_id")
+    if pk and pk.ispk:
+        pk.drop(cr)
 
     util.create_column(cr, 'mail_message_res_partner_needaction_rel', 'id', 'SERIAL PRIMARY KEY')
 
