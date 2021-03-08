@@ -8,6 +8,7 @@ def migrate(cr, version):
 
     util.create_column(cr, "project_project", "allow_timesheet_timer", "boolean")
     util.create_column(cr, "project_project", "allow_billable", "boolean")
+    cr.execute("UPDATE project_project SET allow_billable = TRUE WHERE billable_type != 'no'")
     util.create_column(cr, "project_task", "timesheet_timer_first_start", "timestamp without time zone")
     util.create_column(cr, "project_task", "timesheet_timer_last_stop", "timestamp without time zone")
     util.create_column(cr, "project_task", "allow_billable", "boolean")
