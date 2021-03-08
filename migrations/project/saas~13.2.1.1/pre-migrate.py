@@ -69,3 +69,14 @@ def migrate(cr, version):
     """
     for rule in util.splitlines(rules):
         util.force_noupdate(cr, f"project.{rule}", False)
+
+    cr.execute(
+        """
+            UPDATE project_task t
+               SET company_id = p.company_id
+              FROM project_project p
+             WHERE p.id = t.project_id
+               AND t.project_id IS NOT NULL
+               AND (t.company_id IS NULL OR t.company_id != p.company_id)
+        """
+    )
