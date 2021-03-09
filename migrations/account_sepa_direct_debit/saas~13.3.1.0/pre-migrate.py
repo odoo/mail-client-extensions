@@ -3,27 +3,12 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    env = util.env(cr)
 
     """ sdd_mandate original_doc must be converted to ir.attachment """
-    cr.execute(
-        """
-    SELECT
-        COALESCE(original_doc_filename, 'mandate_file') as name,
-        original_doc as datas,
-        'sdd.mandate' as res_model,
-        id as res_id,
-        create_uid,
-        create_date,
-        write_uid,
-        write_date
-    FROM
-        sdd_mandate
-    WHERE
-        original_doc IS NOT NULL
-    """
-    )
-    env["ir.attachment"].create(cr.dictfetchall())
+    util.convert_binary_field_to_attachment(cr, "sdd.mandate", "original_doc", False, "original_doc_filename")
+    # disconnect the attachment from the field
+    cr.execute("UPDATE ir_attachment SET res_field = NULL WHERE res_model = 'sdd.mandate' AND res_field = 'original_doc'")
+
     util.remove_field(cr, "sdd.mandate", "original_doc")
     util.remove_field(cr, "sdd.mandate", "original_doc_filename")
 
