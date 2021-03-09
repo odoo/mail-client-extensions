@@ -594,8 +594,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
           GROUP BY invl_id
         )
         SELECT array_agg(invl_id) as invls, ml_ids as amls
-       -- INTO TEMPORARY TABLE saas124_acc_mig_bad_mappings
-          INTO TABLE saas124_acc_mig_bad_mappings
+          INTO TEMPORARY TABLE saas124_acc_mig_bad_mappings
           FROM gb_ml
       GROUP BY ml_ids
     HAVING NOT (count(invl_id) = 1 and array_length(ml_ids,1)=1)
