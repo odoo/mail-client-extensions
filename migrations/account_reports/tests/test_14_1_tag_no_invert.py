@@ -62,15 +62,15 @@ class TestTagNoInvert(UpgradeCase):
                 with move_form.line_ids.new() as counterpart_line:
                     counterpart_line.name = 'test'
                     counterpart_line.account_id = reconcilable_account
-                    counterpart_line.debit = 0 if debit_positive else 145
-                    counterpart_line.credit = 145 if debit_positive else 0
+                    counterpart_line.debit = 0 if debit_positive else 138.25
+                    counterpart_line.credit = 138.25 if debit_positive else 0
 
             return move_form.save()
 
         def invoice_only_tags_generator(inv_type, partner, account, date, tax):
             rep_lines = getattr(tax, '%s_repartition_line_ids' % inv_type.split('_')[1])
 
-            tax_rep_ln = rep_lines.filtered(lambda x: x.repartition_type == 'tax')
+            tax_rep_ln = rep_lines.filtered(lambda x: x.repartition_type == 'tax')[0]
             base_rep_ln = rep_lines.filtered(lambda x: x.repartition_type == 'base')
 
             rslt = self.env['account.move'].create({
@@ -83,7 +83,6 @@ class TestTagNoInvert(UpgradeCase):
                         'quantity': 1,
                         'account_id': account.id,
                         'price_unit': 100,
-                        #'tax_ids': [(5, 0, 0)],
                     }),
                     (0, 0, {
                         'name': 'test_tax',
@@ -91,7 +90,6 @@ class TestTagNoInvert(UpgradeCase):
                         'account_id': tax_rep_ln.account_id,
                         'price_unit': 45,
                         'tax_ids': [(5, 0, 0)],
-                        #'tax_tag_ids': [(6, 0, tax_rep_ln.tag_ids.ids)],
                     }),
                 ],
             })
@@ -237,6 +235,18 @@ class TestTagNoInvert(UpgradeCase):
                     'repartition_type': 'tax',
                     'plus_report_line_ids': tax_report_line.ids,
                 }),
+
+                (0, 0, {
+                    'factor_percent': -10,
+                    'repartition_type': 'tax',
+                    'plus_report_line_ids': tax_report_line.ids,
+                }),
+
+                (0, 0, {
+                    'factor_percent': -5,
+                    'repartition_type': 'tax',
+                    'minus_report_line_ids': tax_report_line.ids,
+                }),
             ],
             'refund_repartition_line_ids': [
                 (0, 0, {
@@ -256,6 +266,18 @@ class TestTagNoInvert(UpgradeCase):
                     'repartition_type': 'tax',
                     # No tags on this repartition line, on purpose: this way we have an asymmetric
                     # repartition between invoice and refund and avoid shadowing effects if something is wrong
+                }),
+
+                (0, 0, {
+                    'factor_percent': -10,
+                    'repartition_type': 'tax',
+                    'minus_report_line_ids': tax_report_line.ids,
+                }),
+
+                (0, 0, {
+                    'factor_percent': -5,
+                    'repartition_type': 'tax',
+                    # Same as for the 75 repartition line: we force asymmetry
                 }),
             ],
         })
@@ -287,7 +309,64 @@ class TestTagNoInvert(UpgradeCase):
     def check(self, init):
         today, report_balances = init
 
+        # Check the tax report is unchanged
         for report_line in self._get_report_lines(today):
             self.assertEqual(report_line['columns'][0]['balance'],
                              report_balances[str(report_line['id'])],
                              "Tags reinversion modified the tax report!")
+
+        # Check we don't have inconsistent tax_tag_invert values
+        # This is necessary to ensure we haven't inverted too many tags (it happened ...),
+        # totally inverting the tags, but keeping the tax report correct, hence shadowing the error.
+
+        # Cash basis entries from invoices with negative lines shouldn't be inverted
+        neg_amount_lines = self.env['account.move.line'].search([('move_id.move_type', '!=', 'entry'), ('quantity', '<', 0)])
+        all_neg_invoice_ids = neg_amount_lines.mapped('move_id.id')
+        neg_inv_caba_moves = self.env['account.move'].search([('tax_cash_basis_move_id', 'in', all_neg_invoice_ids)])
+
+        for neg_caba_move in neg_inv_caba_moves:
+            check_value = any(neg_caba_move.mapped('line_ids.tax_tag_invert'))
+            self.assertFalse(check_value, f"Cash basis entries from invoices with negative lines shouldn't have been inverted (move {neg_caba_move.name})")
+
+        # Check base lines for all other entries
+        wrong_base_lines = self.env['account.move.line'].search([
+            ('tax_ids', '!=', False),
+            ('tax_repartition_line_id', '=', False),
+            ('move_id', 'not in', neg_inv_caba_moves.ids),
+            '|',
+
+            '&',
+                ('tax_tag_invert', '=', True),
+                '|',
+                    ('move_id.move_type', 'in', ['in_invoice', 'out_refund', 'in_receipt']),
+                    '&', '&', ('move_id.move_type', '=', 'entry'), ('tax_ids.type_tax_use', 'in', ['sale']), ('debit', '>', 0),
+
+            '&',
+                ('tax_tag_invert', '=', False),
+                '|',
+                    ('move_id.move_type', 'in', ['out_invoice', 'in_refund', 'out_receipt']),
+                    '&', '&', ('move_id.move_type', '=', 'entry'), ('tax_ids.type_tax_use', 'in', ['purchase']), ('credit', '>', 0),
+        ])
+
+        wrong_base_move_names = set(wrong_base_lines.mapped('move_id.name'))
+        self.assertFalse(wrong_base_lines, "The following moves contain incorrect tax_tag_invert on base lines: %s" % wrong_base_move_names)
+
+        # Check tax lines for all other entries
+        wrong_tax_lines = self.env['account.move.line'].search([
+            ('move_id', 'not in', neg_inv_caba_moves.ids),
+            ('tax_repartition_line_id', '!=', False),
+            '|',
+
+            '&', '&',
+                ('tax_tag_invert', '=', True),
+                ('tax_line_id.type_tax_use', '=', 'sale'),
+                ('tax_repartition_line_id.refund_tax_id', '!=', False),
+
+            '&', '&',
+                ('tax_tag_invert', '=', False),
+                ('tax_line_id.type_tax_use', '=', 'purchase'),
+                ('tax_repartition_line_id.refund_tax_id', '!=', False),
+        ])
+
+        wrong_tax_move_names = set(wrong_tax_lines.mapped('move_id.name'))
+        self.assertFalse(wrong_tax_lines, "The following moves contain incorrect tax_tag_invert on tax lines: %s" % wrong_tax_move_names)

@@ -50,12 +50,18 @@ def migrate(cr, version):
     cr.execute("""
         CREATE TABLE no_reinversion_caba_partial AS
             SELECT DISTINCT part.id
-            FROM account_move_line aml
-            JOIN account_move invoice ON invoice.id = aml.move_id AND invoice.move_type != 'entry'
-            JOIN account_partial_reconcile part ON aml.id = part.debit_move_id OR aml.id = part.credit_move_id
-            JOIN account_move caba_move ON part.id = caba_move.tax_cash_basis_rec_id
-            JOIN account_account_tag_account_move_line_rel aml_tags on aml_tags.account_move_line_id = aml.id
-            WHERE aml.quantity < 0
+            FROM account_partial_reconcile part
+            JOIN account_move_line aml
+            ON aml.id = part.debit_move_id OR aml.id = part.credit_move_id
+            WHERE EXISTS(
+                SELECT inv_line.id
+                FROM account_move_line inv_line
+                JOIN account_move invoice
+                ON invoice.id = inv_line.move_id
+                WHERE invoice.move_type != 'entry'
+                AND invoice.id = aml.move_id
+                AND inv_line.quantity < 0
+            )
     """)
 
     # Perform reinversion
@@ -66,74 +72,63 @@ def migrate(cr, version):
         )
     """)
 
-    amls_to_invert_populate_queries = [
+    exclude_pos_entries = "TRUE"
+    if util.module_installed(cr, "point_of_sale"):
+        # Just like invoices, entries from POS shouldn't be reinverted (as they weren't inverted in the first place;
+        # the tax report ran specific queries to guess the sign to apply on top of the tag and balance)
+        exclude_pos_entries = """
+            NOT EXISTS(SELECT id FROM pos_session WHERE pos_session.move_id = move.id)
+            AND NOT EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = move.id)
         """
-            INSERT INTO amls_to_invert
-                SELECT DISTINCT aml.id
-                FROM account_move_line aml
-                JOIN account_move move ON aml.move_id = move.id
-                JOIN account_move_line_account_tax_rel aml_tx ON aml_tx.account_move_line_id = aml.id
-                JOIN account_tax base_tax ON aml_tx.account_tax_id = base_tax.id
-                LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
-                WHERE
-                    no_reinversion_caba_partial.id IS NULL
-                    AND aml.tax_repartition_line_id IS NULL
-                    AND aml.credit > 0
-            ON CONFLICT DO NOTHING
-        """,
-        """
-            INSERT INTO amls_to_invert
-                SELECT DISTINCT aml.id
-                FROM account_move_line aml
-                JOIN account_move move ON aml.move_id = move.id
-                JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = aml.tax_repartition_line_id
-                JOIN account_tax tax_tax ON tax_tax.id = aml.tax_line_id
-                LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
-                WHERE
-                    no_reinversion_caba_partial.id IS NULL
-                    AND tax_tax.type_tax_use = 'sale'
-                    AND tax_rep_ln.invoice_tax_id IS NOT NULL
-            ON CONFLICT DO NOTHING
-        """,
-        """
-            INSERT INTO amls_to_invert
-                SELECT DISTINCT aml.id
-                FROM account_move_line aml
-                JOIN account_move move ON aml.move_id = move.id
-                JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = aml.tax_repartition_line_id
-                JOIN account_tax tax_tax ON tax_tax.id = aml.tax_line_id
-                LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
-                WHERE
-                    no_reinversion_caba_partial.id IS NULL
-                    AND tax_tax.type_tax_use = 'purchase'
-                    AND tax_rep_ln.refund_tax_id IS NOT NULL
-            ON CONFLICT DO NOTHING
-        """,
-        """
-            INSERT INTO amls_to_invert
-                SELECT DISTINCT aml.id
-                FROM account_move_line aml
-                JOIN account_move move ON aml.move_id = move.id
-                LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
-                WHERE
-                    no_reinversion_caba_partial.id IS NULL
-                    AND NOT EXISTS(
-                        SELECT account_tax_id
-                        FROM account_move_line_account_tax_rel
-                        WHERE account_move_line_id = aml.id
-                    )
-                    AND EXISTS(
-                        SELECT account_account_tag_id
-                        FROM account_account_tag_account_move_line_rel aml_tags
-                        WHERE aml_tags.account_move_line_id = aml.id
-                    )
-                    AND aml.tax_repartition_line_id IS NULL
-                    AND move.move_type IN ('out_invoice', 'out_receipt', 'in_refund')
-            ON CONFLICT DO NOTHING
-        """,
-    ]
 
-    util.parallel_execute(cr, amls_to_invert_populate_queries)
+    cr.execute(f"""
+        INSERT INTO amls_to_invert
+
+            SELECT aml.id
+            FROM account_move_line aml
+            JOIN account_move move ON aml.move_id = move.id
+            JOIN account_move_line_account_tax_rel aml_tx ON aml_tx.account_move_line_id = aml.id
+            JOIN account_tax base_tax ON aml_tx.account_tax_id = base_tax.id
+            LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
+            WHERE
+                no_reinversion_caba_partial.id IS NULL
+                AND aml.tax_repartition_line_id IS NULL
+                AND aml.credit > 0
+                AND move.move_type = 'entry'
+                AND {exclude_pos_entries}
+
+            UNION
+
+            SELECT aml.id
+            FROM account_move_line aml
+            JOIN account_move move ON aml.move_id = move.id
+            JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = aml.tax_repartition_line_id
+            JOIN account_tax tax_tax ON tax_tax.id = aml.tax_line_id
+            LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
+            WHERE
+                no_reinversion_caba_partial.id IS NULL
+                AND tax_tax.type_tax_use = 'sale'
+                AND tax_rep_ln.invoice_tax_id IS NOT NULL
+                AND move.move_type = 'entry'
+                AND {exclude_pos_entries}
+
+            UNION
+
+            SELECT aml.id
+            FROM account_move_line aml
+            JOIN account_move move ON aml.move_id = move.id
+            JOIN account_tax_repartition_line tax_rep_ln ON tax_rep_ln.id = aml.tax_repartition_line_id
+            JOIN account_tax tax_tax ON tax_tax.id = aml.tax_line_id
+            LEFT JOIN no_reinversion_caba_partial ON move.tax_cash_basis_rec_id = no_reinversion_caba_partial.id
+            WHERE
+                no_reinversion_caba_partial.id IS NULL
+                AND tax_tax.type_tax_use = 'purchase'
+                AND tax_rep_ln.refund_tax_id IS NOT NULL
+                AND move.move_type = 'entry'
+                AND {exclude_pos_entries}
+
+        ON CONFLICT DO NOTHING
+    """)
 
     query = """
         UPDATE account_move_line
