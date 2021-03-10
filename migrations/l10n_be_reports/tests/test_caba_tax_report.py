@@ -127,7 +127,7 @@ class TestCABATaxReport(UpgradeCase):
 
         if pay:
             bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('company_id', '=', company.id)], limit=1)
-            rslt.pay_and_reconcile(bank_journal, date=rslt.date) #TODO OCO pas sûr que ce journal est créé par le coa
+            rslt.pay_and_reconcile(bank_journal, date=rslt.date)
 
         return rslt
 
