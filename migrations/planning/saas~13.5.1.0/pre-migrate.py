@@ -10,4 +10,5 @@ def migrate(cr, version):
     util.remove_model(cr, "planning.slot.report.analysis")
 
     util.remove_view(cr, "planning.assets_common_planning")
+    util.remove_view(cr, "planning.assets_frontend_planning")
     util.remove_view(cr, "planning.planning_view_gantt_inherit")
