@@ -162,7 +162,7 @@ def migrate(cr, version):
                        [offset])
 
     L('change sequence & task priority')
-    cr.execute("SELECT max(id) + 1 FROM project_task")
+    cr.execute("SELECT COALESCE(max(id), 0) + 1 FROM project_task")
     cr.execute("ALTER SEQUENCE project_task_id_seq RESTART WITH %s", cr.fetchone())
     cr.execute("UPDATE project_task SET priority='1' WHERE priority='2'")
 
