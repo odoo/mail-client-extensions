@@ -62,5 +62,3 @@ def migrate(cr, version):
 
     # data
     util.remove_view(cr, "planning.planning_view_form_quickcreate")
-    eb = util.expand_braces
-    util.rename_xmlid(cr, *eb("planning.assets_{frontend,common}_planning"))
