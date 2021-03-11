@@ -90,3 +90,7 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "hr.payroll.generate.warrant.payslips", "commission_type")
+
+    # Salary Scale
+    util.create_column(cr, "hr_employee", "l10n_be_scale_seniority", "int4")
+    util.create_column(cr, "hr_job", "l10n_be_scale_category", "varchar", default="C")
