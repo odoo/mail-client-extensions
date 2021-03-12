@@ -24,12 +24,14 @@ def migrate(cr, version):
     move_obj = registry['stock.move']
     quant_obj = registry['stock.quant']
     if os.environ.get('ODOO_MIG_S5_SQL_QUANTS_CREATION'):
+        cr.execute("ALTER TABLE stock_quant ADD COLUMN move_ids integer[]")
         cr.execute(
             """
-                INSERT INTO stock_quant(product_id, location_id, company_id, lot_id, qty, in_date)
-                     SELECT product_id, location_id, company_id, lot_id, SUM(qty), MIN(date) FROM (
+                INSERT INTO stock_quant(product_id, location_id, company_id, lot_id, qty, in_date, move_ids)
+                     SELECT product_id, location_id, company_id, lot_id, SUM(qty), MIN(date), ARRAY_AGG(id)
+                       FROM (
 
-                          SELECT m.product_id, m.location_dest_id as location_id, m.company_id,
+                          SELECT m.id, m.product_id, m.location_dest_id as location_id, m.company_id,
                                  m.restrict_lot_id as lot_id, m.product_qty as qty, m.date as date
                             FROM stock_move m
                             JOIN product_product pp ON pp.id = m.product_id
@@ -39,14 +41,13 @@ def migrate(cr, version):
 
                         UNION ALL
 
-                          SELECT m.product_id, m.location_id, m.company_id,
+                          SELECT m.id, m.product_id, m.location_id, m.company_id,
                                  m.restrict_lot_id as lot_id, -m.product_qty as qty, m.date as date
                             FROM stock_move m
                             JOIN stock_location l on l.id = m.location_id
                             JOIN product_product pp ON pp.id = m.product_id
                             JOIN product_template pt ON pt.id = pp.product_tmpl_id
                            WHERE m.state = 'done'
-                             AND l.usage = 'internal'
                              AND pt.type != 'consu'
 
                      ) as quants
@@ -54,6 +55,14 @@ def migrate(cr, version):
                   HAVING SUM(qty) != 0
             """
         )
+        cr.execute(
+            """
+            INSERT INTO stock_quant_move_rel(quant_id, move_id)
+                 SELECT id, UNNEST(move_ids) FROM stock_quant
+            ON CONFLICT DO NOTHING
+            """
+        )
+        cr.execute("ALTER TABLE stock_quant DROP COLUMN move_ids")
     else:
         moves = move_obj.search(cr, SUPERUSER_ID, [('state', '=', 'done'), ('product_qty', '>', 0.0)], order='company_id, date')
         for move in util.iter_browse(move_obj, cr, SUPERUSER_ID, moves, logger=_logger):
