@@ -660,27 +660,26 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH residual_per_pay AS (
-            SELECT
-                pay.id AS payment_id,
-                COALESCE(SUM(
-                    CASE WHEN line.currency_id IS NULL
-                    THEN line.amount_residual
-                    ELSE line.amount_residual_currency END
-                ), 0.0) AS residual
-            FROM account_payment pay
-            JOIN account_move move ON move.payment_id = pay.id
-            JOIN account_move_line line ON line.move_id = move.id
-            JOIN account_account account ON account.id = line.account_id
-            WHERE move.id = pay.move_id
-            AND account.reconcile IS TRUE
-            AND line.account_id = pay.destination_account_id
+              SELECT pay.id AS payment_id
+                FROM account_payment pay
+                JOIN account_move move ON move.payment_id = pay.id
+                JOIN account_move_line line ON line.move_id = move.id
+                JOIN account_account account ON account.id = line.account_id
+               WHERE move.id = pay.move_id
+                 AND account.reconcile IS TRUE
+                 AND line.account_id = pay.destination_account_id
             GROUP BY pay.id
+              HAVING COALESCE(SUM(
+                    CASE WHEN line.currency_id IS NULL
+                      THEN line.amount_residual
+                      ELSE line.amount_residual_currency
+                    END
+              ), 0.0) = 0.0
         )
-
         UPDATE account_payment
-        SET is_reconciled = (residual_per_pay.residual = 0.0)
-        FROM residual_per_pay
-        WHERE residual_per_pay.payment_id = account_payment.id
+           SET is_reconciled = true
+          FROM residual_per_pay
+         WHERE residual_per_pay.payment_id = account_payment.id
     """
     )
 
