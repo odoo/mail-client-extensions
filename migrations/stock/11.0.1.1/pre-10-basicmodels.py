@@ -23,9 +23,16 @@ def merge_moves(cr, first_one, to_delete, total_qty, total_uom_qty):
     cr.execute("""UPDATE stock_move_line SET move_id = %s WHERE move_id IN %s""", (first_one, tuple(to_delete)))
     cr.execute("""UPDATE stock_move_operation_link SET move_id = %s WHERE move_id IN %s""",
                (first_one, tuple(to_delete)))
-    cr.execute("""UPDATE stock_quant_move_rel r SET move_id = %s WHERE move_id IN %s
-                    """,
-               (first_one, tuple(to_delete),))
+    cr.execute(
+        """
+            INSERT INTO stock_quant_move_rel(quant_id, move_id)
+                 SELECT quant_id, %s
+                   FROM stock_quant_move_rel
+                  WHERE move_id IN %s
+            ON CONFLICT DO NOTHING
+        """, (first_one, tuple(to_delete),)
+    )
+    cr.execute("""DELETE FROM stock_quant_move_rel WHERE move_id IN %s""", (tuple(to_delete),))
     cr.execute("""UPDATE stock_quant SET reservation_id  = %s WHERE reservation_id IN %s""",
                (first_one, tuple(to_delete)))
     # Adapt state
@@ -152,13 +159,7 @@ def migrate(cr, version):
     ]:
         util.create_index(cr, name, table, *columns)
 
-    cr.execute(
-        """
-        ALTER TABLE stock_quant_move_rel
-            -- constraint name is not stable. drop all possible exising ones
-            DROP CONSTRAINT IF EXISTS stock_quant_move_rel_quant_id_move_id_key,
-            DROP CONSTRAINT IF EXISTS stock_quant_move_rel_move_id_quant_id_key
-    """)
+    util.fixup_m2m(cr, "stock_quant_move_rel", "stock_move", "stock_quant", "move_id", "quant_id")
 
     cr.commit()
     # Update: partially_available state has been removed from picking
