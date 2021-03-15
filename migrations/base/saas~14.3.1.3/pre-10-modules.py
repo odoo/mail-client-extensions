@@ -8,6 +8,9 @@ def migrate(cr, version):
     util.new_module(cr, "gift_card", deps={"sale"})
     util.new_module(cr, "website_sale_gift_card", deps={"website_sale", "gift_card"})
 
+    util.rename_module(cr, "payment_ingenico", "payment_ogone")
+    util.rename_module(cr, "payment_odoo_by_adyen", "payment_odoo")
+
     util.module_deps_diff(cr, "l10n_pe", plus={"l10n_latam_invoice_document", "account_debit_note"})
 
     util.remove_module_deps(cr, "website_hr_recruitment", {"website_partner"})
@@ -42,3 +45,5 @@ def migrate(cr, version):
         util.new_module(cr, "website_calendar_crm", deps={"website_calendar", "crm"}, auto_install=True)
 
         util.new_module(cr, "helpdesk_mail_plugin", deps={"helpdesk", "mail_plugin"}, auto_install=True)
+
+        util.remove_module(cr, "sale_subscription_sepa_direct_debit")
