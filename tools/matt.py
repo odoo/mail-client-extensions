@@ -104,6 +104,40 @@ class Version(namedtuple("Version", "odoo enterprise themes")):
         return ":".join(result)
 
 
+# Patches
+MIGNOINSTALL_PATCH = b"""\
+diff --git openerp/modules/migration.py openerp/modules/migration.py
+index e0faa77c3a4..4193b2cb6a4 100644
+--- openerp/modules/migration.py
++++ openerp/modules/migration.py
+@@ -107,7 +107,7 @@ class MigrationManager(object):
+                        'post': '[%s>]',
+                       }
+
+-        if not (hasattr(pkg, 'update') or pkg.state == 'to upgrade'):
++        if not (hasattr(pkg, 'update') or pkg.state == 'to upgrade') or pkg.state == 'to install':
+             return
+
+         def convert_version(version):
+"""
+
+YAML_PATCH = b"""\
+diff --git tools/yaml_import.py tools/yaml_import.py
+index a26d1885ea6..b092f3c836e 100644
+--- tools/yaml_import.py
++++ tools/yaml_import.py
+@@ -307,7 +307,7 @@ class YamlInterpreter(object):
+                     self.id_map[record] = int(id)
+                     return None
+                 else:
+-                    if not self._coerce_bool(record.forcecreate):
++                    if not self._coerce_bool(record.forcecreate, default=True):
+                         return None
+
+             #context = self.get_context(record, self.eval_context)
+"""
+
+
 def init_repos(options: Namespace) -> bool:
     logger.info("Cache location: %s", options.cache_path)
     options.cache_path.mkdir(parents=True, exist_ok=True)
@@ -304,12 +338,38 @@ def matt(options: Namespace) -> int:
                 pkgdir[loc] = "odoo"
             elif (odoodir / "openerp" / "__init__.py").is_file():
                 pkgdir[loc] = "openerp"
+                # For very old versions (< 8.0), the migration engine should be patched to no run upgrade scripts at module
+                # installation.
+                patched = subprocess.run(
+                    ["git", "apply", "-p0", "-"],
+                    input=MIGNOINSTALL_PATCH,
+                    check=False,
+                    cwd=odoodir,
+                    capture_output=True,
+                )
+                if patched.returncode == 0:
+                    logger.info("migration engine patched")
+
             else:
                 logger.critical(
                     "No `odoo` nor `openerp` directory found in odoo branch %s. This tool only works from version 7.0",
                     version.odoo,
                 )
                 return 2
+
+        # Patch YAML import to allow creation of new records during update.
+        # This is a long standing bug present since the start (yeah, even in 6.0).
+        # It's only problematic when upgrading with demo data.
+        odoodir = workdir / "odoo" / options.target.odoo
+        if (odoodir / pkgdir["target"] / "tools" / "yaml_import.py").exists():
+            logger.info("patching yaml_import.py")
+            subprocess.run(
+                ["git", "apply", "-p0", "--directory", pkgdir["target"], "-"],
+                input=YAML_PATCH,
+                check=True,
+                cwd=odoodir,
+                capture_output=True,
+            )
 
         # Verify that tests can actually be run by grepping the `--test-tags` options on command line
         if options.run_tests:
@@ -320,36 +380,6 @@ def matt(options: Namespace) -> int:
             options.run_tests = grep.returncode == 0
             if not options.run_tests:
                 logger.warning("Deactivate tests running as version %r doesn't support them", options.source.odoo)
-
-        # Patch YAML import to allow creation of new records during update.
-        # This is a long standing bug present since the start (yeah, even in 6.0).
-        # It's only problematic when upgrading with demo data.
-        YAML_PATCH = """\
-diff --git tools/yaml_import.py tools/yaml_import.py
-index a26d1885ea6..b092f3c836e 100644
---- tools/yaml_import.py
-+++ tools/yaml_import.py
-@@ -307,7 +307,7 @@ class YamlInterpreter(object):
-                     self.id_map[record] = int(id)
-                     return None
-                 else:
--                    if not self._coerce_bool(record.forcecreate):
-+                    if not self._coerce_bool(record.forcecreate, default=True):
-                         return None
-
-             #context = self.get_context(record, self.eval_context)
-"""
-
-        odoodir = workdir / "odoo" / options.target.odoo
-        if (odoodir / pkgdir["target"] / "tools" / "yaml_import.py").exists():
-            logger.info("patching yaml_import.py")
-            subprocess.run(
-                ["git", "apply", "-p0", "--directory", pkgdir["target"], "-"],
-                input=YAML_PATCH.encode(),
-                check=True,
-                cwd=odoodir,
-                capture_output=True,
-            )
 
         # create "maintenance" symlinks
         if options.upgrade_branch == ".":
