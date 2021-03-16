@@ -9,3 +9,6 @@ def migrate(cr, version):
             user_id = util.ensure_xmlid_match_record(cr, "base.user_admin", "res.users", {"login": "admin"})
         if user_id:
             util.force_noupdate(cr, "base.user_admin", True)
+
+    if util.version_gte("10.0"):
+        util.ensure_xmlid_match_record(cr, "base.default_user", "res.users", {"login": "default"})
