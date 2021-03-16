@@ -14,6 +14,7 @@ def migrate(cr, version):
              SELECT o.id, f.id
                FROM ocf o
                JOIN ir_model_fields f USING (model_id, name)
+        ON CONFLICT DO NOTHING
     """)
     util.remove_field(cr, "base.automation", "on_change_fields")
 
