@@ -11,6 +11,8 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.new_module(cr, "hr_appraisal_skills", deps={"hr_appraisal", "hr_skills"}, auto_install=True)
+        util.new_module(cr, "event_social", deps={"event", "social"}, auto_install=True)
+
     util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
 
     util.new_module(cr, "hr_holidays_attendance", deps={"hr_holidays", "hr_attendance"}, auto_install=True)
