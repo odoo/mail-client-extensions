@@ -39,6 +39,19 @@ def migrate(cr, version):
     util.create_column(cr, "res_config_settings", "crm_auto_assignment_run_datetime", "timestamp without time zone")
 
     util.remove_model(cr, "website.crm.score")
+
+    # Replace field usage in at least order of filters
+    cr.execute(
+        r"""
+            UPDATE ir_filters
+               SET sort = regexp_replace(sort, '\mscore\M', 'probability')
+             WHERE model_id = 'crm.lead'
+               AND sort ilike '%score%'
+
+        """
+    )
+    # TODO util.adapt_domains(cr, "crm.lead", "score", "probability", adapter=lamdba op, val: op, val * 0.15)
+
     util.remove_field(cr, "crm.lead", "score")
     util.remove_field(cr, "crm.lead", "score_ids")
 
