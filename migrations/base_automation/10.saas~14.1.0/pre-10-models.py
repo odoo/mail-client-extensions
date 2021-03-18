@@ -89,7 +89,9 @@ def migrate(cr, version):
                     'name': bar_name,
                     'model_id': bar_model_id,
                     'state': 'code',
-                    'code': '%s\n\n%s%s\n\n%s' % (AUTO, act_set_user, act_set_followers, code)
+                    'code': '%s\n\n%s%s\n\n%s' % (AUTO, act_set_user, act_set_followers, code),
+                    # 'base_automation' has not been added yet since module is not loaded yet
+                    'usage': 'ir_actions_server',
                 }).id
             else:
                 # XXX update action name with `bar_name`?
