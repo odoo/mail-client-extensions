@@ -699,6 +699,21 @@ def migrate(cr, version):
         ),
     )
 
+    # We can not update fields while 'restrict_mode_hash_table' is True and 'type' in ('cash', 'bank').
+    # That issue already raised in v13.0 so its already fix at https://github.com/odoo/upgrade/pull/2185/files
+    # But what if that issue again raised in migrating v13 -> v14.0 Database.
+    # Already discuss on upgrade issue (https://github.com/odoo/upgrade/issues/2198) about this problem.
+    cr.execute(
+        """
+        UPDATE account_journal
+           SET secure_sequence_id = NULL,
+               restrict_mode_hash_table = false
+         WHERE (secure_sequence_id IS NOT NULL
+            OR restrict_mode_hash_table = true)
+           AND type IN ('cash','bank')
+        """
+    )
+
     # ==== Check ====
 
     cr.execute("SELECT id FROM account_payment WHERE destination_account_id IS NULL")
