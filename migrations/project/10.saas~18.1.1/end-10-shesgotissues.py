@@ -255,6 +255,18 @@ def migrate(cr, version):
         """)
     util.update_field_references(cr, 'date_action_last', 'write_date', only_models=['project.task'])
 
+    # avoid conflict with index ir_filters_name_model_uid_unique_action_index
+    # on update query right after
+    cr.execute("""
+        DELETE FROM ir_filters f1
+              USING ir_filters f2
+              WHERE f1.model_id = 'project.issue'
+                 -- ir_filters_name_model_uid_unique_action_index
+                AND lower(f1.name) = lower(f2.name)
+                AND f2.model_id = 'project.task'
+                AND f1.user_id IS NOT DISTINCT FROM f2.user_id
+                AND f1.action_id IS NOT DISTINCT FROM f2.action_id
+    """)
     cr.execute("UPDATE ir_filters SET model_id='project.task' WHERE model_id='project.issue'")
     cr.execute(
         "UPDATE mail_template SET model='project.task', model_id=%s WHERE model='project.issue'",
