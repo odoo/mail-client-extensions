@@ -9,18 +9,22 @@ def migrate(cr, version):
     # we fix their type in pre.
     cr.execute(
         """
+        WITH move_line_sum_by_account AS (
+            SELECT move_id, account_id, sum(balance) as balance_sum
+              FROM account_move_line
+          GROUP BY move_id, account_id
+        )
         UPDATE account_invoice inv
            SET type = CASE WHEN inv.type = 'out_refund' THEN 'out_invoice' ELSE 'in_invoice' END
-          FROM account_move_line aml, account_move move
-         WHERE move.id = aml.move_id
+          FROM move_line_sum_by_account aml_sum, account_move move
+         WHERE move.id = aml_sum.move_id
            AND inv.move_id = move.id
-           AND inv.account_id = aml.account_id
-           AND ((inv.type = 'out_refund' AND aml.debit > 0)
-                OR (inv.type = 'in_refund' AND aml.credit > 0))
+           AND inv.account_id = aml_sum.account_id
+           AND ((inv.type = 'out_refund' AND aml_sum.balance_sum > 0)
+                OR (inv.type = 'in_refund' AND aml_sum.balance_sum < 0))
            AND inv.amount_untaxed > 0 -- we want to keep negative invoices, even if they are not allowed anymore
     """
     )
-
     # Some draft or cancelled invoices might reference taxes from other companies
     # (not supposed to happen, but it happens). This had no consequence before
     # saas-12.4, but it crashes during the migration process to 12.4, when

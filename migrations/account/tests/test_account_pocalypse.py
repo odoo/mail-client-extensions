@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo import fields
+
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("12.4")
@@ -49,7 +50,7 @@ class TestAccountPocalypse(UpgradeCase):
         move = self.env["account.move"].browse(self._get_move_id_from_invoice_id(invoice_id))
         receivable_line = move.line_ids.filtered(lambda line: line.account_id.id == config["account_receivable_id"])
 
-        self.assertEqual(move.ref, 'name_receivable_line')
+        self.assertEqual(move.ref, "name_receivable_line")
         self.assertEqual(move.invoice_payment_ref, "CUST123456789")
         self.assertEqual(receivable_line.name, "CUST123456789")
 
@@ -222,6 +223,47 @@ class TestAccountPocalypse(UpgradeCase):
             self.assertEquals(quantity, line["quantity"])
             self.assertEquals(price_subtotal, line["price_subtotal"])
 
+    def _prepare_test_refund_with_creditors_at_debit_side(self, env_user):
+        invoice = env_user["account.invoice"].create(
+            {
+                "partner_id": self.partner.id,
+                "type": "out_refund",
+                "account_id": self.account_receivable.id,
+                "invoice_line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "name": "line",
+                            "product_id": self.product.id,
+                            "account_id": self.account_income.id,
+                            "price_unit": 10.0,
+                            "quantity": 1.0,
+                        },
+                    )
+                ],
+            }
+        )
+        invoice.action_invoice_open()
+        move = invoice.move_id
+        creditor_line = move.line_ids.filtered(lambda l: l.account_id == self.account_receivable)
+        self.cr.execute("UPDATE account_move SET state='draft' WHERE id IN %s", (tuple(move.ids),))
+        print(move.line_ids.read())
+        move.write(
+            {
+                "line_ids": [
+                    (1, creditor_line.id, {"credit": 11.0}),
+                    (0, 0, {"name": "/", "account_id": self.account_receivable.id, "credit": 0.0, "debit": 1.0}),
+                ]
+            }
+        )
+        move.post()
+        return invoice.id
+
+    def _check_test_refund_with_creditors_at_debit_side(self, config, args):
+        move = self.env["account.move"].browse(self._get_move_id_from_invoice_id(args))
+        self.assertEquals(move.type, "out_refund")
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -315,6 +357,7 @@ class TestAccountPocalypse(UpgradeCase):
                 self._prepare_test_in_invoice_payment_reference_posted(env_user),
                 self._prepare_test_invoice_no_accounting_date(env_user),
                 self._prepare_test_invoice_grouped(env_user),
+                self._prepare_test_refund_with_creditors_at_debit_side(env_user),
             ],
             "config": {
                 "account_income_id": self.account_income.id,
@@ -332,3 +375,4 @@ class TestAccountPocalypse(UpgradeCase):
         self._check_test_in_invoice_payment_reference_posted(config, init["tests"][3])
         self._check_test_invoice_no_accounting_date(config, init["tests"][4])
         self._check_test_invoice_grouped(config, init["tests"][5])
+        self._check_test_refund_with_creditors_at_debit_side(config, init["tests"][6])
