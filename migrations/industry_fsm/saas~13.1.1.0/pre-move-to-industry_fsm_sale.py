@@ -10,7 +10,6 @@ def migrate(cr, version):
         """
         # products
         fsm_time_product
-        field_service_product
 
         # group
         group_fsm_quotation_from_task
