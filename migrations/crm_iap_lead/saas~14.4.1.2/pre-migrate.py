@@ -15,6 +15,7 @@ def migrate(cr, version):
     util.remove_field(cr, "crm.iap.lead.mining.request", "error")
 
     util.rename_field(cr, "crm.iap.lead.industry", "reveal_id", "reveal_ids")
+    util.create_column(cr, "crm_iap_lead_industry", "sequence", "int4")
 
     # industry data have been updated modified in CSV file
 
