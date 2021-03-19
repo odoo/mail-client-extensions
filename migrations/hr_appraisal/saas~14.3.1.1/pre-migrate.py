@@ -7,9 +7,9 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO calendar_event_hr_appraisal_rel(calendar_event_id, hr_appraisal_id)
-             SELECT id, res_id
-               FROM calendar_event
-              WHERE res_model = 'hr.appraisal'
+             SELECT c.id, c.res_id
+               FROM calendar_event c
+               JOIN hr_appraisal a ON a.id=c.res_id AND c.res_model = 'hr.appraisal'
         ON CONFLICT DO NOTHING
     """
     )
