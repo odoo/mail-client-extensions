@@ -64,7 +64,7 @@ def migrate(cr, version):
             SELECT reltuples approximate_row_count , relname relation_name
             FROM pg_class pg_c
             JOIN pg_namespace pg_n ON pg_n.oid = pg_c.relnamespace
-            WHERE pg_n.nspname = 'public' -- only use the public schema
+            WHERE pg_n.nspname = current_schema
             AND pg_c.relkind = 'r' -- only select the tables
             AND reltuples >= %s -- arbitrary number saying this is a big table
         )

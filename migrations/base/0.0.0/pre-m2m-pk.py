@@ -19,7 +19,7 @@ def migrate(cr, version):
      LEFT JOIN pg_constraint f ON f.conrelid = c.oid AND array_lower(f.conkey, 1) = 1 AND f.conkey[1] = a.attnum AND f.contype = 'f'
      LEFT JOIN pg_class t ON f.confrelid = t.oid
          WHERE c.relkind IN ('r', 'p')
-           AND ns.nspname = 'public'
+           AND ns.nspname = current_schema
            AND p.oid IS NULL
       GROUP BY c.relname
         HAVING count(a.attname) = 2
