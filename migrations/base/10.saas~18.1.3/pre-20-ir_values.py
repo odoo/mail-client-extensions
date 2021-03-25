@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+
 try:
     from odoo.tools import pickle as _pickle
 except ImportError:
@@ -39,10 +40,10 @@ def migrate(cr, version):
            AND v.key = 'action'
            AND a.id = CASE
                            -- ir.actions.actions(354,)
-                           WHEN {col} like '%,)' THEN split_part(split_part({col}, '(', 2), ',', 1)::int4
+                           WHEN {col} like '%,)' THEN NULLIF(split_part(split_part({col}, '(', 2), ',', 1), '')::int4
                            -- ir.actions.act_window,167
-                           ELSE split_part({col}, ',', 2)::int4
-                            END
+                           ELSE NULLIF(split_part({col}, ',', 2), '')::int4
+                      END
            AND m.model = v.model
     """.format(col=col))
 
@@ -87,7 +88,7 @@ def migrate(cr, version):
                JOIN ir_model_fields f ON (f.model = v.model AND f.name = v.name)
               WHERE v.key = 'default'
           RETURNING id, json_value
-    """.format(col))
+    """)
     for did, rick in cr.fetchall():
         value = pickle(rick)    # hum
         cr.execute("UPDATE ir_default SET json_value=%s WHERE id=%s", [json.dumps(value), did])
