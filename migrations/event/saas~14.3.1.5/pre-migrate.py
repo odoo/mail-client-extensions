@@ -59,3 +59,13 @@ def migrate(cr, version):
     util.rename_field(cr, "event.mail", "done", "mail_done")
     util.update_field_references(cr, "mail_sent", "mail_done", only_models=("event.mail",))
     util.remove_field(cr, "event.mail", "mail_sent")
+
+    # change event start_sale_date and end_sale_date type to datetime
+    util.rename_field(cr, "event.event", "start_sale_date", "start_sale_datetime")
+
+    util.rename_field(cr, "event.event.ticket", "start_sale_date", "start_sale_datetime")
+    cr.execute("ALTER TABLE event_event_ticket ALTER COLUMN start_sale_datetime TYPE timestamp")
+
+    cr.execute("ALTER TABLE event_event_ticket ALTER COLUMN end_sale_date TYPE timestamp"
+               " USING end_sale_date + time '23:59:59'")
+    util.rename_field(cr, "event.event.ticket", "end_sale_date", "end_sale_datetime")
