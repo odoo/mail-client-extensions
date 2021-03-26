@@ -29,3 +29,4 @@ def migrate(cr, version):
     util.remove_view(cr, "website_calendar.index")
     util.remove_view(cr, "website_calendar.setup")
     util.rename_field(cr, "calendar.appointment.type", "assignation_method", "assign_method")
+    util.rename_field(cr, "calendar.appointment.slot", "hour", "start_hour")
