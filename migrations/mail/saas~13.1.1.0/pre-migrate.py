@@ -7,13 +7,14 @@ def migrate(cr, version):
     if util.column_exists(cr, "mail_message", "website_published"):
         # from website_mail, see odoo/odoo@5649fc88e8f3022f4143400a124f2e3c1e5c0df8
         # NOTE uses `is not true` instead of `not` to handle NULL values
+        adapter = lambda leaf, _, __: [(leaf[0], leaf[1], not leaf[2])]
         if util.column_exists(cr, "mail_message", "is_internal"):
             util.update_field_references(
                 cr,
                 "website_published",
                 "is_internal",
                 only_models=("mail.message",),
-                domain_adapter=lambda op, val: (op, not val),
+                domain_adapter=adapter
             )
             util.parallel_execute(
                 cr,
@@ -26,7 +27,7 @@ def migrate(cr, version):
         else:
             util.move_field_to_module(cr, "mail.message", "website_published", "website_mail", "mail")
             util.rename_field(
-                cr, "mail.message", "website_published", "is_internal", domain_adapter=lambda op, val: (op, not val)
+                cr, "mail.message", "website_published", "is_internal", domain_adapter=adapter
             )
             # XXX took ~15 minutes with `ALTER TABLE`
             #          ~60 minutes with `UPDATE`

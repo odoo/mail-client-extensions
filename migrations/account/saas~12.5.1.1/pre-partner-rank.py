@@ -62,10 +62,11 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="res_partner"))
 
     # Now adapt domains...
-    def adapter(operator, right):
+    def adapter(leaf, _, __):
+        left, operator, right = leaf
         thruthy_op = "=" if bool(right) else "!="
         operator = ">" if operator == thruthy_op else "="
-        return operator, 0
+        return [(left, operator, 0)]
 
     util.update_field_references(cr, "customer", "customer_rank", only_models=("res.partner",), domain_adapter=adapter)
     util.update_field_references(cr, "supplier", "supplier_rank", only_models=("res.partner",), domain_adapter=adapter)

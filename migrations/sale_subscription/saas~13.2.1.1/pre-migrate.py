@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo.upgrade import util
 from odoo.osv.expression import TERM_OPERATORS_NEGATION
+
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -11,10 +12,11 @@ def migrate(cr, version):
     util.create_column(cr, "sale_subscription", "stage_category", "varchar")  # fill in `end-`
     util.create_column(cr, "sale_subscription", "payment_term_id", "integer")
 
-    def in_progress(op, value):
+    def in_progress(leaf, _, __):
+        left, op, value = leaf
         if not value:
             op = TERM_OPERATORS_NEGATION.get(op, op)
-        return op, "progress"
+        return [(left, op, "progress")]
 
     util.adapt_domains(cr, "sale.subscription", "in_progress", "stage_category", adapter=in_progress)
 
