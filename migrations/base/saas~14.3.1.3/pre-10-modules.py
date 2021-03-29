@@ -13,6 +13,11 @@ def migrate(cr, version):
     util.remove_module_deps(cr, "website_hr_recruitment", {"website_partner"})
     util.module_auto_install(cr, "website_hr_recruitment", ["hr_recruitment", "website_mail"])
 
+    util.module_deps_diff(cr, "mail_client_extension", minus={"crm", "crm_iap_lead_enrich"}, plus={"contacts", "iap"})
+    util.rename_module(cr, "mail_client_extension", "mail_plugin")
+
+    util.new_module(cr, "crm_mail_plugin", deps={"crm", "mail_plugin"}, auto_install=True)
+
     if util.has_enterprise():
         util.merge_module(cr, "l10n_be_hr_payroll_273S_274", "l10n_be_hr_payroll")
         util.merge_module(cr, "l10n_be_hr_payroll_273S_274_account", "l10n_be_hr_payroll_account")
@@ -35,3 +40,5 @@ def migrate(cr, version):
         )
 
         util.new_module(cr, "website_calendar_crm", deps={"website_calendar", "crm"}, auto_install=True)
+
+        util.new_module(cr, "helpdesk_mail_plugin", deps={"helpdesk", "mail_plugin"}, auto_install=True)
