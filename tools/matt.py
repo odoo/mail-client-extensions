@@ -76,6 +76,13 @@ class Repo(NamedTuple):
         # midly hacky. a non-pr branch is required for non addons-only repositories
         return self.addons_dir != Path(".")
 
+    @classmethod
+    def get(cls, name):
+        for repo in REPOSITORIES:
+            if repo.name == name or repo.ident == name:
+                return repo
+        raise ValueError(name)
+
 
 REPOSITORIES = [
     Repo("odoo", Path("addons")),
@@ -443,7 +450,7 @@ class VersionAction(Action):
                 repo, _, pr = part.partition(sep)
                 if pr:
                     try:
-                        v = v._replace(**{repo: f"pr/{pr}"})
+                        v = v._replace(**{Repo.get(repo).ident: f"pr/{pr}"})
                     except ValueError:
                         raise ArgumentError(self, f"Invalid repository defined in version: {values!r}")
                     break
