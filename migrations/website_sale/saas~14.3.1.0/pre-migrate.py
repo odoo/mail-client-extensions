@@ -19,3 +19,5 @@ def migrate(cr, version):
 
     util.remove_view(cr, "website_sale.s_products_recently_viewed")
     util.remove_view(cr, "website_sale.recently_viewed_products_product")
+
+    util.create_column(cr, "website", "cart_add_on_page", "boolean", default=True)
