@@ -540,6 +540,8 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     mls = []
     line_ids = []
     for line in util.log_progress(cr.dictfetchall(), qualifier="zero-line", logger=_logger):
+        if line["invoice_id"] in ignored_unposted_invoices.keys():
+            continue
         line_ids.append(line["id"])
         if not line["account_id"]:
             line["account_id"] = guess_account(
