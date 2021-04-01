@@ -175,6 +175,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
         cr.execute(
             """
             CREATE TABLE invl_aml_mapping (
+                id SERIAL PRIMARY KEY,
                 invl_id INTEGER NOT NULL,
                 aml_id INTEGER NOT NULL,
                 cond INTEGER
