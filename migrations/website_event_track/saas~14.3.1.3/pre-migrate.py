@@ -26,3 +26,20 @@ def migrate(cr, version):
 
     # Remove ACLs
     util.remove_record(cr, "website_event_track.access_event_track_tag_category_manager")
+
+    # GDPR : event track form revamp, add new fields and fields not stored before.
+    util.create_column(cr, "event_track", "contact_email", "varchar")
+    util.create_column(cr, "event_track", "contact_phone", "varchar")
+    util.create_column(cr, "event_track", "partner_function", "varchar")
+    util.create_column(cr, "event_track", "partner_company_name", "varchar")
+    cr.execute(
+        """
+        UPDATE event_track t
+           SET contact_email = p.email,
+               contact_phone = p.phone,
+               partner_function = p.function,
+               partner_company_name = p.commercial_company_name
+          FROM res_partner p
+         WHERE p.id = t.partner_id
+        """
+    )
