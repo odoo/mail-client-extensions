@@ -48,3 +48,13 @@ def migrate(cr, version):
         util.new_module(cr, "helpdesk_mail_plugin", deps={"helpdesk", "mail_plugin"}, auto_install=True)
 
         util.remove_module(cr, "sale_subscription_sepa_direct_debit")
+
+        util.new_module(cr, "social_youtube", deps={"social", "iap"})
+        util.new_module(cr, "social_test_full", deps={
+            "social_facebook",
+            "social_twitter",
+            "social_linkedin",
+            "social_push_notifications",
+            "social_youtube"
+        })
+        util.module_deps_diff(cr, "social_demo", plus={"social_youtube"})
