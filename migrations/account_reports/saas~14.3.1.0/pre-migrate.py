@@ -3,6 +3,12 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+
+    # ===============================================================
+    # Add control mechanism in reporting (PR: odoo/enterprise#17009)
+    # ===============================================================
+    util.create_column(cr, 'account_financial_html_report_line', 'control_domain', 'varchar')
+
     # ===============================================================
     # Multi-VAT tax reports (PR: 17299)
     # ===============================================================
