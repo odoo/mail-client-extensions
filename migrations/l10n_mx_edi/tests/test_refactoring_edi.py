@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-from odoo.addons.base.maintenance.migrations import util
-from odoo.tools import misc
-
 import base64
 import os
+
+from odoo.tools import misc
+
+from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 def coalesce(obj, *attrs):
@@ -183,7 +184,7 @@ class TestRefactoringEDI(UpgradeCase):
 
         company.write(
             {
-                "vat": "EKU9003173C9",
+                "vat": "MXEKU9003173C9",
                 "street_name": "Campobasso Norte",
                 "street2": "Fraccionamiento Montecarlo",
                 "street_number": "3206",
