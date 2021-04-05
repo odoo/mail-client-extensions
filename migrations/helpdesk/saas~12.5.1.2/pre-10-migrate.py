@@ -138,3 +138,7 @@ def migrate(cr, version):
              WHERE updated.team_id = ticket.team_id
         """
     )
+    cr.execute(
+        "UPDATE ir_ui_menu SET action = NULL WHERE id = %s",
+        [util.ref(cr, "helpdesk.helpdesk_ticket_menu_main")],
+    )
