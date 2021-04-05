@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+
 from odoo.addons.base.maintenance.migrations import util
+
 
 def migrate(cr, version):
     util.delete_model(cr, 'res.font')
@@ -22,13 +25,13 @@ def migrate(cr, version):
                [util.ref(cr, 'base.jp')])
 
     cr.execute("SELECT sum((TRIM(COALESCE(fax, '')) != '')::integer) / count(*)::float > 0.05 FROM res_partner;")
-    if cr.fetchone()[0]:
+    if cr.fetchone()[0] or os.environ.get('ODOO_MIG_FORCEFULLY_KEEP_FAX'):
         column_name = util.find_new_table_column_name(cr, 'res_partner', 'x_fax')
         cr.execute("""
             UPDATE ir_model_fields
                SET related = %s
              WHERE model = 'res.users' AND name = 'fax'
-        """, ['partner_id.'+column_name])
+        """, ['partner_id.' + column_name])
 
         for model in ['res.partner', 'res.users']:
             util.rename_field(cr, model, 'fax', column_name)
