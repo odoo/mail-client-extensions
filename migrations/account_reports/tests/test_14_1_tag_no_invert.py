@@ -21,7 +21,7 @@ class TestTagNoInvert(UpgradeCase):
             return self.env['account.move'].create({
                 'move_type': inv_type,
                 'partner_id': partner.id,
-                'date': date,
+                'invoice_date': date,
                 'invoice_line_ids': [
                     (0, 0, {
                         'name': 'test',
@@ -76,7 +76,7 @@ class TestTagNoInvert(UpgradeCase):
             rslt = self.env['account.move'].create({
                 'move_type': inv_type,
                 'partner_id': partner.id,
-                'date': date,
+                'invoice_date': date,
                 'invoice_line_ids': [
                     (0, 0, {
                         'name': 'test_base',
@@ -157,7 +157,7 @@ class TestTagNoInvert(UpgradeCase):
             return self.env['account.move'].create({
                 'move_type': inv_type,
                 'partner_id': partner.id,
-                'date': date,
+                'invoice_date': date,
                 'invoice_line_ids': [(0, 0, {
                     'name': 'test',
                     'quantity': 1,
