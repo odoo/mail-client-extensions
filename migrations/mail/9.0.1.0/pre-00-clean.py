@@ -45,7 +45,31 @@ def migrate(cr, version):
     if not util.get_index_on(cr, 'mail_mail', 'mail_message_id'):
         cr.execute("CREATE INDEX mail_mail_mail_message_id_index ON mail_mail(mail_message_id)")
 
+    parent_id_fk = next((
+        fk for fk in util.get_fk(cr, 'mail_message') if fk[0] == "mail_message" and fk[1] == "parent_id"
+    ), None)
+    if parent_id_fk:
+        _, _, constraint, on_delete = parent_id_fk
+        cr.execute("ALTER TABLE mail_message DROP CONSTRAINT %s" % constraint)
+
     clean(cr, 'mail_message', 'model')
+
+    if parent_id_fk:
+        _, _, constraint, on_delete = parent_id_fk
+        on_delete = {
+            "a": "NO ACTION",
+            "c": "CASCADE",
+            "r": "RESTRICT",
+            "n": "SET NULL",
+            "d": "SET DEFAULT"
+        }.get(on_delete)
+        cr.execute(
+            """
+                ALTER TABLE mail_message
+                        ADD CONSTRAINT %s FOREIGN KEY (parent_id)
+                            REFERENCES mail_message(id)
+                            ON DELETE %s
+            """ % (constraint, on_delete))
 
 
 if __name__ == '__main__':
