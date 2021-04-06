@@ -176,7 +176,7 @@ def migrate(cr, version):
                 prod_lot_id,
                 package_id,
                 partner_id,
-                inventory_date
+                stock_inventory.date as inventory_date
             FROM stock_inventory_line
             JOIN inventory_location_per_company ON inventory_location_per_company.company_id = stock_inventory_line.company_id
             JOIN stock_inventory ON stock_inventory_line.inventory_id = stock_inventory.id
