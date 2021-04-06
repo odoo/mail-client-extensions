@@ -81,10 +81,23 @@ class IrModelData(models.Model):
                     for xmlid in unloaded_xmlids:
                         util.force_noupdate(self.env.cr, xmlid)
                     noupdate_forced = True
-                error_msg = "It looks like you forgot to call `util.delete_unused` for %s" % (",".join(unloaded_xmlids))
-                _logger.critical(error_msg)
-                if str2bool(os.getenv("MATT", "0")) and noupdate_forced:
-                    # Hard fail only in CI.
-                    raise util.MigrationError(error_msg)
+
+                suppress = set(
+                    xmlid
+                    for (type_, _, xmlid) in (
+                        elem.partition(":") for elem in os.environ.get("suppress_upgrade_warnings", "").split(",")
+                    )
+                    if type_ == "xmlid"
+                )
+                ignored_xmlids = unloaded_xmlids & suppress
+                if ignored_xmlids:
+                    _logger.log(util.NEARLYWARN, "Explictly ignoring unlink of record(s) %s", ",".join(ignored_xmlids))
+                error_xmlids = unloaded_xmlids - suppress
+                if error_xmlids:
+                    error_msg = "It looks like you forgot to call `util.delete_unused` on %s" % (",".join(error_xmlids))
+                    _logger.critical(error_msg)
+                    if str2bool(os.getenv("MATT", "0")) and noupdate_forced:
+                        # Hard fail only in CI.
+                        raise util.MigrationError(error_msg)
 
         return super(IrModelData, self)._process_end(modules)
