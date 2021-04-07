@@ -1584,6 +1584,7 @@ def migrate_invoice_lines(cr):
             except Exception as e:
                 _logger.exception("Cannot create move from draft/cancel/custom invoice")
                 ignored_unposted_invoices[inv_vals["id"]] = e.args[0].split("\nDETAIL:")[0]
+                updated_invoices.pop(inv_vals["id"], None)
             cr.commit()
         cr.executemany("UPDATE account_invoice SET move_id=%s WHERE id=%s", mappings)
     if ignored_unposted_invoices:
