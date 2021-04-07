@@ -7,8 +7,23 @@ def migrate(cr, version):
     util.new_module(cr, "sale_product_configurator", deps={"sale"})
 
     # As sale was split in 2, auto-install module when sale was installed
-    if util.modules_installed(cr, ("sale")):
-        util.force_install_module(cr, "sale_product_configurator")
+    if util.module_installed(cr, "sale"):
+        # Install only if 'Product Variants' settings is checked
+        # We can check this by verifying that the group product.group_product_variant is
+        # on the implied groups of base.group_user
+        cr.execute(
+            """
+            SELECT 1
+              FROM res_groups_implied_rel r
+              JOIN ir_model_data g ON g.res_id=r.gid AND g.module='base' AND g.name='group_user'
+              JOIN ir_model_data h ON h.res_id=r.hid AND h.module='product' AND h.name='group_product_variant'
+            """
+        )
+        if cr.rowcount:
+            util.force_install_module(cr, "sale_product_configurator")
+        else:
+            # remove the model that now lives on its own module
+            util.remove_model(cr, "sale.product.configurator")
 
     util.new_module(
         cr, "event_sale_product_configurator", deps={"sale_product_configurator", "event_sale"}, auto_install=True
