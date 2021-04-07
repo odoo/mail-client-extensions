@@ -120,6 +120,12 @@ def _update_lines(cr):
         # Reimplementing bom exploding in sql is madness.
         # Also, as bom can change over time, we can't trust them.
         # We will just believe the stock moves...
+        for table, column in [
+            ("stock_move", "procurement_id"),
+            ("procurement_order", "sale_line_id"),
+            ("procurement_order", "state"),
+        ]:
+            util.create_index(cr, "%s_%s_index" % (table, column), table, column)
 
         cr.execute("""
             UPDATE sale_order_line l
