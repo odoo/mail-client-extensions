@@ -2,6 +2,8 @@
 import logging
 import os
 
+from odoo import api, models
+
 from odoo.addons.base.maintenance.migrations import util
 
 NS = "odoo.addons.base.maintenance.migrations.base."
@@ -111,3 +113,19 @@ def migrate(cr, version):
     if create_index_queries:
         _logger.info("creating %s indexes (might be slow)", len(create_index_queries))
         util.parallel_execute(cr, create_index_queries)
+
+
+class Model(models.Model):
+    _inherit = "ir.model"
+    _module = "base"
+
+    @api.model
+    def _register_hook(self):
+        super(Model, self)._register_hook()
+        index_names = util.ENVIRON.get("__created_fk_idx", [])
+        if index_names:
+            drop_index_queries = []
+            for index_name in index_names:
+                drop_index_queries.append('DROP INDEX IF EXISTS "%s"' % (index_name,))
+            _logger.info("dropping %s indexes", len(drop_index_queries))
+            util.parallel_execute(self.env.cr, drop_index_queries)
