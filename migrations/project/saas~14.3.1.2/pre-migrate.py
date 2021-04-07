@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -15,3 +14,11 @@ def migrate(cr, version):
 
     util.remove_field(cr, "project.task", "subtask_project_id")
     util.remove_field(cr, "project.project", "subtask_project_id")
+
+    util.create_column(cr, "res_config_settings", "group_project_task_dependencies", "boolean")
+    util.create_column(cr, "project_project", "allow_task_dependencies", "boolean")
+    util.create_m2m(cr, "task_dependencies_rel", "project_task", "project_task", "task_id", "depends_on_id")
+
+    task_rating_id = util.ref(cr, "project.mt_task_rating")
+    cr.execute("UPDATE mail_message_subtype SET description = NULL WHERE id = %s", [task_rating_id])
+    util.remove_field(cr, "project.task", "ribbon_message")
