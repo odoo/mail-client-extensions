@@ -171,6 +171,12 @@ class UnmigrableCase(Exception):
 
 
 def migrate(cr, version):
+
+    # TODO: remove this horror
+    path_column = 'path'
+    if util.column_exists(cr, 'ir_asset', 'glob'):
+        path_column = 'glob'
+
     view_fields = ["arch_db", "mode", "active", "key"]
     has_website = util.module_installed(cr, "website")
     if has_website:
@@ -178,7 +184,7 @@ def migrate(cr, version):
     query = get_magic_query(cr, view_fields)
     cr.execute(query)
     results = cr.dictfetchall()
-    processed_results = process_views_conversion(cr, results, has_website=has_website)
+    processed_results = process_views_conversion(cr, results, has_website=has_website, path_column=path_column)
 
     # remove views to remove
     for vid in processed_results["remove_view_ids"]:
@@ -215,13 +221,13 @@ def migrate(cr, version):
         util.create_column(cr, "ir_asset", "website_id", "integer")
         execute_values(
             cr._obj,
-            "INSERT INTO ir_asset(name, bundle, directive, glob, target, active, sequence, website_id) VALUES %s",
+            f"INSERT INTO ir_asset(name, bundle, directive, {path_column}, target, active, sequence, website_id) VALUES %s",
             [
                 (
                     a["name"],
                     a["bundle"],
                     a.get("directive", "append"),
-                    a["glob"],
+                    a[path_column],
                     a.get("target"),
                     a["active"],
                     a["sequence"],
@@ -234,7 +240,7 @@ def migrate(cr, version):
             util.remove_column(cr, "ir_asset", "website_id")
 
 
-def process_views_conversion(cr, results, has_website=False):
+def process_views_conversion(cr, results, has_website=False, path_column='path'):
     """
     Entry point to handle database results (all views considered as assets and their descendants)
     This function will make up irassets when possible,
@@ -323,11 +329,11 @@ def process_views_conversion(cr, results, has_website=False):
                 last = None
                 for asset in reversed(assets_to_create):
                     if asset["bundle"] == bundle_name:
-                        ext = asset["glob"].rpartition(".")[2]
+                        ext = asset[path_column].rpartition(".")[2]
                         if not exts or ext in exts:
                             last = asset
                             break
-                return last and last["glob"]
+                return last and last[path_column]
 
     # should map former view keys to jum's bundle names
     def get_bundle_name_from_key(view_key):
@@ -362,7 +368,7 @@ def process_views_conversion(cr, results, has_website=False):
                 and make an ir.asset point to its url (/web/content/<id>/<filename>.js)
             """
             raise UnmigrableCase(msg)
-        return dict(glob=src)
+        return dict([(path_column, src)])
 
     def handle_link_node(view, etreeNode):
         rel_attr = not etreeNode.get("rel")
@@ -376,7 +382,7 @@ def process_views_conversion(cr, results, has_website=False):
                 % rel_attr
             )
             raise UnmigrableCase(msg)
-        return dict(glob=etreeNode.get("href"))
+        return dict([(path_column, etreeNode.get("href"))])
 
     def handle_tcall(view, etreeNode, tcall):
         asset_key = get_asset_name_from_tcall(tcall)
@@ -397,7 +403,7 @@ def process_views_conversion(cr, results, has_website=False):
                 This is not supported.
             """
             raise UnmigrableCase(msg)
-        return dict(directive="include", glob=asset_key)
+        return dict([(path_column, asset_key)], directive="include")
 
     def handle_xpath(view, etreeNode, bundle_name):
         directive = XPATH_POSITION_TO_DIRECTIVE.get(etreeNode.get("position"))
@@ -420,7 +426,7 @@ def process_views_conversion(cr, results, has_website=False):
                 if prev_glob is not None:  # everything but the first element
                     asset["target"] = prev_glob
                     asset["directive"] = "after"
-                prev_glob = asset["glob"]
+                prev_glob = asset[path_column]
 
         return assets
 

@@ -19,6 +19,10 @@ class BaseAssetCase(UpgradeCase):
         pass
 
     def assertAsset(self, view_id, values):
+        # TODO: remove this horror
+        if util.column_exists(self.env.cr, 'ir_asset', 'path'):
+            values['path'] = values.pop('glob', None)
+
         self.assertFalse(self.env["ir.ui.view"].browse(view_id).exists())
 
         ir_asset = self.env["ir.asset"].search([("name", "ilike", f"view_id:{view_id}")])
