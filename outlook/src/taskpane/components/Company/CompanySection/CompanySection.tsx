@@ -26,6 +26,7 @@ import CompanyCache from "../../../../classes/CompanyCache";
 import EnrichmentInfo, {EnrichmentInfoType} from "../../../../classes/EnrichmentInfo";
 import {Spinner, SpinnerSize} from "office-ui-fabric-react";
 import {OdooTheme} from "../../../../utils/Themes";
+import { _t } from "../../../../utils/Translator";
 
 type CompanySectionProps = {
     partner: Partner;
@@ -61,8 +62,8 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
 
         if (!this.props.partner.email)
         {
-            let enrichmentInfo = new EnrichmentInfo(EnrichmentInfoType.EnrichContactWithNoEmail, "This contact has no email address," +
-                " no company could be enriched");
+            let enrichmentInfo = new EnrichmentInfo(EnrichmentInfoType.EnrichContactWithNoEmail,
+                _t("This contact has no email address, no company could be enriched."));
             this.context.showTopBarMessage(enrichmentInfo);
             return;
         }
@@ -116,10 +117,10 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                 enrichAndCreate = (
                     <div>
                         <div>
-                            No company attached to this contact
+                            {_t("No company attached to this contact")}
                         </div>
                         <div className="odoo-secondary-button" style={{margin: "8px auto auto auto"}} onClick={this.enrichCompanyForPartnerRequest}>
-                            Create a Company
+                            {_t("Create a Company")}
                         </div>
                     </div>
                 );
@@ -130,7 +131,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                 {
                     enrichAndCreate = (
                         <div>
-                            No company linked to this contact could be enriched
+                            {_t("No company linked to this contact could be enriched")}
                         </div>
                     );
                 }
@@ -138,7 +139,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                 {
                     enrichAndCreate = (
                         <div>
-                            No company linked to this contact could be enriched or found in Odoo
+                            {_t("No company linked to this contact could be enriched or found in Odoo")}
                         </div>
                     );
                 }
@@ -156,57 +157,57 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
         if (company.getLocation())
         {
             addressSection = <CompanyInfoItem
-                icon={faMapMarkerAlt} title={"Address"} value={company.getLocation()}
+                icon={faMapMarkerAlt} title={_t("Address")} value={company.getLocation()}
                 hrefContent={`http://maps.google.com/?q=${company.getLocation()}`}/>
         }
         let phoneSection = null;
         if (company.getPhone())
         {
-            phoneSection = <CompanyInfoItem icon={faPhone} title={"Phone"} value={company.getPhone()}
+            phoneSection = <CompanyInfoItem icon={faPhone} title={_t("Phone")} value={company.getPhone()}
                                             hrefContent={`tel:${company.getPhone()}`}/>
         }
 
         let websiteSection = null;
         if (company.getDomain())
         {
-            websiteSection = <CompanyInfoItem icon={faGlobeEurope} title={"Website"} value={company.getDomain()}
+            websiteSection = <CompanyInfoItem icon={faGlobeEurope} title={_t("Website")} value={company.getDomain()}
                                               hrefContent={company.getDomain()}/>
         }
 
         let industrySection = null;
         if (company.getIndustry())
         {
-            industrySection = <CompanyInfoItem icon={faIndustry} title={"Industry"} value={company.getIndustry()}/>
+            industrySection = <CompanyInfoItem icon={faIndustry} title={_t("Industry")} value={company.getIndustry()}/>
         }
 
         let employeesSection = null;
         if (company.getEmployees())
         {
-            employeesSection = <CompanyInfoItem icon={faPersonBooth} title={"Employees"} value={company.getEmployees()+''}/>
+            employeesSection = <CompanyInfoItem icon={faPersonBooth} title={_t("Employees")} value={company.getEmployees()+''}/>
         }
 
         let yearFoundedSection = null;
         if (company.getYearFounded())
         {
-            yearFoundedSection = <CompanyInfoItem icon={faInfo} title={"Year founded"} value={company.getYearFounded()+""}/>
+            yearFoundedSection = <CompanyInfoItem icon={faInfo} title={_t("Year founded")} value={company.getYearFounded()+""}/>
         }
 
         let keywordsSection = null;
         if (company.getKeywords())
         {
-            keywordsSection = <CompanyInfoItem icon={faKey} title={"Keywords"} value={company.getKeywords()}/>
+            keywordsSection = <CompanyInfoItem icon={faKey} title={_t("Keywords")} value={company.getKeywords()}/>
         }
 
         let companyTypeSection = null;
         if (company.getCompanyType())
         {
-            companyTypeSection = <CompanyInfoItem icon={faBuilding} title={"Company Type"} value={company.getCompanyType()}/>
+            companyTypeSection = <CompanyInfoItem icon={faBuilding} title={_t("Company Type")} value={company.getCompanyType()}/>
         }
 
         let revenueSection = null;
         if (company.getRevenue())
         {
-            revenueSection = <CompanyInfoItem icon={faDollarSign} title={"Revenues"} value={company.getRevenue()}/>
+            revenueSection = <CompanyInfoItem icon={faDollarSign} title={_t("Revenues")} value={company.getRevenue()}/>
         }
 
         const profileCardData: ProfileCardProps = {
@@ -278,7 +279,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
 
         return (
             <>
-                <CollapseSection title={"Company Insights"} isCollapsed={this.state.isCollapsed}
+                <CollapseSection title={_t("Company Insights")} isCollapsed={this.state.isCollapsed}
                                  onCollapseButtonClick={this.onCollapseClick} hideCollapseButton={this.props.hideCollapseButton}>
                     {content}
                 </CollapseSection>

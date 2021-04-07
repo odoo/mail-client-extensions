@@ -5,6 +5,7 @@ import AppContext from './AppContext';
 import EnrichmentInfo, {EnrichmentInfoType} from "../../classes/EnrichmentInfo";
 import {IIconProps, Link, MessageBar, MessageBarType} from "office-ui-fabric-react";
 import Progress from "./GrayOverlay";
+import { _t } from "../../utils/Translator";
 
 enum Page {
     Login,
@@ -51,7 +52,6 @@ export default class App extends React.Component<AppProps, AppState> {
             showEnrichmentInfoMessage: false,
             pageDisplayed: Page.Main,
             loginErrorMessage: "",
-            
             navigation: {
                 goToLogin: this.goToLogin,
                 goToMain: this.goToMain
@@ -61,6 +61,8 @@ export default class App extends React.Component<AppProps, AppState> {
             },
             disconnect: () => {
                 localStorage.removeItem('odooConnectionToken');
+                localStorage.removeItem('translations');
+                localStorage.removeItem('translationsTimestamp');
             },
             getConnectionToken: () => {
                 return 'Bearer ' + localStorage.getItem('odooConnectionToken');
@@ -121,12 +123,12 @@ export default class App extends React.Component<AppProps, AppState> {
         };
         let bars = [];
         if (this.state.showPartnerCreatedMessage) {
-            bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hidePartnerCreatedMessage}>Contact created</MessageBar>);
+            bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hidePartnerCreatedMessage}>{_t("Contact created")}</MessageBar>);
         }
         if (this.state.showEnrichmentInfoMessage) {
             switch (type) {
                 case EnrichmentInfoType.CompanyCreated:
-                    bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>Company created</MessageBar>);
+                    bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>{_t("Company created")}</MessageBar>);
                     break;
                 case EnrichmentInfoType.NoData:
                 case EnrichmentInfoType.NotConnected_NoData:
@@ -138,7 +140,7 @@ export default class App extends React.Component<AppProps, AppState> {
                         {message}
                         <br/>
                         <Link href={info} target="_blank">
-                            Buy More
+                            {_t("Buy More")}
                         </Link>
                     </MessageBar>);
                     break;
@@ -146,6 +148,7 @@ export default class App extends React.Component<AppProps, AppState> {
                 case EnrichmentInfoType.NotConnected_InsufficientCredit:
                 case EnrichmentInfoType.NotConnected_InternalError:
                 case EnrichmentInfoType.Other:
+                case EnrichmentInfoType.CouldNotGetTranslations:
                 case EnrichmentInfoType.ConnectionError:
                     bars.push(<MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
                     break;

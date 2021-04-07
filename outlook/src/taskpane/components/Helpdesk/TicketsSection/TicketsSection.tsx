@@ -7,6 +7,7 @@ import AppContext from '../../AppContext';
 import "../../../../utils/ListItem.css";
 import TicketListItem from "../TicketList/TicketListItem";
 import {ContentType, HttpVerb, sendHttpRequest} from "../../../../utils/httpRequest";
+import { _t } from "../../../../utils/Translator";
 
 type TicketsSectionProps = {
     partner: Partner;
@@ -73,7 +74,7 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
 
         let ticketsExpanded = null;
 
-        let title = "Tickets";
+        let title = _t("Tickets");
 
         if (!this.props.partner.isAddedToDatabase())
         {
@@ -81,7 +82,7 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
             {
                 ticketsExpanded = (
                     <div className="list-text">
-                        Save Contact to create new Tickets.
+                        {_t("Save Contact to create new Tickets.")}
                     </div>
                 );
             }
@@ -112,7 +113,7 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
                 {
                     leadsContent = (
                         <div className="list-text">
-                            No tickets found for this contact
+                            {_t("No tickets found for this contact.")}
                         </div>
                     );
                 }
@@ -126,7 +127,7 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
 
 
         if (this.state.tickets)
-            title = `Tickets (${this.state.tickets.length})`;
+            title = _t("Tickets (%(count)s)", {count: this.state.tickets.length});
 
         return (
             <>

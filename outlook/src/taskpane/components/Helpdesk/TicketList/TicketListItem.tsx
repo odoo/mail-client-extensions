@@ -1,6 +1,7 @@
 import * as React from "react";
 import HelpdeskTicket from "../../../../classes/HelpdeskTicket";
 import '../../../../utils/ListItem.css'
+import { _t } from "../../../../utils/Translator";
 import api from "../../../api";
 import Logger from "../../Log/Logger";
 
@@ -20,7 +21,7 @@ const TicketListItem = (props: TicketListItemProps) => {
 
     if (props.ticket.isClosed)
     {
-        closedText = (<div className="muted-text" style={{marginTop: "8px", fontSize: "14px"}}>Closed</div>)
+        closedText = (<div className="muted-text" style={{marginTop: "8px", fontSize: "14px"}}>{_t("Closed")}</div>)
     }
 
     return (
@@ -32,7 +33,7 @@ const TicketListItem = (props: TicketListItemProps) => {
                     </div>
                     {closedText}
                 </div>
-                <Logger resId={props.ticket.id} model="helpdesk.ticket" tooltipContent="Log Email Into Ticket"/>
+                <Logger resId={props.ticket.id} model="helpdesk.ticket" tooltipContent={_t("Log Email Into Ticket")}/>
             </div>
         </div>
     );

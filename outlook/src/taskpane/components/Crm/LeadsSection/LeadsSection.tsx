@@ -8,6 +8,7 @@ import LeadListItem from "../LeadList/LeadListItem";
 import CollapseSection from "../../CollapseSection/CollapseSection";
 
 import {ContentType, HttpVerb, sendHttpRequest} from "../../../../utils/httpRequest";
+import { _t } from "../../../../utils/Translator";
 
 
 type LeadSectionProps = {
@@ -74,7 +75,7 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
 
         let leadsExpanded = null;
 
-        let title = "Opportunities";
+        let title = _t("Opportunities");
 
         if (!this.props.partner.isAddedToDatabase())
         {
@@ -82,7 +83,7 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
             {
                 leadsExpanded = (
                   <div className="list-text">
-                      Save Contact to create new Opportunities.
+                      {_t("Save Contact to create new Opportunities.")}
                   </div>
                 );
             }
@@ -110,7 +111,7 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
                 {
                     leadsContent = (
                         <div className="list-text">
-                            No opportunities found for this contact
+                            {_t("No opportunities found for this contact.")}
                         </div>
                     );
                 }
@@ -124,7 +125,7 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
 
 
         if (this.state.leads)
-            title = `Opportunities (${this.state.leads.length})`;
+            title = _t("Opportunities (%(count)s)", {count: this.props.partner.leads.length.toString()});
 
         return (
             <>

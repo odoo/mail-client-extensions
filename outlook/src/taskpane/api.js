@@ -8,6 +8,7 @@ const api = {
     iapLeadEnrichment: "https://iap-services.odoo.com/iap/mail_extension/enrich",
     logSingleMail:"/mail_plugin/log_mail_content",
     searchPartner: "/mail_plugin/partner/search",
+    getTranslations: "/mail_plugin/get_translations",
 
     // Authentication
     loginPage: "/web/login", // Should be the usual Odoo login page.

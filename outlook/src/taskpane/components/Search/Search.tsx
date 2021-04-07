@@ -10,6 +10,7 @@ import {OdooTheme} from "../../../utils/Themes";
 import {faSearch} from "@fortawesome/free-solid-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {TextField} from "office-ui-fabric-react/lib-amd";
+import { _t } from "../../../utils/Translator";
 
 const MAX_PARTNERS = 30;
 
@@ -119,7 +120,7 @@ class Search extends React.Component<SearchProps, SearchState> {
 
         let searchBar = (
             <div style={{display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "stretch", margin: "8px 8px 16px 8px"}}>
-                <TextField className="input-search" placeholder='Search contact in Odoo...'
+                <TextField className="input-search" placeholder={_t('Search contact in Odoo...')}
                        onChange={this.onQueryChanged} value={this.state.query} onKeyDown={this.onKeyDown}
                        onFocus={(e) => e.target.select()}
                 />
@@ -147,7 +148,9 @@ class Search extends React.Component<SearchProps, SearchState> {
                     <div className="section-top">
                         <div className="custom-section-title-container">
                             <div className="section-title-text custom">
-                                Contacts Found ({foundContactsNumberText})
+                                {_t("Contacts Found (%(count)s)", {
+                                    count: foundContactsNumberText
+                                })}
                             </div>
                         </div>
                     </div>

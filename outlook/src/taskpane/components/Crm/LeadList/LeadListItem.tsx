@@ -5,6 +5,7 @@ import "../../Contact/ContactList/ContactListItem/ContactListItem.css";
 import api from "../../../api";
 import Logger from "../../Log/Logger";
 import "../../../../utils/ListItem.css"
+import { _t } from "../../../../utils/Translator";
 
 type LeadsListItemProps = {
     lead: Lead;
@@ -18,13 +19,19 @@ const LeadListItem = (props: LeadsListItemProps) => {
         window.open(url,"_blank");
     }
 
-    let expectedRevenueString = props.lead.expectedRevenue+" at "+props.lead.probability+"%";
+    let expectedRevenueString = _t("%(expected_revenue)s at %(probability)s%", {
+        expected_revenue: props.lead.expectedRevenue,
+        probability: props.lead.probability
+    });
 
     if (props.lead.recurringPlan)
     {
-        expectedRevenueString = props.lead.expectedRevenue+ " + "+props.lead.recurringRevenue
-            +" "+props.lead.recurringPlan
-            +" at "+props.lead.probability+"%";
+        expectedRevenueString = _t("%(expected_revenue)s + %(recurring_revenue)s %(recurring_plan)s at %(probability)s%", {
+            expected_revenue: props.lead.expectedRevenue,
+            recurring_revenue: props.lead.recurringRevenue,
+            recurring_plan: props.lead.recurringPlan,
+            probability: props.lead.probability
+        });
     }
 
     let expectedRevenuesText = (
@@ -42,7 +49,7 @@ const LeadListItem = (props: LeadsListItemProps) => {
                     </div>
                     {expectedRevenuesText}
                 </div>
-                <Logger resId={props.lead.id} model="crm.lead" tooltipContent="Log Email Into Lead"/>
+                <Logger resId={props.lead.id} model="crm.lead" tooltipContent={_t("Log Email Into Lead")}/>
             </div>
         </div>
     );
