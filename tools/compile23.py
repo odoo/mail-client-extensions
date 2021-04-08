@@ -3,20 +3,18 @@ import subprocess
 import sys
 from pathlib import PurePath
 
-py2_patterns = [
-    "migrations/*.py",
-    "migrations/*/0.0.0/*.py",
+py2_only_patterns = [
     "migrations/*/[789].0.*/*.py",
     "migrations/*/[789].saas~*.*/*.py",
     "migrations/*/10.0.*/*.py",
 ]
 py2_files = []
 
-py3_patterns = [
+py3_only_patterns = [
     "tools/*.py",
-    "migrations/*.py",
+    # tests are only run from version 12. python2 compatibility is not needed.
+    "migrations/testing.py",
     "migrations/*/tests/*.py",
-    "migrations/*/0.0.0/*.py",
     "migrations/*/10.saas~1[45678].*/*.py",  # upgrade from 10 to 11 is done using python3
     "migrations/*/1[123456789].0.*/*.py",
     "migrations/*/saas~1[123456789].[123456789].*/*.py",
@@ -31,12 +29,16 @@ for filename in sys.argv[1:]:
         continue
 
     if not filename.islower():
-        print(f"filename {filename!r} is not lowecase")
+        print(f"filename {filename!r} is not lowercase")
         rc = 1
 
-    if any(p.match(pattern) for pattern in py2_patterns):
+    if any(p.match(pattern) for pattern in py2_only_patterns):
         py2_files.append(filename)
-    if any(p.match(pattern) for pattern in py3_patterns):
+    elif any(p.match(pattern) for pattern in py3_only_patterns):
+        py3_files.append(filename)
+    else:
+        # not an explicit match to a python version. Test against both versions.
+        py2_files.append(filename)
         py3_files.append(filename)
 
 
