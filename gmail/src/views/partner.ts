@@ -10,6 +10,7 @@ import { State } from "../models/state";
 import { Partner } from "../models/partner";
 import { ErrorMessage } from "../models/error_message";
 import { logEmail } from "../services/log_email";
+import { _t } from "../services/translation";
 
 function onEnrichCompany(state: State) {
     const [company, error] = Partner.enrichCompany(state.partner.id);
@@ -23,14 +24,14 @@ function onLogEmail(state: State) {
     const partnerId = state.partner.id;
 
     if (!partnerId) {
-        throw new Error("This contact does not exist in the Odoo database.");
+        throw new Error(_t("This contact does not exist in the Odoo database."));
     }
 
     if (State.setLoggingState(state.email.messageId, "partners", partnerId)) {
         logEmail(partnerId, "res.partner", emailBody);
         return updateCard(buildView(state));
     }
-    return notify("Email already logged on the contact");
+    return notify(_t("Email already logged on the contact"));
 }
 
 function onSavePartner(state: State) {
@@ -47,12 +48,12 @@ function onSavePartner(state: State) {
         state.error = new ErrorMessage();
         return updateCard(buildView(state));
     } else {
-        return notify("Can not save the contact");
+        return notify(_t("Can not save the contact"));
     }
 }
 
 function onEmailAlreadyLogged(state: State) {
-    return notify("Email already logged on the contact");
+    return notify(_t("Email already logged on the contact"));
 }
 
 export function buildPartnerView(state: State, card: Card) {
@@ -63,28 +64,28 @@ export function buildPartnerView(state: State, card: Card) {
     const loggingState = State.getLoggingState(state.email.messageId);
     const isEmailLogged = partner.id && loggingState["partners"].indexOf(partner.id) >= 0;
 
-    const partnerSection = CardService.newCardSection().setHeader("<b>Contact</b>");
+    const partnerSection = CardService.newCardSection().setHeader("<b>" + _t("Contact") + "</b>");
 
     let partnerButton = null;
     if (canContactOdooDatabase && !partner.id) {
         partnerButton = CardService.newImageButton()
-            .setAltText("Save in Odoo")
+            .setAltText(_t("Save in Odoo"))
             .setIconUrl(UI_ICONS.save_in_odoo)
             .setOnClickAction(actionCall(state, "onSavePartner"));
     } else if (canContactOdooDatabase && !isEmailLogged) {
         partnerButton = CardService.newImageButton()
-            .setAltText("Log email")
+            .setAltText(_t("Log email"))
             .setIconUrl(UI_ICONS.email_in_odoo)
             .setOnClickAction(actionCall(state, "onLogEmail"));
     } else if (canContactOdooDatabase && isEmailLogged) {
         partnerButton = CardService.newImageButton()
-            .setAltText("Email already logged on the contact")
+            .setAltText(_t("Email already logged on the contact"))
             .setIconUrl(UI_ICONS.email_logged)
             .setOnClickAction(actionCall(state, "onEmailAlreadyLogged"));
     } else if (!State.isLogged) {
         // button "Log the email" but it redirects to the login page
         partnerButton = CardService.newImageButton()
-            .setAltText("Log email")
+            .setAltText(_t("Log email"))
             .setIconUrl(UI_ICONS.email_in_odoo)
             .setOnClickAction(actionCall(state, "buildLoginMainView"));
     }

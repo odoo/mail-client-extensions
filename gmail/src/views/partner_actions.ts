@@ -5,6 +5,7 @@ import { State } from "../models/state";
 import { Partner } from "../models/partner";
 import { actionCall } from "./helpers";
 import { updateCard } from "./helpers";
+import { _t } from "../services/translation";
 
 function onSearchPartner(state: State) {
     if (!state.searchedPartners) {
@@ -31,7 +32,7 @@ export function buildPartnerActionView(state: State, partnerSection: CardSection
         if (state.partner.id) {
             actionButtonSet.addButton(
                 CardService.newImageButton()
-                    .setAltText("Refresh")
+                    .setAltText(_t("Refresh"))
                     .setIconUrl(UI_ICONS.reload)
                     .setOnClickAction(actionCall(state, "onReloadPartner")),
             );
@@ -39,7 +40,7 @@ export function buildPartnerActionView(state: State, partnerSection: CardSection
 
         actionButtonSet.addButton(
             CardService.newImageButton()
-                .setAltText("Search a contact")
+                .setAltText(_t("Search contact"))
                 .setIconUrl(UI_ICONS.search)
                 .setOnClickAction(actionCall(state, "onSearchPartner")),
         );
@@ -51,7 +52,7 @@ export function buildPartnerActionView(state: State, partnerSection: CardSection
 
         actionButtonSet.addButton(
             CardService.newImageButton()
-                .setAltText("Search a contact")
+                .setAltText(_t("Search contact"))
                 .setIconUrl(UI_ICONS.search)
                 .setOnClickAction(actionCall(state, "buildLoginMainView")),
         );

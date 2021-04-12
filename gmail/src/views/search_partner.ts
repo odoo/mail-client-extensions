@@ -1,4 +1,5 @@
 import { logEmail } from "../services/log_email";
+import { _t } from "../services/translation";
 import { Partner } from "../models/partner";
 import { ErrorMessage } from "../models/error_message";
 import { createKeyValueWidget, actionCall, pushCard, updateCard, notify } from "./helpers";
@@ -20,14 +21,14 @@ function onLogEmailPartner(state: State, parameters: any) {
     const partnerId = parameters.partnerId;
 
     if (!partnerId) {
-        throw new Error("This contact does not exist in the Odoo database.");
+        throw new Error(_t("This contact does not exist in the Odoo database."));
     }
 
     if (State.setLoggingState(state.email.messageId, "partners", partnerId)) {
         logEmail(partnerId, "res.partner", emailBody);
         return updateCard(buildSearchPartnerView(state, parameters.query));
     }
-    return notify("Email already logged on the contact");
+    return notify(_t("Email already logged on the contact"));
 }
 
 function onOpenPartner(state: State, parameters: any) {
@@ -54,13 +55,13 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
     searchSection.addWidget(
         CardService.newTextInput()
             .setFieldName("search_partner_query")
-            .setTitle("Search contact")
+            .setTitle(_t("Search contact"))
             .setValue(searchValue)
             .setOnChangeAction(actionCall(state, "onSearchPartnerClick")),
     );
 
     searchSection.addWidget(
-        CardService.newTextButton().setText("Search").setOnClickAction(actionCall(state, "onSearchPartnerClick")),
+        CardService.newTextButton().setText(_t("Search")).setOnClickAction(actionCall(state, "onSearchPartnerClick")),
     );
 
     for (let partner of partners) {
@@ -71,7 +72,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
             .setButton(
                 loggingState["partners"].indexOf(partner.id) < 0
                     ? CardService.newImageButton()
-                          .setAltText("Log email")
+                          .setAltText(_t("Log email"))
                           .setIconUrl(UI_ICONS.email_in_odoo)
                           .setOnClickAction(
                               actionCall(state, "onLogEmailPartner", {
@@ -80,7 +81,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
                               }),
                           )
                     : CardService.newImageButton()
-                          .setAltText("Email already logged")
+                          .setAltText(_t("Email already logged on the contact"))
                           .setIconUrl(UI_ICONS.email_logged)
                           .setOnClickAction(actionCall(state, "onEmailAlreadyLogged")),
             )
@@ -98,7 +99,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
     }
 
     if ((!partners || !partners.length) && !initialSearch) {
-        searchSection.addWidget(CardService.newTextParagraph().setText("No contact found."));
+        searchSection.addWidget(CardService.newTextParagraph().setText(_t("No contact found.")));
     }
 
     card.addSection(searchSection);

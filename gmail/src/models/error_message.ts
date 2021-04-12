@@ -1,3 +1,5 @@
+import { _t } from "../services/translation";
+
 /**
  * Represent an error and translate its code to a message.
  */
@@ -46,7 +48,7 @@ export class ErrorMessage {
 
         this.code = code;
         this.information = information;
-        this.message = _ERROR_CODE_MESSAGES[this.code];
+        this.message = _t(_ERROR_CODE_MESSAGES[this.code]);
 
         if (code === "http_error_odoo") {
             this.canContactOdooDatabase = false;

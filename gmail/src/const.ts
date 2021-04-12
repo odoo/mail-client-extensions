@@ -1,4 +1,5 @@
 const URLS: Record<string, string> = {
+    GET_TRANSLATIONS: "/mail_plugin/get_translations",
     LOG_EMAIL: "/mail_plugin/log_mail_content",
     // Partner
     GET_PARTNER: "/mail_plugin/partner/get",

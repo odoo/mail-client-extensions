@@ -5,6 +5,7 @@ import { buildLoginMainView } from "./login";
 import { buildCardActionsView } from "./card_actions";
 import { State } from "../models/state";
 import { actionCall } from "./helpers";
+import { _t } from "../services/translation";
 
 export function buildView(state: State) {
     const card = CardService.newCardBuilder();
@@ -23,7 +24,7 @@ export function buildView(state: State) {
         card.setFixedFooter(
             CardService.newFixedFooter().setPrimaryButton(
                 CardService.newTextButton()
-                    .setText("Login")
+                    .setText(_t("Login"))
                     .setBackgroundColor("#00A09D")
                     .setOnClickAction(actionCall(state, "buildLoginMainView")),
             ),

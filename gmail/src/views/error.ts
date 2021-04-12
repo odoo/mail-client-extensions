@@ -3,6 +3,7 @@ import { createKeyValueWidget, actionCall } from "./helpers";
 import { buildView } from "./index";
 import { updateCard } from "./helpers";
 import { UI_ICONS } from "./icons";
+import { _t } from "../services/translation";
 
 function onCloseError(state: State) {
     state.error.code = null;
@@ -19,7 +20,7 @@ function _addError(message: string, state: State, icon: string = null): CardSect
             icon,
             null,
             CardService.newImageButton()
-                .setAltText("Close")
+                .setAltText(_t("Close"))
                 .setIconUrl(UI_ICONS.close)
                 .setOnClickAction(actionCall(state, "onCloseError")),
         ),
@@ -34,7 +35,7 @@ export function buildErrorView(state: State, card: Card) {
         const errorSection = _addError(error.message, state);
         errorSection.addWidget(
             CardService.newTextButton()
-                .setText("Login")
+                .setText(_t("Login"))
                 .setOnClickAction(CardService.newAction().setFunctionName("buildLoginMainView")),
         );
         card.addSection(errorSection);
@@ -42,7 +43,7 @@ export function buildErrorView(state: State, card: Card) {
         const errorSection = _addError(error.message, state);
         errorSection.addWidget(
             CardService.newTextButton()
-                .setText("Buy new credits")
+                .setText(_t("Buy new credits"))
                 .setOpenLink(CardService.newOpenLink().setUrl(error.information)),
         );
         card.addSection(errorSection);

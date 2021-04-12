@@ -2,6 +2,7 @@ import { formatUrl, repeat } from "../utils/format";
 import { notify, createKeyValueWidget } from "./helpers";
 import { State } from "../models/state";
 import { IMAGES_LOGIN } from "./icons";
+import { _t, clearTranslationCache } from "../services/translation";
 
 function onNextLogin(event) {
     const validatedUrl = formatUrl(event.formInput.odooServerUrl);
@@ -9,6 +10,8 @@ function onNextLogin(event) {
     if (!validatedUrl) {
         return notify("Invalid URL");
     }
+
+    clearTranslationCache();
 
     State.odooServerUrl = validatedUrl;
 

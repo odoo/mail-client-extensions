@@ -1,18 +1,18 @@
 import { buildView } from "./index";
-import { buildPartnerActionView } from "./partner_actions";
 import { updateCard } from "./helpers";
 import { SOCIAL_MEDIA_ICONS, UI_ICONS } from "./icons";
 import { createKeyValueWidget, actionCall, notify } from "./helpers";
 import { URLS } from "../const";
 import { State } from "../models/state";
 import { Company } from "../models/company";
+import { _t } from "../services/translation";
 
 export function buildCompanyView(state: State, card: Card) {
     if (state.partner.company) {
         const odooServerUrl = State.odooServerUrl;
         const company = state.partner.company;
 
-        const companySection = CardService.newCardSection().setHeader("<b>Company</b>");
+        const companySection = CardService.newCardSection().setHeader("<b>" + _t("Company") + "</b>");
 
         const companyContent = [company.email, company.phone]
             .filter((x) => x)
@@ -35,13 +35,13 @@ export function buildCompanyView(state: State, card: Card) {
         _addSocialButtons(companySection, company);
 
         if (company.description) {
-            companySection.addWidget(createKeyValueWidget("Description", company.description));
+            companySection.addWidget(createKeyValueWidget(_t("Description"), company.description));
         }
 
         if (company.address) {
             companySection.addWidget(
                 createKeyValueWidget(
-                    "Address",
+                    _t("Address"),
                     company.address,
                     UI_ICONS.location,
                     null,
@@ -52,52 +52,54 @@ export function buildCompanyView(state: State, card: Card) {
         }
 
         if (company.phones) {
-            companySection.addWidget(createKeyValueWidget("Phones", company.phones, UI_ICONS.phone));
+            companySection.addWidget(createKeyValueWidget(_t("Phones"), company.phones, UI_ICONS.phone));
         }
 
         if (company.website) {
             companySection.addWidget(
-                createKeyValueWidget("Website", company.website, UI_ICONS.website, null, null, company.website),
+                createKeyValueWidget(_t("Website"), company.website, UI_ICONS.website, null, null, company.website),
             );
         }
 
         if (company.industry) {
-            companySection.addWidget(createKeyValueWidget("Industry", company.industry, UI_ICONS.industry));
+            companySection.addWidget(createKeyValueWidget(_t("Industry"), company.industry, UI_ICONS.industry));
         }
 
         if (company.employees) {
             companySection.addWidget(
-                createKeyValueWidget("Employees", company.employees + " employees", UI_ICONS.people),
+                createKeyValueWidget(_t("Employees"), _t("%s employees", company.employees), UI_ICONS.people),
             );
         }
 
         if (company.foundedYear) {
             companySection.addWidget(
-                createKeyValueWidget("Founded Year", "" + company.foundedYear, UI_ICONS.foundation),
+                createKeyValueWidget(_t("Founded Year"), "" + company.foundedYear, UI_ICONS.foundation),
             );
         }
 
         if (company.tags) {
-            companySection.addWidget(createKeyValueWidget("Keywords", company.tags, UI_ICONS.keywords));
+            companySection.addWidget(createKeyValueWidget(_t("Keywords"), company.tags, UI_ICONS.keywords));
         }
 
         if (company.companyType) {
-            companySection.addWidget(createKeyValueWidget("Company Type", company.companyType, UI_ICONS.company_type));
+            companySection.addWidget(
+                createKeyValueWidget(_t("Company Type"), company.companyType, UI_ICONS.company_type),
+            );
         }
 
         if (company.annualRevenue) {
-            companySection.addWidget(createKeyValueWidget("Annual Revenue", company.annualRevenue, UI_ICONS.money));
+            companySection.addWidget(createKeyValueWidget(_t("Annual Revenue"), company.annualRevenue, UI_ICONS.money));
         }
 
         card.addSection(companySection);
     } else if (state.partner.id) {
-        const companySection = CardService.newCardSection().setHeader("<b>Company</b>");
-        companySection.addWidget(CardService.newTextParagraph().setText("No company attached to this contact."));
+        const companySection = CardService.newCardSection().setHeader("<b>" + _t("Company") + "</b>");
+        companySection.addWidget(CardService.newTextParagraph().setText(_t("No company attached to this contact.")));
 
         if (state.error.canCreateCompany) {
             companySection.addWidget(
                 CardService.newTextButton()
-                    .setText("Create a company")
+                    .setText(_t("Create a company"))
                     .setOnClickAction(actionCall(state, "onEnrichCompany")),
             );
         }
