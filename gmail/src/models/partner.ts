@@ -15,6 +15,7 @@ export class Partner {
     email: string;
 
     image: string;
+    isCompany: boolean;
     phone: string;
     mobile: string;
 
@@ -33,6 +34,7 @@ export class Partner {
         partner.email = values.email;
 
         partner.image = values.image;
+        partner.isCompany = values.isCompany;
         partner.phone = values.phone;
         partner.mobile = values.mobile;
 
@@ -56,6 +58,7 @@ export class Partner {
         partner.email = values.email;
 
         partner.image = values.image ? "data:image/png;base64," + values.image : null;
+        partner.isCompany = values.is_company;
         partner.phone = values.phone;
         partner.mobile = values.mobile;
 

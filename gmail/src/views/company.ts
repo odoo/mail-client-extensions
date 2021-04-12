@@ -22,12 +22,13 @@ export function buildCompanyView(state: State, card: Card) {
             createKeyValueWidget(
                 null,
                 company.name + "<br>" + companyContent.join("<br>"),
-                company.image,
+                company.image || UI_ICONS.no_company,
                 null,
                 null,
                 company.id ? odooServerUrl + `/web#id=${company.id}&model=res.partner&view_type=form` : null,
                 false,
                 company.email,
+                CardService.ImageCropType.CIRCLE,
             ),
         );
 

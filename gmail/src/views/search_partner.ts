@@ -65,8 +65,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
 
     for (let partner of partners) {
         const partnerCard = CardService.newDecoratedText()
-            .setTopLabel(partner.name)
-            .setText(partner.email)
+            .setText(partner.name)
             .setWrapText(true)
             .setOnClickAction(actionCall(state, "onOpenPartner", { partner: partner }))
             .setButton(
@@ -84,10 +83,17 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
                           .setAltText("Email already logged")
                           .setIconUrl(UI_ICONS.email_logged)
                           .setOnClickAction(actionCall(state, "onEmailAlreadyLogged")),
+            )
+            .setStartIcon(
+                CardService.newIconImage()
+                    .setIconUrl(partner.image || (partner.isCompany ? UI_ICONS.no_company : UI_ICONS.person))
+                    .setImageCropType(CardService.ImageCropType.CIRCLE),
             );
-        if (partner.image) {
-            partnerCard.setIconUrl(partner.image);
+
+        if (partner.email) {
+            partnerCard.setBottomLabel(partner.email)
         }
+
         searchSection.addWidget(partnerCard);
     }
 

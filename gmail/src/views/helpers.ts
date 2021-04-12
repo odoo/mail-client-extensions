@@ -38,6 +38,7 @@ export function createKeyValueWidget(
     action: any = null,
     wrap: boolean = true,
     iconLabel: string = null,
+    iconCropStyle: CardService.ImageCropType = CardService.ImageCropType.SQUARE,
 ) {
     const widget = CardService.newDecoratedText().setText(content).setWrapText(true);
     if (label && label.length) {
@@ -65,7 +66,13 @@ export function createKeyValueWidget(
         if (!isIconUrl) {
             throw new Error("Invalid icon URL");
         }
-        widget.setIconUrl(icon).setIconAltText(escapeHtml(iconLabel || label));
+
+        widget.setStartIcon(
+            CardService.newIconImage()
+                .setIconUrl(icon)
+                .setImageCropType(iconCropStyle)
+                .setAltText(escapeHtml(iconLabel || label)),
+        );
     }
 
     widget.setWrapText(wrap);

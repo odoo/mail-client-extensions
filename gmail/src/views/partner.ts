@@ -96,7 +96,7 @@ export function buildPartnerView(state: State, card: Card) {
     const partnerCard = createKeyValueWidget(
         null,
         partner.name + "<br>" + partnerContent.join("<br>"),
-        partner.image || UI_ICONS.person,
+        partner.image || (partner.isCompany ? UI_ICONS.no_company : UI_ICONS.person),
         null,
         partnerButton,
         partner.id
@@ -106,6 +106,7 @@ export function buildPartnerView(state: State, card: Card) {
             : actionCall(state, "buildLoginMainView"),
         false,
         partner.email,
+        CardService.ImageCropType.CIRCLE,
     );
 
     partnerSection.addWidget(partnerCard);
