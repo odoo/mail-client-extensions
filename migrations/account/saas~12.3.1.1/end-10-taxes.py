@@ -164,9 +164,7 @@ def _migrate(cr, version):
                         domain = base_domain + [("country_id", "=", tax.company_id.get_fiscal_country().id)]
                         to_add = env["account.account.tag"].search(domain)
 
-                        if len(to_add) != len(tag_details) and os.environ.get(
-                            "ODOO_MIG_S12_3_TAX_TAGS_MATCH_MODULE_COUNTRY"
-                        ):
+                        if len(to_add) != len(tag_details):
                             # Case where taxes from multiple charts of accounts are used by a single company
                             # e.g. a Belgian company using taxes from NL, UK, DE, ES, ...
                             # This is normally not supported by Odoo
