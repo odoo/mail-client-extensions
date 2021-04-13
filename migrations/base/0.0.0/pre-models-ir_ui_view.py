@@ -1,14 +1,15 @@
 import logging
-import re
 import os
+import re
 
 from odoo import api, models
 from odoo.modules.module import get_modules
 from odoo.tools.misc import str2bool
+
 from odoo.addons.base.maintenance.migrations import util
 
 if util.version_gte("10.0"):
-    from odoo.modules.module import get_resource_path, get_resource_from_path
+    from odoo.modules.module import get_resource_from_path, get_resource_path
     from odoo.tools.view_validation import _validators
 
     if util.version_gte("saas~11.1"):
@@ -177,16 +178,16 @@ class IrUiView(models.Model):
                 """
                        SELECT max(v.id)
                          FROM ir_ui_view v
-                    LEFT JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
-                        WHERE md.module IN %(modules)s OR md.module IS NULL
+                         JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
+                        WHERE md.module IN %(modules)s
                           AND v.active
                      GROUP BY coalesce(v.inherit_id, v.id)
                 """,
                 """
                        SELECT max(v.id)
                         FROM ir_ui_view v
-                        JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
-                       WHERE md.module NOT IN %(modules)s
+                        LEFT JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
+                       WHERE md.module NOT IN %(modules)s OR md.module IS NULL
                          AND v.active
                     GROUP BY coalesce(v.inherit_id, v.id)
                 """,
