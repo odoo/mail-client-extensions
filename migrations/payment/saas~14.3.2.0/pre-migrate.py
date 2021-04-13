@@ -68,37 +68,51 @@ def migrate(cr, version):
 
     util.create_column(cr, "payment_transaction", "operation", "varchar")
     util.create_column(cr, "payment_transaction", "tokenize", "bool")
-    cr.execute(
-        """
-        UPDATE payment_transaction
-           SET operation = CASE
-               WHEN "type" IN ('form', 'form_save') THEN 'online_redirect'
-               WHEN "type" = 'server2server' THEN 'online_token'
-               WHEN "type" = 'validation' THEN 'validation'
-           END
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
+            UPDATE payment_transaction
+            SET operation = CASE
+                WHEN "type" IN ('form', 'form_save') THEN 'online_redirect'
+                WHEN "type" = 'server2server' THEN 'online_token'
+                WHEN "type" = 'validation' THEN 'validation'
+                END
+            """,
+        ),
     )
     util.remove_field(cr, "payment.transaction", "type")
 
     util.create_column(cr, "payment_transaction", "company_id", "int4")
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
         UPDATE payment_transaction pt
            SET company_id = acq.company_id
           FROM payment_acquirer acq
          WHERE acq.id = pt.acquirer_id
-         """
+         """,
+            prefix="pt.",
+        ),
     )
     util.create_column(cr, "payment_transaction", "validation_route", "varchar")
     util.create_column(cr, "payment_transaction", "landing_route", "varchar")
     util.create_column(cr, "payment_transaction", "partner_state_id", "int4")
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
         UPDATE payment_transaction pt
            SET partner_state_id = p.state_id
           FROM res_partner p
          WHERE p.id = pt.partner_id
-         """
+        """,
+            prefix="pt.",
+        ),
     )
     util.create_column(cr, "payment_transaction", "callback_is_done", "bool")
 
@@ -110,12 +124,16 @@ def migrate(cr, version):
 
     util.rename_field(cr, "payment.token", "payment_ids", "transaction_ids")
 
-    cr.execute(
-        """
-        UPDATE payment_token
-           SET name = 'MIG_' || id
-         WHERE name IS NULL
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
+            UPDATE payment_token
+               SET name = 'MIG_' || id
+             WHERE name IS NULL
+            """,
+        ),
     )
 
     # === IR RULE === #
