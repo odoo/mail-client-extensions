@@ -33,3 +33,16 @@ def migrate(cr, version):
     util.merge_module(cr, "website_form", "website")
     util.merge_module(cr, "website_animate", "website")
     util.module_deps_diff(cr, "website", plus={"mail", "google_recaptcha", "utm"})
+
+    util.new_module(
+        cr,
+        "website_sale_comparison_wishlist",
+        deps={"website_sale_comparison", "website_sale_wishlist"},
+        auto_install=True,
+    )
+    util.new_module(
+        cr,
+        "website_sale_stock_wishlist",
+        deps={"website_sale_stock", "website_sale_wishlist"},
+        auto_install=True,
+    )
