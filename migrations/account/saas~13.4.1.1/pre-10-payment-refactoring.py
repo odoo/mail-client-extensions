@@ -75,6 +75,15 @@ def migrate(cr, version):
     """
     )
 
+    cr.execute(
+        """
+        UPDATE account_bank_statement_line
+           SET currency_id = NULL
+         WHERE amount_currency = 0.0
+           AND currency_id IS NOT NULL
+        """
+    )
+
     # ===========================================================
     # Invoice Analysis (PR:47066)
     # ===========================================================
