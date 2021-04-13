@@ -10,16 +10,6 @@ def migrate(cr, version):
     util.create_column(cr, "account_group", "code_prefix_end", "varchar")
     cr.execute("UPDATE account_group SET code_prefix_end = code_prefix_start")
 
-    util.create_column(cr, "account_group", "company_id", "int4")
-    cr.execute(
-        """
-        UPDATE account_group g
-           SET company_id = a.company_id
-          FROM account_account a
-         WHERE g.id = a.group_id
-    """
-    )
-
     cr.execute("ALTER TABLE account_journal_type_rel RENAME TO journal_account_type_control_rel")
     cr.execute("ALTER TABLE account_account_type_rel RENAME TO journal_account_control_rel")
 
