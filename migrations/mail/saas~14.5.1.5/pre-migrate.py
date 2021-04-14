@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.rename_field(cr, "mail.notification", "mail_id", "mail_mail_id")
+    util.change_field_selection_values(
+        cr,
+        "mail.notification",
+        "failure_type",
+        {"SMTP": "mail_smtp", "RECIPIENT": "mail_email_invalid", "UNKNOWN": "unknown", "BOUNCE": "unknown"},
+    )
+    # create failure type and set failure type to unknown as we do not want to try
+    # to compute back failure types in details
+    util.create_column(cr, "mail_mail", "failure_type", "varchar")
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr, "UPDATE mail_mail SET failure_type='unknown' WHERE state='exception'", table="mail_mail"
+        ),
+    )
+    util.rename_field(cr, "mail.mail", "notification", "is_notification")
