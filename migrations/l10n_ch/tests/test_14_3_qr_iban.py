@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo.upgrade.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("saas~14.3")
