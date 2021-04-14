@@ -40,6 +40,15 @@
     padding: 8px;
 }
 
+.with-padding {
+    padding: 8px;
+}
+
+.phone {
+    display: flex;
+    flex-direction: row;
+}
+
 .clickable:hover {
     background: #ededed;
 }

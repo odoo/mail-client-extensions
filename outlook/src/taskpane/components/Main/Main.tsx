@@ -182,8 +182,6 @@ class Main extends React.Component<{}, MainState> {
             const parsed = JSON.parse(response);
             let translations = parsed.result;
             saveTranslations(translations);
-        }).catch((error) => {
-            this.context.showTopBarMessage(new EnrichmentInfo(EnrichmentInfoType.CouldNotGetTranslations, error));
         }).finally(() => {
             this.setState({translationsLoading: false});
         });

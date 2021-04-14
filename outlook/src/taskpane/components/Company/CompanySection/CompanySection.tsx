@@ -161,7 +161,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                 hrefContent={`http://maps.google.com/?q=${company.getLocation()}`}/>
         }
         let phoneSection = null;
-        if (company.getPhone())
+        if (company.getPhone() && !this.props.partner.isCompany)
         {
             phoneSection = <CompanyInfoItem icon={faPhone} title={_t("Phone")} value={company.getPhone()}
                                             hrefContent={`tel:${company.getPhone()}`}/>
@@ -223,7 +223,9 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             crunchbase: company.getCrunchbase(),
             linkedin: company.getLinkedin(),
             description: company.getDescription(),
-            onClick: this.openInOdoo
+            onClick: this.openInOdoo,
+            isCompany: true,
+            parentIsCompany: this.props.partner.isCompany,
         }
 
 

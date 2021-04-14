@@ -5,6 +5,8 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {TooltipHost} from "office-ui-fabric-react";
 import AppContext from "../AppContext";
 
+const defaultCompanyImageSrc = 'assets/company_image.png';
+
 export type ProfileCardProps = {
     domain: string;
     icon: string;
@@ -20,12 +22,43 @@ export type ProfileCardProps = {
     linkedin: string;
     onClick?: () => void;
     isBig?: boolean; //used for email overflow, TODO change maybe by obtaining the width dynamically
+    isCompany: boolean;
+    parentIsCompany?: boolean;
 };
 
 export class ProfileCard extends React.Component<ProfileCardProps, {}> {
     constructor(props, context) {
         super(props, context);
         this.state = {};
+    }
+
+    private addDefaultSrc(ev) {
+        ev.target.src = defaultCompanyImageSrc;
+    }
+
+    private getIconOrInitials = () => {
+
+        if (this.props.parentIsCompany) {
+            return null;
+        }
+
+        let iconOrInitials = <img className='icon' src={this.props.icon} onError={this.addDefaultSrc}/>;
+
+        if (this.props.icon) {
+            if (this.props.isCompany) {
+                iconOrInitials = <img className='icon' src={defaultCompanyImageSrc}/>;
+            }
+            else {
+                iconOrInitials = <div data-initials={this.props.initials}></div>;
+            }
+        }
+        else {
+            if (this.props.domain) {
+                iconOrInitials = <a href={this.props.domain} target='_blank' rel="noreferrer noopener">{iconOrInitials}</a>
+            }
+        }
+
+        return iconOrInitials;
     }
 
     private getTextWidth = (text, font) => {
@@ -38,24 +71,16 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
     }
 
     render() {
-        const {domain, icon, name, email, initials, job, phone, description, twitter, facebook, linkedin, crunchbase} = this.props;
-
-        let iconOrInitials = <img className='icon' src={icon}/>;
-        if (!icon) {
-            iconOrInitials = <div data-initials={initials}></div>
-        }
-        
-        if (domain) {
-            iconOrInitials = <a href={domain} target='_blank' rel="noreferrer noopener">{iconOrInitials}</a>
-        }
+        const {name, email, job, phone, description, twitter, facebook, linkedin, crunchbase} = this.props;
+        const iconOrInitials = this.getIconOrInitials();
 
         let nameJob = job? name+', '+job : name;
 
-        const nameSize = this.getTextWidth(nameJob, 'bold 16px Arial')
+        const nameSize = this.getTextWidth(nameJob, 'bold 16px Arial');
         const nameSizeCutoff = 150;
 
-        // If the size of the text is smaller than the cutoff, the social links should be on the right of the name.
-        const social = <div className={`social-links ${nameSize < nameSizeCutoff ? 'right' : null}`}>
+        // If the size of the text is smaller than the cutoff and the parent is not a company, the social links should be on the right of the name.
+        const social = <div className={`social-links ${(nameSize < nameSizeCutoff && !this.props.parentIsCompany) ? 'right' : null}`}>
             {twitter ? <a href={'https://twitter.com/' + twitter} target='_blank' rel="noreferrer noopener"><img src='assets/social/twitter.ico'/></a> : null}
             {facebook ? <a href={'https://facebook.com/' + twitter} target='_blank' rel="noreferrer noopener"><img src='assets/social/facebook.ico'/></a> : null}
             {linkedin ? <a href={'https://linkedin.com/' + linkedin} target='_blank' rel="noreferrer noopener"><img src='assets/social/linkedin.ico'/></a> : null}
@@ -67,7 +92,9 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         //TODO, can we calculate width dynamically?
         let maxEmailWidth = (this.props.isBig) ? 180 : 120;
 
-        if (email)
+        const nameDiv = (!this.props.parentIsCompany) ? (<div className='name'>{nameJob}</div>) : null;
+
+        if (email && !this.props.parentIsCompany)
         {
             let emailTextContainer = null;
             let emailSize = this.getTextWidth(email, "normal 14px Arial");
@@ -100,7 +127,7 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         }
 
         let phoneDiv = null;
-        if (phone)
+        if (phone && !this.props.parentIsCompany)
         {
             phoneDiv = (
                 <div className='phone'>
@@ -126,9 +153,12 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         }
 
         let profileCardClassName = 'profile-card';
-        if (this.props.onClick)
-        {
+        if (this.props.onClick && !this.props.parentIsCompany) {
             profileCardClassName += ' clickable';
+        } else {
+            if (this.props.parentIsCompany) {
+                profileCardClassName += ' with-padding';
+            }
         }
 
         return (
@@ -137,13 +167,13 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
                     <div className={profileCardClassName} onClick={this.props.onClick}>
                         {iconOrInitials}
                         <div>
-                            <div className='name'>{nameJob}</div>
+                            {nameDiv}
                             {emailDiv}
                             {phoneDiv}
                         </div>
-                        {nameSize < nameSizeCutoff ? social : null}
+                        {(nameSize < nameSizeCutoff || this.props.parentIsCompany) ? social : null}
                     </div>
-                    <div className='profile-card'>{nameSize > nameSizeCutoff ? social : null}</div>
+                    <div className='profile-card'>{(nameSize > nameSizeCutoff && !this.props.parentIsCompany) ? social : null}</div>
                 </div>
                 {descriptionDiv}
             </>
