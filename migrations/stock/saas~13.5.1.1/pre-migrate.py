@@ -25,6 +25,14 @@ def migrate(cr, version):
         """
     )
 
+    cr.execute(
+        """
+    UPDATE stock_move
+       SET date = date_expected
+     WHERE state NOT IN ('done', 'cancel')
+        """
+    )
+
     util.remove_field(cr, "stock.move", "date_expected")
     util.remove_field(cr, "stock.move", "delay_alert")
     util.remove_field(cr, "stock.move", "propagate_date")
