@@ -5,3 +5,24 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.create_column(cr, "res_company", "company_details", "text")
     util.create_column(cr, "res_company", "layout_background", "character varying", default="Blank")
+    cr.execute("UPDATE ir_model_data SET noupdate = True WHERE model = 'res.currency' AND module = 'base'")
+
+    def curmap(f, t):
+        a, b = util.ref(cr, f"base.{f}"), util.ref(cr, f"base.{t}")
+        if a and b:
+            util.if_unchanged(cr, f"base.rate{f}", util.remove_record)
+            return {a: b}
+        if a:
+            util.rename_xmlid(cr, f"base.{f}", f"base.{t}")
+            util.rename_xmlid(cr, f"base.rate{f}", f"base.rate{t}")
+        return {}
+
+    currency_mapping = {**curmap("QTQ", "GTQ"), **curmap("UAG", "UAH")}
+    if currency_mapping:
+        util.replace_record_references_batch(cr, currency_mapping, "res.currency", replace_xmlid=False)
+
+    # Remove the currency
+    currencies = ["CYP", "ECS", "ZRZ", "ITL", "RUR", "PLZ", "SKK", "YUM", "QTQ", "UAG"]
+    for currency in currencies:
+        if not util.delete_unused(cr, f"base.{currency}"):
+            util.force_noupdate(cr, f"base.rate{currency}")
