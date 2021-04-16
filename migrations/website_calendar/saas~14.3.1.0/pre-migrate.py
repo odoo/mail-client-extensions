@@ -5,9 +5,9 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.create_column(cr, "calendar_appointment_type", "cover_properties", "text")
     background = """{
-        'background-image': 'url("/website_calendar/static/src/img/appointment_cover_0.jpg")',
-        'resize_class': 'o_record_has_cover o_half_screen_height',
-        'opacity': '0.4'
+        "background-image": "url(/website_calendar/static/src/img/appointment_cover_0.jpg)",
+        "resize_class": "o_record_has_cover o_half_screen_height",
+        "opacity": "0.4"
     }"""
     cr.execute(
         """
