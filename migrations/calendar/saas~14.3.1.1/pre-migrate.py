@@ -41,6 +41,8 @@ def migrate(cr, version):
         """
     )
 
+    util.create_column(cr, "calendar_event_type", "color", "integer", default=1)
+
     util.create_column(cr, "calendar_alarm", "mail_template_id", "int4")
     util.create_column(cr, "calendar_alarm", "body", "text")
 
