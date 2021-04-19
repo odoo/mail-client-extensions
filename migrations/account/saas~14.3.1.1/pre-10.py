@@ -106,3 +106,29 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move"))
     util.create_column(cr, "account_payment", "paired_internal_transfer_payment_id", "int4")
     util.create_column(cr, "account_payment", "destination_journal_id", "int4")
+    # set partner_id on internal transfer aml, (at least) needed for AccountPayment._seek_for_lines()
+    query = """
+        UPDATE account_move_line AS aml
+           SET partner_id = pay.partner_id
+          FROM account_payment pay
+         WHERE pay.is_internal_transfer = TRUE
+           AND aml.partner_id IS NULL
+           AND pay.move_id = aml.move_id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    # set destination_journal_id if one can be found via reconciled aml
+    query = """
+         UPDATE account_payment AS pay
+            SET destination_journal_id = rec_aml.journal_id
+           FROM account_move_line rec_aml
+           JOIN account_partial_reconcile rec ON rec.debit_move_id = rec_aml.id OR rec.credit_move_id = rec_aml.id
+           JOIN account_move_line aml ON (aml.debit > 0 AND rec.credit_move_id = rec_aml.id)
+                                      OR (aml.credit > 0 AND rec.debit_move_id = rec_aml.id)
+          WHERE pay.is_internal_transfer = TRUE
+            AND pay.move_id = aml.move_id
+            AND (
+                    (pay.payment_type = 'outbound' AND rec.debit_move_id = aml.id)
+                 OR (pay.payment_type = 'inbound' AND rec.credit_move_id = aml.id)
+            )
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="pay."))
