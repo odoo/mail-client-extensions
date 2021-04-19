@@ -29,6 +29,7 @@ def one_user_type_group(cr, admin_ids):
     public = util.ref(cr, "base.group_public")
     settings = util.ref(cr, "base.group_system")
     accessrights = util.ref(cr, "base.group_erp_manager")
+    account_user = util.ref(cr, "account.group_account_user")
     usability = (util.ref(cr, "base.module_category_usability"), util.ref(cr, "base.module_category_hidden"))
     # remove public users from all other non usability groups
     cr.execute(
@@ -53,6 +54,18 @@ def one_user_type_group(cr, admin_ids):
     """,
         locals(),
     )
+
+    if account_user:
+        # remove group_account_user from all public/portal users
+        cr.execute(
+            """
+            DELETE FROM res_groups_users_rel
+                  WHERE gid = %(account_user)s
+                    AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid IN (%(portal)s, %(public)s))
+                    AND uid NOT IN %(admin_ids)s
+        """,
+            locals(),
+        )
 
     # remove SUPERUSER and user2 from `portal` and `public` groups, or groups that implicitly inherit those
     cr.execute(
