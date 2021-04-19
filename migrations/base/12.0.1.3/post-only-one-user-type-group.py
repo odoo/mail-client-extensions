@@ -3,8 +3,24 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    one_user_type_group(cr, {1, util.guess_admin_id(cr)})
+    one_user_type_group(cr, {1} | admin_ids(cr))
 
+
+def admin_ids(cr):
+    # patched version from upgrade utils to return ALL the ids
+    cr.execute(
+        """
+        SELECT DISTINCT r.uid
+          FROM res_groups_users_rel r
+          JOIN res_users u ON r.uid = u.id
+         WHERE u.active
+           AND r.gid = (SELECT res_id
+                          FROM ir_model_data
+                         WHERE module = 'base'
+                           AND name = 'group_system')
+        """
+    )
+    return {u[0] for u in cr.fetchall()}
 
 def one_user_type_group(cr, admin_ids):
     admin_ids = tuple(admin_ids)
