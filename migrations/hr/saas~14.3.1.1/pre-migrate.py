@@ -24,11 +24,13 @@ def migrate(cr, version):
 
     cr.execute(
         """
-            INSERT INTO hr_work_location(name, company_id, address_id, active, create_uid, create_date, write_uid, write_date)
-                 SELECT work_location, company_id, address_id, true, 1, now() at time zone 'utc', 1, now() at time zone 'utc'
+            INSERT INTO hr_work_location(name, company_id, address_id,
+                                         active, create_uid, create_date, write_uid, write_date)
+                 SELECT initcap(trim(work_location)), company_id, address_id,
+                        true, 1, now() at time zone 'utc', 1, now() at time zone 'utc'
                    FROM hr_employee
                   WHERE work_location IS NOT NULL
-               GROUP BY work_location, company_id, address_id
+               GROUP BY initcap(trim(work_location)), company_id, address_id
         """
     )
 
@@ -43,8 +45,15 @@ def migrate(cr, version):
         """
     )
 
+    util.update_field_references(
+        cr,
+        "work_location",
+        "work_location_id",
+        only_models=("res.users", "hr.employee.base"),
+    )
     util.remove_field(cr, "res.users", "work_location")
     util.remove_field(cr, "hr.employee.base", "work_location")
 
     util.create_column(cr, "hr_employee", "departure_reason_id", "int4")
     util.remove_field(cr, "hr.departure.wizard", "departure_reason")
+    util.create_column(cr, "hr_departure_wizard", "departure_reason_id", "int4")

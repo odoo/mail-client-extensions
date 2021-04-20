@@ -6,11 +6,11 @@ def migrate(cr, version):
     cr.execute(
         """
             INSERT INTO hr_departure_reason(name, create_uid, create_date, write_uid, write_date)
-                 SELECT initcap(departure_reason), 1, now() at time zone 'utc', 1, now() at time zone 'utc'
+                 SELECT initcap(trim(departure_reason)), 1, now() at time zone 'utc', 1, now() at time zone 'utc'
                    FROM hr_employee e
                   WHERE e.departure_reason IS NOT NULL
                     AND NOT EXISTS (SELECT 1 FROM hr_departure_reason hdr WHERE lower(hdr.name) = lower(e.departure_reason))
-               GROUP BY e.departure_reason
+               GROUP BY initcap(trim(e.departure_reason))
         """
     )
 
@@ -23,5 +23,5 @@ def migrate(cr, version):
         """
     )
 
-    util.remove_field(cr, "hr.employee", "departure_reason")
     util.update_field_references(cr, "departure_reason", "departure_reason_id", only_models=("hr.employee",))
+    util.remove_field(cr, "hr.employee", "departure_reason")
