@@ -43,3 +43,86 @@ def migrate(cr, version):
           WHERE s.date_from IS NOT NULL AND s.contract_id IS NOT NULL
             """
         )
+
+    # We add 3 basic rules on all the existing structures
+    deduction_categ_id = util.ref(cr, "hr_payroll.DED")
+
+    cr.execute("SELECT id FROM hr_payroll_structure")
+    structure_ids = [s["id"] for s in cr.dictfetchall()]
+
+    values = []
+    for structure_id in structure_ids:
+        values.append(
+            (
+                structure_id,
+                "Attachment of Salary",
+                174,
+                "ATTACH_SALARY",
+                deduction_categ_id,
+                "python",
+                "result = inputs.ATTACH_SALARY",
+                "code",
+                """result = -inputs.ATTACH_SALARY.amount
+result_name = inputs.ATTACH_SALARY.name""",
+                1,
+                True,
+                True,
+            )
+        )
+        values.append(
+            (
+                structure_id,
+                "Assignment of Salary",
+                174,
+                "ASSIG_SALARY",
+                deduction_categ_id,
+                "python",
+                "result = inputs.ASSIG_SALARY",
+                "code",
+                """result = -inputs.ASSIG_SALARY.amount
+result_name = inputs.ASSIG_SALARY.name""",
+                1,
+                True,
+                True,
+            )
+        )
+        values.append(
+            (
+                structure_id,
+                "Child Support",
+                174,
+                "CHILD_SUPPORT",
+                deduction_categ_id,
+                "python",
+                "result = inputs.CHILD_SUPPORT",
+                "code",
+                """result = -inputs.CHILD_SUPPORT.amount
+result_name = inputs.CHILD_SUPPORT.name""",
+                1,
+                True,
+                True,
+            )
+        )
+
+    cr.execute(
+        """
+        INSERT INTO
+            hr_salary_rule(
+                struct_id,
+                name,
+                sequence,
+                code,
+                category_id,
+                condition_select,
+                condition_python,
+                amount_select,
+                amount_python_compute,
+                quantity,
+                active,
+                appears_on_payslip
+            )
+        VALUES {}""".format(
+            ", ".join(["%s"] * len(structure_ids) * 3)
+        ),
+        values,
+    )
