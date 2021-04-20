@@ -17,6 +17,7 @@ def migrate(cr, version):
         util.new_module(cr, "social_instagram", deps={"social"}, auto_install=False)
         util.module_deps_diff(cr, "social_demo", plus={"social_instagram"})
         util.module_deps_diff(cr, "social_test_full", plus={"social_instagram"})
+        util.new_module(cr, "mrp_workorder_plm", deps={"mrp_workorder", "mrp_plm"}, auto_install=True)
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
