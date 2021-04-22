@@ -43,8 +43,8 @@ class Field(models.Model):
         unlink_fields = self.env["ir.model.fields"]
         ignore_fields = self.env["ir.model.fields"]
         for field in self:
-            model = self.env[field.model] if field.model in self.env else None
-            f = model._fields.get(field.name) if model else None
+            model = self.env.get(field.model)
+            f = model._fields.get(field.name) if model is not None else None
             if "field:%s.%s" % (field.model, field.name) in os.environ.get("suppress_upgrade_warnings", "").split(","):
                 ignore_fields |= field
                 util._logger.log(25, "Field unlink %s.%s explicitly ignored, skipping" % (field.model, field.name))
