@@ -121,6 +121,37 @@ class Field(models.Model):
                 # Let it be deleted, so the ORM creates it back, hopefully marked with the correct module this time.
                 ignore_fields |= field
 
+            elif (model is not None) and model._inherit:
+                abstract_models = [model for model in self.env.registry.values() if model._abstract]
+                inherited_abstracts = {
+                    model._name for model in abstract_models if field.model in model._inherit_children
+                }
+                while True:
+                    find_abstracts = {
+                        model._name
+                        for model in abstract_models
+                        if any(m in model._inherit_children for m in inherited_abstracts)
+                    }
+                    if find_abstracts <= inherited_abstracts:
+                        break
+                    inherited_abstracts |= find_abstracts
+
+                abstract_fields = (
+                    self.env["ir.model.fields"].search_count(
+                        [("model", "in", list(inherited_abstracts)), ("name", "=", field.name)]
+                    )
+                    if inherited_abstracts
+                    else 0
+                )
+                if abstract_fields:
+                    util._logger.critical(
+                        "The field %s.%s is being deleted. Either you forgot to call `util.remove_field`, either it is "
+                        "a custom field marked as coming from a standard module due to odoo/odoo#49354.",
+                        field.model,
+                        field.name,
+                    )
+                    continue
+
             unlink_fields |= field
         invalid_unlink_fields = unlink_fields - ignore_fields
         if invalid_unlink_fields:
