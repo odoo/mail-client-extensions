@@ -2,6 +2,7 @@
 import os
 
 from odoo import models
+
 from odoo.addons.base.maintenance.migrations import util
 
 try:
@@ -22,13 +23,14 @@ class Model(models.Model):
     def unlink(self):
         invalid_models = []
         for model in self.mapped("model"):
-            if "model:%s" % model in os.environ.get('suppress_upgrade_warnings', '').split(','):
+            if "model:%s" % model in os.environ.get("suppress_upgrade_warnings", "").split(","):
                 util._logger.log(25, "Model unlink %s explicitly ignored, skipping" % model)
             else:
                 invalid_models.append(model)
         if invalid_models:
             raise util.MigrationError(
-                "💥 It looks like you forgot to call `util.remove_model` on the following models: %s" % ", ".join(invalid_models)
+                "💥 It looks like you forgot to call `util.remove_model` on the following models: %s"
+                % ", ".join(invalid_models)
             )
         return super(Model, self).unlink()
 
@@ -43,7 +45,7 @@ class Field(models.Model):
         for field in self:
             model = self.env[field.model] if field.model in self.env else None
             f = model._fields.get(field.name) if model else None
-            if "field:%s.%s" % (field.model, field.name) in os.environ.get('suppress_upgrade_warnings', '').split(','):
+            if "field:%s.%s" % (field.model, field.name) in os.environ.get("suppress_upgrade_warnings", "").split(","):
                 ignore_fields |= field
                 util._logger.log(25, "Field unlink %s.%s explicitly ignored, skipping" % (field.model, field.name))
                 continue
