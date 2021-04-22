@@ -14,3 +14,7 @@ def migrate(cr, version):
     util.remove_model(cr, "l10n.be.withholding.tax.exemption")
     util.remove_model(cr, "l10n.be.withholding.tax.exemption.line")
     util.remove_model(cr, "l10n.be.withholding.tax.ip.declaration")
+
+    for atn_type in ["internet", "mobile", "laptop"]:
+        util.delete_unused(cr, f"l10n_be_hr_payroll.cp200_employees_double_holiday_atn_{atn_type}")
+        util.delete_unused(cr, f"l10n_be_hr_payroll.cp200_employees_double_holiday_atn_{atn_type}_2")
