@@ -277,8 +277,10 @@ def migrate(cr, version):
             GROUP BY 1
         ''')
         for account_id, line_ids in cr.fetchall():
-            for line in util.iter_browse(env['account.move.line'].with_context(**ctx), line_ids):
-                line.write({'account_id': account_id})
+            for line in util.iter_browse(
+                env["account.move.line"].with_context(**ctx), line_ids, chunk_size=1024, strategy="commit"
+            ):
+                line.write({"account_id": account_id})
 
     with util.no_fiscal_lock(cr):
 
