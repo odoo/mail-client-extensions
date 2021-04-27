@@ -256,31 +256,57 @@ def migrate(cr, version):
         account_cmp = "IN (journal.default_debit_account_id, journal.default_credit_account_id)"
 
     ctx = {"skip_account_move_synchronization": True, "tracking_disable": True}
+    move_ids = set()
     for debit_credit, balance_sign in (('debit', '>='), ('credit', '<')):
         cr.execute(f'''
-            SELECT
-                journal.payment_{debit_credit}_account_id AS account_id,
-                ARRAY_AGG(line.id) AS line_ids
+            UPDATE account_move_line line
+            SET account_id = journal.payment_debit_account_id
             FROM account_payment pay
             JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
             JOIN account_move move ON move.id = pay.move_id
-            JOIN account_move_line line ON line.move_id = move.id
             JOIN res_company company ON move.company_id = company.id
             JOIN account_journal journal ON journal.id = move.journal_id
             WHERE pay_backup.no_replace_account IS FALSE
             AND move.statement_line_id IS NULL
+            AND line.move_id = move.id
             AND line.account_id {account_cmp}
             AND line.balance {balance_sign} 0.0
             AND journal.payment_{debit_credit}_account_id IS NOT NULL
             AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.{debit_credit}_move_id = line.id)
             AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
-            GROUP BY 1
+            RETURNING move.id
         ''')
-        for account_id, line_ids in cr.fetchall():
-            for line in util.iter_browse(
-                env["account.move.line"].with_context(**ctx), line_ids, chunk_size=1024, strategy="commit"
-            ):
-                line.write({"account_id": account_id})
+        updated_move_ids = set(r[0] for r in cr.fetchall())
+        move_ids |= updated_move_ids
+        if updated_move_ids:
+            other = "credit" if debit_credit == "debit" else "debit"
+            cr.execute(f'''
+                SELECT {debit_credit}_move.id
+                FROM account_partial_reconcile reconcile
+                JOIN account_move_line debit_line ON debit_line.id = reconcile.debit_move_id
+                JOIN account_move_line credit_line ON credit_line.id = reconcile.credit_move_id
+                JOIN account_move debit_move ON debit_move.id = debit_line.move_id
+                JOIN account_move credit_move ON credit_move.id = credit_line.move_id
+                WHERE {other}_move.id IN %(move_ids)s
+            ''', {'move_ids': tuple(updated_move_ids)})
+            move_ids |= set(r[0] for r in cr.fetchall())
+    if move_ids:
+        cr.execute("SELECT payment_id FROM account_move WHERE id IN %s AND payment_id IS NOT NULL", [tuple(move_ids)])
+        payment_ids = set(r[0] for r in cr.fetchall())
+        util.recompute_fields(
+            cr,
+            env['account.payment'].with_context(**ctx),
+            fields=('is_reconciled',),
+            ids=payment_ids,
+            chunk_size=1024,
+        )
+        util.recompute_fields(
+            cr,
+            env['account.move'].with_context(**ctx),
+            fields=('payment_state',),
+            ids=move_ids,
+            chunk_size=1024,
+        )
 
     with util.no_fiscal_lock(cr):
 
