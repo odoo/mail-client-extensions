@@ -837,6 +837,7 @@ def migrate_voucher_lines(cr):
                 mappings.append((created_move.id, record_id))
         except Exception:
             _logger.exception("Cannot create move from draft/cancel voucher")
+            updated_vouchers.pop(record_id, None)
         cr.commit()
 
     if updated_vouchers:
