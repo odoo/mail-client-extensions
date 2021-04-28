@@ -43,6 +43,7 @@ def migrate(cr, version):
         util.new_module(cr, "hr_work_entry_contract_enterprise", deps={"hr_work_entry_contract"}, auto_install=True)
         util.new_module(cr, "hr_work_entry_holidays_enterprise", deps={"hr_work_entry_holidays"}, auto_install=True)
         util.new_module(cr, "l10n_us_1099", deps={"l10n_us", "account_accountant"}, auto_install=True)
+        util.force_migration_of_fresh_module(cr, "l10n_us_1099")
         util.new_module(cr, "website_calendar_crm", deps={"website_calendar", "crm"}, auto_install=True)
 
         util.new_module(cr, "social_youtube", deps={"social", "iap"})
