@@ -21,3 +21,6 @@ def migrate(cr, version):
     util.create_column(cr, "hr_employee", "l10n_be_dependent_children_attachment", "int4")
 
     util.create_column(cr, "res_company", "l10n_be_ffe_employer_type", "varchar", default="commercial")
+
+    util.remove_model(cr, "l10n_be.hr.payroll.credit.time.wizard")
+    util.remove_model(cr, "l10n_be.hr.payroll.exit.credit.time.wizard")
