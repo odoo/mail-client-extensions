@@ -9,12 +9,14 @@ def migrate(cr, version):
     util.create_m2m(cr, "product_product_quality_point_rel", "product_product", "quality_point")
     cr.execute(
         """
-            INSERT INTO product_product_quality_point_rel(quality_point_id, product_product_id)
-                 SELECT id, product_id
-                   FROM quality_point
-                  WHERE product_id IS NOT NULL
-    """
+        INSERT INTO product_product_quality_point_rel(quality_point_id, product_product_id)
+        SELECT qp.id, pp.id
+          FROM quality_point qp, product_product pp
+         WHERE qp.product_tmpl_id = pp.product_tmpl_id
+           AND (qp.product_id IS NULL OR pp.id = qp.product_id)
+        """
     )
+
     util.create_m2m(cr, "quality_point_stock_picking_type_rel", "quality_point", "stock_picking_type")
     cr.execute(
         """
