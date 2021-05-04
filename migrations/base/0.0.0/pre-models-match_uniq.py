@@ -73,6 +73,7 @@ for model in {
     "res.currency",
     "ir.config_parameter",
     "ir.actions.act_window.view",
+    "ir.module.module",
 }:
 
     class Americaine(models.Model):  # a.k.a "Le grand détournement"
