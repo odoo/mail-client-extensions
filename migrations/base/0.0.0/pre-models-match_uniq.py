@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
+
 from psycopg2 import IntegrityError
 
 from odoo import api, models
+
 from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migration.base.000." + __name__)
