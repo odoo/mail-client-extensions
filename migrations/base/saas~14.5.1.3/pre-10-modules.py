@@ -25,3 +25,6 @@ def migrate(cr, version):
             util.force_install_module(cr, "mail_group")
             util.force_migration_of_fresh_module(cr, "mail_group")
     util.new_module(cr, "website_mail_group", deps={"mail_group", "website"}, auto_install=True)
+
+    util.merge_module(cr, "website_form", "website")
+    util.module_deps_diff(cr, "website", plus={"mail", "google_recaptcha"})
