@@ -4,16 +4,15 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     # Add expected reservation_date to 'at_confirm' moves
-    cr.execute(
-        """
+    query = """
             UPDATE stock_move AS sm
                SET reservation_date = sm.create_date
               FROM stock_picking_type AS spt
              WHERE spt.reservation_method = 'at_confirm'
                AND sm.picking_type_id = spt.id
                AND sm.reservation_date IS NULL
-        """
-    )
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move", prefix="sm."))
 
     util.create_column(cr, "stock_picking_type", "reservation_days_before_priority", "integer")
 
@@ -50,30 +49,37 @@ def migrate(cr, version):
     WITH
         dupes AS(
             SELECT min(id) as to_update_quant_id,
-            (array_agg(id ORDER BY id))[2:array_length(array_agg(id), 1)] as to_delete_quant_ids,
-            SUM(reserved_quantity) as reserved_quantity,
-            SUM(inventory_quantity) as inventory_quantity,
-            SUM(quantity) as quantity,
-            MIN(in_date) as in_date
-            FROM stock_quant
-            GROUP BY product_id, company_id, location_id, lot_id, package_id, owner_id
+                   (array_agg(id ORDER BY id))[2:count(id)] as to_delete_quant_ids,
+                   SUM(reserved_quantity) as reserved_quantity,
+                   SUM(inventory_quantity) as inventory_quantity,
+                   SUM(quantity) as quantity,
+                   MIN(in_date) as in_date
+              FROM stock_quant
+          GROUP BY product_id, company_id, location_id, lot_id, package_id, owner_id
             HAVING count(id) > 1
         ),
         _up AS(
             UPDATE stock_quant q
-            SET quantity=d.quantity,
-            reserved_quantity=d.reserved_quantity,
-            inventory_quantity=d.inventory_quantity,
-            in_date=d.in_date
-            FROM dupes d
-            WHERE d.to_update_quant_id=q.id
+               SET quantity = d.quantity,
+                   reserved_quantity = d.reserved_quantity,
+                   inventory_quantity = d.inventory_quantity,
+                   in_date = d.in_date
+              FROM dupes d
+             WHERE d.to_update_quant_id = q.id
         )
-        DELETE FROM stock_quant WHERE id in (SELECT unnest(to_delete_quant_ids) from dupes)
+        DELETE FROM stock_quant
+              WHERE id in (SELECT unnest(to_delete_quant_ids) from dupes)
     """
     )
 
     # Find stock.inventory.line that didn't generate a stock.move.line
     # to keep their history of a correct quantity counted
+
+    # if the module `stock_account` is installed, the column `accounting_date` moved from the inventory to the quant
+    # force creation of the column to easy queries writing (avoid SQL composition).
+    util.create_column(cr, "stock_inventory", "accounting_date", "date")
+    util.create_column(cr, "stock_quant", "accounting_date", "date")
+
     cr.execute(
         """
     CREATE TEMPORARY VIEW temp_ongoing_inventory_line AS (
@@ -86,7 +92,8 @@ def migrate(cr, version):
             il.partner_id,
             il.product_id,
             product_qty,
-            stock_quant.id as quant_id
+            stock_quant.id as quant_id,
+            i.accounting_date
         FROM stock_inventory as i
         JOIN stock_inventory_line as il ON i.id = il.inventory_id
         LEFT JOIN stock_quant ON stock_quant.product_id = il.product_id
@@ -102,71 +109,43 @@ def migrate(cr, version):
 
     cr.execute(
         """
-    UPDATE
-        stock_quant
-    SET
-        inventory_quantity = inventory_line.product_qty,
-        inventory_diff_quantity = inventory_line.product_qty - stock_quant.quantity,
-        inventory_date = inventory_line.date
-    FROM
-        temp_ongoing_inventory_line as inventory_line
-    WHERE
-        quant_id IS NOT NULL
+        UPDATE stock_quant q
+           SET inventory_quantity = l.product_qty,
+               inventory_diff_quantity = l.product_qty - q.quantity,
+               inventory_date = l.date,
+               accounting_date = l.accounting_date
+          FROM temp_ongoing_inventory_line as l
+         WHERE q.id = l.quant_id
     """
     )
 
     cr.execute(
         """
-    INSERT INTO
-        stock_quant(
-            product_id,
-            location_id,
-            lot_id,
-            package_id,
-            owner_id,
-            company_id,
-            quantity,
-            reserved_quantity,
-            inventory_quantity,
-            inventory_diff_quantity,
-            inventory_date,
-            in_date
+        INSERT INTO stock_quant(product_id, location_id, lot_id, package_id, owner_id, company_id,
+                                quantity, reserved_quantity, inventory_quantity, inventory_diff_quantity,
+                                inventory_date, in_date, accounting_date
         )
-    SELECT
-        product_id,
-        location_id,
-        prod_lot_id,
-        package_id,
-        partner_id,
-        company_id,
-        0,
-        0,
-        product_qty,
-        product_qty,
-        date,
-        date
-    FROM
-        temp_ongoing_inventory_line as inventory_line
-    WHERE
-        quant_id IS NULL
+             SELECT product_id, location_id, prod_lot_id, package_id, partner_id, company_id,
+                    0, 0, product_qty, product_qty,
+                    date, date, accounting_date
+               FROM temp_ongoing_inventory_line
+              WHERE quant_id IS NULL
     """
     )
 
-    if not util.table_exists(cr, "temp_inventory_line"):
-        cr.execute(
-            """
+    # FIXME the following query seems wrong
+    #  - should filter on exact property (using fields_id)
+    #  - default property handling
+    cr.execute(
+        """
         CREATE TEMPORARY VIEW temp_inventory_line AS (
             WITH inventory_location_per_company AS (
-                SELECT
-                    company_id,
-                    MIN(SPLIT_PART(value_reference, ',', 2)::int4) as location_dest_id
-                FROM
-                    ir_property
-                WHERE
-                    ir_property.name = 'property_stock_inventory'
-                GROUP BY
-                    company_id
-                )
+                SELECT company_id,
+                       MIN(SPLIT_PART(value_reference, ',', 2)::int4) as location_dest_id
+                  FROM ir_property
+                 WHERE ir_property.name = 'property_stock_inventory'
+              GROUP BY company_id
+            )
             SELECT
                 product_id,
                 location_id,
@@ -185,7 +164,7 @@ def migrate(cr, version):
                 stock_inventory_line.product_qty = stock_inventory_line.theoretical_qty
         )
         """
-        )
+    )
 
     # Create stock.move for inventory count
     cr.execute(
@@ -277,13 +256,8 @@ def migrate(cr, version):
     """
     )
 
-    cr.execute(
-        """
-    UPDATE stock_move
-       SET is_inventory = True
-     WHERE inventory_id IS NOT NULL
-    """
-    )
+    query = "UPDATE stock_move SET is_inventory = true WHERE inventory_id IS NOT NULL"
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move"))
 
     # Remove Inventory
     util.remove_model(cr, "stock.inventory.line")
@@ -291,3 +265,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "stock.move", "inventory_id")
     util.remove_field(cr, "stock.track.confirmation", "inventory_id")
+
+    # cleanup
+    if not util.module_installed(cr, "stock_account"):
+        util.remove_column(cr, "stock_quant", "accounting_date")
