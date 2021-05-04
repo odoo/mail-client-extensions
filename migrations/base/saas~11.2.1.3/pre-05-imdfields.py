@@ -28,6 +28,7 @@ def migrate(cr, version):
             util.remove_record(cr, ("ir.model.fields", d))
 
     cr.execute("DROP INDEX IF EXISTS ir_model_data_module_name_index")  # old duplicated index
+    cr.execute("ALTER TABLE ir_model_data DROP CONSTRAINT IF EXISTS ir_model_data_module_name_uniq")
     cr.execute("DROP INDEX IF EXISTS ir_model_data_module_name_uniq_index")  # will be recreated later
     cr.execute(
         """
