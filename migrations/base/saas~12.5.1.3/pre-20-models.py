@@ -33,8 +33,11 @@ def migrate(cr, version):
     util.remove_field(cr, "ir.translation", "source")
     util.update_field_references(cr, "source", "src", only_models=("ir.translation",))
 
-    if util.ref(cr, "base.field_res_company__font"):
-        util.remove_field(cr, "res.company", "font")
+    # since font was on 10.0 and not properly removed since 11.0 we need to
+    # be sure its type is correct in case it exists
+    font_ct = util.column_type(cr, "res_company", "font")
+    if font_ct and font_ct != "varchar":
+        util.remove_column(cr, "res_company", "font")
     util.create_column(cr, "res_company", "font", "varchar")
     util.create_column(cr, "res_company", "primary_color", "varchar")
     util.create_column(cr, "res_company", "secondary_color", "varchar")
