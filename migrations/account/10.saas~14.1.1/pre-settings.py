@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     util.remove_view(cr, "account.view_account_config_settings")
 
@@ -36,7 +37,7 @@ def migrate(cr, version):
     moved = util.splitlines(
         """
         use_anglo_saxon
-        transfert_account_id
+        transfer_account_id
         tax_cash_basis_journal_id
         fiscalyear_last_day
         fiscalyear_last_month

@@ -12,6 +12,8 @@ def migrate(cr, version):
     util.create_column(cr, "res_company", "account_journal_payment_debit_account_id", "int4")
     util.create_column(cr, "res_company", "account_journal_payment_credit_account_id", "int4")
 
+    util.move_field_to_module(cr, "res.config.settings", "transfer_account_id", "account_accountant", "account")
+
     # ===============================================================
     # Multi-VAT tax reports (PR: 68349)
     # ===============================================================
