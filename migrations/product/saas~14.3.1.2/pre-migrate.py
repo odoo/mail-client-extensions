@@ -4,6 +4,10 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     if util.module_installed(cr, "delivery"):
+
+        for table, _column, constraint, _action in util.get_fk(cr, "product_packaging"):
+            cr.execute(f"ALTER TABLE {table} DROP CONSTRAINT {constraint}")
+
         util.rename_model(cr, "product.packaging", "stock.package.type")
         # This model is actually defined in the `stock` module (hence the name). It works because `delivery` depends on `stock`.
         util.move_model(cr, "stock.package.type", "product", "stock")
@@ -15,6 +19,7 @@ CREATE TABLE product_packaging AS
          create_date,
          write_uid,
          write_date,
+         name,
          sequence,
          product_id,
          qty,
