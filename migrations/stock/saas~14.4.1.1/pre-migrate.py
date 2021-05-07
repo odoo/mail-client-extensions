@@ -13,3 +13,9 @@ def migrate(cr, version):
     util.create_column(cr, "stock_location_route", "packaging_selectable", "boolean")
 
     util.create_column(cr, "stock_move", "product_packaging_id", "int4")
+
+    # convert text data to html data
+    util.convert_field_to_html(cr, "stock.location", "comment")
+    util.convert_field_to_html(cr, "stock.picking", "note")
+    util.convert_field_to_html(cr, "product.template", "description_pickingin")
+    util.convert_field_to_html(cr, "product.template", "description_pickingout")

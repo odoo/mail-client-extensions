@@ -47,3 +47,5 @@ def migrate(cr, version):
 
     else:
         util.create_column(cr, "sale_order_line", "product_packaging_id", "int4")
+
+    util.convert_field_to_html(cr, "sale.order", "note")
