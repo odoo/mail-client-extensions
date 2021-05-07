@@ -574,8 +574,8 @@ def migrate(cr, version):
             """
         )
 
-        for move in util.iter_browse(env["account.move"].with_context(**ctx), [row[0] for row in cr.fetchall()]):
-            move.action_post()
+        ids = [row[0] for row in cr.fetchall()]
+        util.iter_browse(env["account.move"].with_context(**ctx), ids, chunk_size=1024).action_post()
 
     # ===== Don't alter accounting data prior to the lock date =====
 
