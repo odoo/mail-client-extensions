@@ -42,9 +42,9 @@ def migrate(cr, version):
     lock_date = date.today() - timedelta(weeks=26)
     # If the lock date is more than 1.5 years old, reset it to a more recent date.
     limit_date = date.today() - timedelta(weeks=78)
-    missing_lockdate_companies = env["res.company"].search([
-        "|", ("fiscalyear_lock_date", "=", False), ("fiscalyear_lock_date", "<", limit_date)
-    ])
+    missing_lockdate_companies = env["res.company"].search(
+        ["|", ("fiscalyear_lock_date", "=", False), ("fiscalyear_lock_date", "<", limit_date)]
+    )
     if missing_lockdate_companies:
         missing_lockdate_companies._write({"fiscalyear_lock_date": lock_date})
         companies = ", ".join(missing_lockdate_companies.mapped("name"))
@@ -137,7 +137,13 @@ def migrate(cr, version):
                        default_account_id=%s
                  WHERE id=%s
             """,
-            [j1.id, j2.id, journal.company_id.account_journal_suspense_account_id.id, default_account_id.id, journal.id],
+            [
+                j1.id,
+                j2.id,
+                journal.company_id.account_journal_suspense_account_id.id,
+                default_account_id.id,
+                journal.id,
+            ],
         )
 
         cr.execute("SELECT 1 FROM journal_account_control_rel WHERE journal_id=%s", [journal.id])
@@ -147,12 +153,13 @@ def migrate(cr, version):
                     INSERT INTO journal_account_control_rel (journal_id, account_id)
                     VALUES (%(journal)s, %(debit)s), (%(journal)s, %(credit)s), (%(journal)s, %(suspense)s)
                     ON CONFLICT DO NOTHING
-                """, {
+                """,
+                {
                     "journal": journal.id,
                     "debit": j1.id,
                     "credit": j2.id,
                     "suspense": journal.company_id.account_journal_suspense_account_id.id,
-                }
+                },
             )
 
     # ===== FIX res.partner's company =====
@@ -224,20 +231,22 @@ def migrate(cr, version):
 
     # Manually deleted journal entries for posted payments.
 
-    cr.execute('''
+    cr.execute(
+        """
         SELECT pay.id
         FROM account_payment pay
         JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
         WHERE pay_backup.state NOT IN ('draft', 'cancelled')
         AND pay.move_id IS NULL
-    ''')
+    """
+    )
     payment_ids = [res[0] for res in cr.fetchall()]
     if payment_ids:
         util.add_to_migration_reports(
             "The following payments have been deleted during the migration because there were posted but no longer"
             "linked to any journal entry: %s" % payment_ids
         )
-        env['account.payment'].browse(payment_ids).unlink()
+        env["account.payment"].browse(payment_ids).unlink()
 
     # Change the liquidity account of payments that are not yet reconciled with a statement line.
     # This should be done because the payment is no longer impacting directly the bank/cash account like the
@@ -257,8 +266,9 @@ def migrate(cr, version):
 
     ctx = {"skip_account_move_synchronization": True, "tracking_disable": True}
     move_ids = set()
-    for debit_credit, balance_sign in (('debit', '>='), ('credit', '<')):
-        cr.execute(f'''
+    for debit_credit, balance_sign in (("debit", ">="), ("credit", "<")):
+        cr.execute(
+            f"""
             UPDATE account_move_line line
             SET account_id = journal.payment_debit_account_id
             FROM account_payment pay
@@ -275,12 +285,14 @@ def migrate(cr, version):
             AND NOT EXISTS(SELECT 1 FROM account_partial_reconcile part WHERE part.{debit_credit}_move_id = line.id)
             AND (company.fiscalyear_lock_date IS NULL OR line.date > company.fiscalyear_lock_date)
             RETURNING move.id
-        ''')
+        """
+        )
         updated_move_ids = set(r[0] for r in cr.fetchall())
         move_ids |= updated_move_ids
         if updated_move_ids:
             other = "credit" if debit_credit == "debit" else "debit"
-            cr.execute(f'''
+            cr.execute(
+                f"""
                 SELECT {debit_credit}_move.id
                 FROM account_partial_reconcile reconcile
                 JOIN account_move_line debit_line ON debit_line.id = reconcile.debit_move_id
@@ -288,22 +300,24 @@ def migrate(cr, version):
                 JOIN account_move debit_move ON debit_move.id = debit_line.move_id
                 JOIN account_move credit_move ON credit_move.id = credit_line.move_id
                 WHERE {other}_move.id IN %(move_ids)s
-            ''', {'move_ids': tuple(updated_move_ids)})
+            """,
+                {"move_ids": tuple(updated_move_ids)},
+            )
             move_ids |= set(r[0] for r in cr.fetchall())
     if move_ids:
         cr.execute("SELECT payment_id FROM account_move WHERE id IN %s AND payment_id IS NOT NULL", [tuple(move_ids)])
         payment_ids = set(r[0] for r in cr.fetchall())
         util.recompute_fields(
             cr,
-            env['account.payment'].with_context(**ctx),
-            fields=('is_reconciled',),
+            env["account.payment"].with_context(**ctx),
+            fields=("is_reconciled",),
             ids=payment_ids,
             chunk_size=1024,
         )
         util.recompute_fields(
             cr,
-            env['account.move'].with_context(**ctx),
-            fields=('payment_state',),
+            env["account.move"].with_context(**ctx),
+            fields=("payment_state",),
             ids=move_ids,
             chunk_size=1024,
         )
@@ -519,7 +533,7 @@ def migrate(cr, version):
             )
 
         # ===== MISC =====
-        ctx = {"tracking_disable": True, 'skip_account_move_synchronization': True}
+        ctx = {"tracking_disable": True, "skip_account_move_synchronization": True}
 
         _logger.info("Post all bank statements that seem to be already processed")
         # Post all bank statements that seem to be already processed meaning the balance_end & balance_end_real must be
@@ -566,7 +580,8 @@ def migrate(cr, version):
     # ===== Don't alter accounting data prior to the lock date =====
 
     if created_move_ids:
-        cr.execute('''
+        cr.execute(
+            """
             UPDATE account_move_line line
             SET parent_state = 'cancel'
             FROM res_company company
@@ -574,8 +589,11 @@ def migrate(cr, version):
             AND company.fiscalyear_lock_date IS NOT NULL
             AND line.date <= company.fiscalyear_lock_date
             AND line.move_id IN %s
-        ''', [tuple(created_move_ids)])
-        cr.execute('''
+        """,
+            [tuple(created_move_ids)],
+        )
+        cr.execute(
+            """
             UPDATE account_move
             SET auto_post = FALSE,
                 state = 'cancel'
@@ -584,7 +602,9 @@ def migrate(cr, version):
             AND company.fiscalyear_lock_date IS NOT NULL
             AND account_move.date <= company.fiscalyear_lock_date
             AND account_move.id IN %s
-        ''', [tuple(created_move_ids)])
+        """,
+            [tuple(created_move_ids)],
+        )
 
     # ==== CHECK move_id that must be set on all account.payment/account.bank.statement.line ====
     cr.execute("SELECT id FROM account_payment WHERE move_id IS NULL")
