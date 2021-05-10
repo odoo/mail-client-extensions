@@ -1985,6 +1985,19 @@ def migrate_invoice_lines(cr):
         )
 
 
+def update_invoice_partner_display_name(cr):
+    cr.execute(
+        """
+        SELECT am.id
+          FROM account_move am
+          JOIN res_partner p ON am.partner_id = p.id
+           AND p.parent_id IS NOT NULL
+        """
+    )
+    invoice_ids = [id[0] for id in cr.fetchall()]
+    util.recompute_fields(cr, "account.move", ["invoice_partner_display_name"], ids=invoice_ids)
+
+
 def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
@@ -1993,3 +2006,4 @@ def migrate(cr, version):
         if util.ENVIRON["account_voucher_installed"]:
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)
+        update_invoice_partner_display_name(cr)
