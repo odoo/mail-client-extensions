@@ -505,6 +505,7 @@ def migrate(cr, version):
     """
     )
 
+    util.create_index("account_move_payment_id_index", "account_move", "payment_id")
     util.parallel_execute(
         cr,
         util.explode_query(

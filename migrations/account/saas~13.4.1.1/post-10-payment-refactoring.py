@@ -246,7 +246,7 @@ def migrate(cr, version):
             "The following payments have been deleted during the migration because there were posted but no longer"
             "linked to any journal entry: %s" % payment_ids
         )
-        env["account.payment"].browse(payment_ids).unlink()
+        util.iter_browse(env["account.payment"], payment_ids).unlink()
 
     # Change the liquidity account of payments that are not yet reconciled with a statement line.
     # This should be done because the payment is no longer impacting directly the bank/cash account like the
