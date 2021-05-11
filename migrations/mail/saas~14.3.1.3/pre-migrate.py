@@ -31,12 +31,10 @@ def migrate(cr, version):
     # notification; mail.channel now uses its members and do not need any follower
     # migration. We remove followers having partner_id set as NULL to remove
     # both channel followers and potential invalid entries (both NULL)
-    cr.execute(
-        """
-        DELETE FROM mail_followers
-              WHERE partner_id IS NULL
-    """
-    )
+    cr.execute("DELETE FROM mail_followers WHERE partner_id IS NULL ")
+    # also remove followers of channel, as channels now use members only for
+    # notification purpose
+    cr.execute("DELETE FROM mail_followers WHERE res_model = 'mail.channel'")
 
     # removal of channel following feature
     util.update_field_references(
