@@ -166,13 +166,13 @@ def fix_indirect(cr):
     )
     for model, column in cr.fetchall():
         table = util.table_of_model(cr, model)
-        if util.column_exists(cr, table, column):
+        if util.column_updatable(cr, table, column):
             cr.execute(
                 """
                     UPDATE "{table}" d
-                       SET {column}='account.move,' || i.move_id
+                       SET "{column}"='account.move,' || i.move_id
                       FROM account_invoice i
-                     WHERE d.{column} = 'account.invoice,' || i.id
+                     WHERE d."{column}" = 'account.invoice,' || i.id
                        AND i.move_id IS NOT NULL
             """.format(
                     table=table, column=column
@@ -182,9 +182,9 @@ def fix_indirect(cr):
                 cr.execute(
                     """
                         UPDATE "{table}" d
-                        SET {column}='account.move.line,' || i.aml_id
+                        SET "{column}"='account.move.line,' || i.aml_id
                         FROM invl_aml_mapping i
-                        WHERE d.{column} = 'account.invoice.line,' || i.invl_id
+                        WHERE d."{column}" = 'account.invoice.line,' || i.invl_id
                         AND i.aml_id IS NOT NULL
                 """.format(
                         table=table, column=column
