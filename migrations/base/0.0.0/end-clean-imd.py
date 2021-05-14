@@ -4,12 +4,14 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     queries = []
-    cr.execute("""
+    cr.execute(
+        """
         SELECT model, array_agg(res_id)
           FROM ir_model_data
           JOIN _upgrade_clean_imd USING(module, name)
       GROUP BY model
-    """)
+    """
+    )
     for model, ids in util.log_progress(cr.fetchall(), qualifier="models", size=cr.rowcount):
         table = util.table_of_model(cr, model)
         if util.column_exists(cr, table, "active"):
