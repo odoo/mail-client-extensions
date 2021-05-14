@@ -5,16 +5,7 @@ def migrate(cr, version):
 
     # === PAYMENT ACQUIRER === #
 
-    cr.execute(
-        """
-        UPDATE payment_acquirer
-           SET provider = 'odoo'
-         WHERE provider = 'odoo_adyen'
-        """
-    )
-    util.update_field_references(
-        cr, "provider", "provider", domain_adapter=lambda op, right: (op, right.replace("odoo_adyen", "odoo"))
-    )
+    util.change_field_selection_values(cr, "payment.provider", "provider", {"odoo_adyen": "odoo"})
 
     # === PAYMENT TOKEN === #
 

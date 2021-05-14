@@ -6,34 +6,21 @@ def migrate(cr, version):
 
     # === PAYMENT ACQUIRER === #
 
-    util.remove_field(cr, "payment.acquirer", "view_template_id")  # not stored
-    util.remove_field(cr, "payment.acquirer", "registration_view_template_id")  # not stored
+    util.remove_field(cr, "payment.acquirer", "view_template_id")
+    util.remove_field(cr, "payment.acquirer", "registration_view_template_id")
     util.remove_field(cr, "payment.acquirer", "check_validity")
     util.remove_field(cr, "payment.acquirer", "payment_flow")
-    util.remove_field(cr, "payment.acquirer", "authorize_implemented")  # not stored
-    util.remove_field(cr, "payment.acquirer", "fees_implemented")  # not stored
-    util.remove_field(cr, "payment.acquirer", "token_implemented")  # not stored
-    util.remove_field(cr, "payment.acquirer", "inbound_payment_method_ids")  # not stored
+    util.remove_field(cr, "payment.acquirer", "authorize_implemented")
+    util.remove_field(cr, "payment.acquirer", "fees_implemented")
+    util.remove_field(cr, "payment.acquirer", "token_implemented")
+    util.remove_field(cr, "payment.acquirer", "inbound_payment_method_ids")
 
     if util.module_installed(cr, "payment_transfer"):
         util.move_field_to_module(cr, "payment.acquirer", "qr_code", "payment", "payment_transfer")
     else:
         util.remove_field(cr, "payment.acquirer", "qr_code")
 
-    cr.execute(
-        """
-        UPDATE payment_acquirer
-           SET provider = 'none'
-         WHERE provider = 'manual'
-        """
-    )
-    util.update_field_references(
-        cr,
-        "provider",
-        "provider",
-        only_models=("payment.acquirer",),
-        domain_adapter=lambda op, right: (op, right.replace("manual", "none")),
-    )
+    util.change_field_selection_values(cr, "payment.acquirer", "provider", {"manual": "none"})
 
     util.create_column(cr, "payment_acquirer", "allow_tokenization", "bool")
     cr.execute(
@@ -68,37 +55,54 @@ def migrate(cr, version):
 
     util.create_column(cr, "payment_transaction", "operation", "varchar")
     util.create_column(cr, "payment_transaction", "tokenize", "bool")
-    cr.execute(
-        """
-        UPDATE payment_transaction
-           SET operation = CASE
-               WHEN "type" IN ('form', 'form_save') THEN 'online_redirect'
-               WHEN "type" = 'server2server' THEN 'online_token'
-               WHEN "type" = 'validation' THEN 'validation'
-           END
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE payment_transaction
+            SET operation = CASE
+                WHEN "type" IN ('form', 'form_save') THEN 'online_redirect'
+                WHEN "type" = 'server2server' THEN 'online_token'
+                WHEN "type" = 'validation' THEN 'validation'
+                END
+            """,
+            table="payment_transaction",
+        ),
     )
     util.remove_field(cr, "payment.transaction", "type")
 
     util.create_column(cr, "payment_transaction", "company_id", "int4")
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE payment_transaction pt
            SET company_id = acq.company_id
           FROM payment_acquirer acq
          WHERE acq.id = pt.acquirer_id
-         """
+         """,
+            table="payment_transaction",
+            prefix="pt.",
+        ),
     )
     util.create_column(cr, "payment_transaction", "validation_route", "varchar")
     util.create_column(cr, "payment_transaction", "landing_route", "varchar")
     util.create_column(cr, "payment_transaction", "partner_state_id", "int4")
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE payment_transaction pt
            SET partner_state_id = p.state_id
           FROM res_partner p
          WHERE p.id = pt.partner_id
-         """
+        """,
+            table="payment_transaction",
+            prefix="pt.",
+        ),
     )
     util.create_column(cr, "payment_transaction", "callback_is_done", "bool")
 
@@ -106,16 +110,21 @@ def migrate(cr, version):
 
     util.remove_field(cr, "payment.token", "short_name")
 
-    util.move_field_to_module(cr, "payment.token", "provider", "payment_authorize", "payment")  # not stored
+    util.move_field_to_module(cr, "payment.token", "provider", "payment_authorize", "payment")
 
     util.rename_field(cr, "payment.token", "payment_ids", "transaction_ids")
 
-    cr.execute(
-        """
-        UPDATE payment_token
-           SET name = 'MIG_' || id
-         WHERE name IS NULL
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE payment_token
+               SET name = 'MIG_' || id
+             WHERE name IS NULL
+            """,
+            table="payment_token",
+        ),
     )
 
     # === IR RULE === #

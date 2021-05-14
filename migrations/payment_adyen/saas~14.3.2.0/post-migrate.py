@@ -15,3 +15,5 @@ def migrate(cr, version):
         """,
         [util.ref(cr, "payment_adyen.inline_form")],
     )
+    if cr.rowcount:
+        util.add_to_migration_reports("You will need to reconfigure your Adyen providers.", "Payment Providers")

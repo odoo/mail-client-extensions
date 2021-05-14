@@ -11,6 +11,9 @@ def migrate(cr, version):
     util.remove_view(cr, "website.dynamic_filter_template_header_image_footer_card")
     util.remove_view(cr, "website.onboarding_website_theme_step")
 
+    util.remove_record(cr, "website.theme_install_todo")
+    util.remove_record(cr, "website.theme_install_act_url")
+
     util.remove_field(cr, "res.company", "website_theme_onboarding_done")
 
     util.create_column(cr, "website", "configurator_done", "boolean")
