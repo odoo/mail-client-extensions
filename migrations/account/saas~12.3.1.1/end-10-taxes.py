@@ -171,7 +171,7 @@ def _migrate(cr, version):
     #         migration_dicts_list = pickle.load(f)
 
     # Assign tags and accounts to repartition lines
-    for migration_dict in util.log_progress(migration_dicts_list, qualifier="taxes[repartition]"):
+    for migration_dict in util.log_progress(migration_dicts_list, _logger, qualifier="taxes[repartition]"):
         if migration_dict["tax"]:
             tax = env["account.tax"].browse(migration_dict["tax"])
         else:
@@ -283,7 +283,7 @@ def _migrate(cr, version):
             child_tax.type_tax_use == "none" and child_tax.amount_type == "percent" for child_tax in x.children_tax_ids
         )
     )
-    for group_to_treat in util.log_progress(groups_to_merge, qualifier="tax groups to merge"):
+    for group_to_treat in util.log_progress(groups_to_merge, _logger, qualifier="tax groups to merge"):
         # The tax repartition lines of the group are useless
         # (except if the have amount = 0, in wich case we keep them for simplicity)
         inv_tax_line = group_to_treat.invoice_repartition_line_ids.filtered(lambda x: x.repartition_type == "tax")
@@ -781,7 +781,7 @@ def set_fiscal_country(env):
 
 
 def create_invoice(cr, partner, tax, journal, account, type="out_invoice"):
-    """ Returns an open invoice """
+    """Returns an open invoice"""
     env = util.env(cr)
     amount = 100
     if tax.amount_type == "fixed" and tax.amount < 0:
@@ -1981,7 +1981,7 @@ def get_v13_migration_dicts(cr):
     """
     )
     imp = util.import_script("account/account_util.py")
-    for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), qualifier="taxes"):
+    for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), _logger, qualifier="taxes"):
         tax = env["account.tax"].browse(tax_id)
 
         # get account_id and refund_account_id in SQL, since they have been removed between 12.2 and 12.3

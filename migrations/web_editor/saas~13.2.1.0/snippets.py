@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging
+
 from lxml import etree, html
 from psycopg2.extensions import quote_ident
+
 from odoo.upgrade import util
 
 _logger = logging.getLogger("odoo.upgrade.web_editor.132." + __name__)
@@ -29,7 +31,7 @@ def add_snippet_names(cr, table, column, snippets, select_query):
     _logger.info("Add snippet names on %s.%s", table, column)
     cr.execute(select_query)
 
-    it = util.log_progress(cr.fetchall(), qualifier="rows", logger=_logger, size=cr.rowcount, log_hundred_percent=True)
+    it = util.log_progress(cr.fetchall(), _logger, qualifier="rows", size=cr.rowcount, log_hundred_percent=True)
 
     for res_id, regex_matches, arch in it:
         regex_matches = [match[0] for match in regex_matches]

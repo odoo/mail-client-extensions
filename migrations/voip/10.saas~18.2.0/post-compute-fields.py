@@ -27,7 +27,7 @@ def _sanitize(cr, field, batch=None):
         )
     )
 
-    it = util.log_progress(cr.fetchall(), qualifier="res.partner " + field)
+    it = util.log_progress(cr.fetchall(), util._logger, qualifier="res.partner " + field)
     for idx, (pid, number, country_code) in enumerate(it, 1):
         cr.execute(
             "UPDATE res_partner SET sanitized_{0}=%s WHERE id=%s".format(field), [fmt(number, country_code), pid]

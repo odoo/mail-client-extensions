@@ -67,7 +67,7 @@ def migrate(cr, version):
 
     all_we_types = env["hr.work.entry.type"].search([])
     cr.execute("SELECT payslip_id FROM hr_payslip_worked_days WHERE amount IS NULL GROUP BY payslip_id")
-    for (payslip_id,) in util.log_progress(cr.fetchall(), "payslip"):
+    for (payslip_id,) in util.log_progress(cr.fetchall(), util._logger, "payslip"):
         payslip = Payslip.browse(payslip_id)
 
         contract = payslip.contract_id

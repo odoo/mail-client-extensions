@@ -12,7 +12,7 @@ def migrate(cr, version):
       GROUP BY model
     """
     )
-    for model, ids in util.log_progress(cr.fetchall(), qualifier="models", size=cr.rowcount):
+    for model, ids in util.log_progress(cr.fetchall(), util._logger, qualifier="models", size=cr.rowcount):
         table = util.table_of_model(cr, model)
         if util.column_exists(cr, table, "active"):
             queries.append(

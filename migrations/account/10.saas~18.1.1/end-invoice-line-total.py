@@ -23,7 +23,7 @@ def migrate(cr, version):
     )
 
     size = cr.rowcount
-    for row in util.log_progress(cr.fetchall(), "invoice lines", _logger, size):
+    for row in util.log_progress(cr.fetchall(), _logger, qualifier="invoice lines", size=size):
         lid, taxes, price, currency, quantity, product, partner = row
 
         tca = (

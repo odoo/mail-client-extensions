@@ -18,7 +18,7 @@ def migrate(cr, version):
     """
     )
     for mid, mcur_id, cid, ccur_id, date in util.log_progress(
-        cr.fetchall(), qualifier="account.move", size=cr.rowcount
+        cr.fetchall(), util._logger, qualifier="account.move", size=cr.rowcount
     ):
         rate = CURR(mcur_id)._convert(1.0, CURR(ccur_id), COMP(cid), date, round=False)
         cr.execute("UPDATE account_move SET l10n_ar_currency_rate = %s WHERE id = %s", [rate, mid])
