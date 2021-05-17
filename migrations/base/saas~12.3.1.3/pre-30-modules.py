@@ -64,9 +64,7 @@ def migrate(cr, version):
         util.new_module(cr, "mrp_account_enterprise", deps={"mrp_account"}, auto_install=True)
         util.module_deps_diff(cr, "sale_subscription", minus={"account_deferred_revenue"})
         util.module_deps_diff(cr, "stock_account_enterprise", plus={"stock_enterprise"})
-        util.module_deps_diff(
-            cr, "test_l10n_be_hr_payroll_account", plus={"l10n_generic_coa", "l10n_be", "account_accountant"}
-        )
+        util.module_deps_diff(cr, "test_l10n_be_hr_payroll_account", plus={"l10n_be", "account_accountant"})
         util.new_module(cr, "pos_account_reports", deps={"point_of_sale", "account_reports"}, auto_install=True)
 
         for cc in "ae ar at au bo br do et gr hr hu jp lu ma no pl ro si th uy vn za".split():
