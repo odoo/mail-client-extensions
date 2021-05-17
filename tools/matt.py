@@ -298,11 +298,12 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             return False
         return True
 
-    if module.startswith("l10n_"):
+    if "l10n_" in module:
         # create a `base` db and modify the partners country before installing the localization
         odoo(["-i", "base"], version=options.source)
-        cc = module.split("_")[1].lower()
-        sql = f"UPDATE res_partner SET country_id = (SELECT id FROM res_country WHERE lower(code)='{cc}')"
+        cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
+        cc = {"eu": "be", "uk": "gb", "latam": "cl", "syscohada": "cd", "generic": "us", "multilang": "be"}.get(cc, cc)
+        sql = f"UPDATE res_partner SET state_id=NULL, country_id=(SELECT id FROM res_country WHERE lower(code)='{cc}')"
         subprocess.run(["psql", "--no-psqlrc", "--quiet", "-d", dbname, "-c", sql], check=True)
 
     odoo(["-i", module], version=options.source)
