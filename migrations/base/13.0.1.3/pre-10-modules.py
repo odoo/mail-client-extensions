@@ -48,6 +48,9 @@ def migrate(cr, version):
             cr, "sale_subscription_timesheet", deps={"sale_subscription", "sale_timesheet"}, auto_install=True
         )
 
+        util.new_module(cr, "l10n_de_pos_cert", deps={"l10n_de", "point_of_sale", "iap"}, auto_install=True)
+        util.new_module(cr, "l10n_de_pos_res_cert", deps={"pos_restaurant", "l10n_de_pos_cert"}, auto_install=True)
+
     if util.has_design_themes():
         util.new_module(
             cr,
