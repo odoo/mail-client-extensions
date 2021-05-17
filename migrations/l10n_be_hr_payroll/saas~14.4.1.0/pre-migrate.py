@@ -22,3 +22,5 @@ def migrate(cr, version):
     util.create_column(cr, "l10n_be_dmfa_location_unit", "file_type", "varchar", default="R")
     util.remove_field(cr, "hr.employee", "language_code")
     util.remove_field(cr, "hr.employee", "nif_country_code")
+
+    cr.execute("ALTER TABLE l10n_be_dmfa_location_unit ALTER COLUMN code TYPE varchar")
