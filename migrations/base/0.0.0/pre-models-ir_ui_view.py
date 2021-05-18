@@ -211,6 +211,45 @@ class IrUiView(models.Model):
                             _logger.exception("invalid custom view %s for model %s", view.xml_id or view.id, view.model)
             _validators.update(origin_validators)
 
+            if util.ENVIRON.get("IGNORED_IR_UI_VIEW_CHECK_GROUPS"):
+                views = util.ENVIRON["IGNORED_IR_UI_VIEW_CHECK_GROUPS"]
+                util.add_to_migration_reports(
+                    """
+                    <details>
+                        <summary>
+                            <p>
+                                %sQWeb views cannot have 'Groups' defined on the record.
+                                Instead, use the 'groups' attributes inside the view definition.
+                            </p>
+                            <p>
+                                QWeb views are cached in memory and the cache does not depend on the user or their groups.
+                                This means that if a user having the group defined on the view access the view first,
+                                and then a second user without the group access the same view,
+                                this second user will see the view as the first user,
+                                as if they were part of the restricting group.
+                                However, if the group is set in the view architecture itself with the `groups=` attribute
+                                rather than on the `group_ids` field of the `ir.ui.view` record, this will work as expected.
+                            </p>
+                            <p>
+                                The following QWeb views have groups (`groups_id`) defined on their record rather
+                                than in the view architecture itself, and therefore deserve your attention:
+                            </p>
+                        </summary>
+                        <ul>%s</ul>
+                    </details>
+                """
+                    % (
+                        "Inherited " if util.version_gte("14.0") else "",
+                        "".join(
+                            "<li>%s</li>"
+                            % util.get_anchor_link_to_record("ir.ui.view", view_id, view_xml_id or view_name)
+                            for view_id, view_xml_id, view_name, in views
+                        ),
+                    ),
+                    "Views",
+                    format="html",
+                )
+
         if util.version_gte("saas~11.5"):
             # Force the update of arch_fs and the view validation even if the view has been set to noupdate.
             # From saas-11.5, `_update` of ir.model.data is deprecated and replaced by _load_records on each models
@@ -233,6 +272,23 @@ class IrUiView(models.Model):
                 # but the user won't be able to open the view.
                 force_check_views._check_xml()
                 return res
+
+        if not str2bool(os.getenv("MATT", "0")):
+
+            @api.constrains("type", "groups_id", "inherit_id")
+            def _check_groups(self):
+                try:
+                    return super(IrUiView, self)._check_groups()
+                except Exception:
+                    for view in self:
+                        _logger.warning(
+                            "The `_check_groups` constraint has been explicitely ignored "
+                            "for the view #%s during the upgrade.",
+                            view.id,
+                        )
+                        util.ENVIRON.setdefault("IGNORED_IR_UI_VIEW_CHECK_GROUPS", []).append(
+                            (view.id, view.name, view.xml_id)
+                        )
 
     if util.version_gte("saas~13.1"):
 
