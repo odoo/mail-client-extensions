@@ -77,6 +77,20 @@ def migrate(cr, version):
         ["stock.picking.out", ("stock.picking.in", "stock.picking")],
     )
 
+    # remove duplicated filters to avoid ir_filters_name_model_uid_unique_action_index
+    # odoo/odoo/blob/9e8f70e4849b0eeaca8b5cf51372ecfa23dc561b/openerp/addons/base/ir/ir_filters.py#L149
+    cr.execute(
+        """
+        DELETE FROM ir_filters fin
+         USING ir_filters fout
+         WHERE fin.model_id = 'stock.picking.in'
+           AND fout.model_id = 'stock.picking.out'
+           -- ir_filters_name_model_uid_unique_action_index
+           AND lower(fin.name) = lower(fout.name)
+           AND fin.user_id IS NOT DISTINCT FROM fout.user_id
+           AND fin.action_id IS NOT DISTINCT FROM fout.action_id
+        """,
+    )
     util.rename_model(cr, "stock.picking.out", "stock.picking", rename_table=False)
     util.rename_model(cr, "stock.picking.in", "stock.picking", rename_table=False)
 
