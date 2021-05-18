@@ -10,6 +10,7 @@ type CollapseSectionProps = {
     isCollapsed: boolean;
     onCollapseButtonClick: () => void;
     hasAddButton?: boolean;
+    hasDropdownAddButton?: boolean,
     onAddButtonClick?: () => void;
     hideCollapseButton?: boolean;
     children: ReactElement;
@@ -32,7 +33,11 @@ class CollapseSection extends React.Component<CollapseSectionProps, {}>
         let collapseButton = null;
         if (this.props.hasAddButton)
         {
-            addButton = (<FontAwesomeIcon icon={faPlus} className="collapse-section-button" onClick={this.props.onAddButtonClick}/>);
+            let className = "collapse-section-button";
+            if (this.props.hasDropdownAddButton) {
+                className += " dropdown-collapse-section-button";
+            }
+            addButton = (<FontAwesomeIcon icon={faPlus} className={className} onClick={this.props.onAddButtonClick}/>);
         }
 
         if (!this.props.hideCollapseButton)

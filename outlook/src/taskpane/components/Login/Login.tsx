@@ -4,6 +4,7 @@ import {faHandshake, faEnvelope, faSearch, faLifeRing} from '@fortawesome/free-s
 import { TextField } from "office-ui-fabric-react/lib/TextField";
 import { PrimaryButton, DefaultButton } from "office-ui-fabric-react";
 import {HttpVerb, sendHttpRequest, ContentType} from "../../../utils/httpRequest";
+import "fontawesome-4.7/css/font-awesome.css";
 import api from "../../api";
 import AppContext from '../AppContext';
 import "./Login.css";
@@ -125,6 +126,10 @@ class Login extends React.Component<{}, LoginState> {
                 <div className='login-info'>
                     <div className='login-info-icon'><FontAwesomeIcon icon={faHandshake} size="2x" className="fa-fw"/></div>
                     <div>Centralize Prospects&apos; emails into a CRM.</div>
+                </div>
+                <div className='login-info'>
+                    <div className='login-info-icon'><i className="fa fa-tasks fa-fw fa-2x" ></i></div>
+                    <div>Create Tasks from Emails sent to your personal email address.</div>
                 </div>
                 <div className='login-info'>
                     <div className='login-info-icon'><FontAwesomeIcon icon={faSearch} size="2x" className="fa-fw"/></div>

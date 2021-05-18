@@ -14,6 +14,8 @@ import {OdooTheme} from "../../../../utils/Themes";
 import "./ContactPage.css";
 import Lead from "../../../../classes/Lead";
 import HelpdeskTicket from "../../../../classes/HelpdeskTicket";
+import TasksSection from "../../Project/TasksSection/TasksSection";
+import Task from "../../../../classes/Task";
 
 
 type ContactPageProps = {
@@ -54,6 +56,9 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
             {
                 partner.leads = parsed.result.leads.map(lead_json => Lead.fromJSON(lead_json));
             }
+            if (parsed.result.tasks) {
+                partner.tasks = parsed.result.tasks.map(task_json => Task.fromJSON(task_json));
+            }
             if (parsed.result.tickets)
             {
                 partner.tickets = parsed.result.tickets.map(ticket_json => HelpdeskTicket.fromJSON(ticket_json));
@@ -79,6 +84,10 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
 
     private isCrmInstalled = ():boolean => {
         return (this.props.partner.leads != undefined);
+    }
+
+    private isProjectInstalled = ():boolean => {
+        return (this.props.partner.tasks != undefined);
     }
 
     private isHelpdeskInstalled =():boolean => {
@@ -117,6 +126,11 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
                 leadsList = (<div style={{marginTop: "16px"}}><LeadsSection partner={this.state.partner}/></div>);
             }
 
+            let tasksList = null;
+            if (this.isProjectInstalled()) {
+                tasksList = (<div style={{marginTop: "16px"}}><TasksSection partner={this.state.partner}/></div>);
+            }
+
             let ticketsList = null;
             if (this.isHelpdeskInstalled())
             {
@@ -129,6 +143,7 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
                 <>
                     <ContactSection partner={this.state.partner} onPartnerInfoChanged={this.onPartnerChanged}/>
                     {leadsList}
+                    {tasksList}
                     {ticketsList}
                     <div style={{marginTop: "16px"}}>
                         <CompanySection partner={this.state.partner} onPartnerInfoChanged={this.onPartnerChanged}

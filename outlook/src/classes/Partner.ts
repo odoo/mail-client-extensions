@@ -2,6 +2,7 @@ import Company from './Company';
 import EnrichmentInfo from './EnrichmentInfo';
 import Lead from "./Lead";
 import HelpdeskTicket from "./HelpdeskTicket";
+import Task from './Task';
 
 
 /***
@@ -21,6 +22,7 @@ class Partner {
     enrichmentInfo: EnrichmentInfo;
     created: boolean;
     leads?: Lead[];
+    tasks?: Task[];
     tickets?: HelpdeskTicket[];
     isCompany: boolean;
 
