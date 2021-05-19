@@ -18,5 +18,6 @@ def migrate(cr, version):
         "stock.view_normal_procurement_locations_form",
         "stock.view_normal_property_acc_form",
         "stock.view_category_property_form",
+        "stock.view_inventory_line_form",
     ):
         util.remove_view(cr, view)
