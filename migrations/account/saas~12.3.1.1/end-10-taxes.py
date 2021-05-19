@@ -2238,12 +2238,12 @@ def _convert_financial_tags(cr, mig_dicts_list):
         for inv_type in ("invoice", "refund"):
             for rep_type, rep_vals in mig_dict[inv_type].items():
                 original_set = rep_vals["financial"].copy()
-                for tag_id in original_set:
+                for tag_id, module in original_set:
                     tag_conversion = tags_conversion_map.get(tag_id)
                     replacement = tag_conversion and tag_conversion.get(inv_type, {}).get(rep_type)
                     if replacement:
-                        rep_vals["financial"].remove(tag_id)
-                        rep_vals["financial"].add(replacement)
+                        rep_vals["financial"].remove((tag_id, module))
+                        rep_vals["financial"].add((replacement, module))
 
 
 def _add_repartition_to_tax_dict(cr, inv_type, rep_type, tax_dict, to_add, is_financial, formula_evaluator):
