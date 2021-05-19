@@ -4,6 +4,7 @@ from . import (
     test_14_1_journal_codes,
     test_14_4_tax_group_country,
     test_account,
+    test_account_group,
     test_account_pocalypse,
     test_amounts,
     test_lockdate,
