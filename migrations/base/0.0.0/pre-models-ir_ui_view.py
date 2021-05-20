@@ -203,6 +203,8 @@ class IrUiView(models.Model):
                         load_all_views=is_custom_modules,
                         _upgrade_custom_modules=is_custom_modules,
                     ):
+                        if view.model not in self.env.registry:
+                            continue
                         try:
                             view._check_xml()
                         except Exception:
