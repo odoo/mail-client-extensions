@@ -3,6 +3,8 @@ import os
 
 import psycopg2
 
+from odoo.tools.misc import str2bool
+
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -56,21 +58,24 @@ def migrate(cr, version):
     # Then let oneAppFree remains oneAppFree
     util.module_deps_diff(cr, "sale", minus={"procurement"})
     if util.module_installed(cr, "procurement"):
-        # determine if really used
-        cr.execute(
-            """
-            SELECT COUNT(*)
-              FROM ir_module_module_dependency d
-        INNER JOIN ir_module_module m ON d.module_id = m.id
-             WHERE d.name = 'procurement'
-               AND m.state IN %s
-        """,
-            [util._INSTALLED_MODULE_STATES],
-        )
-        if not cr.fetchone()[0]:
-            cr.execute("SELECT COUNT(1) FROM procurement_order")
+        if str2bool(os.environ.get("ODOO_MIG_FORCE_PROCUREMENT_UNINSTALL_11", "0")):
+            util.uninstall_module(cr, "procurement")
+        else:
+            # determine if really used
+            cr.execute(
+                """
+                SELECT COUNT(*)
+                FROM ir_module_module_dependency d
+            INNER JOIN ir_module_module m ON d.module_id = m.id
+                WHERE d.name = 'procurement'
+                AND m.state IN %s
+            """,
+                [util._INSTALLED_MODULE_STATES],
+            )
             if not cr.fetchone()[0]:
-                util.uninstall_module(cr, "procurement")
+                cr.execute("SELECT COUNT(1) FROM procurement_order")
+                if not cr.fetchone()[0]:
+                    util.uninstall_module(cr, "procurement")
 
     sale_stock_installed = util.module_installed(cr, "sale_stock")
     util.merge_module(cr, "procurement", "stock")
