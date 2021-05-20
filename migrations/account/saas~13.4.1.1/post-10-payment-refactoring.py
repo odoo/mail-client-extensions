@@ -345,7 +345,11 @@ def migrate(cr, version):
         )
         _logger.info("Creating %d moves for draft/cancelled payments", cr.rowcount)
 
-        for data in util.chunks(cr.dictfetchall(), size=48, fmt=list):
+        chunk_size = 48
+        size = (cr.rowcount + chunk_size - 1) / chunk_size
+        for data in util.log_progress(
+            util.chunks(cr.dictfetchall(), size=48, fmt=list), qualifier=f"account.move {chunk_size}-bucket", size=size
+        ):
             moves = env["account.move"].with_context(**ctx).create(data)
 
             query = """
@@ -382,7 +386,7 @@ def migrate(cr, version):
             if cancelled_payment_ids:
                 env["account.payment"].browse(cancelled_payment_ids).with_context(**ctx).action_cancel()
 
-            env["account.payment"].flush()
+            env.cr.commit()
 
         # ===== Synchronize account.payment <=> account.move =====
 
