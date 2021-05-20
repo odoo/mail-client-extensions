@@ -26,3 +26,10 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.employee", "nif_country_code")
 
     cr.execute("ALTER TABLE l10n_be_dmfa_location_unit ALTER COLUMN code TYPE varchar")
+
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_pay_basic")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_employment_bonus_employees")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_gross_with_ip")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_ip_part")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_ip")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_ip_deduction")
