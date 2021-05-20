@@ -27,6 +27,8 @@ def migrate(cr, version):
 
     cr.execute("ALTER TABLE l10n_be_dmfa_location_unit ALTER COLUMN code TYPE varchar")
 
+    util.create_column(cr, "hr_payroll_structure", "code", "varchar")
+
     util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_pay_basic")
     util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_employment_bonus_employees")
     util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_double_holiday_gross_with_ip")
