@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 import itertools
-import random
 import logging
-
+import random
 from datetime import datetime
 
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 _logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class CheckPayments(UpgradeCase):
 
     # TODO move this to base class
     def patch(self, obj, key, val):
-        """ Do the patch ``setattr(obj, key, val)``, and prepare cleanup. """
+        """Do the patch ``setattr(obj, key, val)``, and prepare cleanup."""
         old = getattr(obj, key)
         setattr(obj, key, val)
         self.addCleanup(setattr, obj, key, old)

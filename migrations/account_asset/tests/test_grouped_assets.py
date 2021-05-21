@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
 
 from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.testing import change_version, UpgradeCase
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("12.3")
@@ -31,22 +31,26 @@ class GroupedAssetsCase(UpgradeCase):
             "account_depreciation_expense_id": account_depreciation_expense.id,
         }
 
-        categories = self.env["account.asset.category"].create([
-            {**category_common_vals, 'name': "Computers", "group_entries": True},
-            {**category_common_vals, 'name': "Cars", "group_entries": True},
-            {**category_common_vals, 'name': "Misc", "group_entries": False, "open_asset": True},
-        ])
+        categories = self.env["account.asset.category"].create(
+            [
+                {**category_common_vals, "name": "Computers", "group_entries": True},
+                {**category_common_vals, "name": "Cars", "group_entries": True},
+                {**category_common_vals, "name": "Misc", "group_entries": False, "open_asset": True},
+            ]
+        )
         category_1, category_2, category_3 = categories
 
-        assets = self.env["account.asset.asset"].create([
-            {"name": "Laptop 1", "category_id": category_1.id, "value": 1000.33, "salvage_value": 100},
-            {"name": "Laptop 2", "category_id": category_1.id, "value": 800.34, "salvage_value": 50},
-            {"name": "Laptop 3", "category_id": category_1.id, "value": 500.67, "salvage_value": 20},
-            {"name": "Car 1", "category_id": category_2.id, "value": 16543.97, "salvage_value": 980},
-            {"name": "Car 2", "category_id": category_2.id, "value": 35004.34, "salvage_value": 2040},
-            {"name": "Misc 1", "category_id": category_3.id, "value": 450},
-            {"name": "Misc 2", "category_id": category_3.id, "value": 666},
-        ])
+        assets = self.env["account.asset.asset"].create(
+            [
+                {"name": "Laptop 1", "category_id": category_1.id, "value": 1000.33, "salvage_value": 100},
+                {"name": "Laptop 2", "category_id": category_1.id, "value": 800.34, "salvage_value": 50},
+                {"name": "Laptop 3", "category_id": category_1.id, "value": 500.67, "salvage_value": 20},
+                {"name": "Car 1", "category_id": category_2.id, "value": 16543.97, "salvage_value": 980},
+                {"name": "Car 2", "category_id": category_2.id, "value": 35004.34, "salvage_value": 2040},
+                {"name": "Misc 1", "category_id": category_3.id, "value": 450},
+                {"name": "Misc 2", "category_id": category_3.id, "value": 666},
+            ]
+        )
         assets.validate()
 
         with util.no_fiscal_lock(self.env.cr):
@@ -81,18 +85,20 @@ class GroupedAssetsCase(UpgradeCase):
         self.assertEquals(assets.mapped("depreciation_entries_count"), entry_count)
 
         # Check content of migration journal
-        mig_journal = self.env["account.journal"].search([
-            ("code", "=", "UPGAS"),
-            ("company_id", "=", assets[0].company_id.id),
-            ("active", "=", False),
-        ])
+        mig_journal = self.env["account.journal"].search(
+            [
+                ("code", "=", "UPGAS"),
+                ("company_id", "=", assets[0].company_id.id),
+                ("active", "=", False),
+            ]
+        )
         mig_moves = self.env["account.move"].search([("journal_id", "=", mig_journal.id)])
         # 2 grouped depreciations + the 5 details of it + the manual change
         # Unmodified/ungrouped moves are not in this journal
         self.assertEquals(len(mig_moves), 8)
         # balance is 0 per account
         balance_per_account = defaultdict(float)
-        for line in mig_moves.mapped('line_ids'):
+        for line in mig_moves.mapped("line_ids"):
             balance_per_account[line.account_id] += line.balance
         for balance in balance_per_account.values():
             self.assertAlmostEquals(balance, 0)
