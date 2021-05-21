@@ -135,6 +135,7 @@ def migrate(cr, version):
     to_write = {}
     processed_line_ids = set()
     to_unreconcile_line_ids = set()
+    to_reconcile_line_ids = set()
     to_unlink_tax_line_ids = set()
     to_recompute_audit_string_line_ids = set()
     query_res = cr.dictfetchall()
@@ -218,11 +219,20 @@ def migrate(cr, version):
     # ============================================================
 
     if to_unreconcile_line_ids:
-        env['account.move.line'].browse(list(to_unreconcile_line_ids)).remove_move_reconcile()
+        to_unreconcile_line = env["account.move.line"].browse(list(to_unreconcile_line_ids))
+        for line in to_unreconcile_line:
+            to_reconcile_line_ids.add(
+                line + line.mapped("matched_debit_ids.debit_move_id") + line.mapped("matched_credit_ids.credit_move_id")
+            )
+        to_unreconcile_line.remove_move_reconcile()
 
     with util.no_fiscal_lock(cr):
         for move_id, vals in to_write.items():
             env['account.move'].browse(move_id).write(vals)
+
+    # Again reconciled lines that unreconciled before.
+    for lines in to_reconcile_line_ids:
+        lines.filtered(lambda l: not l.reconciled).reconcile()
 
     # Ensure 'balance' is well computed in following queries.
     env['account.move'].flush()
