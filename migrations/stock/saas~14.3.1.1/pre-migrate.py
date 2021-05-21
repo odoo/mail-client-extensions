@@ -269,3 +269,12 @@ def migrate(cr, version):
     # cleanup
     if not util.module_installed(cr, "stock_account"):
         util.remove_column(cr, "stock_quant", "accounting_date")
+
+    util.create_column(cr, "stock_picking_type", "print_label", "boolean")
+    cr.execute(
+        """
+        UPDATE stock_picking_type
+           SET print_label = 't'
+         WHERE code = 'outgoing'
+    """
+    )
