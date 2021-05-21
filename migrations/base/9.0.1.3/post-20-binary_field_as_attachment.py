@@ -55,7 +55,3 @@ def migrate(cr, version):
     util.convert_binary_field_to_attachment(cr, "slide.slide", "image")
     util.convert_binary_field_to_attachment(cr, "slide.slide", "image_medium")
     util.convert_binary_field_to_attachment(cr, "slide.slide", "image_thumb")  # WTF?
-
-
-if __name__ == "__main__":
-    util.main(migrate, "force")

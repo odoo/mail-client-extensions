@@ -28,7 +28,3 @@ def migrate(cr, version):
                """,
         [cids],
     )
-
-
-if __name__ == "__main__":
-    util.main(migrate)

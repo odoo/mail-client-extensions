@@ -380,13 +380,3 @@ def _update_lines(cr):
          WHERE s.id = so.id
     """
     )
-
-
-def main(cr, version):
-    # main function, to be called on already migrated databases
-    cr.execute("UPDATE sale_order_line SET qty_invoiced=NULL")
-    _update_lines(cr)
-
-
-if __name__ == "__main__":
-    util.main(main)

@@ -51,18 +51,3 @@ def move_db_attachments_to_disk(cr):
 
 def migrate(cr, version):
     move_db_attachments_to_disk(cr)
-
-
-if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(level=logging.ERROR)
-    from openerp.api import Environment
-
-    from openerp.addons.base.maintenance.migrations import util
-
-    def main(cr, _):
-        with Environment.manage():
-            move_db_attachments_to_disk(cr)
-
-    util.main(main)

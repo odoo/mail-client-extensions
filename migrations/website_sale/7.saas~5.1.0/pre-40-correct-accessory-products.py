@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-from openerp.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
     cr.execute(
         """SELECT cl2.relname
                     FROM pg_constraint cn
@@ -24,17 +22,15 @@ def migrate(cr, version):
                """
     )
 
-    if version != "skip-update":
-        # NOTE it may fail for already migrated databases...
-        cr.execute(
-            """UPDATE product_accessory_rel r
-                         SET dest_id=(SELECT id
-                                        FROM product_product
-                                       WHERE product_tmpl_id = r.dest_id
-                                    ORDER BY id ASC
-                                       LIMIT 1)
-                   """
-        )
+    cr.execute(
+        """UPDATE product_accessory_rel r
+                     SET dest_id=(SELECT id
+                                    FROM product_product
+                                   WHERE product_tmpl_id = r.dest_id
+                                ORDER BY id ASC
+                                   LIMIT 1)
+               """
+    )
 
     cr.execute(
         """ALTER TABLE product_accessory_rel
@@ -44,15 +40,3 @@ def migrate(cr, version):
                     ON DELETE CASCADE
                """
     )
-
-
-if __name__ == "__main__":
-    import sys
-
-    update = True
-    for i, v in enumerate(sys.argv):
-        if v == "-n":
-            update = False
-            sys.argv.pop(i)
-
-    util.main(migrate, None if update else "skip-update")

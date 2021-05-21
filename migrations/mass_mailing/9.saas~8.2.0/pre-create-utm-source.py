@@ -61,7 +61,3 @@ def migrate(cr, version):
            AND COALESCE(m.write_date, m.create_date) >= COALESCE(s.write_date, s.create_date, '-infinity')
     """
     )
-
-
-if __name__ == "__main__":
-    util.main(migrate)

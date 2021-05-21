@@ -16,7 +16,3 @@ def migrate(cr, version):
                                    AND name='ir_cron_scheduler_action')
                """
     )
-
-
-if __name__ == "__main__":
-    util.main(migrate)
