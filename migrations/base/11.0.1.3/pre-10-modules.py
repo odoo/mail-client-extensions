@@ -35,7 +35,7 @@ def migrate(cr, version):
                 WHERE name like 'theme_%%'
                 AND state in %s
             """,
-            (util._INSTALLED_MODULE_STATES,),
+            (util.INSTALLED_MODULE_STATES,),
         )
         installed_themes = [t[0] for t in cr.fetchall()]
         for theme in ["theme_default", "theme_bootswatch"]:

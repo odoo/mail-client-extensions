@@ -70,7 +70,7 @@ def migrate(cr, version):
                 WHERE d.name = 'procurement'
                 AND m.state IN %s
             """,
-                [util._INSTALLED_MODULE_STATES],
+                [util.INSTALLED_MODULE_STATES],
             )
             if not cr.fetchone()[0]:
                 cr.execute("SELECT COUNT(1) FROM procurement_order")

@@ -29,7 +29,7 @@ def migrate(cr, version):
                    WHERE name=%s
                      AND state IN %s
                """,
-        ("website_sale", util._INSTALLED_MODULE_STATES),
+        ("website_sale", util.INSTALLED_MODULE_STATES),
     )
     if not cr.fetchone():
         # website_sale is not installed

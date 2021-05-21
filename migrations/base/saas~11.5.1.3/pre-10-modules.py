@@ -156,7 +156,7 @@ def migrate(cr, version):
                  WHERE d.name = 'account_reports'
                    AND m.state IN %s
             """,
-                [util._INSTALLED_MODULE_STATES],
+                [util.INSTALLED_MODULE_STATES],
             )
             if not cr.fetchone()[0]:
                 util.uninstall_module(cr, "account_reports")
