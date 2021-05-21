@@ -136,7 +136,7 @@ def migrate(cr, version):
     util.new_module(cr, "utm")
     util.new_module_dep(cr, "utm", "marketing")
     for m in "crm hr_recruitment mass_mailing".split():
-        util.new_module_dep(cr, "crm", "utm")
+        util.new_module_dep(cr, m, "utm")
 
     # `utm` module need a migration script to steal models from `crm` module
     # you may think this is clever hack, but I'm just an asshole that want the
