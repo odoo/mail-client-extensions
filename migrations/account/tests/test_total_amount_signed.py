@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.tests import tagged
+
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 @tagged("amount_signed")
 @change_version("12.4")
 class CheckTotalSigned(UpgradeCase):
     def prepare(self):
-        with util.no_fiscal_lock(self.env.cr):
+        with no_fiscal_lock(self.env.cr):
             move_ids = []
             currency_eur = self.env.ref("base.EUR")
             currency_usd = self.env.ref("base.USD")

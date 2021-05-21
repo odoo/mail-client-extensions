@@ -8,6 +8,7 @@ import os
 from odoo import fields
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock, skip_failing_python_taxes
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
@@ -1570,8 +1571,7 @@ def migrate_invoice_lines(cr):
     # Create account_move
     ignored_unposted_invoices = {}
     skipped_taxes = {}
-    imp = util.import_script("account/account_util.py")
-    with imp.skip_failing_python_taxes(env, skipped_taxes):
+    with skip_failing_python_taxes(env, skipped_taxes):
         Move = env["account.move"].with_context(check_move_validity=False)
         created_moves = Move.browse()
         mappings = []
@@ -1989,7 +1989,7 @@ def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
     cr.execute("REINDEX TABLE account_tax")
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
         if util.ENVIRON["account_voucher_installed"]:
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)

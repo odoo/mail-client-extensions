@@ -2,8 +2,8 @@
 from collections import defaultdict
 from datetime import datetime
 
-from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 @change_version("12.3")
@@ -53,7 +53,7 @@ class GroupedAssetsCase(UpgradeCase):
         )
         assets.validate()
 
-        with util.no_fiscal_lock(self.env.cr):
+        with no_fiscal_lock(self.env.cr):
             self.env["account.asset.asset"].compute_generated_entries(datetime.today())
             moves = assets.mapped("depreciation_line_ids.move_id")
             self.assertEquals(len(moves), 4)  # 2 categories, 2 moves for grouped + 2 moves for 1 ungrouped category

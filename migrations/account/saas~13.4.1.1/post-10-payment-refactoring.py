@@ -4,6 +4,7 @@ import logging
 from datetime import date, timedelta
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 _logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
 
@@ -322,7 +323,7 @@ def migrate(cr, version):
             chunk_size=1024,
         )
 
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
 
         # ===== Draft/cancelled account.payment =====
         env["account.payment"].flush()

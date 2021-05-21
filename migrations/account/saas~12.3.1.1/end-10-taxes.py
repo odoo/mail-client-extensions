@@ -8,13 +8,14 @@ from odoo.tools import float_round
 from odoo.tools.safe_eval import safe_eval
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock, skip_failing_python_taxes
 
 NS = "odoo.addons.base.maintenance.migrations.account.saas~12.3."
 _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
         return _migrate(cr, version)
 
 
@@ -1980,7 +1981,6 @@ def get_v13_migration_dicts(cr):
       GROUP BY account_tax.id
     """
     )
-    imp = util.import_script("account/account_util.py")
     for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), _logger, qualifier="taxes"):
         tax = env["account.tax"].browse(tax_id)
 
@@ -2019,7 +2019,7 @@ def get_v13_migration_dicts(cr):
         ref_type = "out_refund" if tax.type_tax_use == "sale" else "in_refund"
 
         journal, account = _get_inv_journal_and_account(env, tax)
-        with imp.skip_failing_python_taxes(env):
+        with skip_failing_python_taxes(env):
             inv = create_invoice(cr, partner, tax, journal, account, type=inv_type)
             ref = create_invoice(cr, partner, tax, journal, account, type=ref_type)
 

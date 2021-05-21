@@ -4,7 +4,8 @@ from odoo import fields
 from odoo.tests.common import Form
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-from odoo.addons.base.maintenance.migrations.util import module_installed, no_fiscal_lock
+from odoo.addons.base.maintenance.migrations.util import module_installed
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 @change_version("14.1")

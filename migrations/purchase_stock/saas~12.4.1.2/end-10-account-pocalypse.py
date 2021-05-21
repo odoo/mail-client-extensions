@@ -3,6 +3,7 @@
 from odoo.tools import float_is_zero
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 def migrate(cr, version):
@@ -259,7 +260,7 @@ def migrate(cr, version):
             )
         to_unreconcile_line.remove_move_reconcile()
 
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
         for move_id, vals in to_write.items():
             env["account.move"].browse(move_id).write(vals)
 

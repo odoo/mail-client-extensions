@@ -7,6 +7,7 @@ from datetime import datetime
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 _logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class CheckPayments(UpgradeCase):
             # Do not upload test invoices
             self.patch(type(self.env["account.move"]), "_l10n_co_edi_is_l10n_co_edi_required", lambda s: False)
 
-        with util.no_fiscal_lock(self.env.cr):
+        with no_fiscal_lock(self.env.cr):
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
             aba = self.env["ir.model.data"].xmlid_to_res_id("l10n_au_aba.account_payment_method_aba_ct")

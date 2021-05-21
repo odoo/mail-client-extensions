@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo.tests import tagged
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, IntegrityCase, change_version
-from odoo.addons.base.maintenance.migrations.util import version_gte, no_fiscal_lock
+
+from odoo.addons.base.maintenance.migrations.testing import IntegrityCase, UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util import version_gte
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 def _amount_query(additionnal_condition=""):
