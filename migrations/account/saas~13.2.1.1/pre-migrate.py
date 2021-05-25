@@ -116,8 +116,8 @@ def migrate(cr, version):
         cr.execute(
             rf"""
                 UPDATE {table}
-                   SET sequence_prefix = (regexp_match(name, '^(.*?)(?:\d{0,9})(?:\D*?)$'))[1],
-                       sequence_number = ('0' || (regexp_match(name, '^(?:.*?)(\d{0,9})(?:\D*?)$'))[1])::integer
+                   SET sequence_prefix = (regexp_match(name, '^(.*?)(?:\d{{0,9}})(?:\D*?)$'))[1],
+                       sequence_number = ('0' || (regexp_match(name, '^(?:.*?)(\d{{0,9}})(?:\D*?)$'))[1])::integer
                  WHERE sequence_number IS NULL;
             """
         )
