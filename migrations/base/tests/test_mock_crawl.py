@@ -224,7 +224,18 @@ class TestCrawler(IntegrityCase):
             view = etree.fromstring(literal_eval(action["search_view"])["arch"])
             domain, group_by = self.mock_view_search(model, view, action["domain"])
 
-        if table_kind(self.env.cr, model._table):  # To cover the "Dashboard" module case
+        kind_of_table = table_kind(self.env.cr, model._table)
+        if not kind_of_table:
+            # Dashboard module: a menu / action without table or view.
+            pass
+        elif kind_of_table in ("v", "m") and any(field.manual for field in model._fields.values()):
+            # Report SQL views with custom columns.
+            _logger.warning(
+                "Mocking of model %s skipped because it is based on an SQL view with custom columns. "
+                "This is only possible with a custom module or a very technical manual intervention.",
+                model._name,
+            )
+        else:
             for view_type, data in views["fields_views"].items():
                 mock_method = getattr(self, "mock_view_%s" % view_type, None)
                 if mock_method:
