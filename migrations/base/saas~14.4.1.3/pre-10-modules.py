@@ -10,3 +10,4 @@ def migrate(cr, version):
         util.new_module(
             cr, "mass_mailing_sale_subscription", deps={"mass_mailing", "sale_subscription"}, auto_install=True
         )
+        util.remove_module(cr, "l10n_be_sale_intrastat")
