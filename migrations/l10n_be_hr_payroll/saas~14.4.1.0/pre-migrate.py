@@ -18,6 +18,8 @@ def migrate(cr, version):
     for atn_type in ["internet", "mobile", "laptop"]:
         util.delete_unused(cr, f"l10n_be_hr_payroll.cp200_employees_double_holiday_atn_{atn_type}")
         util.delete_unused(cr, f"l10n_be_hr_payroll.cp200_employees_double_holiday_atn_{atn_type}_2")
+    # The `mobile_2` rule has a slightly different xmlid (`employee` with `s`)
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employee_double_holiday_atn_mobile_2")
 
     util.create_column(cr, "l10n_be_dmfa_location_unit", "file_type", "varchar", default="R")
     util.remove_field(cr, "hr.employee", "language_code")
