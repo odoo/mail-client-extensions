@@ -58,6 +58,9 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
             {
                 partner.tickets = parsed.result.tickets.map(ticket_json => HelpdeskTicket.fromJSON(ticket_json));
             }
+            if (parsed.result.user_companies) {
+                this.context.setUserCompanies(parsed.result.user_companies);
+            }
             this.setState({partner: partner, isLoading: false});
             if (parsed.result.partner['enrichment_info'])
             {

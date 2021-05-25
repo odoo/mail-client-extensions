@@ -56,8 +56,9 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
                 }
                 else
                 {
+                    const  cids = this.context.getUserCompaniesString();
                     const action = "crm_mail_plugin.crm_lead_action_form_edit";
-                    const url = api.baseURL + `/web#action=${action}&id=${parsed.result.lead_id}&model=crm.lead&view_type=form`;
+                    const url = api.baseURL + `/web#action=${action}&id=${parsed.result.lead_id}&model=crm.lead&view_type=form${cids}`;
                     window.open(url);
                 }
             }).catch(error => {

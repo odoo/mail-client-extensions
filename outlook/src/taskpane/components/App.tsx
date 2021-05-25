@@ -23,6 +23,7 @@ export interface AppState {
     EnrichmentInfo: EnrichmentInfo;
     showPartnerCreatedMessage: boolean;
     showEnrichmentInfoMessage: boolean;
+    userCompanies: number[];
     loginErrorMessage: string;
     navigation: {
         goToLogin: () => void,
@@ -31,9 +32,11 @@ export interface AppState {
     connect: (token) => void,
     disconnect: () => void,
     getConnectionToken: () => void,
+    getUserCompaniesString: () => string,
     isConnected: () => Boolean,
     cancelRequests: () => void,
     addRequestCanceller: (canceller: () => void) => void,
+    setUserCompanies: (userCompanies: number[]) => void,
     showTopBarMessage: (enrichmentInfo?: EnrichmentInfo) => void,
     showHttpErrorMessage: (error) => void
 }
@@ -50,6 +53,7 @@ export default class App extends React.Component<AppProps, AppState> {
             EnrichmentInfo: new EnrichmentInfo(),
             showPartnerCreatedMessage: false,
             showEnrichmentInfoMessage: false,
+            userCompanies: [],
             pageDisplayed: Page.Main,
             loginErrorMessage: "",
             navigation: {
@@ -67,6 +71,13 @@ export default class App extends React.Component<AppProps, AppState> {
             getConnectionToken: () => {
                 return 'Bearer ' + localStorage.getItem('odooConnectionToken');
             },
+            getUserCompaniesString: () => {
+                if (this.state.userCompanies.length == 0) {
+                    return '';
+                } else {
+                    return `&cids=${this.state.userCompanies.sort().join(',')}`;
+                }
+            },
             isConnected: () => {
                 return !!localStorage.getItem('odooConnectionToken');
             },
@@ -79,6 +90,10 @@ export default class App extends React.Component<AppProps, AppState> {
             },
             addRequestCanceller: (canceller: () => void) => {
                 this.requestCancellers.push(canceller);
+            },
+
+            setUserCompanies: (companies: number[]) => {
+                this.setState({userCompanies: companies});
             },
 
             showTopBarMessage: (enrichmentInfo) => {

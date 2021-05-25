@@ -4,7 +4,7 @@ import Partner from "../../../../classes/Partner";
 import ContactListItem from "../ContactList/ContactListItem/ContactListItem";
 
 import api from "../../../api";
-
+import AppContext from '../../AppContext';
 
 type ContactSectionProps = {
     partner: Partner;
@@ -12,23 +12,27 @@ type ContactSectionProps = {
 };
 
 
-const ContactSection = (props: ContactSectionProps) => {
+class ContactSection extends React.Component<ContactSectionProps, {}> {
 
-    const viewContact = (partner) => {
-        let url = api.baseURL+`/web#id=${partner.id}&model=res.partner&view_type=form`;
+    viewContact = (partner) => {
+        const cids = this.context.getUserCompaniesString();
+        let url = api.baseURL+`/web#id=${partner.id}&model=res.partner&view_type=form${cids}`;
         window.open(url,"_blank");
     }
 
-    let selectable = props.partner.isAddedToDatabase();
-    let onItemClick = props.partner.isAddedToDatabase() ? viewContact : undefined;
+    render() {
+        let selectable = this.props.partner.isAddedToDatabase();
+        let onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : undefined;
 
-    return (
-        <div className='section-card'>
-            <ContactListItem partner={props.partner} selectable={selectable}
-                             onItemClick={onItemClick}/>
-        </div>
-    )
+        return (
+            <div className='section-card'>
+                <ContactListItem partner={this.props.partner} selectable={selectable}
+                                 onItemClick={onItemClick}/>
+            </div>
+        );
+    }
 
 }
+ContactSection.contextType = AppContext;
 
 export default ContactSection;

@@ -3,6 +3,7 @@ import HelpdeskTicket from "../../../../classes/HelpdeskTicket";
 import '../../../../utils/ListItem.css'
 import { _t } from "../../../../utils/Translator";
 import api from "../../../api";
+import AppContext from "../../AppContext";
 import Logger from "../../Log/Logger";
 
 type TicketListItemProps = {
@@ -10,34 +11,39 @@ type TicketListItemProps = {
 };
 
 
-const TicketListItem = (props: TicketListItemProps) => {
+class TicketListItem extends React.Component<TicketListItemProps, {}>{
 
-    const openInOdoo = () => {
-        let url = api.baseURL+`/web#id=${props.ticket.id}&model=helpdesk.ticket&view_type=form`;
-        window.open(url,"_blank");
+    openInOdoo = () => {
+        const cids = this.context.getUserCompaniesString();
+        let url = api.baseURL + `/web#id=${this.props.ticket.id}&model=helpdesk.ticket&view_type=form${cids}`;
+        window.open(url, "_blank");
     }
 
-    let closedText = null;
+    render() {
+        let closedText = null;
 
-    if (props.ticket.isClosed)
-    {
-        closedText = (<div className="muted-text" style={{marginTop: "8px", fontSize: "14px"}}>{_t("Closed")}</div>)
-    }
+        if (this.props.ticket.isClosed) {
+            closedText = (<div className="muted-text" style={{marginTop: "8px", fontSize: "14px"}}>{_t("Closed")}</div>)
+        }
 
-    return (
-        <div className="list-item-root-container" onClick={openInOdoo}>
-            <div className="list-item-container">
-                <div className="list-item-info-container">
-                    <div className="list-item-title-text">
-                        {props.ticket.name}
+        return (
+            <div className="list-item-root-container" onClick={this.openInOdoo}>
+                <div className="list-item-container">
+                    <div className="list-item-info-container">
+                        <div className="list-item-title-text">
+                            {this.props.ticket.name}
+                        </div>
+                        {closedText}
                     </div>
-                    {closedText}
+                    <Logger resId={this.props.ticket.id} model="helpdesk.ticket"
+                            tooltipContent={_t("Log Email Into Ticket")}/>
                 </div>
-                <Logger resId={props.ticket.id} model="helpdesk.ticket" tooltipContent={_t("Log Email Into Ticket")}/>
             </div>
-        </div>
-    );
+        );
+    }
 
 }
+
+TicketListItem.contextType = AppContext;
 
 export default TicketListItem;

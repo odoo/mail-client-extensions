@@ -33,8 +33,7 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
 
     private createTicketRequest = () => {
 
-        Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, (result) =>
-        {
+        Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, (result) => {
             const message = result.value.split('<div id="x_appendonsend"></div>')[0]; // Remove the history and only log the most recent message.
             const subject = Office.context.mailbox.item.subject;
 
@@ -49,14 +48,13 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
                 this.context.getConnectionToken(), requestJson, true);
             createTicketRequest.promise.then(response => {
                 const parsed = JSON.parse(response);
-                if (parsed['error']){
+                if (parsed['error']) {
                     this.context.showTopBarMessage();
                     return;
-                }
-                else
-                {
+                } else {
+                    const cids = this.context.getUserCompaniesString();
                     const action = "helpdesk_mail_plugin.helpdesk_ticket_action_form_edit";
-                    const url = api.baseURL + `/web#action=${action}&id=${parsed.result.ticket_id}&model=helpdesk.ticket&view_type=form`;
+                    const url = api.baseURL + `/web#action=${action}&id=${parsed.result.ticket_id}&model=helpdesk.ticket&view_type=form${cids}`;
                     window.open(url);
                 }
             }).catch(error => {
