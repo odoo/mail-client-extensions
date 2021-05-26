@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo.upgrade import util
 import logging
+
+from odoo.upgrade import util
 
 _logger = logging.getLogger("odoo.upgrade.mrp.134" + __name__)
 
@@ -346,9 +347,12 @@ def migrate(cr, version):
         util.recompute_fields(cr, "stock.move", ["product_qty"], ids=ids_move)
 
     # Before workorders were created with plan button, now it is done with the bom onchange, then simulate it when needed.
-    env["mrp.production"].search(
-        [("state", "in", ("draft", "confirmed")), ("bom_id", "!=", False), ("workorder_ids", "=", False)]
-    )._create_workorder()
+    production_ids = (
+        env["mrp.production"]
+        .search([("state", "in", ("draft", "confirmed")), ("bom_id", "!=", False), ("workorder_ids", "=", False)])
+        .ids
+    )
+    util.iter_browse(env["mrp.production"], production_ids)._create_workorder()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
     cr.execute("SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL")
