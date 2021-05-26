@@ -94,4 +94,26 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "project_timesheet_forecast", plus={"timesheet_grid"}, minus={"hr_timesheet"})
     util.module_deps_diff(cr, "auth_totp", plus={"mail"})
 
-    util.new_module(cr, "pos_sale_product_configurator", deps={"point_of_sale", "sale_product_configurator"}, auto_install=True)
+    util.new_module(
+        cr, "pos_sale_product_configurator", deps={"point_of_sale", "sale_product_configurator"}, auto_install=True
+    )
+
+    util.new_module(cr, "event_booth", deps={"event"})
+    util.new_module(cr, "event_booth_sale", deps={"event_booth", "event_sale"}, auto_install=True)
+    util.new_module(cr, "website_event_booth", deps={"website_event", "event_booth"}, auto_install=True)
+    util.new_module(
+        cr, "website_event_booth_exhibitor", deps={"website_event_exhibitor", "website_event_booth"}, auto_install=True
+    )
+    util.new_module(
+        cr,
+        "website_event_booth_sale",
+        deps={"event_booth_sale", "website_event_booth", "website_sale"},
+        auto_install=True,
+    )
+    util.new_module(
+        cr,
+        "website_event_booth_sale_exhibitor",
+        deps={"website_event_exhibitor", "website_event_booth_sale"},
+        auto_install=True,
+    )
+    util.module_deps_diff(cr, "test_event_full", plus={"event_booth", "website_event_booth_sale_exhibitor"})
