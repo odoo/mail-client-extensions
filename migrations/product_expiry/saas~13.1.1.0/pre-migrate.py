@@ -16,6 +16,24 @@ def migrate(cr, version):
                                    != 0
     """
     )
+    cr.execute(
+        """
+        WITH lots AS (
+            SELECT DISTINCT pp.product_tmpl_id AS id
+              FROM stock_production_lot l
+              JOIN product_product pp ON pp.id = l.product_id
+          GROUP BY pp.product_tmpl_id, l.life_date, l.use_date, l.removal_date, l.alert_date
+            HAVING l.life_date IS NOT NULL
+                OR l.use_date IS NOT NULL
+                OR l.removal_date IS NOT NULL
+                OR l.alert_date IS NOT NULL
+        )
+        UPDATE product_template pt
+           SET use_expiration_date = true
+          FROM lots l
+         WHERE l.id = pt.id
+        """
+    )
 
     util.rename_field(cr, "stock.production.lot", "life_date", "expiration_date")
 
