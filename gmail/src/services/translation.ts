@@ -24,7 +24,7 @@ export class Translate {
 
             this.translations = postJsonRpc(
                 State.odooServerUrl + URLS.GET_TRANSLATIONS,
-                { },
+                {},
                 { Authorization: "Bearer " + State.accessToken },
             );
 

@@ -23,11 +23,10 @@ function onCreateTicket(state: State) {
 }
 
 function onLogEmailOnTicket(state: State, parameters: any) {
-    const emailBody = state.email.body;
     const ticketId = parameters.ticketId;
 
     if (State.setLoggingState(state.email.messageId, "tickets", ticketId)) {
-        logEmail(ticketId, "helpdesk.ticket", emailBody);
+        state.error = logEmail(ticketId, "helpdesk.ticket", state.email);
         return updateCard(buildView(state));
     }
     return notify(_t("Email already logged on the ticket"));

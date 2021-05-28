@@ -20,7 +20,6 @@ function onEnrichCompany(state: State) {
 }
 
 function onLogEmail(state: State) {
-    const emailBody = state.email.body;
     const partnerId = state.partner.id;
 
     if (!partnerId) {
@@ -28,7 +27,7 @@ function onLogEmail(state: State) {
     }
 
     if (State.setLoggingState(state.email.messageId, "partners", partnerId)) {
-        logEmail(partnerId, "res.partner", emailBody);
+        state.error = logEmail(partnerId, "res.partner", state.email);
         return updateCard(buildView(state));
     }
     return notify(_t("Email already logged on the contact"));

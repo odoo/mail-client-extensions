@@ -1,3 +1,5 @@
+import { ErrorMessage } from "../models/error_message";
+
 /**
  * Represent the current email open in the Gmail application.
  */
@@ -67,5 +69,43 @@ export class Email {
         email.contactName = values.contactName;
 
         return email;
+    }
+
+    /**
+     * Return the list of the attachments in the email.
+     * Done in a getter and not as a property because this object is serialized and
+     * given to the event handler.
+     *
+     * Returns:
+     *     - Null and "attachments_size_exceeded" error, if the total attachment size limit
+     *       is exceeded so we do not keep big files in memory.
+     *     - If no attachment, return an empty array and an empty error message.
+     *     - Otherwise, the list of attachments base 64 encoded and an empty error message
+     */
+    getAttachments(): [string[][], ErrorMessage] {
+        const message = GmailApp.getMessageById(this.messageId);
+        const gmailAttachments = message.getAttachments();
+        const attachments: string[][] = [];
+
+        // The size limit of the POST request are 50 MB
+        // So we limit the total attachment size to 40 MB
+        const MAXIMUM_ATTACHMENTS_SIZE = 40 * 1024 * 1024;
+
+        let totalAttachmentsSize = 0;
+
+        for (const gmailAttachment of gmailAttachments) {
+            const bytesSize = gmailAttachment.getSize();
+            totalAttachmentsSize += bytesSize;
+            if (totalAttachmentsSize > MAXIMUM_ATTACHMENTS_SIZE) {
+                return [null, new ErrorMessage("attachments_size_exceeded")];
+            }
+
+            const name = gmailAttachment.getName();
+            const content = Utilities.base64Encode(gmailAttachment.getBytes());
+
+            attachments.push([name, content]);
+        }
+
+        return [attachments, new ErrorMessage(null)];
     }
 }

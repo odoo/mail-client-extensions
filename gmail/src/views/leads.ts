@@ -8,11 +8,10 @@ import { Lead } from "../models/lead";
 import { State } from "../models/state";
 
 function onLogEmailOnLead(state: State, parameters: any) {
-    const emailBody = state.email.body;
     const leadId = parameters.leadId;
 
     if (State.setLoggingState(state.email.messageId, "leads", leadId)) {
-        logEmail(leadId, "crm.lead", emailBody);
+        state.error = logEmail(leadId, "crm.lead", state.email);
         return updateCard(buildView(state));
     }
     return notify(_t("Email already logged on the lead"));

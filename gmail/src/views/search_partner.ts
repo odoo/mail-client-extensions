@@ -17,7 +17,6 @@ function onSearchPartnerClick(state: State, parameters: any, inputs: any) {
     return updateCard(buildSearchPartnerView(state, query));
 }
 function onLogEmailPartner(state: State, parameters: any) {
-    const emailBody = state.email.body;
     const partnerId = parameters.partnerId;
 
     if (!partnerId) {
@@ -25,7 +24,7 @@ function onLogEmailPartner(state: State, parameters: any) {
     }
 
     if (State.setLoggingState(state.email.messageId, "partners", partnerId)) {
-        logEmail(partnerId, "res.partner", emailBody);
+        state.error = logEmail(partnerId, "res.partner", state.email);
         return updateCard(buildSearchPartnerView(state, parameters.query));
     }
     return notify(_t("Email already logged on the contact"));
@@ -92,7 +91,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
             );
 
         if (partner.email) {
-            partnerCard.setBottomLabel(partner.email)
+            partnerCard.setBottomLabel(partner.email);
         }
 
         searchSection.addWidget(partnerCard);
