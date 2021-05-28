@@ -146,15 +146,18 @@ def migrate(cr, version):
         if util.module_installed(cr, "account_intrastat"):
             util.force_install_module(cr, "stock_intrastat")
 
-        #One app free should remain one app free
+        # One app free should remain one app free
         if util.module_installed(cr, "account_reports"):
-            cr.execute("""
+            cr.execute(
+                """
                 SELECT COUNT(*)
                   FROM ir_module_module_dependency d
             INNER JOIN ir_module_module m ON d.module_id = m.id
                  WHERE d.name = 'account_reports'
                    AND m.state IN %s
-            """, [util._INSTALLED_MODULE_STATES])
+            """,
+                [util.INSTALLED_MODULE_STATES],
+            )
             if not cr.fetchone()[0]:
                 util.uninstall_module(cr, "account_reports")
         util.module_deps_diff(cr, "account_accountant", minus={"account_reports"})

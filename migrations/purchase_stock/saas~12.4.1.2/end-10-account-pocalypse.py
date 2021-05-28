@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
 
 from odoo.tools import float_is_zero
+
+from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 def migrate(cr, version):
@@ -32,7 +34,8 @@ def migrate(cr, version):
 
     # Note: during the migration, the taxes need to be fixed because the anglo saxon lines don't need taxes anymore.
 
-    cr.execute('''
+    cr.execute(
+        """
         WITH property_account AS (
             SELECT DISTINCT SUBSTRING(value_reference FROM '%,#"_*#"%' FOR '#')::int4 AS id
             FROM ir_property
@@ -60,9 +63,11 @@ def migrate(cr, version):
             AND aml.exclude_from_invoice_tab
             AND aa.internal_type NOT IN ('receivable', 'payable')
         )
-    ''')
+    """
+    )
 
-    cr.execute('''
+    cr.execute(
+        """
         SELECT
             move.type,
             move.currency_id AS move_currency_id,
@@ -130,7 +135,8 @@ def migrate(cr, version):
             anglo_line.balance,
             currency.decimal_places,
             comp_currency.decimal_places
-    ''')
+    """
+    )
 
     to_write = {}
     processed_line_ids = set()
@@ -140,79 +146,107 @@ def migrate(cr, version):
     to_recompute_audit_string_line_ids = set()
     query_res = cr.dictfetchall()
     for res in query_res:
-        if res['id'] in processed_line_ids or res['ang_id'] in processed_line_ids:
+        if res["id"] in processed_line_ids or res["ang_id"] in processed_line_ids:
             continue
 
-        factor = -1 if res['type'] == 'in_refund' else 1
-        new_balance = res['balance'] + res['ang_balance']
-        new_amount_currency = res['amount_currency'] + res['ang_amount_currency']
+        factor = -1 if res["type"] == "in_refund" else 1
+        new_balance = res["balance"] + res["ang_balance"]
+        new_amount_currency = res["amount_currency"] + res["ang_amount_currency"]
 
-        if res['move_currency_id'] == res['company_currency_id']:
+        if res["move_currency_id"] == res["company_currency_id"]:
 
-            if float_is_zero((res['price_subtotal'] * factor) - res['balance'], precision_digits=res['comp_curr_decimal_places']):
+            if float_is_zero(
+                (res["price_subtotal"] * factor) - res["balance"], precision_digits=res["comp_curr_decimal_places"]
+            ):
                 continue
 
-            if not float_is_zero((res['price_subtotal'] * factor) - res['balance'] - res['ang_balance'], precision_digits=res['comp_curr_decimal_places']):
+            if not float_is_zero(
+                (res["price_subtotal"] * factor) - res["balance"] - res["ang_balance"],
+                precision_digits=res["comp_curr_decimal_places"],
+            ):
                 continue
 
         else:
 
-            if float_is_zero((res['price_subtotal'] * factor) - res['amount_currency'], precision_digits=res['curr_decimal_places']):
+            if float_is_zero(
+                (res["price_subtotal"] * factor) - res["amount_currency"], precision_digits=res["curr_decimal_places"]
+            ):
                 continue
 
-            if not float_is_zero((res['price_subtotal'] * factor) - res['amount_currency'] - res['ang_amount_currency'], precision_digits=res['curr_decimal_places']):
+            if not float_is_zero(
+                (res["price_subtotal"] * factor) - res["amount_currency"] - res["ang_amount_currency"],
+                precision_digits=res["curr_decimal_places"],
+            ):
                 continue
 
-        to_unlink_tax_line_ids.add(res['ang_id'])
-        to_recompute_audit_string_line_ids.add(res['id'])
-        to_recompute_audit_string_line_ids.add(res['ang_id'])
+        to_unlink_tax_line_ids.add(res["ang_id"])
+        to_recompute_audit_string_line_ids.add(res["id"])
+        to_recompute_audit_string_line_ids.add(res["ang_id"])
 
-        to_write.setdefault(res['move_id'], {'line_ids': []})
+        to_write.setdefault(res["move_id"], {"line_ids": []})
 
-        to_write[res['move_id']]['line_ids'].append((1, res['id'], {
-            'amount_currency': new_amount_currency,
-            'debit': new_balance if new_balance > 0.0 else 0.0,
-            'credit': -new_balance if new_balance < 0.0 else 0.0,
-            'is_anglo_saxon_line': False,
-        }))
+        to_write[res["move_id"]]["line_ids"].append(
+            (
+                1,
+                res["id"],
+                {
+                    "amount_currency": new_amount_currency,
+                    "debit": new_balance if new_balance > 0.0 else 0.0,
+                    "credit": -new_balance if new_balance < 0.0 else 0.0,
+                    "is_anglo_saxon_line": False,
+                },
+            )
+        )
 
-        to_write[res['move_id']]['line_ids'].append((0, 0, {
-            'name': res['ang_name'],
-            'currency_id': res['currency_id'],
-            'product_id': res['ang_product_id'],
-            'product_uom_id': res['ang_product_uom_id'],
-            'quantity': res['ang_quantity'],
-            'price_unit': res['ang_price_unit'] or 0.0,
-            'price_subtotal': res['ang_price_subtotal'],
-            'account_id': res['account_id'],
-            'analytic_account_id': res['ang_analytic_account_id'],
-            'analytic_tag_ids': [(6, 0, [t for t in res['ang_analytic_tag_ids'] if t])],
-            'amount_currency': -res['ang_amount_currency'],
-            'debit': -res['ang_balance'] if res['ang_balance'] < 0.0 else 0.0,
-            'credit': res['ang_balance'] if res['ang_balance'] > 0.0 else 0.0,
-            'exclude_from_invoice_tab': True,
-            'is_anglo_saxon_line': True,
-        }))
+        to_write[res["move_id"]]["line_ids"].append(
+            (
+                0,
+                0,
+                {
+                    "name": res["ang_name"],
+                    "currency_id": res["currency_id"],
+                    "product_id": res["ang_product_id"],
+                    "product_uom_id": res["ang_product_uom_id"],
+                    "quantity": res["ang_quantity"],
+                    "price_unit": res["ang_price_unit"] or 0.0,
+                    "price_subtotal": res["ang_price_subtotal"],
+                    "account_id": res["account_id"],
+                    "analytic_account_id": res["ang_analytic_account_id"],
+                    "analytic_tag_ids": [(6, 0, [t for t in res["ang_analytic_tag_ids"] if t])],
+                    "amount_currency": -res["ang_amount_currency"],
+                    "debit": -res["ang_balance"] if res["ang_balance"] < 0.0 else 0.0,
+                    "credit": res["ang_balance"] if res["ang_balance"] > 0.0 else 0.0,
+                    "exclude_from_invoice_tab": True,
+                    "is_anglo_saxon_line": True,
+                },
+            )
+        )
 
-        processed_line_ids.add(res['id'])
-        processed_line_ids.add(res['ang_id'])
-        if res['reconcile']:
-            to_unreconcile_line_ids.add(res['id'])
+        processed_line_ids.add(res["id"])
+        processed_line_ids.add(res["ang_id"])
+        if res["reconcile"]:
+            to_unreconcile_line_ids.add(res["id"])
 
     # ============================================================
     # Fix taxes on anglo-saxon lines that are not needed anymore
     # ============================================================
 
     if to_unlink_tax_line_ids:
-        cr.execute('''
+        cr.execute(
+            """
             DELETE FROM account_move_line_account_tax_rel rel
             WHERE rel.account_move_line_id IN %s
-        ''', [tuple(to_unlink_tax_line_ids)])
-        cr.execute('''
+        """,
+            [tuple(to_unlink_tax_line_ids)],
+        )
+        cr.execute(
+            """
             DELETE FROM account_account_tag_account_move_line_rel rel
             USING account_account_tag tag
             WHERE rel.account_move_line_id IN %s AND tag.id = rel.account_account_tag_id AND tag.applicability = 'taxes'
-        ''', [tuple(to_unlink_tax_line_ids)])
+        """,
+            [tuple(to_unlink_tax_line_ids)],
+        )
 
     # ============================================================
     # Fix journal items in order to fix the anglo saxon lines
@@ -226,22 +260,22 @@ def migrate(cr, version):
             )
         to_unreconcile_line.remove_move_reconcile()
 
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
         for move_id, vals in to_write.items():
-            env['account.move'].browse(move_id).write(vals)
+            env["account.move"].browse(move_id).write(vals)
 
     # Again reconciled lines that unreconciled before.
     for lines in to_reconcile_line_ids:
         lines.filtered(lambda l: not l.reconciled).reconcile()
 
     # Ensure 'balance' is well computed in following queries.
-    env['account.move'].flush()
+    env["account.move"].flush()
 
     # ============================================================
     # Fix tax audit string since taxes are different.
     # ============================================================
 
-    m = util.import_script('account/saas~12.3.1.1/end-20-recompute.py')
+    m = util.import_script("account/saas~12.3.1.1/end-20-recompute.py")
     if to_recompute_audit_string_line_ids:
         m.recompute_tax_audit_string(cr, aml_ids=to_recompute_audit_string_line_ids)
 
@@ -250,7 +284,8 @@ def migrate(cr, version):
     # ============================================================
 
     if to_write:
-        cr.execute('''
+        cr.execute(
+            """
             WITH with_amount_untaxed AS (
                 SELECT
                     line.move_id,
@@ -271,9 +306,12 @@ def migrate(cr, version):
                 amount_untaxed_signed = with_amount_untaxed.amount_untaxed
             FROM with_amount_untaxed
             WHERE with_amount_untaxed.move_id = account_move.id
-        ''', [tuple(to_write.keys())])
+        """,
+            [tuple(to_write.keys())],
+        )
 
-        cr.execute('''
+        cr.execute(
+            """
             WITH with_amount_untaxed AS (
                 SELECT
                     line.move_id,
@@ -293,4 +331,6 @@ def migrate(cr, version):
                 amount_untaxed_signed = with_amount_untaxed.amount_untaxed
             FROM with_amount_untaxed
             WHERE with_amount_untaxed.move_id = account_move.id
-        ''', [tuple(to_write.keys())])
+        """,
+            [tuple(to_write.keys())],
+        )

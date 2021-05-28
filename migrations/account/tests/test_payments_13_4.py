@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 import itertools
-import random
 import logging
-
+import random
 from datetime import datetime
 
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 _logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class CheckPayments(UpgradeCase):
 
     # TODO move this to base class
     def patch(self, obj, key, val):
-        """ Do the patch ``setattr(obj, key, val)``, and prepare cleanup. """
+        """Do the patch ``setattr(obj, key, val)``, and prepare cleanup."""
         old = getattr(obj, key)
         setattr(obj, key, val)
         self.addCleanup(setattr, obj, key, old)
@@ -68,7 +68,7 @@ class CheckPayments(UpgradeCase):
             # Do not upload test invoices
             self.patch(type(self.env["account.move"]), "_l10n_co_edi_is_l10n_co_edi_required", lambda s: False)
 
-        with util.no_fiscal_lock(self.env.cr):
+        with no_fiscal_lock(self.env.cr):
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
             aba = self.env["ir.model.data"].xmlid_to_res_id("l10n_au_aba.account_payment_method_aba_ct")

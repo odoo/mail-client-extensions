@@ -4,6 +4,7 @@ import logging
 from datetime import date, timedelta
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 _logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
 
@@ -322,7 +323,7 @@ def migrate(cr, version):
             chunk_size=1024,
         )
 
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
 
         # ===== Draft/cancelled account.payment =====
         env["account.payment"].flush()
@@ -348,7 +349,10 @@ def migrate(cr, version):
         chunk_size = 48
         size = (cr.rowcount + chunk_size - 1) / chunk_size
         for data in util.log_progress(
-            util.chunks(cr.dictfetchall(), size=48, fmt=list), qualifier=f"account.move {chunk_size}-bucket", size=size
+            util.chunks(cr.dictfetchall(), size=48, fmt=list),
+            _logger,
+            qualifier=f"account.move {chunk_size}-bucket",
+            size=size,
         ):
             moves = env["account.move"].with_context(**ctx).create(data)
 

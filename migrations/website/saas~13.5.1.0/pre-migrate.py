@@ -4,7 +4,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
 
-    for inh in util._for_each_inherit(cr, "website.seo.metadata", skip=()):
+    for inh in util.for_each_inherit(cr, "website.seo.metadata", skip=()):
         table = util.table_of_model(cr, inh.model)
         if util.table_exists(cr, table):
             util.create_column(cr, table, "seo_name", "varchar")

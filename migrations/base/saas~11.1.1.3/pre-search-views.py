@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from itertools import count
+
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -24,7 +25,7 @@ def migrate(cr, version):
     )
     size = cr.rowcount
     abacus = count()
-    for (vid,) in util.log_progress(cr.fetchall(), qualifier="search views", size=size):
+    for (vid,) in util.log_progress(cr.fetchall(), util._logger, qualifier="search views", size=size):
         with util.edit_view(cr, view_id=vid) as view:
             for node in view.xpath("//filter[not(@name)][not(@position)]"):
                 node.attrib["name"] = "s%d" % next(abacus)

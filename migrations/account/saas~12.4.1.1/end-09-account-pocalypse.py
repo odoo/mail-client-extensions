@@ -8,6 +8,7 @@ import os
 from odoo import fields
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock, skip_failing_python_taxes
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
@@ -540,7 +541,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     )
     mls = []
     line_ids = []
-    for line in util.log_progress(cr.dictfetchall(), qualifier="zero-line", logger=_logger):
+    for line in util.log_progress(cr.dictfetchall(), _logger, qualifier="zero-line"):
         if line["invoice_id"] in ignored_unposted_invoices.keys():
             continue
         line_ids.append(line["id"])
@@ -580,7 +581,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     size = (len(mls) + chunk_size - 1) / chunk_size
     qual = "account.move.line %d-bucket" % chunk_size
     ml_ids = []
-    for move_lines in util.log_progress(util.chunks(mls, chunk_size, list), qualifier=qual, size=size):
+    for move_lines in util.log_progress(util.chunks(mls, chunk_size, list), _logger, qualifier=qual, size=size):
         ml_ids += MoveLine.create(move_lines).ids
         cr.commit()
     _logger.info("invoices: creating zero-line mapping")
@@ -827,7 +828,7 @@ def migrate_voucher_lines(cr):
     Move = env["account.move"].with_context(check_move_validity=False)
     created_moves = Move.browse()
     mappings = []
-    for record_id, vals in util.log_progress(vouchers.items(), qualifier="vouchers", logger=_logger):
+    for record_id, vals in util.log_progress(vouchers.items(), _logger, qualifier="vouchers"):
         try:
             with util.savepoint(cr):
                 created_move = Move.create(_convert_to_account_move_vals(vals))
@@ -1570,12 +1571,11 @@ def migrate_invoice_lines(cr):
     # Create account_move
     ignored_unposted_invoices = {}
     skipped_taxes = {}
-    imp = util.import_script("account/account_util.py")
-    with imp.skip_failing_python_taxes(env, skipped_taxes):
+    with skip_failing_python_taxes(env, skipped_taxes):
         Move = env["account.move"].with_context(check_move_validity=False)
         created_moves = Move.browse()
         mappings = []
-        for record_id, inv_vals in util.log_progress(invoices.items(), qualifier="invoices", logger=_logger):
+        for record_id, inv_vals in util.log_progress(invoices.items(), _logger, qualifier="invoices"):
             try:
                 with util.savepoint(cr):
                     created_move = Move.create(_convert_to_account_move_vals(inv_vals))
@@ -1989,7 +1989,7 @@ def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
     cr.execute("REINDEX TABLE account_tax")
-    with util.no_fiscal_lock(cr):
+    with no_fiscal_lock(cr):
         if util.ENVIRON["account_voucher_installed"]:
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)

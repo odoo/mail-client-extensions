@@ -118,7 +118,7 @@ def migrate(cr, version):
                    AND state IN %s
 
             """,
-                [util._INSTALLED_MODULE_STATES],
+                [util.INSTALLED_MODULE_STATES],
             )
             if not cr.rowcount:
                 util.force_install_module(cr, "theme_default")

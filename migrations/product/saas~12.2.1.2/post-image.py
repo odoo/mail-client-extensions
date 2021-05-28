@@ -2,7 +2,9 @@
 import logging
 import os
 import re
+
 from odoo import tools
+
 from odoo.addons.base.maintenance.migrations import util
 
 NS = "odoo.addons.base.maintenance.migrations.account.saas~12.3."
@@ -72,7 +74,7 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
         compute_fields = list(fields)
         if zoom:
             compute_fields += [zoom]
-        for record_id in util.log_progress(has_ids, qualifier="records", logger=_logger):
+        for record_id in util.log_progress(has_ids, _logger, qualifier="records"):
             try:
                 util.recompute_fields(cr, model, compute_fields, ids=[record_id])
             except Exception:
@@ -83,8 +85,8 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
     if not_ids:
         cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content"))[0])
         size = (len(not_ids) + chunk_size - 1) / chunk_size
-        qual = '%s %d-bucket' % (model, chunk_size)
-        for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), qualifier=qual, size=size):
+        qual = "%s %d-bucket" % (model, chunk_size)
+        for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), _logger, qualifier=qual, size=size):
             cr.execute(
                 """
                 INSERT INTO ir_attachment(res_field, {cols}, index_content)
@@ -101,8 +103,9 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
             )
         if zoom:
             table = util.table_of_model(cr, model)
-            qual = '%s:%s %d-bucket' % (model, zoom, chunk_size)
-            for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), qualifier=qual, size=size):
+            qual = "%s:%s %d-bucket" % (model, zoom, chunk_size)
+            chnk = util.chunks(not_ids, chunk_size, list)
+            for sub_ids in util.log_progress(chnk, _logger, qualifier=qual, size=size):
                 cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [sub_ids])
 
         # Inject the cron which will resize the images which have not been resized during the upgrade

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo.tools.safe_eval import safe_eval
 import odoo.osv.expression as exp
+from odoo.tools.safe_eval import safe_eval
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -42,13 +42,13 @@ def adapt(domain, qualifier):
 
 def migrate(cr, version):
     cr.execute(r"SELECT id, domain_force FROM ir_rule WHERE domain_force ~ '\yuser\.company_id\.id\y'")
-    for rid, domain in util.log_progress(cr.fetchall(), "ir.rule"):
+    for rid, domain in util.log_progress(cr.fetchall(), _logger, "ir.rule"):
         final_dom = adapt(domain, f"rule#{rid}")
         if final_dom:
             cr.execute("UPDATE ir_rule SET domain_force = %s WHERE id = %s", [final_dom, rid])
 
     cr.execute(r"SELECT id, domain FROM ir_filters WHERE domain ~ '\yuser\.company_id\.id\y'")
-    for rid, domain in util.log_progress(cr.fetchall(), "ir.filters"):
+    for rid, domain in util.log_progress(cr.fetchall(), _logger, "ir.filters"):
         final_dom = adapt(domain, f"filter#{rid}")
         if final_dom:
             cr.execute("UPDATE ir_filters SET domain = %s WHERE id = %s", [final_dom, rid])
