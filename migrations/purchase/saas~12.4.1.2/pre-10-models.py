@@ -14,6 +14,7 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE account_invoice_purchase_order_rel RENAME TO account_move_purchase_order_rel")
     util.create_column(cr, "account_move_purchase_order_rel", "account_move_id", "int4")
 
+    util.drop_depending_views(cr, "purchase_order", "date_approve")
     cr.execute("ALTER TABLE purchase_order ALTER COLUMN date_approve TYPE timestamp without time zone")
 
     util.create_column(cr, "purchase_order", "currency_rate", "float8")
