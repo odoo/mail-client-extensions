@@ -11,7 +11,7 @@ function onLogout(state: State) {
     clearTranslationCache();
 
     const [partner, error] = Partner.enrichPartner(state.email.contactEmail, state.email.contactName);
-    const newState = new State(partner, state.email, null, error);
+    const newState = new State(partner, state.email, null, null, error);
     return pushToRoot(buildView(newState));
 }
 
