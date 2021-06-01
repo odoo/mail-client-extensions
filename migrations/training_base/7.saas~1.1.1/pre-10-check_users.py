@@ -19,4 +19,4 @@ brandon_light
         login = u.split('_')[0] + '@openwood.com'
         xmlid = 'training_base.' + u
         if not util.ensure_xmlid_match_record(cr, xmlid, 'res.users', {'login': login}):
-            util.remove_record(cr, 'training_base.%s_res_partner' % u, deactivate=True)
+            util.delete_unused(cr, 'training_base.%s_res_partner' % u, deactivate=True)

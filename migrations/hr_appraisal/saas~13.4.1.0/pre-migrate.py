@@ -44,7 +44,7 @@ def migrate(cr, version):
         mail_activity_type_action_config_hr_appraisal
     """
     for removed_data in util.splitlines(removed_noupdate_data):
-        util.remove_record(cr, f"hr_appraisal.{removed_data}", deactivate=True)
+        util.delete_unused(cr, f"hr_appraisal.{removed_data}", deactivate=True)
 
     util.remove_view(cr, "hr_appraisal.mail_template_appraisal_reminder")
     util.remove_menus(
