@@ -10,6 +10,10 @@ const URLS: Record<string, string> = {
     CREATE_LEAD: "/mail_plugin/lead/create",
     // HELPDESK Ticket
     CREATE_TICKET: "/mail_plugin/ticket/create",
+    // Project
+    SEARCH_PROJECT: "/mail_plugin/project/search",
+    CREATE_PROJECT: "/mail_plugin/project/create",
+    CREATE_TASK: "/mail_plugin/task/create",
     // IAP
     IAP_COMPANY_ENRICHMENT: "https://iap-services.odoo.com/iap/mail_extension/enrich",
 };
