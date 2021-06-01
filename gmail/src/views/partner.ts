@@ -1,5 +1,6 @@
 import { buildView } from "./index";
 import { buildLeadsView } from "./leads";
+import { buildTasksView } from "./tasks";
 import { buildTicketsView } from "./tickets";
 import { buildPartnerActionView } from "./partner_actions";
 import { updateCard } from "./helpers";
@@ -118,6 +119,7 @@ export function buildPartnerView(state: State, card: Card) {
     if (canContactOdooDatabase) {
         buildLeadsView(state, card);
         buildTicketsView(state, card);
+        buildTasksView(state, card);
     }
 
     return card;

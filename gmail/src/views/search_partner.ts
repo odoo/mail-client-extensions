@@ -33,7 +33,7 @@ function onLogEmailPartner(state: State, parameters: any) {
 function onOpenPartner(state: State, parameters: any) {
     const partner = parameters.partner;
     const [newPartner, error] = Partner.getPartner(partner.email, partner.name, partner.id);
-    const newState = new State(newPartner, state.email, null, error);
+    const newState = new State(newPartner, state.email, null, null, error);
     return pushCard(buildView(newState));
 }
 

@@ -22,7 +22,7 @@ function onGmailMessageOpen(event) {
         throw new Error("Error during enrichment");
     }
 
-    const state = new State(partner, currentEmail, null, error);
+    const state = new State(partner, currentEmail, null, null, error);
 
     return [buildView(state)];
 }

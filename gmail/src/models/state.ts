@@ -1,6 +1,7 @@
 import { isTrue } from "../utils/format";
 import { Email } from "./email";
 import { Partner } from "./partner";
+import { Project } from "./project";
 import { Lead } from "./lead";
 import { ErrorMessage } from "./error_message";
 import { getAccessToken, getOdooAuthUrl } from "../services/odoo_auth";
@@ -23,13 +24,16 @@ export class State {
     email: Email;
     // Searched partners in the search view
     searchedPartners: Partner[];
+    // Searched projects in the search view
+    searchedProjects: Project[];
     // Current error message displayed on the card
     error: ErrorMessage;
 
-    constructor(partner: Partner, email: Email, partners: Partner[], error: ErrorMessage) {
+    constructor(partner: Partner, email: Email, partners: Partner[], searchedProjects: Project[], error: ErrorMessage) {
         this.partner = partner;
         this.email = email;
         this.searchedPartners = partners;
+        this.searchedProjects = searchedProjects;
         this.error = error;
     }
 
@@ -47,6 +51,7 @@ export class State {
         const emailValues = values.email || {};
         const errorValues = values.error || {};
         const partnersValues = values.searchedPartners;
+        const projectsValues = values.searchedProjects;
 
         const partner = Partner.fromJson(partnerValues);
         const email = Email.fromJson(emailValues);
@@ -54,8 +59,11 @@ export class State {
         const searchedPartners = partnersValues
             ? partnersValues.map((partnerValues: any) => Partner.fromJson(partnerValues))
             : null;
+        const searchedProjects = projectsValues
+            ? projectsValues.map((projectValues: any) => Project.fromJson(projectValues))
+            : null;
 
-        return new State(partner, email, searchedPartners, error);
+        return new State(partner, email, searchedPartners, searchedProjects, error);
     }
 
     /**
@@ -129,6 +137,7 @@ export class State {
             partners: [],
             leads: [],
             tickets: [],
+            tasks: [],
         };
 
         if (!loggingStateStr || !loggingStateStr.length) {

@@ -42,3 +42,13 @@ export function repeat(str: string, n: number) {
     }
     return result;
 }
+
+/**
+ * Truncate the given text to not exceed the given length.
+ */
+export function truncate(str: string, maxLength: number) {
+    if (str.length > maxLength) {
+        return str.substring(0, maxLength - 3) + "...";
+    }
+    return str;
+}
