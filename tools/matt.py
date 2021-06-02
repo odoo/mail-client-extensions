@@ -320,7 +320,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
     # tests: validation
     if options.run_tests:
         logger.info("validate upgrade tests in db %s", dbname)
-        odoo(["--test-tags", "upgrade.test_check,upgrade:UnitTestCase"], version=options.target)
+        odoo(["--test-tags", "upgrade.test_check,upgrade_unit"], version=options.target)
 
     if success and not options.keep_dbs:
         subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
