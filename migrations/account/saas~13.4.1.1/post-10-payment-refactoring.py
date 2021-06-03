@@ -271,7 +271,7 @@ def migrate(cr, version):
         cr.execute(
             f"""
             UPDATE account_move_line line
-            SET account_id = journal.payment_debit_account_id
+            SET account_id = journal.payment_{debit_credit}_account_id
             FROM account_payment pay
             JOIN account_payment_pre_backup pay_backup ON pay_backup.id = pay.id
             JOIN account_move move ON move.id = pay.move_id
