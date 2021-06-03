@@ -349,7 +349,17 @@ def migrate(cr, version):
                 column_op=", ".join(column_op), column_op_pre=", ".join(column_op_pre)
             )
         )
+
+        cols, pre_cols = util.get_columns(cr, "ir_attachment", ignore=("id", "res_id"), extra_prefixes=["a"])
         update_queries = [
+            """
+            INSERT INTO ir_attachment({cols}, res_id)
+            SELECT {pre_cols}, new_op.id
+              FROM temp_new_mrp_operation new_op
+              JOIN ir_attachment a ON a.res_id = new_op.old_id AND a.res_model = 'mrp.routing.workcenter'
+            """.format(
+                cols=", ".join(cols), pre_cols=", ".join(pre_cols)
+            ),
             """
             UPDATE mrp_bom_line
                SET operation_id = new_op.id
