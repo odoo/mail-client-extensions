@@ -301,13 +301,32 @@ def migrate(cr, version):
         column_op, column_op_pre = util.get_columns(
             cr, "mrp_routing_workcenter", ignore=("id", "bom_id", "old_id"), extra_prefixes=["old_operation"]
         )
-        # For mrp.routing.workcenter: duplicate operation for each bom using related routing and link via bom_id
-        # And Delete old operations
-        # Recreate link to operation_id for mrp.bom.line via bom_id
-        # Recreate link to operation_id for mrp.bom.byproduct via bom_id
-        # Recreate link to operation_id for stock.move via raw_material_production_id
-        # In mrp_workorder: Recreate/Duplicate all quality point link to a operation
-        # In mrp_plm: Recreate link to old_operation_id, new_operation_id for mrp.eco.bom.change via eco_id.bom_id
+
+        # For mrp.routing.workcenter:
+        # 1) just set bom_id if there is only one bom_id linked to this operation
+        cr.execute(
+            """
+            WITH operations AS (
+                  SELECT rw.id AS id, unnest(array_agg(mb.id)) AS bom_id
+                    FROM mrp_routing_workcenter rw
+                    JOIN mrp_bom mb ON mb.routing_id = rw.routing_id
+                GROUP BY rw.id
+                  HAVING count(rw.id) = 1
+            )
+            UPDATE mrp_routing_workcenter rw
+               SET bom_id = o.bom_id
+              FROM operations o
+             WHERE o.id = rw.id
+            """
+        )
+
+        # 2) else:
+        #    Duplicate the operation for each bom using related routing and link via bom_id and Delete old operations
+        #    Recreate link to operation_id for mrp.bom.line via bom_id
+        #    Recreate link to operation_id for mrp.bom.byproduct via bom_id
+        #    Recreate link to operation_id for stock.move via raw_material_production_id
+        #    In mrp_workorder: Recreate/Duplicate all quality point link to a operation
+        #    In mrp_plm: Recreate link to old_operation_id, new_operation_id for mrp.eco.bom.change via eco_id.bom_id
         cr.execute(
             """
             WITH old_operation AS (
