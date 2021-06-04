@@ -51,3 +51,21 @@ def migrate(cr, version):
              WHERE account_analytic_line.id = aal.id
         """
     )
+
+    # ==========================================================================
+    # The Reconciliation Models usability imp (PR: odoo#73043, enterprise#19395)
+    # ==========================================================================
+
+    util.rename_field(cr, 'account.reconcile.model.line', 'match_total_amount', 'allow_payment_tolerance')
+    util.rename_field(cr, 'account.reconcile.model.line', 'match_total_amount_param', 'payment_tolerance_param')
+
+    for model_name in ('account.reconcile.model', 'account.reconcile.model.template'):
+        table_name = util.table_of_model(cr, model_name)
+        util.rename_field(cr, model_name, 'match_total_amount', 'allow_payment_tolerance')
+        util.rename_field(cr, model_name, 'match_total_amount_param', 'payment_tolerance_param')
+        util.create_column(cr, table_name, 'payment_tolerance_type', 'varchar', default='percentage')
+
+        cr.execute(f'''
+            UPDATE {table_name}
+            SET payment_tolerance_param = 100 - payment_tolerance_param
+        ''')
