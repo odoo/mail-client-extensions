@@ -2,6 +2,7 @@
 import logging
 import math
 from ast import literal_eval
+from traceback import format_exception
 from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta
@@ -38,6 +39,8 @@ _logger = logging.getLogger(NS + __name__)
 
 
 class TestCrawler(IntegrityCase):
+    view_tracebacks = {}
+
     def check(self, value):
         """
         @Extend
@@ -75,7 +78,11 @@ class TestCrawler(IntegrityCase):
         _logger.info("After: %s", after)
         _logger.info("Diff: %s", diff)
 
-        self.assertFalse(diff, "At least one menu or view working before upgrade is not working after upgrade")
+        tracebacks_info = "\n\n".join("{}:\n {}\n".format(x, self.view_tracebacks[x]) for x in diff)
+        msg = "At least one menu or view working before upgrade is not working after upgrade.\n\n{}".format(
+            tracebacks_info
+        )
+        self.assertFalse(diff, msg)
 
     def invariant(self):
 
@@ -153,9 +160,10 @@ class TestCrawler(IntegrityCase):
                 action_typed = self.env[action.type].browse(action_id)
                 [action_vals] = action_typed.read(self.action_type_fields[action.type])
                 self.mock_action(action_vals)
-            except Exception:
+            except Exception as e:
                 self.env.cr.rollback()  # In case the cursor is broken
                 failing_menu = (menu["xmlid"], menu["id"], menu_name, action_id)
+                self.view_tracebacks[failing_menu] = " ".join(format_exception(type(e), e, e.__traceback__))
                 _logger.exception("Adding menu %s to the failing menus", failing_menu)
                 failing.add(failing_menu)
         for child in menu.get("children"):
