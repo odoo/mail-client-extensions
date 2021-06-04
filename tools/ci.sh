@@ -30,6 +30,11 @@ for repo in odoo enterprise design-themes; do
 done
 popd >/dev/null
 
+touch "$TMPDIR/q"
+
 set -x
 # run matt via docker
-docker run --rm --tty --network=none -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" "$DOCKER_IMAGE" /run-matt.sh "$@"
+docker run --rm --tty --network=none \
+    -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" \
+    -e TMPDIR=/tmp -v "$TMPDIR/q:/tmp/q" \
+    "$DOCKER_IMAGE" /run-matt.sh "$@"
