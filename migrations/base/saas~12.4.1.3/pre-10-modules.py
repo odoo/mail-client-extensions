@@ -15,6 +15,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "crm", plus={"phone_validation"})
     util.module_deps_diff(cr, "mass_mailing_sale", minus={"website_sale_link_tracker"})
     util.module_deps_diff(cr, "membership", minus={"base", "product"})
+    util.module_deps_diff(cr, "portal", plus={"auth_signup"})  # see https://github.com/odoo/odoo/pull/36477
     util.module_deps_diff(cr, "project", plus={"analytic"})
     util.module_deps_diff(cr, "sale", plus={"utm"})
     util.module_deps_diff(cr, "website_crm", minus={"website_partner"})
