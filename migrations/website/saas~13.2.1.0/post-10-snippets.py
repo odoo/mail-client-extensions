@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from odoo.upgrade import util
+import odoo.upgrade.util.snippets as snip
 
 
 def migrate(cr, version):
-    snip = util.import_script("web_editor/saas~13.2.1.0/snippets.py")
     snippets = [
         snip.Snippet("s_alert"),
         snip.Snippet("s_animated_boxes"),

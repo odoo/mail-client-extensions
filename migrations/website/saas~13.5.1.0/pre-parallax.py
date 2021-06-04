@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import re
-from lxml import etree, html
-from odoo.upgrade import util
 
+from lxml import etree, html
+
+import odoo.upgrade.util.snippets as snip
 
 utf8_parser = html.HTMLParser(encoding="utf-8")
 
@@ -12,7 +13,6 @@ def migrate(cr, version):
     # -> For the views
     migrate_parallax(cr, "ir_ui_view", "arch_db")
     # -> For the HTML fields
-    snip = util.import_script("web_editor/saas~13.2.1.0/snippets.py")
     for table, column in snip.get_html_fields(cr):
         migrate_parallax(cr, table, column)
 

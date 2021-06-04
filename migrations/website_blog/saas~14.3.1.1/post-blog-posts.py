@@ -2,6 +2,7 @@
 
 from lxml import etree, html
 
+import odoo.upgrade.util.snippets as snip
 from odoo.upgrade import util
 
 utf8_parser = html.HTMLParser(encoding="utf-8")
@@ -12,7 +13,6 @@ def migrate(cr, version):
     # -> For the views
     migrate_blog_posts_snippet(cr, "ir_ui_view", "arch_db")
     # -> For the HTML fields
-    snip = util.import_script("web_editor/saas~13.2.1.0/snippets.py")
     for table, column in snip.get_html_fields(cr):
         migrate_blog_posts_snippet(cr, table, column)
     # -> For the translations

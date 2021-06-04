@@ -14,6 +14,7 @@ py3_only_patterns = [
     "tools/*.py",
     # tests are only run from version 12. python2 compatibility is not needed.
     "migrations/testing.py",
+    "migrations/util/snippets.py",
     "migrations/*/tests/*.py",
     "migrations/*/10.saas~1[45678].*/*.py",  # upgrade from 10 to 11 is done using python3
     "migrations/*/1[123456789].0.*/*.py",
