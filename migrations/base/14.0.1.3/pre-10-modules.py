@@ -17,6 +17,15 @@ def migrate(cr, version):
     # https://github.com/odoo/odoo/pull/63337
     util.new_module(cr, "account_edi_extended", deps={"account_edi"}, auto_install=False)
 
+    # https://github.com/odoo/odoo/pull/67923
+    util.new_module(cr, "account_edi_proxy_client", deps={"account_edi"}, auto_install=False)
+    util.new_module(
+        cr,
+        "l10n_it_edi_sdicoop",
+        deps={"l10n_it_edi", "account_edi_extended", "account_edi_proxy_client"},
+        auto_install=False,
+    )
+
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
 
