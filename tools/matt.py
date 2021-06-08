@@ -243,6 +243,14 @@ def free_port():
         return s.getsockname()[1]
 
 
+def extract_warnings(dbname, log):
+    dt_pid = re.compile(r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3} \d+ ", re.M)
+    for warn in re.finditer(f"{dt_pid.pattern}(?:WARNING|ERROR|CRITICAL) {dbname} .*$", log, re.M):
+        next_line = dt_pid.search(log, warn.end())
+        end = next_line.start() - 1 if next_line is not None else warn.end()
+        yield log[slice(warn.start(), end)]
+
+
 @result
 def process_module(module: str, workdir: Path, options: Namespace) -> None:
     setproctitle(f"matt :: {options.source} -> {options.target} // {module}")
@@ -253,11 +261,6 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
     subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
     subprocess.run(["createdb", dbname], check=True)  # version 7.0 does not create database itself
     subprocess.run(["psql", "-Xq", "-d", dbname, "-c", "CREATE EXTENSION unaccent"], check=False)  # may fail
-
-    re_warn = re.compile(
-        rf"^(\d{{4}}-\d\d-\d\d \d\d:\d\d:\d\d,\d{{3}} \d+ (?:WARNING|ERROR|CRITICAL) {dbname} .*)$",
-        re.M,
-    )
 
     def odoo(cmd: List[str], version: Version) -> bool:
         cwd = workdir / "odoo" / version.odoo
@@ -292,7 +295,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             logger.error("Error (returncode=%s) while %s module %s:\n%s", p.returncode, step, module, stdout)
             p.check_returncode()
 
-        warns = "\n".join(re_warn.findall(stdout))
+        warns = "\n".join(extract_warnings(dbname, stdout))
         if warns:
             logger.warning("Some warnings/errors emitted while %s module %s:\n%s", step, module, warns)
             return False
