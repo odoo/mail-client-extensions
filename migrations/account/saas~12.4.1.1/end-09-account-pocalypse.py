@@ -1685,7 +1685,7 @@ def migrate_invoice_lines(cr):
 
     cr.execute(
         """
-            SELECT il.name, i.move_id, il.sequence, il.display_type,
+            SELECT il.name, i.move_id, il.sequence, il.display_type, il.price_unit, il.price_subtotal, il.price_total,
                    CASE WHEN i.currency_id != c.currency_id THEN i.currency_id ELSE NULL END as currency_id
               FROM account_invoice_line il
               JOIN account_invoice i ON i.id = il.invoice_id
