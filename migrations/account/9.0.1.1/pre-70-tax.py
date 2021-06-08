@@ -113,9 +113,14 @@ def migrate(cr, version):
         """)
 
     # Mapping between invoice_id and list of tax on those invoices
-    cr.execute("""SELECT i.move_id, t.tax_id, l.name FROM account_invoice i, account_invoice_line l, account_invoice_line_tax t
-                    WHERE l.invoice_id = i.id AND t.invoice_line_id = l.id
-            """)
+    cr.execute(
+        """
+        SELECT i.move_id, t.tax_id, SUBSTRING(SPLIT_PART(l.name, E'\n', 1), 0, 65) as name
+          FROM account_invoice i
+          JOIN account_invoice_line l on l.invoice_id = i.id
+          JOIN account_invoice_line_tax t on t.invoice_line_id = l.id
+        """
+    )
 
     invoices_mapping = {}
     for invoice in cr.dictfetchall():
