@@ -4,7 +4,19 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.move_field_to_module(cr, "helpdesk.ticket", "commercial_partner_id", "helpdesk_sale", "helpdesk")
+    util.create_column(cr, "helpdesk_team", "privacy", "varchar", default="user")
+    cr.execute(
+        """
+            UPDATE helpdesk_team t
+                SET privacy = 'invite'
+              FROM helpdesk_visibility_team v
+            WHERE v.helpdesk_team_id=t.id
+        """
+    )
+    util.move_field_to_module(cr, "helpdesk.team", "use_fsm", "helpdesk_fsm", "helpdesk")
+    util.create_column(cr, "helpdesk_team", "use_fsm", "bool")
     util.remove_field(cr, "helpdesk.ticket", "is_self_assigned")
+    util.remove_field(cr, "helpdesk.team", "portal_rating_url")
 
     helpdesk_user_group_id = util.ref(cr, "helpdesk.group_helpdesk_user")
     # add users from visibility_member_ids if member_ids is empty.
