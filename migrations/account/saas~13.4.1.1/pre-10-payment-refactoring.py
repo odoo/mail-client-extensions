@@ -19,14 +19,14 @@ def migrate(cr, version):
             Before upgrading:
             <ul>
                 <li>
-                    Check that the lock dates for all companies are correctly set ;
+                    Check that the lock dates for all companies are correctly set;
                     the more recent the lock date, the better.
                 </li>
                 <li>
                     Check if the default accounts on the bank/cash journal is of type liquidity (bank/cash):
                 <ul>
                     <li>In case they are, new outstanding payment accounts will be created during the migration.</li>
-                    <li>In case it would be current assets accounts, no new account will be created.</li>
+                    <li>In case they are current asset accounts, no new account will be created.</li>
                 </ul>
                 </li>
                 <li>
@@ -40,7 +40,7 @@ def migrate(cr, version):
             <ul>
                 <li>
                     Check the outstanding payment accounts are correctly created.
-                    You will have to change the code / name to fit your own chart of accounts.
+                    You will have to change the code/name to fit your own chart of accounts.
                 </li>
             </ul>
         <ul>
@@ -53,7 +53,14 @@ def migrate(cr, version):
         </p>
         <p>
             We highly encourage you to watch <a href="https://youtu.be/ZOxsB7F6omY" target="_blank">this video</a>
-            explaining the differences between Odoo 13.0 and Odoo 14.0 when registering payments.
+            explaining the differences between Odoo 13.0 and Odoo 14.0 when registering payments. You will need to decide
+            which workflow you want to use. By default the upgrade will assume that your workflow is to reconcile all
+            payments on invoices with bank transactions. Invoices will be marked "in payment" when a payment is registered
+            and will only be marked as "paid" after reconciling with a bank transaction. If reconciling bank transactions
+            is not part of your workflow, you should change the outstanding account for incoming and / or outgoing payments
+            on the relevant bank journal to the bank account of that journal. If this is done, payments registered on
+            invoices result in them being marked as "paid" right away, and it will no longer be possible to reconcile a bank
+            transaction with them.
         </p>
     """
     util.add_to_migration_reports(msg, "Accounting", format="html")
