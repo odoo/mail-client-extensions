@@ -4,3 +4,4 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_field(cr, "stock.warehouse.orderpoint", "json_lead_days_popover")
+    util.remove_field(cr, "stock.warehouse.orderpoint", "allowed_route_ids")
