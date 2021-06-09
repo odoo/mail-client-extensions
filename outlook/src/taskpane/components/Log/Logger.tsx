@@ -177,7 +177,7 @@ class Logger extends React.Component<LoggerProps, LoggerState> {
                 logContainer = (
                     <div className="log-container">
                         <TooltipHost content={this.props.tooltipContent}>
-                            <div className='odoo-secondary-button' onClick={this.logRequest} style={{width: "auto"}}>
+                            <div className='odoo-secondary-button log-button' onClick={this.logRequest}>
                                 <FontAwesomeIcon icon={faEnvelope}/>
                             </div>
                         </TooltipHost>

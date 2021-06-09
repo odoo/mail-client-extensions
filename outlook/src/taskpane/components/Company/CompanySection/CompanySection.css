@@ -9,3 +9,19 @@
     flex-direction: row;
     align-items: center;
 }
+
+.insights-info {
+    text-align: center;
+    padding: 8px 16px 16px 16px;
+    font-size: 14px;
+}
+
+.insights-button {
+    margin: 8px auto 16px auto
+}
+
+.insights-empty-info {
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+}

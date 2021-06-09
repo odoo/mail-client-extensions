@@ -145,9 +145,12 @@ export default class App extends React.Component<AppProps, AppState> {
                 case EnrichmentInfoType.CompanyCreated:
                     bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>{_t("Company created")}</MessageBar>);
                     break;
+                case EnrichmentInfoType.CompanyUpdated:
+                    bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>{_t("Company updated")}</MessageBar>);
+                    break;
                 case EnrichmentInfoType.NoData:
                 case EnrichmentInfoType.NotConnected_NoData:
-                    bars.push(<MessageBar messageBarType={MessageBarType.info} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
+                    bars.push(<MessageBar messageBarType={MessageBarType.warning} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
                     break;
                 case EnrichmentInfoType.InsufficientCredit:
 

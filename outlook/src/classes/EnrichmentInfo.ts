@@ -3,6 +3,7 @@ import { _t } from "../utils/Translator";
 export enum EnrichmentInfoType {
     None = 'none',
     CompanyCreated = 'company_created',
+    CompanyUpdated = 'company_updated',
     NoData = 'no_data',
     InsufficientCredit = 'insufficient_credit',
     Other = 'other',
@@ -30,6 +31,8 @@ class EnrichmentInfo {
                 return "";
             case EnrichmentInfoType.CompanyCreated:
                 return _t("Company created");
+            case EnrichmentInfoType.CompanyUpdated:
+                return _t("Company updated");
             case EnrichmentInfoType.NoData:
             case EnrichmentInfoType.NotConnected_NoData:
                 return _t("No data found for this email address.");

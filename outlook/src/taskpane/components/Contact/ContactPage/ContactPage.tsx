@@ -74,7 +74,7 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
                 if (enrichmentInfo.type != EnrichmentInfoType.NoData)
                     this.context.showTopBarMessage(enrichmentInfo);
             }
-            this.onPartnerChanged(partner);
+            this.propagatePartnerInfoChange(partner);
         }).catch(error => {
             this.context.showHttpErrorMessage(error);
             this.setState({isLoading: false});
@@ -94,10 +94,10 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
         return (this.props.partner.tickets != undefined);
     }
 
-    private onPartnerChanged = (partner: Partner) => {
+    private propagatePartnerInfoChange = (partner: Partner) => {
+        this.setState({partner: partner});
         this.props.onPartnerChanged(partner);
     }
-
 
     componentDidMount() {
         if (this.props.loadPartner && this.context.isConnected())
@@ -141,12 +141,12 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
 
             return (
                 <>
-                    <ContactSection partner={this.state.partner} onPartnerInfoChanged={this.onPartnerChanged}/>
+                    <ContactSection partner={this.state.partner}/>
                     {leadsList}
                     {tasksList}
                     {ticketsList}
                     <div style={{marginTop: "16px"}}>
-                        <CompanySection partner={this.state.partner} onPartnerInfoChanged={this.onPartnerChanged}
+                        <CompanySection partner={this.state.partner} onPartnerInfoChanged={this.propagatePartnerInfoChange}
                                         hideCollapseButton={hideCollapseButton}/>
                     </div>
                 </>

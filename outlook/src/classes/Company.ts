@@ -1,4 +1,5 @@
 import Address from './Address';
+import EnrichmentInfo, {EnrichmentInfoType} from "./EnrichmentInfo";
 
 /***
  * id reserved for non empty companies which we fetch directly from IAP.
@@ -8,6 +9,12 @@ const ID_COMPANY_FROM_REVEAL: number = -2;
  * id reserved for empty companies.
  */
 const ID_COMPANY_EMPTY: number = -1;
+
+export enum EnrichmentStatus {
+    enrichmentAvailable = 0, // means that the company has not been enriched before and could maybe be enriched
+    enriched = 1, // means that the company has been previously enriched
+    enrichmentEmpty = 2, // means that an attempt was made to enrich the company and that no data was found
+}
 
 class Company {
     id: number;
@@ -19,6 +26,8 @@ class Company {
     phone: string;
     email: string;
     additionalInfo: {};//Map<string, string>;
+
+    enrichmentStatus: EnrichmentStatus;
 
 
     constructor() {
@@ -33,10 +42,25 @@ class Company {
         this.additionalInfo = {};
     }
 
-    static fromJSON(o: Object): Company {
+    static fromJSON(o: Object, enrichmentInfo?: EnrichmentInfo): Company {
         if (!o) return new Company();
         const company = Object.assign(new Company(), o);
         company.address = Address.fromJSON(o['address']);
+
+        if (enrichmentInfo != null) {
+            if (enrichmentInfo.type == EnrichmentInfoType.NoData) {
+                company.enrichmentStatus = EnrichmentStatus.enrichmentEmpty;
+            } else if (EnrichmentInfoType.CompanyCreated || EnrichmentInfoType.CompanyUpdated) {
+                company.enrichmentStatus = EnrichmentStatus.enriched;
+            }
+
+        } else if (JSON.stringify(company.additionalInfo) != '{}') {
+            company.enrichmentStatus = EnrichmentStatus.enriched;
+        } else {
+            company.enrichmentStatus = EnrichmentStatus.enrichmentAvailable;
+        }
+
+
         return company;
     }
 
@@ -54,7 +78,7 @@ class Company {
     }
 
     getDomain() : string {
-        let domain = this.domain || this.additionalInfo['domain'];
+        let domain = this.domain || this.additionalInfo['domain'] || this.website;
         if (domain && !domain.startsWith('http://') && !domain.startsWith('https://')) {
             domain = 'https://' + domain;
         }
@@ -127,7 +151,7 @@ class Company {
     // TODO: sort it out with the Address object, note: this location can be directly added to a query to maps:
     // "http://maps.google.com/?q=Koning Albert II-Laan 27, 1000 Brussel, Belgium"
     getLocation() : string {
-        return this.additionalInfo['location'];
+        return this.address.getLines().join(', ') || this.additionalInfo['location'];
     }
 
     getTwitter() : string {
@@ -145,7 +169,7 @@ class Company {
     getCrunchbase() : string {
         return this.additionalInfo['crunchbase'];
     }
-    
+
     getInitials() : string {
         const name = this.getName();
         if (!name) {
@@ -153,7 +177,7 @@ class Company {
         }
         const names = this.name.split(" ");
         let initials = names[0].substring(0, 1).toUpperCase();
-        
+
         // If the company is more than two words, better only include the first letter of the first word.
         if (names.length == 2) {
             initials += names[1].substring(0, 1).toUpperCase();
@@ -161,21 +185,13 @@ class Company {
 
         return initials;
     }
-    
+
     /***
      * Returns True if the company exists in the Odoo database, False otherwise
      */
     isAddedToDatabase (): boolean {
         return this.id > 0;
     }
-    /***
-     * Returns True if the company is empty, i.e, could not be enriched, False otherwise
-     */
-    isEmpty (): boolean  {
-        return this.id == ID_COMPANY_EMPTY;
-    }
-
-
 
 }
 

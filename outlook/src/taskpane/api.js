@@ -6,6 +6,8 @@ const api = {
     createTask: '/mail_plugin/task/create',
     createTicket: "/mail_plugin/ticket/create",
     enrichCompany: "/mail_plugin/partner/enrich_and_create_company",
+    enrichAndCreate: "/mail_plugin/partner/enrich_and_create_company",
+    enrichAndUpdate: "/mail_plugin/partner/enrich_and_update_company",
     getPartner: "/mail_plugin/partner/get",
     iapLeadEnrichment: "https://iap-services.odoo.com/iap/mail_extension/enrich",
     logSingleMail:"/mail_plugin/log_mail_content",

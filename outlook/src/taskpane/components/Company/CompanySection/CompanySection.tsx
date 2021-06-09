@@ -6,7 +6,7 @@ import {ContentType, HttpVerb, sendHttpRequest} from "../../../../utils/httpRequ
 import Partner from "../../../../classes/Partner";
 
 import api from "../../../api";
-import Company from "../../../../classes/Company";
+import Company, {EnrichmentStatus} from "../../../../classes/Company";
 
 import "./CompanySection.css"
 import {
@@ -26,7 +26,7 @@ import CompanyCache from "../../../../classes/CompanyCache";
 import EnrichmentInfo, {EnrichmentInfoType} from "../../../../classes/EnrichmentInfo";
 import {Spinner, SpinnerSize} from "office-ui-fabric-react";
 import {OdooTheme} from "../../../../utils/Themes";
-import { _t } from "../../../../utils/Translator";
+import {_t} from "../../../../utils/Translator";
 
 type CompanySectionProps = {
     partner: Partner;
@@ -49,28 +49,23 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             isCollapsed: false,
             isLoading: false
         };
-
-        this.enriched = false;
-
         this.companyCache = new CompanyCache(2, 200, 25);
     }
 
     private companyCache: CompanyCache;
-    private enriched: boolean;
 
-    private enrichCompanyForPartnerRequest = () => {
+    private enrichAndCreate = () => {
 
         if (!this.props.partner.email)
         {
             let enrichmentInfo = new EnrichmentInfo(EnrichmentInfoType.EnrichContactWithNoEmail,
-                _t("This contact has no email address, no company could be enriched."));
+                _t("This company has no email address and could not be enriched."));
             this.context.showTopBarMessage(enrichmentInfo);
             return;
         }
 
         this.setState({isLoading: true});
-        this.enriched = true;
-        const enrichRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.enrichCompany,
+        const enrichRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.enrichAndCreate,
             ContentType.Json, this.context.getConnectionToken(), {
                 partner_email: this.props.partner.email,
                 partner_id: this.props.partner.id,
@@ -78,19 +73,16 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             }, true);
         this.context.addRequestCanceller(enrichRequest.cancel);
         enrichRequest.promise.then((response) => {
-            const parsed = JSON.parse(response);
-            const company = Company.fromJSON(parsed.result.company);
-            if (!company.isEmpty())
-            {
-                this.companyCache.add(company);
-                this.enriched = true;
+            const enrichResponse = JSON.parse(response);
+            if (enrichResponse.result['enrichment_info']) {
+                const enrichmentInfo = new EnrichmentInfo(enrichResponse.result['enrichment_info'].type,
+                    enrichResponse.result['enrichment_info'].info);
+                this.context.showTopBarMessage(enrichmentInfo);
             }
-            if (parsed.result['enrichment_info'])
-            {
-                const enrichmentInfo = new EnrichmentInfo(parsed.result['enrichment_info'].type,
-                    parsed.result['enrichment_info'].info);
-                if (enrichmentInfo.type != EnrichmentInfoType.NoData)
-                    this.context.showTopBarMessage(enrichmentInfo);
+
+            const company = Company.fromJSON(enrichResponse.result.company);
+            if (company.enrichmentStatus == EnrichmentStatus.enriched) {
+                this.companyCache.add(company);
             }
             this.setState({isCollapsed: false, company: company, isLoading: false});
             let newPartner = this.props.partner;
@@ -99,72 +91,78 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
 
         }).catch((error) => {
             console.log(error);
-            this.enriched = true;
             this.setState({isCollapsed: false, isLoading: false});
             this.context.showHttpErrorMessage(error);
         });
 
     }
 
-    private getCompanyLayout= () => {
-        const company = this.state.company as Company;
-
-        if (company.isEmpty())
-        {
-            let enrichAndCreate = null;
-            if (this.props.partner.isAddedToDatabase() && !this.enriched)
-            {
-                enrichAndCreate = (
-                    <div>
-                        <div>
-                            {_t("No company attached to this contact")}
-                        </div>
-                        <div className="odoo-secondary-button" style={{margin: "8px auto auto auto"}} onClick={this.enrichCompanyForPartnerRequest}>
-                            {_t("Create a Company")}
-                        </div>
-                    </div>
-                );
-            }
-            else
-            {
-                if (!this.context.isConnected())
-                {
-                    enrichAndCreate = (
-                        <div>
-                            {_t("No company linked to this contact could be enriched")}
-                        </div>
-                    );
-                }
-                else
-                {
-                    enrichAndCreate = (
-                        <div>
-                            {_t("No company linked to this contact could be enriched or found in Odoo")}
-                        </div>
-                    );
-                }
-            }
-
-            return (
-                <div className={"muted-text"} style={{textAlign: "center", padding: "8px 16px 16px 16px", fontSize: "14px"}}>
-                    {enrichAndCreate}
-                </div>
-            )
+    private enrichAndUpdate = () => {
+        if (!this.props.partner.email) {
+            let enrichmentInfo = new EnrichmentInfo(EnrichmentInfoType.EnrichContactWithNoEmail,
+                _t("This company has no email address and it could not be enriched."));
+            this.context.showTopBarMessage(enrichmentInfo);
+            return;
         }
 
+        this.setState({isLoading: true});
+
+        const enrichRequest = sendHttpRequest(HttpVerb.POST, api.baseURL + api.enrichAndUpdate,
+            ContentType.Json, this.context.getConnectionToken(), {
+                partner_id: this.props.partner.id,
+            }, true);
+
+        this.context.addRequestCanceller(enrichRequest.cancel);
+
+        enrichRequest.promise.then((response) => {
+            const enrichResponse = JSON.parse(response);
+
+            let enrichmentInfo = null;
+
+            if (enrichResponse.result['enrichment_info']) {
+                enrichmentInfo = new EnrichmentInfo(enrichResponse.result['enrichment_info'].type,
+                    enrichResponse.result['enrichment_info'].info);
+                this.context.showTopBarMessage(enrichmentInfo);
+                if (enrichmentInfo.type == EnrichmentInfoType.InsufficientCredit) {
+                    this.setState({isLoading: false});
+                    return;
+                }
+            }
+            const partner = this.props.partner;
+            const company = Company.fromJSON(enrichResponse.result.company, enrichmentInfo);
+            this.setState({company: company, isLoading: false, isCollapsed: false});
+            //update partner information
+            partner.company = company;
+            partner.image = company.image;
+            partner.phone = company.phone;
+            this.props.onPartnerInfoChanged(partner);
+        }).catch(error => {
+            console.log(error);
+            this.setState({isCollapsed: false, isLoading: false});
+            this.context.showHttpErrorMessage(error);
+        });
+
+    }
+
+    private getCompanyInsightsSection = () => {
+        const company = this.state.company as Company;
+
         let addressSection = null;
+        let empty = true;
 
         if (company.getLocation())
         {
             addressSection = <CompanyInfoItem
                 icon={faMapMarkerAlt} title={_t("Address")} value={company.getLocation()}
                 hrefContent={`http://maps.google.com/?q=${company.getLocation()}`}/>
+            empty = false;
         }
         let phoneSection = null;
         if (company.getPhone() && !this.props.partner.isCompany)
         {
             phoneSection = <CompanyInfoItem icon={faPhone} title={_t("Phone")} value={company.getPhone()}
                                             hrefContent={`tel:${company.getPhone()}`}/>
+            empty = false;
         }
 
         let websiteSection = null;
@@ -172,42 +170,57 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
         {
             websiteSection = <CompanyInfoItem icon={faGlobeEurope} title={_t("Website")} value={company.getDomain()}
                                               hrefContent={company.getDomain()}/>
+            empty = false;
         }
 
         let industrySection = null;
         if (company.getIndustry())
         {
             industrySection = <CompanyInfoItem icon={faIndustry} title={_t("Industry")} value={company.getIndustry()}/>
+            empty = false;
         }
 
         let employeesSection = null;
         if (company.getEmployees())
         {
             employeesSection = <CompanyInfoItem icon={faPersonBooth} title={_t("Employees")} value={company.getEmployees()+''}/>
+            empty = false;
         }
 
         let yearFoundedSection = null;
         if (company.getYearFounded())
         {
             yearFoundedSection = <CompanyInfoItem icon={faInfo} title={_t("Year founded")} value={company.getYearFounded()+""}/>
+            empty = false;
         }
 
         let keywordsSection = null;
         if (company.getKeywords())
         {
             keywordsSection = <CompanyInfoItem icon={faKey} title={_t("Keywords")} value={company.getKeywords()}/>
+            empty = false;
         }
 
         let companyTypeSection = null;
         if (company.getCompanyType())
         {
             companyTypeSection = <CompanyInfoItem icon={faBuilding} title={_t("Company Type")} value={company.getCompanyType()}/>
+            empty = false;
         }
 
         let revenueSection = null;
         if (company.getRevenue())
         {
             revenueSection = <CompanyInfoItem icon={faDollarSign} title={_t("Revenues")} value={company.getRevenue()}/>
+            empty = false;
+        }
+
+        if (empty && this.props.partner.isCompany) {
+            if (company.enrichmentStatus != EnrichmentStatus.enrichmentEmpty) {
+                return (<div className="insights-empty-info muted-text">{_t("No extra information found")}</div>);
+            } else {
+                return null;
+            }
         }
 
         const profileCardData: ProfileCardProps = {
@@ -247,6 +260,79 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
         );
     }
 
+    private getCompanyEnrichmentAvailableSection = () => {
+        if (this.state.company.isAddedToDatabase()) {
+            return (
+                <div>
+                    {this.getCompanyInsightsSection()}
+                    <div>
+                        <div className='odoo-secondary-button insights-button'
+                             onClick={this.enrichAndUpdate}>
+                            {_t("Enrich Company")}
+                        </div>
+                    </div>
+                </div>
+            );
+        } else {
+            return (
+                <div className='muted-text insights-info' >
+                    {_t("No company attached to this contact")}
+                    <div className='odoo-secondary-button insights-button'
+                         onClick={this.enrichAndCreate}>
+                        {_t("Create a Company")}
+                    </div>
+                </div>
+            );
+        }
+    }
+
+    private getCompanyEnrichmentEmptySection = () => {
+        let insightsSection = null;
+        if (this.context.isConnected()) {
+            if (this.state.company.isAddedToDatabase()) {
+                return (
+                  <div>
+                      {this.getCompanyInsightsSection()}
+                      <div className='muted-text insights-info'>
+                          {_t("No additional insights were found for this company")}
+                      </div>
+                  </div>
+                );
+            } else {
+                return (
+                    <div>
+                        {insightsSection}
+                        <div className='muted-text insights-info'>
+                            {_t("No company linked to this contact could be enriched or found in Odoo")}
+                        </div>
+                    </div>
+                );
+            }
+        } else {
+            return (
+                <div>
+                    {insightsSection}
+                    <div className='muted-text insights-info'>
+                        {_t("No company linked to this contact could be enriched")}
+                    </div>
+                </div>
+            );
+        }
+    }
+
+    //returns the right JSX element based on the enrichment status of the company
+    private getCompanySection = () => {
+        const company = this.state.company as Company;
+        switch (company.enrichmentStatus) {
+            case EnrichmentStatus.enriched:
+                return this.getCompanyInsightsSection();
+            case EnrichmentStatus.enrichmentAvailable:
+                return this.getCompanyEnrichmentAvailableSection();
+            case EnrichmentStatus.enrichmentEmpty:
+                return this.getCompanyEnrichmentEmptySection();
+        }
+    }
+
     private openInOdoo = () => {
         if (!this.context.isConnected())
         {
@@ -275,7 +361,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
         }
         else
         {
-            content = this.getCompanyLayout();
+            content = this.getCompanySection();
         }
 
 

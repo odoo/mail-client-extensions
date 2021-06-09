@@ -8,7 +8,7 @@ import api from "../../api";
 import PartnerData from "../../../classes/Partner";
 import Partner from "../../../classes/Partner";
 import CompanyCache from "../../../classes/CompanyCache";
-import CompanyData from "../../../classes/Company";
+import CompanyData, {EnrichmentStatus} from "../../../classes/Company";
 
 import AppContext from '../AppContext';
 import ContactPage from "../Contact/ContactPage/ContactPage";
@@ -18,7 +18,7 @@ import {faArrowLeft, faPlusCircle, faRedoAlt, faSearch} from "@fortawesome/free-
 import EnrichmentInfo, {EnrichmentInfoType} from "../../../classes/EnrichmentInfo";
 import Progress from "../GrayOverlay";
 import {TooltipHost} from "office-ui-fabric-react";
-import {saveTranslations, translationsExpired, _t} from "../../../utils/Translator";
+import {_t, saveTranslations, translationsExpired} from "../../../utils/Translator";
 
 
 type MainState = {
@@ -199,6 +199,7 @@ class Main extends React.Component<{}, MainState> {
             if (cachedCompany)
             {
                 partner.company = cachedCompany;
+                partner.company.enrichmentStatus = EnrichmentStatus.enriched;
                 this.setState({matchedPartners: [partner], selectedPartner: partner, partnersLoading: false});
             }
             else
@@ -219,12 +220,14 @@ class Main extends React.Component<{}, MainState> {
                         if (enrichmentInfo.type != EnrichmentInfoType.NoData)
                             this.context.showTopBarMessage(enrichmentInfo);
                         partner.company = CompanyData.getEmptyCompany();
+                        partner.company.enrichmentStatus = EnrichmentStatus.enrichmentEmpty;
                         this.setState({matchedPartners: [partner], selectedPartner: partner,
                         partnersLoading: false});
                         return;
                     }
                     partner.company = CompanyData.fromRevealJSON(parsed.result);
                     this.companyCache.add(partner.company);
+                    partner.company.enrichmentStatus = EnrichmentStatus.enriched;
                     this.setState({matchedPartners: [partner], selectedPartner: partner
                         , partnersLoading: false});
                 }).catch(error => {
