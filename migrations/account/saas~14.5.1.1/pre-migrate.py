@@ -31,3 +31,23 @@ def migrate(cr, version):
            AND tax.type_tax_use = 'none'
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line"))
+
+    # ===============================================================
+    # Add category to analytic account line (PR: (odoo) 68708 & (enterprise) 18594)
+    # ===============================================================
+
+    cr.execute(
+        """
+            UPDATE account_analytic_line
+               SET category = CASE
+                                WHEN am.move_type IN ('out_invoice', 'out_refund') THEN 'invoice'
+                                WHEN am.move_type IN ('in_invoice', 'in_refund') THEN 'vendor_bill'
+                              END
+              FROM account_analytic_line aal
+                   JOIN account_move_line aml
+                     ON aal.move_id = aml.id
+                   JOIN account_move am
+                     ON aml.move_id = am.id
+             WHERE account_analytic_line.id = aal.id
+        """
+    )

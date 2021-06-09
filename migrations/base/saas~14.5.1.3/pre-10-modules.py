@@ -17,6 +17,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "social_demo", plus={"social_instagram"})
         util.module_deps_diff(cr, "social_test_full", plus={"social_instagram"})
         util.new_module(cr, "mrp_workorder_plm", deps={"mrp_workorder", "mrp_plm"}, auto_install=True)
+        util.new_module(cr, "project_account_budget", deps={"account_budget", "project"}, auto_install=True)
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
@@ -70,3 +71,6 @@ def migrate(cr, version):
         deps={"website_sale_stock", "website_sale_wishlist"},
         auto_install=True,
     )
+
+    util.new_module(cr, "project_mrp", deps={"mrp_account", "project"}, auto_install=True)
+    util.new_module(cr, "project_purchase", deps={"purchase", "project"}, auto_install=True)
