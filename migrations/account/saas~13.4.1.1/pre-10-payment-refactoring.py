@@ -82,12 +82,22 @@ def migrate(cr, version):
     """
     )
 
+    # The currency_id and journal_currency_id shouldn't be same.
     cr.execute(
         """
-        UPDATE account_bank_statement_line
-           SET currency_id = NULL
-         WHERE amount_currency = 0.0
-           AND currency_id IS NOT NULL
+           UPDATE account_bank_statement_line st_line
+              SET amount_currency = 0.0,
+                  currency_id = NULL
+             FROM account_journal journal
+             JOIN res_company com ON com.id = journal.company_id
+            WHERE st_line.journal_id = journal.id
+              AND (
+                    st_line.currency_id IS NULL
+                    OR
+                    (COALESCE(amount_currency, 0.0) = 0.0)
+                    OR
+                    st_line.currency_id = COALESCE(journal.currency_id, com.currency_id)
+                  )
         """
     )
 

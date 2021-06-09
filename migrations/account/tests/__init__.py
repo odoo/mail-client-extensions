@@ -8,6 +8,7 @@ from . import (
     test_account_group,
     test_account_pocalypse,
     test_amounts,
+    test_bank_statement,
     test_lockdate,
     test_payment_pocalypse,
     test_payments_13_4,
