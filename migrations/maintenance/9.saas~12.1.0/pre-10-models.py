@@ -8,7 +8,7 @@ def migrate(cr, version):
     util.rename_model(cr, 'hr.equipment.stage', 'maintenance.stage')
     util.rename_model(cr, 'hr.equipment.request', 'maintenance.request')
 
-    cr.execute("ALTER TABLE maintenance_request RENAME COLUMN active TO archive")
+    util.rename_field(cr, 'maintenance.request', 'active', 'archive')
     cr.execute("UPDATE maintenance_request SET archive=not archive")
 
     # to be fair, these changes should be part of script for `hr_maintenance` module
