@@ -20,6 +20,11 @@ def migrate(cr, version):
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
+        util.rename_module(cr, "website_calendar", "appointment")
+        util.module_deps_diff(cr, "appointment", plus={"portal"}, minus={"website_enterprise"})
+        util.rename_module(cr, "website_calendar_crm", "appointment_crm")
+        util.new_module(cr, "website_appointment", deps={"appointment", "website_enterprise"}, auto_install=True)
+
     util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
     util.new_module(cr, "hr_holidays_attendance", deps={"hr_holidays", "hr_attendance"}, auto_install=True)
     util.new_module(cr, "mail_group", deps={"mail", "portal"})
