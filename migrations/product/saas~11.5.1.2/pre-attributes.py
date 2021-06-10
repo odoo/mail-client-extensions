@@ -3,6 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.drop_depending_views(cr, "product_attribute", "create_variant")
     cr.execute("""
         ALTER TABLE product_attribute
         ALTER COLUMN create_variant
