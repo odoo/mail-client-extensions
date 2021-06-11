@@ -88,3 +88,4 @@ def migrate(cr, version):
     util.new_module(cr, "project_purchase", deps={"purchase", "project"}, auto_install=True)
 
     util.module_deps_diff(cr, "project_timesheet_forecast", plus={"timesheet_grid"}, minus={"hr_timesheet"})
+    util.module_deps_diff(cr, "auth_totp", plus={"mail"})
