@@ -1998,6 +1998,17 @@ def update_invoice_partner_display_name(cr):
     util.recompute_fields(cr, "account.move", ["invoice_partner_display_name"], ids=invoice_ids)
 
 
+def update_account_move_line_name(cr):
+    query = """
+            UPDATE account_move_line aml
+               SET name = ail.name
+              FROM invl_aml_mapping map
+              JOIN account_invoice_line ail on ail.id = map.invl_id
+             WHERE aml.id = map.aml_id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+
+
 def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
@@ -2007,3 +2018,4 @@ def migrate(cr, version):
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)
         update_invoice_partner_display_name(cr)
+        update_account_move_line_name(cr)
