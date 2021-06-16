@@ -17,3 +17,5 @@ def migrate(cr, version):
 
     util.remove_model(cr, "l10n_be.attachment.salary")
     util.remove_model(cr, "l10n_be.attachment.salary.report")
+
+    util.create_column(cr, "hr_employee", "l10n_be_dependent_children_attachment", "int4")
