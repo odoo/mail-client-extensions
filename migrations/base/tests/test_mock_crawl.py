@@ -122,9 +122,22 @@ class TestCrawler(IntegrityCase):
                 lambda s, v, r, validate=True: origin_reference_convert_to_cache(s, v, r, False),
             ):
                 _logger.info("Mocking menus with user %s(#%s) ", self.env.user.login, self.env.user.id)
-                root = self.env["ir.ui.menu"].load_menus(debug=False)
-                for menu in root["children"]:
-                    failing.update(self.crawl_menu(menu))
+                all_menus = self.env["ir.ui.menu"].load_menus(debug=False)
+
+                if util.version_gte("saas~14.5"):
+                    root_menu = all_menus["root"]
+
+                    def get_menu(menu_id):
+                        return all_menus[menu_id]
+
+                else:
+                    root_menu = all_menus
+
+                    def get_menu(menu):
+                        return menu
+
+                for menu in root_menu["children"]:
+                    failing.update(self.crawl_menu(get_menu(menu), get_menu))
 
         return list(failing)
 
@@ -149,7 +162,7 @@ class TestCrawler(IntegrityCase):
         with patch(to_patch, datetime_extended):
             return safe_eval(value, eval_context)
 
-    def crawl_menu(self, menu, parent=None):
+    def crawl_menu(self, menu, get_menu, parent=None):
         menu_name = "%s > %s" % (parent, menu["name"]) if parent else menu["name"]
         _logger.info("Mocking menu %s", menu_name)
         failing = set()
@@ -167,7 +180,7 @@ class TestCrawler(IntegrityCase):
                 _logger.exception("Adding menu %s to the failing menus", failing_menu)
                 failing.add(failing_menu)
         for child in menu.get("children"):
-            failing.update(self.crawl_menu(child, menu_name))
+            failing.update(self.crawl_menu(get_menu(child), get_menu, menu_name))
         return failing
 
     def mock_action(self, action):
