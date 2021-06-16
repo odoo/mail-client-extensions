@@ -217,18 +217,18 @@ def migrate(cr, version):
         cr.execute(
             """
             UPDATE account_move am
-            SET type = CASE WHEN inv.voucher_type = 'sale' THEN 'out_receipt' ELSE 'in_receipt' END,
-                commercial_partner_id = part.commercial_partner_id,
-                company_currency_id = comp.currency_id,
-                invoice_date = inv.date,
-                invoice_date_due = inv.date_due,
-                invoice_payment_ref = inv.name
-            FROM account_voucher inv
-            JOIN res_company comp ON comp.id = inv.company_id
-            JOIN res_partner part ON part.id = inv.partner_id
-            WHERE move_id IS NOT NULL
-            AND am.id = inv.move_id
-        """
+               SET type = CASE WHEN inv.voucher_type = 'sale' THEN 'out_receipt' ELSE 'in_receipt' END,
+                   commercial_partner_id = part.commercial_partner_id,
+                   company_currency_id = comp.currency_id,
+                   invoice_date = inv.date,
+                   invoice_date_due = inv.date_due,
+                   invoice_payment_ref = inv.name
+              FROM account_voucher inv
+              JOIN res_company comp ON comp.id = inv.company_id
+         LEFT JOIN res_partner part ON part.id = inv.partner_id
+             WHERE move_id IS NOT NULL
+               AND am.id = inv.move_id
+            """
         )
 
     # Fix quantity / price_unit / price_total / price_subtotal on tax lines.
