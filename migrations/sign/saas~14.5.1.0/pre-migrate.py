@@ -19,3 +19,9 @@ def migrate(cr, version):
          WHERE sign_request.template_id = st.id
         """
     )
+
+    util.create_column(cr, "res_company", "sign_terms_type", "varchar", default="plain")
+
+    terms = """<h1 style="text-align: center;">Terms &amp; Conditions</h1><p>Your conditions...</p>"""
+    util.create_column(cr, "res_company", "sign_terms", "text", default=terms)
+    util.create_column(cr, "res_company", "sign_terms_html", "text", default=terms)
