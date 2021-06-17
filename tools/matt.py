@@ -144,6 +144,28 @@ index a26d1885ea6..b092f3c836e 100644
              #context = self.get_context(record, self.eval_context)
 """
 
+ADDONS_DATA_DIR_PATCH = br"""\
+diff --git openerp/tools/config.py openerp/tools/config.py
+index 995d10ec5148..0421abaf8e45 100644
+--- openerp/tools/config.py
++++ openerp/tools/config.py
+@@ -562,10 +562,10 @@ class configmanager(object):
+     def addons_data_dir(self):
+         d = os.path.join(self['data_dir'], 'addons', release.series)
+         if not os.path.exists(d):
+-            os.makedirs(d, 0700)
+-        else:
+-            assert os.access(d, os.W_OK), \
+-                "%s: directory is not writable" % d
++            try:
++                os.makedirs(d, 0700)
++            except OSError:
++                logging.getLogger(__name__).debug('Failed to create addons data dir %s', d)
+         return d
+
+     @property
+"""
+
 
 def init_repos(options: Namespace) -> bool:
     logger.info("Cache location: %s", options.cache_path)
@@ -374,7 +396,19 @@ def matt(options: Namespace) -> int:
                     capture_output=True,
                 )
                 if patched.returncode == 0:
-                    logger.info("migration engine patched")
+                    logger.info("migration engine patched in %s version", loc)
+
+                # Patch the datadir addons path to avoid a race condition
+                # (adapted from odoo/odoo@4715d18e122554972ca9d20ce3d361dcbc0e646c)
+                patched = subprocess.run(
+                    ["git", "apply", "-p0", "-"],
+                    input=ADDONS_DATA_DIR_PATCH,
+                    check=False,
+                    cwd=odoodir,
+                    capture_output=True,
+                )
+                if patched.returncode == 0:
+                    logger.info("datadir addons path handling patched in %s version", loc)
 
             else:
                 logger.critical(
