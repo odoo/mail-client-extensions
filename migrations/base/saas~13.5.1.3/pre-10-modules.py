@@ -15,6 +15,8 @@ def migrate(cr, version):
         cr, "pos_restaurant_adyen", deps={"pos_adyen", "pos_restaurant", "payment_adyen"}, auto_install=True
     )
 
+    util.merge_module(cr, "payment_stripe_checkout_webhook", "payment_stripe")
+
     util.rename_module(cr, "fleet_account", "account_fleet")
 
     util.module_auto_install(cr, "mail_bot", auto_install=True)

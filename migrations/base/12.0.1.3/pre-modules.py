@@ -4,6 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.new_module(cr, "l10n_it_edi", deps={"l10n_it"})  # see odoo/odoo#30845
+    util.new_module(cr, "payment_stripe_checkout_webhook", deps={"payment_stripe", "payment_stripe_sca"})
     util.module_deps_diff(cr, "purchase_mrp", plus={"purchase_stock"}, minus={"purchase"})
 
     if util.has_enterprise():
