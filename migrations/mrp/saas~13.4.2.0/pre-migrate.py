@@ -361,6 +361,13 @@ def migrate(cr, version):
                 cols=", ".join(cols), pre_cols=", ".join(pre_cols)
             ),
             """
+            UPDATE mrp_workorder wo
+               SET operation_id = new_op.id
+              FROM temp_new_mrp_operation AS new_op
+              JOIN mrp_production mo ON mo.bom_id = new_op.bom_id
+             WHERE wo.operation_id = new_op.old_id AND wo.production_id = mo.id
+            """,
+            """
             UPDATE mrp_bom_line
                SET operation_id = new_op.id
               FROM temp_new_mrp_operation AS new_op
