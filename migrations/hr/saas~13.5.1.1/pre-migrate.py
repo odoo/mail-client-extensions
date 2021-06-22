@@ -5,7 +5,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
 
     # Remove the unique constraint (user_id, company_id) temporary
-    cr.execute("ALTER TABLE hr_employee DROP CONSTRAINT hr_employee_user_uniq")
+    cr.execute("ALTER TABLE hr_employee DROP CONSTRAINT IF EXISTS hr_employee_user_uniq")
 
     # Take company_id on resource_calendar if exists
     cr.execute(
