@@ -3,6 +3,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+
+    # Remove the unique constraint (user_id, company_id) temporary
+    cr.execute("ALTER TABLE hr_employee DROP CONSTRAINT hr_employee_user_uniq")
+
     # Take company_id on resource_calendar if exists
     cr.execute(
         """
@@ -30,3 +34,22 @@ def migrate(cr, version):
                       AND e.company_id IS NULL
             """
         )
+
+    # Deduplicate employees and reset the unique constraint
+    cr.execute(
+        """
+              SELECT array_agg(id ORDER BY id)
+                FROM hr_employee
+               WHERE user_id IS NOT NULL
+                 AND company_id IS NOT NULL
+            GROUP BY user_id, company_id
+              HAVING COUNT(id) > 1
+        """
+    )
+    for (dupes,) in cr.fetchall():
+        keep = dupes.pop(0)
+        idmap = {d: keep for d in dupes}
+        util.replace_record_references_batch(cr, idmap, "hr.employee")
+        for dup in dupes:
+            util.remove_record(cr, ("hr.employee", dup))
+    cr.execute("ALTER TABLE hr_employee ADD CONSTRAINT hr_employee_user_uniq UNIQUE(user_id, company_id)")
