@@ -4,7 +4,7 @@ from odoo import fields
 from odoo.tests.common import Form
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-from odoo.addons.base.maintenance.migrations.util import module_installed
+from odoo.addons.base.maintenance.migrations.util import module_installed, version_gte
 from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
@@ -192,7 +192,11 @@ class TestTagNoInvert(UpgradeCase):
 
             report_balances = {}
             for report_line in report_lines:
-                report_balances[str(report_line["id"])] = report_line["columns"][0]["balance"]
+                if version_gte("saas~14.5"):
+                    line_id = self.env["account.generic.tax.report"]._parse_line_id(report_line["id"])[-1][2]
+                else:
+                    line_id = report_line["id"]
+                report_balances[str(line_id)] = report_line["columns"][0]["balance"]
 
             return str(today), report_balances
 
@@ -403,9 +407,13 @@ class TestTagNoInvert(UpgradeCase):
 
         # Check the tax report is unchanged
         for report_line in self._get_report_lines(today):
+            if version_gte("saas~14.5"):
+                line_id = self.env["account.generic.tax.report"]._parse_line_id(report_line["id"])[-1][2]
+            else:
+                line_id = report_line["id"]
             self.assertEqual(
                 report_line["columns"][0]["balance"],
-                report_balances[str(report_line["id"])],
+                report_balances[str(line_id)],
                 "Tags reinversion modified the tax report!",
             )
 
