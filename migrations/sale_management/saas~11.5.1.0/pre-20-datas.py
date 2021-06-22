@@ -28,6 +28,9 @@ def migrate(cr, version):
         cr, "sale_quotation_builder.view_sale_quote_template_form", "sale_management.sale_order_template_view_form"
     )
     util.rename_xmlid(
+        cr, "sale_quotation_builder.view_sale_quote_template_tree", "sale_management.sale_order_template_view_tree"
+    )
+    util.rename_xmlid(
         cr,
         "sale_quotation_builder.optional_products",
         "sale_management.sale_order_portal_content_inherit_sale_management",
