@@ -16,3 +16,16 @@ def migrate(cr, version):
              WHERE c.id = d.company_id
         """
     )
+
+    util.update_record_from_xml(cr, "survey.survey_user_input_rule_survey_user_read")
+    util.create_m2m(cr, "hr_appraisal_survey_survey_rel", "survey_survey", "hr_appraisal")
+    cr.execute(
+        """
+        INSERT INTO hr_appraisal_survey_survey_rel(hr_appraisal_id, survey_survey_id)
+             SELECT s.appraisal_id, s.survey_id
+               FROM survey_user_input s
+               JOIN hr_appraisal a ON a.id=s.appraisal_id
+           GROUP BY s.appraisal_id, s.survey_id
+        ON CONFLICT DO NOTHING
+    """
+    )
