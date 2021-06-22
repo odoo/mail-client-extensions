@@ -70,5 +70,8 @@ def migrate(cr, version):
             auto_install=False,
         )
 
+        # https://github.com/odoo/enterprise/pull/14938
+        util.new_module(cr, "pos_l10n_se", deps={"pos_restaurant", "pos_iot", "l10n_se"})
+
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
