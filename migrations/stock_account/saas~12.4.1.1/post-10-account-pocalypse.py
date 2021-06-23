@@ -206,17 +206,15 @@ def migrate(cr, version):
             JOIN product_product pp ON pp.id = svl.product_id
             JOIN product_template pt ON pt.id = pp.product_tmpl_id
             JOIN product_category pc ON pc.id = pt.categ_id
+       LEFT JOIN ir_property pr ON pr.name = 'property_cost_method'
+                               AND pr.value_text = 'fifo'
+                               AND pr.company_id = svl.company_id
+                               AND pr.res_id = 'product.category,' || pc.id
            WHERE svl.create_date < ph.DATETIME
              AND svl.quantity != 0
              AND svl.company_id = ph.company_id
              AND ph.create_uid != %s
-             AND 'product.category,' || pc.id NOT IN
-                (SELECT res_id
-                   FROM ir_property
-                  WHERE name = 'property_cost_method'
-                    AND value_text = 'fifo'
-                    AND company_id = svl.company_id
-                )
+             AND pr.id IS NULL
             GROUP BY ph.id, svl.product_id, ph.datetime, ph.cost, svl.company_id
         )
         INSERT INTO stock_valuation_layer (create_date, write_date, product_id, quantity, VALUE, description, company_id)
