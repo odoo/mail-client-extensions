@@ -69,21 +69,19 @@ def migrate(cr, version):
     cr.execute(
         """
         SELECT
-            move.type,
-            move.currency_id AS move_currency_id,
+            CASE
+                WHEN move.type = 'in_refund' THEN -1
+                ELSE 1
+            END AS factor,
             line.id,
             line.move_id,
             line.currency_id,
             line.account_id,
-            line.company_currency_id,
             line.price_subtotal,
-            line.amount_currency,
             line.balance,
             account.reconcile,
             anglo_line.id AS ang_id,
             anglo_line.name AS ang_name,
-            anglo_line.partner_id AS ang_partner_id,
-            anglo_line.partner_id AS ang_partner_id,
             anglo_line.product_id AS ang_product_id,
             anglo_line.product_uom_id AS ang_product_uom_id,
             anglo_line.quantity AS ang_quantity,
@@ -93,13 +91,21 @@ def migrate(cr, version):
             ARRAY_AGG(analytic_rel.account_analytic_tag_id) AS ang_analytic_tag_ids,
             anglo_line.amount_currency AS ang_amount_currency,
             anglo_line.balance AS ang_balance,
-            currency.decimal_places AS curr_decimal_places,
-            comp_currency.decimal_places AS comp_curr_decimal_places
+            (line.balance + anglo_line.balance) as new_balance,
+            (line.amount_currency + anglo_line.amount_currency) as new_amount_currency,
+            CASE
+                WHEN move.currency_id = line.company_currency_id THEN line.balance
+                ELSE line.amount_currency
+            END AS balance_or_amount_currency,
+            CASE
+                WHEN move.currency_id = line.company_currency_id THEN anglo_line.balance
+                ELSE anglo_line.amount_currency
+            END AS ang_balance_or_ang_amount_currency,
+            currency.decimal_places
         FROM account_move_line line
         JOIN account_move move ON move.id = line.move_id
         JOIN account_account account ON account.id = line.account_id
-        JOIN res_currency currency ON currency.id = move.currency_id
-        JOIN res_currency comp_currency ON comp_currency.id = move.company_currency_id
+        JOIN res_currency currency ON currency.id = COALESCE(line.currency_id, line.company_currency_id)
         JOIN account_move_line anglo_line ON
             anglo_line.move_id = line.move_id
             AND anglo_line.is_anglo_saxon_line
@@ -113,28 +119,9 @@ def migrate(cr, version):
             move.type,
             move.currency_id,
             line.id,
-            line.move_id,
-            line.currency_id,
-            line.account_id,
-            line.company_currency_id,
-            line.price_subtotal,
-            line.amount_currency,
-            line.balance,
             account.reconcile,
             anglo_line.id,
-            anglo_line.name,
-            anglo_line.partner_id,
-            anglo_line.partner_id,
-            anglo_line.product_id,
-            anglo_line.product_uom_id,
-            anglo_line.quantity,
-            anglo_line.price_unit,
-            anglo_line.price_subtotal,
-            anglo_line.analytic_account_id,
-            anglo_line.amount_currency,
-            anglo_line.balance,
-            currency.decimal_places,
-            comp_currency.decimal_places
+            currency.decimal_places
     """
     )
 
@@ -149,35 +136,23 @@ def migrate(cr, version):
         if res["id"] in processed_line_ids or res["ang_id"] in processed_line_ids:
             continue
 
-        factor = -1 if res["type"] == "in_refund" else 1
-        new_balance = res["balance"] + res["ang_balance"]
-        new_amount_currency = res["amount_currency"] + res["ang_amount_currency"]
+        price_sub_total_signed = res["price_subtotal"] * res["factor"]
+        line_balance_currency = res["balance_or_amount_currency"]
+        ang_balance_currency = res["ang_balance_or_ang_amount_currency"]
 
-        if res["move_currency_id"] == res["company_currency_id"]:
+        is_balance_equals_to_price_subtotal = float_is_zero(
+            price_sub_total_signed - line_balance_currency,
+            precision_digits=res["decimal_places"],
+        )
+        if is_balance_equals_to_price_subtotal:
+            continue
 
-            if float_is_zero(
-                (res["price_subtotal"] * factor) - res["balance"], precision_digits=res["comp_curr_decimal_places"]
-            ):
-                continue
-
-            if not float_is_zero(
-                (res["price_subtotal"] * factor) - res["balance"] - res["ang_balance"],
-                precision_digits=res["comp_curr_decimal_places"],
-            ):
-                continue
-
-        else:
-
-            if float_is_zero(
-                (res["price_subtotal"] * factor) - res["amount_currency"], precision_digits=res["curr_decimal_places"]
-            ):
-                continue
-
-            if not float_is_zero(
-                (res["price_subtotal"] * factor) - res["amount_currency"] - res["ang_amount_currency"],
-                precision_digits=res["curr_decimal_places"],
-            ):
-                continue
+        is_balance_plus_ang_balance_equals_to_price_subtotal = float_is_zero(
+            price_sub_total_signed - line_balance_currency - ang_balance_currency,
+            precision_digits=res["decimal_places"],
+        )
+        if not is_balance_plus_ang_balance_equals_to_price_subtotal:
+            continue
 
         to_unlink_tax_line_ids.add(res["ang_id"])
         to_recompute_audit_string_line_ids.add(res["id"])
@@ -190,9 +165,9 @@ def migrate(cr, version):
                 1,
                 res["id"],
                 {
-                    "amount_currency": new_amount_currency,
-                    "debit": new_balance if new_balance > 0.0 else 0.0,
-                    "credit": -new_balance if new_balance < 0.0 else 0.0,
+                    "amount_currency": res["new_amount_currency"],
+                    "debit": res["new_balance"] if res["new_balance"] > 0.0 else 0.0,
+                    "credit": -res["new_balance"] if res["new_balance"] < 0.0 else 0.0,
                     "is_anglo_saxon_line": False,
                 },
             )
@@ -256,7 +231,7 @@ def migrate(cr, version):
         to_unreconcile_line = env["account.move.line"].browse(list(to_unreconcile_line_ids))
         for line in to_unreconcile_line:
             to_reconcile_line_ids.add(
-                line + line.mapped("matched_debit_ids.debit_move_id") + line.mapped("matched_credit_ids.credit_move_id")
+                line + line.matched_debit_ids.debit_move_id + line.matched_credit_ids.credit_move_id
             )
         to_unreconcile_line.remove_move_reconcile()
 
