@@ -1229,7 +1229,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
             account_id,account_internal_type,account_root_id,sequence,name,quantity,price_unit,discount,
             display_type,is_rounding_line,exclude_from_invoice_tab,analytic_account_id,
             debit,credit,balance,amount_currency,price_subtotal,price_total,reconciled,blocked,
-            currency_id,partner_id,product_uom_id,product_id,_mig124_invl_id
+            currency_id,partner_id,product_uom_id,product_id,tax_exigible,_mig124_invl_id
         )
         SELECT m.id,
                m.name,
@@ -1263,6 +1263,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                l.partner_id,
                l.uom_id,
                l.product_id,
+               TRUE,
                l.id
           FROM account_invoice_line l
           JOIN account_invoice i ON l.invoice_id=i.id
