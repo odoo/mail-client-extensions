@@ -10,8 +10,11 @@ function onLogout(state: State) {
     resetAccessToken();
     clearTranslationCache();
 
-    const [partner, error] = Partner.enrichPartner(state.email.contactEmail, state.email.contactName);
-    const newState = new State(partner, state.email, null, null, error);
+    const [partner, odooUserCompanies, error] = Partner.enrichPartner(
+        state.email.contactEmail,
+        state.email.contactName,
+    );
+    const newState = new State(partner, state.email, odooUserCompanies, null, null, error);
     return pushToRoot(buildView(newState));
 }
 

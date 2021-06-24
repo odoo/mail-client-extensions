@@ -15,9 +15,11 @@ function onCreateTicket(state: State) {
         return notify("Could not create the ticket");
     }
 
+    const cids = state.odooCompaniesParameter;
+
     const ticketUrl =
         State.odooServerUrl +
-        `/web#id=${ticketId}&action=helpdesk_mail_plugin.helpdesk_ticket_action_form_edit&model=helpdesk.ticket&view_type=form`;
+        `/web#id=${ticketId}&action=helpdesk_mail_plugin.helpdesk_ticket_action_form_edit&model=helpdesk.ticket&view_type=form${cids}`;
 
     return openUrl(ticketUrl);
 }
@@ -54,6 +56,8 @@ export function buildTicketsView(state: State, card: Card) {
             CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, "onCreateTicket")),
         );
 
+        const cids = state.odooCompaniesParameter;
+
         for (let ticket of tickets) {
             let ticketButton = null;
             if (loggingState["tickets"].indexOf(ticket.id) >= 0) {
@@ -79,7 +83,7 @@ export function buildTicketsView(state: State, card: Card) {
                     null,
                     null,
                     ticketButton,
-                    odooServerUrl + `/web#id=${ticket.id}&model=helpdesk.ticket&view_type=form`,
+                    odooServerUrl + `/web#id=${ticket.id}&model=helpdesk.ticket&view_type=form${cids}`,
                 ),
             );
         }

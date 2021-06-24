@@ -22,6 +22,8 @@ export class State {
     partner: Partner;
     // Opened email with headers
     email: Email;
+    // ID list of the Odoo user companies
+    odooUserCompanies: number[];
     // Searched partners in the search view
     searchedPartners: Partner[];
     // Searched projects in the search view
@@ -29,9 +31,17 @@ export class State {
     // Current error message displayed on the card
     error: ErrorMessage;
 
-    constructor(partner: Partner, email: Email, partners: Partner[], searchedProjects: Project[], error: ErrorMessage) {
+    constructor(
+        partner: Partner,
+        email: Email,
+        odooUserCompanies: number[],
+        partners: Partner[],
+        searchedProjects: Project[],
+        error: ErrorMessage,
+    ) {
         this.partner = partner;
         this.email = email;
+        this.odooUserCompanies = odooUserCompanies;
         this.searchedPartners = partners;
         this.searchedProjects = searchedProjects;
         this.error = error;
@@ -56,6 +66,7 @@ export class State {
         const partner = Partner.fromJson(partnerValues);
         const email = Email.fromJson(emailValues);
         const error = ErrorMessage.fromJson(errorValues);
+        const odooUserCompanies = values.odooUserCompanies;
         const searchedPartners = partnersValues
             ? partnersValues.map((partnerValues: any) => Partner.fromJson(partnerValues))
             : null;
@@ -63,7 +74,22 @@ export class State {
             ? projectsValues.map((projectValues: any) => Project.fromJson(projectValues))
             : null;
 
-        return new State(partner, email, searchedPartners, searchedProjects, error);
+        return new State(partner, email, odooUserCompanies, searchedPartners, searchedProjects, error);
+    }
+
+    /**
+     * Return the companies of the Odoo user as a GET parameter to add in a URL or an
+     * empty string if the information is missing.
+     *
+     * e.g.
+     *     &cids=1,3,7
+     */
+    get odooCompaniesParameter(): string {
+        if (this.odooUserCompanies && this.odooUserCompanies.length) {
+            const cids = this.odooUserCompanies.sort().join(",");
+            return `&cids=${cids}`;
+        }
+        return "";
     }
 
     /**

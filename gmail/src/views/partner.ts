@@ -93,6 +93,7 @@ export function buildPartnerView(state: State, card: Card) {
     const partnerContent = [partner.email, partner.phone]
         .filter((x) => x)
         .map((x) => `<font color="#777777">${x}</font>`);
+    const cids = state.odooCompaniesParameter;
 
     const partnerCard = createKeyValueWidget(
         null,
@@ -101,7 +102,7 @@ export function buildPartnerView(state: State, card: Card) {
         null,
         partnerButton,
         partner.id
-            ? odooServerUrl + `/web#id=${partner.id}&model=res.partner&view_type=form`
+            ? odooServerUrl + `/web#id=${partner.id}&model=res.partner&view_type=form${cids}`
             : canContactOdooDatabase
             ? null
             : actionCall(state, "buildLoginMainView"),

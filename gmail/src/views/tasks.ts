@@ -37,8 +37,8 @@ export function buildTasksView(state: State, card: Card) {
     }
 
     const loggingState = State.getLoggingState(state.email.messageId);
-
     const tasksSection = CardService.newCardSection().setHeader("<b>" + _t("Tasks (%s)", tasks.length) + "</b>");
+    const cids = state.odooCompaniesParameter;
 
     if (state.partner.id) {
         tasksSection.addWidget(
@@ -70,7 +70,7 @@ export function buildTasksView(state: State, card: Card) {
                     null,
                     null,
                     taskButton,
-                    odooServerUrl + `/web#id=${task.id}&model=project.task&view_type=form`,
+                    odooServerUrl + `/web#id=${task.id}&model=project.task&view_type=form${cids}`,
                 ),
             );
         }
