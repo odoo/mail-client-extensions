@@ -219,6 +219,13 @@ def migrate(cr, version):
         FROM account_bank_statement_line_pre_backup st_line_backup
         JOIN res_partner_bank ON res_partner_bank.id = st_line_backup.bank_account_id
         WHERE res_partner_bank.company_id IS NOT NULL
+
+        UNION
+
+        SELECT res_partner_bank.id, res_partner_bank.company_id
+        FROM account_journal journal
+        JOIN res_partner_bank ON res_partner_bank.id = journal.bank_account_id
+        WHERE res_partner_bank.company_id IS NOT NULL
         """
     )
     wrong_company_partner_bank_ids = dict(cr.fetchall())
