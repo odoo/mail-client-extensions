@@ -78,11 +78,16 @@ export class Partner {
      * If we are not logged to an Odoo database, enrich the email domain with IAP.
      * Otherwise fetch the partner on the user database.
      */
-    static enrichPartner(email: string, name: string): [Partner, ErrorMessage] {
+    static enrichPartner(email: string, name: string): [Partner, number[], ErrorMessage] {
         const odooServerUrl = State.odooServerUrl;
         const odooAccessToken = State.accessToken;
 
-        return odooServerUrl && odooAccessToken ? this.getPartner(email, name) : this._enrichFromIap(email, name);
+        if (odooServerUrl && odooAccessToken) {
+            return this.getPartner(email, name);
+        } else {
+            const [partner, error] = this._enrichFromIap(email, name);
+            return [partner, null, error];
+        }
     }
 
     /**
@@ -136,7 +141,7 @@ export class Partner {
     /**
      * Fetch the given partner on the Odoo database and return all information about him.
      */
-    static getPartner(email: string, name: string, partnerId: number = null): [Partner, ErrorMessage] {
+    static getPartner(email: string, name: string, partnerId: number = null): [Partner, number[], ErrorMessage] {
         const url = State.odooServerUrl + URLS.GET_PARTNER;
         const accessToken = State.accessToken;
 
@@ -149,7 +154,7 @@ export class Partner {
         if (!response || !response.partner) {
             const error = new ErrorMessage("http_error_odoo");
             const partner = Partner.fromJson({ name: name, email: email });
-            return [partner, error];
+            return [partner, null, error];
         }
 
         const error = new ErrorMessage();
@@ -177,7 +182,9 @@ export class Partner {
             partner.tasks = response.tasks.map((taskValues: any) => Task.fromOdooResponse(taskValues));
         }
 
-        return [partner, error];
+        const odooUserCompanies = response.user_companies || null;
+
+        return [partner, odooUserCompanies, error];
     }
 
     /**

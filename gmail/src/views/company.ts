@@ -10,6 +10,7 @@ import { _t } from "../services/translation";
 export function buildCompanyView(state: State, card: Card) {
     if (state.partner.company) {
         const odooServerUrl = State.odooServerUrl;
+        const cids = state.odooCompaniesParameter;
         const company = state.partner.company;
 
         const companySection = CardService.newCardSection().setHeader("<b>" + _t("Company") + "</b>");
@@ -25,7 +26,7 @@ export function buildCompanyView(state: State, card: Card) {
                 company.image || UI_ICONS.no_company,
                 null,
                 null,
-                company.id ? odooServerUrl + `/web#id=${company.id}&model=res.partner&view_type=form` : null,
+                company.id ? odooServerUrl + `/web#id=${company.id}&model=res.partner&view_type=form${cids}` : null,
                 false,
                 company.email,
                 CardService.ImageCropType.CIRCLE,

@@ -27,10 +27,10 @@ function onCreateLead(state: State) {
     if (!leadId) {
         return notify(_t("Could not create the lead"));
     }
-
+    const cids = state.odooCompaniesParameter;
     const leadUrl =
         State.odooServerUrl +
-        `/web#id=${leadId}&action=crm_mail_plugin.crm_lead_action_form_edit&model=crm.lead&view_type=form`;
+        `/web#id=${leadId}&action=crm_mail_plugin.crm_lead_action_form_edit&model=crm.lead&view_type=form${cids}`;
 
     return openUrl(leadUrl);
 }
@@ -51,6 +51,7 @@ export function buildLeadsView(state: State, card: Card) {
     const leadsSection = CardService.newCardSection().setHeader(
         "<b>" + _t("Opportunities (%s)", leads.length) + "</b>",
     );
+    const cids = state.odooCompaniesParameter;
 
     if (state.partner.id) {
         leadsSection.addWidget(
@@ -100,7 +101,7 @@ export function buildLeadsView(state: State, card: Card) {
                     null,
                     leadRevenuesDescription,
                     leadButton,
-                    odooServerUrl + `/web#id=${lead.id}&model=crm.lead&view_type=form`,
+                    odooServerUrl + `/web#id=${lead.id}&model=crm.lead&view_type=form${cids}`,
                 ),
             );
         }

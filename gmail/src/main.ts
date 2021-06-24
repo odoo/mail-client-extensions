@@ -15,14 +15,17 @@ import { Partner } from "./models/partner";
 function onGmailMessageOpen(event) {
     GmailApp.setCurrentMessageAccessToken(event.gmail.accessToken);
     const currentEmail = new Email(event.gmail.messageId);
-    const [partner, error] = Partner.enrichPartner(currentEmail.contactEmail, currentEmail.contactName);
+    const [partner, odooUserCompanies, error] = Partner.enrichPartner(
+        currentEmail.contactEmail,
+        currentEmail.contactName,
+    );
 
     if (!partner) {
         // Should at least use the FROM headers to generate the partner
         throw new Error("Error during enrichment");
     }
 
-    const state = new State(partner, currentEmail, null, null, error);
+    const state = new State(partner, currentEmail, odooUserCompanies, null, null, error);
 
     return [buildView(state)];
 }
