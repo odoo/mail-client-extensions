@@ -40,3 +40,5 @@ def migrate(cr, version):
     terms = """<h1 style="text-align: center;">Terms &amp; Conditions</h1><p>Your conditions...</p>"""
     util.create_column(cr, "res_company", "sign_terms", "text", default=terms)
     util.create_column(cr, "res_company", "sign_terms_html", "text", default=terms)
+
+    util.create_column(cr, "sign_item_role", "default", "boolean")
