@@ -7,7 +7,8 @@ def migrate(cr, version):
     cr.execute(
         r"""
         UPDATE account_payment
-           SET check_number_int = CASE WHEN check_number ~ '^\s*\d+\s*$' THEN check_number::integer
+           SET check_number_int = CASE WHEN check_number ~ '^\s*\d+\s*$' AND check_number::numeric <= 2147483647
+                                       THEN check_number::integer
                                        ELSE 0
                                    END
     """
