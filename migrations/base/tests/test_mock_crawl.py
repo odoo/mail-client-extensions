@@ -121,6 +121,7 @@ class TestCrawler(IntegrityCase):
                 "odoo.fields.Reference.convert_to_cache",
                 lambda s, v, r, validate=True: origin_reference_convert_to_cache(s, v, r, False),
             ):
+                self.env.cr.execute("SAVEPOINT test_mock_crawl")
                 _logger.info("Mocking menus with user %s(#%s) ", self.env.user.login, self.env.user.id)
                 all_menus = self.env["ir.ui.menu"].load_menus(debug=False)
 
@@ -174,7 +175,7 @@ class TestCrawler(IntegrityCase):
                 [action_vals] = action_typed.read(self.action_type_fields[action.type])
                 self.mock_action(action_vals)
             except Exception as e:
-                self.env.cr.rollback()  # In case the cursor is broken
+                self.env.cr.execute("ROLLBACK TO SAVEPOINT test_mock_crawl")  # In case the cursor is broken
                 failing_menu = (menu["xmlid"], menu["id"], menu_name, action_id)
                 self.view_tracebacks[failing_menu] = " ".join(format_exception(type(e), e, e.__traceback__))
                 _logger.exception("Adding menu %s to the failing menus", failing_menu)
