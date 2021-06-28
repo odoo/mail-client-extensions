@@ -31,3 +31,15 @@ def migrate(cr, version):
 
     if not util.module_installed(cr, "payment"):
         cr.execute("DROP TABLE _upg_journal_accounts_mapping")
+
+        query = """
+            UPDATE account_payment ap
+               SET payment_method_line_id = apml.id
+              FROM account_payment_method_line apml
+              JOIN _upg_account_payment_payment_method_mapping map ON apml.payment_method_id = map.payment_method_id
+                                                                  AND apml.journal_id = map.journal_id
+             WHERE map.id = ap.id
+             """
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
+
+        cr.execute("DROP TABLE _upg_account_payment_payment_method_mapping")

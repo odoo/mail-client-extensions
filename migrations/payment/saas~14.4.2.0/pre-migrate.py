@@ -21,3 +21,9 @@ def migrate(cr, version):
     )
 
     util.remove_column(cr, "payment_acquirer", "journal_id")  # now computed
+
+    # ===============================================================
+    # Payment method improvements (PR: 72105(odoo), 18981(enterprise))
+    # ===============================================================
+
+    util.create_column(cr, "account_payment_method_line", "payment_acquirer_id", "int4")

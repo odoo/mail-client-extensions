@@ -125,3 +125,34 @@ def migrate(cr, version):
     cr.execute("DROP TABLE account_journal_outbound_payment_method_rel")
     util.remove_field(cr, "account.journal", "payment_debit_account_id")
     util.remove_field(cr, "account.journal", "payment_credit_account_id")
+
+    # ===============================================================
+    # Payment method improvements (PR: 72105(odoo), 18981(enterprise))
+    # ===============================================================
+    util.rename_field(cr, "account.payment", "hide_payment_method", "hide_payment_method_line")
+    util.rename_field(cr, "account.payment.register", "hide_payment_method", "hide_payment_method_line")
+
+    util.remove_field(cr, "account.payment", "available_payment_method_ids")
+
+    util.remove_field(cr, "account.payment.register", "payment_method_id")
+    util.create_column(cr, "account_payment_register", "payment_method_line_id", "int4")
+
+    util.remove_field(cr, "account.payment.register", "available_payment_method_ids")
+
+    # Backup the relationship between payment and payment method in a temp table.
+    # Then set all payment method to False, to avoid issues when the upgrade
+    # process change the foreign key of the column to payment_method_line_id
+
+    # The electronic method disappear during the migration, so we make sure to not get the id
+    # so that we can properly look for the line corresponding to the acquirer later on.
+    cr.execute(
+        """
+        CREATE TABLE _upg_account_payment_payment_method_mapping AS (
+            SELECT ap.id, CASE WHEN apm.code != 'electronic' THEN payment_method_id ELSE NULL END AS payment_method_id, journal_id
+              FROM account_payment ap
+              JOIN account_move am ON ap.id = am.payment_id
+              JOIN account_payment_method apm ON ap.payment_method_id = apm.id
+        )
+        """
+    )
+    util.create_column(cr, "account_payment", "payment_method_line_id", "int4")

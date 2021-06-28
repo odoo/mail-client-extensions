@@ -38,6 +38,41 @@ def migrate(cr, version):
                 for journal_id, payment_method_id, account_id in cr.fetchall()
             ]
         )
+        # Flush the lines to trigger the computes, since the computed fields are needed later to migrate the payments.
+        util.env(cr)["account.payment.method.line"].flush()
 
     cr.execute("DROP TABLE _upg_journal_accounts_mapping")
     cr.execute("DROP TABLE _upg_payment_acquirer_journal_mapping")
+
+    # ===============================================================
+    # Payment method improvements (PR: 72105(odoo), 18981(enterprise))
+    # ===============================================================
+    query = """
+        UPDATE account_payment ap
+           SET payment_method_line_id = apml.id
+          FROM account_payment_method_line apml
+          JOIN _upg_account_payment_payment_method_mapping map
+            ON ((map.payment_method_id IS NULL AND apml.payment_acquirer_id IS NOT NULL)
+            OR apml.payment_method_id = map.payment_method_id)
+           AND apml.journal_id = map.journal_id
+         WHERE map.id = ap.id
+         """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
+
+    # We can still have payments without method lines.
+    # It could happen for payments linked to the electronic method, but not a payment acquirer journal
+    # In such case, we'll link them to the manual method of the linked journal
+    query = """
+        UPDATE account_payment ap
+           SET payment_method_line_id = apml.id
+          FROM account_payment_method_line apml
+          JOIN _upg_account_payment_payment_method_mapping map ON apml.journal_id = map.journal_id
+          JOIN account_payment_method apm ON apm.id = apml.payment_method_id
+         WHERE ap.payment_method_line_id IS NULL
+           AND map.id = ap.id
+           AND apm.payment_type = ap.payment_type
+           AND apm.code = 'manual'
+         """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
+
+    cr.execute("DROP TABLE _upg_account_payment_payment_method_mapping")
