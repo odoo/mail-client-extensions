@@ -33,3 +33,30 @@ def migrate(cr, version):
         """,
         [helpdesk_user_group_id],
     )
+
+    # Combine time_days, time_hours and time_minutes into a single field
+    util.create_column(cr, "helpdesk_sla", "time", "float8", default=0)
+
+    # Update helpdesk.sla table, just like before 1 day is not the equivalent of 24 hours, but one average working day
+    # defaults to 8 hours per day in case no calendar can be found
+    cr.execute(
+        """
+        WITH helper as (
+            SELECT COALESCE(tc.hours_per_day, cc.hours_per_day, 8) as avg_hours,
+                   sla.id
+              FROM helpdesk_sla sla
+              JOIN helpdesk_team htim ON htim.id = sla.team_id
+              JOIN res_company cpny ON cpny.id = htim.company_id
+         LEFT JOIN resource_calendar tc ON tc.id = htim.resource_calendar_id
+         LEFT JOIN resource_calendar cc ON cc.id = cpny.resource_calendar_id
+        )
+        UPDATE helpdesk_sla sla
+           SET time = ((time_days * hlp.avg_hours) + (time_hours) + (time_minutes / 60.0)) -- .0 to force float
+          FROM helper hlp
+         WHERE hlp.id = sla.id
+    """
+    )
+
+    util.remove_field(cr, "helpdesk.sla", "time_days")
+    util.remove_field(cr, "helpdesk.sla", "time_hours")
+    util.remove_field(cr, "helpdesk.sla", "time_minutes")
