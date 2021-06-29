@@ -14,3 +14,5 @@ def migrate(cr, version):
                no_of_recruitment = GREATEST(no_of_recruitment, 0)
     """
     )
+
+    util.move_field_to_module(cr, "hr.department", "total_employee", "hr_holidays", "hr")
