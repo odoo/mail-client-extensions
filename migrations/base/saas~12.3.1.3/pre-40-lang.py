@@ -29,6 +29,17 @@ def migrate(cr, version):
 
     cr.execute("UPDATE ir_translation SET lang='ar_001' WHERE lang = 'ar_AA' ")
     cr.execute("UPDATE res_partner SET lang = 'ar_001' WHERE lang = 'ar_AA' ")
+    cr.execute(
+        """
+        UPDATE ir_default def
+           SET json_value = '"ar_001"'
+          FROM ir_model_fields field
+         WHERE field.id = def.field_id
+           AND field.model = 'res.partner'
+           AND field.name = 'lang'
+           AND def.json_value = '"ar_AA"'
+      """
+    )
 
     cr.execute("DELETE FROM res_lang WHERE code = 'ar_AA'")
 
