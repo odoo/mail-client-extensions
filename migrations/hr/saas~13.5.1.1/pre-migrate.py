@@ -47,9 +47,30 @@ def migrate(cr, version):
         """
     )
     for (dupes,) in cr.fetchall():
-        keep = dupes.pop(0)
-        idmap = {d: keep for d in dupes}
-        util.replace_record_references_batch(cr, idmap, "hr.employee")
-        for dup in dupes:
-            util.remove_record(cr, ("hr.employee", dup))
+        cr.execute(
+            """
+                    UPDATE hr_employee
+                       SET user_id = NULL
+                     WHERE id IN %s
+                 RETURNING id, name
+            """,
+            [tuple(dupes[1:])],
+        )
+        employees = cr.fetchall()
+        util.add_to_migration_reports(
+            """
+                <details>
+                    <summary>
+                        Multiple of your employees were configured with the same user for the same company,
+                        which is an invalid configuration.
+                        The user has been unassigned on the following employees to be able to enforce the constraint.
+                        You should therefore check these employees to configure their user correctly.
+                    </summary>
+                    <ul>%s</ul>
+                </details>
+            """
+            % "\n".join(f"<li>{name}(#{_id})</li>" for _id, name in employees),
+            "Employees",
+            format="html",
+        )
     cr.execute("ALTER TABLE hr_employee ADD CONSTRAINT hr_employee_user_uniq UNIQUE(user_id, company_id)")
