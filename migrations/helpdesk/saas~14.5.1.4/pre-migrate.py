@@ -60,3 +60,11 @@ def migrate(cr, version):
     util.remove_field(cr, "helpdesk.sla", "time_days")
     util.remove_field(cr, "helpdesk.sla", "time_hours")
     util.remove_field(cr, "helpdesk.sla", "time_minutes")
+
+    util.remove_record(cr, "helpdesk.helpdesk_ticket_team_analysis_action")
+
+    for v in "graph_analysis cohort pivot_analysis".split():
+        util.remove_view(cr, f"helpdesk.helpdesk_ticket_view_{v}")
+
+    for x in "action_close_analysis action_7days_analysis analysis_action action_success action_7dayssuccess".split():
+        util.force_noupdate(cr, f"helpdesk.helpdesk_ticket_{x}", False)
