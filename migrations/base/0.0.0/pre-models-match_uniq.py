@@ -69,7 +69,7 @@ class Base(models.AbstractModel):
         return super(Base, self).create(values)
 
 
-for model in {
+match_uniq_models = {
     "res.country",
     "res.country.state",
     "res.lang",
@@ -77,7 +77,12 @@ for model in {
     "ir.config_parameter",
     "ir.actions.act_window.view",
     "ir.module.module",
-}:
+}
+if util.version_gte("saas~12.5"):
+    # decimal.precision is moved into base with odoo/odoo@0c5121a979f02d6eee9779068cbb2d43788dc917
+    match_uniq_models.add("decimal.precision")
+
+for model in match_uniq_models:
 
     class Americaine(models.Model):  # a.k.a "Le grand détournement"
         _inherit = model
