@@ -77,3 +77,13 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "user_id")
     util.remove_field(cr, "project.task", "user_email")
     util.update_record_from_xml(cr, "project.task_visibility_rule")
+
+    util.create_column(cr, "project_task", "analytic_account_id", "int4")
+    util.create_m2m(
+        cr,
+        "account_analytic_tag_project_task_rel",
+        "account_analytic_tag",
+        "project_task",
+        "account_analytic_tag_id",
+        "project_task_id",
+    )

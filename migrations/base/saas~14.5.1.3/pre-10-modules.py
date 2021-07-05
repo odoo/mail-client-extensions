@@ -125,3 +125,6 @@ def migrate(cr, version):
     util.new_module(cr, "sale_gift_card", deps={"gift_card", "sale"}, auto_install=True)
     util.module_deps_diff(cr, "website_sale_gift_card", plus={"sale_gift_card"}, minus={"gift_card"})
     util.new_module(cr, "mrp_repair", deps={"repair", "mrp"}, auto_install=True)
+
+    util.new_module(cr, "sale_timesheet_margin", deps={"sale_timesheet", "sale_margin"}, auto_install=True)
+    util.force_migration_of_fresh_module(cr, "sale_timesheet_margin")
