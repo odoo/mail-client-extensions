@@ -181,7 +181,7 @@ class IrUiView(models.Model):
                          JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
                         WHERE md.module IN %(modules)s
                           AND v.active
-                     GROUP BY coalesce(v.inherit_id, v.id)
+                     GROUP BY CASE WHEN v.mode = 'extension' THEN coalesce(v.inherit_id, v.id) ELSE v.id END
                 """,
                 """
                        SELECT max(v.id)
@@ -189,7 +189,7 @@ class IrUiView(models.Model):
                         LEFT JOIN ir_model_data md ON (md.model = 'ir.ui.view' AND md.res_id = v.id)
                        WHERE md.module NOT IN %(modules)s OR md.module IS NULL
                          AND v.active
-                    GROUP BY coalesce(v.inherit_id, v.id)
+                    GROUP BY CASE WHEN v.mode = 'extension' THEN coalesce(v.inherit_id, v.id) ELSE v.id END
                 """,
             ]
             with util.custom_module_field_as_manual(self.env):
