@@ -377,7 +377,8 @@ def migrate(cr, version):
     } for (journal_id, date), values in unbalanced_by_journal.items()])
 
     for currency, rounding in origin_rounding.items():
-        currency.rounding = rounding
+        cr.execute("UPDATE res_currency SET rounding = %s WHERE id = %s", [rounding, currency.id])
+        currency.invalidate_cache(["rounding"], currency.ids)
 
     # Post the created moves
     cr.execute("SELECT DISTINCT date_part('year', date)::int FROM account_move")
