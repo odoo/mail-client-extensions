@@ -1216,6 +1216,7 @@ def _compute_invoice_line_grouped_in_move_line(cr):
                       AND grouped_invl.account_id = grouped_aml.account_id
                       AND grouped_invl.taxes = grouped_aml.taxes
                     WHERE grouped_aml.id = aml.id
+                      AND (aml.price_subtotal != 0 OR aml.price_subtotal is NULL)
                 RETURNING aml.id
             )
             DELETE FROM invl_aml_mapping map USING updated_aml u WHERE map.aml_id = u.id
