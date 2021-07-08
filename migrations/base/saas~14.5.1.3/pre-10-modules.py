@@ -5,6 +5,10 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_module(cr, "website_mail_channel")
+
+    util.remove_module(cr, "website_sale_blog")
+    cr.execute("DROP TABLE IF EXISTS product_blogpost_rel")
+
     if util.has_enterprise():
         util.new_module(cr, "hr_appraisal_skills", deps={"hr_appraisal", "hr_skills"}, auto_install=True)
 
