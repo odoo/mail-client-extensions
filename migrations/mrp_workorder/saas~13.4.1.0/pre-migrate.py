@@ -25,13 +25,15 @@ def migrate(cr, version):
         ),
         update_quality_check AS (
             UPDATE quality_check
-               SET point_id = inserted_quality_point.id
+               SET point_id = inserted_quality_point.id,
+                   production_id = mrp_workorder.production_id
               FROM mrp_production
+                   JOIN mrp_workorder ON mrp_production.id = mrp_workorder.production_id
                    JOIN mrp_bom ON mrp_production.bom_id = mrp_bom.id
                    JOIN temp_new_mrp_operation ON mrp_bom.id = temp_new_mrp_operation.bom_id
                    JOIN inserted_quality_point ON inserted_quality_point.operation_id = temp_new_mrp_operation.id
              WHERE quality_check.point_id = inserted_quality_point.old_id
-                   AND quality_check.production_id = mrp_production.id
+                   AND quality_check.workorder_id = mrp_workorder.id
         ),
         inserted_m2m_product_ids AS (
             INSERT INTO product_product_quality_point_rel (quality_point_id, product_product_id)
