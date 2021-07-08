@@ -11,17 +11,17 @@ def migrate(cr, version):
     root = util.ref(cr, 'base.user_root')
     query = """
         WITH ir_model_cte AS (
-            SELECT id, name
+            SELECT id, name, model
               FROM ir_model
              WHERE model=%s
         ),
         ir_act_server_cte AS (
             INSERT INTO ir_act_server (
-                            name, usage, state, model_id, code, type,
+                            name, usage, state, model_id, model_name, code, type,
                             binding_type, activity_user_type
                         )
                  SELECT 'Lunch: new cron for ' || imcte.name, 'ir_cron', 'code',
-                        imcte.id, '', 'ir.actions.server', 'action', 'specific'
+                        imcte.id, imcte.model, '', 'ir.actions.server', 'action', 'specific'
                    FROM {table}, ir_model_cte as imcte
               RETURNING id
         ),
