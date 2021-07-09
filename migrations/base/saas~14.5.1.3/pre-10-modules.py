@@ -49,6 +49,10 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "project_timesheet_forecast_sale", plus={"sale_project_forecast"})
         util.force_migration_of_fresh_module(cr, "sale_planning")
         util.force_migration_of_fresh_module(cr, "sale_project_forecast")
+        util.merge_module(cr, "l10n_lu_reports_electronic", "l10n_lu_reports")
+        util.merge_module(cr, "l10n_lu_reports_electronic_xml_2_0", "l10n_lu_reports")
+        util.merge_module(cr, "l10n_lu_saft", "l10n_lu_reports")
+        util.module_deps_diff(cr, "l10n_lu_reports", plus={"account_asset", "account_saft"})
 
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
