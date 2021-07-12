@@ -45,6 +45,7 @@ def migrate(cr, version):
              WHERE sml.product_id = mp.product_id
                    AND mp.state IN ('progress', 'to_close', 'done')
                    AND sm.state = 'done'
+                   AND sml.qty_done > 0
           GROUP BY mp.id
         )
         UPDATE mrp_production
