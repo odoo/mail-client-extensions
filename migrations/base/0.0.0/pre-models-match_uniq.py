@@ -53,7 +53,11 @@ class Base(models.AbstractModel):
                     _logger.warning(
                         "Matching record %r using domain %r has XMLID %r. Missing rename?", record, domain, xmlid
                     )
-                store_values = {key: value for key, value in values.items() if record._fields[key].column_type}
+                store_values = {
+                    key: record._fields[key].convert_to_column(value, record)
+                    for key, value in values.items()
+                    if record._fields[key].column_type
+                }
                 other_values = {key: value for key, value in values.items() if key not in store_values}
                 record._write(store_values)
                 record.write(other_values)
