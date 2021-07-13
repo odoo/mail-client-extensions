@@ -30,6 +30,7 @@ const TaskListItem = (props: TaskListItemProps) => {
             </div>
         </div>
     );
+
 }
 
 export default TaskListItem;

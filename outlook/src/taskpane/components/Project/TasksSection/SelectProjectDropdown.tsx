@@ -69,6 +69,7 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
                 }
             });
         }
+
     }
 
     private createProject = () => {
@@ -102,6 +103,7 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
                 />
             </div>
         );
+
         let projects = null;
         if (this.state.isLoading) {
             projects = (
@@ -146,6 +148,7 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
                 }
             }
         }
+
         return (
             <>
                 <div className="project-result-container">
@@ -159,7 +162,9 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
                 </div>
             </>
         )
+
     }
+
 }
 
 SelectProjectDropdown.contextType = AppContext;

@@ -44,7 +44,7 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
 
         let iconOrInitials = <img className='icon' src={this.props.icon} onError={this.addDefaultSrc}/>;
 
-        if (this.props.icon) {
+        if (!this.props.icon) {
             if (this.props.isCompany) {
                 iconOrInitials = <img className='icon' src={defaultCompanyImageSrc}/>;
             }
