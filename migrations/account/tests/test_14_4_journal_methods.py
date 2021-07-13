@@ -81,7 +81,7 @@ class TestJournalMethods(UpgradeCase):
             {
                 "name": "Test acquirer",
                 "company_id": acquirer_journal.company_id.id,
-                "state": "disabled",
+                "state": "test",
                 "journal_id": acquirer_journal.id,
                 "provider": "none" if util.version_gte("saas~14.3") else "manual",
             }
@@ -154,8 +154,9 @@ class TestJournalMethods(UpgradeCase):
 
         journal = self.env["account.journal"].create({"name": "Test journal 6", "code": "tj6", "type": "bank"})
         electronic = self.env.ref("payment.account_payment_method_electronic_in")
+        manual = self.env.ref("account.account_payment_method_manual_in")
 
-        journal.inbound_payment_method_ids = [(4, electronic.id)]
+        journal.inbound_payment_method_ids = [(4, manual.id), (4, electronic.id)]
 
         payment = self.env["account.payment"].create(
             {

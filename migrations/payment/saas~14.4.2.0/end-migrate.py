@@ -3,6 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    env = util.env(cr)
     # ===============================================================
     # Allows multiple acquirers on a bank journal (PR: 67331(odoo), 17258(enterprise))
     # ===============================================================
@@ -22,24 +23,22 @@ def migrate(cr, version):
     # to then create the related payment method lines accordingly.
     cr.execute(
         """
-        SELECT pajm.journal_id, apm.id,
-               CASE WHEN apm.payment_type = 'inbound' THEN jam.inbound_account_id ELSE jam.outbound_account_id END
+        SELECT
+            pajm.journal_id,
+            apm.id AS payment_method_id,
+            pajm.name,
+            CASE WHEN apm.payment_type = 'inbound' THEN jam.inbound_account_id ELSE jam.outbound_account_id END
+            AS payment_account_id
           FROM _upg_payment_acquirer_journal_mapping pajm
           JOIN payment_acquirer acquirer ON pajm.id = acquirer.id
           JOIN account_payment_method apm ON apm.code = acquirer.provider
      LEFT JOIN _upg_journal_accounts_mapping jam ON jam.journal_id = pajm.journal_id
     """
     )
-
     if cr.rowcount:
-        util.env(cr)["account.payment.method.line"].create(
-            [
-                {"payment_method_id": payment_method_id, "journal_id": journal_id, "payment_account_id": account_id}
-                for journal_id, payment_method_id, account_id in cr.fetchall()
-            ]
-        )
+        env["account.payment.method.line"].create(cr.dictfetchall())
         # Flush the lines to trigger the computes, since the computed fields are needed later to migrate the payments.
-        util.env(cr)["account.payment.method.line"].flush()
+        env["account.payment.method.line"].flush()
 
     cr.execute("DROP TABLE _upg_journal_accounts_mapping")
     cr.execute("DROP TABLE _upg_payment_acquirer_journal_mapping")
@@ -76,3 +75,30 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
 
     cr.execute("DROP TABLE _upg_account_payment_payment_method_mapping")
+
+    # Get a structure giving us, for each acquirers appearing multiple times,
+    # The state of all the acquirers of a provider and the id's of their apml.
+    # Then, unlink the apml using the orm to make sure they are properly handled
+    # (either their journal_id is removed, or they are completely deleted)
+    cr.execute(
+        """
+        SELECT array_agg(DISTINCT acquirer.state), array_agg(DISTINCT apml.id ORDER BY apml.id)
+          FROM account_payment_method_line apml
+          JOIN account_payment_method apm ON apm.id = apml.payment_method_id
+          JOIN payment_acquirer acquirer ON apm.code = acquirer.provider
+      GROUP BY apm.id, acquirer.provider
+        HAVING count(acquirer.provider) > 1
+    """
+    )
+
+    if cr.rowcount:
+        to_unlink = []
+        for states, line_ids in cr.fetchall():
+            # All acquirers are disabled, so we can safely remove all apml
+            if all(state == "disabled" for state in states):
+                to_unlink.extend(line_ids)
+            # Not all acquirers are disabled. Then we need to keep one line for them
+            else:
+                to_unlink.extend(line_ids[1:])
+
+        env["account.payment.method.line"].search([("id", "in", to_unlink)]).unlink()
