@@ -8,6 +8,7 @@ def migrate(cr, version):
     util.remove_module(cr, "website_sale_management")
     util.remove_module(cr, "website_sale_blog")
     cr.execute("DROP TABLE IF EXISTS product_blogpost_rel")
+    util.rename_module(cr, "l10n_eu_service", "l10n_eu_oss")
 
     if util.has_enterprise():
         util.remove_module(cr, "mail_github")
@@ -18,6 +19,8 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "social_test_full", plus={"social_instagram"})
         util.new_module(cr, "mrp_workorder_plm", deps={"mrp_workorder", "mrp_plm"}, auto_install=True)
         util.new_module(cr, "project_account_budget", deps={"account_budget", "project"}, auto_install=True)
+
+        util.new_module(cr, "l10n_eu_oss_reports", deps={"account_reports", "l10n_eu_oss"}, auto_install=True)
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
