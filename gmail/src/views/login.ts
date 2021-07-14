@@ -71,6 +71,13 @@ export function buildLoginMainView() {
                 ),
             )
             .addWidget(createKeyValueWidget(null, "Centralize Prospects' emails into CRM.", IMAGES_LOGIN.crm))
+            .addWidget(
+                createKeyValueWidget(
+                    null,
+                    "Generate Tasks from emails sent to your email address in any Odoo project.",
+                    IMAGES_LOGIN.project,
+                ),
+            )
             .addWidget(createKeyValueWidget(null, "Search and store insights on your contacts.", IMAGES_LOGIN.search)),
     );
 

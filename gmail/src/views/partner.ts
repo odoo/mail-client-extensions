@@ -1,5 +1,6 @@
 import { buildView } from "./index";
 import { buildLeadsView } from "./leads";
+import { buildTasksView } from "./tasks";
 import { buildTicketsView } from "./tickets";
 import { buildPartnerActionView } from "./partner_actions";
 import { updateCard } from "./helpers";
@@ -92,6 +93,7 @@ export function buildPartnerView(state: State, card: Card) {
     const partnerContent = [partner.email, partner.phone]
         .filter((x) => x)
         .map((x) => `<font color="#777777">${x}</font>`);
+    const cids = state.odooCompaniesParameter;
 
     const partnerCard = createKeyValueWidget(
         null,
@@ -100,7 +102,7 @@ export function buildPartnerView(state: State, card: Card) {
         null,
         partnerButton,
         partner.id
-            ? odooServerUrl + `/web#id=${partner.id}&model=res.partner&view_type=form`
+            ? odooServerUrl + `/web#id=${partner.id}&model=res.partner&view_type=form${cids}`
             : canContactOdooDatabase
             ? null
             : actionCall(state, "buildLoginMainView"),
@@ -118,6 +120,7 @@ export function buildPartnerView(state: State, card: Card) {
     if (canContactOdooDatabase) {
         buildLeadsView(state, card);
         buildTicketsView(state, card);
+        buildTasksView(state, card);
     }
 
     return card;
