@@ -73,5 +73,8 @@ def migrate(cr, version):
         # https://github.com/odoo/enterprise/pull/14938
         util.new_module(cr, "pos_l10n_se", deps={"pos_restaurant", "pos_iot", "l10n_se"})
 
+        # https://github.com/odoo/enterprise/pull/19638
+        util.module_deps_diff(cr, "helpdesk", plus={"web_cohort"})
+
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
