@@ -5,14 +5,16 @@ import { _t } from "../services/translation";
  */
 
 const _ERROR_CODE_MESSAGES: Record<string, string> = {
+    odoo: null, // Message is contained in the additional information
     http_error_odoo: "Could not connect to database. Try to log out and in.",
     insufficient_credit: "Not enough credits to enrich.",
-    company_created: "Company Created.",
+    company_created: null,
+    company_updated: null,
     // IAP
     http_error_iap: "Our IAP server is down, please come back later.",
     exhausted_requests:
         "Oops, looks like you have exhausted your free enrichment requests. Please log in to try again.",
-    missing_data: "No data found for this address.",
+    missing_data: "No insights found for this address",
     unknown: "Something bad happened. Please, try again later.",
     // Attachment
     attachments_size_exceeded:

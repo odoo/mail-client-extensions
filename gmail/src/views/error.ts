@@ -31,6 +31,11 @@ function _addError(message: string, state: State, icon: string = null): CardSect
 export function buildErrorView(state: State, card: Card) {
     const error = state.error;
 
+    const ignoredErrors = ["company_created", "company_updated"];
+    if (ignoredErrors.indexOf(error.code) >= 0) {
+        return;
+    }
+
     if (error.code === "http_error_odoo") {
         const errorSection = _addError(error.message, state);
         errorSection.addWidget(
@@ -47,8 +52,6 @@ export function buildErrorView(state: State, card: Card) {
                 .setOpenLink(CardService.newOpenLink().setUrl(error.information)),
         );
         card.addSection(errorSection);
-    } else if (error.code === "company_created") {
-        card.addSection(_addError(error.message, state, UI_ICONS.check));
     } else if (error.code === "missing_data") {
         card.addSection(_addError(error.message, state));
     } else {

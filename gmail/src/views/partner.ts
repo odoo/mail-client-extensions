@@ -13,13 +13,6 @@ import { ErrorMessage } from "../models/error_message";
 import { logEmail } from "../services/log_email";
 import { _t } from "../services/translation";
 
-function onEnrichCompany(state: State) {
-    const [company, error] = Partner.enrichCompany(state.partner.id);
-    state.partner.company = company;
-    state.error = error;
-    return updateCard(buildView(state));
-}
-
 function onLogEmail(state: State) {
     const partnerId = state.partner.id;
 

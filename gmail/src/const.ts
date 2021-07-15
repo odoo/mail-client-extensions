@@ -5,7 +5,8 @@ const URLS: Record<string, string> = {
     GET_PARTNER: "/mail_plugin/partner/get",
     SEARCH_PARTNER: "/mail_plugin/partner/search",
     PARTNER_CREATE: "/mail_plugin/partner/create",
-    ENRICH_COMPANY: "/mail_plugin/partner/enrich_and_create_company",
+    CREATE_COMPANY: "/mail_plugin/partner/enrich_and_create_company",
+    ENRICH_COMPANY: "/mail_plugin/partner/enrich_and_update_company",
     // CRM Lead
     CREATE_LEAD: "/mail_plugin/lead/create",
     // HELPDESK Ticket

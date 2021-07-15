@@ -204,10 +204,21 @@ export class Partner {
     }
 
     /**
-     * Manually enrich the given partner.
+     * Create and enrich the company of the given partner.
      */
-    static enrichCompany(partnerId: number): [Company, ErrorMessage] {
-        const url = State.odooServerUrl + URLS.ENRICH_COMPANY;
+    static createCompany(partnerId: number): [Company, ErrorMessage] {
+        return this._enrichOrCreateCompany(partnerId, URLS.CREATE_COMPANY);
+    }
+
+    /**
+     * Enrich the existing company.
+     */
+    static enrichCompany(companyId: number): [Company, ErrorMessage] {
+        return this._enrichOrCreateCompany(companyId, URLS.ENRICH_COMPANY);
+    }
+
+    static _enrichOrCreateCompany(partnerId: number, endpoint: string): [Company, ErrorMessage] {
+        const url = State.odooServerUrl + endpoint;
         const accessToken = State.accessToken;
 
         const response = postJsonRpc(url, { partner_id: partnerId }, { Authorization: "Bearer " + accessToken });
@@ -217,7 +228,7 @@ export class Partner {
         }
 
         if (response.error) {
-            return [null, new ErrorMessage("unknown", response.error)];
+            return [null, new ErrorMessage("odoo", response.error)];
         }
 
         let error = new ErrorMessage();

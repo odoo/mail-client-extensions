@@ -30,6 +30,8 @@ export class State {
     searchedProjects: Project[];
     // Current error message displayed on the card
     error: ErrorMessage;
+    // Used in the company card
+    isCompanyDescriptionUnfolded: boolean;
 
     constructor(
         partner: Partner,
@@ -73,6 +75,9 @@ export class State {
         const searchedProjects = projectsValues
             ? projectsValues.map((projectValues: any) => Project.fromJson(projectValues))
             : null;
+
+        // "isCompanyDescriptionUnfolded" is not copied
+        // to re-fold the description if we go back / refresh
 
         return new State(partner, email, odooUserCompanies, searchedPartners, searchedProjects, error);
     }
