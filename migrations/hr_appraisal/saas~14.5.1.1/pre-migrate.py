@@ -21,9 +21,26 @@ def migrate(cr, version):
          WHERE hr_appraisal.id = previous_appraisal.id
     """
     )
+
+    util.create_column(cr, "hr_employee", "appraisal_count", "int4", default=0)
+    cr.execute(
+        """
+        WITH counts AS (
+                SELECT employee_id, count(*) as cnt
+                  FROM hr_appraisal
+              GROUP BY employee_id
+               )
+        UPDATE hr_employee e
+           SET appraisal_count = c.cnt
+          FROM counts c
+         WHERE c.employee_id = e.id
+    """
+    )
+
     util.create_column(cr, "hr_appraisal", "employee_feedback_template", "text")
     util.create_column(cr, "hr_appraisal", "manager_feedback_template", "text")
     util.create_column(cr, "hr_appraisal", "show_templates", "boolean", default=False)
+    util.create_column(cr, "hr_appraisal", "appraisal_plan_posted", "boolean", default=False)
 
     util.remove_field(cr, "hr.appraisal.goal", "text_description")
 
