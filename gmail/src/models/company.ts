@@ -5,6 +5,7 @@ export class Company {
     name: string;
     email: string;
     phone: string;
+    isEnriched: boolean;
 
     // Additional Information
     address: string;
@@ -40,6 +41,7 @@ export class Company {
         company.name = isTrue(values.name);
         company.email = first(values.email);
         company.phone = first(values.phone_numbers);
+        company.isEnriched = !!Object.keys(values).length;
 
         company.emails = isTrue(values.email) ? values.email.join("\n") : null;
         company.phones = isTrue(values.phone_numbers) ? values.phone_numbers.join("\n") : null;

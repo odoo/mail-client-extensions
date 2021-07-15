@@ -5,7 +5,26 @@ import { createKeyValueWidget, actionCall, notify } from "./helpers";
 import { URLS } from "../const";
 import { State } from "../models/state";
 import { Company } from "../models/company";
+import { Partner } from "../models/partner";
 import { _t } from "../services/translation";
+
+function onCreateCompany(state: State) {
+    const [company, error] = Partner.createCompany(state.partner.id);
+    if (company) {
+        state.partner.company = company;
+    }
+    state.error = error;
+    return updateCard(buildView(state));
+}
+
+function onEnrichCompany(state: State) {
+    const [company, error] = Partner.enrichCompany(state.partner.company.id);
+    if (company) {
+        state.partner.company = company;
+    }
+    state.error = error;
+    return updateCard(buildView(state));
+}
 
 export function buildCompanyView(state: State, card: Card) {
     if (state.partner.company) {
@@ -14,23 +33,25 @@ export function buildCompanyView(state: State, card: Card) {
 
         const companySection = CardService.newCardSection().setHeader("<b>" + _t("Company") + "</b>");
 
-        const companyContent = [company.email, company.phone]
-            .filter((x) => x)
-            .map((x) => `<font color="#777777">${x}</font>`);
+        if (!state.partner.id || state.partner.id !== company.id) {
+            const companyContent = [company.email, company.phone]
+                .filter((x) => x)
+                .map((x) => `<font color="#777777">${x}</font>`);
 
-        companySection.addWidget(
-            createKeyValueWidget(
-                null,
-                company.name + "<br>" + companyContent.join("<br>"),
-                company.image || UI_ICONS.no_company,
-                null,
-                null,
-                company.id ? odooServerUrl + `/web#id=${company.id}&model=res.partner&view_type=form` : null,
-                false,
-                company.email,
-                CardService.ImageCropType.CIRCLE,
-            ),
-        );
+            companySection.addWidget(
+                createKeyValueWidget(
+                    null,
+                    company.name + "<br>" + companyContent.join("<br>"),
+                    company.image || UI_ICONS.no_company,
+                    null,
+                    null,
+                    company.id ? odooServerUrl + `/web#id=${company.id}&model=res.partner&view_type=form` : null,
+                    false,
+                    company.email,
+                    CardService.ImageCropType.CIRCLE,
+                ),
+            );
+        }
 
         _addSocialButtons(companySection, company);
 
@@ -92,6 +113,17 @@ export function buildCompanyView(state: State, card: Card) {
         }
 
         card.addSection(companySection);
+
+        if (!company.isEnriched && state.error.canCreateCompany) {
+            const enrichSection = CardService.newCardSection();
+            enrichSection.addWidget(CardService.newTextParagraph().setText(_t("No insights for this company.")));
+            enrichSection.addWidget(
+                CardService.newTextButton()
+                    .setText(_t("Enrich Company"))
+                    .setOnClickAction(actionCall(state, "onEnrichCompany")),
+            );
+            card.addSection(enrichSection);
+        }
     } else if (state.partner.id) {
         const companySection = CardService.newCardSection().setHeader("<b>" + _t("Company") + "</b>");
         companySection.addWidget(CardService.newTextParagraph().setText(_t("No company attached to this contact.")));
@@ -100,7 +132,7 @@ export function buildCompanyView(state: State, card: Card) {
             companySection.addWidget(
                 CardService.newTextButton()
                     .setText(_t("Create a company"))
-                    .setOnClickAction(actionCall(state, "onEnrichCompany")),
+                    .setOnClickAction(actionCall(state, "onCreateCompany")),
             );
         }
         card.addSection(companySection);

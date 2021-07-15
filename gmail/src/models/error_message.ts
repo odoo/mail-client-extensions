@@ -5,9 +5,11 @@ import { _t } from "../services/translation";
  */
 
 const _ERROR_CODE_MESSAGES: Record<string, string> = {
+    odoo: null, // Message is contained in the additional information
     http_error_odoo: "Could not connect to database. Try to log out and in.",
     insufficient_credit: "You don't have enough credit to enrich.",
     company_created: "Company Created.",
+    company_updated: "Company Enriched",
     // IAP
     http_error_iap: "Our IAP server is down, please come back later.",
     exhausted_requests:
@@ -65,9 +67,9 @@ export class ErrorMessage {
         const error = new ErrorMessage();
         error.code = values.code;
         error.message = values.message;
+        error.information = values.information;
         error.canContactOdooDatabase = values.canContactOdooDatabase;
         error.canCreateCompany = values.canCreateCompany;
-        error.information = values.information;
         return error;
     }
 }
