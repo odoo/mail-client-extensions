@@ -446,6 +446,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             _logger.info("insert query %s: cond:%s", i, cond)
             cr.execute("TRUNCATE TABLE invl_aml_mapping_temp")
             query = """
+                WITH currencies AS (SELECT id, decimal_places, rounding FROM res_currency)
                 INSERT INTO invl_aml_mapping_temp(invl_id, aml_id, cond)
                 SELECT il.id, ml.id, %s
                     FROM account_invoice_line il
@@ -453,7 +454,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                     JOIN account_move m ON m.id = i.move_id
                     JOIN account_move_line ml ON ml.move_id = m.id
                     JOIN res_company comp ON comp.id = i.company_id
-                    JOIN res_currency curr ON curr.id = i.currency_id
+                    JOIN currencies curr ON curr.id = i.currency_id
                 WHERE il.display_type IS NULL
                   AND ml.tax_line_id IS NULL
                   AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
