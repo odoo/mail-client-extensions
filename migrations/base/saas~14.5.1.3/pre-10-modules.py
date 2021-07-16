@@ -13,8 +13,9 @@ def migrate(cr, version):
         util.new_module(cr, "hr_appraisal_skills", deps={"hr_appraisal", "hr_skills"}, auto_install=True)
         util.new_module(cr, "event_social", deps={"event", "social"}, auto_install=True)
 
-    util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
+        util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
+    util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
     util.new_module(cr, "hr_holidays_attendance", deps={"hr_holidays", "hr_attendance"}, auto_install=True)
     util.new_module(cr, "mail_group", deps={"mail", "portal"})
     if util.table_exists(cr, "mail_channel"):

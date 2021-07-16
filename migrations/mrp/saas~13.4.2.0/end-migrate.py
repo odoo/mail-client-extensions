@@ -59,7 +59,7 @@ def migrate(cr, version):
     _logger.info("Create backorder for in progress MO")
     env = util.env(cr)
     for mos in util.iter_browse(env["mrp.production"], ids_to_backorder):
-        mos = mos.filtered(lambda mo: mo.state != "done" and mo._get_quantity_to_backorder() > 0)
+        mos = mos.filtered(lambda mo: mo.state != "done")
         mos._generate_backorder_productions(close_mo=True)
         for mo in mos:
             mo.product_qty = mo.qty_producing
