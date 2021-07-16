@@ -2,6 +2,7 @@ import { buildView } from "./views/index";
 import { Email } from "./models/email";
 import { State } from "./models/state";
 import { Partner } from "./models/partner";
+import { _t } from "../services/translation";
 
 /**
  * Entry point of the application, executed when an email is open.
@@ -19,7 +20,7 @@ function onGmailMessageOpen(event) {
 
     if (!partner) {
         // Should at least use the FROM headers to generate the partner
-        throw new Error("Error during enrichment");
+        throw new Error(_t("Error during enrichment"));
     }
 
     const state = new State(partner, currentEmail, null, null, error);
