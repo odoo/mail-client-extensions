@@ -41,6 +41,15 @@ def migrate(cr, version):
 
         util.new_module(cr, "planning_hr_skills", deps={"planning", "hr_skills"}, auto_install=True)
 
+        util.new_module(cr, "sale_planning", deps={"planning", "sale_management"}, auto_install=True)
+        util.new_module(
+            cr, "sale_project_forecast", deps={"project_forecast", "sale_project", "sale_planning"}, auto_install=True
+        )
+        util.new_module(cr, "planning_contract", deps={"planning", "hr_contract"}, auto_install=True)
+        util.module_deps_diff(cr, "project_timesheet_forecast_sale", plus={"sale_project_forecast"})
+        util.force_migration_of_fresh_module(cr, "sale_planning")
+        util.force_migration_of_fresh_module(cr, "sale_project_forecast")
+
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
     util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
