@@ -362,7 +362,7 @@ def migrate(cr, version):
     # Ignore roundings, in case the rounding of the currency has been changed after the asset move lines were created
     origin_rounding = {}
     for currency in migration_journals.mapped('company_id.currency_id'):
-        origin_rounding[currency] = currency.rounding
+        origin_rounding[currency] = (currency.rounding, currency.decimal_places)
         currency.rounding = 0.00001
 
     balance_moves = env['account.move'].create([{
@@ -376,8 +376,13 @@ def migrate(cr, version):
         }) for account_id, balance in values]
     } for (journal_id, date), values in unbalanced_by_journal.items()])
 
-    for currency, rounding in origin_rounding.items():
-        cr.execute("UPDATE res_currency SET rounding = %s WHERE id = %s", [rounding, currency.id])
+    for currency, (rounding, decimal_places) in origin_rounding.items():
+        cr.execute(
+            """
+                UPDATE res_currency SET rounding = %s, decimal_places = %s WHERE id = %s
+            """,
+            [rounding, decimal_places, currency.id]
+        )
         currency.invalidate_cache(["rounding"], currency.ids)
 
     # Post the created moves
