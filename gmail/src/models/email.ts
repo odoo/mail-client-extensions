@@ -38,7 +38,7 @@ export class Email {
      *
      */
     _emailSplitTuple(fullEmail: string): [string, string] {
-        const match = fullEmail.match(/(.*)\s*<(.*)>/);
+        const match = fullEmail.match(/(.*)<(.*)>/);
         fullEmail = fullEmail.replace("<", "").replace(">", "");
 
         if (!match) {
@@ -51,7 +51,12 @@ export class Email {
             return [fullEmail, fullEmail];
         }
 
-        return [name.replace(/\"/g, ""), email];
+        const cleanedName = name.replace(/\"/g, "").trim();
+        if (!cleanedName || !cleanedName.length) {
+            return [fullEmail, fullEmail];
+        }
+
+        return [cleanedName, email];
     }
 
     /**
