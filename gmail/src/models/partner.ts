@@ -1,5 +1,6 @@
 import { Company } from "./company";
 import { Lead } from "./lead";
+import { Task } from "./task";
 import { Ticket } from "./ticket";
 import { postJsonRpc, postJsonRpcCached } from "../utils/http";
 import { URLS } from "../const";
@@ -22,6 +23,7 @@ export class Partner {
     company: Company;
     leads: Lead[];
     tickets: Ticket[];
+    tasks: Task[];
 
     /**
      * Unserialize the partner object (reverse JSON.stringify).
@@ -45,6 +47,8 @@ export class Partner {
         partner.tickets = values.tickets
             ? values.tickets.map((ticketValues: any) => Ticket.fromJson(ticketValues))
             : null;
+
+        partner.tasks = values.tasks ? values.tasks.map((taskValues: any) => Task.fromJson(taskValues)) : null;
         return partner;
     }
 
@@ -166,6 +170,11 @@ export class Partner {
         // Parse tickets
         if (response.tickets) {
             partner.tickets = response.tickets.map((ticketValues: any) => Ticket.fromOdooResponse(ticketValues));
+        }
+
+        // Parse tasks
+        if (response.tasks) {
+            partner.tasks = response.tasks.map((taskValues: any) => Task.fromOdooResponse(taskValues));
         }
 
         return [partner, error];
