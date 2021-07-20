@@ -226,12 +226,12 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     filters = {
         "same_amount": """
             ROUND(il.price_subtotal - ml._mig_124_precomputed_amount,
-                  curr.decimal_places) = 0.0
+                  i.decimal_places) = 0.0
             """,
         # with a 0.01 tolerance
         "nearly_same_amount": """
             ABS(ROUND(il.price_subtotal - ml._mig_124_precomputed_amount,
-                      curr.decimal_places)) <= curr.rounding
+                      i.decimal_places)) <= i.rounding
             """,
         "same_account": "il.account_id = ml.account_id",
         "same_name": "il.name = ml.name",
@@ -356,6 +356,17 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     }
 
     # precompute to speedup queries
+    cr.execute("ALTER TABLE account_invoice ADD COLUMN rounding NUMERIC, ADD COLUMN decimal_places INTEGER")
+    cr.execute(
+        """
+            UPDATE account_invoice i
+               SET rounding = c.rounding,
+                   decimal_places = c.decimal_places
+              FROM res_currency c
+             WHERE i.currency_id=c.id;
+        """
+    )
+
     cr.execute("ALTER TABLE account_move_line ADD COLUMN _mig_124_precomputed_amount NUMERIC")
     cr.execute(
         """WITH computed AS
@@ -380,7 +391,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             JOIN account_move m ON m.id = i.move_id
             JOIN account_move_line ml ON ml.move_id = m.id
             JOIN res_company comp ON comp.id = i.company_id
-            JOIN res_currency curr ON curr.id = i.currency_id
         )
         UPDATE account_move_line l SET _mig_124_precomputed_amount = c._mig_124_precomputed_amount
           FROM computed c
@@ -446,7 +456,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             _logger.info("insert query %s: cond:%s", i, cond)
             cr.execute("TRUNCATE TABLE invl_aml_mapping_temp")
             query = """
-                WITH currencies AS (SELECT id, decimal_places, rounding FROM res_currency)
                 INSERT INTO invl_aml_mapping_temp(invl_id, aml_id, cond)
                 SELECT il.id, ml.id, %s
                     FROM account_invoice_line il
@@ -454,7 +463,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                     JOIN account_move m ON m.id = i.move_id
                     JOIN account_move_line ml ON ml.move_id = m.id
                     JOIN res_company comp ON comp.id = i.company_id
-                    JOIN currencies curr ON curr.id = i.currency_id
                 WHERE il.display_type IS NULL
                   AND ml.tax_line_id IS NULL
                   AND NOT EXISTS (SELECT invl_id FROM invl_aml_mapping WHERE invl_id=il.id)
@@ -895,6 +903,17 @@ def migrate_voucher_lines(cr):
             RETURNING m.vl_id,m.ml_id
     """
 
+    cr.execute("ALTER TABLE account_voucher ADD COLUMN rounding NUMERIC, ADD COLUMN decimal_places INTEGER")
+    cr.execute(
+        """
+            UPDATE account_voucher i
+               SET rounding = c.rounding,
+                   decimal_places = c.decimal_places
+              FROM res_currency c
+             WHERE i.currency_id=c.id;
+        """
+    )
+
     filters = {
         "same_amount": """
             ROUND(il.price_subtotal - (CASE WHEN i.currency_id = comp.currency_id
@@ -904,7 +923,7 @@ def migrate_voucher_lines(cr):
                                                 WHEN 'purchase' THEN 1
                                                 WHEN 'sale' THEN -1
                                              END),
-                  curr.decimal_places) = 0.0
+                  i.decimal_places) = 0.0
             """,
         # with a 0.01 tolerance
         "nearly_same_amount": """
@@ -915,7 +934,7 @@ def migrate_voucher_lines(cr):
                                                     WHEN 'purchase' THEN 1
                                                     WHEN 'sale' THEN -1
                                                  END),
-                      curr.decimal_places)) <= curr.rounding
+                      i.decimal_places)) <= i.rounding
             """,
         "same_account": "il.account_id = ml.account_id",
         "same_name": "il.name = ml.name",
@@ -1048,7 +1067,6 @@ def migrate_voucher_lines(cr):
               JOIN account_move m ON m.id = i.move_id
               JOIN account_move_line ml ON ml.move_id = m.id
               JOIN res_company comp ON comp.id = i.company_id
-              JOIN res_currency curr ON curr.id = i.currency_id
 
              WHERE il.price_subtotal != 0
                AND il.id NOT IN (SELECT vl_id FROM vl_ml_mapping)
