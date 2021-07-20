@@ -57,6 +57,16 @@ def migrate(cr, version):
     # created and populated
     cr.execute("ALTER TABLE mail_group_moderation DROP COLUMN mail_group_id")
     cr.execute("ALTER TABLE mail_group_moderation RENAME COLUMN _mail_group_id TO mail_group_id")
+    cr.execute(
+        """
+        ALTER TABLE mail_group_moderation
+            ALTER COLUMN mail_group_id SET NOT NULL,
+            ADD CONSTRAINT mail_group_moderation_mail_group_id_fkey
+               FOREIGN KEY (mail_group_id)
+                REFERENCES mail_group(id)
+                 ON DELETE CASCADE
+        """
+    )
 
     # 2. Update <mail.group.moderation> by normalizing the email column
     cr.execute("SELECT DISTINCT email FROM mail_group_moderation")
