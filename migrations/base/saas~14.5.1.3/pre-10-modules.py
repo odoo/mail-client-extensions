@@ -159,3 +159,6 @@ def migrate(cr, version):
     util.force_migration_of_fresh_module(cr, "sale_timesheet_margin")
 
     util.new_module(cr, "auth_totp_mail", deps={"auth_totp", "mail"}, auto_install=True)
+
+    util.new_module(cr, "mass_mailing_crm_sms", deps={"mass_mailing_crm", "mass_mailing_sms"}, auto_install=True)
+    util.new_module(cr, "mass_mailing_sale_sms", deps={"mass_mailing_sale", "mass_mailing_sms"}, auto_install=True)

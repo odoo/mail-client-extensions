@@ -34,3 +34,28 @@ def migrate(cr, version):
     util.remove_field(cr, "mailing.trace", "ignored")
     util.remove_field(cr, "mailing.trace", "scheduled")
     util.remove_field(cr, "mailing.trace", "state_update")
+
+    util.rename_field(cr, "mailing.mailing", "unique_ab_testing", "ab_testing_enabled")
+    util.rename_field(cr, "mailing.mailing", "contact_ab_pc", "ab_testing_pc")
+    util.create_column(cr, "mailing_mailing", "ab_testing_completed", "boolean")
+    util.create_column(cr, "utm_campaign", "ab_testing_winner_selection", "varchar", default="opened_ratio")
+    util.create_column(cr, "utm_campaign", "ab_testing_schedule_datetime", "timestamp without time zone")
+    util.create_column(cr, "utm_campaign", "ab_testing_completed", "boolean")
+    util.create_column(cr, "utm_campaign", "ab_testing_total_pc", "integer", default=0)
+    cr.execute(
+        """
+        WITH ab_test_mailing AS (
+            SELECT
+                campaign_id,
+                SUM(ab_testing_pc) AS total_pc
+            FROM mailing_mailing
+            WHERE ab_testing_enabled IS TRUE
+            GROUP BY campaign_id
+        )
+        UPDATE utm_campaign
+        SET ab_testing_total_pc = ab_test_mailing.total_pc
+        FROM ab_test_mailing
+        WHERE ab_test_mailing.campaign_id = utm_campaign.id
+    """
+    )
+    cr.execute("UPDATE mailing_mailing SET ab_testing_pc = GREATEST(LEAST(COALESCE(ab_testing_pc, 0), 100), 0)")
