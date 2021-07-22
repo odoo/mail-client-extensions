@@ -59,7 +59,7 @@ def migrate(cr, version):
     # (3.) For MO in progress with the done move
     _logger.info("Create backorder for in progress MO")
     env = util.env(cr)
-    for mos in util.iter_browse(env["mrp.production"], ids_to_backorder):
+    for mos in util.iter_browse(env["mrp.production"], ids_to_backorder, strategy="commit", chunk_size=50):
         mos = mos.filtered(lambda mo: mo.state != "done")
         mos._generate_backorder_productions(close_mo=True)
         for mo in mos:
