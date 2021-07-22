@@ -5,6 +5,27 @@ from odoo.tools.misc import str2bool
 
 from odoo.addons.base.maintenance.migrations import util
 
+# Handle inconsistencies between UoM category used in stock move lines and the
+# one configured on the corresponding product template.
+# There are several solutions depending on the value of the environment variable
+# ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX:
+# - not set: a fatal failure is raised and show information about these inconsistencies,
+# - SKIP: the customer assumes these inconsistencies and wants to keep them,
+# - MOST_USED: select, for each product template, the most used UoM category in stock moves
+#              and update stock moves/product templates with it.
+# - FROM_PRODUCT: update all the stock moves to use the UoM set on the product template
+
+allowed_methods = ["SKIP", "MOST_USED", "FROM_PRODUCT"]
+fix_inconsistencies_method = os.environ.get("ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX", "").upper()
+archived_product_env = os.environ.get("ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES")
+update_uom_for_archived_product = str2bool(archived_product_env, default=False)
+
+if fix_inconsistencies_method and fix_inconsistencies_method not in allowed_methods:
+    raise ValueError(
+        "unknown value for environment variable ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX: %s"
+        % fix_inconsistencies_method
+    )
+
 
 def fix_moves(cr):
     """
@@ -13,18 +34,60 @@ def fix_moves(cr):
     """
     cr.execute(
         """
-           UPDATE stock_move_line sml
-              SET product_uom_id = mu.main_uom_id
-             FROM main_uoms mu, uom_uom uom, product_product pp, stock_move sm
-            WHERE pp.id = sml.product_id
-              AND mu.tmpl_id = pp.product_tmpl_id
-              AND uom.id = sml.product_uom_id
-              AND uom.category_id != mu.main_categ_id
-              AND (sm.id = sml.move_id OR sml.move_id IS NULL)
-        RETURNING sml.move_id, sm.name
+        WITH bad_lines AS (
+               SELECT l.id lid,
+                      mu.main_uom_id uid,
+                      m.name mname
+                 FROM stock_move_line l
+                      -- UoM from the line
+                 JOIN uom_uom u ON u.id = l.product_uom_id
+                      -- UoM from main_uom
+                 JOIN product_product p ON l.product_id = p.id
+                 JOIN main_uoms mu ON mu.tmpl_id = p.product_tmpl_id
+                      -- move info
+            LEFT JOIN stock_move m ON l.move_id = m.id
+                      -- bad lines: inconsistent categories
+                WHERE u.category_id != mu.main_categ_id
+            )
+           UPDATE stock_move_line l
+              SET product_uom_id = b.uid
+             FROM bad_lines b
+            WHERE b.lid = l.id
+        RETURNING l.move_id, b.mname
         """
     )
-    return ["%s (id: %s)" % (name, str(id)) for id, name in cr.fetchall() if id is not None]
+    data = dict(cr.fetchall())
+
+    # we need to ensure that the moves have compatible UoM
+    # on the same category as their product's UoM
+    cr.execute(
+        """
+        WITH bad_moves AS (
+            SELECT m.id mid, pu.id uid
+              FROM stock_move m
+                   -- get the template UoM
+              JOIN product_product p ON p.id = m.product_id
+              JOIN product_template t ON t.id = p.product_tmpl_id
+              JOIN uom_uom pu ON pu.id = t.uom_id
+                   -- get the move's product UoM
+              JOIN uom_uom mu ON mu.id = m.product_uom
+                   -- bad moves: inconsistent categories
+             WHERE pu.category_id != mu.category_id
+               AND {}
+            )
+           UPDATE stock_move m
+              SET product_uom = b.uid
+             FROM bad_moves b
+            WHERE m.id = b.mid
+        RETURNING m.id, m.name
+        """.format(
+            "true" if update_uom_for_archived_product else "p.active"
+        )
+    )
+    data.update(cr.fetchall())
+    data.pop(None, None)
+
+    return ["{1} (id: {0})".format(*it) for it in data.items()]
 
 
 def fix_product_templates(cr):
@@ -221,25 +284,6 @@ def log_faulty_objects(cr, additional_conditions):
 def migrate(cr, version):
     if not util.version_gte("saas~12.3"):
         return
-
-    # Handle inconsistencies between UoM category used in stock move lines and the
-    # one configured on the corresponding product template.
-    # There are several solutions depending on the value of the environment variable
-    # ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX:
-    # - not set: a fatal failure is raised and show information about these inconsistencies,
-    # - SKIP: the customer assumes these inconsistencies and wants to keep them,
-    # - MOST_USED: select, for each product template, the most used UoM category in stock moves
-    #              and update stock moves/product templates with it.
-    # - FROM_PRODUCT: update all the stock moves to use the UoM set on the product template
-    allowed_methods = ["SKIP", "MOST_USED", "FROM_PRODUCT"]
-    fix_inconsistencies_method = os.environ.get("ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX", "").upper()
-    archived_product_env = os.environ.get("ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES")
-    update_uom_for_archived_product = str2bool(archived_product_env, default=False)
-    if fix_inconsistencies_method and fix_inconsistencies_method not in allowed_methods:
-        raise ValueError(
-            "unknown value for environment variable ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX: %s"
-            % fix_inconsistencies_method
-        )
 
     additional_conditions = "true" if update_uom_for_archived_product else "pp.active = true"
 
