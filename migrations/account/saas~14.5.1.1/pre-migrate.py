@@ -62,3 +62,51 @@ def migrate(cr, version):
         util.create_column(cr, table_name, "payment_tolerance_type", "varchar", default="percentage")
 
         cr.execute(f"UPDATE {table_name} SET payment_tolerance_param = 100 - payment_tolerance_param")
+
+    util.rename_field(cr, "account.move", "tax_cash_basis_move_id", "tax_cash_basis_origin_move_id")
+
+    util.create_column(cr, "account_move", "always_tax_exigible", "boolean")
+    util.create_column(cr, "account_tax_group", "preceding_subtotal", "varchar")
+
+    # Delete the tags from non-exigible move lines; they were not used by reports, and we now
+    # only display them on cash basis moves.
+    query_tags = """
+        DELETE
+        FROM account_account_tag_account_move_line_rel aml_tag
+        USING account_move_line aml
+        WHERE aml_tag.account_move_line_id = aml.id
+        AND NOT aml.tax_exigible
+        AND {parallel_filter}
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query_tags, table="account_move_line", prefix="aml"))
+
+    # Since we removed the tags, tax_audit needs to be reset for those lines.
+    query_tax_audit = """
+        UPDATE account_move_line
+        SET tax_audit = ''
+        WHERE NOT tax_exigible
+        AND {parallel_filter}
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query_tax_audit, table="account_move_line"))
+
+    # Set always_tax_exigible: it will be true on all misc entries without any non-exigible line
+    query_always_exigible = """
+        WITH cte AS (
+            SELECT m.id
+            FROM account_move m
+            LEFT JOIN account_move_line l ON l.move_id = m.id
+            WHERE move_type = 'entry'
+            AND {parallel_filter}
+            GROUP BY m.id
+            HAVING bool_and(l.tax_exigible) is not false
+        )
+
+        UPDATE account_move m
+        SET always_tax_exigible = true
+        FROM cte
+        WHERE cte.id = m.id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query_always_exigible, table="account_move", prefix="m."))
+
+    util.remove_field(cr, "account.move", "amount_by_group")
+    util.remove_field(cr, "account.move.line", "tax_exigible")

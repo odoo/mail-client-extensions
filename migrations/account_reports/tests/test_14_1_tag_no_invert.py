@@ -426,7 +426,13 @@ class TestTagNoInvert(UpgradeCase):
             [("move_id.move_type", "!=", "entry"), ("quantity", "<", 0)]
         )
         all_neg_invoice_ids = neg_amount_lines.mapped("move_id.id")
-        neg_inv_caba_moves = self.env["account.move"].search([("tax_cash_basis_move_id", "in", all_neg_invoice_ids)])
+
+        if version_gte("saas~14.5"):
+            caba_origin_field = "tax_cash_basis_origin_move_id"
+        else:
+            caba_origin_field = "tax_cash_basis_move_id"
+
+        neg_inv_caba_moves = self.env["account.move"].search([(caba_origin_field, "in", all_neg_invoice_ids)])
 
         for neg_caba_move in neg_inv_caba_moves:
             check_value = any(neg_caba_move.mapped("line_ids.tax_tag_invert"))

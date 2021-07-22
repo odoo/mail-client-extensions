@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -12,3 +13,8 @@ def migrate(cr, version):
          WHERE key = 'sale.default_email_template';
         """
     )
+
+    # ===============================================================
+    # Withholding taxes (Task 2457374 - PR 74138)
+    # ===============================================================
+    util.remove_field(cr, "sale.order", "amount_by_group")
