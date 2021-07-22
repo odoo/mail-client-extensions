@@ -14,7 +14,7 @@ def migrate(cr, version):
     util.ENVIRON["no_model_data_delete"] = {
         "res.country": "unused",
         "res.country.state": "unused",
-        "res.lang": "unused",
+        "res.lang": "always",
         "res.currency": "unused",
         "res.partner": "always",
         "res.users": "always",
