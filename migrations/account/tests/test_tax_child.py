@@ -18,7 +18,7 @@ class TestTaxChild(UpgradeCase):
                 "name": "Test Parent For non group tax",
                 "amount_type": "percent",
                 "amount": 10,
-                "children_tax_ids": (0, 6, child_tax.ids),
+                "children_tax_ids": [(6, 0, child_tax.ids)],
             }
         )
         return {"wrong_parent_tax_id": wrong_parent_tax.id}
