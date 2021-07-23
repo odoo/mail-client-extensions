@@ -9,5 +9,7 @@ def migrate(cr, version):
             "product.product": "always",
             "product.template": "always",
             "product.pricelist": "always",
+            "product.attribute": "always",
+            "product.attribute.value": "always",
         }
     )
