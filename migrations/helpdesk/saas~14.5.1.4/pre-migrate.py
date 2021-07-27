@@ -68,3 +68,6 @@ def migrate(cr, version):
 
     for x in "action_close_analysis action_7days_analysis analysis_action action_success action_7dayssuccess".split():
         util.force_noupdate(cr, f"helpdesk.helpdesk_ticket_{x}", False)
+
+    util.remove_field(cr, "helpdesk.sla", "target_type")
+    util.remove_field(cr, "helpdesk.sla.status", "target_type")
