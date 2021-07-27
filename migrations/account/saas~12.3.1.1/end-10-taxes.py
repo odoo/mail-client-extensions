@@ -2141,7 +2141,7 @@ def _get_inv_journal_and_account(env, tax):
     env.registry["account.account"]._check_user_type_id = lambda self: True
     company_id = tax.company_id.id
     jrnl_type = "sale" if tax.type_tax_use == "sale" else "purchase"
-    jrnl_code = f"UPG_{jrnl_type[0]}"
+    jrnl_code = f"UPG_{jrnl_type[0]}_{company_id}"
     journal = env["account.journal"].search(
         [("company_id", "=", company_id), ("code", "=", jrnl_code), ("type", "=", jrnl_type)], limit=1
     )
