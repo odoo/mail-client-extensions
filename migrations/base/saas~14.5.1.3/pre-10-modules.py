@@ -39,6 +39,8 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "stock_barcode", plus={"barcodes_gs1_nomenclature", "web_mobile"}, minus={"barcodes"})
         util.new_module(cr, "pos_settle_due", deps={"point_of_sale", "account_followup"}, auto_install=True)
 
+        util.new_module(cr, "planning_hr_skills", deps={"planning", "hr_skills"}, auto_install=True)
+
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
     util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
@@ -75,3 +77,5 @@ def migrate(cr, version):
 
     util.new_module(cr, "project_mrp", deps={"mrp_account", "project"}, auto_install=True)
     util.new_module(cr, "project_purchase", deps={"purchase", "project"}, auto_install=True)
+
+    util.module_deps_diff(cr, "project_timesheet_forecast", plus={"timesheet_grid"}, minus={"hr_timesheet"})

@@ -36,3 +36,13 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "resource_resource", "color", "int4", default=0)
+
+    util.create_column(cr, "planning_slot", "work_address_id", "int4")
+    cr.execute(
+        """
+        UPDATE planning_slot ps
+           SET work_address_id=e.address_id
+          FROM hr_employee e
+         WHERE ps.employee_id=e.id
+    """
+    )
