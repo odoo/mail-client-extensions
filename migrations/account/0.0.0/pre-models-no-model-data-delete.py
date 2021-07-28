@@ -7,5 +7,6 @@ def migrate(cr, version):
         {
             "account.tax.group": "unused",
             "account.payment.term": "unused",
+            "account.analytic.account": "unused",
         }
     )
