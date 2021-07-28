@@ -13,7 +13,7 @@ def migrate(cr, version):
 
     cr.execute(
         """
-            SELECT email, (array_agg(common_name ORDER BY id desc))[1], array_agg(id)
+            SELECT email, (array_agg(common_name ORDER BY id desc) FILTER (WHERE common_name IS NOT NULL))[1], array_agg(id)
               FROM calendar_attendee
              WHERE partner_id IS NULL
                AND email IS NOT NULL
@@ -30,7 +30,7 @@ def migrate(cr, version):
         if email:
             partner = Partner.find_or_create(email, assert_valid_email=False)
             if partner.id > max_id:
-                partner.name = name
+                partner.name = name or email
             partner_id = partner.id
         else:
             partner_id = Partner.name_create(name or "?")[0]
