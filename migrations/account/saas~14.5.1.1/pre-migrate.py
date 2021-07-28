@@ -15,3 +15,19 @@ def migrate(cr, version):
     # ===============================================================
     util.create_column(cr, "account_tax_report_line", "is_carryover_persistent", "bool", default=True)
     util.create_column(cr, "account_tax_report_line", "is_carryover_used_in_balance", "bool")
+
+    # ===============================================================
+    # Tax details per move line (PR:70866 & PR:18344)
+    # ===============================================================
+
+    util.create_column(cr, "account_move_line", "group_tax_id", "int4")
+
+    query = """
+        UPDATE account_move_line tax_line
+           SET group_tax_id = r.parent_tax
+          FROM account_tax tax
+          JOIN account_tax_filiation_rel r ON r.child_tax = tax.id
+         WHERE tax_line.tax_line_id = tax.id
+           AND tax.type_tax_use = 'none'
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line"))
