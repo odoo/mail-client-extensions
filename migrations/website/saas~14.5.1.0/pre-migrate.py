@@ -5,8 +5,15 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.rename_field(cr, "website.configurator.feature", "website_types_preselection", "website_config_preselection")
     migrate_contactus(cr)
+    if util.table_exists(cr, "website_configurator_feature"):
+        util.create_column(cr, "website_configurator_feature", "feature_url", "varchar")
+        util.create_column(cr, "website_configurator_feature", "menu_company", "boolean")
+        util.create_column(cr, "website_configurator_feature", "menu_sequence", "int4")
+        util.remove_field(cr, "website.configurator.feature", "type")
+        util.rename_field(
+            cr, "website.configurator.feature", "website_types_preselection", "website_config_preselection"
+        )
 
 
 def has_cow_view(cr, xml_ids):
