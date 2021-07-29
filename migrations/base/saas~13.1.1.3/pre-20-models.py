@@ -32,6 +32,14 @@ def migrate(cr, version):
     for (vid,) in cr.fetchall():
         util.remove_view(cr, view_id=vid)
 
+    cr.execute(
+        """
+            UPDATE ir_act_window
+               SET view_mode = ARRAY_TO_STRING(ARRAY_REMOVE(STRING_TO_ARRAY(view_mode, ','), 'diagram'), ',')
+             WHERE view_mode ilike '%diagram%'
+        """
+    )
+
     util.remove_field(cr, "ir.ui.view", "model_ids")
 
     # deduplicate properties
