@@ -101,7 +101,10 @@ class TestCrawler(IntegrityCase):
                 break
 
         if hasattr(self.env, "companies"):
-            self.env = self.env(context=dict(self.env.context, allowed_company_ids=[self.env.user.company_id.id]))
+            company = self.env.user.company_id
+            while company.parent_id:
+                company = company.parent_id
+            self.env = self.env(context=dict(self.env.context, allowed_company_ids=company.ids + company.child_ids.ids))
 
         failing = set()
 
