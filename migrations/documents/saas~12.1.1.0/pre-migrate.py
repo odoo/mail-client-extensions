@@ -93,10 +93,10 @@ def migrate(cr, version):
         "partner_id",
         "owner_id",
         "favorited_ids",
-        "tag_ids",
         "available_rule_ids",
     }:
         util.remove_field(cr, "ir.attachment", field)
+    util.remove_field(cr, "ir.attachment", "tag_ids", drop_column=False)
     util.remove_field(cr, "ir.attachment", "active", skip_inherit={"mrp.document"})
 
     util.remove_inherit_from_model(cr, "ir.attachment", "mail.thread")

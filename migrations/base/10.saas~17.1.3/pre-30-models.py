@@ -11,7 +11,6 @@ def migrate(cr, version):
     util.remove_field(cr, "ir.actions.todo", "type")
     util.remove_field(cr, "ir.actions.todo", "note")
     util.remove_field(cr, "ir.actions.todo", "groups_id")
-    cr.execute("DROP TABLE res_groups_action_rel")
 
     util.rename_field(cr, "res.company", "rml_header1", "report_header")
     util.rename_field(cr, "res.company", "rml_footer", "report_footer")

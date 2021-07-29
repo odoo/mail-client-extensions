@@ -187,6 +187,7 @@ def migrate(cr, version):
              WHERE sm.state != 'cancel'
             """
         )
+    cr.execute("DROP TABLE stock_move_line_stock_production_lot_rel")
 
     # (3.) Update the MO source and create backorder related too
     _logger.info("Create the backorder MO + update source MO")

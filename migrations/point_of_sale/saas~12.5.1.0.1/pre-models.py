@@ -4,7 +4,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
 
-
     util.create_column(cr, "account_bank_statement_cashbox", "is_a_template", "boolean")
     util.create_column(cr, "pos_config", "default_cashbox_id", "int4")
     cr.execute(
@@ -18,7 +17,7 @@ def migrate(cr, version):
 
     for pos_config_id, ids in cr.fetchall():
         cr.execute("INSERT INTO account_bank_statement_cashbox(is_a_template) VALUES(true) RETURNING id")
-        cid, = cr.fetchone()
+        (cid,) = cr.fetchone()
         cr.execute(
             """
             INSERT INTO account_cashbox_line(coin_value, number, cashbox_id)
@@ -157,7 +156,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "pos.config", "journal_ids")
     util.remove_field(cr, "pos.session", "journal_ids")
-    cr.execute("DROP TABLE pos_config_journal_rel")
 
     util.remove_field(cr, "res.config.settings", "pos_sales_price")
     util.remove_field(cr, "res.config.settings", "pos_pricelist_setting")

@@ -16,4 +16,3 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "account.analytic.account", "tag_ids")
-    cr.execute("DROP TABLE account_analytic_account_tag_rel")

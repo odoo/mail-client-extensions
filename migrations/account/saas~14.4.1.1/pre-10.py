@@ -121,8 +121,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.journal", "inbound_payment_method_ids")
     util.remove_field(cr, "account.journal", "outbound_payment_method_ids")
-    cr.execute("DROP TABLE account_journal_inbound_payment_method_rel")
-    cr.execute("DROP TABLE account_journal_outbound_payment_method_rel")
     util.remove_field(cr, "account.journal", "payment_debit_account_id")
     util.remove_field(cr, "account.journal", "payment_credit_account_id")
 
