@@ -63,7 +63,7 @@ class Main extends React.Component<{}, MainState> {
             loadPartner: true
         };
 
-        this.companyCache = new CompanyCache(2, 200, 25);
+        this.companyCache = new CompanyCache(2, 200, 0.25);
     }
 
     componentDidMount() {

@@ -26,7 +26,7 @@ import Address from "./Address";
             this.pruningRatio = pruningRatio;
             this.version = version;
             
-            // Compute the actual occupancy of the current localstoage.
+            // Compute the actual occupancy of the current local storage.
             this.occupancy = 0;
             for (const key in localStorage) {
                 if (this._isCompanyDomain(key)) {
@@ -39,7 +39,7 @@ import Address from "./Address";
                     }
                 }
             }
-            
+
             // If this new LRU has different parameters than the previous one, it
             // may already be necessary to prune.
             if (this.occupancy > this.size) {
@@ -89,7 +89,7 @@ import Address from "./Address";
     
             // How many to keep. A pruning ratio of 0 make the LRU behave like an
             // actual LRU, removing only the one oldest element.
-            const toKeep: number = this.pruningRatio ? Math.floor(cacheObjects.length * (1 - this.pruningRatio)) : cacheObjects.length - 1;
+            const toKeep: number = this.pruningRatio ? Math.ceil(cacheObjects.length * (1 - this.pruningRatio)) : cacheObjects.length - 1;
     
             // Prune.
             for (let i: number = toKeep; i < cacheObjects.length; ++i) {
@@ -157,30 +157,6 @@ import Address from "./Address";
             --this.occupancy;
     
             return true;
-        }
-    
-        // For debugging purposes.
-        getAllcacheObjects() : CacheObject[] {
-            // Retrieve all cacheObjects and put them in an array.
-            const cacheObjects : CacheObject[] = [];
-            for (const key in localStorage) {
-                if (this._isCompanyDomain(key)) {
-                    cacheObjects.push(JSON.parse(localStorage.getItem(key)));
-                }
-            }
-    
-            // Sort them from most recent to oldest.
-            cacheObjects.sort((a, b) => {
-                if (a.timestamp > b.timestamp) {
-                    return -1;
-                }
-                if (a.timestamp < b.timestamp) {
-                    return 1;
-                }
-                return 0;
-            });
-    
-            return cacheObjects;
         }
     }
     

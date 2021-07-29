@@ -49,7 +49,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             isCollapsed: false,
             isLoading: false
         };
-        this.companyCache = new CompanyCache(2, 200, 25);
+        this.companyCache = new CompanyCache(2, 200, 0.25);
     }
 
     private companyCache: CompanyCache;
