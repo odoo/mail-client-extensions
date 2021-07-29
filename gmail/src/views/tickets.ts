@@ -12,7 +12,7 @@ function onCreateTicket(state: State) {
     const ticketId = Ticket.createTicket(state.partner.id, state.email.body, state.email.subject);
 
     if (!ticketId) {
-        return notify("Could not create the ticket");
+        return notify(_t("Could not create the ticket"));
     }
 
     const cids = state.odooCompaniesParameter;
