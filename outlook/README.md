@@ -18,12 +18,18 @@ The code is based on the [Office Addin API](https://docs.microsoft.com/en-us/off
 
 - cd to the add-in sources directory
 - `npm install`
-- open the node_modules/office-addin-dev-certs/verify.js file
+- open the `node_modules/office-addin-dev-certs/lib/verify.js` file
 - inside the file, in the switch clause located in the `getVerifyCommand()` function add the following :
-  ```javascript
-    case "linux":
-         return `[ -f /usr/local/share/ca-certificates/office-addin-dev-certs/${defaults.caCertificateFileName} ] && openssl x509 -in /usr/local/share/ca-certificates/office-addin-dev-certs/${defaults.caCertificateFileName} -checkend 86400 -noout`;
+  ```bash
+case "linux":
+    return `[ -f /usr/local/share/ca-certificates/office-addin-dev-certs/${defaults.caCertificateFileName} ] && openssl x509 -in /usr/local/share/ca-certificates/office-addin-dev-certs/${defaults.caCertificateFileName} -checkend 86400 -noout`;
   ```
+- open the `node_modules/office-addin-dev-certs/lib/install.js` file
+- inside the file, in the switch clause add the following:
+```bash
+case "linux":
+   return `sudo cp ${caCertificatePath} /usr/local/share/ca-certificates && sudo /usr/sbin/update-ca-certificates`;
+```
 
 ## To be able to serve the add-in
 
