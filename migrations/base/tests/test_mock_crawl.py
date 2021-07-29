@@ -268,6 +268,16 @@ class TestCrawler(IntegrityCase):
                 "This is only possible with a custom module or a very technical manual intervention.",
                 model._name,
             )
+        elif any(
+            # we need to check for None since the view is gone on test_check
+            table_kind(self.env.cr, self.env[field.comodel_name]._table) != "r"
+            for field in model._fields.values()
+            if field.manual and field.comodel_name
+        ):
+            _logger.warning(
+                "Mocking of model %s skipped because it has a manual related field with a SQL view as comodel.",
+                model._name,
+            )
         else:
             for view_type, data in views["fields_views"].items():
                 mock_method = getattr(self, "mock_view_%s" % view_type, None)
