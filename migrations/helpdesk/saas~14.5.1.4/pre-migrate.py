@@ -83,3 +83,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "helpdesk.sla", "target_type")
     util.remove_field(cr, "helpdesk.sla.status", "target_type")
+
+    util.remove_field(cr, "helpdesk.ticket", "attachment_number")
+    util.remove_view(cr, "helpdesk.helpdesk_sla_report_analysis_view_tree")
