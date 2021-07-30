@@ -16,7 +16,6 @@ def migrate(cr, version):
     # Composer model
     # ----------------------------------------------------------------------
     util.remove_field(cr, "sms.composer", "partner_ids")
-    cr.execute("DROP TABLE res_partner_sms_composer_rel")
     util.rename_field(cr, "sms.composer", "recipient_count", "recipient_valid_count")
     util.rename_field(cr, "sms.composer", "recipient_description", "recipient_single_description")
     util.create_column(cr, "sms_composer", "recipient_single_number_itf", "varchar")

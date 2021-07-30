@@ -36,7 +36,7 @@ def migrate(cr, version):
     )
 
     # 3c. remove old columns and direct m2m from registration to answer
-    util.remove_field(cr, "event.registration", "answer_ids")
+    util.remove_field(cr, "event.registration", "answer_ids", drop_column=False)
 
     # 4. remove useless search view and rename some other views according to guidelines
     util.remove_view(cr, "website_event_questions.view_registration_search_inherit_question")

@@ -66,7 +66,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "request.appraisal", "deadline")
     util.remove_field(cr, "request.appraisal", "attachment_ids")
-    cr.execute("DROP TABLE hr_appraisal_mail_compose_message_ir_attachments_rel")
     util.remove_field(cr, "res.config.settings", "appraisal_confirm_manager_mail_template")
     util.remove_field(cr, "res.config.settings", "appraisal_confirm_employee_mail_template")
 

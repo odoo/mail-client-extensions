@@ -435,7 +435,7 @@ def migrate(cr, version):
     util.remove_view(cr, xml_id="mrp.view_move_kanban_inherit_mrp")
     util.remove_view(cr, xml_id="mrp.view_finisehd_move_line")
     util.remove_view(cr, xml_id="mrp.view_stock_move_raw_tree")
-    util.remove_field(cr, "stock.move.line", "lot_produced_ids")
+    util.remove_field(cr, "stock.move.line", "lot_produced_ids", drop_column=False)
 
     if util.module_installed(cr, "mrp_product_expiry"):
         util.remove_field(cr, "expiry.picking.confirmation", "produce_id")
