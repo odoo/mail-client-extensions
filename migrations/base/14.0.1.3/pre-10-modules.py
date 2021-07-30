@@ -76,5 +76,8 @@ def migrate(cr, version):
         # https://github.com/odoo/enterprise/pull/19638
         util.module_deps_diff(cr, "helpdesk", plus={"web_cohort"})
 
+        # https://github.com/odoo/enterprise/pull/19376
+        util.new_module(cr, "l10n_mx_xml_polizas", deps={"l10n_mx_reports"}, auto_install=True)
+
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
