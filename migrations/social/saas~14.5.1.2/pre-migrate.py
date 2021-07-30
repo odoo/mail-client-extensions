@@ -11,3 +11,5 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE social_post_social_account RENAME TO social_account_social_post_rel")
 
     util.remove_view(cr, "social.social_post_view_form")
+
+    util.rename_field(cr, "social.media", "description", "media_description")
