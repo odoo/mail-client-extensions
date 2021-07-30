@@ -8,3 +8,12 @@
 .login-info-icon {
     margin-right: 20px;
 }
+
+.login-spinner {
+    margin-right: 8px;
+}
+
+.error-text {
+    margin-top: 16px;
+    color: rgb(164, 38, 44);
+}

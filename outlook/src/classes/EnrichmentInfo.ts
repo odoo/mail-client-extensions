@@ -46,7 +46,7 @@ class EnrichmentInfo {
             case EnrichmentInfoType.NotConnected_InternalError:
                 return _t("Could not autocomplete the company. Internal error. Try again later...");
             case EnrichmentInfoType.ConnectionError:
-                return _t("There was a problem contacting the service, please try again later.");
+                return _t("Could not connect to your database. Please try again.");
             case EnrichmentInfoType.EnrichContactWithNoEmail:
                 return _t("This contact has no email address, no company could be enriched.");
             case EnrichmentInfoType.CouldNotGetTranslations:

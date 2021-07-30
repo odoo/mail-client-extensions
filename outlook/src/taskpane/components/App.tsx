@@ -162,14 +162,21 @@ export default class App extends React.Component<AppProps, AppState> {
                         </Link>
                     </MessageBar>);
                     break;
+                case EnrichmentInfoType.ConnectionError:
+                    bars.push(<>
+                        <MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon} onDismiss={this.hideEnrichmentInfoMessage}>
+                            {message}
+                            <div className="link-like-button" onClick={() =>{this.goToLogin()}}>{_t("Login")}</div>
+                        </MessageBar>
+                    </>);
+                    break;
                 case EnrichmentInfoType.EnrichContactWithNoEmail:
                 case EnrichmentInfoType.NotConnected_InsufficientCredit:
                 case EnrichmentInfoType.NotConnected_InternalError:
                 case EnrichmentInfoType.Other:
                 case EnrichmentInfoType.CouldNotGetTranslations:
-                case EnrichmentInfoType.ConnectionError:
                     bars.push(<MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
-                    break;
+                        break;
             }
         }
         return bars;
