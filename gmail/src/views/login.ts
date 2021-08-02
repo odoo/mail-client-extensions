@@ -2,6 +2,7 @@ import { formatUrl, repeat } from "../utils/format";
 import { notify, createKeyValueWidget } from "./helpers";
 import { State } from "../models/state";
 import { IMAGES_LOGIN } from "./icons";
+import { isOdooDatabaseReachable } from "../services/odoo_auth";
 import { _t, clearTranslationCache } from "../services/translation";
 
 function onNextLogin(event) {
@@ -14,6 +15,12 @@ function onNextLogin(event) {
     clearTranslationCache();
 
     State.odooServerUrl = validatedUrl;
+
+    if (!isOdooDatabaseReachable(validatedUrl)) {
+        return notify(
+            "Could not connect to your database. Make sure the module is installed in Odoo (Settings > General Settings > Integrations > Mail Plugins)",
+        );
+    }
 
     return CardService.newActionResponseBuilder()
         .setOpenLink(
@@ -30,6 +37,8 @@ export function buildLoginMainView() {
 
     // Trick to make large centered button
     const invisibleChar = "⠀";
+
+    const faqUrl = "https://www.odoo.com/documentation/master/applications/sales/crm/optimize/outlook_extension.html";
 
     card.addSection(
         CardService.newCardSection()
@@ -78,7 +87,10 @@ export function buildLoginMainView() {
                     IMAGES_LOGIN.project,
                 ),
             )
-            .addWidget(createKeyValueWidget(null, "Search and store insights on your contacts.", IMAGES_LOGIN.search)),
+            .addWidget(createKeyValueWidget(null, "Search and store insights on your contacts.", IMAGES_LOGIN.search))
+            .addWidget(
+                CardService.newTextParagraph().setText(repeat(invisibleChar, 13) + `<a href="${faqUrl}">FAQ</a>`),
+            ),
     );
 
     return card.build();

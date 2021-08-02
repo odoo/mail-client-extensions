@@ -3,7 +3,7 @@ import { State } from "../models/state";
 /**
  * Make a JSON RPC call with the following parameters.
  */
-export function postJsonRpc(url: string, data = {}, headers = {}) {
+export function postJsonRpc(url: string, data = {}, headers = {}, options: any = {}) {
     // Make a valid "Odoo RPC" call
     data = {
         id: 0,
@@ -12,7 +12,7 @@ export function postJsonRpc(url: string, data = {}, headers = {}) {
         params: data,
     };
 
-    const options = {
+    const httpOptions = {
         method: "post",
         contentType: "application/json",
         payload: JSON.stringify(data),
@@ -20,7 +20,11 @@ export function postJsonRpc(url: string, data = {}, headers = {}) {
     };
 
     try {
-        const response = UrlFetchApp.fetch(url, options);
+        const response = UrlFetchApp.fetch(url, httpOptions);
+
+        if (options.returnRawResponse) {
+            return response;
+        }
 
         const responseCode = response.getResponseCode();
 

@@ -130,3 +130,35 @@ export const resetAccessToken = () => {
     const userProperties = PropertiesService.getUserProperties();
     userProperties.deleteProperty("ODOO_ACCESS_TOKEN");
 };
+
+/**
+ * Make an HTTP request to "/mail_plugin/auth/access_token" (cors="*") on the Odoo
+ * database to verify that the server is reachable and that the mail plugin module is
+ * installed.
+ *
+ * Returns True if the Odoo database is reachable and if the "mail_plugin" module
+ * is installed, false otherwise.
+ */
+export const isOdooDatabaseReachable = (odooUrl: string): boolean => {
+    if (!odooUrl || !odooUrl.length) {
+        return false;
+    }
+
+    const response = postJsonRpc(
+        odooUrl + ODOO_AUTH_URLS.CODE_VALIDATION,
+        { auth_code: null },
+        {},
+        { returnRawResponse: true },
+    );
+    if (!response) {
+        return false;
+    }
+
+    const responseCode = response.getResponseCode();
+
+    if (responseCode > 299 || responseCode < 200) {
+        return false;
+    }
+
+    return true;
+};
