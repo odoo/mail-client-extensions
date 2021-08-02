@@ -7,7 +7,7 @@
 # section "[body-max-line-length]" could also be written as "[B1]". Full section names are
 # used in here for clarity.
 #
-# [general]
+[general]
 # Ignore certain rules, this example uses both full name and id
 # ignore=title-trailing-punctuation, T3
 
@@ -36,7 +36,7 @@
 
 # Set the extra-path where gitlint will search for user defined rules
 # See http://jorisroovers.github.io/gitlint/user_defined_rules for details
-# extra-path=examples/
+extra-path=tools/gitlint_rules.py
 
 # This is an example of how to configure the "title-max-length" rule and
 # set the line-length it enforces to 80
@@ -109,10 +109,11 @@ regex=[^@]+@odoo.com
 # Use 'all' to ignore all rules
 # ignore=T1,body-min-length
 
-# [ignore-body-lines]
+[ignore-body-lines]
 # Ignore certain lines in a commit body that match a regex.
 # E.g. Ignore all lines that start with 'Co-Authored-By'
 # regex=^Co-Authored-By
+regex=^.*\bhttps?://
 
 # This is a contrib rule - a community contributed rule. These are disabled by default.
 # You need to explicitly enable them one-by-one by adding them to the "contrib" option
