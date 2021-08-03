@@ -9,6 +9,7 @@ def migrate(cr, version):
     util.rename_field(cr, "res.company", "leave_timesheet_project_id", "internal_project_id")
     util.create_column(cr, "res_company", "internal_project_id", "int4")
     util.remove_view(cr, "hr_timesheet.portal_subtask_timesheet_tables")
+    util.remove_view(cr, "hr_timesheet.project_update_default_description")
 
     util.delete_unused(cr, "hr_timesheet.hr_timesheet_config_settings_menu_action")
 

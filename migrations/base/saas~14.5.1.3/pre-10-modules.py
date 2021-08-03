@@ -4,8 +4,21 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.new_module(cr, "account_sale_timesheet", deps={"account", "sale_timesheet"}, auto_install=True)
+    util.new_module(cr, "project_account", deps={"project", "account"}, auto_install=True)
+    util.new_module(cr, "project_hr_expense", deps={"project", "hr_expense"}, auto_install=True)
+    util.new_module(cr, "sale_project_account", deps={"sale_timesheet", "account"}, auto_install=True)
+    if util.has_enterprise():
+        util.new_module(cr, "project_account_asset", deps={"project", "account_asset"}, auto_install=True)
+        util.new_module(cr, "project_hr_payroll_account", deps={"project", "hr_payroll_account"}, auto_install=True)
+        util.new_module(cr, "project_sale_subscription", deps={"project", "sale_subscription"}, auto_install=True)
+        util.new_module(
+            cr, "sale_timesheet_account_budget", deps={"sale_timesheet", "account_budget"}, auto_install=True
+        )
+
     util.remove_module(cr, "website_mail_channel")
     util.remove_module(cr, "website_sale_management")
+    util.remove_module(cr, "sale_timesheet_purchase")
     util.remove_module(cr, "website_sale_blog")
     cr.execute("DROP TABLE IF EXISTS product_blogpost_rel")
     util.rename_module(cr, "l10n_eu_service", "l10n_eu_oss")
@@ -58,6 +71,10 @@ def migrate(cr, version):
         util.new_module(cr, "stock_barcode_mrp", deps={"stock_barcode", "mrp"}, auto_install=True)
         util.module_deps_diff(cr, "planning_holidays", plus={"hr_holidays_gantt"}, minus={"hr_holidays"})
         util.new_module(cr, "project_holidays", deps={"project_enterprise", "hr_holidays_gantt"}, auto_install=True)
+
+        util.module_deps_diff(
+            cr, "project_timesheet_forecast_sale", plus={"project_timesheet_forecast"}, minus={"project_forecast"}
+        )
 
         util.module_deps_diff(cr, "timesheet_grid", plus={"project_enterprise"})
 
