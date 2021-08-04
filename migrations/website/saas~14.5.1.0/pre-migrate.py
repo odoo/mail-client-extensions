@@ -6,6 +6,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     migrate_contactus(cr)
+
     if util.table_exists(cr, "website_configurator_feature"):
         util.create_column(cr, "website_configurator_feature", "feature_url", "varchar")
         util.create_column(cr, "website_configurator_feature", "menu_company", "boolean")
@@ -14,6 +15,10 @@ def migrate(cr, version):
         util.rename_field(
             cr, "website.configurator.feature", "website_types_preselection", "website_config_preselection"
         )
+
+    # website_animate was merged into website but none of its views remains
+    util.remove_view(cr, "website.o_animate_options")
+    util.remove_view(cr, "website.no-js_fallback")
 
 
 def has_cow_view(cr, xml_ids):

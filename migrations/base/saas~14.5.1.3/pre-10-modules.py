@@ -31,4 +31,5 @@ def migrate(cr, version):
     util.new_module(cr, "website_mail_group", deps={"mail_group", "website"}, auto_install=True)
 
     util.merge_module(cr, "website_form", "website")
+    util.merge_module(cr, "website_animate", "website")
     util.module_deps_diff(cr, "website", plus={"mail", "google_recaptcha", "utm"})
