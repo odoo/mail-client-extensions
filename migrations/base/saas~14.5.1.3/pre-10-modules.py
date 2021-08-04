@@ -34,6 +34,8 @@ def migrate(cr, version):
             deps={"hr_payroll_account", "l10n_ae", "l10n_ae_hr_payroll"},
             auto_install=True,
         )
+        util.remove_module(cr, "stock_barcode_mobile")
+        util.module_deps_diff(cr, "stock_barcode", plus={"barcodes_gs1_nomenclature", "web_mobile"}, minus={"barcodes"})
 
     util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
     util.new_module(cr, "hr_holidays_attendance", deps={"hr_holidays", "hr_attendance"}, auto_install=True)
