@@ -283,14 +283,16 @@ def migrate(cr, version):
             quantity,
             value,
             unit_cost,
-            description
+            description,
+            create_date
         )
         SELECT svl.company_id,
                pp.id,
                0,
                COALESCE(qt.sum_value, 0) - svl.sum_value,
                0,
-               'upgrade: adjust valuation inconsistency'
+               'upgrade: adjust valuation inconsistency',
+               now() at time zone 'utc'
           FROM product_product pp
      LEFT JOIN quant_with_sumed_values qt ON qt.product_id = pp.id
           JOIN svl_with_sumed_values svl ON svl.product_id = pp.id
