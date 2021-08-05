@@ -48,12 +48,12 @@ def migrate(cr, version):
         try:
             util.add_view(
                 cr,
-                "res.partner.form.tax.upgrade",
+                "res.partner.form.fax.upgrade",
                 "res.partner",
                 "form",
                 """
             <data>
-              <field name="mobile" position="after">
+              <field name="website" position="before">
                 <field name="%s"/>
               </field>
             </data>
