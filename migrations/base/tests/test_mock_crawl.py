@@ -210,8 +210,16 @@ class TestCrawler(IntegrityCase):
             return self.mock_action(action)
         elif action["type"] in ("ir.actions.client", "ir.actions.act_url"):
             return
+        elif action["type"] == "ir.actions.report":
+            report = self.env["ir.actions.report"].search([("report_name", "=", action["report_name"])], limit=1)
+            self.assertTrue(report)
+            render = getattr(report, "_render", None) or getattr(report, "render", None)
+            self.assertIsNotNone(render)
+            data, report_format = render([], data=None)
+            self.assertTrue(data)
+            return
         else:
-            _logger.error("Action %s is not implemented", action["type"])
+            _logger.error("Action %r is not implemented", action["type"])
             return
 
         context = action.get("context") or {}
