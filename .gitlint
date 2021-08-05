@@ -61,7 +61,7 @@ extra-path=tools/gitlint_rules.py
 regex=^\[(IMP|FIX|ADD|chore)\] [^ ]
 
 [title-match-regex:scope]
-regex=(util[./]|tools/|.+/(saas~)?\d).+
+regex=(util[./]|tools/|\w+/((saas~)?\d.+|tests\b)|gitlint:)
 
 # [body-max-line-length]
 # line-length=72
