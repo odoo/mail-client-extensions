@@ -98,6 +98,8 @@ def migrate(cr, version):
         cr, "pos_sale_product_configurator", deps={"point_of_sale", "sale_product_configurator"}, auto_install=True
     )
 
+    util.new_module(cr, "mrp_subcontracting_purchase", deps={"mrp_subcontracting", "purchase"}, auto_install=True)
+
     util.new_module(cr, "event_booth", deps={"event"})
     util.new_module(cr, "event_booth_sale", deps={"event_booth", "event_sale"}, auto_install=True)
     util.new_module(cr, "website_event_booth", deps={"website_event", "event_booth"}, auto_install=True)
