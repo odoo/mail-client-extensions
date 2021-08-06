@@ -81,6 +81,11 @@ def migrate(cr, version):
             "account_analytic_id": "analytic_account_id",
         },
     }
+    ignore_m2ms = {
+        # this m2m table is reused on 13.0
+        # https://github.com/odoo/odoo/blob/af953e69de979794bebabdc4a88c7246f62b8843/addons/sale/models/account_move.py#L14
+        ("account.invoice.line", "account.move.line"): ("sale_order_line_invoice_rel",),
+    }
     if is_account_voucher_installed:
         model_mapping += [
             ("account.voucher", "account.move"),
@@ -94,6 +99,7 @@ def migrate(cr, version):
                 target_model,
                 drop_table=False,
                 fields_mapping=fields_mapping.get((model, target_model)),
+                ignore_m2m=ignore_m2ms.get((model, target_model), ()),
             )
         else:
             util.remove_model(cr, model, drop_table=False)

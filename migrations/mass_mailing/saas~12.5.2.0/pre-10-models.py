@@ -102,6 +102,3 @@ def migrate(cr, version):
 
     # remove m2m to transient model
     cr.execute("DROP TABLE mail_compose_message_mail_mass_mailing_list_rel")
-
-    # and old m2m...
-    cr.execute("DROP TABLE mail_mass_mailing_tag_rel")
