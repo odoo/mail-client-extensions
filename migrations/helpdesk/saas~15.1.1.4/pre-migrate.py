@@ -54,3 +54,6 @@ def migrate(cr, version):
 
     util.create_column(cr, "helpdesk_ticket", "ticket_ref", "varchar")
     cr.execute("UPDATE helpdesk_ticket t SET ticket_ref = t.id")
+
+    util.rename_field(cr, "helpdesk.team", "upcoming_sla_fail_tickets", "sla_failed")
+    util.remove_record(cr, "helpdesk.action_upcoming_sla_fail_all_tickets")
