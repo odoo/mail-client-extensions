@@ -86,3 +86,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "helpdesk.ticket", "attachment_number")
     util.remove_view(cr, "helpdesk.helpdesk_sla_report_analysis_view_tree")
+
+    util.update_record_from_xml(cr, "helpdesk.mt_ticket_rated")
+    util.update_record_from_xml(cr, "helpdesk.mt_team_ticket_rated")
