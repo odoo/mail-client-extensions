@@ -38,3 +38,19 @@ def migrate(cr, version):
             [usr_id, xml_id],
         )
         util.env(cr)["res.groups"].browse(usr_id).write({"implied_ids": [(4, xml_id)]})
+
+    util.create_column(cr, "mrp_workorder", "costs_hour", "float8")
+
+    cr.execute(
+        """
+            UPDATE mrp_workorder AS wo
+               SET costs_hour = wc.costs_hour
+              FROM mrp_workcenter_productivity p
+              JOIN mrp_workcenter wc ON wc.id = p.workcenter_id
+             WHERE wo.id = p.workorder_id
+               AND wo.state = 'done'
+        """
+    )
+
+    util.create_column(cr, "stock_move", "cost_share", "numeric", default=0)
+    util.create_column(cr, "mrp_bom_byproduct", "cost_share", "numeric", default=0)
