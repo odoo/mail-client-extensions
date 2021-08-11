@@ -7,6 +7,7 @@ def migrate(cr, version):
             SELECT table_name, column_name
               FROM information_schema.columns
              WHERE udt_name = 'bool'
+               AND table_schema = 'public'
                AND column_default IS NOT NULL
                -- And not the ones defined in `base_data.sql` (bootstrap sql)
                AND NOT ARRAY[[table_name::text, column_name::text]] <@ ARRAY[
