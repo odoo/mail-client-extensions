@@ -37,6 +37,7 @@ def migrate(cr, version):
         )
         util.remove_module(cr, "stock_barcode_mobile")
         util.module_deps_diff(cr, "stock_barcode", plus={"barcodes_gs1_nomenclature", "web_mobile"}, minus={"barcodes"})
+        util.new_module(cr, "pos_settle_due", deps={"point_of_sale", "account_followup"}, auto_install=True)
 
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
