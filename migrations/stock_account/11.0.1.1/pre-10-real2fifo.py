@@ -62,7 +62,15 @@ def migrate(cr, version):
         UPDATE ir_property SET value_text='fifo' 
             WHERE value_text='real' and fields_id in (SELECT id FROM ir_model_fields WHERE name='property_cost_method')
     """)
-    
+    cr.execute(
+        """
+        UPDATE ir_default
+           SET json_value='"fifo"'
+         WHERE json_value='"real"'
+           AND field_id in (SELECT id FROM ir_model_fields WHERE name='property_cost_method')
+        """
+    )
+
     #price_unit and value positive in case of in
     cr.execute("""UPDATE stock_move m SET price_unit = qupi.price, value = qupi.value
                         FROM (SELECT m2.id AS move_id, SUM(q.quantity * q.cost) / m2.product_qty AS price, SUM(q.quantity * q.cost) AS value
