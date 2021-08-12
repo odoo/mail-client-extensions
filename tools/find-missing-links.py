@@ -15,6 +15,7 @@ EXCEPTIONS = {
         "website_account/10.saas~17.1.0/pre-migrate.py",
         "website_subscription/10.saas~17.1.0/pre-01-payment.py",
         "website_subscription/10.saas~17.1.0/pre-migrate.py",
+        "account_followup/8.saas~6.1.0/pre-10-rename-xid.py",
         # explicitly called (util.import_script)
         "sale_payment/saas~11.4.1.0/pre-migrate.py",
         "sale_order_dates/saas~11.4.1.1/pre-migrate.py",
