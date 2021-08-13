@@ -8,3 +8,7 @@ def migrate(cr, version):
         cr, "activity_date_deadline_my", "my_activity_date_deadline", only_models=("crm.lead",)
     )
     util.remove_field(cr, "crm.lead", "activity_date_deadline_my")
+
+    util.rename_field(cr, "res.config.settings", "module_crm_iap_lead", "module_crm_iap_mine")
+    util.rename_field(cr, "res.config.settings", "module_crm_iap_lead_enrich", "module_crm_iap_enrich")
+    util.rename_field(cr, "res.config.settings", "module_crm_iap_lead_website", "module_website_crm_iap_reveal")

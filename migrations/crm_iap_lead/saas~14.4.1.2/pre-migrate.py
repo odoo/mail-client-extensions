@@ -4,6 +4,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    module = "crm_iap_mine" if util.version_gte("saas~14.5") else "crm_iap_lead"
+
     util.create_column(cr, "crm_iap_lead_mining_request", "error_type", "varchar")
     cr.execute(
         """
@@ -30,7 +32,7 @@ def migrate(cr, version):
     }
 
     def ref(num):
-        return util.ref(cr, f"crm_iap_lead.crm_iap_lead_industry_{num}")
+        return util.ref(cr, f"{module}.crm_iap_lead_industry_{num}")
 
     util.replace_record_references_batch(
         cr,
@@ -41,13 +43,16 @@ def migrate(cr, version):
 
     # 2. remove unused industries & merged ones
     industry_ids_to_remove = ["146", "151", "154", "155", "156", "157", "159", "164"]
-    util.delete_unused(cr, *[f"crm_iap_lead.crm_iap_lead_industry_{num}" for num in industry_ids_to_remove])
+    util.delete_unused(cr, *[f"{module}.crm_iap_lead_industry_{num}" for num in industry_ids_to_remove])
 
     # 3. rename the ones we keep with their new name (including multiple ids)
-    eb = util.expand_braces
-    util.rename_xmlid(cr, *eb("crm_iap_lead.crm_iap_lead_industry_30{,_155}"))
-    util.rename_xmlid(cr, *eb("crm_iap_lead.crm_iap_lead_industry_69{,_157}"))
-    util.rename_xmlid(cr, *eb("crm_iap_lead.crm_iap_lead_industry_138{,_156}"))
-    util.rename_xmlid(cr, *eb("crm_iap_lead.crm_iap_lead_industry_150{,_151}"))
-    util.rename_xmlid(cr, *eb("crm_iap_lead.crm_iap_lead_industry_153{,_154}"))
-    util.rename_xmlid(cr, *eb("crm_iap_lead.crm_iap_lead_industry_158{,_159}"))
+    prefix = "crm_iap_lead_industry"
+    for pre, post in [
+        ("30", "30_155"),
+        ("69", "69_157"),
+        ("138", "138_156"),
+        ("150", "150_151"),
+        ("153", "153_154"),
+        ("158", "158_159"),
+    ]:
+        util.rename_xmlid(cr, f"{module}.{prefix}_{pre}", f"{module}.{prefix}_{post}")

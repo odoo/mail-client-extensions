@@ -6,7 +6,6 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_module(cr, "website_mail_channel")
     util.remove_module(cr, "website_sale_management")
-
     util.remove_module(cr, "website_sale_blog")
     cr.execute("DROP TABLE IF EXISTS product_blogpost_rel")
 
@@ -21,6 +20,7 @@ def migrate(cr, version):
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
 
+        util.rename_module(cr, "crm_enterprise_iap_lead_website", "website_crm_iap_reveal_enterprise")
         util.rename_module(cr, "website_calendar", "appointment")
         util.module_deps_diff(cr, "appointment", plus={"portal"}, minus={"website_enterprise"})
         util.rename_module(cr, "website_calendar_crm", "appointment_crm")
@@ -37,9 +37,14 @@ def migrate(cr, version):
         util.remove_module(cr, "stock_barcode_mobile")
         util.module_deps_diff(cr, "stock_barcode", plus={"barcodes_gs1_nomenclature", "web_mobile"}, minus={"barcodes"})
 
+    util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
+    util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
+    util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
+
     util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
     util.new_module(cr, "hr_holidays_attendance", deps={"hr_holidays", "hr_attendance"}, auto_install=True)
     util.new_module(cr, "mail_group", deps={"mail", "portal"})
+
     if util.table_exists(cr, "mail_channel"):
         # Install the new mail_group module if there's some "mail_channel" with "email_send=True" in the database
         cr.execute("SELECT 1 FROM mail_channel WHERE email_send=TRUE FETCH FIRST ROW ONLY")
@@ -51,6 +56,7 @@ def migrate(cr, version):
     util.merge_module(cr, "website_form", "website")
     util.merge_module(cr, "website_animate", "website")
     util.module_deps_diff(cr, "website", plus={"mail", "google_recaptcha", "utm"})
+    util.module_deps_diff(cr, "website_crm_iap_reveal", minus={"crm_iap_mine"})
 
     util.new_module(
         cr,
