@@ -67,7 +67,7 @@ def migrate(cr, version):
         UPDATE ir_default
            SET json_value='"fifo"'
          WHERE json_value='"real"'
-           AND field_id in (SELECT id FROM ir_model_fields WHERE name='property_cost_method')
+           AND field_id in (SELECT id FROM ir_model_fields WHERE name in ('property_cost_method','cost_method'))
         """
     )
 
