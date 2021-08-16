@@ -215,8 +215,10 @@ class TestCrawler(IntegrityCase):
             self.assertTrue(report)
             render = getattr(report, "_render", None) or getattr(report, "render", None)
             self.assertIsNotNone(render)
-            data, report_format = render([], data=None)
-            self.assertTrue(data)
+            result = render([], data=None)
+            if result:
+                data, report_format = result
+                self.assertTrue(data)
             return
         else:
             _logger.error("Action %r is not implemented", action["type"])
