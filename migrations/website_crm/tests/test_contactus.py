@@ -11,7 +11,7 @@ contactus records in the three modules at once.
 """
 
 
-@change_version("14.5")
+@change_version("saas~14.5")
 class TestContactus(UpgradeCase):
     def prepare(self):
         """Creates 5 websites with different COW possibilities:
