@@ -42,3 +42,16 @@ def migrate(cr, version):
 
     util.remove_record(cr, "hr_payroll.menu_hr_payroll_employees_configuration")
     util.remove_record(cr, "hr_payroll.menu_hr_payroll_contracts_to_review")
+
+    util.create_column(cr, "hr_payslip", "department_id", "int4")
+    util.create_column(cr, "hr_payslip", "job_id", "int4")
+    cr.execute(
+        """
+        UPDATE hr_payslip p
+          SET department_id= e.department_id,
+               job_id = e.job_id
+          FROM hr_employee e
+         WHERE e.id = p.employee_id
+          AND p.create_date >= COALESCE(e.write_date, e.create_date)
+    """
+    )
