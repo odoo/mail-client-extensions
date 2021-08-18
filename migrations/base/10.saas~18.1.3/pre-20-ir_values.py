@@ -58,6 +58,7 @@ def migrate(cr, version):
         crm.migrate(cr, version)
 
     cr.execute("DROP TABLE IF EXISTS ir_default")  # just in case
+    cr.execute("DROP SEQUENCE IF EXISTS ir_default_id_seq")  # just in previous case
     cr.execute(
         """
         CREATE TABLE ir_default (
