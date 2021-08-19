@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import re
 import itertools
+import re
+
 from odoo.upgrade import util
 
 
@@ -79,10 +80,17 @@ def migrate(cr, version):
                 cr.execute("UPDATE account_journal SET active = false WHERE id = %s", [jid])
 
         if suffix and re.search(r"(\d|%\(\w+\)s)", suffix):
-            suffix_regex = suffix
-            for sub in substitutes:
-                suffix_regex = suffix_regex.replace(sub.placeholder, sub.regex)
-            regex = rf"^(?P<prefix1>.*?)(?P<seq>\d*)(?P<suffix>{suffix_regex})$"
+            grouped = "|".join(re.escape(sub.placeholder) for sub in substitutes)
+            suffix_regex = (
+                "".join(
+                    r"(?P<suffix{}>\D*?){}".format(i, sub.regex)
+                    for i, m in enumerate(re.finditer(grouped, suffix), 1)
+                    for sub in substitutes
+                    if sub.placeholder in m.group(0)  # there should be only one match among all substitutes
+                )
+                + r"(?P<suffix>\D*?)"
+            )
+            regex = rf"^(?P<prefix1>.*?)(?P<seq>\d*){suffix_regex}$"
             cr.execute("UPDATE account_journal SET sequence_override_regex = %s WHERE id = %s", [regex, jid])
 
             number = re.sub(r"\?P<\w+>", "?:", regex.replace(r"?P<seq>", ""))
