@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+
+    util.create_column(cr, "helpdesk_team", "privacy_visibility", "character varying", default="internal")
+    cr.execute(
+        """
+           UPDATE helpdesk_team h
+              SET privacy_visibility='invited_internal'
+             FROM helpdesk_visibility_team v
+            WHERE v.helpdesk_team_id=h.id
+        """
+    )
+
+    cr.execute(
+        """
+        INSERT INTO mail_followers(res_model, res_id, partner_id)
+        SELECT 'helpdesk.team', v.helpdesk_team_id, u.partner_id
+          FROM helpdesk_visibility_team v
+          JOIN res_users u ON u.id = v.res_users_id
+        ON CONFLICT DO NOTHING
+        """
+    )
+
+    cr.execute(
+        """
+        INSERT INTO mail_followers(res_model, res_id, partner_id)
+        SELECT 'helpdesk.ticket', t.id, u.partner_id
+          FROM helpdesk_ticket t
+          JOIN helpdesk_visibility_team v ON t.team_id = v.helpdesk_team_id
+          JOIN res_users u ON u.id = v.res_users_id
+        ON CONFLICT DO NOTHING
+        """
+    )
+
+    util.remove_field(cr, "helpdesk.team", "visibility_member_ids")
+    util.remove_field(cr, "helpdesk.team", "privacy")
