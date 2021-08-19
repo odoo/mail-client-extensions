@@ -37,3 +37,7 @@ def migrate(cr, version):
            AND p.type = 'bank'
     """
     )
+
+    util.remove_field(cr, "pos.config", "manage_orders")
+    util.remove_field(cr, "pos.config", "show_allow_invoicing_alert")
+    util.create_column(cr, "pos_order_line", "refunded_orderline_id", "integer")
