@@ -100,12 +100,6 @@ class TestCrawler(IntegrityCase):
                 self.env = self.env(user=user)
                 break
 
-        if hasattr(self.env, "companies"):
-            company = self.env.user.company_id
-            while company.parent_id:
-                company = company.parent_id
-            self.env = self.env(context=dict(self.env.context, allowed_company_ids=company.ids + company.child_ids.ids))
-
         failing = set()
 
         # 1. Set base models and fields coming from custom modules to manual models and fields
@@ -124,6 +118,14 @@ class TestCrawler(IntegrityCase):
                 "odoo.fields.Reference.convert_to_cache",
                 lambda s, v, r, validate=True: origin_reference_convert_to_cache(s, v, r, False),
             ):
+                if hasattr(self.env, "companies"):
+                    company = self.env.user.company_id
+                    while company.parent_id:
+                        company = company.parent_id
+                    company_ids = list(
+                        set(self.env.user.company_ids.ids).intersection(company.ids + company.child_ids.ids)
+                    )
+                    self.env = self.env(context=dict(self.env.context, allowed_company_ids=company_ids))
                 self.env.cr.execute("SAVEPOINT test_mock_crawl")
                 _logger.info("Mocking menus with user %s(#%s) ", self.env.user.login, self.env.user.id)
                 all_menus = self.env["ir.ui.menu"].load_menus(debug=False)
