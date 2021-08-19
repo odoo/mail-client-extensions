@@ -252,7 +252,8 @@ def migrate(cr, version):
     if payment_ids:
         util.add_to_migration_reports(
             "The following payments have been deleted during the migration because there were posted but no longer"
-            "linked to any journal entry: %s" % payment_ids
+            "linked to any journal entry: %s" % payment_ids,
+            "Accounting",
         )
         util.iter_browse(env["account.payment"], payment_ids).unlink()
 
@@ -373,6 +374,30 @@ def migrate(cr, version):
 
             moves.invalidate_cache()
             moves.payment_id._compute_destination_account_id()
+            invalid_moves = moves.filtered(lambda m: not m.payment_id.destination_account_id)
+            if invalid_moves:
+                util.add_to_migration_reports(
+                    """
+                        <details>
+                        <summary>
+                            The following payments have been deleted because the accounting was not correctly configured
+                            and it wasn't possible to determine a destination account for them.
+                        </summary>
+                        <ul>%s</ul>
+                        </details>
+                    """
+                    % (
+                        "\n".join(
+                            "<li>%s(#%s)</li>" % (move.payment_id.name, move.payment_id.id) for move in invalid_moves
+                        ),
+                    ),
+                    "Accounting",
+                    format="html",
+                )
+                moves -= invalid_moves
+                for invalid in invalid_moves:
+                    mapping.pop(invalid.payment_id.id)
+                invalid_moves.unlink()
 
             move_lines_to_create = []
             for move in moves:
