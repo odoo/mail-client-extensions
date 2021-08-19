@@ -30,7 +30,7 @@ def migrate(cr, version):
               WHERE ptav.product_tmpl_id = b.product_tmpl_id
     """
     )
-    cr.execute("DROP TABLE mrp_bom_line_product_attribute_value_rel")
+    cr.execute("DROP TABLE mrp_bom_line_product_attribute_value_rel CASCADE")
     util.remove_field(cr, "mrp.bom.line", "valid_product_attribute_value_ids")
 
     if util.table_exists(cr, "mrp_bom_byproduct"):
