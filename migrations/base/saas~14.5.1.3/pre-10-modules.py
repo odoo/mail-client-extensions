@@ -26,6 +26,15 @@ def migrate(cr, version):
         util.rename_module(cr, "website_calendar_crm", "appointment_crm")
         util.new_module(cr, "website_appointment", deps={"appointment", "website_enterprise"}, auto_install=True)
 
+        util.new_module(cr, "l10n_ae_reports", deps={"l10n_ae", "account_reports"}, auto_install=True)
+        util.new_module(cr, "l10n_ae_hr_payroll", deps={"hr_payroll"})
+        util.new_module(
+            cr,
+            "l10n_ae_hr_payroll_account",
+            deps={"hr_payroll_account", "l10n_ae", "l10n_ae_hr_payroll"},
+            auto_install=True,
+        )
+
     util.new_module(cr, "project_mail_plugin", deps={"project", "mail_plugin"}, auto_install=True)
     util.new_module(cr, "hr_holidays_attendance", deps={"hr_holidays", "hr_attendance"}, auto_install=True)
     util.new_module(cr, "mail_group", deps={"mail", "portal"})
