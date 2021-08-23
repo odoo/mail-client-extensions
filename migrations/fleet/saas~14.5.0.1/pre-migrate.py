@@ -10,8 +10,6 @@ def migrate(cr, version):
 
     util.create_column(cr, "fleet_vehicle", "trailer_hook", "bool", default=False)
 
-    util.create_column(cr, "fleet_vehicle", "fleet_id", "integer")
-
     util.create_column(cr, "fleet_vehicle_model", "model_year", "int4")
     util.create_column(cr, "fleet_vehicle_model", "color", "varchar")
     util.create_column(cr, "fleet_vehicle_model", "seats", "int4")
