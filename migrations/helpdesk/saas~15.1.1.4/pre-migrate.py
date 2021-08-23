@@ -37,3 +37,17 @@ def migrate(cr, version):
 
     util.remove_field(cr, "helpdesk.team", "visibility_member_ids")
     util.remove_field(cr, "helpdesk.team", "privacy")
+
+    cr.execute("UPDATE helpdesk_ticket SET priority = '0' WHERE priority = '1'")
+    cr.execute("UPDATE helpdesk_sla SET priority = '0' WHERE priority = '1'")
+    util.create_m2m(cr, "helpdesk_sla_helpdesk_ticket_type_rel", "helpdesk_sla", "helpdesk_ticket_type")
+    cr.execute(
+        """
+            INSERT INTO helpdesk_sla_helpdesk_ticket_type_rel(helpdesk_sla_id, helpdesk_ticket_type_id)
+                SELECT id, ticket_type_id
+                    FROM helpdesk_sla
+                    WHERE ticket_type_id IS NOT NULL
+        """
+    )
+    util.update_field_references(cr, "ticket_type_id", "ticket_type_ids", only_models=("helpdesk.sla",))
+    util.remove_field(cr, "helpdesk.sla", "ticket_type_id")
