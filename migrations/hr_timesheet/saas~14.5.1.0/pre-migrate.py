@@ -11,3 +11,9 @@ def migrate(cr, version):
     util.remove_view(cr, "hr_timesheet.portal_subtask_timesheet_tables")
 
     util.delete_unused(cr, "hr_timesheet.hr_timesheet_config_settings_menu_action")
+
+    if not util.module_installed(cr, "timesheet_grid"):
+        util.remove_field(cr, "res.config.settings", "timesheet_min_duration")
+        util.remove_field(cr, "res.config.settings", "timesheet_rounding")
+        util.remove_record(cr, "hr_timesheet.ir_config_parameter_timesheet_rounding")
+        util.remove_record(cr, "hr_timesheet.ir_config_parameter_timesheet_min_duration")
