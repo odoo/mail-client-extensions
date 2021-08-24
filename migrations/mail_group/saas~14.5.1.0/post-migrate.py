@@ -14,6 +14,7 @@ def migrate(cr, version):
         """
         INSERT INTO mail_group (
                         id,
+                        active,
                         create_uid,
                         create_date,
                         write_uid,
@@ -30,6 +31,7 @@ def migrate(cr, version):
                         access_group_id
                     )
              SELECT id,
+                    active,
                     create_uid,
                     create_date,
                     write_uid,
@@ -39,9 +41,9 @@ def migrate(cr, version):
                     description,
                     moderation,
                     moderation_notify,
-                    moderation_notify_msg,
+                    {0},
                     moderation_guidelines,
-                    moderation_guidelines_msg,
+                    {1},
                     CASE WHEN public = 'private'
                          THEN 'members'
                          ELSE public
@@ -49,7 +51,10 @@ def migrate(cr, version):
                     group_public_id
                FROM mail_channel
               WHERE email_send = TRUE
-        """,
+        """.format(
+            util.pg_text2html("moderation_notify_msg"),
+            util.pg_text2html("moderation_guidelines_msg"),
+        ),
         [util.ref(cr, "base.group_user")],
     )
 

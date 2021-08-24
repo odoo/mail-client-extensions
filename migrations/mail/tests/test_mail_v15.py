@@ -222,9 +222,9 @@ class TestMailChannel(UpgradeCase):
         self.assertEqual(group_3.moderation, True)
         self.assertEqual(group_3.description, "Description of the channel.\nLine 2.")
         self.assertEqual(group_3.moderation_notify, True)
-        self.assertEqual(group_3.moderation_notify_msg, "Your message is pending moderation")
+        self.assertEqual(group_3.moderation_notify_msg, "<p>Your message is pending moderation</p>")
         self.assertEqual(group_3.moderation_guidelines, True)
-        self.assertEqual(group_3.moderation_guidelines_msg, "Be nice, it's not nice to be bad")
+        self.assertEqual(group_3.moderation_guidelines_msg, "<p>Be nice, it's not nice to be bad</p>")
         self.assertEqual(group_3.alias_name, "channel_3")
 
         # Check the image field on the group / channel
