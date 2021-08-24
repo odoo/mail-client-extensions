@@ -27,7 +27,6 @@ def migrate(cr, version):
         util.rename_module(cr, "website_calendar_crm", "appointment_crm")
         util.new_module(cr, "website_appointment", deps={"appointment", "website_enterprise"}, auto_install=True)
 
-        util.new_module(cr, "l10n_ae_reports", deps={"l10n_ae", "account_reports"}, auto_install=True)
         util.new_module(cr, "l10n_ae_hr_payroll", deps={"hr_payroll"})
         util.new_module(
             cr,
