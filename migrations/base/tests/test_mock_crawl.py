@@ -122,9 +122,10 @@ class TestCrawler(IntegrityCase):
                     company = self.env.user.company_id
                     while company.parent_id:
                         company = company.parent_id
-                    company_ids = list(
-                        set(self.env.user.company_ids.ids).intersection(company.ids + company.child_ids.ids)
-                    )
+                    children = company.child_ids
+                    while not (children.child_ids <= children):
+                        children |= children.child_ids
+                    company_ids = list(set(self.env.user.company_ids.ids).intersection(company.ids + children.ids))
                     self.env = self.env(context=dict(self.env.context, allowed_company_ids=company_ids))
                 self.env.cr.execute("SAVEPOINT test_mock_crawl")
                 _logger.info("Mocking menus with user %s(#%s) ", self.env.user.login, self.env.user.id)
