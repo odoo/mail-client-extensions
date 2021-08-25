@@ -17,6 +17,9 @@ def migrate(cr, version):
     util.update_field_references(cr, "is_published", "state", only_models=("planning.slot",), domain_adapter=adapter)
     util.remove_field(cr, "planning.slot", "is_published")
 
+    util.drop_depending_views(cr, "planning_slot", "working_days_count")
+    cr.execute("ALTER TABLE planning_slot ALTER COLUMN working_days_count TYPE float8")
+
     util.rename_xmlid(cr, *eb("planning.planning_menu_schedule_by_{employee,resource}"))
     util.rename_xmlid(cr, *eb("planning.planning_action_schedule_by_{employee,resource}"))
     util.rename_xmlid(cr, *eb("planning.planning_action_schedule_by_{employee,resource}_view_gantt"))
