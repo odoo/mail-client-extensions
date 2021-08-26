@@ -52,6 +52,7 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_lu_reports_electronic_xml_2_0", "l10n_lu_reports")
         util.merge_module(cr, "l10n_lu_saft", "l10n_lu_reports")
         util.module_deps_diff(cr, "l10n_lu_reports", plus={"account_asset", "account_saft"})
+        util.new_module(cr, "stock_barcode_mrp", deps={"stock_barcode", "mrp"}, auto_install=True)
 
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
@@ -116,3 +117,5 @@ def migrate(cr, version):
         auto_install=True,
     )
     util.module_deps_diff(cr, "test_event_full", plus={"event_booth", "website_event_booth_sale_exhibitor"})
+
+    util.new_module(cr, "mrp_repair", deps={"repair", "mrp"}, auto_install=True)
