@@ -473,10 +473,12 @@ def migrate(cr, version):
          WHERE line.move_id=account_move.id
     """)
     cr.execute("""
-        UPDATE account_move
-           SET auto_post=TRUE
-         WHERE state!='posted'
-           AND asset_id IS NOT NULL
+        UPDATE account_move move
+           SET auto_post = TRUE
+          FROM account_asset asset
+         WHERE move.state != 'posted'
+           AND move.asset_id = asset.id
+           AND asset.active
     """)
     util.create_column(cr, 'account_move_line', 'asset_id', 'int4')
 
