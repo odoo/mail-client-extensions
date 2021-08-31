@@ -15,6 +15,8 @@ def migrate(cr, version):
     util.create_column(cr, "account_payment", "force_outstanding_account_id", "integer")
     util.create_column(cr, "pos_config", "iface_orderline_customer_notes", "boolean")
     util.create_column(cr, "pos_order_line", "customer_note", "varchar")
+    util.create_column(cr, "pos_order_line", "total_cost", "float8")
+    util.create_column(cr, "pos_order_line", "is_total_cost_computed", "boolean")
 
     cr.execute(
         """
