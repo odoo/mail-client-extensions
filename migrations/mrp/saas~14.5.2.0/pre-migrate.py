@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_field(cr, "mrp.unbuild", "allowed_mo_ids")
+    util.remove_field(cr, "mrp.production", "confirm_no_consumption")
 
     util.rename_field(cr, "res.config.settings", "group_locked_by_default", "group_unlocked_by_default")
     util.rename_xmlid(cr, "mrp.group_locked_by_default", "mrp.group_unlocked_by_default")
