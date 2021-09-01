@@ -120,4 +120,8 @@ def migrate(cr, version):
     )
     util.module_deps_diff(cr, "test_event_full", plus={"event_booth", "website_event_booth_sale_exhibitor"})
 
+    util.module_deps_diff(cr, "gift_card", plus={"product"}, minus={"sale"})
+    util.new_module(cr, "pos_gift_card", deps={"gift_card", "point_of_sale"}, auto_install=True)
+    util.new_module(cr, "sale_gift_card", deps={"gift_card", "sale"}, auto_install=True)
+    util.module_deps_diff(cr, "website_sale_gift_card", plus={"sale_gift_card"}, minus={"gift_card"})
     util.new_module(cr, "mrp_repair", deps={"repair", "mrp"}, auto_install=True)

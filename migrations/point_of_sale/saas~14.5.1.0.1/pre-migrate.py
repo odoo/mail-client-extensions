@@ -45,3 +45,4 @@ def migrate(cr, version):
     util.remove_field(cr, "pos.config", "manage_orders")
     util.remove_field(cr, "pos.config", "show_allow_invoicing_alert")
     util.create_column(cr, "pos_order_line", "refunded_orderline_id", "integer")
+    util.create_column(cr, "res_config_settings", "module_pos_gift_card", "boolean")
