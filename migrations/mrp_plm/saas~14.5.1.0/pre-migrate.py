@@ -23,3 +23,4 @@ def migrate(cr, version):
     util.rename_field(cr, "mrp.eco.stage", "type_id", "type_ids")
     util.remove_view(cr, "mrp_plm.report_mrp_operation_line_inherit_mrp_plm")
     util.remove_view(cr, "mrp_plm.report_mrp_byproduct_line_inherit_mrp_plm")
+    util.remove_view(cr, "mrp_plm.product_template_view_form_inherit_version_plm")

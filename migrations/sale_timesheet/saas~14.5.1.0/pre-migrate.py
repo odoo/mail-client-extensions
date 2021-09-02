@@ -83,3 +83,4 @@ def migrate(cr, version):
              WHERE t.id = aal.id
         """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", prefix="aal."))
+    util.remove_field(cr, 'product.template', 'service_upsell_warning')

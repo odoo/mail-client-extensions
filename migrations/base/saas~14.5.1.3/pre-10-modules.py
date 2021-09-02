@@ -71,6 +71,7 @@ def migrate(cr, version):
         util.new_module(cr, "stock_barcode_mrp", deps={"stock_barcode", "mrp"}, auto_install=True)
         util.module_deps_diff(cr, "planning_holidays", plus={"hr_holidays_gantt"}, minus={"hr_holidays"})
         util.new_module(cr, "project_holidays", deps={"project_enterprise", "hr_holidays_gantt"}, auto_install=True)
+        util.module_deps_diff(cr, "product_unspsc", plus={"account"}, minus={"product"})
 
         util.module_deps_diff(
             cr, "project_timesheet_forecast_sale", plus={"project_timesheet_forecast"}, minus={"project_forecast"}

@@ -19,3 +19,10 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("{,sale_}gift_card.mail_template_gift_card"))
     util.rename_xmlid(cr, *eb("{,sale_}gift_card.access_gift_card_sales"))
     util.rename_xmlid(cr, *eb("{,sale_}gift_card.access_gift_card_manager"))
+
+    util.parallel_execute(cr, util.explode_query_range(cr, """
+        UPDATE product_template
+           SET detailed_type = 'gift'
+         WHERE is_gift_card = TRUE
+    """, table="product_template"))
+    util.remove_field(cr, 'product.template', 'is_gift_card')
