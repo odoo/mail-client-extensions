@@ -28,31 +28,48 @@ def migrate(cr, version):
 
         util.new_module(cr, "approvals_purchase", deps={"approvals", "purchase"}, auto_install=True)
         util.new_module(
-            cr, "approvals_purchase_stock", deps={"approvals_purchase", "purchase_stock"}, auto_install=True,
+            cr,
+            "approvals_purchase_stock",
+            deps={"approvals_purchase", "purchase_stock"},
+            auto_install=True,
         )
         util.new_module(cr, "delivery_iot", deps={"delivery", "iot"}, auto_install=True)
         util.new_module(cr, "fleet_dashboard", deps={"fleet", "web_dashboard"}, auto_install=True)
 
         util.new_module(cr, "hr_work_entry_contract", deps={"hr_work_entry", "hr_contract"})
         util.new_module(
-            cr, "hr_recruitment_reports", deps={"hr_recruitment", "web_dashboard"}, auto_install=True,
+            cr,
+            "hr_recruitment_reports",
+            deps={"hr_recruitment", "web_dashboard"},
+            auto_install=True,
         )
 
         util.new_module(
-            cr, "industry_fsm_sale", deps={"industry_fsm", "sale_timesheet_enterprise"}, auto_install=True,
+            cr,
+            "industry_fsm_sale",
+            deps={"industry_fsm", "sale_timesheet_enterprise"},
+            auto_install=True,
         )
         util.new_module(
-            cr, "industry_fsm_sale_report", deps={"industry_fsm_sale", "industry_fsm_report"}, auto_install=True,
+            cr,
+            "industry_fsm_sale_report",
+            deps={"industry_fsm_sale", "industry_fsm_report"},
+            auto_install=True,
         )
         util.new_module(cr, "mrp_workorder_expiry", deps={"mrp_workorder", "product_expiry"}, auto_install=True)
         util.new_module(cr, "sale_account_accountant", deps={"sale", "account_accountant"}, auto_install=True)
 
         util.new_module(
-            cr, "social_demo", deps={"social", "social_facebook", "social_twitter", "social_linkedin", "product"},
+            cr,
+            "social_demo",
+            deps={"social", "social_facebook", "social_twitter", "social_linkedin", "product"},
         )
         util.new_module(cr, "stock_accountant", deps={"stock_account", "account_accountant"}, auto_install=True)
         util.new_module(
-            cr, "stock_barcode_mrp_subcontracting", deps={"stock_barcode", "mrp_subcontracting"}, auto_install=True,
+            cr,
+            "stock_barcode_mrp_subcontracting",
+            deps={"stock_barcode", "mrp_subcontracting"},
+            auto_install=True,
         )
         util.new_module(cr, "test_web_grid", deps={"web_grid"})
 
@@ -63,15 +80,24 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "approvals", plus={"product"})
 
         util.module_deps_diff(
-            cr, "hr_payroll", plus={"hr_work_entry_contract"}, minus={"hr_contract", "hr_holidays", "hr_work_entry"},
+            cr,
+            "hr_payroll",
+            plus={"hr_work_entry_contract"},
+            minus={"hr_contract", "hr_holidays", "hr_work_entry"},
         )
         util.force_migration_of_fresh_module(cr, "hr_work_entry_contract")
         util.new_module(
-            cr, "hr_work_entry_holidays", deps={"hr_work_entry_contract", "hr_holidays"}, auto_install=True,
+            cr,
+            "hr_work_entry_holidays",
+            deps={"hr_work_entry_contract", "hr_holidays"},
+            auto_install=True,
         )
         util.force_migration_of_fresh_module(cr, "hr_work_entry_holidays")
         util.new_module(
-            cr, "hr_payroll_holidays", deps={"hr_payroll", "hr_work_entry_holidays"}, auto_install=True,
+            cr,
+            "hr_payroll_holidays",
+            deps={"hr_payroll", "hr_work_entry_holidays"},
+            auto_install=True,
         )
 
         util.module_deps_diff(cr, "hr_referral", plus={"hr_recruitment_reports"})
