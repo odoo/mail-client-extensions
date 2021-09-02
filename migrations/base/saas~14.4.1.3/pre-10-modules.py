@@ -24,6 +24,7 @@ def migrate(cr, version):
 
         util.module_deps_diff(cr, "account_batch_payment", plus={"account"}, minus={"account_accountant"})
         util.module_deps_diff(cr, "account_sepa_direct_debit", plus={"account"}, minus={"account_accountant"})
+        util.module_deps_diff(cr, "project_enterprise", plus={"web_enterprise"})
         util.module_deps_diff(cr, "helpdesk_sale_timesheet", plus={"helpdesk_sale"})
 
         util.remove_module(cr, "l10n_be_sale_intrastat")

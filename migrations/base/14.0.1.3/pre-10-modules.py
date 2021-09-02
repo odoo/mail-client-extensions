@@ -8,8 +8,20 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "pos_adyen", plus={"adyen_platforms"})
     util.new_module(cr, "payment_fix_register_token", deps={"payment"}, auto_install=True)
 
+    # https://github.com/odoo/odoo/commit/e23b9bfd47b2a8aee4468fdd3f35aced81761eb3
+    util.new_module(cr, "l10n_ar_website_sale", deps={"l10n_ar", "website_sale"}, auto_install=True)
     # deps chamged by odoo/odoo@59d16513a019d52dd090e09c09be4675aa868baf (odoo/odoo#62730)
     util.module_deps_diff(cr, "l10n_be_edi", plus={"account_edi_ubl"}, minus={"account_edi"})
+    # https://github.com/odoo/odoo/commit/e4f95688fe8786ae898c7180b263a4176a0537b4
+    util.new_module(cr, "l10n_cz", deps={"account", "base_iban", "base_vat"})
+    # https://github.com/odoo/odoo/commit/234fd4c1a4c6d11ecc329552f9e828bd6047f674
+    util.new_module(cr, "l10n_de_purchase", deps={"l10n_de", "purchase"}, auto_install=True)
+    util.new_module(cr, "l10n_de_repair", deps={"l10n_de", "repair"}, auto_install=True)
+    util.new_module(cr, "l10n_de_sale", deps={"l10n_de", "sale"}, auto_install=True)
+    util.new_module(cr, "l10n_de_stock", deps={"l10n_de", "stock"}, auto_install=True)
+
+    # https://github.com/odoo/odoo/commit/eb41f0de553906e09d199190544c878a9d1a7e85
+    util.new_module(cr, "l10n_sk", deps={"account", "base_iban", "base_vat"})
 
     # https://github.com/odoo/odoo/pull/62900
     util.new_module(cr, "sale_timesheet_edit", deps={"sale_timesheet"}, auto_install=True)
@@ -54,6 +66,21 @@ def migrate(cr, version):
             deps={"l10n_be_hr_payroll_account", "l10n_be_hr_payroll_273S_274"},
             auto_install=True,
         )
+        # https://github.com/odoo/enterprise/commit/6d44bda491d750e58f6218df048913cec16bdeda
+        util.new_module(cr, "l10n_be_hr_payroll_impulsion", deps={"l10n_be_hr_payroll"}, auto_install=True)
+        # https://github.com/odoo/enterprise/commit/228a5b68428d6bd60a64309b190e95fec7b91e3a
+        # https://github.com/odoo/enterprise/commit/6d85ecc920736b8976e4fa44b090f86fe9e2e384
+        util.new_module(
+            cr, "l10n_be_hr_payroll_variable_revenue", deps={"l10n_be_hr_payroll_account"}, auto_install=True
+        )
+
+        # https://github.com/odoo/enterprise/commit/6cd63c5c64073e38e4b90ea612a0928c23983df2
+        util.new_module(cr, "l10n_cl_edi_stock", deps={"l10n_cl_edi", "sale_stock"}, auto_install=True)
+        # https://github.com/odoo/enterprise/commit/88c394a12e8123f8bed0e18624b8ef4e55626200
+        util.new_module(cr, "l10n_cl_edi_boletas", deps={"l10n_cl_edi"})
+        # This is NOT a module to remove the reports...
+        # https://github.com/odoo/enterprise/commit/8df67107c649e10fe258610ea5652f817ce9b791
+        util.new_module(cr, "l10n_no_reports", deps={"l10n_no", "account_reports"}, auto_install=True)
 
         # https://github.com/odoo/enterprise/pull/15297
         util.new_module(

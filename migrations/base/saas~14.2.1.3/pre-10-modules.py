@@ -25,3 +25,4 @@ def migrate(cr, version):
         )
         util.new_module(cr, "l10n_us_payment_nacha", deps={"account_batch_payment", "l10n_us"}, auto_install=True)
         util.new_module(cr, "l10n_be_hr_payroll_eco_vouchers", deps={"l10n_be_hr_payroll"}, auto_install=True)
+        util.new_module(cr, "l10n_be_hr_payroll_holiday_pay_recovery", deps={"l10n_be_hr_payroll"}, auto_install=True)

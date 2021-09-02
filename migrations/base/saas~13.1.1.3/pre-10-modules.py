@@ -15,7 +15,7 @@ def migrate(cr, version):
 
     util.module_deps_diff(cr, "test_mail_full", plus={"test_mass_mailing"})
 
-    util.merge_module(cr, "pos_cash_rounding", "point_of_sale")
+    util.merge_module(cr, "pos_cash_rounding", "point_of_sale", without_deps=True)
     util.merge_module(cr, "website_theme_install", "website")
 
     if util.has_enterprise():

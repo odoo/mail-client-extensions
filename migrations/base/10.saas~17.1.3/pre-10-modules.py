@@ -18,6 +18,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "l10n_" + cc, plus={"account"}, minus={"base_vat"})
     util.new_module_dep(cr, "l10n_it", "account")
     util.new_module_dep(cr, "l10n_uk", "account")
+    util.module_deps_diff(cr, "l10n_gr", minus={"base"})
 
     util.module_deps_diff(cr, "sale", minus={"web_tour"})
     util.new_module(cr, "sale_management", deps={"sale", "account_invoicing"}, auto_install=True)

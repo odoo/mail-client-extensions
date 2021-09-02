@@ -3,6 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    util.new_module(cr, "im_support", deps={"mail"})
     util.new_module(cr, "l10n_hk", deps={"account"})
     util.new_module(cr, "social_media", deps={"base"})
     util.force_migration_of_fresh_module(cr, "social_media")

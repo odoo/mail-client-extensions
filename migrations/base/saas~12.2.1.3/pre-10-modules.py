@@ -49,7 +49,7 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "account_invoice_extract", plus={"account"}, minus={"account_accountant"})
         util.module_deps_diff(cr, "documents_account", plus={"account_reports"}, minus={"account"})
         util.module_deps_diff(cr, "mrp_workorder_iot", plus={"mrp_workorder"}, minus={"quality_mrp_workorder"})
-        util.module_deps_diff(cr, "quality_iot", plus={"quality_control"}, minus={"quality"})
+        util.module_deps_diff(cr, "quality_iot", minus={"quality_control"}, plus={"quality"})
 
     cr.execute("DELETE FROM ir_translation WHERE lang = 'fil' ")
     cr.execute("UPDATE res_lang set code = 'fil_PH', iso_code = 'fil' where code ilike 'fil%' ")

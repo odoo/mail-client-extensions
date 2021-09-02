@@ -16,6 +16,9 @@ def migrate(cr, version):
             cr, "sale_timesheet_account_budget", deps={"sale_timesheet", "account_budget"}, auto_install=True
         )
 
+    util.new_module(cr, "l10n_ae_pos", deps={"l10n_ae", "point_of_sale"}, auto_install=True)
+    util.new_module(cr, "product_images", deps={"product"})
+
     util.remove_module(cr, "website_mail_channel")
     util.remove_module(cr, "website_sale_management")
     util.remove_module(cr, "sale_timesheet_purchase")
@@ -32,10 +35,15 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "social_test_full", plus={"social_instagram"})
         util.new_module(cr, "mrp_workorder_plm", deps={"mrp_workorder", "mrp_plm"}, auto_install=True)
         util.new_module(cr, "project_account_budget", deps={"account_budget", "project"}, auto_install=True)
+        util.new_module(cr, "project_enterprise_hr", deps={"project_enterprise", "hr"}, auto_install=True)
+        util.new_module(
+            cr, "project_enterprise_hr_contract", deps={"project_enterprise_hr", "hr_contract"}, auto_install=True
+        )
 
         util.new_module(cr, "l10n_eu_oss_reports", deps={"account_reports", "l10n_eu_oss"}, auto_install=True)
 
         util.module_deps_diff(cr, "l10n_co_edi", plus={"account_edi"}, minus={"account"})
+        util.module_deps_diff(cr, "l10n_cl_edi_stock", plus={"stock_account"})
 
         util.rename_module(cr, "crm_enterprise_iap_lead_website", "website_crm_iap_reveal_enterprise")
         util.rename_module(cr, "website_calendar", "appointment")
@@ -81,6 +89,9 @@ def migrate(cr, version):
 
         util.merge_module(cr, "sale_ebay_account_deletion", "sale_ebay")
 
+        util.module_deps_diff(cr, "industry_fsm_report", plus={"web_studio"})
+        util.module_auto_install(cr, "industry_fsm_report", {"industry_fsm", "web_studio"})
+
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
     util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
@@ -98,9 +109,8 @@ def migrate(cr, version):
     util.new_module(cr, "website_mail_group", deps={"mail_group", "website"}, auto_install=True)
 
     util.merge_module(cr, "website_form", "website")
-    util.merge_module(cr, "website_animate", "website")
+    util.merge_module(cr, "website_animate", "website", without_deps=True)
     util.module_deps_diff(cr, "website", plus={"mail", "google_recaptcha", "utm"})
-    util.module_deps_diff(cr, "website_crm_iap_reveal", minus={"crm_iap_mine"})
 
     util.new_module(
         cr,
@@ -114,6 +124,17 @@ def migrate(cr, version):
         deps={"website_sale_stock", "website_sale_wishlist"},
         auto_install=True,
     )
+
+    util.new_module(cr, "delivery_mondialrelay", deps={"delivery"})
+    util.new_module(
+        cr,
+        "website_sale_delivery_mondialrelay",
+        deps={"website_sale_delivery", "delivery_mondialrelay"},
+        auto_install=True,
+    )
+
+    util.module_deps_diff(cr, "website_sale_coupon", plus={"website_links"})
+    util.module_auto_install(cr, "website_sale_coupon", {"website_sale", "sale_coupon"})
 
     util.new_module(cr, "project_mrp", deps={"mrp_account", "project"}, auto_install=True)
     util.new_module(cr, "project_purchase", deps={"purchase", "project"}, auto_install=True)
@@ -166,3 +187,18 @@ def migrate(cr, version):
     util.new_module(cr, "mass_mailing_sale_sms", deps={"mass_mailing_sale", "mass_mailing_sms"}, auto_install=True)
 
     util.module_deps_diff(cr, "web_editor", plus={"mail"})
+    util.module_deps_diff(cr, "sale_stock_margin", plus={"sale_stock"}, minus={"stock_account"})
+    util.new_module(
+        cr,
+        "purchase_requisition_stock_dropshipping",
+        deps={"purchase_requisition_stock", "stock_dropshipping"},
+        auto_install=True,
+    )
+    util.new_module(cr, "l10n_no_edi", deps={"l10n_no", "account_edi_ubl_bis3"}, auto_install=True)
+    util.module_deps_diff(cr, "l10n_it_stock_ddt", plus={"stock_account"})
+    util.module_deps_diff(cr, "l10n_ec", plus={"base", "account_debit_note"})
+
+    util.new_module(cr, "payment_mollie", deps={"payment"})
+
+    util.module_deps_diff(cr, "website_hr_recruitment", minus={"website"})  # from `website_form` merge
+    util.module_deps_diff(cr, "website_helpdesk_form", minus={"website"})  # from `website_form` merge

@@ -4,6 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.new_module(cr, "l10n_be_edi", deps={"account", "l10n_be", "account_facturx"}, auto_install=True)
+    util.new_module(cr, "l10n_il", deps={"account"})
     util.new_module(cr, "sale_product_configurator", deps={"sale"})
 
     # As sale was split in 2, auto-install module when sale was installed

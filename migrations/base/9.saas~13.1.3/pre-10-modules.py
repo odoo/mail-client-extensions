@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
-
 from openerp.addons.base.maintenance.migrations import util
 
 
@@ -38,7 +36,7 @@ def migrate(cr, version):
         )
         util.remove_module(cr, "account_tax_exigible_enterprise")
 
-        if os.environ.get("OE_SAAS_MIGRATION"):
+        if util.has_design_themes():
             # Theme changes
             util.new_module_dep(cr, "snippet_latest_posts", "theme_common")
             util.remove_module_deps(cr, "snippet_latest_posts", ("website",))
@@ -58,7 +56,7 @@ def migrate(cr, version):
     util.merge_module(cr, "account_tax_exigible", "account")
 
     util.new_module_dep(cr, "auth_ldap", "base_setup")
-    util.new_module_dep(cr, "base_gengo", "base_setup")
+    util.module_deps_diff(cr, "base_gengo", plus={"base_setup"}, minus={"base"})
     util.new_module_dep(cr, "hr_attendance", "barcodes")
 
     util.remove_module_deps(cr, "hr_recruitment", ("survey",))
@@ -70,6 +68,8 @@ def migrate(cr, version):
     if util.module_installed(cr, "hr_timesheet_sheet"):
         # hr_timesheet_attendance was just a report. Now attendance logic is in this module.
         util.force_install_module(cr, "hr_timesheet_attendance")
+
+    util.module_deps_diff(cr, "hr_payroll", minus={"hr"})
 
     util.new_module_dep(cr, "pad", "base_setup")
 

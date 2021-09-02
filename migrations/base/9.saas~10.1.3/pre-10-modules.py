@@ -8,6 +8,8 @@ def migrate(cr, version):
     util.remove_view(cr, "account_full_reconcile.view_move_line_form")
     util.merge_module(cr, "account_full_reconcile", "account")
 
+    util.module_deps_diff(cr, "project_issue_sheet", minus={"project_timesheet"})
+
     view_list = util.splitlines(
         """
         view_account_analytic_line_tree_inherit_account_id
@@ -38,3 +40,6 @@ def migrate(cr, version):
         l10n = "ar at be bo br ch cl co de_skr03 de_skr04 do es et fr gr hr hu in jp lu ma nl no pl ro sg si th uk uy vn".split()
         for ln in l10n:
             util.new_module_dep(cr, "l10n_" + ln + "_reports", "account_reports")
+
+        # Note: project_timesheet has been merged into hr_timesheet. And this module loose the `project_timesheet` dependence.
+        util.module_deps_diff(cr, "project_timesheet_synchro", minus={"hr_timesheet"})

@@ -86,7 +86,7 @@ def migrate(cr, version):
 
     util.module_auto_install(cr, "website_sale_slides", False)
 
-    util.merge_module(cr, "decimal_precision", "base")
+    util.merge_module(cr, "decimal_precision", "base", without_deps=True)
     util.merge_module(cr, "payment_stripe_sca", "payment_stripe")
 
     if util.module_installed(cr, "l10n_fr"):
@@ -118,7 +118,7 @@ def migrate(cr, version):
         else:
             util.new_module(cr, "sale_renting", deps={"sale"})
             util.new_module(cr, "sale_renting_sign", deps={"sign", "sale_renting"}, auto_install=True)
-            util.new_module(cr, "sale_stock_renting", deps={"sale_renting", "stock"}, auto_install=True)
+            util.new_module(cr, "sale_stock_renting", deps={"sale_renting", "sale_stock"}, auto_install=True)
 
         util.rename_module(cr, "snailmail_account_reports_followup", "snailmail_account_followup")
 
@@ -128,12 +128,13 @@ def migrate(cr, version):
 
         util.rename_module(cr, "map_view_contact", "contacts_enterprise")
         util.new_module(cr, "documents_fleet", deps={"documents", "fleet"}, auto_install=True)
-        util.new_module(cr, "documents_hr_contract", deps={"documents", "hr_contract"}, auto_install=True)
+        util.new_module(cr, "documents_hr", deps={"documents", "hr"}, auto_install=True)
+        util.new_module(cr, "documents_hr_contract", deps={"documents_hr", "hr_contract"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "documents_hr_contract", init=False)
-        util.new_module(cr, "documents_hr_holidays", deps={"documents", "hr_holidays"}, auto_install=True)
-        util.new_module(cr, "documents_hr_payroll", deps={"documents", "hr_payroll"}, auto_install=True)
+        util.new_module(cr, "documents_hr_holidays", deps={"documents_hr", "hr_holidays"}, auto_install=True)
+        util.new_module(cr, "documents_hr_payroll", deps={"documents_hr", "hr_payroll"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "documents_hr_payroll", init=False)
-        util.new_module(cr, "documents_hr_recruitment", deps={"documents", "hr_recruitment"}, auto_install=True)
+        util.new_module(cr, "documents_hr_recruitment", deps={"documents_hr", "hr_recruitment"}, auto_install=True)
         util.new_module(cr, "helpdesk_fsm", deps={"helpdesk", "industry_fsm"}, auto_install=True)
         util.new_module(cr, "hr_contract_sign", deps={"hr_contract", "sign"}, auto_install=True)
         util.new_module(cr, "hr_payroll_account_sepa", deps={"hr_payroll_account", "account_sepa"})
@@ -171,13 +172,25 @@ def migrate(cr, version):
         util.new_module(cr, "social_twitter", deps={"social", "iap"}, auto_install=True)
         util.new_module(cr, "website_event_track_gantt", deps={"website_event_track", "web_gantt"}, auto_install=True)
 
+        # demo modules. They are actually auto_install, but we don't care installing them during upgrades
+        util.new_module(
+            cr,
+            "l10n_be_us_consolidation_demo",
+            deps={"account_consolidation", "l10n_be", "l10n_generic_coa"},
+            auto_install=False,
+        )
+        util.new_module(
+            cr,
+            "l10n_generic_auto_transfer_demo",
+            deps={"account_auto_transfer", "l10n_generic_coa"},
+            auto_install=False,
+        )
+
         util.rename_module(cr, "account_reports_followup", "account_followup")
         util.module_deps_diff(cr, "account_followup", plus={"sms"})
         util.module_auto_install(cr, "account_followup", True)
 
         util.module_deps_diff(cr, "hr_appraisal", plus={"web_gantt"})
-        util.module_deps_diff(cr, "hr_contract_salary", plus={"hr_contract_sign"})
-        util.force_migration_of_fresh_module(cr, "hr_contract_sign")
         util.module_deps_diff(cr, "hr_payroll", plus={"hr_work_entry", "mail"})
         util.module_deps_diff(cr, "hr_payroll_account", plus={"account_accountant"}, minus={"account"})
         util.module_deps_diff(

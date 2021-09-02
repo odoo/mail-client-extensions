@@ -8,6 +8,7 @@ def migrate(cr, version):
     )
     util.new_module(cr, "hr_fleet", deps={"hr", "fleet"}, auto_install=True)
     util.new_module(cr, "hr_presence", deps={"hr", "hr_holidays", "sms"})
+    util.new_module(cr, "l10n_in_pos", deps={"l10n_in", "point_of_sale"}, auto_install=True)
     util.new_module(cr, "pos_hr", deps={"point_of_sale", "hr"}, auto_install=True)
 
     util.rename_module(cr, "document", "attachment_indexation")

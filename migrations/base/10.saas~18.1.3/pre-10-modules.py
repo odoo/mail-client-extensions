@@ -134,6 +134,8 @@ def migrate(cr, version):
                 auto_install=util.module_installed(cr, "marketing_campaign"),
             )
             util.remove_module(cr, "marketing_campaign")
+            # Re-add dependencies...
+            util.module_deps_diff(cr, "website_crm_score", plus={"marketing_automation"})
 
         util.merge_module(cr, "crm_voip", "voip")
         util.merge_module(cr, "website_subscription", "sale_subscription")

@@ -48,6 +48,8 @@ def migrate(cr, version):
             cr, "documents_l10n_be_hr_payroll", deps={"documents_hr_payroll", "l10n_be_hr_payroll"}, auto_install=True
         )
         util.new_module(cr, "hr_contract_salary_payroll", deps={"hr_contract_salary", "hr_payroll"}, auto_install=True)
+        # https://github.com/odoo/enterprise/pull/11294
+        util.new_module(cr, "purchase_intrastat", deps={"purchase", "account_intrastat"}, auto_install=True)
         util.new_module(
             cr, "purchase_stock_enterprise", deps={"purchase_enterprise", "purchase_stock"}, auto_install=True
         )
