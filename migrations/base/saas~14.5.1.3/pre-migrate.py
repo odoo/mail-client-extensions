@@ -33,3 +33,6 @@ def migrate(cr, version):
     util.create_column(cr, "ir_mail_server", "smtp_ssl_private_key", "bytea")
     util.rename_xmlid(cr, "mail.icp_mail_catchall_alias", "base.icp_mail_catchall_alias")
     util.rename_xmlid(cr, "mail.icp_mail_bounce_alias", "base.icp_mail_bounce_alias")
+
+    util.remove_module(cr, "sale_amazon_delivery")
+    util.new_module_dep(cr, "sale_amazon", "delivery")
