@@ -53,6 +53,8 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_lu_saft", "l10n_lu_reports")
         util.module_deps_diff(cr, "l10n_lu_reports", plus={"account_asset", "account_saft"})
         util.new_module(cr, "stock_barcode_mrp", deps={"stock_barcode", "mrp"}, auto_install=True)
+        util.module_deps_diff(cr, "planning_holidays", plus={"hr_holidays_gantt"}, minus={"hr_holidays"})
+        util.new_module(cr, "project_holidays", deps={"project_enterprise", "hr_holidays_gantt"}, auto_install=True)
 
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
