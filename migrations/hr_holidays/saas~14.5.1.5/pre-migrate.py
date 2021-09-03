@@ -126,15 +126,32 @@ def migrate(cr, version):
 
     # Migration of validity
     # select id, validity_start, validity_stop from hr_leave_type then set them on hr_leave_allocation where holiday_status_id = id
+    # since validity_start was not required and date_from is, we insert an old date in that case.
     cr.execute(
         """
             UPDATE hr_leave_allocation
                SET
-                    date_from=type.validity_start,
+                    date_from=COALESCE(type.validity_start, '01/01/1970'),
                     date_to=type.validity_stop
               FROM hr_leave_type AS type
              WHERE type.id = hr_leave_allocation.holiday_status_id
         """
+    )
+
+    # Migration of holiday_allocation_id
+    cr.execute(
+        """
+        UPDATE hr_leave leave
+           SET holiday_allocation_id=allocation.id
+          FROM hr_leave_allocation allocation
+          JOIN hr_leave_type leave_type
+            ON leave_type.id=allocation.holiday_status_id
+         WHERE leave.date_from IS NOT NULL AND leave.date_to IS NOT NULL
+           AND allocation.holiday_status_id=leave.holiday_status_id
+           AND leave_type.requires_allocation = 'yes'
+           AND allocation.date_from <= leave.date_from
+           AND (allocation.date_to IS NULL OR allocation.date_to > leave.date_to)
+    """
     )
 
     # Remove Columns
