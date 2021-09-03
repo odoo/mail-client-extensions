@@ -150,5 +150,10 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "website_sale_gift_card", plus={"sale_gift_card"}, minus={"gift_card"})
     util.new_module(cr, "mrp_repair", deps={"repair", "mrp"}, auto_install=True)
 
+    util.module_deps_diff(cr, "pos_adyen", minus={"adyen_platforms"})
+    util.remove_module(cr, "sale_payment_odoo")
+    util.remove_module(cr, "payment_odoo")
+    util.remove_module(cr, "adyen_platforms")
+
     util.new_module(cr, "sale_timesheet_margin", deps={"sale_timesheet", "sale_margin"}, auto_install=True)
     util.force_migration_of_fresh_module(cr, "sale_timesheet_margin")
