@@ -1777,10 +1777,14 @@ def migrate_invoice_lines(cr):
         % ("AND i.move_id < %s" % min(created_moves.ids) if created_moves else "",),
     )
 
+    cr.execute("SELECT max(id) FROM account_move_line")
+    max_aml_id = cr.fetchone()
+
     cr.execute(
         """
-            SELECT il.name, i.move_id, il.sequence, il.display_type, il.price_unit, il.price_subtotal, il.price_total,
-                   CASE WHEN i.currency_id != c.currency_id THEN i.currency_id ELSE NULL END as currency_id
+            SELECT il.name, i.move_id, il.display_type, il.price_unit, il.price_subtotal, il.price_total,
+                   CASE WHEN i.currency_id != c.currency_id THEN i.currency_id ELSE NULL END as currency_id,
+                   il.id as sequence  -- hijack the sequence column
               FROM account_invoice_line il
               JOIN account_invoice i ON i.id = il.invoice_id
               JOIN res_company c ON c.id = i.company_id
@@ -1792,6 +1796,30 @@ def migrate_invoice_lines(cr):
     )
     if cr.rowcount:
         util.iter_browse(env["account.move.line"], [], strategy="commit").create(cr.dictfetchall())
+
+    # Mapping of above newly created lines having display_type != False.
+    cr.execute(
+        """
+        INSERT INTO invl_aml_mapping (invl_id, aml_id)
+             SELECT sequence, id
+               FROM account_move_line
+              WHERE id > %s
+                AND display_type IS NOT NULL
+        """,
+        [max_aml_id],
+    )
+
+    # Now reset the sequence
+    cr.execute(
+        """
+            UPDATE account_move_line l
+               SET sequence = i.sequence
+              FROM account_move_line i
+             WHERE i.id = l.sequence
+               AND l.id > %s
+        """,
+        [max_aml_id],
+    )
 
     if True:
         # First un-exclude from invoice tab so that we can reuse exclude_from_invoice_tab field when computing amounts
