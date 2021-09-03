@@ -125,3 +125,9 @@ def migrate(cr, version):
 
     util.rename_field(cr, "res.config.settings", "module_l10n_eu_service", "module_l10n_eu_oss")
     util.create_m2m(cr, "account_account_tag_product_template_rel", "product_template", "account_account_tag")
+    
+    # =================================================================
+    # Import First Bill Modal Improvement (PR: odoo#75815)
+    # =================================================================
+
+    util.remove_field(cr, "account.tour.upload.bill", "sample_bill_preview")
