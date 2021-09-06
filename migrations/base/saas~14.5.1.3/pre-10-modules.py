@@ -59,6 +59,8 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "planning_holidays", plus={"hr_holidays_gantt"}, minus={"hr_holidays"})
         util.new_module(cr, "project_holidays", deps={"project_enterprise", "hr_holidays_gantt"}, auto_install=True)
 
+        util.module_deps_diff(cr, "timesheet_grid", plus={"project_enterprise"})
+
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
     util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
