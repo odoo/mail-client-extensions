@@ -64,6 +64,23 @@ def migrate(cr, version):
             "n": "SET NULL",
             "d": "SET DEFAULT",
         }.get(on_delete)
+
+        # Clean the column in order to be able to reapply the constraint
+        cte = """
+            WITH bad_messages AS (
+                SELECT m.id
+                  FROM mail_message m
+             LEFT JOIN mail_message p ON p.id = m.parent_id
+            WHERE p.id IS NULL
+              AND m.parent_id IS NOT NULL
+            )
+        """
+        if on_delete == "CASCADE":
+            cr.execute(cte + "DELETE FROM mail_message m USING bad_messages b WHERE m.id = b.id")
+        else:
+            # bad news if it was `RESTRICT`, the parent is gone; set it to NULL
+            cr.execute(cte + "UPDATE mail_message m SET parent_id = NULL FROM bad_messages b WHERE b.id = m.id")
+
         cr.execute(
             """
                 ALTER TABLE mail_message
