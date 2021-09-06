@@ -116,7 +116,6 @@ def migrate(cr, version):
     util.new_module(cr, "project_purchase", deps={"purchase", "project"}, auto_install=True)
 
     util.module_deps_diff(cr, "project_timesheet_forecast", plus={"timesheet_grid"}, minus={"hr_timesheet"})
-    util.module_deps_diff(cr, "auth_totp", plus={"mail"})
 
     util.new_module(
         cr, "pos_sale_product_configurator", deps={"point_of_sale", "sale_product_configurator"}, auto_install=True
@@ -157,3 +156,5 @@ def migrate(cr, version):
 
     util.new_module(cr, "sale_timesheet_margin", deps={"sale_timesheet", "sale_margin"}, auto_install=True)
     util.force_migration_of_fresh_module(cr, "sale_timesheet_margin")
+
+    util.new_module(cr, "auth_totp_mail", deps={"auth_totp", "mail"}, auto_install=True)
