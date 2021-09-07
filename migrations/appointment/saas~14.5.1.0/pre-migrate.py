@@ -55,6 +55,7 @@ def migrate(cr, version):
         util.rename_xmlid(cr, *eb(move))
 
     util.create_column(cr, "calendar_appointment_type", "category", "varchar", default="website")
+    util.create_column(cr, "calendar_appointment_type", "active", "boolean", default=True)
     util.create_column(cr, "calendar_appointment_slot", "slot_type", "varchar", default="recurring")
     util.create_column(cr, "calendar_appointment_slot", "start_datetime", "timestamp without time zone")
     util.create_column(cr, "calendar_appointment_slot", "end_datetime", "timestamp without time zone")
