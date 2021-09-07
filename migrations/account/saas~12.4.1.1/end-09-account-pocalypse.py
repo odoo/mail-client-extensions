@@ -693,6 +693,7 @@ def migrate_voucher_lines(cr):
     env = util.env(cr)
     # cleanup
     cr.execute("DELETE FROM account_voucher_line WHERE voucher_id IS NULL")
+    cr.execute("DELETE FROM account_voucher WHERE voucher_type IN ('receipt', 'payment')")
 
     # explode taxes
     _logger.info("vouchers: explode tax groups in child tax")
