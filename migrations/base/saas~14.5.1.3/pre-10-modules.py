@@ -79,6 +79,8 @@ def migrate(cr, version):
 
         util.module_deps_diff(cr, "timesheet_grid", plus={"project_enterprise"})
 
+        util.merge_module(cr, "sale_ebay_account_deletion", "sale_ebay")
+
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
     util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
