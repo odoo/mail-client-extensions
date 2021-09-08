@@ -164,3 +164,5 @@ def migrate(cr, version):
 
     util.new_module(cr, "mass_mailing_crm_sms", deps={"mass_mailing_crm", "mass_mailing_sms"}, auto_install=True)
     util.new_module(cr, "mass_mailing_sale_sms", deps={"mass_mailing_sale", "mass_mailing_sms"}, auto_install=True)
+
+    util.module_deps_diff(cr, "web_editor", plus={"mail"})
