@@ -1718,7 +1718,7 @@ def migrate_invoice_lines(cr):
         % ("AND i.move_id < %s" % min(created_moves.ids) if created_moves else "",),
     )
     if cr.rowcount:
-        env["account.move.line"].create(cr.dictfetchall())
+        util.iter_browse(env["account.move.line"], [], strategy="commit").create(cr.dictfetchall())
 
     if True:
         # First un-exclude from invoice tab so that we can reuse exclude_from_invoice_tab field when computing amounts
