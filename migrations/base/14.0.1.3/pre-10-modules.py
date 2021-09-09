@@ -38,6 +38,9 @@ def migrate(cr, version):
         auto_install=False,
     )
 
+    # https://github.com/odoo/odoo/pull/70302
+    util.new_module(cr, "l10n_es_edi_sii", deps={"l10n_es", "account_edi_extended"})
+
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
 
