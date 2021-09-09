@@ -4,7 +4,6 @@ import re
 
 from odoo import api, models
 from odoo.modules.module import get_modules
-from odoo.tools.misc import str2bool
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -273,7 +272,7 @@ class IrUiView(models.Model):
                 force_check_views._check_xml()
                 return res
 
-        if not str2bool(os.getenv("MATT", "0")):
+        if not util.on_CI():
 
             @api.constrains("type", "groups_id", "inherit_id")
             def _check_groups(self):
@@ -299,7 +298,7 @@ class IrUiView(models.Model):
                         _logger.log(25, "View unlink %s explicitly ignored", (view.xml_id))
                     else:
                         _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
-                        if str2bool(os.getenv("MATT", "0")):
+                        if util.on_CI():
                             # Hard fail only in CI.
                             raise util.MigrationError(
                                 "It looks like you forgot to call `util.remove_view(cr, %r)`" % view.xml_id

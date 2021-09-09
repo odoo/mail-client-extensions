@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
 from odoo import models
-from odoo.tools.misc import str2bool
 
 from odoo.addons.account.models import account_move  # noqa
+
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -33,7 +33,7 @@ class MoveLine(models.Model):
         pass
 
 
-if str2bool(os.getenv("MATT", "0")):
+if util.on_CI():
     # Some l10n_ modules create invoice demo data
     # While these records are in noupdate, to determine their existance, the ORM try loading them.
     # However, as their xmlid still point to the `account.invoice` model (because the records are only converted in `end-` script),

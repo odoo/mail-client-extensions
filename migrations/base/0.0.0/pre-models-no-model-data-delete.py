@@ -3,7 +3,6 @@ import logging
 import os
 
 from odoo import api, models
-from odoo.tools.misc import str2bool
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -96,7 +95,7 @@ class IrModelData(models.Model):
                 if error_xmlids:
                     error_msg = "It looks like you forgot to call `util.delete_unused` on %s" % (",".join(error_xmlids))
                     _logger.critical(error_msg)
-                    if str2bool(os.getenv("MATT", "0")) and noupdate_forced:
+                    if util.on_CI() and noupdate_forced:
                         # Hard fail only in CI.
                         raise util.MigrationError(error_msg)
 
