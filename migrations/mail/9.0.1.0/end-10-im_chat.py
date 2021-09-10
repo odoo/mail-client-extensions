@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     if not util.table_exists(cr, 'im_chat_message'):
-        util.remove_module(cr, 'im_chat')
         return
 
     env = util.env(cr)
@@ -54,4 +54,6 @@ def migrate(cr, version):
           ORDER BY m.create_date ASC
         """, [chan.id, public_user, subtype_id, sid])
 
-    util.remove_module(cr, 'im_chat')
+    cr.execute("DROP TABLE im_chat_message")
+    cr.execute("DROP TABLE im_chat_session_res_users_rel")
+    cr.execute("DROP TABLE im_chat_session")

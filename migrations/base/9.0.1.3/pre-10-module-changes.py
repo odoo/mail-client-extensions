@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
 
     if not util.has_enterprise():
@@ -27,6 +28,8 @@ def migrate(cr, version):
     util.rename_module(cr, 'hr_evaluation', 'hr_appraisal')
     util.rename_module(cr, 'planner', 'web_planner')
     util.rename_module(cr, 'website_mail_group', 'website_mail_channel')
+
+    util.merge_module(cr, "im_chat", "mail")
 
     util.new_module_dep(cr, 'base_iban', 'account')  # we can leave the 'base' dep
 
@@ -236,7 +239,6 @@ def migrate(cr, version):
         edi
         hr_applicant_document       # feature move to hr_recruitment
 
-        # im_chat       # data need to be converted. see mail/9.0.1.0/post-10-im_chat.py
         knowledge
         planner_crm
         portal_project
