@@ -44,9 +44,6 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
 
-        # https://github.com/odoo/enterprise/pull/14895
-        util.new_module(cr, "account_online_synchronization", deps={"account_online_sync"}, auto_install=True)
-
         # https://github.com/odoo/enterprise/pull/15264
         util.new_module(
             cr,
@@ -108,6 +105,10 @@ def migrate(cr, version):
 
         # https://github.com/odoo/enterprise/pull/19376
         util.new_module(cr, "l10n_mx_xml_polizas", deps={"l10n_mx_reports"}, auto_install=True)
+
+        # module added in stable after release, but need to installed if user didn't do it in previous version
+        # Actually, it should be as it doesn't works without...
+        util.trigger_auto_install(cr, "account_online_synchronization")
 
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")

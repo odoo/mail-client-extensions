@@ -6,7 +6,6 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_be_intrastat_2019", deps=("l10n_be_intrastat",), auto_install=True)
     util.new_module(cr, "payment_stripe_sca", deps={"payment_stripe"}, auto_install=True)
     util.new_module(cr, "hr_expense_check", deps={"hr_expense", "account_check_printing"}, auto_install=True)
-    util.new_module(cr, "account_lock", deps={"account"})  # also in 9.0, but not in the intermediate saas versions
 
     util.module_deps_diff(cr, "l10n_mx", plus={"account_tax_cash_basis"})
 
@@ -30,12 +29,10 @@ def migrate(cr, version):
         util.new_module_dep(cr, "web_studio", "portal")
 
     # modules added after release
-    util.new_module(cr, "hw_screen", deps={"hw_proxy"})
-    util.new_module(cr, "account_cash_basis_base_account", deps={"account_tax_cash_basis"}, auto_install=True)
-    util.new_module(cr, "l10n_in_schedule6", deps={"account"})
-
-    util.new_module(cr, "l10n_fr_certification", deps={"l10n_fr"})
-    util.new_module(cr, "l10n_fr_sale_closing", deps={"l10n_fr_certification"}, auto_install=True)
-    util.new_module(cr, "l10n_fr_pos_cert", deps={"l10n_fr_sale_closing", "point_of_sale"})
-    # The module has also been added in saas~11
-    util.module_deps_diff(cr, "l10n_fr_pos_cert", plus={"l10n_fr_sale_closing"}, minus={"l10n_fr_certification"})
+    if "saas" in version:
+        # module not backported in intermediate saas versions
+        util.new_module(cr, "account_cash_basis_base_account", deps={"account_tax_cash_basis"}, auto_install=True)
+        util.new_module(cr, "account_lock", deps={"account"})
+        # dependencies not changed in saas-11
+        # and it's my fault... https://github.com/odoo/odoo/commit/228f6086b1f06fca246c80e170e6d155ec256e60
+        util.module_deps_diff(cr, "l10n_fr_pos_cert", plus={"l10n_fr_sale_closing"}, minus={"l10n_fr_certification"})

@@ -21,11 +21,7 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_za", deps={"account", "base_vat"})
 
     if util.has_enterprise():
-        util.new_module(cr, "l10n_uk_reports_hmrc", deps={"l10n_uk_reports"}, auto_install=True)
         util.module_deps_diff(cr, "stock_account_enterprise", plus={"stock_enterprise"})
-
-        # https://github.com/odoo/enterprise/pull/6357
-        util.new_module(cr, "account_reports_cash_flow", deps={"account_reports"}, auto_install=True)
 
         util.new_module(cr, "product_unspsc", deps={"product"})
         util.new_module(
@@ -55,7 +51,6 @@ def migrate(cr, version):
         util.new_module(cr, "l10n_za_reports", deps={"l10n_za", "account_reports"}, auto_install=True)
         # https://github.com/odoo/enterprise/pull/3089, https://github.com/odoo/enterprise/pull/3465
         util.new_module(cr, "sale_intrastat", deps={"sale", "account_intrastat"}, auto_install=True)
-        util.new_module(cr, "l10n_be_intrastat_2019", deps={"l10n_be_intrastat"}, auto_install=True)
         # https://github.com/odoo/enterprise/pull/6167
         util.new_module(cr, "l10n_dk_reports", deps={"l10n_dk", "account_reports"}, auto_install=True)
         # https://github.com/odoo/enterprise/pull/4162

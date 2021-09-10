@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
 
     if util.has_enterprise():
@@ -26,6 +27,14 @@ def migrate(cr, version):
     util.new_module(cr, 'hr_timesheet_attendance',
                     deps=('hr_timesheet', 'hr_attendance'),
                     auto_install=True)
+
+    if "saas" in version:
+        # for saas-10 databases
+        util.new_module(cr, "hw_screen", deps={"hw_proxy"})
+        util.new_module(cr, "l10n_fr_certification", deps={"l10n_fr"})
+        util.new_module(cr, "l10n_fr_sale_closing", deps={"l10n_fr_certification"}, auto_install=True)
+        util.new_module(cr, "l10n_fr_pos_cert", deps={"l10n_fr_certification", "point_of_sale"})
+        util.new_module(cr, "l10n_in_schedule6", deps={"account"})
 
     util.new_module(cr, 'payment_payumoney', deps=('payment',))
     util.new_module(cr, 'payment_stripe', deps=('payment',))

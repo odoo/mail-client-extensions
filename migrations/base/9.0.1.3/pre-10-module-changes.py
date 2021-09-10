@@ -39,6 +39,10 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'account', 'web_planner')
 
+    util.new_module(cr, "account_tax_cash_basis", deps={"account"})
+    util.new_module(cr, "account_cash_basis_base_account", deps={"account_tax_cash_basis"}, auto_install=True)
+    util.new_module(cr, "account_lock", deps={"account"})
+
     util.new_module(cr, 'account_check_printing', deps=('account',),
                     auto_install=util.modules_installed(cr, 'account_check_writing'))
 
@@ -66,6 +70,8 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_au", deps={"account"})
     util.new_module(cr, "l10n_de_skr03", deps={"l10n_de"})
     util.new_module(cr, "l10n_de_skr04", deps={"l10n_de"})
+
+    util.new_module(cr, "l10n_in_schedule6", deps={"account"})
 
     util.new_module_dep(cr, 'l10n_ca', 'report')
     util.new_module_dep(cr, 'l10n_ca', 'l10n_multilang')

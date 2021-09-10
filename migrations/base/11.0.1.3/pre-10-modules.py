@@ -23,15 +23,10 @@ def migrate(cr, version):
             deps={"sale_coupon_taxcloud", "sale_coupon_delivery"},
             auto_install=True,
         )
-        util.new_module(
-            cr,
-            "website_sale_taxcloud_delivery",
-            deps=("website_sale_delivery", "website_sale_account_taxcloud"),
-            auto_install=True,
-        )
 
-        # for saas-{14,15} databases
-        util.new_module(cr, "payment_stripe_sca", deps={"payment_stripe"}, auto_install=True)
+        if "saas" in version:
+            # for saas-{14,15} databases
+            util.new_module(cr, "payment_stripe_sca", deps={"payment_stripe"}, auto_install=True)
 
         # This module is present in saas-14. This module is not installable nor usable as the certificate in the code is expired.
         # There is no database that should have this module installed.
@@ -40,7 +35,6 @@ def migrate(cr, version):
         util.new_module(cr, "l10n_mx_edi_cancellation", deps={"l10n_mx_edi"}, auto_install=True)
         util.new_module(cr, "l10n_mx_edi_customs", deps={"l10n_mx_edi"})
         util.new_module(cr, "l10n_mx_edi_external_trade", deps={"l10n_mx_edi"})
-        util.new_module(cr, "l10n_mx_edi_payment", deps={"l10n_mx_edi"}, auto_install=True)
         util.new_module(cr, "l10n_mx_edi_payment_bank", deps={"l10n_mx_edi"}, auto_install=True)
         util.new_module(cr, "l10n_mx_tax_cash_basis", deps={"l10n_mx_edi"}, auto_install=True)
         util.new_module(
@@ -50,7 +44,6 @@ def migrate(cr, version):
         )
         util.new_module(cr, "l10n_mx_edi_sale_coupon", deps={"l10n_mx_edi", "sale_coupon"}, auto_install=True)
         util.new_module(cr, "l10n_mx_reports_closing", deps={"l10n_mx_reports"}, auto_install=True)
-        util.new_module(cr, "l10n_uk_reports_hmrc", deps={"l10n_uk_reports"}, auto_install=True)
 
         # https://github.com/odoo/enterprise/pull/6291
         util.new_module(cr, "account_reports_cash_flow", deps={"account_reports"}, auto_install=True)

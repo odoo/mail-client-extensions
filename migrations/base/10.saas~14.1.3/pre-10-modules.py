@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     util.merge_module(cr, 'account_tax_cash_basis', 'account')
 
@@ -9,7 +10,6 @@ def migrate(cr, version):
     # new modules
     util.new_module(cr, 'base_address_city', deps=('base',))
     util.new_module(cr, 'base_address_extended', deps=('base',))
-    util.new_module(cr, 'l10n_in_schedule6', deps=('account',))
 
     # new modules-link
     util.new_module(cr, 'crm_livechat', deps=('crm', 'im_livechat'), auto_install=True)
@@ -36,6 +36,9 @@ def migrate(cr, version):
     if util.has_enterprise():
         # new modules
         util.new_module(cr, 'l10n_mx_edi', deps=('account', 'base_vat', 'base_address_extended'))
+        util.new_module(cr, "l10n_mx_edi_cfdi_33", deps={"l10n_mx_edi", "base_address_city"}, auto_install=True)
+        util.new_module(cr, "l10n_mx_edi_payment", deps={"l10n_mx_edi_cfdi_33"}, auto_install=True)
+
         util.new_module(cr, 'mail_github', deps=('mail',))
         util.new_module(cr, 'sale_coupon', deps=('sale',))
         util.new_module(cr, 'web_clearbit', deps=('base_setup', 'web'), auto_install=True)

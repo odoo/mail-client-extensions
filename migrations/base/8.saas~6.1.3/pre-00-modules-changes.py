@@ -44,8 +44,6 @@ def migrate(cr, version):
 
     util.new_module(cr, "inter_company_rules", deps={"sale", "purchase", "sale_stock", "sale_order_dates"})
 
-    util.new_module(cr, "payment_authorize", deps={"payment"})
-
     if util.module_installed(cr, "procurement_jit") and not util.module_installed(cr, "stock"):
         # procurement_jit was already useless without stock. Do not force stock installation
         cr.execute("UPDATE ir_module_module SET state='to remove' WHERE name='procurement_jit'")

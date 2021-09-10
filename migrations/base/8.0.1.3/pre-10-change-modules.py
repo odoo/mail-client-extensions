@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
 
     util.remove_module(cr, 'plugin_outlook')
@@ -12,6 +13,7 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'im_chat', 'bus')
     util.new_module(cr, "im_odoo_support", deps={"im_chat", "web"})
 
+    util.new_module(cr, "payment_authorize", deps={"payment"})
     util.new_module(cr, "payment_sips", deps={"payment"})
     util.rename_module(cr, 'project_mrp', 'sale_service')
 
@@ -32,3 +34,6 @@ def migrate(cr, version):
         util.new_module(cr, l10n, deps=('account', 'account_chart'))
 
     util.new_module(cr, "l10n_eu_service", deps={"account_accountant"})
+
+    util.new_module(cr, "hw_proxy")
+    util.new_module(cr, "hw_screen", deps={"hw_proxy"})

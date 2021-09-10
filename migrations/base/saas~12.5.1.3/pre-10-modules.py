@@ -128,7 +128,6 @@ def migrate(cr, version):
 
         util.rename_module(cr, "map_view_contact", "contacts_enterprise")
         util.new_module(cr, "documents_fleet", deps={"documents", "fleet"}, auto_install=True)
-        util.new_module(cr, "documents_hr", deps={"documents", "hr"}, auto_install=True)
         util.new_module(cr, "documents_hr_contract", deps={"documents_hr", "hr_contract"}, auto_install=True)
         util.force_migration_of_fresh_module(cr, "documents_hr_contract", init=False)
         util.new_module(cr, "documents_hr_holidays", deps={"documents_hr", "hr_holidays"}, auto_install=True)
