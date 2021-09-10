@@ -30,7 +30,7 @@ def migrate(cr, version):
          WHERE tax_line.tax_line_id = tax.id
            AND tax.type_tax_use = 'none'
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line"))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="tax_line."))
 
     # ===============================================================
     # Add category to analytic account line (PR: (odoo) 68708 & (enterprise) 18594)
@@ -86,7 +86,7 @@ def migrate(cr, version):
         AND NOT aml.tax_exigible
         AND {parallel_filter}
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query_tags, table="account_move_line", prefix="aml"))
+    util.parallel_execute(cr, util.explode_query_range(cr, query_tags, table="account_move_line", prefix="aml."))
 
     # Since we removed the tags, tax_audit needs to be reset for those lines.
     query_tax_audit = """
@@ -125,7 +125,7 @@ def migrate(cr, version):
 
     util.rename_field(cr, "res.config.settings", "module_l10n_eu_service", "module_l10n_eu_oss")
     util.create_m2m(cr, "account_account_tag_product_template_rel", "product_template", "account_account_tag")
-    
+
     # =================================================================
     # Import First Bill Modal Improvement (PR: odoo#75815)
     # =================================================================
