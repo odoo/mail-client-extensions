@@ -786,6 +786,7 @@ def migrate_voucher_lines(cr):
         cr.execute(
             """
             SELECT
+                inv_line.id,
                 inv_line.name,
                 inv_line.sequence,
                 inv_line.voucher_id,
@@ -834,6 +835,10 @@ def migrate_voucher_lines(cr):
 
             if line_vals["account_id"] != line_vals["original_account_id"]:
                 updated_vouchers.setdefault(line_vals["voucher_id"], []).append(line_vals["name"])
+                cr.execute(
+                    "UPDATE account_voucher_line SET account_id = %s WHERE id = %s",
+                    [line_vals["account_id"], line_vals["id"]],
+                )
 
     Move = env["account.move"].with_context(check_move_validity=False)
     created_moves = Move.browse()
