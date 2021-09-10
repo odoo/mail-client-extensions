@@ -87,3 +87,5 @@ def migrate(cr, version):
         "account_analytic_tag_id",
         "project_task_id",
     )
+    util.rename_field(cr, "report.project.task.user", "user_id", "user_ids")
+    util.rename_field(cr, "project.task.burndown.chart.report", "user_id", "user_ids")
