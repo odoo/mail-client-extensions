@@ -34,3 +34,14 @@ def migrate(cr, version):
 
     util.remove_field(cr, "mail.activity.type", "res_model_id")
     util.remove_field(cr, "mail.activity.type", "initial_res_model_id")
+
+    cr.execute(
+        """
+            DELETE FROM mail_channel_partner WHERE id IN (
+                  SELECT unnest((array_agg(id ORDER BY id))[2:])
+                    FROM mail_channel_partner
+                GROUP BY partner_id, channel_id
+                  HAVING count(*) > 1
+            )
+        """
+    )
