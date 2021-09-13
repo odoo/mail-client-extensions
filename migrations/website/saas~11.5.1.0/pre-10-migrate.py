@@ -119,15 +119,16 @@ def migrate(cr, version):
         if param_value:
             cr.execute("UPDATE website set {}=%s".format(field), (param_value,))
 
-    cr.execute("""
+    cr.execute(
+        """
         DELETE FROM ir_config_parameter
               WHERE key IN ('google_maps_api_key',
-                            'auth_signup.invitation_scope',
                             'website.has_google_analytics',
                             'website.has_google_analytics_dashboard',
                             'website.has_google_maps'
                            )
-    """)
+    """
+    )
 
     util.create_column(cr, "website_page", "header_overlay", "boolean")
     util.create_column(cr, "website_page", "header_color", "varchar")
