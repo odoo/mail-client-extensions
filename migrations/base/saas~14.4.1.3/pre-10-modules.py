@@ -28,3 +28,10 @@ def migrate(cr, version):
         util.module_deps_diff(cr, "helpdesk_sale_timesheet", plus={"helpdesk_sale"})
 
         util.remove_module(cr, "l10n_be_sale_intrastat")
+
+        util.new_module(
+            cr,
+            "l10n_be_hr_contract_salary_group_insurance",
+            deps={"l10n_be_hr_contract_salary"},
+            auto_install=True,
+        )
