@@ -79,7 +79,8 @@ def migrate_newsletter_popup(cr, table, column):
 
             # `data-list-id` is now on `s_newsletter_subscribe_form`, not on
             # `o_newsletter_popup` anymore.
-            new_popup_structure.xpath("//*[hasclass('s_newsletter_subscribe_form')]")[0].set("data-list-id", list_id)
+            for elem in new_popup_structure.xpath("//*[hasclass('s_newsletter_subscribe_form')]"):
+                elem.set("data-list-id", list_id)
 
             if newsletter_popup_el == content:
                 # Special case: the newsletter popup snippet could be the root
