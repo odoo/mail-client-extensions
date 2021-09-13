@@ -86,7 +86,7 @@ def migrate(cr, version):
 
     util.module_auto_install(cr, "website_sale_slides", False)
 
-    util.merge_module(cr, "decimal_precision", "base", without_deps=True)
+    util.merge_module(cr, "decimal_precision", "base", update_dependers=False)
     util.merge_module(cr, "payment_stripe_sca", "payment_stripe")
 
     if util.module_installed(cr, "l10n_fr"):

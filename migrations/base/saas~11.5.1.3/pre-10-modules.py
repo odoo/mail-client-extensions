@@ -214,8 +214,8 @@ def migrate(cr, version):
         util.remove_module(cr, "website_version")  # merged into website?
 
     if util.has_design_themes():
-        util.merge_module(cr, "snippet_latest_posts", "website_blog", without_deps=True)
-        util.merge_module(cr, "snippet_google_map", "theme_common", without_deps=True)
+        util.merge_module(cr, "snippet_latest_posts", "website_blog", update_dependers=False)
+        util.merge_module(cr, "snippet_google_map", "theme_common", update_dependers=False)
         util.module_deps_diff(cr, "theme_treehouse", plus={"theme_common"})
 
         util.module_deps_diff(cr, "theme_common", plus={"website_theme_install"})

@@ -11,7 +11,7 @@ def migrate(cr, version):
 
     # merges
     util.merge_module(cr, "website_form", "website")
-    util.merge_module(cr, "website_animate", "website", without_deps=True)
+    util.merge_module(cr, "website_animate", "website", update_dependers=False)
 
     # new modules
     util.new_module(cr, "account_sale_timesheet", deps={"account", "sale_timesheet"}, auto_install=True)

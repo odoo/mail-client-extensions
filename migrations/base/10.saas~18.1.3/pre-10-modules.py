@@ -24,7 +24,7 @@ def migrate(cr, version):
 
     # Avoid to have account depending on website...
     # Then let oneAppFree remains oneAppFree
-    util.merge_module(cr, "website_account", "account", without_deps=True)
+    util.merge_module(cr, "website_account", "account", update_dependers=False)
 
     accountant_deps = util.splitlines(
         """

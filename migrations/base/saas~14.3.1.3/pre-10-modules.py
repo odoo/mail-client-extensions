@@ -3,7 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.merge_module(cr, "account_edi_extended", "account_edi", without_deps=True)
+    util.merge_module(cr, "account_edi_extended", "account_edi", update_dependers=False)
     util.merge_module(cr, "l10n_ch_qriban", "l10n_ch")
 
     util.new_module(cr, "account_edi_ubl_bis3", deps={"account_edi_ubl"})

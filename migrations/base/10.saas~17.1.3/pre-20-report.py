@@ -64,7 +64,7 @@ def migrate(cr, version):
     )
 
     util.rename_xmlid(cr, "report.view_company_report_form", "base.view_company_report_form")
-    util.merge_module(cr, "report", "web", without_deps=True)
+    util.merge_module(cr, "report", "web", update_dependers=False)
 
     util.remove_record(cr, "base.preview_rml_report")
     # now adapt model

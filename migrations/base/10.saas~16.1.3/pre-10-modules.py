@@ -23,7 +23,7 @@ def migrate(cr, version):
     util.remove_view(cr, "web_kanban.assets_backend")
     util.merge_module(cr, "web_kanban", "web")
     util.remove_view(cr, "web_calendar.assets_backend")
-    util.merge_module(cr, "web_calendar", "web", without_deps=True)
+    util.merge_module(cr, "web_calendar", "web", update_dependers=False)
 
     util.remove_module_deps(cr, "account_bank_statement_import", ("account",))
     util.new_module_dep(cr, "account_bank_statement_import", "account_accountant")
