@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import models
 
 try:
@@ -8,6 +10,8 @@ except ImportError:
     from odoo.addons.base.module import module as _ignore  # noqa
 
 from odoo.addons.base.maintenance.migrations import util
+
+_logger = logging.getLogger("odoo.upgrade.base.ir_module_module")
 
 
 def migrate(cr, version):
@@ -25,7 +29,11 @@ class Module(models.Model):
         modules = [v["name"] for v in values] if isinstance(values, list) else [values["name"]]
         modules = [m for m in modules if "test" not in m]
         if modules:
-            raise util.MigrationError("New modules %r should be declared via an upgrade script." % (modules,))
+            _logger.log(
+                util.NEARLYWARN,
+                r"New modules %r should be declared via an upgrade script. But do what you want ¯\_(ツ)_/¯.",
+                modules,
+            )
 
         # else create the test modules
         return super(Module, self).create(values)
@@ -40,6 +48,10 @@ class Module(models.Model):
             plus = needed - existing
             minus = existing - needed
             diff = "\n".join(["\n".join(" + %s" % p for p in plus), "\n".join(" - %s" % m for m in minus)])
-            raise util.MigrationError(
-                "Changes of the %r module dependencies should be handled via an upgrade script.\n%s" % (self.name, diff)
+            _logger.log(
+                util.NEARLYWARN,
+                "Changes of the %r module dependencies should be handled via an upgrade script. "
+                "But do what you want ¯\\_(ツ)_/¯. Diff:\n%s",
+                self.name,
+                diff,
             )
