@@ -1151,8 +1151,7 @@ def migrate_voucher_lines(cr):
         _logger.error("vouchers: invalid line mapping: %r <-> %r", v, m)
 
     _logger.info("vouchers: check for missing line mapping")  # ignoring line with amount = 0
-    cr.execute(
-        """
+    search_missing_mapping = """
         SELECT count(l.id), string_agg(l.id::text, ',' ORDER BY l.id)
           FROM account_voucher_line l
           JOIN account_voucher v ON v.id = l.voucher_id
@@ -1161,7 +1160,12 @@ def migrate_voucher_lines(cr):
            AND l.price_subtotal != 0
            AND v.move_id IS NOT NULL
     """
-    )
+    cr.execute(search_missing_mapping)
+    cnt, ids = cr.fetchone()
+    if cnt:
+        _convert_missing_mapping_voucher_line_to_display(cr)
+
+    cr.execute(search_missing_mapping)
     cnt, ids = cr.fetchone()
     if cnt:
         _logger.error("vouchers: missing move line for %s voucher lines: %s", cnt, ids)
@@ -1309,6 +1313,69 @@ def _compute_invoice_line_grouped_in_move_line(cr):
     """
     )
     cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig124_invl_id")
+
+
+def _convert_missing_mapping_voucher_line_to_display(cr):
+    cr.execute("ALTER TABLE account_move_line ADD COLUMN _mig124_vl_id int4")
+    cr.execute(
+        """
+        INSERT INTO account_move_line (
+            move_id, move_name, date, ref, parent_state, journal_id, company_id, company_currency_id,
+            account_id,account_internal_type,account_root_id,sequence,name,quantity,price_unit,discount,
+            display_type,is_rounding_line,exclude_from_invoice_tab,analytic_account_id,
+            debit,credit,balance,amount_currency,price_subtotal,price_total,reconciled,blocked,
+            currency_id,partner_id,product_id,tax_exigible,_mig124_vl_id
+        )
+        SELECT m.id,
+               m.name,
+               m.date,
+               m.ref,
+               m.state,
+               m.journal_id,
+               m.company_id,
+               c.currency_id,
+               NULL, -- vl.account_id,
+               aat.type,
+               a.root_id,
+               vl.sequence,
+               vl.name,
+               vl.quantity,
+               vl.price_unit,
+               0,
+               'line_note',
+               FALSE,
+               FALSE,
+               vl.account_analytic_id,
+               0,
+               0,
+               0,
+               0,
+               0,
+               0,
+               TRUE,
+               FALSE,
+               NULL, -- vl.currency_id,
+               v.partner_id,
+               vl.product_id,
+               TRUE,
+               vl.id
+          FROM account_voucher_line vl
+          JOIN account_voucher v ON vl.voucher_id=v.id
+          JOIN account_move m ON m.id=v.move_id
+     LEFT JOIN res_company c ON m.company_id=c.id
+     LEFT JOIN account_account a ON vl.account_id=a.id
+     LEFT JOIN account_account_type aat ON aat.id=a.user_type_id
+     LEFT JOIN vl_ml_mapping map ON map.vl_id = vl.id
+         WHERE map.ml_id IS NULL
+    """
+    )
+    cr.execute(
+        """
+        INSERT INTO vl_ml_mapping (vl_id,ml_id)
+        SELECT _mig124_vl_id,id FROM account_move_line WHERE _mig124_vl_id IS NOT NULL
+    """
+    )
+    cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig124_vl_id")
 
 
 def guess_account(env, invoice_type, journal_id, product_id, fiscal_position_id=None):
