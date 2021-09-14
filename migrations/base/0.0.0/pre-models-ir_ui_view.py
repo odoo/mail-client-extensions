@@ -22,7 +22,9 @@ else:
 try:
     from odoo.tools.pycompat import to_text
 except ImportError:
-    to_text = lambda t: t
+
+    def to_text(t):
+        return t
 
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
