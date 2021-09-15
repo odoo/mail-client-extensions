@@ -24,3 +24,7 @@ def migrate(cr, version):
 
     util.remove_model(cr, "l10n_be.hr.payroll.credit.time.wizard")
     util.remove_model(cr, "l10n_be.hr.payroll.exit.credit.time.wizard")
+
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_salary_attachment_salary")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_salary_asignment_salary")
+    util.delete_unused(cr, "l10n_be_hr_payroll.cp200_employees_salary_child_support")
