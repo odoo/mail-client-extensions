@@ -127,3 +127,4 @@ result_name = inputs.CHILD_SUPPORT.name""",
         VALUES %s""",
         values,
     )
+    util.if_unchanged(cr, "hr_payroll.mail_template_new_payslip", util.update_record_from_xml)
