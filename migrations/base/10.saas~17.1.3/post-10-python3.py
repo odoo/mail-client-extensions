@@ -79,7 +79,7 @@ def migrate(cr, version):
                 strip = -1      # will remove last character
             try:
                 refactored = str(rt.refactor_string(util.dedent(value), '%s,%d' % (tc, rid)))[:strip]
-            except ParseError:
+            except (ParseError, IndentationError):
                 model = util.model_of_table(cr, table).title().replace('.', '')
                 _logger.warning('Cannot refactor %s(%d).%s', model, rid, column)
                 continue
