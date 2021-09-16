@@ -1,5 +1,4 @@
 export default class Project {
-
     id: number;
     name: string;
     company_id: number;
@@ -11,5 +10,4 @@ export default class Project {
         project.company_id = projectJson['company_id'];
         return project;
     }
-
 }

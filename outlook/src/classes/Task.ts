@@ -1,5 +1,4 @@
 export default class Task {
-
     id: number;
     name: string;
     projectName: string;
@@ -13,5 +12,4 @@ export default class Task {
         task.companyId = o['company_id'];
         return task;
     }
-
 }

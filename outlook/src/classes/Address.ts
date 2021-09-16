@@ -14,16 +14,13 @@ class Address {
     }
 
     getLines(): string[] {
-        let firstLine = [this.number || "", this.street || ""].join(" ").trim();
-        let secondLine = [this.city || "", this.zip || ""].join(" ").trim();
+        let firstLine = [this.number || '', this.street || ''].join(' ').trim();
+        let secondLine = [this.city || '', this.zip || ''].join(' ').trim();
 
         let lines = [];
-        if (firstLine)
-            lines.push(firstLine)
-        if (secondLine)
-            lines.push(secondLine)
-        if (this.country)
-            lines.push(this.country)
+        if (firstLine) lines.push(firstLine);
+        if (secondLine) lines.push(secondLine);
+        if (this.country) lines.push(this.country);
 
         return lines;
     }
@@ -40,7 +37,7 @@ class Address {
         const address = new Address();
         address.number = o['street_number'];
         address.street = o['street_name'];
-        address.city = o['city']
+        address.city = o['city'];
         address.zip = o['postal_code'];
         address.country = o['country_name'];
         return address;

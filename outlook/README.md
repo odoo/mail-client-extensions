@@ -68,6 +68,9 @@ Translations are provided in the `translations_outlook.xml` file located in each
 
 For more details about translations see: https://github.com/odoo/mail-client-extensions/blob/master/outlook/src/utils/Translator.ts
 
+### Prettier
+Before committing, please run prettier to automatically format your code
+> `npm run-script prettier`
 
 ### Deploy on Github Page
 Github provides a service to host static website. It can be used to serve the files of

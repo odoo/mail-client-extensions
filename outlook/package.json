@@ -71,8 +71,8 @@
     "office-addin-debugging": "^3.0.34",
     "office-addin-dev-certs": "^1.5.5",
     "office-addin-lint": "^1.0.26",
-    "office-addin-prettier-config": "^1.0.12",
     "postcss-loader": "3.0.0",
+    "prettier": "1.19.1",
     "react-hot-loader": "^4.12.6",
     "source-map-loader": "^0.2.4",
     "style-loader": "^0.23.1",
@@ -82,5 +82,12 @@
     "webpack-cli": "^3.3.8",
     "webpack-dev-server": "^3.8.0"
   },
-  "prettier": "office-addin-prettier-config"
+  "prettier": {
+    "printWidth": 120,
+    "tabWidth": 4,
+    "trailingComma": "all",
+    "jsxBracketSameLine": true,
+    "arrowParens": "always",
+    "singleQuote": true
+  }
 }
