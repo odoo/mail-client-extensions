@@ -20,12 +20,15 @@ The code is based on the [Office Addin API](https://docs.microsoft.com/en-us/off
 - `npm install`
 - open the `node_modules/office-addin-dev-certs/lib/verify.js` file
 - inside the file, in the switch clause located in the `getVerifyCommand()` function add the following :
-  ```bash
+
+```bash
 case "linux":
     return `[ -f /usr/local/share/ca-certificates/office-addin-dev-certs/${defaults.caCertificateFileName} ] && openssl x509 -in /usr/local/share/ca-certificates/office-addin-dev-certs/${defaults.caCertificateFileName} -checkend 86400 -noout`;
-  ```
+```
+
 - open the `node_modules/office-addin-dev-certs/lib/install.js` file
 - inside the file, in the switch clause add the following:
+
 ```bash
 case "linux":
    return `sudo cp ${caCertificatePath} /usr/local/share/ca-certificates && sudo /usr/sbin/update-ca-certificates`;
@@ -66,8 +69,15 @@ Translations are provided in the `translations_outlook.xml` file located in each
 For more details about translations see: https://github.com/odoo/mail-client-extensions/blob/master/outlook/src/utils/Translator.ts
 
 
-### About testing
+### Deploy on Github Page
+Github provides a service to host static website. It can be used to serve the files of
+the add-in and so to serve the add-in for testing.
 
-If you are using github pages for deployment, you will only be able to run a single branch
-of the plugin at a time, to allow for testing to be done in parallel for multiple branches
-at the same time, you will need to rebase your branches on top of each other.
+First build the add-in
+> `npm run-script build`
+
+Then replace the default domain (localhost) of the add-in by the domain of your Github Page
+> `./replaceDomain.sh <domain>`
+
+Then publish it
+> `npm run-script deploy -- -r <repository> -b <branch>`
