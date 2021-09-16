@@ -201,6 +201,7 @@ export default class App extends React.Component<AppProps, AppState> {
                 case EnrichmentInfoType.NotConnected_InsufficientCredit:
                 case EnrichmentInfoType.NotConnected_InternalError:
                 case EnrichmentInfoType.Other:
+                case EnrichmentInfoType.OdooCustomError:
                 case EnrichmentInfoType.CouldNotGetTranslations:
                     bars.push(
                         <MessageBar
@@ -260,13 +261,7 @@ export default class App extends React.Component<AppProps, AppState> {
             default:
                 return (
                     <AppContext.Provider value={this.state}>
-                        <div
-                            style={{
-                                height: '100vh',
-                                width: '100vw',
-                                display: 'flex',
-                                flexDirection: 'column',
-                            }}>
+                        <div className="app-main">
                             <div>{this.getMessageBars()}</div>
                             <div style={{ flex: 1 }}>
                                 <Main />

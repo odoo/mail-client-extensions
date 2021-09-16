@@ -26,15 +26,6 @@
     margin-left: auto;
 }
 
-.social-links {
-    padding-left: 8px;
-}
-
-.profile-card .social-links img {
-    height: 15px;
-    margin: 3px;
-}
-
 .description {
     padding: 8px;
 }
@@ -44,6 +35,10 @@
     padding: 8px;
 }
 
+.clickable:hover {
+    background: #ededed;
+}
+
 .with-padding {
     padding: 8px;
 }
@@ -51,10 +46,6 @@
 .phone {
     display: flex;
     flex-direction: row;
-}
-
-.clickable:hover {
-    background: #ededed;
 }
 
 [data-initials]:before {
@@ -72,8 +63,4 @@
     height: 50px; 
     line-height: 50px; 
     text-align: center; 
-}
-
-.profile-card-email {
-
 }

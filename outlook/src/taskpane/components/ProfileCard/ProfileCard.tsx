@@ -15,15 +15,9 @@ export type ProfileCardProps = {
     email: string;
     job: string;
     phone: string;
-    description: string;
-    twitter: string;
-    facebook: string;
-    crunchbase: string;
-    linkedin: string;
     onClick?: () => void;
     isBig?: boolean; //used for email overflow, TODO change maybe by obtaining the width dynamically
     isCompany: boolean;
-    parentIsCompany?: boolean;
 };
 
 export class ProfileCard extends React.Component<ProfileCardProps, {}> {
@@ -32,16 +26,8 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         this.state = {};
     }
 
-    private addDefaultSrc(ev) {
-        ev.target.src = defaultCompanyImageSrc;
-    }
-
     private getIconOrInitials = () => {
-        if (this.props.parentIsCompany) {
-            return null;
-        }
-
-        let iconOrInitials = <img className="icon" src={this.props.icon} onError={this.addDefaultSrc} />;
+        let iconOrInitials = <img className="icon" src={this.props.icon} />;
 
         if (!this.props.icon) {
             if (this.props.isCompany) {
@@ -62,59 +48,14 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         return iconOrInitials;
     };
 
-    private getTextWidth = (text, font) => {
-        // re-use canvas object for better performance
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext('2d');
-        context.font = font;
-        var metrics = context.measureText(text);
-        return metrics.width;
-    };
-
     render() {
-        const { name, email, job, phone, description, twitter, facebook, linkedin, crunchbase } = this.props;
-        const iconOrInitials = this.getIconOrInitials();
-
-        let nameJob = job ? name + ', ' + job : name;
-
-        const nameSize = this.getTextWidth(nameJob, 'bold 16px Arial');
-        const nameSizeCutoff = 150;
-
-        // If the size of the text is smaller than the cutoff and the parent is not a company, the social links should be on the right of the name.
-        const social = (
-            <div
-                className={`social-links ${nameSize < nameSizeCutoff && !this.props.parentIsCompany ? 'right' : null}`}>
-                {twitter ? (
-                    <a href={'https://twitter.com/' + twitter} target="_blank" rel="noreferrer noopener">
-                        <img src="assets/social/twitter.ico" />
-                    </a>
-                ) : null}
-                {facebook ? (
-                    <a href={'https://facebook.com/' + twitter} target="_blank" rel="noreferrer noopener">
-                        <img src="assets/social/facebook.ico" />
-                    </a>
-                ) : null}
-                {linkedin ? (
-                    <a href={'https://linkedin.com/' + linkedin} target="_blank" rel="noreferrer noopener">
-                        <img src="assets/social/linkedin.ico" />
-                    </a>
-                ) : null}
-                {crunchbase ? (
-                    <a href={'https://crunchbase.com/' + crunchbase} target="_blank" rel="noreferrer noopener">
-                        <img src="assets/social/crunchbase.ico" />
-                    </a>
-                ) : null}
-            </div>
-        );
-
-        let emailDiv = null;
+        const { name, email, job, phone } = this.props;
 
         //TODO, can we calculate width dynamically?
         let maxEmailWidth = this.props.isBig ? 180 : 120;
 
-        const nameDiv = !this.props.parentIsCompany ? <div className="name">{nameJob}</div> : null;
-
-        if (email && !this.props.parentIsCompany) {
+        let emailDiv = null;
+        if (email) {
             emailDiv = (
                 <div className="profile-card-email" style={{ display: 'flex', flexDirection: 'row' }}>
                     <div>
@@ -141,7 +82,7 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         }
 
         let phoneDiv = null;
-        if (phone && !this.props.parentIsCompany) {
+        if (phone) {
             phoneDiv = (
                 <div className="phone">
                     <div>
@@ -161,37 +102,18 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
             );
         }
 
-        let descriptionDiv = null;
-        if (description && description !== '') {
-            descriptionDiv = <div style={{ padding: '0 8px 0 8px' }}>{description}</div>;
-        }
-
-        let profileCardClassName = 'profile-card';
-        if (this.props.onClick && !this.props.parentIsCompany) {
-            profileCardClassName += ' clickable';
-        } else {
-            if (this.props.parentIsCompany) {
-                profileCardClassName += ' with-padding';
-            }
-        }
-
         return (
             <>
                 <div>
-                    <div className={profileCardClassName} onClick={this.props.onClick}>
-                        {iconOrInitials}
+                    <div className={`profile-card ${this.props.onClick && 'clickable'}`} onClick={this.props.onClick}>
+                        {this.getIconOrInitials()}
                         <div>
-                            {nameDiv}
+                            <div className="name">{job ? name + ', ' + job : name}</div>
                             {emailDiv}
                             {phoneDiv}
                         </div>
-                        {nameSize < nameSizeCutoff || this.props.parentIsCompany ? social : null}
-                    </div>
-                    <div className="profile-card">
-                        {nameSize > nameSizeCutoff && !this.props.parentIsCompany ? social : null}
                     </div>
                 </div>
-                {descriptionDiv}
             </>
         );
     }

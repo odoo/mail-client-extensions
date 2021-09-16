@@ -12,7 +12,7 @@ type CompanyInfoItemProps = {
 
 const CompanyInfoItem = (props: CompanyInfoItemProps) => {
     const icon = (
-        <div className="company-icon">
+        <div className="company-info-icon">
             <FontAwesomeIcon icon={props.icon} color="darkgrey" className="fa-fw" />
         </div>
     );
