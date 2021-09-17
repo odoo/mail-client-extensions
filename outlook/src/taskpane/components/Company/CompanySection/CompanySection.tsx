@@ -122,7 +122,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             ContentType.Json,
             this.context.getConnectionToken(),
             {
-                partner_id: this.props.partner.id,
+                partner_id: this.props.partner.company.id,
             },
             true,
         );
