@@ -1,4 +1,5 @@
 import * as React from 'react';
+import './Logger.css';
 import { ContentType, HttpVerb, sendHttpRequest } from '../../../utils/httpRequest';
 import AppContext from '../AppContext';
 import api from '../../api';
@@ -64,7 +65,7 @@ class Logger extends React.Component<LoggerProps, LoggerState> {
             })}</div>`;
             const msgFooter = `<br/><div class="text-muted font-italic">${_t(
                 'Logged from',
-            )} <a href="https://www.odoo.com/documentation/14.0/applications/sales/crm/optimize/outlook_extension.html" target="_blank">${_t(
+            )} <a href="https://www.odoo.com/documentation/master/applications/productivity/mail_plugins.html" target="_blank">${_t(
                 'Outlook Inbox',
             )}</a></div>`;
             const body = result.value.split('<div id="x_appendonsend"></div>')[0]; // Remove the history and only log the most recent message.

@@ -16,7 +16,6 @@ export type ProfileCardProps = {
     job: string;
     phone: string;
     onClick?: () => void;
-    isBig?: boolean; //used for email overflow, TODO change maybe by obtaining the width dynamically
     isCompany: boolean;
 };
 
@@ -51,9 +50,6 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
     render() {
         const { name, email, job, phone } = this.props;
 
-        //TODO, can we calculate width dynamically?
-        let maxEmailWidth = this.props.isBig ? 180 : 120;
-
         let emailDiv = null;
         if (email) {
             emailDiv = (
@@ -71,7 +67,6 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
                             textOverflow: 'ellipsis',
-                            maxWidth: maxEmailWidth + 'px',
                         }}>
                         <TooltipHost content={email} overflowMode={TooltipOverflowMode.Parent}>
                             {email}
@@ -103,18 +98,14 @@ export class ProfileCard extends React.Component<ProfileCardProps, {}> {
         }
 
         return (
-            <>
-                <div>
-                    <div className={`profile-card ${this.props.onClick && 'clickable'}`} onClick={this.props.onClick}>
-                        {this.getIconOrInitials()}
-                        <div>
-                            <div className="name">{job ? name + ', ' + job : name}</div>
-                            {emailDiv}
-                            {phoneDiv}
-                        </div>
-                    </div>
+            <div className={`profile-card ${this.props.onClick && 'clickable'}`} onClick={this.props.onClick}>
+                {this.getIconOrInitials()}
+                <div className="profile-name-container">
+                    <div className="name">{job ? name + ', ' + job : name}</div>
+                    {emailDiv}
+                    {phoneDiv}
                 </div>
-            </>
+            </div>
         );
     }
 }

@@ -1,6 +1,7 @@
 .profile-card {
-    display: flex;
-    align-items: center;
+    display: contents;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .profile-card .icon {
@@ -16,6 +17,9 @@
     font-weight: 600;
     font-size: 14px;
     color: #4b4a49;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .profile-card .phone {
@@ -24,6 +28,10 @@
 
 .profile-card .right {
     margin-left: auto;
+}
+
+.profile-name-container {
+    overflow: hidden;
 }
 
 .description {

@@ -5,8 +5,9 @@
 }
 
 .contact-profile-card-container {
-    /*word-wrap: break-word;*/
-    flex: 5;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
     padding: 8px;
 }
 
