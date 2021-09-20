@@ -14,17 +14,16 @@ type ContactSectionProps = {
 class ContactSection extends React.Component<ContactSectionProps, {}> {
     viewContact = (partner) => {
         const cids = this.context.getUserCompaniesString();
-        let url = api.baseURL + `/web#id=${partner.id}&model=res.partner&view_type=form${cids}`;
+        const url = `${api.baseURL}/web#id=${partner.id}&model=res.partner&view_type=form${cids}`;
         window.open(url, '_blank');
     };
 
     render() {
-        let selectable = this.props.partner.isAddedToDatabase();
-        let onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : undefined;
+        const onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : null;
 
         return (
             <div className="section-card">
-                <ContactListItem partner={this.props.partner} selectable={selectable} onItemClick={onItemClick} />
+                <ContactListItem partner={this.props.partner} onItemClick={onItemClick} />
             </div>
         );
     }

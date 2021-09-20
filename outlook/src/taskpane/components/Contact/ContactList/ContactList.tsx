@@ -18,14 +18,7 @@ const ContactList = (props: ContactListProps) => {
     const contactsList = (
         <div>
             {props.partners.map((partner) => {
-                return (
-                    <ContactListItem
-                        partner={partner}
-                        selectable={true}
-                        onItemClick={onPartnerClick}
-                        key={partner.id}
-                    />
-                );
+                return <ContactListItem partner={partner} onItemClick={onPartnerClick} key={partner.id} />;
             })}
         </div>
     );
