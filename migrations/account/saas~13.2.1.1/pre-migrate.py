@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import itertools
+import logging
 import re
 
 from odoo.upgrade import util
+
+_logger = logging.getLogger("odoo.upgrade.account.saas-13.2." + __name__)
 
 
 def migrate(cr, version):
@@ -65,16 +68,16 @@ def migrate(cr, version):
             deactivate = False
             if re.search(r"%\(\w+\)s", prefix) and re.search(r"%\(\w+\)s", suffix):
                 deactivate = True
-                bad_journals.append(
-                    f"The journal {name} (id={jid}) use placeholders in both prefix and suffix. This not supported anymore."
-                )
+                msg = f"The journal {name} (id={jid}) use placeholders in both prefix and suffix. This is not supported anymore."
+                _logger.error(msg)
+                bad_journals.append(msg)
 
             xfix = prefix + suffix
             if any(p in xfix for p in deprecated_placeholders):
                 deactivate = True
-                bad_journals.append(
-                    f"The journal {name} (id={jid} use deprecated placeholders that are not supported anymore."
-                )
+                msg = f"The journal {name} (id={jid} use deprecated placeholders that are not supported anymore."
+                _logger.error(msg)
+                bad_journals.append(msg)
 
             if deactivate:
                 cr.execute("UPDATE account_journal SET active = false WHERE id = %s", [jid])
