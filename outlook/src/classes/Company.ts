@@ -2,10 +2,6 @@ import Address from './Address';
 import EnrichmentInfo, { EnrichmentInfoType } from './EnrichmentInfo';
 
 /***
- * id reserved for non empty companies which we fetch directly from IAP.
- */
-const ID_COMPANY_FROM_REVEAL: number = -2;
-/***
  * id reserved for empty companies.
  */
 const ID_COMPANY_EMPTY: number = -1;
@@ -47,10 +43,14 @@ class Company {
         company.address = Address.fromJSON(o['address']);
 
         if (enrichmentInfo != null) {
-            if (enrichmentInfo.type == EnrichmentInfoType.NoData) {
-                company.enrichmentStatus = EnrichmentStatus.enrichmentEmpty;
-            } else if (EnrichmentInfoType.CompanyCreated || EnrichmentInfoType.CompanyUpdated) {
-                company.enrichmentStatus = EnrichmentStatus.enriched;
+            switch (enrichmentInfo.type) {
+                case EnrichmentInfoType.NoData:
+                    company.enrichmentStatus = EnrichmentStatus.enrichmentEmpty;
+                    break;
+                case EnrichmentInfoType.CompanyCreated:
+                case EnrichmentInfoType.CompanyUpdated:
+                    company.enrichmentStatus = EnrichmentStatus.enriched;
+                    break;
             }
         } else if (JSON.stringify(company.additionalInfo) != '{}') {
             company.enrichmentStatus = EnrichmentStatus.enriched;
@@ -63,7 +63,7 @@ class Company {
 
     static fromRevealJSON(o: Object): Company {
         const company = new Company();
-        company.id = ID_COMPANY_FROM_REVEAL;
+        company.id = ID_COMPANY_EMPTY;
         company.additionalInfo = o;
         return company;
     }
@@ -108,13 +108,11 @@ class Company {
     }
 
     getIndustry(): string {
-        // TODO 'sector' ?
         const industries = [this.additionalInfo['industry_group'], this.additionalInfo['sub_industry']];
         return industries.filter(Boolean).join(', ');
     }
 
     getEmployees(): number {
-        // TODO remove the decimal
         return this.additionalInfo['employees'];
     }
 
@@ -143,8 +141,6 @@ class Company {
         return this.additionalInfo['estimated_annual_revenue'];
     }
 
-    // TODO: sort it out with the Address object, note: this location can be directly added to a query to maps:
-    // "http://maps.google.com/?q=Koning Albert II-Laan 27, 1000 Brussel, Belgium"
     getLocation(): string {
         return this.address.getLines().join(', ') || this.additionalInfo['location'];
     }
@@ -185,7 +181,7 @@ class Company {
      * Returns True if the company exists in the Odoo database, False otherwise
      */
     isAddedToDatabase(): boolean {
-        return this.id > 0;
+        return this.id && this.id > 0;
     }
 }
 

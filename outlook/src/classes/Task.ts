@@ -5,7 +5,7 @@ export default class Task {
     companyId: number;
 
     static fromJSON(o: Object): Task {
-        var task = new Task();
+        const task = new Task();
         task.id = o['task_id'];
         task.name = o['name'];
         task.projectName = o['project_name'] || '';

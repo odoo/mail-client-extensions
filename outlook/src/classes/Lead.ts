@@ -7,7 +7,7 @@ class Lead {
     recurringPlan?: string;
 
     static fromJSON(o: Object): Lead {
-        var lead = new Lead();
+        const lead = new Lead();
         lead.id = o['lead_id'];
         lead.name = o['name'];
         lead.probability = o['probability'];

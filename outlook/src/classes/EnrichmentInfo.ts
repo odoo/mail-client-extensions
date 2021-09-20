@@ -58,8 +58,7 @@ class EnrichmentInfo {
     };
 
     static fromJSON(o: Object): EnrichmentInfo {
-        var e = Object.assign(new EnrichmentInfo(), o);
-        return e;
+        return Object.assign(new EnrichmentInfo(), o);
     }
 }
 

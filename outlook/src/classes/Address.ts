@@ -14,26 +14,23 @@ class Address {
     }
 
     getLines(): string[] {
-        let firstLine = [this.number || '', this.street || ''].join(' ').trim();
-        let secondLine = [this.city || '', this.zip || ''].join(' ').trim();
+        const firstLine = [this.number || '', this.street || ''].join(' ').trim();
+        const secondLine = [this.city || '', this.zip || ''].join(' ').trim();
 
-        let lines = [];
-        if (firstLine) lines.push(firstLine);
-        if (secondLine) lines.push(secondLine);
-        if (this.country) lines.push(this.country);
+        const lines = [];
+        if (firstLine && firstLine.length) lines.push(firstLine);
+        if (secondLine && secondLine.length) lines.push(secondLine);
+        if (this.country && this.country.length) lines.push(this.country);
 
         return lines;
     }
 
     static fromJSON(o: Object): Address {
         if (!o) return new Address();
-        const address = Object.assign(new Address(), o);
-        return address;
+        return Object.assign(new Address(), o);
     }
 
     static fromRevealJSON(o: Object): Address {
-        // TODO see about the "location" field, and "sub_premise".
-        // TODO state?
         const address = new Address();
         address.number = o['street_number'];
         address.street = o['street_name'];

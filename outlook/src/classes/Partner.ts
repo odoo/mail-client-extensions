@@ -46,7 +46,7 @@ class Partner {
      * @param company
      */
     static createNewPartnerFromEmail = (name: string, email: string): Partner => {
-        let partner = new Partner();
+        const partner = new Partner();
         partner.name = name;
         partner.email = email;
         return partner;
@@ -88,9 +88,9 @@ class Partner {
      */
     getInitials(): string {
         //get all words having a length > 2 and containing only letters
-        let rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
+        const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
 
-        let initials = [...this.name.matchAll(rgx)] || [];
+        const initials = [...this.name.matchAll(rgx)] || [];
 
         return ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
     }
@@ -99,7 +99,7 @@ class Partner {
      * Returns True if the partner exists in the Odoo database, False otherwise
      */
     isAddedToDatabase(): boolean {
-        return this.id > 0;
+        return this.id && this.id > 0;
     }
 }
 
