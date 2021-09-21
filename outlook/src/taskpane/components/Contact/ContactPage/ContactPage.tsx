@@ -1,9 +1,8 @@
 import * as React from 'react';
 import Partner from '../../../../classes/Partner';
-import PartnerData from '../../../../classes/Partner';
 import AppContext from '../../AppContext';
+import ContactListItem from '../ContactList/ContactListItem/ContactListItem';
 import LeadsSection from '../../Crm/LeadsSection/LeadsSection';
-import ContactSection from '../ContactSection/ContactSection';
 import CompanySection from '../../Company/CompanySection/CompanySection';
 import TicketsSection from '../../Helpdesk/TicketsSection/TicketsSection';
 import { ContentType, HttpVerb, sendHttpRequest } from '../../../../utils/httpRequest';
@@ -37,9 +36,9 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
     private fetchContact = () => {
         const partner = this.props.partner;
 
-        let requestData = !this.props.partner.isAddedToDatabase()
-            ? { email: partner.email, name: partner.name }
-            : { partner_id: partner.id };
+        const requestData = this.props.partner.isAddedToDatabase()
+            ? { partner_id: partner.id }
+            : { email: partner.email, name: partner.name };
 
         const partnerRequest = sendHttpRequest(
             HttpVerb.POST,
@@ -55,7 +54,7 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
         partnerRequest.promise
             .then((response) => {
                 const parsed = JSON.parse(response);
-                let partner = PartnerData.fromJSON(parsed.result.partner);
+                const partner = Partner.fromJSON(parsed.result.partner);
                 if (parsed.result.leads) {
                     partner.leads = parsed.result.leads.map((lead_json) => Lead.fromJSON(lead_json));
                 }
@@ -82,25 +81,30 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
             .catch((error) => {
                 this.context.showHttpErrorMessage(error);
                 this.setState({ isLoading: false });
-                console.log(error);
             });
     };
 
     private isCrmInstalled = (): boolean => {
-        return this.props.partner.leads != undefined;
+        return this.props.partner.leads !== undefined;
     };
 
     private isProjectInstalled = (): boolean => {
-        return this.props.partner.tasks != undefined;
+        return this.props.partner.tasks !== undefined;
     };
 
     private isHelpdeskInstalled = (): boolean => {
-        return this.props.partner.tickets != undefined;
+        return this.props.partner.tickets !== undefined;
     };
 
     private propagatePartnerInfoChange = (partner: Partner) => {
         this.setState({ partner: partner });
         this.props.onPartnerChanged(partner);
+    };
+
+    viewContact = (partner) => {
+        const cids = this.context.getUserCompaniesString();
+        const url = `${api.baseURL}/web#id=${partner.id}&model=res.partner&view_type=form${cids}`;
+        window.open(url, '_blank');
     };
 
     componentDidMount() {
@@ -110,59 +114,32 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
 
     render() {
         if (this.state.isLoading) {
-            return (
-                <>
-                    <div className="spinner-container">
-                        <Spinner size={SpinnerSize.large} theme={OdooTheme} />
-                    </div>
-                </>
-            );
-        } else {
-            let leadsList = null;
-            if (this.isCrmInstalled()) {
-                leadsList = (
-                    <div style={{ marginTop: '16px' }}>
-                        <LeadsSection partner={this.state.partner} />
-                    </div>
-                );
-            }
-
-            let tasksList = null;
-            if (this.isProjectInstalled()) {
-                tasksList = (
-                    <div style={{ marginTop: '16px' }}>
-                        <TasksSection partner={this.state.partner} />
-                    </div>
-                );
-            }
-
-            let ticketsList = null;
-            if (this.isHelpdeskInstalled()) {
-                ticketsList = (
-                    <div style={{ marginTop: '16px' }}>
-                        <TicketsSection partner={this.state.partner} />
-                    </div>
-                );
-            }
-
-            let hideCollapseButton = !this.isHelpdeskInstalled() && !this.isCrmInstalled();
-
-            return (
-                <>
-                    <ContactSection partner={this.state.partner} />
-                    {leadsList}
-                    {tasksList}
-                    {ticketsList}
-                    <div style={{ marginTop: '16px' }}>
-                        <CompanySection
-                            partner={this.state.partner}
-                            onPartnerInfoChanged={this.propagatePartnerInfoChange}
-                            hideCollapseButton={hideCollapseButton}
-                        />
-                    </div>
-                </>
-            );
+            return <Spinner className="contact-spinner" size={SpinnerSize.large} theme={OdooTheme} />;
         }
+
+        const leadsList = this.isCrmInstalled() && <LeadsSection partner={this.state.partner} />;
+
+        const tasksList = this.isProjectInstalled() && <TasksSection partner={this.state.partner} />;
+
+        const ticketsList = this.isHelpdeskInstalled() && <TicketsSection partner={this.state.partner} />;
+
+        const onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : null;
+
+        return (
+            <div className="contact-page">
+                <div className="section-card">
+                    <ContactListItem partner={this.props.partner} onItemClick={onItemClick} />
+                </div>
+                {leadsList}
+                {tasksList}
+                {ticketsList}
+                <CompanySection
+                    partner={this.state.partner}
+                    onPartnerInfoChanged={this.propagatePartnerInfoChange}
+                    hideCollapseButton={!leadsList && !tasksList && !ticketsList}
+                />
+            </div>
+        );
     }
 }
 

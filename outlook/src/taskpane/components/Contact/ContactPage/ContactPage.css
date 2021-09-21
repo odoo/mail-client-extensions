@@ -1,4 +1,8 @@
-.spinner-container{
+.contact-page > div:not(:first-child) {
+    margin-top: 16px;
+}
+
+.contact-spinner{
     display: flex;
     align-items: center;
     justify-content: center;
