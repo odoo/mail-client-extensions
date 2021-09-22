@@ -154,7 +154,7 @@ def migrate(cr, version):
         util.new_module(
             cr, "sale_timesheet_account_budget", deps={"sale_timesheet", "account_budget"}, auto_install=True
         )
-        util.new_module(cr, "social_instagram", deps={"social"}, auto_install=False)
+        util.new_module(cr, "social_instagram", deps={"social"}, auto_install=True)
         util.new_module(cr, "stock_barcode_mrp", deps={"stock_barcode", "mrp"}, auto_install=True)
         util.new_module(cr, "website_appointment", deps={"appointment", "website_enterprise"}, auto_install=True)
 
