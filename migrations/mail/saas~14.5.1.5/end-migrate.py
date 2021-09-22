@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo.upgrade import util
+from odoo.upgrade.util.jinja_to_qweb import upgrade_jinja_fields
 
 
 def migrate(cr, version):
@@ -48,3 +49,17 @@ def migrate(cr, version):
     # Remove records
     util.remove_record(cr, "mail.ir_cron_mail_notify_channel_moderators")
     util.remove_record(cr, "mail.mail_moderation_rule_user")
+
+    inline_template_fields = [
+        "subject",
+        "email_from",
+        "email_to",
+        "partner_to",
+        "email_cc",
+        "reply_to",
+        "report_name",
+        "scheduled_date",
+    ]
+    qweb_fields = ["body_html"]
+
+    upgrade_jinja_fields(cr, "mail_template", inline_template_fields, qweb_fields)
