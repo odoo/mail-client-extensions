@@ -62,13 +62,13 @@ def migrate(cr, version):
     )
 
     rules = """
-        project_public_member_rule
+        project_public_members_rule
         task_visibility_rule
         project_project_rule_portal
         project_task_rule_portal
     """
     for rule in util.splitlines(rules):
-        util.force_noupdate(cr, f"project.{rule}", False)
+        util.update_record_from_xml(cr, f"project.{rule}")
 
     cr.execute(
         """
