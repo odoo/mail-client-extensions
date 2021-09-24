@@ -116,10 +116,11 @@ def migrate(cr, version):
     #        dates fields need to split/relink, recreate m2m, relink stock_move to workorder, etc
     util.create_column(cr, "mrp_production", "old_id", "int4")
     util.create_column(cr, "stock_move", "old_id", "int4")
-    (column_production,) = util.get_columns(
+    column_production, column_production_pre = util.get_columns(
         cr,
         "mrp_production",
         ignore=("id", "old_id", "lot_producing_id", "backorder_sequence", "name", "product_qty", "qty_producing"),
+        extra_prefixes=["mp"]
     )
     column_stock_move, column_stock_move_pre = util.get_columns(
         cr,
@@ -197,7 +198,7 @@ def migrate(cr, version):
             INSERT INTO mrp_production
                         ({column_production}, old_id, backorder_sequence,
                         lot_producing_id, name, product_qty, qty_producing)
-            SELECT {column_production}, b_info.mo_id,
+            SELECT {column_production_pre}, b_info.mo_id,
                    b_info.backorder_sequence, b_info.lot_id,
                    mp.name ||
                            ('-' || REPEAT('0', 2 - TRUNC(LOG(b_info.backorder_sequence))::INT)
@@ -225,7 +226,7 @@ def migrate(cr, version):
          UNION
         SELECT id FROM update_source_mo
     """.format(
-            column_production=", ".join(column_production)
+            column_production=", ".join(column_production), column_production_pre=", ".join(column_production_pre),
         )
     )
     ids_mo = [mo_id for mo_id, in cr.fetchall()]
