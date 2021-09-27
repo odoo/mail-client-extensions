@@ -43,7 +43,22 @@ def migrate(cr, version):
     # For other settings than (auto valuation (real_time) and FIFO costing method), stock valuation layers (SVL)
     # are created based on stock moves.
     cr.execute(
+        r"""
+        SELECT ((regexp_matches(p1.res_id,'product.category,(\d+)'))[1])::int4 AS id,
+                p1.company_id
+          INTO _upgrade_rtime_fifo
+          FROM ir_property p1
+          JOIN ir_property p2
+            ON p1.res_id = p2.res_id
+           AND p1.company_id = p2.company_id
+         WHERE p1.name = 'property_valuation'
+           AND p1.value_text = 'real_time'
+           AND p2.name = 'property_cost_method'
+           AND p2.value_text = 'fifo'
+           AND p1.res_id LIKE 'product.category,%'
         """
+    )
+    q = """
         INSERT INTO stock_valuation_layer(
             create_uid,
             create_date,
@@ -85,30 +100,17 @@ def migrate(cr, version):
         LEFT JOIN stock_location ld ON (ld.id = sm.location_dest_id)
         LEFT JOIN product_product pp ON pp.id = sm.product_id
         LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
-        LEFT JOIN product_category pc ON pc.id = pt.categ_id
+        LEFT JOIN _upgrade_rtime_fifo rtf ON rtf.id = pt.categ_id AND rtf.company_id = sm.company_id
         WHERE
+            {parallel_filter} AND
             sm.state = 'done' AND
-            'product.category,' || pc.id NOT IN
-                (
-                SELECT res_id FROM ir_property
-                WHERE
-                    name = 'property_valuation' AND
-                    value_text = 'real_time' AND
-                    company_id = sm.company_id
-                INTERSECT
-                SELECT res_id FROM ir_property
-                WHERE
-                    name = 'property_cost_method' AND
-                    value_text = 'fifo' AND
-                    company_id = sm.company_id
-                )
+            rtf.id is NULL
     """
-    )
+    util.parallel_execute(cr, util.explode_query(cr, q, prefix="sm."))
 
     # For auto valuation (real_time) and FIFO costing method, stock valuation layers (SVL)
     # are created based on account move lines.
-    cr.execute(
-        """
+    q = """
         INSERT INTO stock_valuation_layer(
             create_uid,
             create_date,
@@ -168,29 +170,28 @@ def migrate(cr, version):
         LEFT JOIN aml_value ON aml_value.stock_move_id = sm.id
         LEFT JOIN product_product pp ON pp.id = sm.product_id
         LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
-        LEFT JOIN product_category pc ON pc.id = pt.categ_id
+             JOIN _upgrade_rtime_fifo rtf ON rtf.id = pt.categ_id AND rtf.company_id = sm.company_id
         WHERE
             sm.state = 'done' AND
-            'product.category,' || pc.id IN
-                (
-                SELECT res_id FROM ir_property
-                WHERE
-                    name = 'property_valuation' AND
-                    value_text = 'real_time' AND
-                    company_id = sm.company_id
-                INTERSECT
-                SELECT res_id FROM ir_property
-                WHERE
-                    name = 'property_cost_method' AND
-                    value_text = 'fifo' AND
-                    company_id = sm.company_id
-                )
+            {parallel_filter}
     """
-    )
+    util.parallel_execute(cr, util.explode_query(cr, q, prefix="sm."))
+    cr.execute("DROP TABLE _upgrade_rtime_fifo")
 
     # Migrate price history
+    cr.execute("CREATE TABLE stock_valuation_layer_tmp AS TABLE stock_valuation_layer WITH NO DATA")
+    cr.execute("CREATE TABLE _upgrade_fifo (id int PRIMARY KEY, company_id int)")
     cr.execute(
+        r"""
+        INSERT INTO _upgrade_fifo
+        SELECT ((regexp_matches(res_id,'product.category,(\d+)'))[1])::int AS id,
+               company_id
+          FROM ir_property
+         WHERE name = 'property_cost_method' AND value_text = 'fifo'
+           AND res_id LIKE 'product.category,%'
         """
+    )
+    q = """
         WITH svl_history AS
         (
             SELECT
@@ -205,19 +206,17 @@ def migrate(cr, version):
             JOIN stock_valuation_layer svl ON ph.product_id = svl.product_id
             JOIN product_product pp ON pp.id = svl.product_id
             JOIN product_template pt ON pt.id = pp.product_tmpl_id
-            JOIN product_category pc ON pc.id = pt.categ_id
-       LEFT JOIN ir_property pr ON pr.name = 'property_cost_method'
-                               AND pr.value_text = 'fifo'
-                               AND pr.company_id = svl.company_id
-                               AND pr.res_id = 'product.category,' || pc.id
+       LEFT JOIN _upgrade_fifo ON _upgrade_fifo.company_id = svl.company_id
+                              AND _upgrade_fifo.id = pt.categ_id
            WHERE svl.create_date < ph.DATETIME
              AND svl.quantity != 0
              AND svl.company_id = ph.company_id
              AND ph.create_uid != %s
-             AND pr.id IS NULL
+             AND _upgrade_fifo.id IS NULL
+             AND {parallel_filter}
             GROUP BY ph.id, svl.product_id, ph.datetime, ph.cost, svl.company_id
         )
-        INSERT INTO stock_valuation_layer (create_date, write_date, product_id, quantity, VALUE, description, company_id)
+        INSERT INTO stock_valuation_layer_tmp (create_date, write_date, product_id, quantity, VALUE, description, company_id)
         SELECT
             datetime,
             datetime,
@@ -232,9 +231,22 @@ def migrate(cr, version):
             company_id
         FROM svl_history
         WHERE corrected_value != 0;
-    """,
-        (SUPERUSER_ID,),
+    """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr, cr.mogrify(q, [SUPERUSER_ID]).decode(), "product_price_history", bucket_size=100, prefix="ph."
+        ),
     )
+    cr.execute(
+        """
+        INSERT INTO stock_valuation_layer(create_date, write_date, product_id, quantity, VALUE, description, company_id)
+             SELECT create_date, write_date, product_id, quantity, VALUE, description, company_id
+               FROM stock_valuation_layer_tmp
+        """
+    )
+    cr.execute("DROP TABLE stock_valuation_layer_tmp")
+    cr.execute("DROP TABLE _upgrade_fifo")
 
     # In some databases, the customer has played with valuation mode/costing method so the total valuation
     # of a product in stock quants may not be the same than the one in stock valuation layers.
