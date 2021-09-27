@@ -12,7 +12,7 @@ type TaskListItemProps = {
 const TaskListItem = (props: TaskListItemProps) => {
     const openInOdoo = () => {
         const cids = this.context.getUserCompaniesString();
-        let url = api.baseURL + `/web#id=${props.task.id}&model=project.task&view_type=form${cids}`;
+        const url = `${api.baseURL}/web#id=${props.task.id}&model=project.task&view_type=form${cids}`;
         window.open(url, '_blank');
     };
 

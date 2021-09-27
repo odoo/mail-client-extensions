@@ -19,21 +19,16 @@ type TasksSectionState = {
     tasks: Task[];
     isCollapsed: boolean;
     isProjectCalloutOpen: boolean;
-    key: number;
 };
 
 class TasksSection extends React.Component<TasksSectionProps, TasksSectionState> {
     constructor(props, context) {
         super(props, context);
-        let isCollapsed = true;
-        if (props.partner.tasks && props.partner.tasks.length > 0) {
-            isCollapsed = false;
-        }
+        const isCollapsed = !props.partner.tasks || !props.partner.tasks.length;
         this.state = {
             tasks: this.props.partner.tasks,
             isCollapsed: isCollapsed,
             isProjectCalloutOpen: false,
-            key: Math.random(),
         };
     }
 
@@ -45,17 +40,13 @@ class TasksSection extends React.Component<TasksSectionProps, TasksSectionState>
         this.setState({ isProjectCalloutOpen: false });
     };
 
-    private onCollapseButtonClick = () => {
-        this.setState({ isCollapsed: !this.state.isCollapsed });
-    };
-
     private onProjectSelected = (project: Project): void => {
         this.closeProjectCallout();
         this.createTask(project);
     };
 
     private createTask = (project: Project) => {
-        Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, (result) => {
+        Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, async (result) => {
             const message = result.value.split('<div id="x_appendonsend"></div>')[0]; // Remove the history and only log the most recent message.
             const subject = Office.context.mailbox.item.subject;
 
@@ -66,90 +57,71 @@ class TasksSection extends React.Component<TasksSectionProps, TasksSectionState>
                 project_id: project.id,
             };
 
-            const createTaskRequest = sendHttpRequest(
-                HttpVerb.POST,
-                api.baseURL + api.createTask,
-                ContentType.Json,
-                this.context.getConnectionToken(),
-                taskValues,
-                true,
-            );
-            createTaskRequest.promise
-                .then((response) => {
-                    const parsed = JSON.parse(response);
-                    if (parsed['error']) {
-                        this.context.showTopBarMessage();
-                        return;
-                    } else {
-                        const cids = this.context.getUserCompaniesString();
-                        const action = 'project_mail_plugin.project_task_action_form_edit';
-                        const url =
-                            api.baseURL +
-                            `/web#action=${action}&id=${parsed.result.task_id}&model=project.task&view_type=form${cids}`;
-                        window.open(url);
-                    }
-                })
-                .catch((error) => {
-                    this.context.showHttpErrorMessage(error);
-                });
+            let response = null;
+            try {
+                response = await sendHttpRequest(
+                    HttpVerb.POST,
+                    api.baseURL + api.createTask,
+                    ContentType.Json,
+                    this.context.getConnectionToken(),
+                    taskValues,
+                    true,
+                ).promise;
+            } catch (error) {
+                this.context.showHttpErrorMessage(error);
+                return;
+            }
+
+            const parsed = JSON.parse(response);
+            if (parsed['error']) {
+                this.context.showTopBarMessage();
+                return;
+            }
+            const cids = this.context.getUserCompaniesString();
+            const action = 'project_mail_plugin.project_task_action_form_edit';
+            const url = `${api.baseURL}/web#action=${action}&id=${parsed.result.task_id}&model=project.task&view_type=form${cids}`;
+            window.open(url);
         });
     };
 
-    render() {
-        let tasksExpanded = null;
-
-        let title = _t('Tasks');
-
+    private getTasks = () => {
         if (!this.props.partner.isAddedToDatabase()) {
-            if (!this.state.isCollapsed) {
-                tasksExpanded = <div className="list-text">{_t('Save Contact to create new Tasks.')}</div>;
-            }
-        } else {
-            if (!this.state.isCollapsed) {
-                let tasksContent = null;
-                if (this.state.tasks.length > 0) {
-                    const tasks = this.state.tasks;
-                    tasksContent = tasks.map((task) => {
-                        return <TaskListItem task={task} key={task.id} />;
-                    });
-                } else {
-                    tasksContent = <div className="list-text">{_t('No tasks found for this contact.')}</div>;
-                }
-                tasksExpanded = <div className="section-content">{tasksContent}</div>;
-            }
+            return <div className="list-text">{_t('Save Contact to create new Tasks.')}</div>;
+        } else if (this.state.tasks.length > 0) {
+            const tasksContent = this.state.tasks.map((task) => <TaskListItem task={task} key={task.id} />);
+            return <div className="section-content">{tasksContent}</div>;
         }
 
-        if (this.state.tasks) title = _t('Tasks (%(count)s)', { count: this.state.tasks.length });
+        return <div className="section-content list-text">{_t('No tasks found for this contact.')}</div>;
+    };
 
-        let callout = null;
-        if (this.state.isProjectCalloutOpen) {
-            callout = (
-                <Callout
-                    directionalHint={DirectionalHint.bottomRightEdge}
-                    directionalHintFixed={true}
-                    onDismiss={() => this.setState({ isProjectCalloutOpen: false })}
-                    preventDismissOnScroll={true}
-                    setInitialFocus={true}
-                    doNotLayer={true}
-                    gapSpace={0}
-                    role="alertdialog"
-                    target=".dropdown-collapse-section-button">
-                    <SelectProjectDropdown partner={this.props.partner} onProjectClick={this.onProjectSelected} />
-                </Callout>
-            );
-        }
+    render() {
+        const title = this.state.tasks ? _t('Tasks (%(count)s)', { count: this.state.tasks.length }) : _t('Tasks');
+
         return (
             <>
                 <CollapseSection
-                    onCollapseButtonClick={this.onCollapseButtonClick}
+                    className="collapse-task-section"
                     isCollapsed={this.state.isCollapsed}
                     title={title}
                     hasAddButton={this.props.partner.isAddedToDatabase()}
-                    hasDropdownAddButton={true}
                     onAddButtonClick={this.toggleProjectCallout}>
-                    {tasksExpanded}
+                    {this.getTasks()}
                 </CollapseSection>
-                {callout}
+                {this.state.isProjectCalloutOpen && (
+                    <Callout
+                        directionalHint={DirectionalHint.bottomRightEdge}
+                        directionalHintFixed={true}
+                        onDismiss={() => this.setState({ isProjectCalloutOpen: false })}
+                        preventDismissOnScroll={true}
+                        setInitialFocus={true}
+                        doNotLayer={true}
+                        gapSpace={0}
+                        role="alertdialog"
+                        target=".collapse-task-section .collapse-section-button">
+                        <SelectProjectDropdown partner={this.props.partner} onProjectClick={this.onProjectSelected} />
+                    </Callout>
+                )}
             </>
         );
     }

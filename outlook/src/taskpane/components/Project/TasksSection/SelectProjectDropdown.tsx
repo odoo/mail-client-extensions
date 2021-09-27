@@ -9,18 +9,18 @@ import api from '../../../api';
 import './SelectProjectDropdown.css';
 import AppContext from '../../AppContext';
 
-type ProjectDialogProps = {
+type SelectProjectProps = {
     partner: Partner;
     onProjectClick: (project: Project) => void;
 };
 
-type ProjectDialogState = {
+type SelectProjectState = {
     query: string;
     isLoading: boolean;
     projects: Project[];
 };
 
-class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectDialogState> {
+class SelectProjectDropdown extends React.Component<SelectProjectProps, SelectProjectState> {
     constructor(props, context) {
         super(props, context);
         this.state = { query: '', isLoading: false, projects: [] };
@@ -29,7 +29,7 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
     private projectsRequest;
 
     private onQueryChanged = (event) => {
-        let query = event.target.value;
+        const query = event.target.value;
         this.setState({ query: query });
         this.cancelProjectsRequest();
         if (query.length > 0) {
@@ -43,39 +43,39 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
         if (this.projectsRequest) this.projectsRequest.cancel();
     };
 
-    private getProjectsRequest = (searchTerm: string) => {
-        if (searchTerm.length > 0) {
-            this.setState({ isLoading: true });
-
-            this.projectsRequest = sendHttpRequest(
-                HttpVerb.POST,
-                api.baseURL + api.searchProject,
-                ContentType.Json,
-                this.context.getConnectionToken(),
-                { search_term: searchTerm },
-                true,
-            );
-
-            this.context.addRequestCanceller(this.projectsRequest.cancel);
-
-            this.projectsRequest.promise
-                .then((response) => {
-                    const parsed = JSON.parse(response);
-                    let projects = [];
-                    if (parsed.result.length > 0)
-                        projects = parsed.result.map((project_json) => Project.fromJson(project_json));
-                    this.setState({ projects: projects, isLoading: false });
-                })
-                .catch((error) => {
-                    if (error) {
-                        this.setState({ isLoading: false, projects: [] });
-                        this.context.showHttpErrorMessage(error);
-                    }
-                });
+    private getProjectsRequest = async (searchTerm: string) => {
+        if (!searchTerm || !searchTerm.length) {
+            return;
         }
+
+        this.setState({ isLoading: true });
+
+        this.projectsRequest = sendHttpRequest(
+            HttpVerb.POST,
+            api.baseURL + api.searchProject,
+            ContentType.Json,
+            this.context.getConnectionToken(),
+            { search_term: searchTerm },
+            true,
+        );
+
+        this.context.addRequestCanceller(this.projectsRequest.cancel);
+
+        let response = null;
+        try {
+            response = JSON.parse(await this.projectsRequest.promise);
+        } catch (error) {
+            if (error) {
+                this.setState({ isLoading: false, projects: [] });
+                this.context.showHttpErrorMessage(error);
+            }
+            return;
+        }
+        const projects = response.result.map((project_json) => Project.fromJson(project_json));
+        this.setState({ projects: projects, isLoading: false });
     };
 
-    private createProject = () => {
+    private createProject = async () => {
         const createProjectRequest = sendHttpRequest(
             HttpVerb.POST,
             api.baseURL + api.createProject,
@@ -87,88 +87,68 @@ class SelectProjectDropdown extends React.Component<ProjectDialogProps, ProjectD
 
         this.setState({ isLoading: true });
 
-        createProjectRequest.promise
-            .then((response) => {
-                const parsed = JSON.parse(response);
-                const createdProject = Project.fromJson(parsed.result);
-                this.props.onProjectClick(createdProject);
-            })
-            .catch((error) => {
-                if (error) {
-                    this.setState({ isLoading: false, projects: [] });
-                    this.context.showHttpErrorMessage(error);
-                    this.setState({ isLoading: false });
-                }
-            });
+        let response = null;
+        try {
+            response = JSON.parse(await createProjectRequest.promise);
+        } catch (error) {
+            if (error) {
+                this.setState({ isLoading: false, projects: [] });
+                this.context.showHttpErrorMessage(error);
+                this.setState({ isLoading: false });
+            }
+            return;
+        }
+
+        const createdProject = Project.fromJson(response.result);
+        this.props.onProjectClick(createdProject);
+    };
+
+    private getProjects = () => {
+        if (this.state.isLoading) {
+            return <Spinner theme={OdooTheme} size={SpinnerSize.large} className="project-result-spinner" />;
+        }
+
+        const searchedTermExists = this.state.projects.filter(
+            (p) => p.name.toUpperCase() === this.state.query.toUpperCase(),
+        ).length;
+
+        const allowCreateNewProject = !!this.state.query.length && !searchedTermExists;
+
+        return (
+            <div>
+                {this.state.projects.map((project) => (
+                    <div
+                        key={project.id}
+                        className="project-search-result-text"
+                        onClick={() => this.props.onProjectClick(project)}>
+                        {project.name}
+                    </div>
+                ))}
+                {allowCreateNewProject && (
+                    <div className="create-project-text" onClick={this.createProject}>
+                        {_t('Create %(name)s', { name: this.state.query })}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     render() {
-        let searchBar = (
-            <div className="project-search-bar">
-                <TextField
-                    className="input-search"
-                    placeholder={_t('Search Projects...')}
-                    onChange={this.onQueryChanged}
-                    value={this.state.query}
-                    autoComplete="off"
-                    onFocus={(e) => e.target.select()}
-                />
-            </div>
-        );
-
-        let projects = null;
-        if (this.state.isLoading) {
-            projects = <Spinner theme={OdooTheme} size={SpinnerSize.large} className="project-result-spinner" />;
-        } else {
-            let createProjectDiv = (
-                <div
-                    className="create-project-text"
-                    onClick={() => {
-                        this.createProject();
-                    }}>
-                    {_t('Create %(name)s', { name: this.state.query })}
-                </div>
-            );
-            if (this.state.projects.length > 0) {
-                if (
-                    this.state.projects.filter(
-                        (project) => project.name.toUpperCase() === this.state.query.toUpperCase(),
-                    ).length > 0
-                ) {
-                    createProjectDiv = null;
-                }
-
-                let projectsList = this.state.projects.map((project) => {
-                    return (
-                        <div
-                            key={project.id}
-                            className="project-search-result-text"
-                            onClick={() => this.props.onProjectClick(project)}>
-                            {project.name}
-                        </div>
-                    );
-                });
-                projects = (
-                    <div>
-                        {projectsList}
-                        {createProjectDiv}
-                    </div>
-                );
-            } else {
-                if (this.state.query.length > 0) {
-                    projects = <div>{createProjectDiv}</div>;
-                }
-            }
-        }
-
         return (
-            <>
-                <div className="project-result-container">
-                    <div>{_t('Pick a Project to create a Task')}</div>
-                    {searchBar}
-                    <div style={{ flex: '1' }}>{projects}</div>
+            <div className="project-result-container">
+                <div>{_t('Pick a Project to create a Task')}</div>
+                <div className="project-search-bar">
+                    <TextField
+                        className="input-search"
+                        placeholder={_t('Search Projects...')}
+                        onChange={this.onQueryChanged}
+                        value={this.state.query}
+                        autoComplete="off"
+                        onFocus={(e) => e.target.select()}
+                    />
                 </div>
-            </>
+                {this.getProjects()}
+            </div>
         );
     }
 }
