@@ -1,25 +1,25 @@
 import * as React from 'react';
-import Partner from '../../../../classes/Partner';
+import Partner from '../../../classes/Partner';
 
-import AppContext from '../../AppContext';
-import api from '../../../api';
-import Lead from '../../../../classes/Lead';
-import LeadListItem from '../LeadList/LeadListItem';
-import CollapseSection from '../../CollapseSection/CollapseSection';
+import AppContext from '../AppContext';
+import api from '../../api';
+import Lead from '../../../classes/Lead';
+import ListItem from '../ListItem/ListItem';
+import CollapseSection from '../CollapseSection/CollapseSection';
 
-import { ContentType, HttpVerb, sendHttpRequest } from '../../../../utils/httpRequest';
-import { _t } from '../../../../utils/Translator';
+import { ContentType, HttpVerb, sendHttpRequest } from '../../../utils/httpRequest';
+import { _t } from '../../../utils/Translator';
 
 type LeadSectionProps = {
     partner: Partner;
 };
 
-type LeadsSectionState = {
+type SectionLeadsState = {
     leads: Lead[];
     isCollapsed: boolean;
 };
 
-class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> {
+class SectionLeads extends React.Component<LeadSectionProps, SectionLeadsState> {
     constructor(props, context) {
         super(props, context);
         const isCollapsed = !props.partner.leads || !props.partner.leads.length;
@@ -64,14 +64,37 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
         });
     };
 
-    private getLeadsSection = () => {
+    private getLeadDescription = (lead): string => {
+        const expectedRevenueString = _t(
+            lead.recurringPlan
+                ? '%(expected_revenue)s + %(recurring_revenue)s %(recurring_plan)s at %(probability)s%'
+                : '%(expected_revenue)s at %(probability)s%',
+            {
+                expected_revenue: lead.expectedRevenue,
+                recurring_revenue: lead.recurringRevenue,
+                recurring_plan: lead.recurringPlan,
+                probability: lead.probability,
+            },
+        );
+
+        return expectedRevenueString;
+    };
+
+    private getSectionLeads = () => {
         if (!this.props.partner.isAddedToDatabase()) {
             return <div className="list-text">{_t('Save Contact to create new Opportunities.')}</div>;
         } else if (this.state.leads.length > 0) {
             return (
                 <div className="section-content">
                     {this.state.leads.map((lead) => (
-                        <LeadListItem lead={lead} key={lead.id} />
+                        <ListItem
+                            model="crm.lead"
+                            res_id={lead.id}
+                            key={lead.id}
+                            title={lead.name}
+                            description={this.getLeadDescription(lead)}
+                            logTitle={_t('Log Email Into Lead')}
+                        />
                     ))}
                 </div>
             );
@@ -91,12 +114,12 @@ class LeadsSection extends React.Component<LeadSectionProps, LeadsSectionState> 
                 title={title}
                 hasAddButton={this.props.partner.isAddedToDatabase()}
                 onAddButtonClick={this.createOpportunityRequest}>
-                {this.getLeadsSection()}
+                {this.getSectionLeads()}
             </CollapseSection>
         );
     }
 }
 
-LeadsSection.contextType = AppContext;
+SectionLeads.contextType = AppContext;
 
-export default LeadsSection;
+export default SectionLeads;

@@ -2,9 +2,9 @@ import * as React from 'react';
 import Partner from '../../../../classes/Partner';
 import AppContext from '../../AppContext';
 import ContactListItem from '../ContactList/ContactListItem/ContactListItem';
-import LeadsSection from '../../Crm/LeadsSection/LeadsSection';
+import SectionLeads from '../../SectionLeads/SectionLeads';
 import CompanySection from '../../Company/CompanySection/CompanySection';
-import TicketsSection from '../../Helpdesk/TicketsSection/TicketsSection';
+import SectionTickets from '../../SectionTickets/SectionTickets';
 import { ContentType, HttpVerb, sendHttpRequest } from '../../../../utils/httpRequest';
 import api from '../../../api';
 import EnrichmentInfo, { EnrichmentInfoType } from '../../../../classes/EnrichmentInfo';
@@ -13,7 +13,7 @@ import { OdooTheme } from '../../../../utils/Themes';
 import './ContactPage.css';
 import Lead from '../../../../classes/Lead';
 import HelpdeskTicket from '../../../../classes/HelpdeskTicket';
-import TasksSection from '../../Project/TasksSection/TasksSection';
+import SectionTasks from '../../SectionTasks/SectionTasks';
 import Task from '../../../../classes/Task';
 
 type ContactPageProps = {
@@ -117,11 +117,11 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
             return <Spinner className="contact-spinner" size={SpinnerSize.large} theme={OdooTheme} />;
         }
 
-        const leadsList = this.isCrmInstalled() && <LeadsSection partner={this.state.partner} />;
+        const leadsList = this.isCrmInstalled() && <SectionLeads partner={this.state.partner} />;
 
-        const tasksList = this.isProjectInstalled() && <TasksSection partner={this.state.partner} />;
+        const tasksList = this.isProjectInstalled() && <SectionTasks partner={this.state.partner} />;
 
-        const ticketsList = this.isHelpdeskInstalled() && <TicketsSection partner={this.state.partner} />;
+        const ticketsList = this.isHelpdeskInstalled() && <SectionTickets partner={this.state.partner} />;
 
         const onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : null;
 

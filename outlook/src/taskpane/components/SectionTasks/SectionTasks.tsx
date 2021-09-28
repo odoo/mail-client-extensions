@@ -1,27 +1,27 @@
 import * as React from 'react';
-import Partner from '../../../../classes/Partner';
-import Project from '../../../../classes/Project';
-import Task from '../../../../classes/Task';
-import { ContentType, HttpVerb, sendHttpRequest } from '../../../../utils/httpRequest';
-import { _t } from '../../../../utils/Translator';
-import CollapseSection from '../../CollapseSection/CollapseSection';
-import TaskListItem from '../TaskList/TaskListItem';
-import api from '../../../api';
-import AppContext from '../../AppContext';
+import Partner from '../../../classes/Partner';
+import Project from '../../../classes/Project';
+import Task from '../../../classes/Task';
+import { ContentType, HttpVerb, sendHttpRequest } from '../../../utils/httpRequest';
+import { _t } from '../../../utils/Translator';
+import CollapseSection from '../CollapseSection/CollapseSection';
+import ListItem from '../ListItem/ListItem';
+import api from '../../api';
+import AppContext from '../AppContext';
 import { Callout, DirectionalHint } from 'office-ui-fabric-react';
 import SelectProjectDropdown from './SelectProjectDropdown';
 
-type TasksSectionProps = {
+type SectionTasksProps = {
     partner: Partner;
 };
 
-type TasksSectionState = {
+type SectionTasksState = {
     tasks: Task[];
     isCollapsed: boolean;
     isProjectCalloutOpen: boolean;
 };
 
-class TasksSection extends React.Component<TasksSectionProps, TasksSectionState> {
+class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState> {
     constructor(props, context) {
         super(props, context);
         const isCollapsed = !props.partner.tasks || !props.partner.tasks.length;
@@ -88,7 +88,16 @@ class TasksSection extends React.Component<TasksSectionProps, TasksSectionState>
         if (!this.props.partner.isAddedToDatabase()) {
             return <div className="list-text">{_t('Save Contact to create new Tasks.')}</div>;
         } else if (this.state.tasks.length > 0) {
-            const tasksContent = this.state.tasks.map((task) => <TaskListItem task={task} key={task.id} />);
+            const tasksContent = this.state.tasks.map((task) => (
+                <ListItem
+                    model="project.task"
+                    res_id={task.id}
+                    key={task.id}
+                    title={task.name}
+                    description={task.projectName}
+                    logTitle={_t('Log Email Into Task')}
+                />
+            ));
             return <div className="section-content">{tasksContent}</div>;
         }
 
@@ -127,5 +136,5 @@ class TasksSection extends React.Component<TasksSectionProps, TasksSectionState>
     }
 }
 
-TasksSection.contextType = AppContext;
-export default TasksSection;
+SectionTasks.contextType = AppContext;
+export default SectionTasks;

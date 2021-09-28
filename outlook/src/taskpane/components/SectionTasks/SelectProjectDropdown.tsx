@@ -1,13 +1,13 @@
 import { Spinner, SpinnerSize, TextField } from 'office-ui-fabric-react';
 import * as React from 'react';
-import Partner from '../../../../classes/Partner';
-import Project from '../../../../classes/Project';
-import { ContentType, HttpVerb, sendHttpRequest } from '../../../../utils/httpRequest';
-import { OdooTheme } from '../../../../utils/Themes';
-import { _t } from '../../../../utils/Translator';
-import api from '../../../api';
+import Partner from '../../../classes/Partner';
+import Project from '../../../classes/Project';
+import { ContentType, HttpVerb, sendHttpRequest } from '../../../utils/httpRequest';
+import { OdooTheme } from '../../../utils/Themes';
+import { _t } from '../../../utils/Translator';
+import api from '../../api';
 import './SelectProjectDropdown.css';
-import AppContext from '../../AppContext';
+import AppContext from '../AppContext';
 
 type SelectProjectProps = {
     partner: Partner;

@@ -1,24 +1,23 @@
-import Partner from '../../../../classes/Partner';
-import HelpdeskTicket from '../../../../classes/HelpdeskTicket';
+import Partner from '../../../classes/Partner';
+import HelpdeskTicket from '../../../classes/HelpdeskTicket';
 import * as React from 'react';
-import CollapseSection from '../../CollapseSection/CollapseSection';
-import api from '../../../api';
-import AppContext from '../../AppContext';
-import '../../../../utils/ListItem.css';
-import TicketListItem from '../TicketList/TicketListItem';
-import { ContentType, HttpVerb, sendHttpRequest } from '../../../../utils/httpRequest';
-import { _t } from '../../../../utils/Translator';
+import CollapseSection from '../CollapseSection/CollapseSection';
+import api from '../../api';
+import AppContext from '../AppContext';
+import ListItem from '../ListItem/ListItem';
+import { ContentType, HttpVerb, sendHttpRequest } from '../../../utils/httpRequest';
+import { _t } from '../../../utils/Translator';
 
-type TicketsSectionProps = {
+type SectionTicketsProps = {
     partner: Partner;
 };
 
-type TicketsSectionState = {
+type SectionTicketsState = {
     tickets: HelpdeskTicket[];
     isCollapsed: boolean;
 };
 
-class TicketsSection extends React.Component<TicketsSectionProps, TicketsSectionState> {
+class SectionTickets extends React.Component<SectionTicketsProps, SectionTicketsState> {
     constructor(props, context) {
         super(props, context);
         const isCollapsed = !props.partner.tickets || !props.partner.tickets.length;
@@ -72,7 +71,16 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
         } else if (this.state.tickets.length > 0) {
             const ticketsList = this.state.tickets
                 .sort((t1, t2) => Number(t1.isClosed) - Number(t2.isClosed))
-                .map((ticket) => <TicketListItem ticket={ticket} key={ticket.id} />);
+                .map((ticket) => (
+                    <ListItem
+                        model="helpdesk.ticket"
+                        res_id={ticket.id}
+                        key={ticket.id}
+                        title={ticket.name}
+                        description={ticket.isClosed && _t('Closed')}
+                        logTitle={_t('Log Email Into Ticket')}
+                    />
+                ));
             ticketsExpanded = <div className="section-content">{ticketsList}</div>;
         } else {
             ticketsExpanded = <div className="list-text">{_t('No tickets found for this contact.')}</div>;
@@ -93,5 +101,5 @@ class TicketsSection extends React.Component<TicketsSectionProps, TicketsSection
         );
     }
 }
-TicketsSection.contextType = AppContext;
-export default TicketsSection;
+SectionTickets.contextType = AppContext;
+export default SectionTickets;
