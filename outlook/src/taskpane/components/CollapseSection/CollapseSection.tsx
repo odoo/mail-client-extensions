@@ -7,82 +7,55 @@ import { ReactElement } from 'react';
 type CollapseSectionProps = {
     title: string;
     isCollapsed: boolean;
-    onCollapseButtonClick: () => void;
     hasAddButton?: boolean;
-    hasDropdownAddButton?: boolean;
     onAddButtonClick?: () => void;
     hideCollapseButton?: boolean;
     children: ReactElement;
+    className?: string;
+};
+
+type CollapseSectionSate = {
+    isCollapsed: boolean;
 };
 
 /***
  * Class which handles a collapsable section
  */
-class CollapseSection extends React.Component<CollapseSectionProps, {}> {
+class CollapseSection extends React.Component<CollapseSectionProps, CollapseSectionSate> {
     constructor(props, context) {
         super(props, context);
+        this.state = {
+            isCollapsed: props.isCollapsed,
+        };
     }
 
+    private onCollapseButtonClick = () => {
+        this.setState({ isCollapsed: !this.state.isCollapsed });
+    };
+
     render() {
-        let header;
-        let content = null;
-        let addButton = null;
-        let collapseButton = null;
-        if (this.props.hasAddButton) {
-            let className = 'collapse-section-button';
-            if (this.props.hasDropdownAddButton) {
-                className += ' dropdown-collapse-section-button';
-            }
-            addButton = <FontAwesomeIcon icon={faPlus} className={className} onClick={this.props.onAddButtonClick} />;
-        }
+        const addButton = this.props.hasAddButton && (
+            <FontAwesomeIcon icon={faPlus} className="collapse-section-button" onClick={this.props.onAddButtonClick} />
+        );
 
-        if (!this.props.hideCollapseButton) {
-            if (this.props.isCollapsed) {
-                collapseButton = (
-                    <FontAwesomeIcon
-                        className="collapse-section-button"
-                        icon={faChevronRight}
-                        onClick={this.props.onCollapseButtonClick}
-                    />
-                );
-            } else {
-                collapseButton = (
-                    <FontAwesomeIcon
-                        className="collapse-section-button"
-                        icon={faChevronDown}
-                        onClick={this.props.onCollapseButtonClick}
-                    />
-                );
-            }
-        }
-
-        if (this.props.isCollapsed) {
-            header = (
-                <div className="section-top">
-                    <div className="section-title-text">{this.props.title}</div>
-                    <div>
-                        {addButton}
-                        {collapseButton}
-                    </div>
-                </div>
-            );
-        } else {
-            header = (
-                <div className="section-top">
-                    <div className="section-title-text">{this.props.title}</div>
-                    <div>
-                        {addButton}
-                        {collapseButton}
-                    </div>
-                </div>
-            );
-            content = this.props.children;
-        }
+        const collapseButton = !this.props.hideCollapseButton && (
+            <FontAwesomeIcon
+                className="collapse-section-button"
+                icon={this.state.isCollapsed ? faChevronRight : faChevronDown}
+                onClick={this.onCollapseButtonClick}
+            />
+        );
 
         return (
-            <div className="section-card">
-                {header}
-                {content}
+            <div className={`section-card ${this.props.className}`}>
+                <div className="section-top">
+                    <div className="section-title-text">{this.props.title}</div>
+                    <div>
+                        {addButton}
+                        {collapseButton}
+                    </div>
+                </div>
+                {!this.state.isCollapsed && this.props.children}
             </div>
         );
     }
