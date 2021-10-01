@@ -30,6 +30,10 @@ def _move_categ(cr, src_model, new_model, update_m2o):
         [src_model_id],
     )
 
+    cr.execute("SELECT id FROM ir_model WHERE model=%s", [new_model])
+    if not cr.rowcount:
+        cr.execute("INSERT INTO ir_model(model, name, state) VALUES (%s, %s, 'base')", [new_model, new_model])
+
     for tbl, col in update_m2o.items():
         cr.execute("ALTER TABLE {tbl} DROP CONSTRAINT {tbl}_{col}_fkey".format(tbl=tbl, col=col))
         cr.execute(
