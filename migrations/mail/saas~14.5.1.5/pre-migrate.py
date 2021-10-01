@@ -45,3 +45,13 @@ def migrate(cr, version):
             )
         """
     )
+
+    util.ensure_xmlid_match_record(
+        cr,
+        "mail.channel_partner_general_channel_for_admin",
+        "mail.channel.partner",
+        {
+            "partner_id": util.ref(cr, "base.partner_admin"),
+            "channel_id": util.ref(cr, "mail.channel_all_employees"),
+        },
+    )
