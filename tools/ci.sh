@@ -19,14 +19,16 @@ for repo in odoo enterprise design-themes; do
         pushd "$MATTDIR/$repo" >/dev/null
         git config --local --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
         git config --local --add remote.origin.fetch '+refs/pull/*/head:refs/remotes/origin/pr/*'
-    else
-        pushd "$MATTDIR/$repo" >/dev/null
+        popd >/dev/null
     fi
-    git -c gc.auto=0 fetch -q
-    rm -f gc.log
-    git gc --quiet --auto
-    git worktree prune
-    popd >/dev/null
+    if [[ "${MATT_FETCH:-1}" = 1 ]]; then
+        pushd "$MATTDIR/$repo" >/dev/null
+        git -c gc.auto=0 fetch -q
+        rm -f gc.log
+        git gc --quiet --auto
+        git worktree prune
+        popd >/dev/null
+    fi
 done
 popd >/dev/null
 
