@@ -1814,7 +1814,7 @@ def migrate_invoice_lines(cr):
         """
             UPDATE account_move_line l
                SET sequence = i.sequence
-              FROM account_move_line i
+              FROM account_invoice_line i
              WHERE i.id = l.sequence
                AND l.id > %s
         """,
