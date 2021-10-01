@@ -309,7 +309,8 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         if options.run_tests:
             cmd += ["--http-port", str(free_port())]
 
-        step = "upgrading" if "-u" in cmd else "installing"
+        step = "upgrading" if "-u" in cmd else "testing" if "--test-tags" in cmd else "installing"
+        logger.debug("%s module %s at version %s", step, module, version)
         env = dict(os.environ, MATT="1")
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         stdout = p.stdout.decode()
@@ -319,7 +320,8 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
         warns = "\n".join(extract_warnings(dbname, stdout))
         if warns:
-            logger.warning("Some warnings/errors emitted while %s module %s:\n%s", step, module, warns)
+            output = stdout if logger.isEnabledFor(logging.DEBUG) else warns
+            logger.warning("Some warnings/errors emitted while %s module %s:\n%s", step, module, output)
             return False
         return True
 
@@ -592,6 +594,13 @@ It allows to test upgrades against development branches.
         help="quiet level. `-q` to log warnings, `-qq` to only log failed upgrades",
     )
     parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        dest="verbose",
+        default=0,
+    )
+    parser.add_argument(
         "-k",
         "--keep-databases",
         action="store_true",
@@ -611,7 +620,10 @@ It allows to test upgrades against development branches.
     parser.add_argument("target", action=VersionAction, type=str)
 
     options = parser.parse_args()
-    level = [logging.INFO, logging.WARNING, logging.ERROR][min(options.quiet, 2)]
+
+    level = logging.INFO + (10 * options.quiet) - (10 * options.verbose)
+    level = max(logging.DEBUG, min(level, logging.CRITICAL))
+
     logging.basicConfig(level=level, filename=options.log_file, format="%(asctime)s %(levelname)s %(message)s")
 
     setproctitle(f"matt :: {options.source} -> {options.target}")
