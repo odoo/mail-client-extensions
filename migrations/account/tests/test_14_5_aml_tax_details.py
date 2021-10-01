@@ -64,7 +64,12 @@ class TestAmlTaxDetails(UpgradeCase):
 
     def prepare(self):
         test_name = "TestAmlTaxDetails"
-        self.company = self.env["res.company"].create({"name": "company for %s" % test_name})
+        self.company = self.env["res.company"].create(
+            {
+                "name": f"company for {test_name}",
+                "user_ids": [(4, self.env.ref("base.user_admin").id)],
+            }
+        )
 
         # Create user.
         user = (
