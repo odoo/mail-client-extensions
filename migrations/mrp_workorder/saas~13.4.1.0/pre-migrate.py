@@ -86,6 +86,14 @@ def migrate(cr, version):
          WHERE qc.workorder_line_id = mwl.id
         """
     )
+    cr.execute(
+        """
+        UPDATE quality_check AS qc
+           SET production_id = mw.production_id
+          FROM mrp_workorder AS mw
+         WHERE mw.id = qc.workorder_id
+        """
+    )
     util.remove_field(cr, "quality.check", "workorder_line_id")
 
     util.remove_view(cr, xml_id="mrp_workorder.mrp_workorder_view_tree_inherit_quality")
