@@ -8,6 +8,9 @@ from odoo.upgrade import util
 def migrate(cr, version):
     env = util.env(cr)
 
+    # 0. Delete de demo data from <mail.group> to avoid a pk conflict with existing <mail.channel> records
+    cr.execute("DELETE FROM mail_group")
+
     # 1. Create the <mail.group> from the <mail.channel>
     #    And keep the old <mail.channel>.id in a temporary column
     cr.execute(
