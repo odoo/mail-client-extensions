@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from psycopg2.extras import execute_values
+
 from odoo.upgrade import util
 
 
@@ -104,7 +106,8 @@ result_name = inputs.CHILD_SUPPORT.name""",
             )
         )
 
-    cr.execute(
+    execute_values(
+        cr._obj,
         """
         INSERT INTO
             hr_salary_rule(
@@ -121,8 +124,6 @@ result_name = inputs.CHILD_SUPPORT.name""",
                 active,
                 appears_on_payslip
             )
-        VALUES {}""".format(
-            ", ".join(["%s"] * len(structure_ids) * 3)
-        ),
+        VALUES %s""",
         values,
     )

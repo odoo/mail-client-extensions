@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from psycopg2.extras import execute_values
 
 from odoo.upgrade import util
 
@@ -47,12 +48,24 @@ def migrate(cr, version):
             )
         )
 
-    cr.execute(
+    execute_values(
+        cr._obj,
         """
-        INSERT INTO hr_salary_rule
-            (struct_id, name, sequence, code, category_id, condition_select, condition_python, amount_select, amount_python_compute, quantity, active, appears_on_payslip)
-        VALUES {}""".format(
-            ", ".join(["%s"] * len(structure_ids) * 2)
-        ),
+        INSERT INTO
+            hr_salary_rule(
+                struct_id,
+                name,
+                sequence,
+                code,
+                category_id,
+                condition_select,
+                condition_python,
+                amount_select,
+                amount_python_compute,
+                quantity,
+                active,
+                appears_on_payslip
+            )
+        VALUES %s""",
         values,
     )
