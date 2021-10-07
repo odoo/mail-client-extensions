@@ -548,8 +548,8 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                l.account_analytic_id, i.id, account.id
     """
     )
-    mls = []
     line_ids = []
+    to_process = []
     for line in util.log_progress(cr.dictfetchall(), _logger, qualifier="zero-line"):
         if line["invoice_id"] in ignored_unposted_invoices.keys():
             continue
@@ -560,8 +560,11 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             ).id
             updated_invoices.setdefault(line["invoice_id"], []).append(line["name"])
 
-        mls.append(
-            {
+        to_process.append(line)
+
+    def get_mls():
+        for line in to_process:
+            yield {
                 "move_id": line["move_id"],
                 "name": line["name"],
                 "sequence": line["sequence"],
@@ -584,13 +587,13 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                 "analytic_account_id": line["account_analytic_id"],
                 "analytic_tag_ids": [(6, 0, line["tags"])],
             }
-        )
+
     _logger.info("invoices: creating zero-line move.line")
     chunk_size = 10000
-    size = (len(mls) + chunk_size - 1) / chunk_size
+    size = (len(to_process) + chunk_size - 1) / chunk_size
     qual = "account.move.line %d-bucket" % chunk_size
     ml_ids = []
-    for move_lines in util.log_progress(util.chunks(mls, chunk_size, list), _logger, qualifier=qual, size=size):
+    for move_lines in util.log_progress(util.chunks(get_mls(), chunk_size, list), _logger, qualifier=qual, size=size):
         ml_ids += MoveLine.create(move_lines).ids
         cr.commit()
     _logger.info("invoices: creating zero-line mapping")
