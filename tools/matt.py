@@ -326,7 +326,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         return True
 
     if "l10n_" in module:
-        # create a `base` db and modify the partners country before installing the localization
+        # create a `base` db and modify the non-demo partners country before installing the localization
         odoo(["-i", "base"], version=options.source)
         cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
         cc = {"eu": "be", "uk": "gb", "latam": "cl", "syscohada": "cd", "generic": "us", "multilang": "be"}.get(cc, cc)
@@ -342,7 +342,10 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
                  LEFT JOIN res_country_state s ON s.country_id = c.id
                      WHERE lower(c.code) = '{cc}'
                      LIMIT 1
-              ) c
+              ) c,
+              ir_model_data x
+             WHERE x.model = 'res.partner' AND x.res_id = p.id
+               AND x.name IN ('main_partner', 'partner_root', 'partner_admin', 'public_partner')
         """
         sql = re.sub(r"\s{2,}", " ", sql).strip()  # one-line the query
 
