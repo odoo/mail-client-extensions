@@ -35,7 +35,7 @@ def migrate_blog_posts_snippet(cr, table, column):
         body = html.fromstring(body, parser=utf8_parser)
         snippet_els = body.xpath("//section[hasclass('s_latest_posts')]")
         for el in snippet_els:
-            row = el.xpath(".//div[hasclass('container')]/div[hasclass('row')]")[0]
+            row = (el.xpath(".//div[hasclass('container')]/div[hasclass('row')]") or [{}])[0]
 
             el.set("data-snippet", "s_blog_posts")
             el.set("data-number-of-elements", "3")
