@@ -56,6 +56,10 @@ def migrate(cr, version):
     """
     )
 
-    util.rename_xmlid(cr, "l10n_be_hr_payroll.cp200_other_input_attachment_salary", "hr_payroll.input_attachment_salary")
-    util.rename_xmlid(cr, "l10n_be_hr_payroll.cp200_other_input_assignment_salary", "hr_payroll.input_assignment_salary")
+    util.rename_xmlid(
+        cr, "l10n_be_hr_payroll.cp200_other_input_attachment_salary", "hr_payroll.input_attachment_salary"
+    )
+    util.rename_xmlid(
+        cr, "l10n_be_hr_payroll.cp200_other_input_assignment_salary", "hr_payroll.input_assignment_salary"
+    )
     util.rename_xmlid(cr, "l10n_be_hr_payroll.cp200_other_input_child_support", "hr_payroll.input_child_support")
