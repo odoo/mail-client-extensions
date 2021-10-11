@@ -110,6 +110,27 @@ class Version(namedtuple("Version", "odoo enterprise themes")):
             result.insert(0, main)
         return ":".join(result)
 
+    @property
+    def name(self):
+        main = str(self).split(":")[0]
+        if "#" in main:
+            return None
+        return main
+
+    @property
+    def ints(self):
+        if self.name == "master":
+            return (99, 99)
+        s = list(map(int, self.name.replace("saas-", "").split(".")))
+        if len(s) == 1:
+            # < 11.0
+            major = {range(1, 6): 7, range(6, 7): 8, range(7, 14): 9, range(14, 19): 10}
+            for m, n in major.items():
+                if s[0] in m:
+                    return (n, s[0])
+            raise ValueError(self.name)
+        return tuple(s)
+
 
 # Patches
 MIGNOINSTALL_PATCH = b"""\
@@ -325,7 +346,9 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             return False
         return True
 
-    if "l10n_" in module:
+    # For versions >= 9.0, the main partner needs to be in the country of the installed l10n module.
+    # If we cannot determine the version name, we assume than we try to upgrade from a version >= 9.0.
+    if "l10n_" in module and (not options.source.name or options.source.ints >= (9, 0)):
         # create a `base` db and modify the non-demo partners country before installing the localization
         odoo(["-i", "base"], version=options.source)
         cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
