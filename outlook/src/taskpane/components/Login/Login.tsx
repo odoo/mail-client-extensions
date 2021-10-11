@@ -257,7 +257,7 @@ class Login extends React.Component<{}, LoginState> {
             return (
                 <span className="error-text">
                     {errorStr}
-                    See our <a href="https://www.odoo.com/documentation/master/applications/sales/crm/optimize/outlook_extension.html" target="_blank">FAQ</a>.
+                    See our <a href="https://www.odoo.com/documentation/master/applications/productivity/mail_plugins.html" target="_blank">FAQ</a>.
                 </span>
             );
         }

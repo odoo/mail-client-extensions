@@ -38,7 +38,7 @@ export function buildLoginMainView() {
     // Trick to make large centered button
     const invisibleChar = "⠀";
 
-    const faqUrl = "https://www.odoo.com/documentation/master/applications/sales/crm/optimize/outlook_extension.html";
+    const faqUrl = "https://www.odoo.com/documentation/master/applications/productivity/mail_plugins.html";
 
     card.addSection(
         CardService.newCardSection()
@@ -65,7 +65,7 @@ export function buildLoginMainView() {
                     .setText(repeat(invisibleChar, 11) + " Sign Up" + repeat(invisibleChar, 11))
                     .setOpenLink(
                         CardService.newOpenLink().setUrl(
-                            "https://www.odoo.com/trial?selected_app=mail_plugin:crm:helpdesk",
+                            "https://www.odoo.com/trial?selected_app=mail_plugin:crm:helpdesk:project",
                         ),
                     ),
             )
