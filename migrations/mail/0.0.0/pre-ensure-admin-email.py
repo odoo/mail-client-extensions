@@ -37,7 +37,7 @@ def migrate(cr, version):
                 """,
                 [env.user.id],
             )
-            [username] = cr.fetchone()
+            [username] = cr.fetchone() if cr.rowcount else [env.user.login]
             email = "{username}@{domain}".format(username=username, domain=domain)
             cr.execute(
                 """
