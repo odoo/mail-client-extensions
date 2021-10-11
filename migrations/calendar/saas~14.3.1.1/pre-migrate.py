@@ -23,6 +23,13 @@ def migrate(cr, version):
         for old_name, new_name in rename_fields.items():
             util.rename_field(cr, model, old_name, new_name)
 
+    cr.execute(
+        """
+                      ALTER TABLE calendar_recurrence
+        DROP CONSTRAINT IF EXISTS calendar_recurrence_month_day
+        """
+    )
+
     # Update values of weekday selection field
     cr.execute(
         """
