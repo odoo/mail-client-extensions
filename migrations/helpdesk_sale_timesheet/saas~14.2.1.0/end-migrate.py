@@ -12,4 +12,4 @@ def migrate(cr, version):
         """
     )
     ids = [row[0] for row in cr.fetchall()]
-    util.recompute_fields(cr, "helpdesk.ticket", ["sale_line_id"], ids=ids)
+    util.recompute_fields(cr, "helpdesk.ticket", ["sale_line_id", "sale_order_id"], ids=ids)
