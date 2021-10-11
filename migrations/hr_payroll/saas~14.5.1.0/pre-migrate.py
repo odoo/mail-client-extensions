@@ -17,7 +17,7 @@ def migrate(cr, version):
         WITH helper AS (SELECT ctr.id,
                                LAG(ctr.id) over (partition by (employee_id) order by (date_start)) AS previous,
                                LEAD(ctr.id) over (partition by (employee_id) order by (date_start)) AS next,
-                               COALESCE(cal.hours_per_week, 0) / COALESCE(cal.full_time_required_hours, 1) as work_time_rate
+                               COALESCE(cal.hours_per_week, 0) / COALESCE(NULLIF(cal.full_time_required_hours, 0), 1) AS work_time_rate
                           FROM hr_contract ctr
                           JOIN resource_calendar cal on cal.id = ctr.resource_calendar_id
                          WHERE employee_id IS NOT NULL AND date_start IS NOT NULL
