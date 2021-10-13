@@ -59,6 +59,7 @@ def migrate(cr, version):
                 "UPDATE account_invoice_line SET price_total=%s WHERE id IN %s",
                 [tca["total_included"], tuple(row["line_ids"])],
             )
+            env["account.tax"].invalidate_cache()
 
     cr.execute("UPDATE account_invoice_line SET price_total=price_subtotal WHERE price_total IS NULL")
 
