@@ -180,7 +180,7 @@ def migrate(cr, version):
 
     # Migrate price history
     cr.execute("CREATE TABLE stock_valuation_layer_tmp AS TABLE stock_valuation_layer WITH NO DATA")
-    cr.execute("CREATE TABLE _upgrade_fifo (id int PRIMARY KEY, company_id int)")
+    cr.execute("CREATE TABLE _upgrade_fifo (id int, company_id int)")
     cr.execute(
         r"""
         INSERT INTO _upgrade_fifo
@@ -191,6 +191,7 @@ def migrate(cr, version):
            AND res_id LIKE 'product.category,%'
         """
     )
+    cr.execute("CREATE INDEX ON _upgrade_fifo (id, company_id)")
     q = """
         WITH svl_history AS
         (
