@@ -103,7 +103,7 @@ def migrate(cr, version):
             SELECT m.id
             FROM account_move m
             LEFT JOIN account_move_line l ON l.move_id = m.id
-            WHERE move_type = 'entry'
+            WHERE m.move_type = 'entry'
             AND {parallel_filter}
             GROUP BY m.id
             HAVING bool_and(l.tax_exigible) is not false
