@@ -37,9 +37,6 @@ def migrate(cr, version):
     cr.execute("DELETE FROM mail_followers WHERE res_model = 'mail.channel'")
 
     # removal of channel following feature
-    util.update_field_references(
-        cr, "message_channel_ids", "message_ids", only_models=("mail.thread",)
-    )  # will drill-down all inherit models.
     util.remove_field(cr, "mail.thread", "message_channel_ids")
     util.remove_field(cr, "mail.wizard.invite", "channel_ids")
     util.remove_field(cr, "mail.followers", "channel_id")
