@@ -88,7 +88,7 @@ def migrate_blog_posts_snippet(cr, table, column):
             )
             el.set("class", " ".join(classes))
 
-            old_container = el.xpath(".//div[hasclass('container')]")[0]
+            old_container = (el.xpath(".//div[hasclass('container')]") or [None])[0]
             new_container = html.fromstring(
                 """
 <div class="container o_not_editable">
@@ -103,7 +103,8 @@ def migrate_blog_posts_snippet(cr, table, column):
                 """,
                 parser=utf8_parser,
             )
-            old_container.getparent().replace(old_container, new_container)
+            if old_container is not None:
+                old_container.getparent().replace(old_container, new_container)
 
         if snippet_els:
             body = etree.tostring(body, encoding="unicode")
