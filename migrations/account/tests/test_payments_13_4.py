@@ -72,10 +72,12 @@ class CheckPayments(UpgradeCase):
 
             sepa = self.env["ir.model.data"].xmlid_to_res_id("account_sepa.account_payment_method_sepa_ct")
             aba = self.env["ir.model.data"].xmlid_to_res_id("l10n_au_aba.account_payment_method_aba_ct")
-            apm_ids = (
-                self.env["account.payment.method"].search([("id", "not in", [sepa, aba]), ("code", "!=", "sdd")]).ids
-            )
-            aj_ids = self.env["account.journal"].search([("type", "in", ["bank", "cash"])]).ids
+
+            apm_domain = [("id", "not in", [sepa, aba]), ("code", "!=", "sdd"), ("payment_type", "=", "inbound")]
+            apm_ids = self.env["account.payment.method"].search(apm_domain).ids
+
+            aj_domain = [("type", "in", ["bank", "cash"]), ("inbound_payment_method_ids", "!=", False)]
+            aj_ids = self.env["account.journal"].search(aj_domain).ids
 
             if util.module_installed(self.env.cr, "l10n_latam_invoice_document"):
                 latam_journals = self.env["account.journal"].search([("l10n_latam_use_documents", "=", True)])
