@@ -26,18 +26,23 @@ def migrate(cr, version):
         else:
             cr.execute("SELECT value FROM ir_config_parameter WHERE key = 'mail.catchall.domain'")
             [domain] = cr.fetchone()
-            cr.execute(
-                """
-                   UPDATE mail_alias ma
-                      SET alias_name = COALESCE(ma.alias_name, ru.login)
-                     FROM res_users ru
-                    WHERE ru.id = %s
-                      AND ru.alias_id = ma.id
-                RETURNING ma.alias_name
-                """,
-                [env.user.id],
-            )
-            [username] = cr.fetchone() if cr.rowcount else [env.user.login]
+
+            if util.column_exists(cr, "res_users", "alias_id"):
+                cr.execute(
+                    """
+                       UPDATE mail_alias ma
+                          SET alias_name = COALESCE(ma.alias_name, ru.login)
+                         FROM res_users ru
+                        WHERE ru.id = %s
+                          AND ru.alias_id = ma.id
+                    RETURNING ma.alias_name
+                    """,
+                    [env.user.id],
+                )
+                [username] = cr.fetchone() if cr.rowcount else [env.user.login]
+            else:
+                username = env.user.login
+
             email = "{username}@{domain}".format(username=username, domain=domain)
             cr.execute(
                 """
