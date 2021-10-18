@@ -66,22 +66,22 @@ def migrate_product_recently_viewed_snippet(cr, table, column):
             )
             el.set("class", " ".join(classes))
 
-            old_container = el.xpath(".//div[hasclass('container')]")[0]
-            new_container = html.fromstring(
-                """
-<div class="container o_not_editable">
-    <div class="css_non_editable_mode_hidden">
-        <div class="missing_option_warning alert alert-info rounded-0 fade show d-none d-print-none o_default_snippet_text">
-            Your Dynamic Snippet will be displayed here...
-            This message is displayed because you did not provided both a filter and a template to use.<br/>
+            for old_container in el.xpath(".//div[hasclass('container')]"):
+                new_container = html.fromstring(
+                    """
+    <div class="container o_not_editable">
+        <div class="css_non_editable_mode_hidden">
+            <div class="missing_option_warning alert alert-info rounded-0 fade show d-none d-print-none o_default_snippet_text">
+                Your Dynamic Snippet will be displayed here...
+                This message is displayed because you did not provided both a filter and a template to use.<br/>
+            </div>
         </div>
+        <div class="dynamic_snippet_template"/>
     </div>
-    <div class="dynamic_snippet_template"/>
-</div>
-                """,
-                parser=utf8_parser,
-            )
-            old_container.getparent().replace(old_container, new_container)
+                    """,
+                    parser=utf8_parser,
+                )
+                old_container.getparent().replace(old_container, new_container)
 
         if snippet_els:
             body = etree.tostring(body, encoding="unicode")

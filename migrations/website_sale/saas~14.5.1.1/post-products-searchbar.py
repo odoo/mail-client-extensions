@@ -75,33 +75,33 @@ def migrate_products_searchbar_snippet(cr, table, column):
             el.set("class", " ".join(classes))
 
             # 2.1. form's order input
-            order_input = el.xpath(".//input[hasclass('o_wsale_search_order_by')]")[0]
-            old_order = order_input.get("value")
-            if not old_order:
-                old_order = "website_sequence asc"
-            order_input.set("value", old_order)
+            for order_input in el.xpath(".//input[hasclass('o_wsale_search_order_by')]"):
+                old_order = order_input.get("value")
+                if not old_order:
+                    old_order = "website_sequence asc"
+                order_input.set("value", old_order)
 
-            order_classes = set(order_input.get("class", "").split(" "))
-            order_classes.difference_update(
-                [
-                    "o_wsale_search_order_by",
-                ]
-            )
-            order_classes.update(
-                [
-                    "o_search_order_by",
-                ]
-            )
-            order_input.set("class", " ".join(order_classes))
+                order_classes = set(order_input.get("class", "").split(" "))
+                order_classes.difference_update(
+                    [
+                        "o_wsale_search_order_by",
+                    ]
+                )
+                order_classes.update(
+                    [
+                        "o_search_order_by",
+                    ]
+                )
+                order_input.set("class", " ".join(order_classes))
 
             # 2.2. form's search input
-            search_input = el.xpath(".//input[hasclass('oe_search_box')]")[0]
-            search_input.set("data-search-type", "products")
-            search_input.set("data-order-by", old_order)
-            search_input.set("data-display-extra-link", "true")
-            if "data-display-price" in search_input.attrib:
-                search_input.set("data-display-detail", search_input.get("data-display-price"))
-                del search_input.attrib["data-display-price"]
+            for search_input in el.xpath(".//input[hasclass('oe_search_box')]"):
+                search_input.set("data-search-type", "products")
+                search_input.set("data-order-by", old_order)
+                search_input.set("data-display-extra-link", "true")
+                if "data-display-price" in search_input.attrib:
+                    search_input.set("data-display-detail", search_input.get("data-display-price"))
+                    del search_input.attrib["data-display-price"]
 
         if snippet_els or form_els:
             body = etree.tostring(body, encoding="unicode")
