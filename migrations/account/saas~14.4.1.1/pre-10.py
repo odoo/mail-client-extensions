@@ -146,7 +146,11 @@ def migrate(cr, version):
     cr.execute(
         """
         CREATE TABLE _upg_account_payment_payment_method_mapping AS (
-            SELECT ap.id, CASE WHEN apm.code != 'electronic' THEN payment_method_id ELSE NULL END AS payment_method_id, journal_id
+            SELECT ap.id,
+                CASE WHEN apm.code != 'electronic'
+                     THEN ap.payment_method_id
+                     ELSE NULL
+                   END AS payment_method_id, am.journal_id
               FROM account_payment ap
               JOIN account_move am ON ap.id = am.payment_id
               JOIN account_payment_method apm ON ap.payment_method_id = apm.id
