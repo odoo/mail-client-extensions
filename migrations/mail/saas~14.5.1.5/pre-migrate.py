@@ -55,3 +55,16 @@ def migrate(cr, version):
             "channel_id": util.ref(cr, "mail.channel_all_employees"),
         },
     )
+
+    # Force the channel "all employees" to stay a mail channel
+    # and to not be converted into a mail group
+    channel_all_employees = util.ref(cr, "mail.channel_all_employees")
+    if channel_all_employees:
+        cr.execute(
+            """
+            UPDATE mail_channel
+               SET email_send = FALSE
+             WHERE id = %s
+            """,
+            (channel_all_employees,),
+        )
