@@ -53,10 +53,11 @@ def migrate(cr, version):
                 fold,
                 legend_blocked,
                 legend_done,
-                legend_normal
+                legend_normal,
+                active
             )
             SELECT s.seq, s.name, a.user_id, s.fold,
-                   'Blocked', 'Ready', 'In Progress'
+                   'Blocked', 'Ready', 'In Progress', TRUE
               FROM assigned_users a,
                    stages s
         """
