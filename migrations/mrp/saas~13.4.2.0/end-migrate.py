@@ -308,7 +308,8 @@ def migrate(cr, version):
                JOIN mrp_production AS new_mo ON new_mo.id = new_move.production_id
          WHERE new_move.old_id IS NOT NULL
                AND new_mo.old_id IS NOT NULL
-               AND sml.lot_id = new_mo.lot_producing_id;
+               AND sml.lot_id = new_mo.lot_producing_id
+               AND sml.move_id = new_move.old_id
         """
     )
 
