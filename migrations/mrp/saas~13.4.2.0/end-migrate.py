@@ -120,7 +120,7 @@ def migrate(cr, version):
         cr,
         "mrp_production",
         ignore=("id", "old_id", "lot_producing_id", "backorder_sequence", "name", "product_qty", "qty_producing"),
-        extra_prefixes=["mp"]
+        extra_prefixes=["mp"],
     )
     column_stock_move, column_stock_move_pre = util.get_columns(
         cr,
@@ -226,7 +226,8 @@ def migrate(cr, version):
          UNION
         SELECT id FROM update_source_mo
     """.format(
-            column_production=", ".join(column_production), column_production_pre=", ".join(column_production_pre),
+            column_production=", ".join(column_production),
+            column_production_pre=", ".join(column_production_pre),
         )
     )
     ids_mo = [mo_id for mo_id, in cr.fetchall()]
