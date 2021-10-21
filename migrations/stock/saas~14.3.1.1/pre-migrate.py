@@ -133,18 +133,20 @@ def migrate(cr, version):
     """
     )
 
-    # FIXME the following query seems wrong
-    #  - should filter on exact property (using fields_id)
-    #  - default property handling
     cr.execute(
         """
         CREATE TEMPORARY VIEW temp_inventory_line AS (
             WITH inventory_location_per_company AS (
-                SELECT company_id,
-                       MIN(SPLIT_PART(value_reference, ',', 2)::int4) as location_dest_id
-                  FROM ir_property
-                 WHERE ir_property.name = 'property_stock_inventory'
-              GROUP BY company_id
+                SELECT p.company_id,
+                       (SPLIT_PART(p.value_reference, ',', 2))::int4 as location_dest_id
+                  FROM ir_property p
+                  JOIN ir_model_fields f
+                    ON p.fields_id = f.id
+                 WHERE p.name = 'property_stock_inventory'
+                   AND p.res_id IS NULL
+                   AND p.value_reference like 'stock.location,%'
+                   AND f.model = 'product.template'
+                   AND f.name = 'property_stock_inventory'
             )
             SELECT
                 product_id,
