@@ -119,6 +119,8 @@ class TestContactus(UpgradeCase):
         return {"1": website_1.id, "2": website_2.id, "3": website_3.id, "4": website_4.id, "5": website_5.id}
 
     def check(self, init):
+        UPG_PREFIX = "/_pre-v15-upgrade-"
+        UPG_SUFFIX = "_v15_upgrade_backup"
         Website = self.env["website"]
         website_1 = Website.browse(init["1"])
         website_2 = Website.browse(init["2"])
@@ -130,24 +132,22 @@ class TestContactus(UpgradeCase):
             return set([r["website_id"] and r["website_id"][0] for r in recs])
 
         self.assertEqual(get_view_wids("website.contactus"), set([False]))
-        self.assertEqual(get_view_wids("website.contactus_migration_old"), set([False, website_2.id, website_4.id]))
+        self.assertEqual(get_view_wids(f"website.contactus{UPG_SUFFIX}"), set([False, website_2.id, website_4.id]))
+        self.assertEqual(get_view_wids(f"website.contactus_form{UPG_SUFFIX}"), set([False, website_2.id, website_4.id]))
         self.assertEqual(
-            get_view_wids("website.contactus_form_migration_old"), set([False, website_2.id, website_4.id])
-        )
-        self.assertEqual(
-            get_view_wids("website_crm.contactus_form_migration_old"),
+            get_view_wids(f"website_crm.contactus_form{UPG_SUFFIX}"),
             set([False, website_2.id, website_4.id, website_5.id]),
         )
         self.assertEqual(get_view_wids("website.contactus_thanks"), set([False]))
         self.assertEqual(
-            get_view_wids("website.contactus_thanks_migration_old"), set([False, website_1.id, website_2.id])
+            get_view_wids(f"website.contactus_thanks{UPG_SUFFIX}"), set([False, website_1.id, website_2.id])
         )
         self.assertEqual(
-            get_view_wids("website.contactus_thanks_oe_structure_website_form_contact_us_thanks_1_migration_old"),
+            get_view_wids(f"website.contactus_thanks_oe_structure_website_form_contact_us_thanks_1{UPG_SUFFIX}"),
             set([website_1.id, website_2.id]),
         )
         self.assertEqual(
-            get_view_wids("website.contactus_thanks_oe_structure_website_form_contact_us_thanks_2_migration_old"),
+            get_view_wids(f"website.contactus_thanks_oe_structure_website_form_contact_us_thanks_2{UPG_SUFFIX}"),
             set([website_1.id, website_2.id]),
         )
 
@@ -159,8 +159,8 @@ class TestContactus(UpgradeCase):
             get_page_wids("/contactus") == get_page_wids("/contactus-thank-you") == set([False]),
             "Only one generic page should have been created.",
         )
-        self.assertEqual(get_page_wids("/migration-old-contactus"), set([False, website_2.id, website_4.id]))
-        self.assertEqual(get_page_wids("/migration-old-contactus-thank-you"), set([False, website_1.id, website_2.id]))
+        self.assertEqual(get_page_wids(f"{UPG_PREFIX}contactus"), set([False, website_2.id, website_4.id]))
+        self.assertEqual(get_page_wids(f"{UPG_PREFIX}contactus-thank-you"), set([False, website_1.id, website_2.id]))
 
         def get_combined_arch(website_id, key):
             return Website.with_context(website_id=website_id).viewref(key).get_combined_arch()
@@ -168,9 +168,9 @@ class TestContactus(UpgradeCase):
         for website in Website.browse(init.values()):
             # Ensure render do not crash (no xpath error/no unexisting t-call, etc).
             arch_1 = get_combined_arch(website.id, "website.contactus")
-            arch_2 = get_combined_arch(website.id, "website.contactus_migration_old")
+            arch_2 = get_combined_arch(website.id, f"website.contactus{UPG_SUFFIX}")
             arch_3 = get_combined_arch(website.id, "website.contactus_thanks")
-            arch_4 = get_combined_arch(website.id, "website.contactus_thanks_migration_old")
+            arch_4 = get_combined_arch(website.id, f"website.contactus_thanks{UPG_SUFFIX}")
             if website.id == website_2.id:  # this website COWed every views
                 self.assertFalse(website.name in arch_1)
                 self.assertFalse(website.name in arch_3)

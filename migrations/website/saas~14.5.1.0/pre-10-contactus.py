@@ -64,7 +64,7 @@ def backup_contactus_related_views(cr, keys, keep_key=False):
         UPDATE website_page p
            SET is_published = false,
                website_indexed = false,
-               url = concat('/migration-old-', right(url, -1))
+               url = concat('/_pre-v15-upgrade-', right(url, -1))
           FROM ir_ui_view v
          WHERE p.view_id = v.id
            AND v.key IN %s
@@ -75,10 +75,10 @@ def backup_contactus_related_views(cr, keys, keep_key=False):
         """
         UPDATE ir_ui_view
            SET {key}
-               name = name || ' (migration old)'
+               name = name || ' (v15 upgrade backup)'
          WHERE key IN %s
     """.format(
-            key="" if keep_key else "key = key || '_migration_old',"
+            key="" if keep_key else "key = key || '_v15_upgrade_backup',"
         ),
         [tuple(keys)],
     )
