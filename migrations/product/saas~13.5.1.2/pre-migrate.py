@@ -26,6 +26,6 @@ def migrate(cr, version):
                 util.create_column(cr, table, field, ftype, default=default)
 
     util.move_model(cr, "product.attribute.custom.value", "sale", "product")
-    # The field sale_order_line_id and constraint stay in sale modu
-    util.move_field_to_module(cr, "product.attribute.custom.value", "sale_order_le_id", "product", "sale")
+    # The field sale_order_line_id and constraint stay in sale module
+    util.move_field_to_module(cr, "product.attribute.custom.value", "sale_order_line_id", "product", "sale")
     util.rename_xmlid(cr, *eb("{product,sale}.constraint_product_attribute_custom_value_sol_custom_value_unique"))
