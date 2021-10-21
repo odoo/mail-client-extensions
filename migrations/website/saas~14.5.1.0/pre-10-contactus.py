@@ -32,7 +32,9 @@ def migrate(cr, version):
             remove_xml_id(cr, key)
         # Same for pages
         remove_xml_id(cr, "website.contactus_page")
+        remove_xml_id(cr, "website.contactus_page_ir_ui_view")
         remove_xml_id(cr, "website.contactus_thanks")
+        remove_xml_id(cr, "website.contactus_thanks_ir_ui_view")
         # Keep customized contact pages as old unpublished pages
         backup_contactus_related_views(cr, view_keys + oe_structure_view_keys)
         backup_contactus_related_views(cr, t_called_view_keys, True)
