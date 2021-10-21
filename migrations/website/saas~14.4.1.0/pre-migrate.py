@@ -15,3 +15,7 @@ def migrate(cr, version):
     # don't want links to be send with localhost, see commit msg.
     cr.execute("UPDATE website SET domain = NULL WHERE domain = 'localhost'")
     util.create_column(cr, "res_company", "website_id", "int4")
+
+    # correct website.domain (now done automatically on write/create)
+    cr.execute("UPDATE website SET domain = RTRIM(domain, '/') WHERE domain LIKE '%/'")
+    cr.execute("UPDATE website SET domain = CONCAT('https://', domain) WHERE domain NOT LIKE 'http%'")
