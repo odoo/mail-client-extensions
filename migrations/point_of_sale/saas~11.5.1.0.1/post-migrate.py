@@ -100,40 +100,44 @@ def migrate(cr, version):
 
         cr.execute(""" DROP TABLE mig_temp_post_order_compute """)  # clean up that shit
         # Now let's process the orders
-        cr.execute("""
+        util.parallel_execute(cr, util.explode_query_range(cr, """
             WITH payments AS (
-                    SELECT pos_statement_id, SUM(amount) as paid, SUM(CASE WHEN amount < 0 THEN amount END) as returned
-                    FROM account_bank_statement_line
-                    GROUP BY pos_statement_id)
+                    SELECT l.pos_statement_id, SUM(l.amount) as paid, SUM(CASE WHEN l.amount < 0 THEN l.amount END) as returned
+                      FROM account_bank_statement_line l
+                      JOIN pos_order o ON o.id = l.pos_statement_id
+                     WHERE {parallel_filter}
+                     GROUP BY l.pos_statement_id
+                )
             UPDATE pos_order o
             SET amount_paid = payments.paid,
                 amount_return = COALESCE(payments.returned, 0)
             FROM payments
             WHERE o.id=payments.pos_statement_id
-        """)
-        cr.execute("""
+        """, table="pos_order", prefix="o."))
+        util.parallel_execute(cr, util.explode_query_range(cr, """
             WITH amount as (
-                SELECT order_id, sum(price_subtotal_incl) as incl, sum(coalesce(price_subtotal_incl,0)-coalesce(price_subtotal,0)) as taxes
-                FROM pos_order_line
-                group by order_id
+                SELECT l.order_id, sum(l.price_subtotal_incl) as incl, sum(coalesce(l.price_subtotal_incl,0)-coalesce(l.price_subtotal,0)) as taxes
+                  FROM pos_order_line l
+                  JOIN pos_order o ON o.id = l.order_id
+                 WHERE {parallel_filter}
+                 GROUP BY l.order_id
             )
             UPDATE pos_order o
             SET amount_tax=amount.taxes,
                 amount_total=amount.incl
             FROM amount
             WHERE o.id=amount.order_id
-        """)
+        """, table="pos_order", prefix="o."))
         # Clean up, ensure value since this is a required field
-        cr.execute("""ALTER TABLE pos_order DISABLE TRIGGER ALL""")
-        cr.execute("""
+        util.parallel_execute(cr, util.explode_query_range(cr, """
             UPDATE pos_order
             SET amount_paid=COALESCE(amount_paid, 0),
                 amount_return=COALESCE(amount_return, 0),
                 amount_tax=COALESCE(amount_tax, 0),
                 amount_total=COALESCE(amount_total, 0)
-            WHERE amount_paid IS NULL
+            WHERE (amount_paid IS NULL
                OR amount_return IS NULL
                OR amount_tax IS NULL
-               OR amount_total IS NULL
-        """)
-        cr.execute("""ALTER TABLE pos_order ENABLE TRIGGER ALL""")
+               OR amount_total IS NULL)
+               AND {parallel_filter}
+        """), table="pos_order")
