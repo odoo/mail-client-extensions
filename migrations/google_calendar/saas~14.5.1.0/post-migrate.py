@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 
+from odoo import SUPERUSER_ID
+
 from odoo.upgrade import util
 
 
@@ -7,6 +9,8 @@ def migrate(cr, version):
     """
     google_calendar move google credentials (tokens) from res_users to a dedicated table
     """
+
+    cr.execute("UPDATE res_users SET google_calendar_token = NULL WHERE id = %s", [SUPERUSER_ID])
     # Migrate the google token into a dedicated table
     cr.execute(
         """
