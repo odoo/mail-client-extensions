@@ -68,3 +68,21 @@ def migrate(cr, version):
             """,
             (channel_all_employees,),
         )
+
+    env = util.env(cr)
+    host = env["ir.config_parameter"].get_param("web.base.url")
+    util.add_to_migration_reports(
+        f"""
+        <p><strong>PLEASE NOTE:</strong></p>
+        <p>
+            Mass mailing channels are no longer displayed in the Discuss app
+            by default starting from Odoo 15.0. <br>
+            They become mail groups and are moved to <a href="{host}/groups">{host}/groups</a>, where you can
+            subscribe and follow discussions. <br>
+            If you prefer to keep a channel in the Discuss app after the upgrade, go to the channel
+            settings and uncheck the "send messages by email" option.
+        </p>
+        """,
+        "Discuss",
+        format="html",
+    )
