@@ -3,7 +3,7 @@
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("14.5")
+@change_version("saas~14.5")
 class TestMigrateUserIds(UpgradeCase):
     def prepare(self):
         company = self.env["res.company"].create(
@@ -17,17 +17,25 @@ class TestMigrateUserIds(UpgradeCase):
                 "login": "prj",
             }
         )
-        project = self.env["project.project"].create(
-            {
-                "name": "Project 1",
-            }
+        project = (
+            self.env["project.project"]
+            .with_context(pad_no_create=True)
+            .create(
+                {
+                    "name": "Project 1",
+                }
+            )
         )
-        task = self.env["project.task"].create(
-            {
-                "name": "Task 1",
-                "project_id": project.id,
-                "user_id": user.id,
-            }
+        task = (
+            self.env["project.task"]
+            .with_context(pad_no_create=True)
+            .create(
+                {
+                    "name": "Task 1",
+                    "project_id": project.id,
+                    "user_id": user.id,
+                }
+            )
         )
         return (
             company.id,
