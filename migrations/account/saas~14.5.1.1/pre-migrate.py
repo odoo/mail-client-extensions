@@ -36,21 +36,26 @@ def migrate(cr, version):
     # Add category to analytic account line (PR: (odoo) 68708 & (enterprise) 18594)
     # ===============================================================
 
-    cr.execute(
+    queries = [
         """
-            UPDATE account_analytic_line
-               SET category = CASE
-                                WHEN am.move_type IN ('out_invoice', 'out_refund') THEN 'invoice'
-                                WHEN am.move_type IN ('in_invoice', 'in_refund') THEN 'vendor_bill'
-                              END
-              FROM account_analytic_line aal
-                   JOIN account_move_line aml
-                     ON aal.move_id = aml.id
-                   JOIN account_move am
-                     ON aml.move_id = am.id
-             WHERE account_analytic_line.id = aal.id
+            UPDATE account_analytic_line aal
+               SET category = 'invoice'
+              FROM account_move_line aml
+              JOIN account_move am ON aml.move_id = am.id
+             WHERE aal.move_id = aml.id
+               AND am.move_type IN ('out_invoice', 'out_refund')
+        """,
         """
-    )
+            UPDATE account_analytic_line aal
+               SET category = 'vendor_bill'
+              FROM account_move_line aml
+              JOIN account_move am ON aml.move_id = am.id
+             WHERE aal.move_id = aml.id
+               AND am.move_type IN ('in_invoice', 'in_refund')
+        """,
+    ]
+    for query in queries:
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", prefix="aal."))
 
     # ==========================================================================
     # The Reconciliation Models usability imp (PR: odoo#73043, enterprise#19395)
