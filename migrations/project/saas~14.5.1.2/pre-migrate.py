@@ -79,7 +79,15 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "user_email")
     util.update_record_from_xml(cr, "project.task_visibility_rule")
 
-    util.create_column(cr, "project_task", "analytic_account_id", "int4")
+    cr.execute(
+        """
+            ALTER TABLE project_task
+           ALTER COLUMN "working_hours_open" TYPE numeric,
+           ALTER COLUMN "working_hours_close" TYPE numeric,
+             ADD COLUMN "analytic_account_id" int4
+        """
+    )
+
     util.create_m2m(
         cr,
         "account_analytic_tag_project_task_rel",
