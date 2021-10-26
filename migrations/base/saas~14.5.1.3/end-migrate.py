@@ -12,15 +12,7 @@ def migrate(cr, version):
         # bold layout shouldn't have the company name that is added by default when calling _default_company_details
         # this case is only treated in upgrade so that we don't disrupt existing layouts
         if company.external_report_layout_id.key == env.ref("web.report_layout_bold").view_id.key:
-            company_data = {
-                "company_name": company.name or "",
-                "street": company.street or "",
-                "street2": "",
-                "city": company.city or "",
-                "state_code": company.state_id.name or "",
-                "zip": company.zip or "",
-                "country_name": company.country_id.name or "",
-            }
-            company.company_details = Markup(nl2br(company.country_id.address_format)) % company_data
+            address_format, company_data = company.partner_id._prepare_display_address(without_company=True)
+            company.company_details = Markup(nl2br(address_format)) % company_data
         else:
             company.company_details = env["base.document.layout"].with_company(company)._default_company_details()
