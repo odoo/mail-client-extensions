@@ -6,4 +6,4 @@ def migrate(cr, version):
     util.create_column(cr, "account_payment", "source_payment_id", "int4")
     util.create_column(cr, "payment_acquirer", "support_refund", "varchar")
     util.create_column(cr, "payment_transaction", "source_transaction_id", "int4")
-    util.remove_record(cr, "payment.payment_acquirer_odoo")
+    util.delete_unused(cr, "payment.payment_acquirer_odoo")
