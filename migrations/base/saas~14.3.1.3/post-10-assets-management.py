@@ -498,7 +498,7 @@ def process_views_conversion(cr, results, has_website=False, path_column='path')
         bundle_name = get_bundle_name_from_key(get_view_key(parent_view))
 
         arch = etree.fromstring(view["arch_db"])
-        if arch.tag == "data":
+        if arch.tag == "data" and len(arch):
             arch = arch[0]
         if len(arch) == 0:
             continue
