@@ -140,4 +140,4 @@ def migrate(cr, version):
                OR amount_tax IS NULL
                OR amount_total IS NULL)
                AND {parallel_filter}
-        """), table="pos_order")
+        """, table="pos_order"))
