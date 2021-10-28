@@ -75,6 +75,7 @@ def migrate_products_searchbar_snippet(cr, table, column):
             el.set("class", " ".join(classes))
 
             # 2.1. form's order input
+            old_order = "website_sequence asc"
             for order_input in el.xpath(".//input[hasclass('o_wsale_search_order_by')]"):
                 old_order = order_input.get("value")
                 if not old_order:
