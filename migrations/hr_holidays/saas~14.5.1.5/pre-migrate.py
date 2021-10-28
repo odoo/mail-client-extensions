@@ -19,6 +19,22 @@ def migrate(cr, version):
     util.create_column(cr, "hr_leave_allocation", "accrual_plan_id", "int4")
     util.create_m2m(cr, "hr_employee_hr_leave_allocation_rel", "hr_leave_allocation", "hr_employee")
 
+    # Populate hr_employee_hr_leave_rel for existing leaves
+    cr.execute(
+        """
+            INSERT INTO hr_employee_hr_leave_rel
+                 SELECT id, employee_id FROM hr_leave
+        """
+    )
+
+    # Populate hr_employee_hr_leave_allocation_rel for existing allocations
+    cr.execute(
+        """
+            INSERT INTO hr_employee_hr_leave_allocation_rel
+                 SELECT id, employee_id FROM hr_leave_allocation
+        """
+    )
+
     # Remove cancel state from leaves
     util.change_field_selection_values(cr, "hr.leave", "state", {"cancel": "refuse"})
 
