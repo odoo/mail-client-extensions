@@ -29,3 +29,5 @@ def migrate(cr, version):
           AND l.code = 'NET'
     """
     )
+
+    util.remove_field(cr, "hr.payslip.run", "credit_note")
