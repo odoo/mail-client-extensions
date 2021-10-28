@@ -23,7 +23,9 @@ def migrate(cr, version):
     cr.execute(
         """
             INSERT INTO hr_employee_hr_leave_rel
-                 SELECT id, employee_id FROM hr_leave
+                 SELECT id, employee_id
+                   FROM hr_leave
+                  WHERE employee_id IS NOT NULL
         """
     )
 
@@ -31,7 +33,9 @@ def migrate(cr, version):
     cr.execute(
         """
             INSERT INTO hr_employee_hr_leave_allocation_rel
-                 SELECT id, employee_id FROM hr_leave_allocation
+                 SELECT id, employee_id
+                   FROM hr_leave_allocation
+                  WHERE employee_id IS NOT NULL
         """
     )
 
