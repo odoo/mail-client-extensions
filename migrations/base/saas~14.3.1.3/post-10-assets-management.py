@@ -371,7 +371,7 @@ def process_views_conversion(cr, results, has_website=False, path_column='path')
         return dict([(path_column, src)])
 
     def handle_link_node(view, etreeNode):
-        rel_attr = not etreeNode.get("rel")
+        rel_attr = etreeNode.get("rel")
         if rel_attr == "stylesheet":
             msg = (
                 """
