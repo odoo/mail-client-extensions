@@ -54,7 +54,6 @@ def migrate_newsletter_popup(cr, table, column):
             # `website_mass_mailing_popup` record.
             list_id = newsletter_popup_el.get("data-list-id")
             popup_content = get_popup_content(cr, list_id, res_id, table)
-
             # Replace the old (and empty) newsletter popup `<div/>` by the new
             # structure, and inject its popup content inside it.
             new_popup_structure = html.fromstring(
@@ -139,7 +138,7 @@ def get_popup_content(cr, list_id, res_id, table):
         [list_id],
     )
     popups = cr.fetchall()
-    popup = popups[0][1]
+    popup = popups[0][1] if popups else ""
     # If there is only once content, use it, else, try to find the most adequate
     if len(popups) > 1:
         # A more adequate has sense only for record having a `website_id` field
