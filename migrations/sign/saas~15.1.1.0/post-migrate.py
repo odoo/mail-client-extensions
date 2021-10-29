@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-from odoo import tools
-
 from odoo.upgrade import util
 
 
@@ -31,7 +29,8 @@ def migrate(cr, version):
         util.recompute_fields(cr, "sign.template", ["num_pages"], ids=has_ids)
     if no_ids:
         # inject the cron which will process the PDFs that weren't available in disk
-        if not util.ref(cr, "__upgrade__.post_upgrade_process_sign_pdfs"):
-            cron_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "process-pdf-page-number-cron.xml")
-            with open(cron_file, "rb") as cron_file_wrapper:
-                tools.convert_xml_import(cr, "__upgrade__", cron_file_wrapper, {})
+        CODE = """
+            pdfs_to_process = model.with_context(active_test=False).search([("num_pages", "=", False)])
+            env.add_to_compute(model._fields['num_pages'], pdfs_to_process)
+        """
+        util.create_cron(cr, "Process Sign PDFs", "sign.template", CODE)

@@ -3,8 +3,6 @@ import logging
 import os
 import re
 
-from odoo import tools
-
 from odoo.addons.base.maintenance.migrations import util
 
 NS = "odoo.addons.base.maintenance.migrations.account.saas~12.3."
@@ -16,6 +14,34 @@ FORCE_COPY = re.split(r"[,\s]+", os.getenv("MIG_S122_FORCE_COPY_IMAGES_MODELS", 
 SUFFIXES = ["big", "large", "medium", "small"]
 if util.version_gte("saas~12.5"):
     SUFFIXES = ["1024", "512", "256", "128"]
+
+CRON_CODE = """
+# Make sure we process all images by ordering on `write_date`
+# and forcing to update the `write_date` in case the image coudln't be resized
+# because it was not in the filestore.
+try:
+    # 13.0 and upper
+    add_to_compute = env.add_to_compute
+except Exception:
+    # before 13.0
+    add_to_compute = env.add_todo
+
+images_to_resize = model.search(
+    [("index_content", "=", "image_is_not_yet_resized"), ("res_field", "!=", False)], limit=1000, order="write_date ASC"
+)
+images_recomputed = model.browse()
+images_left = model.browse()
+for image in images_to_resize:
+    if image.with_context(bin_size=True).datas:
+        res_model = env[image.res_model]
+        add_to_compute(res_model._fields[image.res_field], res_model.browse(image.res_id))
+        images_recomputed |= image
+    else:
+        images_left |= image
+images_recomputed.recompute()
+images_recomputed.write({"index_content": "image"})
+images_left.write({"index_content": "image_is_not_yet_resized"})
+"""
 
 
 def check_field(cr, model, fieldname):
@@ -109,10 +135,7 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
                 cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [sub_ids])
 
         # Inject the cron which will resize the images which have not been resized during the upgrade
-        if not util.ref(cr, "__upgrade__.post_upgrade_resize_image"):
-            cron_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resize-images-cron.xml")
-            with open(cron_file, "rb") as fp:
-                tools.convert_xml_import(cr, "__upgrade__", fp, {})
+        util.create_cron(cr, "Resize Images", "ir.attachment", CRON_CODE)
 
 
 def migrate(cr, version):
