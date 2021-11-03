@@ -292,16 +292,22 @@ def migrate(cr, version):
     # of the parent statement which is a required field.
     # to avoid using a possibly broken journal_id from statement lines, directly use the
     # journal_id from the parent statement.
-    cr.execute(
-        """
-        UPDATE account_bank_statement_line st_line
-           SET currency_id = COALESCE(journal.currency_id, comp.currency_id)
-          FROM account_bank_statement_line_pre_backup st_line_backup
-          JOIN account_bank_statement st ON st.id = st_line_backup.statement_id
-          JOIN account_journal journal ON journal.id = st.journal_id
-          JOIN res_company comp ON comp.id = COALESCE(st_line_backup.company_id, journal.company_id)
-         WHERE st_line_backup.id = st_line.id
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE account_bank_statement_line st_line
+               SET currency_id = COALESCE(journal.currency_id, comp.currency_id)
+              FROM account_bank_statement_line_pre_backup st_line_backup
+              JOIN account_bank_statement st ON st.id = st_line_backup.statement_id
+              JOIN account_journal journal ON journal.id = st.journal_id
+              JOIN res_company comp ON comp.id = COALESCE(st_line_backup.company_id, journal.company_id)
+             WHERE st_line_backup.id = st_line.id
+            """,
+            table="account_bank_statement_line",
+            prefix="st_line.",
+        ),
     )
 
     # Fix the relational link between account.bank.statement.line & account.move.
@@ -422,23 +428,29 @@ def migrate(cr, version):
 
     # Update existing account.move.
 
-    cr.execute(
-        """
-        UPDATE account_move move
-        SET currency_id = COALESCE(journal.currency_id, company.currency_id),
-            partner_id = st_line_backup.partner_id,
-            commercial_partner_id = st_line_backup.partner_id,
-            partner_bank_id = st_line_backup.bank_account_id,
-            journal_id = st_line_backup.journal_id,
-            ref = st_line_backup.ref,
-            narration = st_line_backup.note,
-            company_id = st_line_backup.company_id
-        FROM account_bank_statement_line_pre_backup st_line_backup
-        JOIN account_bank_statement_line st_line ON st_line.id = st_line_backup.id
-        JOIN account_journal journal ON journal.id = st_line_backup.journal_id
-        JOIN res_company company ON company.id = journal.company_id
-        WHERE move.id = st_line.move_id
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE account_move move
+            SET currency_id = COALESCE(journal.currency_id, company.currency_id),
+                partner_id = st_line_backup.partner_id,
+                commercial_partner_id = st_line_backup.partner_id,
+                partner_bank_id = st_line_backup.bank_account_id,
+                journal_id = st_line_backup.journal_id,
+                ref = st_line_backup.ref,
+                narration = st_line_backup.note,
+                company_id = st_line_backup.company_id
+            FROM account_bank_statement_line_pre_backup st_line_backup
+            JOIN account_bank_statement_line st_line ON st_line.id = st_line_backup.id
+            JOIN account_journal journal ON journal.id = st_line_backup.journal_id
+            JOIN res_company company ON company.id = journal.company_id
+            WHERE move.id = st_line.move_id
+            """,
+            table="account_move",
+            prefix="move.",
+        ),
     )
 
     # ==== Migrate the payments ====
