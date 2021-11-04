@@ -1,7 +1,14 @@
 from odoo import models
 
 import odoo.addons.gamification.models.challenge as _ignore  # noqa
-import odoo.addons.gamification.models.res_users as _ignore  # noqa
+
+try:
+    import odoo.addons.gamification.models.res_users as _ignore  # noqa
+except ImportError:
+    # This file appears in odoo/odoo@3b9dcb6d8d8c50000828f3503e69c567d0daa98c
+    # in which the method `_rank_changed` didn't exist.
+    # We still define the method even nobody will ever call it.
+    pass
 
 
 def migrate(cr, version):
