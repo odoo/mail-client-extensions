@@ -115,6 +115,9 @@ def migrate(cr, version):
         # Actually, it should be as it doesn't works without...
         util.trigger_auto_install(cr, "account_online_synchronization")
 
+        util.merge_module(cr, "pos_hr_l10n_be", "pos_blackbox_be")
+        util.module_deps_diff(cr, "pos_blackbox_be", plus={"pos_hr"}, minus={"pos_cash_rounding"})
+
         # https://github.com/odoo/enterprise/pull/23728 (fw)
         util.trigger_auto_install(cr, "l10n_lu_reports_annual_vat")
 
