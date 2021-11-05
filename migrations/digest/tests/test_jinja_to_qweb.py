@@ -2,11 +2,11 @@
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 jinja_content = r"""
-<p>a${'b' or '' | safe} !<a href="${ 'c' or '' | safe }">d</a> e ${'f' or '' | safe}<br>g</p>
+<p>a${'b' or '' | safe} !<a href="${ 'c' or '' }">d</a> e ${'f' or '' | safe}<br>g</p>
 """.strip()
 
 qweb_content = r"""
-<p>a<t t-out="'b' or ''"></t> !<a t-attf-href="{{ 'c' or '' }}">d</a> e <t t-out="'f' or ''"></t><br>g</p>
+<p>a<t t-out="'b' or ''"/> !<a t-attf-href="{{ 'c' or '' }}">d</a> e <t t-out="'f' or ''"/><br/>g</p>
 """.strip()
 
 

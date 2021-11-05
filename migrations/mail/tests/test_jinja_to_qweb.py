@@ -2,7 +2,12 @@
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 jinja_content = r"""
-<p>a${'b' or '' | safe} !<a href="${ 'c' or '' | safe }">d</a> e ${'f' or '' | safe}<br>g</p>
+<p>a${'b' or '' | safe} !<a href="${ 'c' or '' }">d</a> e ${'f' or '' | safe}<br>g</p>
+""".strip()
+
+# NOTE: inline templates are NOT parsed as xml, thus `<br>` stay as is.
+inline_template_content = r"""
+<p>a{{ 'b' or '' }} !<a href="{{ 'c' or '' }}">d</a> e {{ 'f' or '' }}<br>g</p>
 """.strip()
 
 jinja_to_qweb_content = [
@@ -82,11 +87,11 @@ jinja_to_qweb_content = [
 </div>
 """,
         "after": r"""
-<p>a<t t-out="'b' or ''"></t> !<a t-attf-href="{{ 'c' or '' }}">d</a> e <t t-out="'f' or ''"></t><br>g</p>
+<p>a<t t-out="'b' or ''"/> !<a t-attf-href="{{ 'c' or '' }}">d</a> e <t t-out="'f' or ''"/><br/>g</p>
 <div>
-  <t t-set="items" t-value="[False or 'one', &quot;&gt;&quot;]"></t>
+  <t t-set="items" t-value="[False or 'one', &quot;&gt;&quot;]"/>
   <t t-foreach="items" t-as="item">
-    <li><t t-out="item"></t></li>
+    <li><t t-out="item"/></li>
   </t>
   <t t-if="'A' == 'B'">
     <b>foo1</b>
@@ -112,12 +117,9 @@ jinja_to_qweb_content = [
     },
     {
         "before": r"<!-- commenting ${foo} code -->",
-        "after": r'<!-- commenting <t t-out="foo"></t> code -->',
+        "after": r'<!-- commenting <t t-out="foo"/> code -->',
     },
 ]
-inline_template_content = r"""
-<p>a{{ 'b' or '' }} !<a href="{{ 'c' or '' }}">d</a> e {{ 'f' or '' }}<br>g</p>
-""".strip()
 
 
 @change_version("saas~14.5")
