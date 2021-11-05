@@ -26,6 +26,11 @@ repos:
         entry: Bad directory name. Versions should be fully-qualified `SERVER_VERSION.MODULE_VERSION`
         language: fail
         files: '^migrations\/.+\/(?:(?!tests|(?:[0-9]+\.0|[0-9]+\.saas~[0-9]+|saas~[0-9]+\.[0-9])(?:\.[0-9]+)+).)+\/.*\.py$'
+      - id: no-license-comment
+        name: Forbid LICENSE comments
+        language: pygrep
+        types: [python]
+        entry: '^# .* LICENSE '
 
   - repo: https://github.com/psf/black
     rev: 21.8b0
