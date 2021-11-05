@@ -14,6 +14,11 @@ def migrate(cr, version):
     create_index_queries = []
     util.ENVIRON["__created_fk_idx"] = []
 
+    create_index_queries.append(
+        "CREATE INDEX upg_attachment_cleanup_speedup_idx ON ir_attachment(res_model, res_field, id)"
+    )
+    util.ENVIRON["__created_fk_idx"].append("upg_attachment_cleanup_speedup_idx")
+
     # create indexes on `ir_model{,_fields}` to speed up models/fields deletion
     cr.execute(
         """
@@ -83,8 +88,10 @@ def migrate(cr, version):
                 quote_ident(kcu.column_name)
             FROM
                 information_schema.table_constraints AS tc
-                JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-                JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+                JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
+                                                               AND tc.table_schema = kcu.table_schema
+                JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
+                                                                      AND ccu.table_schema = tc.table_schema
                 JOIN big_tables bt1 ON bt1.relation_name = tc.table_name
             WHERE constraint_type = 'FOREIGN KEY' AND kcu.column_name NOT IN ('write_uid','create_uid')
             AND NOT EXISTS
