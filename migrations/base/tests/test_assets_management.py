@@ -8,7 +8,7 @@ except ImportError:
     read_manifest = None
 
 
-@change_version("14.3")
+@change_version("saas~14.3")
 class BaseAssetCase(UpgradeCase):
     test_sequence = 42
 
@@ -20,8 +20,8 @@ class BaseAssetCase(UpgradeCase):
 
     def assertAsset(self, view_id, values):
         # TODO: remove this horror
-        if util.column_exists(self.env.cr, 'ir_asset', 'path'):
-            values['path'] = values.pop('glob', None)
+        if util.column_exists(self.env.cr, "ir_asset", "path"):
+            values["path"] = values.pop("glob", None)
 
         self.assertFalse(self.env["ir.ui.view"].browse(view_id).exists())
 

@@ -3,14 +3,18 @@
 
 from datetime import datetime
 
-from odoo.tests import tagged
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("13.4")
+@change_version("saas~13.4")
 class TestGoogleCalendar(UpgradeCase):
     def prepare(self):
-        partners = self.env["res.partner"].create([{"name": "Sandwich"}, {"name": "Jambon-fromage"},])
+        partners = self.env["res.partner"].create(
+            [
+                {"name": "Sandwich"},
+                {"name": "Jambon-fromage"},
+            ]
+        )
         event = self.env["calendar.event"].create(
             {
                 "name": "Casse graine",

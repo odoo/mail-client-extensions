@@ -2,12 +2,13 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import release
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.tests import Form, tagged
+
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @tagged("mrp_v14")
-@change_version("13.4")
+@change_version("saas~13.4")
 class TestRoutingQualityWorkorder(UpgradeCase):
     def prepare(self):
         if release.series != "13.3":
@@ -213,7 +214,7 @@ class TestRoutingQualityWorkorder(UpgradeCase):
 
 
 @tagged("mrp_v14")
-@change_version("13.4")
+@change_version("saas~13.4")
 class TestRoutingQuality(UpgradeCase):
     def prepare(self):
         if release.series != "13.3":

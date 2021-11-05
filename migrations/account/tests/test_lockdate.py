@@ -2,8 +2,8 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from datetime import datetime, timedelta
 
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 
 
 class LockDateCase(UpgradeCase):

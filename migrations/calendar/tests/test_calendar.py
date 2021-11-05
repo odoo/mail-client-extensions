@@ -2,20 +2,36 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import datetime
+
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("13.4")
+@change_version("saas~13.4")
 class TestCalendarRecurrence(UpgradeCase):
     def prepare(self):
         alarms = self.env["calendar.alarm"].create(
             [
-                {"name": "Alarm", "alarm_type": "email", "interval": "minutes", "duration": 20,},
-                {"name": "Alarm", "alarm_type": "email", "interval": "minutes", "duration": 30,},
+                {
+                    "name": "Alarm",
+                    "alarm_type": "email",
+                    "interval": "minutes",
+                    "duration": 20,
+                },
+                {
+                    "name": "Alarm",
+                    "alarm_type": "email",
+                    "interval": "minutes",
+                    "duration": 30,
+                },
             ]
         )
         categories = self.env["calendar.event.type"].create([{"name": "Peter"}, {"name": "Pan"}])
-        partners = self.env["res.partner"].create([{"name": "Jean",}, {"name": "Valjean"}])
+        partners = self.env["res.partner"].create(
+            [
+                {"name": "Jean"},
+                {"name": "Valjean"},
+            ]
+        )
         event = self.env["calendar.event"].create(
             {
                 "name": "RDV avec Fée Clochette",

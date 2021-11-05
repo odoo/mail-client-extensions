@@ -3,17 +3,19 @@
 
 import requests
 
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-from odoo.addons.website.tools import MockRequest
 from odoo.tools import config
+
+from odoo.addons.website.tools import MockRequest
+
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 BASE_URL = "http://127.0.0.1:%s" % (config["http_port"],)
 
 
-@change_version("13.5")
+@change_version("saas~13.5")
 class TestThemesLoading(UpgradeCase):
     def prepare(self):
-        """ Creates 2 websites with Artists and Zap installed. """
+        """Creates 2 websites with Artists and Zap installed."""
         res = {}
         themes = self.env["ir.module.module"].search([("name", "in", ("theme_avantgarde", "theme_zap"))])
         for theme in themes:

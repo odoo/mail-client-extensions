@@ -3,11 +3,12 @@
 
 import decimal
 
-from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
+from odoo import release
 from odoo.tools import float_repr
 from odoo.tools.parse_version import parse_version
-from odoo import release
+
+from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
 
 
 class TestOnHandQuantityUnchanged(IntegrityCase):

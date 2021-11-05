@@ -49,10 +49,7 @@ class TestAccountAmountsUnchanged(IntegrityCase):
 
     def invariant(self, company_ids=None):
         if company_ids is None:
-            self.env.cr.execute("""
-                SELECT id
-                  FROM res_company;
-            """)
+            self.env.cr.execute("SELECT id FROM res_company")
             company_ids = list(r[0] for r in self.env.cr.fetchall())
 
         query = """

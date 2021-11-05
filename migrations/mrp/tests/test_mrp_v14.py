@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.tests import Form, tagged
+
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @tagged("mrp_v14")
-@change_version("13.4")
+@change_version("saas~13.4")
 class TestBackorders(UpgradeCase):
     def prepare(self):
         uom_unit = self.env.ref("uom.product_uom_unit")
