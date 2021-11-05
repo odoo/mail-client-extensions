@@ -26,7 +26,7 @@ def migrate(cr, version):
     """
     )
 
-    cr.execute("DROP TABLE product_attribute_value_product_product_rel")
+    cr.execute("DROP TABLE product_attribute_value_product_product_rel CASCADE")
     # util.rename_field(cr, "product.product", "attribute_value_ids", "product_template_attribute_value_ids")
     util.remove_field(cr, "product.product", "attribute_value_ids")
 
