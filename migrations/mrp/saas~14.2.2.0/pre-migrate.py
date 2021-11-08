@@ -3,7 +3,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, 'mrp.view_production_gantt')
+    util.remove_view(cr, "mrp.view_production_gantt")
+    util.remove_act_window_view_mode(cr, "mrp.production", "gantt")
 
     cr.execute("DELETE FROM mrp_routing_workcenter WHERE bom_id IS NULL")
 

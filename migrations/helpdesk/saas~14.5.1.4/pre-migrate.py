@@ -77,6 +77,7 @@ def migrate(cr, version):
 
     for v in "graph_analysis cohort pivot_analysis".split():
         util.remove_view(cr, f"helpdesk.helpdesk_ticket_view_{v}")
+    util.remove_act_window_view_mode(cr, "helpdesk.ticket", "cohort")
 
     for x in "action_close_analysis action_7days_analysis analysis_action action_success action_7dayssuccess".split():
         util.force_noupdate(cr, f"helpdesk.helpdesk_ticket_{x}", False)
