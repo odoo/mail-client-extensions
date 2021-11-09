@@ -75,6 +75,21 @@ def migrate(cr, version):
         """
     )
     util.update_field_references(cr, "user_id", "user_ids", only_models=("project.task",))
+
+    # adapt email template (basic) expression
+    for f in ["email_from", "email_to", "email_cc", "reply_to", "lang"]:
+        cr.execute(
+            fr"""
+            UPDATE mail_template
+                SET email_from = {f} = regexp_replace({f}, '\yobject\.user_id\y', 'object.user_ids[:1]', 'g')
+              WHERE {f} ~ '\yobject\.user_id\y'
+                AND model_id =
+                    (SELECT id
+                       FROM ir_model
+                      WHERE model = 'project.task')
+            """
+        )
+
     util.remove_field(cr, "project.task", "user_id")
     util.remove_field(cr, "project.task", "user_email")
     util.update_record_from_xml(cr, "project.task_visibility_rule")
