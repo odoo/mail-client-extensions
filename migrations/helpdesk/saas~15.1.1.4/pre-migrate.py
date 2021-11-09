@@ -51,3 +51,6 @@ def migrate(cr, version):
     )
     util.update_field_references(cr, "ticket_type_id", "ticket_type_ids", only_models=("helpdesk.sla",))
     util.remove_field(cr, "helpdesk.sla", "ticket_type_id")
+
+    util.create_column(cr, "helpdesk_ticket", "ticket_ref", "varchar")
+    cr.execute("UPDATE helpdesk_ticket t SET ticket_ref = t.id")
