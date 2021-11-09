@@ -237,6 +237,3 @@ def migrate(cr, version):
         )
         """
     )
-    util.if_unchanged(cr, "mail_group.mail_template_guidelines", util.update_record_from_xml)
-    util.if_unchanged(cr, "mail_group.mail_template_list_subscribe", util.update_record_from_xml)
-    util.if_unchanged(cr, "mail_group.mail_template_list_unsubscribe", util.update_record_from_xml)

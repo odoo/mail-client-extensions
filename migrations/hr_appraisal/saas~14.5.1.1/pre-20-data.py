@@ -8,9 +8,6 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, "hr_appraisal.mail_template_appraisal_confirm_employee", "hr_appraisal.mail_template_appraisal_confirm"
     )
-    util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_confirm", util.update_record_from_xml)
-    util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_request", util.update_record_from_xml)
-    util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_request_from_employee", util.update_record_from_xml)
     util.remove_view(cr, "hr_appraisal.hr_job_view_form")
     util.remove_record(cr, "hr_appraisal.mail_template_appraisal_confirm_manager")
     util.remove_record(cr, "hr_appraisal.hr_appraisal_plan_comp_rule")

@@ -5,7 +5,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.if_unchanged(
         cr,
-        "repair.mail_template_repair_quotation",
+        "hr_payroll.mail_template_new_payslip",
         util.update_record_from_xml,
-        reset_translations={"subject", "body_html", "report_name"},
+        reset_translations={"subject", "body_html"},
     )
