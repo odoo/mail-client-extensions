@@ -57,6 +57,7 @@ def migrate(cr, version):
         "partner_to",
         "email_cc",
         "reply_to",
+        "lang",
         "report_name",
         "scheduled_date",
     ]
