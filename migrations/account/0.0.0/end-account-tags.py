@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from odoo import modules
+
 from odoo.addons.base.maintenance.migrations import util
 
 NS = "odoo.addons.base.maintenance.migrations.account.0.0.0."
@@ -36,6 +38,7 @@ def migrate(cr, version):
 
     tags_charts = list(add_tags.keys()) + list(remove_tags.keys())
     if tags_charts:
+        standard_modules = modules.get_modules()
         cr.execute(
             """
                    SELECT tag.id, tag.name, md.module || '.' || md.name
@@ -79,6 +82,12 @@ def migrate(cr, version):
                 )
 
         for (tag_id, company_id), codes in remove_tags.items():
+            if not tags[tag_id]["xmlid"] or tags[tag_id]["xmlid"].split(".")[0] not in standard_modules:
+                # Do not remove custom tags from the accounts
+                # They could have been deleted from the templates because of a `[(6,)]` command
+                # in the standard module of the l10n module, but they should actually remain because
+                # the custom module adds them back with a `[(4,)]` command afterwards.
+                continue
             removed_accounts = []
             for code in codes:
                 cr.execute(
