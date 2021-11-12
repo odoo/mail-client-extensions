@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import itertools
+
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -93,13 +95,18 @@ def migrate(cr, version):
     for field in fields.split():
         util.remove_field(cr, "account.move.line", field)
 
-    cr.execute(
-        """
-        UPDATE account_move_line aml
-        SET account_internal_type = account.internal_type
-        FROM account_account account
-        WHERE aml.account_id = account.id
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
+            UPDATE account_move_line aml
+            SET account_internal_type = account.internal_type
+            FROM account_account account
+            WHERE aml.account_id = account.id
+            """,
+            prefix="aml.",
+        ),
     )
 
     # ==== account_move ====
@@ -163,7 +170,9 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE account_move ALTER COLUMN currency_id SET NOT NULL")
 
     # Some previously migrated databases already had this field with wrong values
-    cr.execute("UPDATE account_move SET type = NULL")
+    # Force column to NULL
+    util.remove_column(cr, "account_move", "type")
+    util.create_column(cr, "account_move", "type", "varchar")
     # Update account_move from existing account_invoice.
     cr.execute(
         """
@@ -232,10 +241,8 @@ def migrate(cr, version):
         )
 
     # Fix quantity / price_unit / price_total / price_subtotal on tax lines.
-    util.parallel_execute(
-        cr,
-        [
-            """
+    queries = [
+        """
         -- single-currency
         UPDATE account_move_line aml
            SET quantity = 1,
@@ -248,7 +255,7 @@ def migrate(cr, version):
            AND am.currency_id = am.company_currency_id
            AND aml.tax_line_id IS NOT NULL
         """,
-            """
+        """
         UPDATE account_move_line aml
            SET quantity = 1,
                price_unit = aml.balance,
@@ -260,7 +267,7 @@ def migrate(cr, version):
            AND am.currency_id = am.company_currency_id
            AND aml.tax_line_id IS NOT NULL
         """,
-            """
+        """
         -- multi-currencies
         UPDATE account_move_line aml
            SET quantity = 1,
@@ -273,7 +280,7 @@ def migrate(cr, version):
            AND am.currency_id != am.company_currency_id
            AND aml.tax_line_id IS NOT NULL
         """,
-            """
+        """
         UPDATE account_move_line aml
            SET quantity = 1,
                price_unit = aml.amount_currency,
@@ -285,21 +292,33 @@ def migrate(cr, version):
            AND am.currency_id != am.company_currency_id
            AND aml.tax_line_id IS NOT NULL
         """,
-        ],
+    ]
+    util.parallel_execute(
+        cr,
+        list(
+            itertools.chain.from_iterable(
+                util.explode_query_range(cr, q, "account_move_line", prefix="aml.") for q in queries
+            )
+        ),
     )
 
     # Fix move lines with the currency set to the company currency and no amount currency
     # to have better chances to be able to set the constraint `check_amount_currency_balance_sign`
     # https://github.com/odoo/odoo/blob/57277257efc62f0f58945797daf9a7d667991dde/addons/account/models/account_move.py#L2617-L2633
-    cr.execute(
-        """
-            UPDATE account_move_line
-               SET currency_id = NULL
-             WHERE currency_id IS NOT NULL
-               AND company_currency_id IS NOT NULL
-               AND company_currency_id = currency_id
-               AND (amount_currency = 0 OR amount_currency = balance)
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+                UPDATE account_move_line
+                   SET currency_id = NULL
+                 WHERE currency_id IS NOT NULL
+                   AND company_currency_id IS NOT NULL
+                   AND company_currency_id = currency_id
+                   AND (amount_currency = 0 OR amount_currency = balance)
+            """,
+            "account_move_line",
+        ),
     )
 
     # ==== others ====
