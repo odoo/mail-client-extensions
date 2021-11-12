@@ -19,8 +19,7 @@ def migrate(cr, version):
     so_ids = [r[0] for r in cr.fetchall()]
     util.recompute_fields(cr, "sale.order", ["currency_rate"], ids=so_ids, chunk_size=SZ)
 
-
-    #some database does not contain company id value on sale order as not required field
+    # some database does not contain company id value on sale order as not required field
     cr.execute("UPDATE sale_order SET currency_rate = 1 WHERE currency_rate IS NULL")
 
     # To compute the currency, sale order lines need to have a related company_id, which we will set to
@@ -47,15 +46,62 @@ def migrate(cr, version):
             WHERE so.id=sol.order_id AND
                   sol.company_id IS NULL
     """)
+    # when the currency of a sale order line is the same of all its associated invoice lines
+    # we can than compute with the stored amounts since no currency rate is needed
+    # https://github.com/odoo/odoo/blob/ffca224ebe3731ffdff2f18fd0b340f904ff4187/addons/sale/models/sale.py#L1370-L1372
+    # we can match currencies whe at least one of the currencies is not null
+    # https://github.com/odoo/odoo/blob/ffca224ebe3731ffdff2f18fd0b340f904ff4187/odoo/addons/base/models/res_currency.py#L197-L204
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            WITH vals AS (
+                SELECT sl.id,
+                       sum(
+                            CASE WHEN i.type='out_invoice' THEN  round(il.price_subtotal,c.decimal_places)
+                                 WHEN i.type='out_refund'  THEN -round(il.price_subtotal,c.decimal_places)
+                                 ElSE 0
+                            END
+                       ) AS untaxed_amount_invoiced
+                  FROM sale_order_line_invoice_rel r
+                  JOIN account_invoice_line il
+                    ON il.id = r.invoice_line_id
+                  JOIN account_invoice i
+                    ON i.id = il.invoice_id
+                  JOIN sale_order_line sl
+                    ON sl.id = r.order_line_id
+                  JOIN res_currency c
+                    ON sl.currency_id=c.id
+                 WHERE i.state IN ('open', 'in_payment', 'paid')
+                   AND {parallel_filter}
+                 GROUP BY sl.id
+                    -- we want all invoice lines to have either NULL or same currency as the order line
+                HAVING bool_and(COALESCE(il.currency_id, sl.currency_id)=sl.currency_id)
+            ) UPDATE sale_order_line sl
+                 SET untaxed_amount_invoiced=v.untaxed_amount_invoiced
+                FROM vals v
+               WHERE sl.id=v.id
+            """,
+            table="sale_order_line",
+            prefix="sl.",
+        ),
+    )
+    # collect the sale order lines not updated above
     cr.execute(
         """
-        SELECT r.order_line_id
+        SELECT sl.id
           FROM sale_order_line_invoice_rel r
-          JOIN account_invoice_line l ON (l.id = r.invoice_line_id)
-          JOIN account_invoice i ON (i.id = l.invoice_id)
+          JOIN account_invoice_line il
+            ON il.id = r.invoice_line_id
+          JOIN account_invoice i
+            ON i.id = il.invoice_id
+          JOIN sale_order_line sl
+            ON sl.id = r.order_line_id
          WHERE i.state IN ('open', 'in_payment', 'paid')
-      GROUP BY r.order_line_id
-    """
+           AND sl.untaxed_amount_invoiced IS NULL
+         GROUP BY sl.id
+        """
     )
     line_ids = [r[0] for r in cr.fetchall()]
     util.recompute_fields(cr, "sale.order.line", ["untaxed_amount_invoiced"], ids=line_ids, chunk_size=SZ)
