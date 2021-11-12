@@ -3,6 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 SZ = 1024
 
+
 def migrate(cr, version):
     cr.execute(
         """
@@ -39,13 +40,15 @@ def migrate(cr, version):
     # for some reason, some related fields from the past might not be set correctly
     # (3 databases so far had the problem), so we make sure the company_id field is
     # correctly set on sale and invoice lines otherwise the currency computation crashes
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE sale_order_line  sol
             SET company_id=so.company_id
             FROM sale_order so
             WHERE so.id=sol.order_id AND
                   sol.company_id IS NULL
-    """)
+        """
+    )
     # when the currency of a sale order line is the same of all its associated invoice lines
     # we can than compute with the stored amounts since no currency rate is needed
     # https://github.com/odoo/odoo/blob/ffca224ebe3731ffdff2f18fd0b340f904ff4187/addons/sale/models/sale.py#L1370-L1372
