@@ -8,5 +8,5 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_move_line", "l10n_mx_edi_tariff_fraction_id", "int4")
     util.create_column(cr, "account_move_line", "l10n_mx_edi_umt_aduana_id", "int4")
-    util.create_column(cr, "account_move_line", "l10n_mx_edi_qty_umt", "int4")
-    util.create_column(cr, "account_move_line", "l10n_mx_edi_price_unit_umt", "int4")
+    util.create_column(cr, "account_move_line", "l10n_mx_edi_qty_umt", "numeric")
+    util.create_column(cr, "account_move_line", "l10n_mx_edi_price_unit_umt", "double precision")
