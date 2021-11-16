@@ -58,12 +58,22 @@ def migrate(cr, version):
     default_obligation_type = util.ref(cr, "l10n_co_edi.obligation_type_5")
     cr.execute(
         """
+        WITH added_row_number AS (
+            SELECT p.partner_id, p.type_id,
+                   ROW_NUMBER() OVER(PARTITION BY p.partner_id ORDER BY p.partner_id, p.type_id) AS row_number
+              FROM partner_l10n_co_edi_obligation_types p
+              JOIN l10n_co_edi_type_code t ON p.type_id = t.id
+             WHERE t.name NOT IN ('O-47', 'R-99-PN', 'O-13', 'O-15', 'O-23')
+               AND partner_id NOT IN (SELECT partner_id FROM partner_l10n_co_edi_obligation_types WHERE type_id = %(type)s)
+        )
         UPDATE partner_l10n_co_edi_obligation_types p
-           SET type_id = %s
-          FROM l10n_co_edi_type_code t
-         WHERE p.type_id = t.id AND t.name NOT IN ('O-47', 'R-99-PN', 'O-13', 'O-15', 'O-23')
+           SET type_id = %(type)s
+          FROM added_row_number r
+         WHERE r.row_number = 1
+           AND p.partner_id = r.partner_id
+           AND p.type_id = r.type_id
     """,
-        [default_obligation_type],
+        {"type": default_obligation_type},
     )
 
     # Cleanup
