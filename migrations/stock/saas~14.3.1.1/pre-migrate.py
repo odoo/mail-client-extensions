@@ -148,22 +148,22 @@ def migrate(cr, version):
                    AND f.model = 'product.template'
                    AND f.name = 'property_stock_inventory'
             )
-            SELECT
-                product_id,
-                location_id,
-                location_dest_id,
-                stock_inventory_line.company_id,
-                product_uom_id,
-                prod_lot_id,
-                package_id,
-                partner_id,
-                stock_inventory.date as inventory_date
-            FROM stock_inventory_line
-            JOIN inventory_location_per_company ON inventory_location_per_company.company_id = stock_inventory_line.company_id
-            JOIN stock_inventory ON stock_inventory_line.inventory_id = stock_inventory.id
-            WHERE
-                stock_inventory.state = 'done' AND
-                stock_inventory_line.product_qty = stock_inventory_line.theoretical_qty
+            SELECT sil.product_id,
+                   sil.location_id,
+                   ilpc.location_dest_id,
+                   sil.company_id,
+                   sil.product_uom_id,
+                   sil.prod_lot_id,
+                   sil.package_id,
+                   sil.partner_id,
+                   si.date as inventory_date
+              FROM stock_inventory_line AS sil
+              JOIN inventory_location_per_company AS ilpc
+                ON ilpc.company_id = sil.company_id
+              JOIN stock_inventory AS si
+                ON sil.inventory_id = si.id
+             WHERE si.state = 'done'
+               AND sil.product_qty = sil.theoretical_qty
         )
         """
     )
