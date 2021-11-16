@@ -167,6 +167,7 @@ def migrate(cr, version):
           JOIN hr_leave_type leave_type
             ON leave_type.id=allocation.holiday_status_id
          WHERE leave.date_from IS NOT NULL AND leave.date_to IS NOT NULL
+           AND leave.employee_id = allocation.employee_id
            AND allocation.holiday_status_id=leave.holiday_status_id
            AND leave_type.requires_allocation = 'yes'
            AND allocation.date_from <= leave.date_from
