@@ -11,6 +11,31 @@ def migrate(cr, version):
     """
 
     cr.execute("UPDATE res_users SET google_calendar_token = NULL WHERE id = %s", [SUPERUSER_ID])
+
+    cr.execute(
+        """
+        UPDATE res_users u
+           SET google_calendar_token = null
+          FROM res_partner p
+         WHERE u.google_calendar_token is not null
+           AND EXISTS(SELECT 1 FROM res_users u2
+                              WHERE u2.google_calendar_token = u.google_calendar_token
+                                AND u2.id < u.id)
+           AND p.id = u.partner_id
+     RETURNING p.name;
+        """
+    )
+    users = ", ".join([name for name, in cr.fetchall()])
+    if users:
+        util.add_to_migration_reports(
+            message=f"""
+            The Google credentials from the following users were the same as other users:
+                {users}.
+            Google credentials are unique per user, so they have been removed to allow the upgrade to continue.
+            """,
+            category="Users",
+        )
+
     # Migrate the google token into a dedicated table
     cr.execute(
         """
