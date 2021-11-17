@@ -74,7 +74,6 @@ def migrate(cr, version):
                 AND task.user_id IS NOT NULL
         """
     )
-    util.update_field_references(cr, "user_id", "user_ids", only_models=("project.task",))
 
     # adapt email template (basic) expression
     for f in ["email_from", "email_to", "email_cc", "reply_to", "lang", "body_html"]:
@@ -90,7 +89,8 @@ def migrate(cr, version):
             """
         )
 
-    util.remove_field(cr, "project.task", "user_id")
+    util.remove_column(cr, "project_task", "user_id")
+    util.rename_field(cr, "project.task", "user_id", "user_ids")  # rename the field to keep the tracking values
     util.remove_field(cr, "project.task", "user_email")
     util.update_record_from_xml(cr, "project.task_visibility_rule")
 
