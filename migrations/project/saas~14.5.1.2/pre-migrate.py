@@ -80,7 +80,7 @@ def migrate(cr, version):
         cr.execute(
             fr"""
             UPDATE mail_template
-                SET email_from = {f} = regexp_replace({f}, '\yobject\.user_id\y', 'object.user_ids[:1]', 'g')
+                SET {f} = regexp_replace({f}, '\yobject\.user_id\y', 'object.user_ids[:1]', 'g')
               WHERE {f} ~ '\yobject\.user_id\y'
                 AND model_id =
                     (SELECT id
