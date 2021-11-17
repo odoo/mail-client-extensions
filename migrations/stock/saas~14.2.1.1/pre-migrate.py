@@ -11,13 +11,19 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_quant"))
 
     util.delete_unused(cr, "stock.sequence_tracking")
-    cr.execute(
-        """
-        UPDATE stock_move AS sm
-           SET picking_type_id = sp.picking_type_id
-          FROM stock_picking AS sp
-         WHERE sp.id = sm.picking_id
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE stock_move AS sm
+               SET picking_type_id = sp.picking_type_id
+              FROM stock_picking AS sp
+             WHERE sp.id = sm.picking_id
+            """,
+            table="stock_move",
+            prefix="sm.",
+        ),
     )
 
     util.remove_field(cr, "stock.move", "note")
