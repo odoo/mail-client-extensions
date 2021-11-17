@@ -77,7 +77,7 @@ def migrate(cr, version):
     util.update_field_references(cr, "user_id", "user_ids", only_models=("project.task",))
 
     # adapt email template (basic) expression
-    for f in ["email_from", "email_to", "email_cc", "reply_to", "lang"]:
+    for f in ["email_from", "email_to", "email_cc", "reply_to", "lang", "body_html"]:
         cr.execute(
             fr"""
             UPDATE mail_template
