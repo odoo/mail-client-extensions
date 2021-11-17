@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
 from ast import literal_eval
 from collections import defaultdict
-import itertools
-import os
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -135,9 +134,6 @@ def migrate(cr, version):
     if os.environ.get("ODOO_MIG_USER_SYSTEM_IGNORES"):
         ignored += literal_eval(os.environ["ODOO_MIG_USER_SYSTEM_IGNORES"])
 
-    # regroup queries per table to avoid updating the same table (and records) in parallel.
-    all_queries = defaultdict(list)
-
     # inhertied tables (and parents) should be processed sequentially
     cr.execute(
         """
@@ -146,36 +142,60 @@ def migrate(cr, version):
           JOIN pg_inherits i ON (i.inhrelid = c.oid OR i.inhparent = c.oid)
         """
     )
-    tables_with_inheritance = [t for t, in cr.fetchall()]
+    tables_with_inheritance = {t for t, in cr.fetchall()}
 
+    def get_queries(table, columns, filter_modules, sequential):
+        if not columns:
+            return []
+        query = "UPDATE {} SET {} WHERE {}\n{}".format(
+            table,
+            ",\n".join(
+                "{col}=CASE WHEN {col}=%(u1id)s THEN %(u2id)s ELSE {col} END".format(col=col) for col in columns
+            ),
+            "({})".format(" OR ".join("{}=%(u1id)s".format(col) for col in columns)),
+            """
+            AND NOT EXISTS
+            (
+                SELECT 1
+                FROM ir_model_data
+                WHERE model = %(model)s
+                    AND COALESCE(module, '') NOT IN ('', '__export__')
+                    AND id=res_id
+            )
+            """
+            if filter_modules
+            else "",
+        )
+        query = cr.mogrify(query, {"u1id": u1id, "u2id": u2id, "model": util.model_of_table(cr, table)}).decode()
+        if sequential or not util.column_exists(cr, table, "id"):
+            return [query]
+        return util.explode_query_range(cr, query, table)
+
+    table_cols = defaultdict(set)
     for table, fk, _, _ in util.get_fk(cr, "res_users"):
         if table == "ir_model_data":
             continue
         if (table, fk) in ignored:
             continue
-        query = """
-            UPDATE {table}
-               SET {fk} = %s
-             WHERE {fk} = %s
-        """
-        params = [u2id, u1id]
+        table_cols[table].add(fk)
 
-        if fk in ("create_uid", "write_uid"):
-            # only update column for non-system records
-            query += """
-                AND NOT EXISTS
-                (
-                    SELECT 1
-                    FROM ir_model_data
-                    WHERE model = %s
-                        AND COALESCE(module, '') NOT IN ('', '__export__')
-                        AND id=res_id
-                )
-                """
-            params += [util.model_of_table(cr, table)]
+    sequential_queries = []
+    uid_queries = []
+    other_queries = []
+    for table, cols in table_cols.items():
+        uid_cols = cols & {"create_uid", "write_uid"}
+        other_cols = cols - {"create_uid", "write_uid"}
+        if table in tables_with_inheritance:
+            sequential_queries.extend(get_queries(table, uid_cols, True, sequential=True))
+            sequential_queries.extend(get_queries(table, other_cols, False, sequential=True))
+        else:
+            uid_queries.extend(get_queries(table, uid_cols, True, sequential=False))
+            other_queries.extend(get_queries(table, other_cols, False, sequential=False))
 
-        key = table if table not in tables_with_inheritance else None
-        all_queries[key].append(cr.mogrify(query.format(table=table, fk=fk), params).decode())
-
-    for queries in itertools.zip_longest(*all_queries.values()):
-        util.parallel_execute(cr, [q for q in queries if q is not None])
+    util._logger.info("Running %s sequential queries", len(sequential_queries))
+    for query in sequential_queries:
+        cr.execute(query)
+    util._logger.info("Running create/write uid queries")
+    util.parallel_execute(cr, uid_queries)
+    util._logger.info("Running other queries")
+    util.parallel_execute(cr, other_queries)
