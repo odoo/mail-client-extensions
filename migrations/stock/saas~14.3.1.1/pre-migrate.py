@@ -38,7 +38,7 @@ def migrate(cr, version):
     # Add new fields on stock.quant
     util.create_column(cr, "stock_quant", "inventory_quantity", "numeric")
     util.create_column(cr, "stock_quant", "inventory_diff_quantity", "numeric")
-    util.create_column(cr, "stock_quant", "inventory_date", "timestamp without time zone")
+    util.create_column(cr, "stock_quant", "inventory_date", "date")
     util.create_column(cr, "stock_quant", "user_id", "int4")
 
     util.create_column(cr, "stock_move", "is_inventory", "boolean", default=False)
