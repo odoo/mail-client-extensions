@@ -36,6 +36,12 @@ class TestLinkAllocation(UpgradeCase):
                     "number_of_days": 5,
                     "state": "validate",
                 },
+                # Not running - good employee
+                {
+                    "employee_id": employees[0].id,
+                    "holiday_status_id": leave_type.id,
+                    "number_of_days": 10,
+                },
                 # running - bad employee
                 {
                     "employee_id": employees[1].id,
