@@ -72,8 +72,10 @@ class TestMailChannel(UpgradeCase):
                 "channel_partner_ids": [(4, user_1.partner_id.id)],
                 "image_128": self._create_b64_image("#00FF00"),
                 "public": "private",
+                "alias_contact": "followers",
             }
         )
+        self.assertEqual(channel_2.alias_id.alias_contact, "followers")
 
         for _ in range(2):
             self._create_message(channel_2, email=True)
@@ -99,6 +101,7 @@ class TestMailChannel(UpgradeCase):
                 "alias_name": "channel_3",
                 "image_128": self._create_b64_image("#0000FF"),
                 "public": "groups",
+                "alias_contact": "followers",
                 "group_public_id": self.env.ref("base.group_partner_manager").id,
             }
         )

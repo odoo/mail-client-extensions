@@ -95,11 +95,7 @@ def migrate(cr, version):
         """
         UPDATE mail_alias
            SET alias_model_id = %(model_mail_group)s,
-               alias_parent_model_id = %(model_mail_group)s,
-               alias_contact = CASE WHEN mg.access_mode = 'public'
-                                    THEN 'everyone'
-                                    ELSE 'followers'
-                               END
+               alias_parent_model_id = %(model_mail_group)s
           FROM mail_group AS mg
          WHERE alias_force_thread_id = mg.id
            AND alias_model_id = %(model_mail_channel)s
