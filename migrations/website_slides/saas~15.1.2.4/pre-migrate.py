@@ -26,3 +26,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, "slide.slide", "link_ids")
     util.merge_model(cr, "slide.slide.link", "slide.slide.resource")
+
+    util.rename_field(cr, "slide.slide", "embedcount_ids", "embed_ids")
