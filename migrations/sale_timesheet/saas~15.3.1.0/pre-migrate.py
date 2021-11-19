@@ -12,3 +12,8 @@ def migrate(cr, version):
             "ordered_timesheet": "ordered_prepaid",
         },
     )
+    util.remove_view(cr, "sale_timesheet.project_profitability_report_view_pivot")
+    util.remove_view(cr, "sale_timesheet.project_profitability_report_view_graph")
+    util.remove_view(cr, "sale_timesheet.project_profitability_report_view_tree")
+    util.remove_view(cr, "sale_timesheet.project_profitability_report_view_search")
+    util.remove_record(cr, "sale_timesheet.ir_filter_project_profitability_report_costs_and_revenues")
