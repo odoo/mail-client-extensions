@@ -41,6 +41,7 @@ def migrate(cr, version):
     )
 
     util.force_upgrade_of_fresh_module(cr, "mail_group")
+    util.force_upgrade_of_fresh_module(cr, "sale_gift_card")
     util.force_upgrade_of_fresh_module(cr, "sale_planning")
     util.force_upgrade_of_fresh_module(cr, "sale_project_forecast")
     util.force_upgrade_of_fresh_module(cr, "sale_timesheet_margin")
