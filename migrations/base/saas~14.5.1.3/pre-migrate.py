@@ -33,3 +33,7 @@ def migrate(cr, version):
     util.create_column(cr, "ir_mail_server", "smtp_ssl_private_key", "bytea")
     util.rename_xmlid(cr, "mail.icp_mail_catchall_alias", "base.icp_mail_catchall_alias")
     util.rename_xmlid(cr, "mail.icp_mail_bounce_alias", "base.icp_mail_bounce_alias")
+
+    # We moved the states from l10n_ec to base for Ecuador
+    for i in range(1, 25):
+        util.rename_xmlid(cr, f"l10n_ec.state_ec_{i}", f"base.state_ec_{i:02}")
