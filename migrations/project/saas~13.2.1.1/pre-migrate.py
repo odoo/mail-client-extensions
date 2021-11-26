@@ -29,7 +29,7 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO project_allowed_portal_users_rel(project_project_id, res_users_id)
-             SELECT p.id, u.id
+             SELECT DISTINCT p.id, u.id
                FROM project_project p
                JOIN mail_followers f ON f.res_id = p.id AND f.res_model = 'project.project'
                JOIN res_users u ON u.partner_id = f.partner_id
