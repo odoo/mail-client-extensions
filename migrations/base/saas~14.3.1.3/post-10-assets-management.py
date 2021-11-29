@@ -175,9 +175,9 @@ class UnmigrableCase(Exception):
 def migrate(cr, version):
 
     # TODO: remove this horror
-    path_column = 'path'
-    if util.column_exists(cr, 'ir_asset', 'glob'):
-        path_column = 'glob'
+    path_column = "path"
+    if util.column_exists(cr, "ir_asset", "glob"):
+        path_column = "glob"
 
     view_fields = ["arch_db", "mode", "active", "key"]
     has_website = util.module_installed(cr, "website")
@@ -242,7 +242,7 @@ def migrate(cr, version):
             util.remove_column(cr, "ir_asset", "website_id")
 
 
-def process_views_conversion(cr, results, has_website=False, path_column='path'):
+def process_views_conversion(cr, results, has_website=False, path_column="path"):
     """
     Entry point to handle database results (all views considered as assets and their descendants)
     This function will make up irassets when possible,
