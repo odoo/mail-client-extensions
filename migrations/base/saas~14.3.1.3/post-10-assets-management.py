@@ -94,7 +94,8 @@ WITH RECURSIVE assets_views AS (
 
   -- Initial term: all qweb views that are called with t-call-assets (A-arrow type on scheme)
   WITH sub AS (
-    SELECT unnest(xpath('//@t-call-assets', arch_db::xml))::text AS tcalled
+        -- remove all &#13; coming from wrong migrations that replaced \r -> &#13;
+    SELECT unnest(xpath('//@t-call-assets', regexp_replace(arch_db, E'&#13;\n', E'\n', 'g')::xml))::text AS tcalled
       FROM ir_ui_view
      WHERE type = 'qweb'
        AND arch_db ~ '\yt-call-assets\y'
@@ -118,7 +119,8 @@ WITH RECURSIVE assets_views AS (
               (
                 -- All t-calls in qweb views (B-arrow type on scheme)
                 WITH sub AS (
-                    SELECT id, unnest(xpath('//@t-call', arch_db::xml))::text AS tcalled
+                        -- remove all &#13; coming from wrong migrations that replaced \r -> &#13;
+                    SELECT id, unnest(xpath('//@t-call', regexp_replace(arch_db, E'&#13;\n', E'\n', 'g')::xml))::text AS tcalled
                       FROM ir_ui_view
                      WHERE type = 'qweb'
                        AND arch_db ~ '\yt-call\y'
