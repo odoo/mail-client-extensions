@@ -84,14 +84,14 @@ def migrate(cr, version):
         """
     CREATE TEMPORARY VIEW temp_ongoing_inventory_line AS (
         SELECT
-            date,
+            i.date,
             il.company_id,
             il.location_id,
             il.package_id,
-            prod_lot_id,
+            il.prod_lot_id,
             il.partner_id,
             il.product_id,
-            product_qty,
+            il.product_qty,
             stock_quant.id as quant_id,
             i.accounting_date
         FROM stock_inventory as i
@@ -241,13 +241,13 @@ def migrate(cr, version):
         temp_inventory_line.company_id,
         0,
         0,
-        product_uom_id,
-        prod_lot_id,
-        package_id,
+        temp_inventory_line.product_uom_id,
+        temp_inventory_line.prod_lot_id,
+        temp_inventory_line.package_id,
         temp_inventory_line.partner_id,
         'Product Quantity Confirmed',
         'done',
-        inventory_date
+        temp_inventory_line.inventory_date
     FROM temp_inventory_line
     JOIN stock_move ON stock_move.product_id = temp_inventory_line.product_id
                    AND stock_move.date = temp_inventory_line.inventory_date
