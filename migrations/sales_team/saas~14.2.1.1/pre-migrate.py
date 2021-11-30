@@ -100,6 +100,36 @@ def migrate(cr, version):
             """,
             [admin_id],
         )
+        if not cr.rowcount:
+            # Create a dummy team only for admin :/
+            cr.execute(
+                """
+                WITH new_alias AS (
+                     INSERT INTO mail_alias (alias_model_id, alias_defaults, alias_contact)
+                          SELECT id,
+                                 '{}',
+                                 'everyone'
+                            FROM ir_model
+                           WHERE model='crm.lead'
+                       RETURNING id
+                     ),
+                     new_team AS (
+                     INSERT INTO crm_team (name, alias_id, active)
+                          SELECT 'Sales Admin',
+                                 id,
+                                 true
+                            FROM new_alias
+                       RETURNING id
+                     )
+                INSERT INTO crm_team_member (crm_team_id, user_id, active)
+                     SELECT new_team.id, u.id, true
+                       FROM new_team,
+                            res_users u
+                      WHERE u.id = %s
+                  RETURNING crm_team_id
+                """,
+                [admin_id],
+            )
         team_id = cr.fetchone()[0]
 
     util.ensure_xmlid_match_record(
