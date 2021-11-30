@@ -6,7 +6,11 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.move_model(cr, "team.user", "crm", "sales_team")
     # as this model come from the now defunct module `website_crm_score`, the table may not exists
-    util.rename_model(cr, "team.user", "crm.team.member", rename_table=util.table_exists(cr, "team_user"))
+    rename = util.column_exists(cr, "team_user", "user_id") and util.column_exists(cr, "team_user", "team_id")
+    if not rename:
+        # leftover from uninstall of the `website_crm_score` module
+        cr.execute("DROP TABLE IF EXISTS team_user")
+    util.rename_model(cr, "team.user", "crm.team.member", rename_table=rename)
     util.rename_field(cr, "crm.team.member", "team_id", "crm_team_id")
 
     util.move_field_to_module(cr, "res.users", "team_user_ids", "crm", "sales_team")
