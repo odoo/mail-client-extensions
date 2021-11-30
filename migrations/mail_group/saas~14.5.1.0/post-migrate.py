@@ -159,8 +159,19 @@ def migrate(cr, version):
                FROM mail_group as mg
                JOIN mail_message AS mm
                  ON mm.model = 'mail.channel'
-                AND mm.message_type = 'email'
+                AND mm.message_type IN ('email', 'comment')
                 AND mm.res_id = mg.id
+        """
+    )
+
+    cr.execute(
+        """
+        DELETE FROM mail_message m
+              USING mail_channel c
+              WHERE m.model = 'mail.channel'
+                AND m.res_id = c.id
+                AND c.email_send = TRUE
+                AND m.message_type NOT IN ('email', 'comment')
         """
     )
 
