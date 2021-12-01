@@ -6,6 +6,8 @@ def migrate(cr, version):
     util.create_column(cr, "sign_item", "transaction_id", "int4")
     util.rename_field(cr, "sign.send.request", "follower_ids", "cc_partner_ids")
     util.remove_model(cr, "sign.request.send.copy")
+    util.remove_model(cr, "sign.template.share")
+    util.remove_field(cr, "sign.template", "share_link")
     util.change_field_selection_values(cr, "sign.request.item", "state", {"draft": "canceled"})
 
     # change all old 'sent' sign request items in 'refused' sign requests to 'canceled'
@@ -58,5 +60,23 @@ def migrate(cr, version):
                   WHERE ia.name LIKE 'Certificate of completion%'
                      OR ia.name LIKE 'Activity Logs%'
                      OR ia.name LIKE sr.reference || '%'
+        """
+    )
+
+    # cancel all sign requests(which has one sign request item whose partner_id is NULL) for old shared links
+    cr.execute(
+        """
+            UPDATE sign_request sr
+               SET state = 'canceled'
+              FROM sign_request_item sri
+             WHERE sr.id = sri.sign_request_id
+               AND sri.partner_id is NULL
+        """
+    )
+    cr.execute(
+        """
+            UPDATE sign_request_item sri
+               SET state = 'canceled'
+             WHERE sri.partner_id is NULL
         """
     )
