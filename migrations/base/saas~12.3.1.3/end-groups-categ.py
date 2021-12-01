@@ -3,9 +3,9 @@ import os
 
 import lxml
 
-from odoo.addons.base.maintenance.migrations import util
-from odoo.modules.module import load_information_from_description_file
 from odoo.tools.misc import file_open
+
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
@@ -15,7 +15,7 @@ def migrate(cr, version):
         xpath_ids = " or ".join("@id='{}'".format(i) for i in (xids + ["{}.{}".format(module, x) for x in xids]))
         xpath = "//record[{}]/field[@name='category_id']".format(xpath_ids)
 
-        manifest = load_information_from_description_file(module)
+        manifest = util.get_manifest(module)
         for f in manifest.get("data", []):
             if not f.endswith(".xml"):
                 continue

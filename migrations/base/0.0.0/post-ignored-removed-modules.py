@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-import odoo
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -18,8 +17,10 @@ def migrate(cr, version):
             module, _, version = exception[7:].partition(":")
             if version and not util.version_gte(version):
                 continue
-            if not odoo.modules.module.load_information_from_description_file(module):
+            if not util.get_manifest(module):
                 cr.execute("SELECT true FROM ir_module_module WHERE name = %s", [module])
                 if bool(cr.fetchone()):
-                    util._logger.log(util.NEARLYWARN, "New module %r explicitly ignored and automaticaly removed", module)
+                    util._logger.log(
+                        util.NEARLYWARN, "New module %r explicitly ignored and automaticaly removed", module
+                    )
                     util.remove_module(cr, module)
