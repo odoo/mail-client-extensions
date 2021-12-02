@@ -68,7 +68,6 @@ class IrModelData(models.Model):
                         if children_xids & loaded_xmlids:
                             # at least one child was loaded
                             unloaded_xmlids.remove(xmlid)
-                            break
 
             if unloaded_xmlids:
                 noupdate_forced = False
