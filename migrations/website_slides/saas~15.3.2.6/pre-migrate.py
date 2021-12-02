@@ -67,3 +67,10 @@ def migrate(cr, version):
          WHERE vote NOT IN (-1, 0, 1) OR vote IS NULL
         """
     )
+
+    # Link URLs have been updated in the following templates
+    util.update_record_from_xml(cr, "website_slides.slide_template_published")
+    util.update_record_from_xml(cr, "website_slides.slide_template_shared")
+
+    # Unused views
+    util.remove_view(cr, "website_slides.rating_rating_view_search_slides")
