@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import itertools
 import re
 
 from lxml import etree, html
 
 import odoo.upgrade.util.snippets as snip
+from odoo.upgrade import util
 
 utf8_parser = html.HTMLParser(encoding="utf-8")
 
@@ -24,16 +26,19 @@ def migrate_parallax(cr, table, column):
     HIDDEN_CLASS = "s_parallax_no_overflow_hidden"
     FIXED_CLASS = "s_parallax_is_fixed"
 
-    cr.execute(
-        r"""
+    def get_info():
+        query = r"""
             SELECT id, {column}
               FROM {table}
              WHERE {column} ~ '\yparallax\y'
         """.format(
             table=table, column=column
         )
-    )
-    for res_id, body in cr.fetchall():
+        for query in util.explode_query_range(cr, query, table=table):
+            cr.execute(query)
+            yield cr.fetchall()
+
+    for res_id, body in itertools.chain.from_iterable(get_info()):
         body = html.fromstring(body, parser=utf8_parser)
         changed = False
         parallax_els = body.xpath("//*[hasclass('parallax')]")
