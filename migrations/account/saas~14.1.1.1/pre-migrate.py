@@ -63,16 +63,22 @@ def migrate(cr, version):
 
             # Find a new unused code for this journal
             new_code = code
-            code_prefix = re.sub(r'\d+', '', code).strip()
-            counter = 1
+            # Remove all digits from the end
+            code_prefix = re.sub(r'\d+$', '', code.strip())
+            if not code_prefix:
+                # the whole code was a number :/
+                code_prefix = code.strip() + 'N'
+            counter = 0
             while counter <= len(all_journal_codes) and new_code in all_journal_codes:
+                counter += 1
                 counter_str = str(counter)
                 copy_prefix = code_prefix[:5 - len(counter_str)]  # 5 is the max size of journal code field
                 new_code = ("%s%s" % (copy_prefix, counter_str))
-                counter += 1
 
             if counter > len(all_journal_codes):
-                raise util.MigrationError("Could not create a new short code automatically for journal %s." % to_fix_id)
+                raise util.MigrationError(
+                    f"Could not create a new short code automatically for journal with id {to_fix_id} (code={code})."
+                )
             else:
                 all_journal_codes.add(new_code)
                 cr.execute("""
