@@ -11,3 +11,5 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE stock_location_route_categ RENAME TO stock_route_categ")
     cr.execute("ALTER TABLE stock_location_route_packaging RENAME TO stock_route_packaging")
     cr.execute("ALTER TABLE stock_location_route_move RENAME TO stock_route_move")
+
+    util.rename_field(cr, "stock.rule", "location_id", "location_dest_id")
