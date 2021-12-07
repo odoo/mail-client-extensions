@@ -184,6 +184,25 @@ def migrate(cr, version):
     has_website = util.module_installed(cr, "website") and util.column_exists(cr, "ir_ui_view", "website_id")
     if has_website:
         view_fields.append("website_id")
+        # Rename assets file
+        cr.execute(
+            r"""
+            UPDATE ir_ui_view v
+               SET arch_db = regexp_replace(arch_db,
+                             '\yassets_(frontend|common)_minimal_js\y', 'assets_\1_minimal', 'g')
+             WHERE type = 'qweb'
+               AND website_id IS NOT NULL
+               AND arch_db ~ '\yassets_(frontend|common)_minimal_js\y'
+               AND NOT EXISTS (
+                       SELECT 1
+                         FROM ir_model_data
+                        WHERE model = 'ir.ui.view'
+                          AND res_id = v.id
+                          AND noupdate IS TRUE
+                       )
+        """
+        )
+
     query = get_magic_query(cr, view_fields)
     cr.execute(query)
     results = cr.dictfetchall()
