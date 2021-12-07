@@ -94,6 +94,9 @@ def migrate(cr, version):
         # https://github.com/odoo/enterprise/pull/20506
         util.new_module(cr, "l10n_it_reports", deps={"l10n_it", "account_reports"}, auto_install=True)
 
+        # https://github.com/odoo/enterprise/pull/22751
+        util.new_module(cr, "account_intrastat_expiry", deps={"account_intrastat"}, auto_install=True)
+
     if util.has_design_themes():
         util.new_module(
             cr,
