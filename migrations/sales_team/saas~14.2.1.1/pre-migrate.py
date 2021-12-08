@@ -136,6 +136,9 @@ def migrate(cr, version):
             )
         team_id = cr.fetchone()[0]
 
+    # inactive users will cause validation issues later
+    cr.execute("UPDATE crm_team_member SET active=u.active FROM res_users u WHERE u.id = user_id")
+
     util.ensure_xmlid_match_record(
         cr,
         "sales_team.crm_team_member_admin_sales",
