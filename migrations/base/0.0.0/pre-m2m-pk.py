@@ -15,7 +15,7 @@ def migrate(cr, version):
           FROM pg_class c
           JOIN pg_namespace ns on ns.oid = c.relnamespace
      LEFT JOIN pg_constraint p on p.conrelid = c.oid and p.contype = 'p'
-          JOIN pg_attribute a ON a.attrelid = c.oid and a.attnum > 0
+          JOIN pg_attribute a ON a.attrelid = c.oid and a.attnum > 0 and a.attname not ilike '%....pg.dropped.%'
      LEFT JOIN pg_constraint f ON f.conrelid = c.oid AND array_lower(f.conkey, 1) = 1 AND f.conkey[1] = a.attnum AND f.contype = 'f'
      LEFT JOIN pg_class t ON f.confrelid = t.oid
          WHERE c.relkind IN ('r', 'p')
