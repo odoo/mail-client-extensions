@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+
 from psycopg2.extras import execute_values
 
 from odoo.upgrade import util

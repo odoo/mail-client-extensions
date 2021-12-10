@@ -92,7 +92,7 @@ def migrate(cr, version):
                th = (date_part('isodow', COALESCE(start_date, start_datetime))=4),
                fr = (date_part('isodow', COALESCE(start_date, start_datetime))=5),
                sa = (date_part('isodow', COALESCE(start_date, start_datetime))=6),
-               su = (date_part('isodow', COALESCE(start_date, start_datetime))=0)
+               su = (date_part('isodow', COALESCE(start_date, start_datetime))=7)
          WHERE rrule_type = 'weekly'
            AND recurrency = TRUE
            AND false = ALL(ARRAY[mo, tu, we, th, fr, sa, su])
