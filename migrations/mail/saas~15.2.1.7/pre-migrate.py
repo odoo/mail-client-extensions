@@ -21,3 +21,6 @@ def migrate(cr, version):
           )
         """
     )
+
+    # remove lost activities to add a constraint
+    cr.execute("DELETE FROM mail_activity WHERE res_id = 0")
