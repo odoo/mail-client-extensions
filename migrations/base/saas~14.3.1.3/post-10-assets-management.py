@@ -180,7 +180,8 @@ def migrate(cr, version):
         path_column = "glob"
 
     view_fields = ["arch_db", "mode", "active", "key"]
-    has_website = util.module_installed(cr, "website")
+    # util.module_installed returns true for modules _about_ to be installed
+    has_website = util.module_installed(cr, "website") and util.column_exists(cr, "ir_ui_view", "website_id")
     if has_website:
         view_fields.append("website_id")
     query = get_magic_query(cr, view_fields)
