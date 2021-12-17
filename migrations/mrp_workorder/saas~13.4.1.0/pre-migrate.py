@@ -13,9 +13,15 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH quality_point_by_new_op AS (
-            SELECT {column_qua}, quality_point.id AS old_id, temp_new_mrp_operation.id AS operation_id
-              FROM quality_point
-                   JOIN temp_new_mrp_operation ON quality_point.operation_id = temp_new_mrp_operation.old_id
+            SELECT {column_qua_pre}, quality_point_by_new_op.id AS old_id, temp_new_mrp_operation.id AS operation_id
+               FROM quality_point quality_point_by_new_op
+                    JOIN temp_new_mrp_operation ON quality_point_by_new_op.operation_id = temp_new_mrp_operation.old_id
+                    JOIN mrp_bom bom ON temp_new_mrp_operation.bom_id = bom.id
+                    JOIN product_product_quality_point_rel rel ON rel.quality_point_id = quality_point_by_new_op.id
+                    JOIN product_product pp ON pp.id = rel.product_product_id
+               WHERE rel.product_product_id = bom.product_id
+               OR pp.product_tmpl_id = bom.product_tmpl_id
+
         ),
         inserted_quality_point AS (
             INSERT INTO quality_point ({column_qua}, old_id, operation_id)
