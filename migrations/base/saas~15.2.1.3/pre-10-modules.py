@@ -12,4 +12,8 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_be_hr_payroll_report_measures", "l10n_be_hr_payroll")
         util.merge_module(cr, "l10n_be_hr_contract_salary_group_insurance", "l10n_be_hr_payroll")
 
+    util.merge_module(cr, "base_address_city", "base_address_extended")
+
+    util.remove_module(cr, "l10n_be_reports_base_address_extended")
+
     util.modules_auto_discovery(cr)
