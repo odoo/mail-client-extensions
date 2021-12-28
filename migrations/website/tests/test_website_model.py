@@ -11,6 +11,7 @@ class TestWebsiteModel(UpgradeCase):
         - The scheme should be added.
         """
         domains = [
+            ("", ""),
             # trailing /
             ("https://www.monsite.com/", "https://www.monsite.com"),
             # no scheme

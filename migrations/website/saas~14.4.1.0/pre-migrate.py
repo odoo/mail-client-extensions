@@ -18,4 +18,4 @@ def migrate(cr, version):
 
     # correct website.domain (now done automatically on write/create)
     cr.execute("UPDATE website SET domain = RTRIM(domain, '/') WHERE domain LIKE '%/'")
-    cr.execute("UPDATE website SET domain = CONCAT('https://', domain) WHERE domain NOT LIKE 'http%'")
+    cr.execute("UPDATE website SET domain = CONCAT('https://', domain) WHERE domain <> '' AND domain NOT LIKE 'http%'")
