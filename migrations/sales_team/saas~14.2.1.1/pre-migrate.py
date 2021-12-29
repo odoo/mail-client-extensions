@@ -139,6 +139,11 @@ def migrate(cr, version):
     # inactive users will cause validation issues later
     cr.execute("UPDATE crm_team_member SET active=u.active FROM res_users u WHERE u.id = user_id")
 
+    # activate multiteam when at least one user is in multiple teams
+    cr.execute("SELECT 1 FROM crm_team_member WHERE active GROUP BY user_id HAVING count(*)>1 LIMIT 1")
+    if cr.rowcount:
+        util.env(cr)["ir.config_parameter"].set_param("sales_team.membership_multi", True)
+
     util.ensure_xmlid_match_record(
         cr,
         "sales_team.crm_team_member_admin_sales",
