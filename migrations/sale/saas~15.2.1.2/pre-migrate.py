@@ -10,3 +10,5 @@ def migrate(cr, version):
     util.remove_model(cr, "report.sale.report_saleproforma")
 
     util.rename_xmlid(cr, "sale_management.menu_product_attribute_action", "sale.menu_product_attribute_action")
+
+    util.remove_record(cr, "sale.action_sale_order_form_view")
