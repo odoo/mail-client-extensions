@@ -14,3 +14,5 @@ def migrate(cr, version):
     util.remove_record(cr, "sale.action_sale_order_form_view")
     util.remove_view(cr, "sale.product_template_sale_form_view")
     util.remove_view(cr, "sale.product_template_form_view_invoice_policy")
+
+    util.remove_view(cr, "sale.mail_notification_paynow_online")
