@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import date
+import time
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
@@ -20,11 +20,11 @@ class TestLinkAllocation(UpgradeCase):
         )
         leave_type = self.env["hr.leave.type"].create(
             {
-                "name": "Paid Time Off - 2021",
+                "name": "Paid Time Off - %s" % time.strftime("%Y"),
                 "time_type": "leave",
                 "allocation_type": "fixed",
-                "validity_start": date(2021, 1, 1),
-                "validity_stop": date(2021, 12, 31),
+                "validity_start": time.strftime("%Y-01-01"),
+                "validity_stop": time.strftime("%Y-12-31"),
             }
         )
         allocations = self.env["hr.leave.allocation"].create(
@@ -46,8 +46,8 @@ class TestLinkAllocation(UpgradeCase):
                 {
                     "employee_id": employees[1].id,
                     "holiday_status_id": leave_type.id,
-                    "date_from": date(2021, 1, 1),
-                    "date_to": date(2021, 12, 31),
+                    "date_from": time.strftime("%Y-01-01"),
+                    "date_to": time.strftime("%Y-12-31"),
                     "number_of_days": 5,
                     "state": "validate",
                 },
@@ -57,8 +57,8 @@ class TestLinkAllocation(UpgradeCase):
             {
                 "employee_id": employees[0].id,
                 "holiday_status_id": leave_type.id,
-                "date_from": date(2021, 11, 15),
-                "date_to": date(2021, 11, 16),
+                "date_from": time.strftime("%Y-11-15"),
+                "date_to": time.strftime("%Y-11-16"),
             }
         )
         leave.state = "confirm"
