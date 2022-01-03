@@ -137,7 +137,9 @@ def migrate(cr, version):
         team_id = cr.fetchone()[0]
 
     # inactive users will cause validation issues later
-    cr.execute("UPDATE crm_team_member SET active=u.active FROM res_users u WHERE u.id = user_id")
+    cr.execute(
+        "UPDATE crm_team_member m SET active=false FROM res_users u WHERE u.id = m.user_id AND m.active AND NOT u.active"
+    )
 
     # activate multiteam when at least one user is in multiple teams
     cr.execute("SELECT 1 FROM crm_team_member WHERE active GROUP BY user_id HAVING count(*)>1 LIMIT 1")
