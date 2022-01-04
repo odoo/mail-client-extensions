@@ -112,3 +112,7 @@ def migrate(cr, version):
 
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
+
+    # implicit dependency, see odoo/odoo@e2dc415c46e5839173b26d1d19719aaed8dbba51
+    if util.module_installed(cr, "sale_stock_margin"):
+        util.force_install_module(cr, "sale_stock")
