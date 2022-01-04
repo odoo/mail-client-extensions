@@ -63,6 +63,7 @@ def migrate(cr, version):
                  SELECT sale_team_id, id, true
                    FROM res_users
                   WHERE sale_team_id IS NOT NULL
+                    AND NOT share
         """
         )
     else:
