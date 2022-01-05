@@ -72,8 +72,9 @@ def migrate(cr, version):
                JOIN project_task_type stage USING (user_id)
           LEFT JOIN project_task_type task_stage on task_stage.id = task.stage_id
               WHERE (
-                     ((task_stage.id IS NULL OR task_stage.fold = False) AND stage.sequence = 1) -- "Inbox" stage created above
-                     OR (task_stage.fold = True AND stage.sequence = 6) -- "Done" stage created above
+                     ((task_stage.id IS NULL OR COALESCE(task_stage.fold, FALSE) = FALSE)
+                       AND stage.sequence = 1) -- "Inbox" stage created above
+                     OR (task_stage.fold=True AND stage.sequence = 6) -- "Done" stage created above
                 )
                 AND task.user_id IS NOT NULL
         """

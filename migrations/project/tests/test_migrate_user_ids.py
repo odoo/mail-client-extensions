@@ -48,6 +48,7 @@ class TestMigrateUserIds(UpgradeCase):
         company_id, user_id, project_id, task_id = init
         task = self.env["project.task"].browse(task_id).with_user(user_id)
 
+        self.assertTrue(task.personal_stage_id)
         self.assertTrue(task.personal_stage_type_id)
         stages = self.env["project.task.type"].with_user(user_id).search([("user_id", "=", user_id)])
         self.assertEqual(len(stages), 7)
