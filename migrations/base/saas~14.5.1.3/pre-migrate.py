@@ -1,5 +1,20 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict
+
+from odoo import models
+
 from odoo.upgrade import util
+
+
+class Partner(models.Model):
+    _inherit = "res.partner"
+    _module = "base"
+
+    def _prepare_display_address(self, without_company=False):
+        address_format, args = super()._prepare_display_address(without_company=without_company)
+        if self.env.context.get("upgrade_ignore_unknown_keys"):
+            args = defaultdict(str, args)
+        return address_format, args
 
 
 def migrate(cr, version):
