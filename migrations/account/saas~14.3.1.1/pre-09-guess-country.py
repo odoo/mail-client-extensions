@@ -1,0 +1,423 @@
+# -*- coding: utf-8 -*-
+import json
+from pathlib import Path
+
+import pytz
+from psycopg2.extras import execute_values
+
+from odoo.addons.base.maintenance.migrations import util
+
+
+def countries_with_regions(cr):
+    """Return a set of country ids with dependent regions
+
+    The same currency, phone code etc. can be shared by multiple countries. Sometimes, those countries
+    will be a big country, along with some of its much smaller dependent territory, e.g. Finland
+    and Åland share the same phone code. Statistically, it is more likely that the company is in Finland.
+
+    Since we do not have country size information (population, GDP etc.), we can at least guess which
+    countries are very small by looking at whether they have regions. The reasoning is:
+    No regions -> probably a very small country -> far less likely to be the place of the company, compared
+    to the alternative country with multiple regions (if it exists and is only one).
+
+    ISO 3166-1 lists both indepedent countries and dependent territories, but (at least in the file
+    provided at /usr/share/iso-codes/json/) doesn't give independency information. In order to
+    differentiate between them, the regional subdivisions list (ISO 3166-2) is consulted. It lists
+    the world's regions in the format COUNTRY_CODE-REGION_CODE.
+
+    This is just a prioritization, rather than a strict limit. If the calling code only applies to a
+    single country, then that country is picked no matter its size/regions (e.g. Liechtenstein).
+    If two or more countries have regions, none of them is picked (e.g. USA and Canada).
+    This heuristic is only used if multiple countries share a calling code, and only one of those
+    countries has regions (e.g. UK and Guernsey/Jersey).
+    """
+
+    iso_path = "/usr/share/iso-codes/json/iso_3166-2.json"
+    iso_3166_2 = Path(iso_path)
+    if not iso_3166_2.is_file():
+        return set()  # Empty set, will produce empty resultsets on intersections with sets of countries
+
+    with open(iso_path, "rb") as f:
+        regions_json = json.load(f)
+
+    codes = set([country["code"].split("-")[0] for country in regions_json["3166-2"]])
+    cr.execute(
+        """
+        SELECT id
+          FROM res_country
+         WHERE code IN %s
+        """,
+        [tuple(codes)],
+    )
+    return set([code[0] for code in cr.fetchall()])
+
+
+def migrate(cr, version):
+    """Attempting to deduce the company's country
+
+    The clues are examined in order of specificity, with clues that point to a single country
+    (company name, timezone) being considered first, before falling back to multi-country
+    clues such as currency (e.g. Euros and dollars, which are used by many countries) or TLD (while each country
+    has its own TLD, people might opt for a TLD of their language, especially when their country's TLD
+    is not available, e.g. *.fr email addresses for some French-speaking African countries).
+    """
+    cr.execute(
+        """
+        SELECT id
+          FROM res_company
+         WHERE res_company.account_tax_fiscal_country_id IS NULL
+           AND EXISTS(SELECT 1 FROM account_tax WHERE account_tax.company_id = res_company.id)
+        """
+    )
+    company_no_country_ids = [res[0] for res in cr.fetchall()]
+    main_country_ids = countries_with_regions(cr)
+
+    # Collecting clues for the country:
+    clue_funcs = [
+        get_coa_country_ids,
+        get_partner_country_ids,
+        get_name_country_ids,
+        get_tz_country_ids,
+        get_phone_country_ids,
+        get_currency_country_ids,
+        get_tld_country_ids,
+        get_lang_country_ids,
+    ]
+
+    country_dict = dict()  # will hold company_id -> (country_id,reason)
+    for company_id in company_no_country_ids:
+        # run all clue functions on the company, and keep only the first entry with len==1
+        for f in clue_funcs:
+            country_ids, reason_str = f(cr, company_id, main_country_ids)
+            if len(country_ids) == 1:
+                country_dict[company_id] = (country_ids.pop(), reason_str)
+                break  # found our clue
+        else:
+            # no single-country candidate found for at least one company
+            raise util.MigrationError(
+                f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}"
+            )
+
+    if country_dict:
+        country_list = [(int(company_id), country_dict[company_id][0]) for company_id in country_dict]
+        # Update the country in the db
+        execute_values(
+            cr._obj,
+            """
+               UPDATE res_company AS cmp
+                  SET account_tax_fiscal_country_id = c.country_id
+                 FROM res_country AS ctr,
+                      (VALUES %s) AS c(company_id, country_id)
+                WHERE cmp.id = c.company_id
+                  AND ctr.id = c.country_id
+            RETURNING c.company_id, cmp.name, ctr.name
+            """,
+            country_list,
+        )
+
+        # Building report about company:
+        report_data = cr.fetchall()
+
+        # Message for migration report, including reason for each country that has been set
+        report_str = (
+            f"The fiscal country was not set for companies with ids={company_no_country_ids},"
+            " but is needed for the upgrade to continue. "
+            "The companies' fiscal countries have been guessed based on the following clues:"
+        )
+        for report_res in report_data:
+            report_str += (
+                f"\n - Company {report_res[1]} (ID={report_res[0]}) had its country "
+                f"set to {report_res[2]} based on {country_dict[report_res[0]][1]}."
+            )
+
+        report_str += (
+            "\nPlease check if this change suits your needs, and if needed perform "
+            "any corrections manually before performing a new upgrade request."
+        )
+        util.add_to_migration_reports(category="Accounting", message=report_str)
+
+
+def get_coa_country_ids(cr, company_id, main_country_ids):
+    """Returns the country id based on CoA
+
+    Originally from pre-10.py, refactored together with other clues into separate file.
+    """
+    coa_clues = set()
+
+    cr.execute(
+        """
+        SELECT country.id
+          FROM res_company company, ir_model_data, res_country country
+         WHERE ir_model_data.model = 'account.chart.template'
+           AND ir_model_data.res_id = company.chart_template_id
+           AND (
+               (ir_model_data.module ~ '^l10n_[a-z]{2}(_.*)?$'
+               AND lower(country.code) = substring(ir_model_data.module from 6 for 2))
+                OR (ir_model_data.module = 'l10n_uk' AND lower(country.code) = 'gb')
+                OR (ir_model_data.module = 'l10n_generic_coa' AND lower(country.code) = 'us')
+         ) AND company.id=%s;
+        """,
+        [company_id],
+    )
+
+    if cr.rowcount == 0:
+        return coa_clues, ""
+    else:
+        coa_clues.add(cr.fetchone()[0])
+        return coa_clues, "the Chart of Accounts"
+
+
+def get_partner_country_ids(cr, company_id, main_country_ids):
+    """Returns the country id based on the company's partner entry
+
+    Originally from pre-10.py, refactored together with other clues into separate file.
+    """
+    partner_clues = set()
+
+    cr.execute(
+        """
+        SELECT p.country_id
+          FROM res_partner AS p
+          JOIN res_company AS c ON c.partner_id = p.id
+         WHERE p.country_id IS NOT NULL
+           AND c.id = %s;
+        """,
+        [company_id],
+    )
+
+    if cr.rowcount == 0:
+        return partner_clues, ""
+    else:
+        partner_clues.add(cr.fetchone()[0])
+        return partner_clues, "the company's partner entry's country"
+
+
+def get_name_country_ids(cr, company_id, main_country_ids):
+    """Returns the country whose name is a substring of the company's name.
+
+    In the case where one country is the subword of another and multiple countries
+    are matched (e.g. 'Nigeria Tech Solutions' matches both 'Niger' and 'Nigeria'),
+    keep the one with the longer name.
+    """
+    name_clues = set()
+
+    cr.execute(
+        """
+          SELECT res_country.id
+            FROM res_country,res_company
+           WHERE res_company.name ~* ANY(ARRAY[res_country.name])
+             AND res_company.id=%s
+        ORDER BY LENGTH(res_country.name) DESC;
+        """,
+        [company_id],
+    )
+
+    if cr.rowcount == 0:
+        return name_clues, ""
+    else:
+        name_clues.add(cr.fetchone()[0])
+        return name_clues, "the country being included in the company name"
+
+
+def get_currency_country_ids(cr, company_id, main_country_ids):
+    """Returns countries whose currency is used by the company.
+
+    First, the currency of the company's journals is looked up. If empty, the currency of the
+    company itself is used instead. Finally, all countries using any of the currencies
+    are returned. Multi-country currencies return all countries in the currency union.
+    """
+    currency_clues = set()
+
+    # Get country based on currency of company's journal
+    cr.execute(
+        """
+            SELECT c.id, j.id, j.name
+              FROM res_country AS c
+        INNER JOIN account_journal AS j ON c.currency_id=j.currency_id
+             WHERE j.currency_id IS NOT NULL
+               AND j.company_id=%(company_id)s
+        """,
+        locals(),
+    )
+    currency_countries = cr.fetchall()
+    clue = None
+    if len(currency_countries) == 1:
+        clue = currency_countries[0]
+    elif len(set([c[0] for c in currency_countries]).intersection(main_country_ids)) == 1:
+        clue = [c for c in currency_countries if c[0] in main_country_ids][0]
+    if clue:
+        return {clue[0]}, f"the journal's (id: {clue[1]}, name: {clue[2]}) currency"
+    currency_clues.update([c[0] for c in currency_countries])
+
+    # Get country based on currency of company
+    cr.execute(
+        """
+            SELECT ctr.id
+              FROM res_country AS ctr
+        INNER JOIN res_company AS cmp ON ctr.currency_id=cmp.currency_id
+             WHERE cmp.id=%(company_id)s
+        """,
+        locals(),
+    )
+    currency_countries = cr.fetchall()
+    if len(currency_countries) == 1:
+        clue = currency_countries[0]
+    elif len(set([c for c in currency_countries]).intersection(main_country_ids)) == 1:
+        clue = [c for c in currency_countries if c in main_country_ids][0]
+    if clue:
+        return {clue}, "the company's currency"
+    currency_clues.update([c for c in currency_countries])
+
+    # If not yet returned, either none or a multitude of countries were found
+    return currency_clues, ""
+
+
+def get_phone_country_ids(cr, company_id, main_country_ids):
+    """
+    Returns countries that have the same phone code as the ones listed in the company's fields.
+    """
+    phone_clues = set()
+
+    # Get country based on phone/mobile number country code
+    cr.execute(
+        r"""
+        SELECT res_country.id
+          FROM (
+            SELECT COALESCE(
+                    substring(res_company.phone FROM '\+([0-9]+) '),
+                    substring(res_partner.phone FROM '\+([0-9]+) '),
+                    substring(res_partner.mobile FROM '\+([0-9]+) ')
+                 ) AS ph_code
+              FROM res_partner
+              JOIN res_company ON res_company.partner_id=res_partner.id
+             WHERE res_company.id=%s
+        ) AS phone_codes,res_country
+        WHERE ph_code=res_country.phone_code::VARCHAR;
+        """,
+        [company_id],
+    )
+
+    if cr.rowcount == 0:
+        return phone_clues, ""
+    else:
+        phone_countries = [cid[0] for cid in cr.fetchall()]
+        phone_clues.update(phone_countries)
+        if len(phone_countries) == 1:
+            return phone_clues, "the country code of the company's phone number"
+        # If multiple countries share a code, check for "main" country (see 'countries_with_regions')
+        elif len(phone_clues.intersection(main_country_ids)) == 1:
+            phone_clues = phone_clues.intersection(main_country_ids)
+            return phone_clues, "the country code of the company's phone number"
+        else:
+            return phone_clues, ""
+
+
+def get_tld_country_ids(cr, company_id, main_country_ids):
+    """
+    Returns country based on the Top Level Domain code of:
+    a) the company's website or, if unavailable
+    b) the company's email address
+    Only TLDs of length 2 are considered, to match the countries' alpha-2 code
+    but not the generic 3-character TLDs like .com, .net etc.
+
+    A special provision needs to be made for the UK, whose country code is 'gb'
+    but still uses the TLD of 'uk'.
+    """
+    ccTLD_clues = set()
+
+    cr.execute(
+        r"""
+        SELECT res_country.id
+          FROM (
+            SELECT CASE
+                WHEN COALESCE(
+                    substring(res_partner.website FROM '\.([^\.]{2})$'),
+                    substring(res_company.email FROM '\.([^\.]{2})$'),
+                    substring(res_partner.email FROM '\.([^\.]{2})$')
+                )='uk'
+                THEN 'gb'
+                ELSE COALESCE(
+                    substring(res_partner.website FROM '\.([^\.]{2})$'),
+                    substring(res_company.email FROM '\.([^\.]{2})$'),
+                    substring(res_partner.email FROM '\.([^\.]{2})$')
+                ) END c_code
+            FROM res_partner
+            JOIN res_company ON res_company.partner_id=res_partner.id
+           WHERE res_company.id=%s
+        ) AS email_codes,res_country
+        WHERE LOWER(c_code)=LOWER(res_country.code)
+        """,
+        [company_id],
+    )
+
+    if cr.rowcount == 0:
+        return ccTLD_clues, ""
+    else:
+        ccTLD_clues.add(cr.fetchone()[0])
+        return ccTLD_clues, "the country Top Level Domain in the company's website/email address"
+
+
+def get_tz_country_ids(cr, company_id, main_country_ids):
+    """Returns country of supplied timezone.
+
+    Some timezones (usually the ones involving a city in their name) are linked to a specific country.
+    If that link exists, we can deduce the country based on the timezone's name. No guess can be made
+    for more general timezone names like 'UTC-1' though - the country-timezone mapping is taken from
+    pytz.
+    """
+
+    tz_clues = set()
+
+    # Create mapping timezones->countries:
+    # pytz offers only countries->timezones, so we have to reverse it
+    tz_c_dict = [(tz, k) for k, tz in pytz.country_timezones.items()]
+    # ...and create the new tuple pairs
+    tz_tuples = tuple([(tz_name, country[1]) for country in tz_c_dict for tz_name in country[0]])
+
+    # Get country of partner's tz
+    cr.execute(
+        """
+        SELECT y.id
+          FROM res_company AS c, res_partner AS p, res_country AS y
+         WHERE c.partner_id=p.id
+           AND c.id=%s
+           AND (p.tz,y.code) IN %s
+        """,
+        [company_id, tz_tuples],
+    )
+
+    if cr.rowcount == 0:
+        return tz_clues, ""
+    else:
+        tz_countries = [cid[0] for cid in cr.fetchall()]
+        tz_clues.update(tz_countries)
+        return tz_clues, "the company's timezone"
+
+
+def get_lang_country_ids(cr, company_id, main_country_ids):
+    """Returns country of company's language locale.
+
+    The company's language locale is noted of the form xx_YY, where xx is the language code
+    and YY is the country's alpha-2 code. This allows for a direct deduction of the country,
+    however it will often be set wrongly (oftentimes en_US is used in place of the real language).
+    It should thus be consulted only as a last resort.
+    """
+    lang_clues = set()
+
+    cr.execute(
+        """
+        SELECT y.id
+          FROM res_company AS c, res_partner AS p, res_country AS y
+         WHERE p.country_id IS NULL
+           AND c.id=%s
+           AND c.partner_id=p.id
+           AND substring(p.lang FROM '_([A-Z]{2})$')=UPPER(y.code);
+        """,
+        [company_id],
+    )
+
+    if cr.rowcount == 0:
+        return lang_clues, ""
+    else:
+        lang_clues.add(cr.fetchone()[0])
+        return lang_clues, "the company's language locale"

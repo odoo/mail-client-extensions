@@ -26,56 +26,7 @@ def migrate(cr, version):
     util.rename_field(cr, "account.tax", "tax_fiscal_country_id", "country_id")
     util.create_column(cr, "account_tax", "country_id", "int4")
 
-    # We need the fiscal country to populate the taxes' country. Let's guess it if not set !
-
-    # If it isn't already set, we try guessing it from the CoA.
-    cr.execute(
-        """
-        WITH company_coa_country(company_id, country_id) AS (
-            SELECT company.id, country.id
-              FROM res_company company, ir_model_data, res_country country
-             WHERE ir_model_data.model = 'account.chart.template'
-               AND ir_model_data.res_id = company.chart_template_id
-               AND (
-                    (ir_model_data.module ~ '^l10n_[a-z]{2}(_.*)?$'
-                      AND lower(country.code) = substring(ir_model_data.module from 6 for 2))
-                    OR (ir_model_data.module = 'l10n_uk' AND lower(country.code) = 'gb')
-                    OR (ir_model_data.module = 'l10n_generic_coa' AND lower(country.code) = 'us')
-               )
-        )
-
-        UPDATE res_company
-           SET account_fiscal_country_id = company_coa_country.country_id
-          FROM company_coa_country
-         WHERE res_company.id = company_coa_country.company_id
-           AND res_company.account_fiscal_country_id IS NULL
-        """
-    )
-
-    # If the CoA couldn't guess the fiscal country, maybe the partner could.
-    cr.execute(
-        """
-        UPDATE res_company
-           SET account_fiscal_country_id = res_partner.country_id
-          FROM res_partner
-         WHERE res_partner.id = res_company.partner_id
-           AND account_fiscal_country_id IS NULL
-        """
-    )
-
-    # If no fiscal country could be guessed for a company using taxes, we raise an error
-    cr.execute(
-        """
-        SELECT string_agg(name, ', ')
-          FROM res_company
-         WHERE account_fiscal_country_id IS NULL
-           AND EXISTS(SELECT 1 FROM account_tax WHERE account_tax.company_id = res_company.id)
-        """
-    )
-
-    companies = cr.fetchone()[0]
-    if companies:
-        raise util.MigrationError(f"Please define a fiscal country on these companies before upgrading: {companies}")
+    # We need the fiscal country to populate the taxes' country. It should've been guessed in pre-09.py already.
 
     # Initialize account.tax's country_id with the fiscal country of the company
     cr.execute(
