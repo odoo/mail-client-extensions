@@ -67,6 +67,14 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE mail_group_moderation RENAME COLUMN _mail_group_id TO mail_group_id")
     cr.execute(
         """
+        DELETE FROM mail_group_moderation
+              USING mail_channel
+              WHERE mail_channel.id = mail_group_moderation.mail_group_id
+                AND mail_channel.email_send = false
+        """
+    )
+    cr.execute(
+        """
         ALTER TABLE mail_group_moderation
             ALTER COLUMN mail_group_id SET NOT NULL,
             ADD CONSTRAINT mail_group_moderation_mail_group_id_fkey
