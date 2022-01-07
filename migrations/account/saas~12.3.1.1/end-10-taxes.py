@@ -53,6 +53,11 @@ def _migrate(cr, version):
     # Manage the fiscal country of each company, setting the appropriate config_parameter if necessary (it will only serve in 13.0)
     set_fiscal_country(env)
 
+    # Faster up tax processing
+    util.create_index(
+        cr, "_upgrade_tax_invoice_refund_idx", "account_tax_repartition_line", "invoice_tax_id", "refund_tax_id"
+    )
+
     # Abracadabra !
     # We consider the module was only updated. So, now, some tax_line_id are set while there is not tax_repartition_line_id
     # on the move lines. tax_line_id is supposed to be related on tax_repartition_line_id, so we have to fix this
@@ -739,6 +744,7 @@ def _migrate(cr, version):
                         % (tax_instance.id, tax_instance.name, inv_type),
                         "Tax configuration",
                     )
+    cr.execute("DROP INDEX IF EXISTS _upgrade_tax_invoice_refund_idx")
 
 
 def set_fiscal_country(env):
