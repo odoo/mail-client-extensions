@@ -17,3 +17,6 @@ def migrate(cr, version):
     util.remove_module(cr, "l10n_be_reports_base_address_extended")
 
     util.modules_auto_discovery(cr)
+
+    if util.has_enterprise():
+        util.force_upgrade_of_fresh_module(cr, "appointment_hr")
