@@ -46,7 +46,15 @@ class TestPurchaseStock(UpgradeCase):
 
         product_move_lines = invoice.move_id.line_ids.filtered("product_id").sorted("balance")
         self.assertEqual(len(product_move_lines), 2)
-        self.assertEqual(invoice.amount_untaxed, 12.0)
+        self.assertRecordValues(
+            invoice,
+            [
+                {
+                    "amount_untaxed": 12.0,
+                    "amount_untaxed_signed": 12.0,
+                }
+            ],
+        )
         self.assertEqual(product_move_lines[0].account_id, self.account_stock_price_diff)
         self.assertEqual(product_move_lines[0].balance, 3.0)
         self.assertEqual(product_move_lines[1].account_id, self.account_stock_in)
@@ -66,7 +74,15 @@ class TestPurchaseStock(UpgradeCase):
         :param invoice:     The invoice as an account.move.
         """
 
-        self.assertRecordValues(invoice, [{"amount_untaxed": 12.0}])
+        self.assertRecordValues(
+            invoice,
+            [
+                {
+                    "amount_untaxed": 12.0,
+                    "amount_untaxed_signed": -12.0,
+                }
+            ],
+        )
         self.assertRecordValues(
             invoice.line_ids.filtered("product_id").sorted(lambda line: (line.account_id.id, line.balance)),
             [
@@ -151,7 +167,15 @@ class TestPurchaseStock(UpgradeCase):
 
         product_move_lines = invoice.move_id.line_ids.filtered("product_id").sorted("balance")
         self.assertEqual(len(product_move_lines), 2)
-        self.assertEqual(invoice.amount_untaxed, 12.0)
+        self.assertRecordValues(
+            invoice,
+            [
+                {
+                    "amount_untaxed": 12.0,
+                    "amount_untaxed_signed": 6.0,
+                }
+            ],
+        )
         self.assertEqual(product_move_lines[0].account_id, self.account_stock_price_diff)
         self.assertEqual(product_move_lines[0].amount_currency, 3.0)
         self.assertEqual(product_move_lines[0].balance, 1.5)
@@ -173,7 +197,15 @@ class TestPurchaseStock(UpgradeCase):
         :param invoice:     The invoice as an account.move.
         """
 
-        self.assertRecordValues(invoice, [{"amount_untaxed": 12.0}])
+        self.assertRecordValues(
+            invoice,
+            [
+                {
+                    "amount_untaxed": 12.0,
+                    "amount_untaxed_signed": -6.0,
+                }
+            ],
+        )
         self.assertRecordValues(
             invoice.line_ids.filtered("product_id").sorted(lambda line: (line.account_id.id, line.balance)),
             [
@@ -263,7 +295,15 @@ class TestPurchaseStock(UpgradeCase):
 
         product_move_lines = invoice.move_id.line_ids.filtered("product_id").sorted("balance")
         self.assertEqual(len(product_move_lines), 2)
-        self.assertEqual(invoice.amount_untaxed, 12.0)
+        self.assertRecordValues(
+            invoice,
+            [
+                {
+                    "amount_untaxed": 12.0,
+                    "amount_untaxed_signed": 12.0,
+                }
+            ],
+        )
         self.assertEqual(product_move_lines[0].account_id, self.account_stock_price_diff)
         self.assertEqual(product_move_lines[0].balance, -12.0)
         self.assertEqual(product_move_lines[1].account_id, self.account_stock_in)
@@ -283,7 +323,15 @@ class TestPurchaseStock(UpgradeCase):
         :param invoice:     The invoice as an account.move.
         """
 
-        self.assertRecordValues(invoice, [{"amount_untaxed": 12.0}])
+        self.assertRecordValues(
+            invoice,
+            [
+                {
+                    "amount_untaxed": 12.0,
+                    "amount_untaxed_signed": -12.0,
+                }
+            ],
+        )
         self.assertRecordValues(
             invoice.line_ids.filtered("product_id").sorted(lambda line: (line.account_id.id, line.balance)),
             [

@@ -264,7 +264,7 @@ def migrate(cr, version):
             WITH with_amount_untaxed AS (
                 SELECT
                     line.move_id,
-                    CASE WHEN move.type = 'in_refund' THEN -1 ELSE 1 END AS factor,
+                    CASE WHEN move.type IN ('in_invoice', 'in_receipt') THEN -1 ELSE 1 END AS factor,
                     SUM(line.amount_currency) AS amount_currency_untaxed,
                     SUM(line.balance) AS amount_untaxed
                 FROM account_move_line line
@@ -277,8 +277,8 @@ def migrate(cr, version):
             )
             UPDATE account_move
             SET
-                amount_untaxed = with_amount_untaxed.amount_currency_untaxed * with_amount_untaxed.factor,
-                amount_untaxed_signed = with_amount_untaxed.amount_untaxed
+                amount_untaxed = with_amount_untaxed.amount_currency_untaxed,
+                amount_untaxed_signed = with_amount_untaxed.amount_untaxed * with_amount_untaxed.factor
             FROM with_amount_untaxed
             WHERE with_amount_untaxed.move_id = account_move.id
         """,
@@ -290,7 +290,7 @@ def migrate(cr, version):
             WITH with_amount_untaxed AS (
                 SELECT
                     line.move_id,
-                    CASE WHEN move.type = 'in_refund' THEN -1 ELSE 1 END AS factor,
+                    CASE WHEN move.type IN ('in_invoice', 'in_receipt') THEN -1 ELSE 1 END AS factor,
                     SUM(line.balance) AS amount_untaxed
                 FROM account_move_line line
                 JOIN account_move move ON move.id = line.move_id
@@ -302,8 +302,8 @@ def migrate(cr, version):
             )
             UPDATE account_move
             SET
-                amount_untaxed = with_amount_untaxed.amount_untaxed * with_amount_untaxed.factor,
-                amount_untaxed_signed = with_amount_untaxed.amount_untaxed
+                amount_untaxed = with_amount_untaxed.amount_untaxed,
+                amount_untaxed_signed = with_amount_untaxed.amount_untaxed * with_amount_untaxed.factor
             FROM with_amount_untaxed
             WHERE with_amount_untaxed.move_id = account_move.id
         """,
