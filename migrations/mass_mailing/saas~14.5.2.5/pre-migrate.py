@@ -58,4 +58,10 @@ def migrate(cr, version):
         WHERE ab_test_mailing.campaign_id = utm_campaign.id
     """
     )
-    cr.execute("UPDATE mailing_mailing SET ab_testing_pc = GREATEST(LEAST(COALESCE(ab_testing_pc, 0), 100), 0)")
+    cr.execute(
+        """
+            UPDATE mailing_mailing
+               SET ab_testing_pc = GREATEST(LEAST(COALESCE(ab_testing_pc, 0), 100), 0),
+                   body_arch = body_html
+        """
+    )
