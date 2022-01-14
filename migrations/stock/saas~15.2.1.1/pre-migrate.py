@@ -16,3 +16,7 @@ def migrate(cr, version):
 
     util.rename_field(cr, "stock.move.line", "product_uom_qty", "reserved_uom_qty")
     util.rename_field(cr, "stock.move.line", "product_qty", "reserved_qty")
+
+    util.create_column(cr, "stock_quant_package", "pack_date", "date")
+    query = "UPDATE stock_quant_package SET pack_date = create_date"
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_quant_package"))
