@@ -17,3 +17,12 @@ def migrate(cr, version):
     util.move_field_to_module(
         cr, "hr.contract", "l10n_be_canteen_cost", "l10n_be_hr_contract_salary", "l10n_be_hr_payroll"
     )
+
+    util.remove_model(cr, "l10n_be.individual.account.wizard")
+
+    for model in ["281_10", "281_45"]:
+        util.remove_field(cr, f"l10n_be.{model}", "pdf_filename")
+        util.remove_field(cr, f"l10n_be.{model}", "pdf_file")
+        util.move_field_to_module(
+            cr, f"l10n_be.{model}", "documents_enabled", "l10n_be_hr_payroll", "documents_l10n_be_hr_payroll"
+        )
