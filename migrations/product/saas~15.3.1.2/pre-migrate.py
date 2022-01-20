@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from odoo.upgrade import util
 
 
@@ -76,3 +77,5 @@ def migrate(cr, version):
         )
         cr.commit()
         util.add_to_migration_reports(msg, "Products & Pricelists")
+
+    util.remove_field(cr, "res.config.settings", "module_sale_product_configurator")

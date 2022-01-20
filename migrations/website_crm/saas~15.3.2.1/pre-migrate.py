@@ -1,0 +1,9 @@
+# -*- coding: utf-8 -*-
+
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.remove_field(cr, "res.config.settings", "crm_default_team_id")
+    util.remove_field(cr, "res.config.settings", "crm_default_user_id")
+    util.remove_view(cr, "website_crm.res_config_settings_view_form")
