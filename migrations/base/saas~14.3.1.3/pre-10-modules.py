@@ -47,7 +47,7 @@ def migrate(cr, version):
         util.force_migration_of_fresh_module(cr, "l10n_us_1099")
         util.new_module(cr, "website_calendar_crm", deps={"website_calendar", "crm"}, auto_install=True)
 
-        util.new_module(cr, "social_youtube", deps={"social", "iap"})
+        util.new_module(cr, "social_youtube", deps={"social", "iap"}, auto_install=True)
         util.new_module(
             cr,
             "social_test_full",
