@@ -17,12 +17,13 @@ def migrate(cr, version):
     util.remove_field(cr, "product.template", "lst_price")
     util.remove_record(cr, "product.product_attribute_value_action")
 
-    util.create_column(cr, "product_template", "detailed_type", "varchar")
+    util.rename_field(cr, "product.template", "type", "detailed_type", update_references=False)
+    util.create_column(cr, "product_template", "type", "varchar")
     util.parallel_execute(
         cr,
         util.explode_query_range(
             cr,
-            "UPDATE product_template SET detailed_type = type",
+            "UPDATE product_template SET type = detailed_type",
             table="product_template",
         ),
     )
