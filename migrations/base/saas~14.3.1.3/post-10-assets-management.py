@@ -6,9 +6,20 @@ from psycopg2.extras import execute_values
 
 from odoo.modules.module import get_modules
 
-from odoo.addons.base.models.ir_asset import DIRECTIVES_WITH_TARGET, SCRIPT_EXTENSIONS, STYLE_EXTENSIONS
+from odoo.addons.base.models.ir_asset import (
+    APPEND_DIRECTIVE,
+    DEFAULT_SEQUENCE,
+    DIRECTIVES_WITH_TARGET,
+    REMOVE_DIRECTIVE,
+)
 
 from odoo.upgrade import util
+
+FIRST_SYMBOL = "__FIRST__"
+LAST_SYMBOL = "__LAST__"
+
+AFTER_MANIFEST_DIRECTIVES = [APPEND_DIRECTIVE, REMOVE_DIRECTIVE]
+AFTER_MANIFEST_DIRECTIVES.extend(DIRECTIVES_WITH_TARGET)
 
 XPATH_POSITION_TO_DIRECTIVE = {
     "replace": "replace",
@@ -183,7 +194,7 @@ def migrate(cr, version):
     # util.module_installed returns true for modules _about_ to be installed
     has_website = util.module_installed(cr, "website") and util.column_exists(cr, "ir_ui_view", "website_id")
     if has_website:
-        view_fields.append("website_id")
+        view_fields.extend(["website_id", "theme_template_id"])
         # Rename assets file
         cr.execute(
             r"""
@@ -292,6 +303,20 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
     # HELPERS
     #
 
+    def get_asset_sequence(view, asset):
+        view_priority = view["priority"]
+        directive = asset["directive"]
+        if view_priority < DEFAULT_SEQUENCE and directive in AFTER_MANIFEST_DIRECTIVES:
+            return DEFAULT_SEQUENCE
+        return view_priority
+
+    def get_is_active(view):
+        is_active = view["active"]
+        inherit_id = view["inherit_id"]
+        if is_active and inherit_id and view["mode"] != "primary":
+            return get_is_active(all_views[inherit_id])
+        return is_active
+
     def get_base_view(view):
         inherit_id = view["inherit_id"]
         if not inherit_id or view["mode"] == "primary":
@@ -312,8 +337,8 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         defaults = {
             "name": get_view_key(view) + "--view_id:%s--%s" % (view["id"], unique_irasset),
             "bundle": bundle,
-            "active": view["active"],
-            "sequence": view["priority"],
+            "active": get_is_active(view),
+            "sequence": get_asset_sequence(view, values),
         }
         website_id = has_website and view["website_id"] or None
         if website_id:
@@ -326,9 +351,10 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
     regex_url_in_quotes = r'(?P<q>"|\')((/?\w+.?)+)(?P=q)'
 
     regex_xpath_target_url = re.compile(regex_href + regex_url_in_quotes)
-    regex_last = re.compile(r"(link|script)\[(last)\(\)\]")
+    # expr="//link" or expr="//link[last()]"
+    regex_last = re.compile(r"^(?://)?(?:link|script)(?:\[(last)\(\)\])?$")
 
-    def get_target_from_xpath(node, bundle_name):
+    def get_target_from_xpath(node):
         # https://github.com/SimonGenin/odoo-assets-scripts/blob/master/convert-cli.py
         # for ges xpath regex
         expr = node.get("expr")
@@ -340,22 +366,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
             match = regex_last.search(expr)
             groups = match and match.groups()
             if groups:
-                node_tag, position = groups
-                if not position == "last":
-                    return
-                exts = None
-                if node_tag == "script":
-                    exts = SCRIPT_EXTENSIONS
-                elif node_tag == "link":
-                    exts = STYLE_EXTENSIONS
-                last = None
-                for asset in reversed(assets_to_create):
-                    if asset["bundle"] == bundle_name:
-                        ext = asset[path_column].rpartition(".")[2]
-                        if not exts or ext in exts:
-                            last = asset
-                            break
-                return last and last[path_column]
+                return LAST_SYMBOL if groups[0] == "last" else FIRST_SYMBOL
 
     # should map former view keys to jum's bundle names
     def get_bundle_name_from_key(view_key):
@@ -380,8 +391,8 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
     #
     # NODE HANDLERS
     #
-    def handle_script_node(view, etreeNode):
-        src = etreeNode.get("src")
+    def handle_script_node(node):
+        src = node.get("src")
         if not src:
             msg = """
                 The view with id=%(view_id)s has the form:
@@ -392,21 +403,23 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
             raise UnmigrableCase(msg)
         return dict([(path_column, src)])
 
-    def handle_link_node(view, etreeNode):
-        rel_attr = etreeNode.get("rel")
-        if rel_attr == "stylesheet":
+    def handle_link_node(node):
+        rel_attr = node.get("rel")
+        type_attr = node.get("type")
+        if not (rel_attr == "stylesheet" or type_attr == "text/css"):
             msg = (
                 """
                 The view with id=%%(view_id)s contains:
-                <link rel="%s" />
+                <link rel="%s" type="%s" />
                 This is not supported.
             """
-                % rel_attr
+                % rel_attr,
+                type_attr,
             )
             raise UnmigrableCase(msg)
-        return dict([(path_column, etreeNode.get("href"))])
+        return dict([(path_column, node.get("href"))])
 
-    def handle_tcall(view, etreeNode, tcall):
+    def handle_tcall(node, tcall):
         asset_key = get_asset_name_from_tcall(tcall)
         if not asset_key:
             msg = """
@@ -416,7 +429,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
             """
             raise UnmigrableCase(msg)
 
-        if len(etreeNode):
+        if len(node):
             msg = """
                 The view with id=%(view_id)s has the form:
                 `<t t-call="some.view">
@@ -427,21 +440,24 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
             raise UnmigrableCase(msg)
         return dict([(path_column, asset_key)], directive="include")
 
-    def handle_xpath(view, etreeNode, bundle_name):
-        directive = XPATH_POSITION_TO_DIRECTIVE.get(etreeNode.get("position"))
-        target = get_target_from_xpath(etreeNode, bundle_name)
-        expr = etreeNode.get("expr")
+    def handle_xpath(node, bundle_name, view):
+        directive = XPATH_POSITION_TO_DIRECTIVE.get(node.get("position"))
+        target = get_target_from_xpath(node)
+        expr = node.get("expr")
 
-        if (directive in DIRECTIVES_WITH_TARGET and not target) or (
-            directive == "append" and not target and expr != "."
-        ):
+        if target == LAST_SYMBOL or target == FIRST_SYMBOL:
+            # replace the indicative target with proper directive
+            directive = "append" if target == LAST_SYMBOL else "prepend"
+            target = None
+
+        if directive in DIRECTIVES_WITH_TARGET and not target:
             msg = 'xpath target unsolvable for expr: "%s" in view_id: %%(view_id)s' % expr
             raise UnmigrableCase(msg)
 
-        if len(etreeNode) == 0 and directive == "replace":
-            return dict(directive="remove", target=target)
+        if len(node) == 0 and directive == "replace":
+            return dict([(path_column, target)], directive="remove")
 
-        assets = process_asset_node(etreeNode, bundle_name, view, directive, target)
+        assets = process_asset_node(node, bundle_name, view, directive, target)
         if directive in DIRECTIVES_WITH_TARGET:  # make a linked list from the first element on
             prev_glob = None
             for asset in assets:
@@ -452,7 +468,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
 
         return assets
 
-    def handle_generic_t_node(view, etreeNode):
+    def handle_generic_t_node(node):
         msg = """
             The view with id=%(view_id)s has the form:
             `<t t-[directive] />
@@ -460,7 +476,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         """
         raise UnmigrableCase(msg)
 
-    def handle_style_node(view, etreeNode):
+    def handle_style_node(node):
         msg = """
             The view with id=%(view_id)s has the form:
             `<style>.someclass { position:absolute; }</style>
@@ -469,6 +485,43 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         """
         raise UnmigrableCase(msg)
 
+    def handle_attribute_node(node):
+        name = node.get("name")
+        value = node.text
+        parent = node.getparent()
+        target = get_target_from_xpath(parent)
+        if not value or not target:
+            msg = """
+                The view with id=%(view_id)s has the form:
+                `<xpath expr="someexpr" position="attributes">
+                    <attribute name="somename">somevalue</attribute>
+                </xpath>`
+                Where either `someexpr` or `somevalue` yields to undefined content.
+                This is not supported.
+            """
+            raise UnmigrableCase(msg)
+        if target == LAST_SYMBOL:
+            msg = """
+                The view with id=%(view_id)s has the form:
+                `<xpath expr="someexpr" position="attributes">
+                    <attribute name="somename">somevalue</attribute>
+                </xpath>`
+                Where `someexpr` uses 'last()' xpath function and the target has not been found.
+                Sorry.
+            """
+            raise UnmigrableCase(msg)
+        if name not in ("src", "href"):
+            msg = """
+                The view with id=%(view_id)s has the form:
+                `<xpath expr="someexpr" position="attributes">
+                    <attribute name="somename">somevalue</attribute>
+                </xpath>`
+                Where `somename` is neither `src` nor `href`.
+                This is not supported.
+            """
+            raise UnmigrableCase(msg)
+        return dict([(path_column, value)], directive="replace", target=target)
+
     #
     # MAIN FUNCTION
     #
@@ -476,9 +529,11 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         result = []
         for node in arch:
             handler = None
-            handler_args = [view, node]
+            handler_args = [node]
             if node.tag == "script":
                 handler = handle_script_node
+            if node.tag == "attribute":
+                handler = handle_attribute_node
             elif node.tag == "link":
                 handler = handle_link_node
             elif node.tag == "t":
@@ -491,6 +546,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
             elif node.tag == "xpath":
                 handler = handle_xpath
                 handler_args.append(bundle_name)
+                handler_args.append(view)
             elif node.tag == "style":
                 handler = handle_style_node
 
@@ -515,13 +571,17 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         if module and module in ODOO_SA_MODULES:
             # do not care about stuff defined at GrandRosieres
             continue
+        if view.get("theme_template_id", False):
+            # views created through theme.ir.ui.view records should not be deleted because:
+            # - many of them may exists
+            # - they will be handled by the theme_* modules migrations
+            do_not_delete_view_ids.add(view["id"])
+            continue
 
         parent_view = get_base_view(view)
         bundle_name = get_bundle_name_from_key(get_view_key(parent_view))
 
         arch = etree.fromstring(view["arch_db"])
-        if arch.tag == "data" and len(arch):
-            arch = arch[0]
         if len(arch) == 0:
             continue
 
