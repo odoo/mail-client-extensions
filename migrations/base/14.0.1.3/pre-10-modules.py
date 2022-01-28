@@ -110,6 +110,9 @@ def migrate(cr, version):
         # Actually, it should be as it doesn't works without...
         util.trigger_auto_install(cr, "account_online_synchronization")
 
+        # https://github.com/odoo/enterprise/pull/23728 (fw)
+        util.trigger_auto_install(cr, "l10n_lu_reports_annual_vat")
+
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
 
