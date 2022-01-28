@@ -24,3 +24,12 @@ def migrate(cr, version):
 
     # remove lost activities to add a constraint
     cr.execute("DELETE FROM mail_activity WHERE res_id = 0")
+
+    util.create_column(cr, "mail_notification", "author_id", "int4")
+    query = """
+        UPDATE mail_notification n
+           SET author_id = m.author_id
+          FROM mail_message m
+         WHERE n.mail_message_id = m.id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="mail_notification", prefix="n."))
