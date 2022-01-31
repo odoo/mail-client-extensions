@@ -66,7 +66,7 @@ def remove_transparency_effects(section_el):
             # Rebuild gradient_parts with the new RGB colors.
             gradient_parts = "rgb(".join(gradient_parts)
             # Rebuild background-image with the new gradient.
-            style_properties["background-image"] = bg_image[:bg_image.index("-gradient(")] + gradient_parts
+            style_properties["background-image"] = bg_image[: bg_image.index("-gradient(")] + gradient_parts
 
         # In case there is a gradient, we suppose it is a normal Odoo case with
         # a forced transparent color behind it. The gradient transparent color
