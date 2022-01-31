@@ -13,3 +13,5 @@ def migrate(cr, version):
         "account_analytic_tag_id",
         "project_project_id",
     )
+    util.remove_record(cr, "project.menu_projects_group_stage")
+    util.remove_record(cr, "project.open_view_project_all_group_stage")
