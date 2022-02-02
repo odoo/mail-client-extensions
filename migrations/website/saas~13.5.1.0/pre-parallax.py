@@ -41,7 +41,7 @@ def migrate_parallax(cr, table, column):
     for res_id, body in itertools.chain.from_iterable(get_info()):
         body = html.fromstring(body, parser=utf8_parser)
         changed = False
-        parallax_els = body.xpath("//*[hasclass('parallax')]")
+        parallax_els = body.xpath("//*[hasclass('parallax')][not(comment())]")
         for el in parallax_els:
             # 1. Get the background image of the snippet if any and remove it:
             #    it should be on the parallax element
