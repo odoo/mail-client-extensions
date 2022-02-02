@@ -407,13 +407,12 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         rel_attr = node.get("rel")
         type_attr = node.get("type")
         if not (rel_attr == "stylesheet" or type_attr == "text/css"):
-            msg = (
-                """
+            msg = """
                 The view with id=%%(view_id)s contains:
                 <link rel="%s" type="%s" />
                 This is not supported.
-            """
-                % rel_attr,
+            """ % (
+                rel_attr,
                 type_attr,
             )
             raise UnmigrableCase(msg)
