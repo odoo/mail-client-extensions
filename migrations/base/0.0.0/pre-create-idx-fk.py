@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import os
 
 from odoo import api, models
 
@@ -60,12 +59,8 @@ def migrate(cr, version):
         create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
 
     # now same for big tables
-    min_rows = int(os.environ.get("ODOO_MIG_CREATE_FK_INDEX_MIN_ROWS", "40000"))
-    if min_rows <= 0:
-        _logger.info("ODOO_MIG_CREATE_FK_INDEX_MIN_ROWS is set to 0, Index creation skipped")
-    else:
-        cr.execute(
-            """
+    cr.execute(
+        """
         WITH big_tables AS(
         -- RETRIEVE BIG TABLES
             SELECT reltuples approximate_row_count , relname relation_name
@@ -109,13 +104,13 @@ def migrate(cr, version):
                     HAVING array_agg(a.attname::text ) = ARRAY[kcu.column_name::text]
             )
             ORDER BY 2,3
-            """,
-            [min_rows],
-        )
+        """,
+        [util.BIG_TABLE_THRESHOLD],
+    )
 
-        for index_name, table_name, column_name in cr.fetchall():
-            util.ENVIRON["__created_fk_idx"].append(index_name)
-            create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
+    for index_name, table_name, column_name in cr.fetchall():
+        util.ENVIRON["__created_fk_idx"].append(index_name)
+        create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
 
     if create_index_queries:
         _logger.info("creating %s indexes (might be slow)", len(create_index_queries))
