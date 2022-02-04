@@ -336,7 +336,7 @@ def migrate(cr, version):
             ),
             new_operation AS (
                 INSERT INTO mrp_routing_workcenter ({column_op}, old_id, bom_id)
-                SELECT {column_op_pre}, old_id, mrp_bom.id
+                SELECT {column_op_pre}, old_operation.old_id, mrp_bom.id
                   FROM old_operation
                        JOIN mrp_bom ON mrp_bom.routing_id = old_operation.routing_id
               ORDER BY sequence, old_id
