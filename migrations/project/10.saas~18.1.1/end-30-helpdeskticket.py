@@ -55,7 +55,7 @@ def migrate(cr, version):
                 """
                 UPDATE ir_translation
                    SET name = 'helpdesk.ticket,description',
-                       res_id = ('{}'::json->>res_id::varchar)::int4
+                       res_id = ('{}'::jsonb->>res_id::varchar)::int4
                  WHERE name = 'project.project,label_issues'
                    AND res_id IN %s
             """.format(

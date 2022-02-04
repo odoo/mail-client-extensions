@@ -21,7 +21,7 @@ def migrate(cr, version):
                AND field.name = 'sale_order_template_id'
                AND def.user_id IS NULL
                AND def.condition IS NULL
-               AND json_typeof(def.json_value::json) = 'number'
+               AND jsonb_typeof(def.json_value::jsonb) = 'number'
           ORDER BY def_cid,def_id
         )
         UPDATE res_company comp
@@ -44,7 +44,7 @@ def migrate(cr, version):
                AND field.name = 'sale_order_template_id'
                AND def.user_id IS NULL
                AND def.condition IS NULL
-               AND json_typeof(def.json_value::json) = 'number'
+               AND jsonb_typeof(def.json_value::jsonb) = 'number'
         )
     """
     )

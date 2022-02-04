@@ -366,7 +366,7 @@ def migrate(cr, version):
 
             query = """
                 UPDATE account_payment
-                   SET move_id = ('{}'::json->>id::varchar)::int4
+                   SET move_id = ('{}'::jsonb->>id::varchar)::int4
                  WHERE id IN %s
             """
             mapping = {move.payment_id.id: move.id for move in moves}
@@ -474,7 +474,7 @@ def migrate(cr, version):
 
             query = """
                 UPDATE account_bank_statement_line
-                   SET move_id = ('{}'::json->>id::varchar)::int4
+                   SET move_id = ('{}'::jsonb->>id::varchar)::int4
                  WHERE id IN %s
             """
             mapping = {move.statement_line_id.id: move.id for move in moves}
@@ -565,7 +565,7 @@ def migrate(cr, version):
         if wrong_company_partner_bank_ids:
             query = """
                 UPDATE res_partner_bank
-                   SET company_id = ('{}'::json->>id::varchar)::int4
+                   SET company_id = ('{}'::jsonb->>id::varchar)::int4
                  WHERE id IN %s
             """
             cr.execute(

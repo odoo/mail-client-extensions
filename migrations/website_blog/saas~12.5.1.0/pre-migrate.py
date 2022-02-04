@@ -26,8 +26,8 @@ def migrate(cr, version):
         UPDATE blog_post
             SET cover_properties = jsonb_set(cover_properties::jsonb, '{resize_class}',
                 to_jsonb(REGEXP_REPLACE(
-                    coalesce(cover_properties::json->>'resize_class',
-                        case when cover_properties::json->>'background-image' <> 'none' then 'o_record_has_cover cover_mid'
+                    coalesce(cover_properties::jsonb->>'resize_class',
+                        case when cover_properties::jsonb->>'background-image' <> 'none' then 'o_record_has_cover cover_mid'
                         else '' end
                     ),
                     '\m(cover(?!-)|o_wblog_has_cover)\M', 'o_record_has_cover', 'g'
@@ -41,12 +41,12 @@ def migrate(cr, version):
         UPDATE blog_post
             SET cover_properties = jsonb_set(cover_properties::jsonb, '{resize_class}',
                 to_jsonb(REGEXP_REPLACE(
-                    cover_properties::json->>'resize_class',
+                    cover_properties::jsonb->>'resize_class',
                     '\mcontainer-fluid\M', '', 'g')
                 )
             )
-            WHERE cover_properties::json->>'resize_class' ~ '\mcontainer-fluid\M'
-                AND cover_properties::json->>'resize_class' ~ '\mcover_full\M'
+            WHERE cover_properties::jsonb->>'resize_class' ~ '\mcontainer-fluid\M'
+                AND cover_properties::jsonb->>'resize_class' ~ '\mcover_full\M'
 
     """)
     cr.execute(
@@ -57,13 +57,13 @@ def migrate(cr, version):
         UPDATE blog_post
             SET cover_properties = jsonb_set(cover_properties::jsonb, '{resize_class}',
                 to_jsonb(REGEXP_REPLACE(REGEXP_REPLACE(
-                    cover_properties::json->>'resize_class',
+                    cover_properties::jsonb->>'resize_class',
                     '\mcontainer-fluid\M', '', 'g'),
                     '\mcover_narrow\M', 'cover_mid', 'g')
                 )
             )
-            WHERE cover_properties::json->>'resize_class' ~ '\mcontainer-fluid\M'
-                AND cover_properties::json->>'resize_class' ~ '\mcover_narrow\M'
+            WHERE cover_properties::jsonb->>'resize_class' ~ '\mcontainer-fluid\M'
+                AND cover_properties::jsonb->>'resize_class' ~ '\mcover_narrow\M'
     """)
     cr.execute(
         # bb0cdec renamed the cover size 'container cover_narrow' -> 'cover_auto'
@@ -73,11 +73,11 @@ def migrate(cr, version):
         UPDATE blog_post
             SET cover_properties = jsonb_set(cover_properties::jsonb, '{resize_class}',
                 to_jsonb(REGEXP_REPLACE(REGEXP_REPLACE(
-                    cover_properties::json->>'resize_class',
+                    cover_properties::jsonb->>'resize_class',
                     '\mcontainer(?!-)\M', '', 'g'),
                     '\mcover_narrow\M', 'cover_auto', 'g')
                 )
             )
-            WHERE cover_properties::json->>'resize_class' ~ '\mcontainer(?!-)\M'
-                AND cover_properties::json->>'resize_class' ~ '\mcover_narrow\M'
+            WHERE cover_properties::jsonb->>'resize_class' ~ '\mcontainer(?!-)\M'
+                AND cover_properties::jsonb->>'resize_class' ~ '\mcover_narrow\M'
     """)
