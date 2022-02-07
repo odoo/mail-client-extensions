@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
 from odoo.tools import image
+
+from odoo.addons.base.maintenance.migrations import util
 
 
 def rename_mixin_fields(cr, model, skip_inherit=()):
@@ -39,6 +40,7 @@ def single_image(cr, model):
 
 
 def migrate(cr, version):
+    cr.commit()  # make performance of image_small field removal more consistent (deterministic)
     util.ENVIRON["s125_image_mixin_recompute"] = {"all": [], "512": []}
     new_inherit_mixin(cr, "res.partner")
     new_inherit_mixin(cr, "res.users")  # due to inheritS
