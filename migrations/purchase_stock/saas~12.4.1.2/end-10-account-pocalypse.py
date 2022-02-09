@@ -182,7 +182,7 @@ def migrate(cr, version):
                     "currency_id": res["currency_id"],
                     "product_id": res["ang_product_id"],
                     "product_uom_id": res["ang_product_uom_id"],
-                    "quantity": res["ang_quantity"],
+                    "quantity": res["ang_quantity"] or 0,
                     "price_unit": res["ang_price_unit"] or 0.0,
                     "price_subtotal": res["ang_price_subtotal"],
                     "account_id": res["account_id"],
