@@ -6,19 +6,19 @@ def migrate(cr, version):
     # this script aims to detect and correct the database that would have been
     # a silent victim of the cogs lines post mig issue (from 12 to 13)
 
-    if not util.module_installed(cr, "purchase_stock") or not util.version_gte("14.0"):
+    if not util.module_installed(cr, "purchase_stock") or not util.version_between("14.0", "saas~15.1"):
         return
 
     cr.execute(
         """
-        SELECT aml.move_id
+        SELECT 1
           FROM account_move_line aml
          WHERE aml.is_anglo_saxon_line
          GROUP BY aml.move_id
         HAVING sum(aml.balance) != 0
-    """
+         FETCH FIRST ROW ONLY
+        """
     )
-
     if cr.rowcount == 0:
         return
 
@@ -108,6 +108,7 @@ def recompute_is_anglo_saxon_flag_for_all_aml(cr, move_type):
            SET is_anglo_saxon_line = all_aml.computed_is_anglo_saxon_line
           FROM all_aml
          WHERE aml.id = all_aml.id
+           AND aml.is_anglo_saxon_line IS DISTINCT FROM all_aml.computed_is_anglo_saxon_line
     """.format(
             move_type=move_type
         )
