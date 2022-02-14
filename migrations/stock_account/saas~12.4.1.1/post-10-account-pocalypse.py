@@ -235,9 +235,7 @@ def migrate(cr, version):
     """
     util.parallel_execute(
         cr,
-        util.explode_query_range(
-            cr, cr.mogrify(q, [SUPERUSER_ID]).decode(), "product_price_history", bucket_size=100, prefix="ph."
-        ),
+        util.explode_query_range(cr, cr.mogrify(q, [SUPERUSER_ID]).decode(), "product_price_history", prefix="ph."),
     )
     cr.execute(
         """
