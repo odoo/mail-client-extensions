@@ -22,13 +22,11 @@ def migrate(cr, version):
                     ELSE s.garnished_type
                 END) AS deduction_type,
                 s.amount AS monthly_amount,
-                (CASE
-                    WHEN s.date_to IS NOT NULL THEN (
-                            (DATE_PART('year', s.date_to) - DATE_PART('year', s.date_from)) * 12 +
-                                (DATE_PART('month', s.date_to) - DATE_PART('month', s.date_from) + 1)
-                        ) * s.amount
-                    ELSE 0
-                END) AS total_amount,
+                (
+                    (DATE_PART('year', COALESCE(s.date_to, CURRENT_DATE + INTERVAL '10 years'))
+                              - DATE_PART('year', s.date_from)) * 12 +
+                    (DATE_PART('month', COALESCE(s.date_to, CURRENT_DATE)) - DATE_PART('month', s.date_from) + 1)
+                ) * s.amount AS total_amount,
                 (
                     (DATE_PART('year', least(s.date_to, CURRENT_DATE)) - DATE_PART('year', s.date_from)) * 12 +
                     (DATE_PART('month', least(s.date_to, CURRENT_DATE)) - DATE_PART('month', s.date_from) + 1)
