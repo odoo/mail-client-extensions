@@ -23,3 +23,5 @@ def migrate(cr, version):
                     AND c.channel_type != 'channel'
         """
     )
+
+    util.remove_model(cr, "mail.resend.cancel", drop_table=True)
