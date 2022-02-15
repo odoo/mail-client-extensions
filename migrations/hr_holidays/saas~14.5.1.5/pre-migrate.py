@@ -172,9 +172,82 @@ def migrate(cr, version):
            AND allocation.holiday_status_id=leave.holiday_status_id
            AND leave_type.requires_allocation = 'yes'
            AND allocation.date_from <= leave.date_from
-           AND (allocation.date_to IS NULL OR allocation.date_to > leave.date_to)
+           AND (allocation.date_to IS NULL OR allocation.date_to >= leave.date_to)
     """
     )
+
+    # Some leaves may be missing an allocation due to an invalid operation on the hr officer's part.
+    # First pass similar to the first query to populate holiday_allocation_id but this time with more permissive date checks.
+    cr.execute(
+        """
+        UPDATE hr_leave leave
+           SET holiday_allocation_id=allocation.id
+          FROM hr_leave_allocation allocation
+          JOIN hr_leave_type leave_type
+            ON leave_type.id=allocation.holiday_status_id
+         WHERE leave.holiday_allocation_id IS NULL
+           AND leave.employee_id = allocation.employee_id
+           AND allocation.state = 'validate'
+           AND allocation.holiday_status_id = leave.holiday_status_id
+           AND leave_type.requires_allocation = 'yes'
+           AND allocation.date_from <= (date_trunc('year', leave.date_from) + INTERVAL '1 year' - INTERVAL '1 day')
+           AND (allocation.date_to IS NULL OR allocation.date_to >= date_trunc('year', leave.date_to))
+        """
+    )
+    # Create allocations for those that are still missing their holiday_allocation_id
+    # Helper column
+    util.create_column(cr, "hr_leave_allocation", "_tmp_leave_id", "integer")
+    cr.execute(
+        """
+        WITH helper AS (
+            INSERT INTO hr_leave_allocation (
+                private_name,
+                employee_id, date_from,
+                date_to,
+                number_of_days, holiday_status_id, state, holiday_type,
+                allocation_type,
+                _tmp_leave_id
+            )
+            SELECT CONCAT('Correction: Missing Allocation for', employee.name),
+                    employee.id, date_trunc('year', leave.date_to),
+                    (date_trunc('year', leave.date_from) + INTERVAL '1 year' - INTERVAL '1 day'),
+                    leave.number_of_days, leave.holiday_status_id, 'validate', 'employee',
+                    'regular',
+                    leave.id
+              FROM hr_leave leave
+              JOIN hr_employee employee
+                ON employee.id = leave.employee_id
+              JOIN hr_leave_type leave_type
+                ON leave_type.id = leave.holiday_status_id
+             WHERE leave.holiday_allocation_id IS NULL
+               AND leave_type.requires_allocation = 'yes'
+         RETURNING id, _tmp_leave_id
+        )
+        UPDATE hr_leave leave
+           SET holiday_allocation_id = h.id
+          FROM helper h
+         WHERE h._tmp_leave_id = leave.id
+     RETURNING holiday_allocation_id
+        """
+    )
+    if cr.rowcount:
+        msg = """
+        <details>
+            <summary>
+            Due to an invalid configuration of leaves the following allocations had to be created.
+            </summary>
+            <ul>%s</ul>
+        <details>
+        """ % (
+            "<li>{}</li>".format(
+                util.get_anchor_link_to_record(
+                    "hr.leave.allocation", row["holiday_allocation_id"], "Correction: Missing Allocation"
+                )
+                for row in cr.dictfetchall()
+            ),
+        )
+        util.add_to_migration_reports(msg, format="html", category="Human Resources")
+    util.remove_column(cr, "hr_leave_allocation", "_tmp_leave_id")
 
     # Remove Columns
     util.remove_field(cr, "hr.leave.allocation", "first_approver_id")
