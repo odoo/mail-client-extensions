@@ -12,8 +12,11 @@ def migrate(cr, version):
 
     # XXX description_picking{in,out} being translatable, do we need to fill this fields?
     # TODO copy translations?
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE stock_move m
            SET description_picking = COALESCE(CASE t.code WHEN 'incoming' THEN e.description_pickingin
                                                           WHEN 'outgoing' THEN e.description_pickingout
@@ -23,10 +26,16 @@ def migrate(cr, version):
          WHERE p.id = m.product_id
            AND e.id = p.product_tmpl_id
            AND t.id = m.picking_type_id
-    """
+        """,
+            table="stock_move",
+            prefix="m.",
+        ),
     )
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE stock_move_line l
            SET description_picking = COALESCE(CASE t.code WHEN 'incoming' THEN e.description_pickingin
                                                           WHEN 'outgoing' THEN e.description_pickingout
@@ -37,5 +46,8 @@ def migrate(cr, version):
            AND e.id = p.product_tmpl_id
            AND k.id = l.picking_id
            AND t.id = k.picking_type_id
-    """
+        """,
+            table="stock_move_line",
+            prefix="l.",
+        ),
     )

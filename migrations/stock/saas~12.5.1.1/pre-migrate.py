@@ -64,13 +64,19 @@ def migrate(cr, version):
          WHERE p.id = r.picking_type_id
     """
     )
-    cr.execute(
-        """
-        UPDATE stock_move m
-           SET delay_alert = r.delay_alert
-          FROM stock_rule r
-         WHERE r.id = m.rule_id
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+                UPDATE stock_move m
+                   SET delay_alert = r.delay_alert
+                  FROM stock_rule r
+               WHERE r.id = m.rule_id
+            """,
+            table="stock_move",
+            prefix="m.",
+        ),
     )
 
     cr.execute(
