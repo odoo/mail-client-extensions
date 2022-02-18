@@ -11,3 +11,4 @@ def migrate(cr, version):
         WHERE state = 'draft'
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="pos_order"))
+    util.remove_view(cr, "pos_restaurant.pos_config_view_form_inherit_restaurant")
