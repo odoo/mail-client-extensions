@@ -17,18 +17,33 @@ def migrate(cr, version):
         # Record already exists.
         return
 
+    required_columns = {
+        "base_unit_count": "1",
+    }
+    for col in list(required_columns):
+        if not util.column_exists(cr, "product_product", col):
+            del required_columns[col]
+
+    extra_columns = extra_values = ""
+    if required_columns:
+        extra_columns = "," + ",".join(required_columns)
+        extra_values = "," + ",".join(required_columns.values())
+
     # Use SQL as the models are not yet in the registry
     cr.execute(
         """
             WITH p4d AS (
                 INSERT INTO product_product(
                     product_tmpl_id, default_code, active, combination_indices, weight, can_image_variant_1024_be_zoomed
-                ) VALUES(%s, 'DESK0004', true, '2,4', 0.01, false)
+                    {extra_columns}
+                ) VALUES(%s, 'DESK0004', true, '2,4', 0.01, false {extra_values})
                 RETURNING id
             )
             INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
             SELECT 'product', 'product_product_4d', 'product.product', id, false
               FROM p4d
-        """,
+        """.format(
+            **locals()
+        ),
         [util.ref(cr, "product.product_product_4_product_template")],
     )
