@@ -15,9 +15,10 @@ def migrate(cr, version):
      DELETE
        FROM mail_notification
       WHERE id IN (
-         SELECT UNNEST((ARRAY_AGG(id ORDER BY coalesce(is_read, false) desc, id desc))[2:])
+         SELECT UNNEST((ARRAY_AGG(id ORDER BY coalesce(is_read, false) desc, notification_type asc, id desc))[2:])
            FROM mail_notification
-       GROUP BY res_partner_id, mail_message_id, notification_type
+          WHERE res_partner_id IS NOT NULL
+       GROUP BY res_partner_id, mail_message_id
           )
         """
     )
