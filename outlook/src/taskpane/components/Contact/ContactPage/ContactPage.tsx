@@ -54,20 +54,27 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
         partnerRequest.promise
             .then((response) => {
                 const parsed = JSON.parse(response);
-                const partner = Partner.fromJSON(parsed.result.partner);
+
+                const newPartner =
+                    parsed.result && parsed.result.partner && Object.keys(parsed.result.partner).length
+                        ? Partner.fromJSON(parsed.result.partner)
+                        : Partner.fromJSON({ email: partner.email, name: partner.name }); // Maybe the partner has been deleted on the Odoo side
+
                 if (parsed.result.leads) {
-                    partner.leads = parsed.result.leads.map((lead_json) => Lead.fromJSON(lead_json));
+                    newPartner.leads = parsed.result.leads.map((lead_json) => Lead.fromJSON(lead_json));
                 }
                 if (parsed.result.tasks) {
-                    partner.tasks = parsed.result.tasks.map((task_json) => Task.fromJSON(task_json));
+                    newPartner.tasks = parsed.result.tasks.map((task_json) => Task.fromJSON(task_json));
                 }
                 if (parsed.result.tickets) {
-                    partner.tickets = parsed.result.tickets.map((ticket_json) => HelpdeskTicket.fromJSON(ticket_json));
+                    newPartner.tickets = parsed.result.tickets.map((ticket_json) =>
+                        HelpdeskTicket.fromJSON(ticket_json),
+                    );
                 }
                 if (parsed.result.user_companies) {
                     this.context.setUserCompanies(parsed.result.user_companies);
                 }
-                this.setState({ partner: partner, isLoading: false });
+                this.setState({ partner: newPartner, isLoading: false });
                 if (parsed.result.partner['enrichment_info']) {
                     const enrichmentInfo = new EnrichmentInfo(
                         parsed.result.partner['enrichment_info'].type,
@@ -76,7 +83,7 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
                     if (enrichmentInfo.type != EnrichmentInfoType.NoData)
                         this.context.showTopBarMessage(enrichmentInfo);
                 }
-                this.propagatePartnerInfoChange(partner);
+                this.propagatePartnerInfoChange(newPartner);
             })
             .catch((error) => {
                 this.context.showHttpErrorMessage(error);
