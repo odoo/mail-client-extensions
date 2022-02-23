@@ -36,10 +36,9 @@ def migrate(cr, version):
             UPDATE product_packaging
             SET barcode = null
             WHERE id in %s
-            """
-            % (tuple(ids),)
+            """,
+            [tuple(ids)],
         )
-        cr.commit()
         util.add_to_migration_reports(msg, "Products & Pricelists")
 
     # A product and a packaging can not have the same barcode
@@ -72,10 +71,9 @@ def migrate(cr, version):
             UPDATE product_packaging
             SET barcode = null
             WHERE id in %s
-            """
-            % (tuple(ids),)
+            """,
+            [tuple(ids)],
         )
-        cr.commit()
         util.add_to_migration_reports(msg, "Products & Pricelists")
 
     util.remove_field(cr, "res.config.settings", "module_sale_product_configurator")
