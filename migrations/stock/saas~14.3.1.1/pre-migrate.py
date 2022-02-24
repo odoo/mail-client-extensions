@@ -133,6 +133,27 @@ def migrate(cr, version):
     """
     )
 
+    # we need to fix UoM inconsistencies before creating the stock moves
+    cr.execute(
+        """
+        WITH bad_lines AS (
+            SELECT sil.id sil_id,
+                   uom2.id uom_id
+              FROM stock_inventory_line sil
+              JOIN product_product pp ON pp.id = sil.product_id
+              JOIN product_template pt ON pt.id = pp.product_tmpl_id
+              JOIN uom_uom uom1 ON uom1.id = sil.product_uom_id
+              JOIN uom_uom uom2 ON uom2.id = pt.uom_id
+             WHERE uom1.category_id != uom2.category_id
+        )
+        UPDATE stock_inventory_line sil
+           SET product_uom_id = bad_lines.uom_id
+          FROM bad_lines
+         WHERE sil.id = bad_lines.sil_id
+     RETURNING sil.id,sil.product_uom_id
+        """
+    )
+
     cr.execute(
         """
         CREATE TEMPORARY VIEW temp_inventory_line AS (
