@@ -255,30 +255,32 @@ def log_faulty_objects(cr, additional_conditions):
             additional_conditions
         )
     )
-    faulty_moves = ["%s (lines: %s)" % (str(move_id), str(lines)) for move_id, lines in cr.fetchall()]
+    if not cr.rowcount:
+        return
+    msg = """
+    There is a mismatch between the Unit of Measure (UoM) category of some of your stock moves.
+    They do not match the UoM category of their corresponding products.
 
-    if faulty_moves:
-        raise util.MigrationError(
-            """
-            Some inconsistencies have been detected between the unit of measure (UoM) categories
-            used in some of your stock moves and the ones of the corresponding products.
-            So, you can:
-            - fix these inconsistencies manually (Here are the faulty stock moves):
-            %s
-            OR
-            - ignore these inconsistencies and go on by setting the environment variable
-                ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX to SKIP
-            OR
-            - set the environment variable ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX to one of the
-            automatic fixes:
-                * MOST_USED: to automatically use the most used category,
-                * FROM_PRODUCT: to automatically use the UoM from the product
+    To be able to continue the upgrade, you can:
+    - fix these inconsistencies manually (below the details of the affected records)
+    OR
+    - make this script ignore these inconsistencies by setting the environment variable
+        ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX to SKIP
+    OR
+    - let this script automatically fix the affected records by setting the environment variable
+        ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX
+    to one of the following options:
+        * MOST_USED: to automatically use the most used category,
+        * FROM_PRODUCT: to automatically use the UoM from the product.
 
-            - Also you can set the environment variable
-                 ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES to update stock_move_line for archived products
-            """
-            % ("\n".join(["                * %s" % sm for sm in faulty_moves]),)
-        )
+    You can also update stock move lines for archived products by setting the environment variable
+    ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES to 1
+
+    Details of the faulty stock moves:\n{}
+    """.format(
+        "\n".join("     * {} (lines: {})".format(move_id, lines) for move_id, lines in cr.fetchall())
+    )
+    raise util.MigrationError(msg)
 
 
 def migrate(cr, version):
