@@ -276,16 +276,42 @@ def log_faulty_objects(cr, additional_conditions):
     You can also update stock move lines for archived products by setting the environment variable
     ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES to 1
 
-    Details of the faulty stock moves:\n{}
-    """.format(
+    Details of the faulty stock moves:\n{}""".format(
         "\n".join("     * {} (lines: {})".format(move_id, lines) for move_id, lines in cr.fetchall())
     )
     raise util.MigrationError(msg)
 
 
+def fix_inconsistencies_from_previous_migrations(cr):
+    cr.execute(
+        """
+        WITH bad_lines AS (
+            SELECT sml.id sml_id,
+                   uom2.id uom_id
+              FROM stock_move_line sml
+              JOIN stock_move sm ON sml.move_id = sm.id
+              JOIN product_product pp ON pp.id = sml.product_id
+              JOIN product_template pt ON pt.id = pp.product_tmpl_id
+              JOIN uom_uom uom1 ON uom1.id = sml.product_uom_id
+              JOIN uom_uom uom2 ON uom2.id = pt.uom_id
+             WHERE uom1.category_id != uom2.category_id
+               AND sm.reference = sm.name
+               AND sm.name = 'Product Quantity Confirmed'
+               AND sml.reference = sm.reference
+        )
+        UPDATE stock_move_line sml
+           SET product_uom_id = bad_lines.uom_id
+          FROM bad_lines
+         WHERE sml.id = bad_lines.sml_id
+        """
+    )
+
+
 def migrate(cr, version):
     if not util.version_gte("saas~12.3"):
         return
+    if not util.version_gte("saas~15.2"):
+        fix_inconsistencies_from_previous_migrations(cr)
 
     additional_conditions = "true" if update_uom_for_archived_product else "pp.active = true"
 
