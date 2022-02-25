@@ -40,3 +40,33 @@ def migrate(cr, version):
 
         for rename in renames:
             util.rename_xmlid(cr, *rename)
+
+    util.remove_view(cr, "project.project_report_wizard_form")
+    util.remove_record(cr, "project.project_update_all_report_action")
+    util.remove_record(cr, "project.project_update_menu_action")
+    util.remove_record(cr, "project.project_burndown_chart_report_menu_action")
+    util.remove_record(cr, "project.project_burndown_chart_report_action")
+    util.remove_model(cr, "project.report.wizard")
+
+    util.create_column(cr, "project_task", "is_blocked", "boolean")
+
+    cr.execute(
+        """
+        WITH RECURSIVE blocked_task AS (
+              SELECT D.task_id AS id
+                FROM task_dependencies_rel AS D
+                JOIN project_task AS T
+                  ON T.id = D.depends_on_id
+               WHERE T.is_closed = false
+               UNION
+              SELECT D1.task_id
+                FROM task_dependencies_rel AS D1
+                JOIN blocked_task AS B
+                  ON D1.depends_on_id = B.id
+          )
+          UPDATE project_task AS T
+             SET is_blocked = true
+            FROM blocked_task AS B
+           WHERE B.id = T.id
+        """
+    )
