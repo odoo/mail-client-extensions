@@ -19,6 +19,7 @@ export interface AppProps {
 }
 
 export interface AppState {
+    mainKey: number;
     pageDisplayed: Page;
     EnrichmentInfo: EnrichmentInfo;
     showPartnerCreatedMessage: boolean;
@@ -47,9 +48,10 @@ export default class App extends React.Component<AppProps, AppState> {
     constructor(props, context) {
         super(props, context);
 
-        props.itemChangedRegister(this.itemChanged);
+        props.itemChangedRegister(this.onItemChanged);
 
         this.state = {
+            mainKey: 0,
             EnrichmentInfo: new EnrichmentInfo(),
             showPartnerCreatedMessage: false,
             showEnrichmentInfoMessage: false,
@@ -229,7 +231,15 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     };
 
-    private itemChanged = () => {};
+    private onItemChanged = () => {
+        // When we open a new email on Outlook Desktop,
+        // we want to reload the component (so we refetch the new partner)
+        this.setState({
+            mainKey: this.state.mainKey + 1,
+            showPartnerCreatedMessage: false,
+            showEnrichmentInfoMessage: false,
+        });
+    };
 
     private hideEnrichmentInfoMessage = () => {
         this.setState({
@@ -264,7 +274,7 @@ export default class App extends React.Component<AppProps, AppState> {
                         <div className="app-main">
                             <div>{this.getMessageBars()}</div>
                             <div style={{ flex: 1 }}>
-                                <Main />
+                                <Main key={this.state.mainKey} />
                             </div>
                         </div>
                     </AppContext.Provider>

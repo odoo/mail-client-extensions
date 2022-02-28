@@ -200,6 +200,9 @@ class Main extends React.Component<{}, MainState> {
     };
 
     private getPartnerDisconnectedRequest = () => {
+        if (!Office.context.mailbox.item) {
+            return;
+        }
         Office.context.mailbox.getUserIdentityTokenAsync((idTokenResult) => {
             let email = this.getEmailInfo().email;
             let displayName = this.getEmailInfo().displayName;
