@@ -567,7 +567,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
 
     for view in results:
         module = view["module"]
-        if module and module in ODOO_SA_MODULES:
+        if module and (module in ODOO_SA_MODULES or module.startswith("saas_")):
             # do not care about stuff defined at GrandRosieres
             continue
         if view.get("theme_template_id", False):
