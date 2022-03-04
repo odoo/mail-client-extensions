@@ -19,6 +19,8 @@ def migrate(cr, version):
     # applied, leading to an incomplete upgrade.
     # This is the case for the `account_asset` module in `saas~12.3`.
     # This can be observed at https://upgradeci.odoo.com/upgradeci/run/3665
+    # NOTE: This behavior has been fixed by https://github.com/odoo/odoo/pull/85516
+    #       but we need to keep this for older versions.
     query = "UPDATE ir_module_module SET state = 'to upgrade' WHERE state = 'installed'"
     if util.column_exists(cr, "ir_module_module", "imported"):
         query += " AND COALESCE(imported, false) = false"
