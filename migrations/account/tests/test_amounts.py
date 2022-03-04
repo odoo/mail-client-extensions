@@ -2,10 +2,10 @@
 
 from collections import namedtuple
 
-from odoo import release
+from odoo import fields
 from odoo.tests import tagged
-from odoo.tools.parse_version import parse_version
 
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
 
 
@@ -23,35 +23,34 @@ class TestAccountAmountsUnchanged(IntegrityCase):
     """
 
     # data returned from the invariant
-    # save company ids to avoid conflict with test_total_amount_signed.py
-    Data = namedtuple("Data", "value version company_ids")
+    # save date to ignore new moves created by demo and tests data
+    Data = namedtuple("Data", "value date")
+
+    def prepare(self):
+        if not util.version_gte("saas~13.4"):
+            return None
+        return super().prepare()
 
     def check(self, value):
+        if not value:
+            return
         data = self.Data(*value)
-        source_version = parse_version(data.version)
 
-        # Due to a conflicting UpgradeCase in runbot, we need to skip the current test
-        # from 14.0 to saas~14.3 when we detect data for TestTagNoInvert on the DB.
-        self.env.cr.execute(
-            "SELECT COUNT(*) FROM upgrade_test_data WHERE key = %s",
-            ["account_reports.tests.test_14_1_tag_no_invert.TestTagNoInvert"],
+        new_data = self.invariant(date=data.date)
+        self.assertEqual(
+            data.value,
+            self.convert_check(new_data.value),
+            self.message,
         )
-        if source_version >= parse_version("saas~14.3") or (
-            source_version >= parse_version("14.0") and self.env.cr.fetchone()[0] == 0
-        ):
-            new_data = self.invariant(company_ids=data.company_ids)
-            self.assertEqual(
-                data.value,
-                self.convert_check(new_data.value),
-                self.message,
-            )
 
-    def invariant(self, company_ids=None):
-        if company_ids is None:
-            self.env.cr.execute("SELECT id FROM res_company")
-            company_ids = list(r[0] for r in self.env.cr.fetchall())
+    def invariant(self, date=None):
+        # In CI, new demo and test data can be added. We should ignore them.
+        filter_ = "true"
+        if util.on_CI():
+            date = date or fields.Datetime.now()
+            filter_ = self.env.cr.mogrify("l.create_date <= %s", [date]).decode()
 
-        query = """
+        query = f"""
             SELECT l.company_id cid,
                    l.account_id aid,
                    sum(round(l.balance, c.decimal_places))
@@ -65,14 +64,14 @@ class TestAccountAmountsUnchanged(IntegrityCase):
                 ON l.company_id = co.id
               JOIN res_currency c
                 ON co.currency_id = c.id
-             WHERE l.company_id = any(%s)
+             WHERE {filter_}
              GROUP BY cid,
                       aid
             HAVING sum(round(l.balance, c.decimal_places)) <> 0
              ORDER BY cid,
                       aid;
         """
-        self.env.cr.execute(query, [company_ids])
+        self.env.cr.execute(query)
         value = self.env.cr.fetchall()
 
-        return self.Data(value, release.series, company_ids)
+        return self.Data(value, str(date))
