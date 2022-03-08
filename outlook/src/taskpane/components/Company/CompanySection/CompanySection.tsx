@@ -37,6 +37,7 @@ type CompanySectionState = {
     company: Company;
     isCollapsed: boolean;
     isLoading: boolean;
+    hideEnrichmentButton: boolean;
 };
 
 const defaultCompanyImageSrc = 'assets/company_image.png';
@@ -49,6 +50,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             company: company,
             isCollapsed: false,
             isLoading: false,
+            hideEnrichmentButton: false,
         };
         this.companyCache = new CompanyCache(2, 200, 0.25);
     }
@@ -88,11 +90,14 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                         enrichResponse.result['enrichment_info'].info,
                     );
                     this.context.showTopBarMessage(enrichmentInfo);
+                    if (enrichmentInfo.type == EnrichmentInfoType.InsufficientCredit) {
+                        this.setState({ hideEnrichmentButton: true });
+                    }
                 } else if (enrichResponse.result.error && enrichResponse.result.error.length) {
                     this.context.showTopBarMessage(
                         new EnrichmentInfo(EnrichmentInfoType.OdooCustomError, enrichResponse.result.error),
                     );
-                    this.setState({ isLoading: false });
+                    this.setState({ isLoading: false, hideEnrichmentButton: true });
                     return;
                 }
 
@@ -106,7 +111,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                 this.props.onPartnerInfoChanged(newPartner);
             })
             .catch((error) => {
-                this.setState({ isCollapsed: false, isLoading: false });
+                this.setState({ isCollapsed: false, isLoading: false, hideEnrichmentButton: true });
                 this.context.showHttpErrorMessage(error);
             });
     };
@@ -149,14 +154,14 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                     );
                     this.context.showTopBarMessage(enrichmentInfo);
                     if (enrichmentInfo.type == EnrichmentInfoType.InsufficientCredit) {
-                        this.setState({ isLoading: false });
+                        this.setState({ isLoading: false, hideEnrichmentButton: true });
                         return;
                     }
                 } else if (enrichResponse.result.error && enrichResponse.result.error.length) {
                     this.context.showTopBarMessage(
                         new EnrichmentInfo(EnrichmentInfoType.OdooCustomError, enrichResponse.result.error),
                     );
-                    this.setState({ isLoading: false });
+                    this.setState({ isLoading: false, hideEnrichmentButton: true });
                     return;
                 }
                 const partner = this.props.partner;
@@ -169,7 +174,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                 this.props.onPartnerInfoChanged(partner);
             })
             .catch((error) => {
-                this.setState({ isCollapsed: false, isLoading: false });
+                this.setState({ isCollapsed: false, isLoading: false, hideEnrichmentButton: true });
                 this.context.showHttpErrorMessage(error);
             });
     };
@@ -296,20 +301,24 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             return (
                 <div>
                     {this.getCompanyInsightsSection()}
-                    <div>
-                        <div className="odoo-secondary-button insights-button" onClick={this.enrichAndUpdate}>
-                            {_t('Enrich Company')}
+                    {!this.state.hideEnrichmentButton && (
+                        <div>
+                            <div className="odoo-secondary-button insights-button" onClick={this.enrichAndUpdate}>
+                                {_t('Enrich Company')}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             );
         } else if (this.props.partner.isAddedToDatabase()) {
             return (
                 <div className="muted-text insights-info">
                     {_t('No company attached to this contact')}
-                    <div className="odoo-secondary-button insights-button" onClick={this.enrichAndCreate}>
-                        {_t('Create a Company')}
-                    </div>
+                    {!this.state.hideEnrichmentButton && (
+                        <div className="odoo-secondary-button insights-button" onClick={this.enrichAndCreate}>
+                            {_t('Create a Company')}
+                        </div>
+                    )}
                 </div>
             );
         }
