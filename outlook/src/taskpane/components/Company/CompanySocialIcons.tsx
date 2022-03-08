@@ -2,7 +2,7 @@ import * as React from 'react';
 
 function CompanySocialIcons({ twitter, facebook, linkedin, crunchbase }) {
     return (
-        <div className="social-links">
+        <div className="social-links" onClick={(e) => e.stopPropagation()}>
             {twitter && (
                 <a href={'https://twitter.com/' + twitter} target="_blank" rel="noreferrer noopener">
                     <img src="assets/social/twitter.ico" />

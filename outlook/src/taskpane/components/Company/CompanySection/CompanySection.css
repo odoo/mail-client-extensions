@@ -39,9 +39,12 @@
     margin-bottom: 8px;
 }
 
+.social-links a {
+    padding: 3px;
+}
+
 .social-links img {
     height: 15px;
-    margin: 3px;
 }
 
 .company-info-item {
