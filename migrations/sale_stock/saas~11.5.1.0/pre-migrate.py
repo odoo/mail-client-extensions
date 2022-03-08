@@ -15,7 +15,11 @@ def migrate(cr, version):
     util.remove_view(cr, "sale_stock.product_template_view_form_view_inherit_invoice_policy")
 
     if util.create_column(cr, "sale_order", "effective_date", "date"):
-        cr.execute("""
+        util.parallel_execute(
+            cr,
+            util.explode_query(
+                cr,
+                """
             UPDATE sale_order
             SET effective_date=p.thedate
             FROM (select min(s.date_done) as thedate, s.sale_id
@@ -25,4 +29,7 @@ def migrate(cr, version):
                     and l.usage='customer'
                   group by sale_id) as p
             WHERE sale_order.id=p.sale_id
-        """)
+                """,
+                prefix="sale_order.",
+            ),
+        )
