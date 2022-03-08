@@ -109,6 +109,7 @@ def migrate(cr, version):
         util.new_module(
             cr, "account_invoice_extract", deps={"account_accountant", "iap", "mail_enterprise"}, auto_install=True
         )
+        util.force_migration_of_fresh_module(cr, "account_invoice_extract")
         util.new_module(
             cr, "account_invoice_extract_purchase", deps={"account_invoice_extract", "purchase"}, auto_install=True
         )
