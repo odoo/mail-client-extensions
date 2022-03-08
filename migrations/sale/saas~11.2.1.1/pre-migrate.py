@@ -22,20 +22,25 @@ def migrate(cr, version):
 
     cr.execute("""
     WITH cte AS (
-        SELECT l.id, (t.expense_policy != 'no' and count(a.id) != 0) as is_expense
+        SELECT l.id
           FROM sale_order_line l
           JOIN product_product p ON (p.id = l.product_id)
           JOIN product_template t ON (t.id = p.product_tmpl_id)
-     LEFT JOIN account_analytic_line a ON (a.so_line = l.id)
-      GROUP BY l.id, t.expense_policy
+          JOIN account_analytic_line a ON (a.so_line = l.id)
+         WHERE t.expense_policy!='no'
+      GROUP BY l.id
     )
         UPDATE sale_order_line l
-           SET is_expense = cte.is_expense
+           SET is_expense = true
           FROM cte
          WHERE l.id = cte.id
     """)
 
-    cr.execute("""
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
         UPDATE sale_order_line l
            SET qty_delivered_manual = CASE WHEN l.is_expense THEN 0
                          {with_sale_stock} WHEN t.type IN ('consu', 'product') THEN 0
@@ -50,7 +55,9 @@ def migrate(cr, version):
           FROM product_product p
           JOIN product_template t ON (t.id = p.product_tmpl_id)
          WHERE p.id = l.product_id
-    """.format(**locals()))     # poor man's PEP498
-
+            """.format(**locals()),     # poor man's PEP498
+            prefix="l."
+        )
+    )
     # odoo/odoo@faf6165e037bcb1afee8a4881f3a166c86fdee59
     util.rename_field(cr, 'res.config.settings', 'default_deposit_product_id', 'deposit_default_product_id')
