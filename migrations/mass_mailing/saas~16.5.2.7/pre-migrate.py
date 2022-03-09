@@ -31,3 +31,24 @@ def migrate(cr, version):
                     "mailing.contact.subscription",
                     {"contact_id": contact_id, "list_id": demo_list_id},
                 )
+
+    util.remove_view(cr, "mass_mailing.page_mailing_unsubscribe_done")
+    util.remove_view(cr, "mass_mailing.unsubscribe_done")
+
+    # model renaming and its side effects
+    cr.execute("ALTER TABLE mailing_contact_list_rel RENAME TO mailing_subscription")
+    util.rename_model(cr, "mailing.contact.subscription", "mailing.subscription", rename_table=False)
+    for view_type in ["tree", "form", "search"]:
+        util.rename_xmlid(
+            cr,
+            f"mass_mailing.mailing_contact_subscription_view_{view_type}",
+            f"mass_mailing.mailing_subscription_view_{view_type}",
+        )
+    util.rename_xmlid(
+        cr,
+        "mass_mailing.access_mailing_contact_subscription_mm_user",
+        "mass_mailing.access_mailing_subscription_mm_user",
+    )
+
+    util.rename_field(cr, "mailing.subscription", "unsubscription_date", "opt_out_datetime")
+    util.rename_field(cr, "mailing.contact", "subscription_list_ids", "subscription_ids")

@@ -15,6 +15,6 @@ def migrate(cr, version):
                 util.ensure_xmlid_match_record(
                     cr,
                     f"mass_mailing_sms.mailing_list_sms_0_sub_contact_0_{data_id}",
-                    "mailing.contact.subscription",
+                    "mailing.subscription",
                     {"contact_id": contact_id, "list_id": demo_list_id},
                 )
