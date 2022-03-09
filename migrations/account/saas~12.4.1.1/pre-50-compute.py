@@ -7,7 +7,6 @@ def migrate(cr, version):
     util.create_column(cr, "account_move_line", "parent_state", "varchar")
     util.create_column(cr, "account_move_line", "journal_id", "int4")
     util.create_column(cr, "account_move_line", "company_id", "int4")
-    util.create_column(cr, "account_move_line", "company_currency_id", "int4")
 
     util.parallel_execute(
         cr,
@@ -18,10 +17,8 @@ def migrate(cr, version):
                SET move_name=am.name,
                    parent_state=am.state,
                    journal_id=am.journal_id,
-                   company_id=am.company_id,
-                   company_currency_id=c.currency_id
+                   company_id=am.company_id
               FROM account_move am
-                   INNER JOIN res_company c ON c.id=am.company_id
              WHERE am.id=aml.move_id
             """,
             prefix="aml.",
