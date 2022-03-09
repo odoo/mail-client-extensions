@@ -18,6 +18,7 @@ def migrate(cr, version):
             util.replace_record_references_batch(cr, {r1: r2}, "hr.salary.rule", replace_xmlid=False)
 
         util.merge_module(cr, "l10n_be_hr_contract_salary_group_insurance", "l10n_be_hr_payroll")
+        util.merge_module(cr, "account_asset_ndt", "account_asset")
 
     util.merge_module(cr, "base_address_city", "base_address_extended")
 
