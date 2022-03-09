@@ -13,6 +13,7 @@ def migrate(cr, version):
                 FROM res_partner p
                 WHERE p.id=a.partner_id
             """,
-            prefix="a."
-        )
+            table="account_invoice",
+            prefix="a.",
+        ),
     )
