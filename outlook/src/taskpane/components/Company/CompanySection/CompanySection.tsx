@@ -321,6 +321,8 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
                     )}
                 </div>
             );
+        } else {
+            return <div className="muted-text insights-info">{_t('Save the contact to create the company')}</div>;
         }
         return null;
     };
