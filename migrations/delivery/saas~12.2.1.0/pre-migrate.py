@@ -19,6 +19,7 @@ def migrate(cr, version):
            AND l.order_id = s.id
            AND l.is_delivery = TRUE
             """,
+            table="sale_order",
             prefix="s.",
         ),
     )
