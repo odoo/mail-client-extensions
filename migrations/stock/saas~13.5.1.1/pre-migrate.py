@@ -5,32 +5,48 @@ from odoo.upgrade import util
 def migrate(cr, version):
 
     for table in ("stock_picking", "stock_move"):
-        cr.execute(
-            f"""
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                f"""
         UPDATE {table}
            SET priority = CASE WHEN priority IN ('2', '3')
                                THEN '1'
                                ELSE '0'
                           END
-         WHERE priority IN ('1', '2', '3') OR priority IS NULL
-            """
+         WHERE (priority IN ('1', '2', '3') OR priority IS NULL)
+                """,
+                table=table,
+            ),
         )
 
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
     UPDATE stock_move AS sm
        SET priority = sp.priority
       FROM stock_picking AS sp
      WHERE sm.picking_id = sp.id
-        """
+            """,
+            table="stock_move",
+            alias="sm",
+        ),
     )
 
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
     UPDATE stock_move
        SET date = date_expected
      WHERE state NOT IN ('done', 'cancel')
-        """
+            """,
+            table="stock_move",
+        ),
     )
 
     util.remove_field(cr, "stock.move", "date_expected")
