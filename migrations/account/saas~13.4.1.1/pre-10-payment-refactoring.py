@@ -402,15 +402,6 @@ def migrate(cr, version):
             """
         )
 
-    cr.execute(
-        """
-        UPDATE account_move
-        SET statement_line_id = st_line.id
-        FROM account_bank_statement_line st_line
-        WHERE st_line.move_id = account_move.id
-    """
-    )
-
     util.parallel_execute(
         cr,
         util.explode_query(
@@ -420,7 +411,6 @@ def migrate(cr, version):
                    SET statement_line_id = account_bank_statement_line.id
                   FROM account_bank_statement_line
                  WHERE account_bank_statement_line.move_id = account_move.id
-                   AND account_move.statement_line_id IS NULL
             """,
             prefix="account_move.",
         ),
