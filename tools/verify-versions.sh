@@ -56,6 +56,7 @@ MATTDIR="$HOME/.local/share/Odoo/upgrade_ci/matt"
 
 
 grepin () {
+    local module blob
     module="$1"
     pushd "$2" >/dev/null
     blob=$(git ls-tree "origin/$CHECK_BRANCH" -- {.,addons,{openerp,odoo}/addons}/"${module}"/__{terp,openerp,manifest}__.py 2>/dev/null | awk '{print $3}')
@@ -67,6 +68,7 @@ grepin () {
 
 
 getversion () {
+    local module module_version
     module="$1"
 
     module_version=$(grepin "$module" "${MATTDIR}/odoo")
@@ -78,6 +80,34 @@ getversion () {
     fi
     echo "$module_version"
 }
+
+_ver_cmp_1() {
+  (( $1 == $2 )) && return 0
+  (( $1 > $2 )) && return 1
+  (( $1 < $2 )) && return 2
+  # This should not be happening
+  exit 1
+}
+
+ver_cmp() {
+  local A B i result
+  set +e
+  A="${1/saas\~/}"
+  B="${2/saas\~/}"
+  A=(${A//./ })
+  B=(${B//./ })
+  i=0
+  while (( i < ${#A[@]} )) && (( i < ${#B[@]})); do
+    _ver_cmp_1 "${A[i]}" "${B[i]}"
+    result=$?
+    [[ $result =~ [12] ]] && return $result
+    (( ++i ))
+  done
+  # Which has more, then it is the newer version
+  _ver_cmp_1 "${#A[i]}" "${#B[i]}"
+  return $?
+}
+
 
 fetch () {
     mkdir -p "$MATTDIR"
@@ -120,8 +150,14 @@ for dir in */"${CHECK_VERSION}".*; do
         echo "💥 module $module not found!" >/dev/stderr
         ec=1
     elif [[ "$shortversion" != "$expectedversion" ]]; then
-        echo "💥 $dir => $expectedversion"
-        ec=1
+        ver_cmp "$shortversion" "$expectedversion"
+        result=$?
+        if [[ $result = 1 ]]; then
+            echo "💥 $dir > $expectedversion"
+            ec=1
+        elif [[ $result = 2 ]]; then
+            echo "⚠️  $dir < $expectedversion"
+        fi
     fi
 done;
 
