@@ -103,10 +103,11 @@ def migrate(cr, version):
         """
             ALTER TABLE project_task
            ALTER COLUMN "working_hours_open" TYPE numeric,
-           ALTER COLUMN "working_hours_close" TYPE numeric,
-             ADD COLUMN "analytic_account_id" int4
+           ALTER COLUMN "working_hours_close" TYPE numeric
         """
     )
+
+    util.create_column(cr, "project_task", "analytic_account_id", "int4")
 
     util.create_m2m(
         cr,
