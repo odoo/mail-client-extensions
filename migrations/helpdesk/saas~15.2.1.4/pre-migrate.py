@@ -10,7 +10,8 @@ def migrate(cr, version):
     util.rename_field(cr, "helpdesk.sla.report.analysis", "sla_status_failed", "sla_status_fail")
 
     util.remove_field(cr, "helpdesk.sla.report.analysis", "sla_exceeded_days")
-    util.remove_field(cr, "helpdesk.sla.report.analysis", "sla_id")
+    if not util.version_gte("saas~15.4"):
+        util.remove_field(cr, "helpdesk.sla.report.analysis", "sla_id")
     util.remove_field(cr, "helpdesk.sla.report.analysis", "ticket_open_hours")
     util.remove_field(cr, "helpdesk.sla.report.analysis", "ticket_failed")
     util.remove_field(cr, "helpdesk.sla.report.analysis", "ticket_fold")
