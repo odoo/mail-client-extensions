@@ -24,3 +24,5 @@ def migrate(cr, version):
            AND tree.id != tree.ancestor_id
     """
     )
+
+    util.remove_field(cr, "project.task.burndown.chart.report", "nb_tasks")
