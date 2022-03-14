@@ -365,9 +365,6 @@ def migrate(cr, version):
     # Fix xml_ids
     util.rename_xmlid(cr, "account.model_account_invoice_action_share", "account.model_account_move_action_share")
 
-    # Fix email_template_edi_invoice inside a noupdate block.
-    util.force_noupdate(cr, "account.email_template_edi_invoice", noupdate=False)
-
     # Fix the many2many crosstable account_analytic_tag_account_invoice_line_rel that may contains
     # removed tag ids.
     util.fixup_m2m(
