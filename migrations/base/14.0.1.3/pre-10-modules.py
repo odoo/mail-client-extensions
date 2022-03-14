@@ -106,6 +106,11 @@ def migrate(cr, version):
         # https://github.com/odoo/enterprise/pull/19376
         util.new_module(cr, "l10n_mx_xml_polizas", deps={"l10n_mx_reports"}, auto_install=True)
 
+        # https://github.com/odoo/enterprise/pull/21591
+        util.new_module(
+            cr, "l10n_mx_edi_stock_extended", deps={"l10n_mx_edi_extended", "l10n_mx_edi_stock"}, auto_install=True
+        )
+
         # module added in stable after release, but need to installed if user didn't do it in previous version
         # Actually, it should be as it doesn't works without...
         util.trigger_auto_install(cr, "account_online_synchronization")

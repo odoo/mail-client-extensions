@@ -102,6 +102,9 @@ def migrate(cr, version):
             cr, "l10n_lu_reports_annual_vat", deps={"l10n_lu_reports_electronic_xml_2_0"}, auto_install=True
         )
 
+        # https://github.com/odoo/enterprise/pull/24020
+        util.new_module(cr, "l10n_mx_edi_stock", deps={"delivery", "l10n_mx_edi", "web_map"}, auto_install=True)
+
     if util.has_design_themes():
         util.new_module(
             cr,
