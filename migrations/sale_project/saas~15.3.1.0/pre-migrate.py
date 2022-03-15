@@ -11,3 +11,4 @@ def migrate(cr, version):
     util.create_column(cr, "project_project", "allow_billable", "boolean", default=False)
     util.move_field_to_module(cr, "project.project", "allow_billable", "sale_timesheet", "sale_project")
     util.move_field_to_module(cr, "product.template", "service_policy", "sale_timesheet", "sale_project")
+    util.remove_view(cr, "sale_project.project_project_view_form")
