@@ -6,7 +6,7 @@ _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base.0.0.0.
 
 
 def migrate(cr, version):
-    util.ENVIRON["fix_fk_allowed_cascade"] = []
+    pass
 
 
 if util.version_gte("11.0"):
@@ -32,7 +32,7 @@ if util.version_gte("11.0"):
                 "tablename2": tablename2,
                 "columnname2": columnname2,
             }
-            allowed_cascade = util.ENVIRON["fix_fk_allowed_cascade"]
+            allowed_cascade = util.ENVIRON["__fix_fk_allowed_cascade"]
             if ondelete in ("set null", "restrict") and util.column_nullable(cr, tablename1, columnname1):
                 cr.execute(
                     """

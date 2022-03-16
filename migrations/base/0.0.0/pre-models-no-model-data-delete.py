@@ -10,15 +10,17 @@ _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __
 
 
 def migrate(cr, version):
-    util.ENVIRON["no_model_data_delete"] = {
-        "res.country": "unused",
-        "res.country.state": "unused",
-        "res.lang": "always",
-        "res.currency": "unused",
-        "res.partner": "always",
-        "res.users": "always",
-        "ir.module.module": "always",
-    }
+    util.ENVIRON["__no_model_data_delete"].update(
+        {
+            "res.country": "unused",
+            "res.country.state": "unused",
+            "res.lang": "always",
+            "res.currency": "unused",
+            "res.partner": "always",
+            "res.users": "always",
+            "ir.module.module": "always",
+        }
+    )
 
 
 class IrModelData(models.Model):
@@ -27,7 +29,7 @@ class IrModelData(models.Model):
 
     @api.model
     def _process_end(self, modules):
-        no_model_data_delete = util.ENVIRON.get("no_model_data_delete")
+        no_model_data_delete = util.ENVIRON.get("__no_model_data_delete")
         if not no_model_data_delete:
             return super(IrModelData, self)._process_end(modules)
 
