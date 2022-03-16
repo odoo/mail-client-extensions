@@ -34,3 +34,27 @@ def migrate(cr, version):
          WHERE n.mail_message_id = m.id
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="mail_notification", prefix="n."))
+
+    # adapt mail templates from method rename in odoo/odoo@a018735ec4cb1c0c230a7599e0fe2a30785878cc
+    cr.execute(
+        r"""
+        UPDATE mail_template
+           SET body_html = regexp_replace(body_html,
+                                          'object\.with_context\(force_website=True\)\.get_access_action\(\)',
+                                          'object._get_access_action(force_website=True)',
+                                          'g')
+         WHERE body_html like '%get\_access\_action%'
+        """
+    )
+    # and the translations
+    cr.execute(
+        r"""
+        UPDATE ir_translation
+           SET value = regexp_replace(value,
+                                      'object\.with_context\(force_website=True\)\.get_access_action\(\)',
+                                      'object._get_access_action(force_website=True)',
+                                      'g')
+         WHERE name = 'mail.template,body_html'
+           AND value like '%get\_access\_action%'
+        """
+    )
