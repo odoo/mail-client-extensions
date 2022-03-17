@@ -10,11 +10,7 @@ def migrate(cr, version):
         adapter = lambda leaf, _, __: [(leaf[0], leaf[1], not leaf[2])]
         if util.column_exists(cr, "mail_message", "is_internal"):
             util.update_field_references(
-                cr,
-                "website_published",
-                "is_internal",
-                only_models=("mail.message",),
-                domain_adapter=adapter
+                cr, "website_published", "is_internal", only_models=("mail.message",), domain_adapter=adapter
             )
             util.parallel_execute(
                 cr,
@@ -26,9 +22,7 @@ def migrate(cr, version):
             util.remove_field(cr, "mail.message", "website_published")
         else:
             util.move_field_to_module(cr, "mail.message", "website_published", "website_mail", "mail")
-            util.rename_field(
-                cr, "mail.message", "website_published", "is_internal", domain_adapter=adapter
-            )
+            util.rename_field(cr, "mail.message", "website_published", "is_internal", domain_adapter=adapter)
             # XXX took ~15 minutes with `ALTER TABLE`
             #          ~60 minutes with `UPDATE`
             #          ~30 minutes with parallized `UPDATE` (8 workers, 100k bucket)

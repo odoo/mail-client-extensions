@@ -11,15 +11,15 @@ def migrate(cr, version):
         cr,
         util.explode_query(
             cr,
-        """
+            """
             UPDATE sale_order s
                SET currency_id = p.currency_id
               FROM product_pricelist p
              WHERE p.id = s.pricelist_id
         """,
-        prefix="s.",
-    ),
-)
+            prefix="s.",
+        ),
+    )
 
     gone = """
         access_sale_order_invoicing_payments_readonly

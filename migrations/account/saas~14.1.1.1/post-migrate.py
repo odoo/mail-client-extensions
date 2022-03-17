@@ -47,7 +47,8 @@ def migrate(cr, version):
     # and they will have tax_tag_invert = False.
     # All the non-caba moves, as well as caba moves whose partial reconcile is not in this table
     # potentially need to be reinverted.
-    cr.execute("""
+    cr.execute(
+        """
         CREATE TABLE no_reinversion_caba_partial AS
             SELECT DISTINCT part.id
             FROM account_partial_reconcile part
@@ -62,15 +63,18 @@ def migrate(cr, version):
                 AND invoice.id = aml.move_id
                 AND inv_line.quantity < 0
             )
-    """)
+    """
+    )
 
     # Perform reinversion
 
-    cr.execute("""
+    cr.execute(
+        """
         CREATE TABLE amls_to_invert(
             id INTEGER NOT NULL UNIQUE
         )
-    """)
+    """
+    )
 
     exclude_pos_entries = "TRUE"
     if util.module_installed(cr, "point_of_sale"):
@@ -81,7 +85,8 @@ def migrate(cr, version):
             AND NOT EXISTS(SELECT id FROM pos_order WHERE pos_order.account_move = move.id)
         """
 
-    cr.execute(f"""
+    cr.execute(
+        f"""
         INSERT INTO amls_to_invert
 
             SELECT aml.id
@@ -128,7 +133,8 @@ def migrate(cr, version):
                 AND {exclude_pos_entries}
 
         ON CONFLICT DO NOTHING
-    """)
+    """
+    )
 
     query = """
         UPDATE account_move_line
