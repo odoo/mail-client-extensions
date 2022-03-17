@@ -15,7 +15,7 @@ def migrate(cr, version):
           FROM lunch_product product
          WHERE lo.product_id = product.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="lunch_order", prefix="lo."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="lunch_order", alias="lo"))
 
     util.create_column(cr, "lunch_order", "lunch_location_id", "int4")
     query = """
@@ -24,7 +24,7 @@ def migrate(cr, version):
           FROM res_users u
          WHERE lo.user_id = u.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="lunch_order", prefix="lo."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="lunch_order", alias="lo"))
 
     # Duplicate toppings used by multiple suppliers
     columns, columns_pre = map(",".join, util.get_columns(cr, "lunch_topping", ("id",), extra_prefixes=["t"]))

@@ -172,7 +172,7 @@ def migrate(cr, version):
                  WHERE f.id = l.full_reconcile_id
                    AND l.matching_number IS NULL
             """,
-            prefix="l.",
+            alias="l",
         ),
     )
     util.parallel_execute(
@@ -186,7 +186,7 @@ def migrate(cr, version):
                  WHERE (p.credit_move_id = l.id OR p.debit_move_id = l.id)
                    AND l.matching_number IS NULL
             """,
-            prefix="l.",
+            alias="l",
         ),
     )
 

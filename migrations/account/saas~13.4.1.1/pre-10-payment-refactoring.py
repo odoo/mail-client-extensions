@@ -239,7 +239,7 @@ def migrate(cr, version):
                 AND line.statement_line_id IS NOT NULL
                 AND line.journal_id = pay_backup.journal_id
             """,
-            prefix="pay_backup.",
+            alias="pay_backup",
         ),
     )
 
@@ -306,7 +306,7 @@ def migrate(cr, version):
              WHERE st_line_backup.id = st_line.id
             """,
             table="account_bank_statement_line",
-            prefix="st_line.",
+            alias="st_line",
         ),
     )
 
@@ -404,7 +404,7 @@ def migrate(cr, version):
 
     util.parallel_execute(
         cr,
-        util.explode_query(
+        util.explode_query_range(
             cr,
             """
                 UPDATE account_move
@@ -412,7 +412,7 @@ def migrate(cr, version):
                   FROM account_bank_statement_line
                  WHERE account_bank_statement_line.move_id = account_move.id
             """,
-            prefix="account_move.",
+            table="account_move",
         ),
     )
 
@@ -439,7 +439,7 @@ def migrate(cr, version):
             WHERE move.id = st_line.move_id
             """,
             table="account_move",
-            prefix="move.",
+            alias="move",
         ),
     )
 
@@ -527,7 +527,7 @@ def migrate(cr, version):
     util.create_index("account_move_payment_id_index", "account_move", "payment_id")
     util.parallel_execute(
         cr,
-        util.explode_query(
+        util.explode_query_range(
             cr,
             """
                 UPDATE account_move
@@ -536,7 +536,7 @@ def migrate(cr, version):
                  WHERE account_payment.move_id = account_move.id
                    AND account_move.payment_id IS NULL
             """,
-            prefix="account_move.",
+            table="account_move",
         ),
     )
 
@@ -724,7 +724,7 @@ def migrate(cr, version):
                 FROM account_payment_pre_backup pay_backup
                 WHERE pay.id = pay_backup.id
             """,
-            prefix="pay.",
+            alias="pay",
         ),
     )
 

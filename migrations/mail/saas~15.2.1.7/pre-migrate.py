@@ -33,7 +33,7 @@ def migrate(cr, version):
           FROM mail_message m
          WHERE n.mail_message_id = m.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="mail_notification", prefix="n."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="mail_notification", alias="n"))
 
     # adapt mail templates from method rename in odoo/odoo@a018735ec4cb1c0c230a7599e0fe2a30785878cc
     cr.execute(

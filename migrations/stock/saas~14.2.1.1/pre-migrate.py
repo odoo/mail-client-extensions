@@ -22,7 +22,7 @@ def migrate(cr, version):
              WHERE sp.id = sm.picking_id
             """,
             table="stock_move",
-            prefix="sm.",
+            alias="sm",
         ),
     )
 

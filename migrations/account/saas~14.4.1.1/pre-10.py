@@ -71,7 +71,7 @@ def migrate(cr, version):
           JOIN account_journal j ON j.id = m.journal_id
          WHERE m.id = p.move_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="p."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="p"))
 
     # Backup the relation between the journals and the payment methods to create the lines later on.
     cr.execute(

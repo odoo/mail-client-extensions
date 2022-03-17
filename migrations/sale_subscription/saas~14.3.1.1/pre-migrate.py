@@ -16,4 +16,4 @@ def migrate(cr, version):
               JOIN sale_order so ON sol.order_id = so.id
              WHERE sub.id = sol.subscription_id
         """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_subscription", prefix="sub."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_subscription", alias="sub"))

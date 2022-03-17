@@ -12,7 +12,7 @@ def migrate(cr, version):
                AND sm.picking_type_id = spt.id
                AND sm.reservation_date IS NULL
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move", prefix="sm."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move", alias="sm"))
 
     util.create_column(cr, "stock_picking_type", "reservation_days_before_priority", "integer")
 

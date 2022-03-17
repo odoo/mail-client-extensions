@@ -30,7 +30,7 @@ def migrate(cr, version):
          WHERE tax_line.tax_line_id = tax.id
            AND tax.type_tax_use = 'none'
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="tax_line."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="tax_line"))
 
     # ===============================================================
     # Add category to analytic account line (PR: (odoo) 68708 & (enterprise) 18594)
@@ -55,7 +55,7 @@ def migrate(cr, version):
         """,
     ]
     for query in queries:
-        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", prefix="aal."))
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="aal"))
 
     # ==========================================================================
     # The Reconciliation Models usability imp (PR: odoo#73043, enterprise#19395)
@@ -91,7 +91,7 @@ def migrate(cr, version):
         AND NOT aml.tax_exigible
         AND {parallel_filter}
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query_tags, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query_tags, table="account_move_line", alias="aml"))
 
     # Since we removed the tags, tax_audit needs to be reset for those lines.
     query_tax_audit = """
@@ -119,7 +119,7 @@ def migrate(cr, version):
         FROM cte
         WHERE cte.id = m.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query_always_exigible, table="account_move", prefix="m."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query_always_exigible, table="account_move", alias="m"))
 
     util.remove_field(cr, "account.move", "amount_by_group")
     util.remove_field(cr, "account.move.line", "tax_exigible")

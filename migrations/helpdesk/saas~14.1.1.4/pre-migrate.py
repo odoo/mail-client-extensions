@@ -16,6 +16,6 @@ def migrate(cr, version):
                  WHERE partner.id = ticket.partner_id
             """,
             table="helpdesk_ticket",
-            prefix="ticket.",
+            alias="ticket",
         ),
     )

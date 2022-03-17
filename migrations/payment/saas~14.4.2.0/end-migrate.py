@@ -56,7 +56,7 @@ def migrate(cr, version):
            AND apml.journal_id = map.journal_id
          WHERE map.id = ap.id
          """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="ap"))
 
     # We can still have payments without method lines.
     # It could happen for payments linked to the electronic method, but not a payment acquirer journal
@@ -72,7 +72,7 @@ def migrate(cr, version):
            AND apm.payment_type = ap.payment_type
            AND apm.code = 'manual'
          """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="ap"))
 
     cr.execute("DROP TABLE _upg_account_payment_payment_method_mapping")
 

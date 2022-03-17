@@ -40,7 +40,7 @@ def migrate(cr, version):
                   JOIN product_pricelist p ON p.id = s.pricelist_id
                  WHERE s.id = l.analytic_account_id
             """,
-            prefix="l.",
+            alias="l",
         ),
     )
 

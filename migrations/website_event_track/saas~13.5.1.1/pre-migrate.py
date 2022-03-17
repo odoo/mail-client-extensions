@@ -22,7 +22,7 @@ def migrate(cr, version):
           FROM res_partner p
          WHERE p.id = s.partner_id
     """,
-            prefix="s.",
+            alias="s",
         ),
     )
 

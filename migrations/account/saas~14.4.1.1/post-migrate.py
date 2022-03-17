@@ -40,6 +40,6 @@ def migrate(cr, version):
                                                                   AND apml.journal_id = map.journal_id
              WHERE map.id = ap.id
              """
-        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="ap."))
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="ap"))
 
         cr.execute("DROP TABLE _upg_account_payment_payment_method_mapping")

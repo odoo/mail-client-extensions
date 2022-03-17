@@ -11,7 +11,7 @@ def migrate(cr, version):
           FROM sale_order_line sol
          WHERE sol.id = l.so_line
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", prefix="l."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="l"))
 
     if util.module_installed(cr, "industry_fsm_sale"):
         util.move_field_to_module(

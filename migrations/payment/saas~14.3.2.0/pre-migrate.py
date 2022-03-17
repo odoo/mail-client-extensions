@@ -84,7 +84,7 @@ def migrate(cr, version):
          WHERE acq.id = pt.acquirer_id
          """,
             table="payment_transaction",
-            prefix="pt.",
+            alias="pt",
         ),
     )
     util.create_column(cr, "payment_transaction", "validation_route", "varchar")
@@ -101,7 +101,7 @@ def migrate(cr, version):
          WHERE p.id = pt.partner_id
         """,
             table="payment_transaction",
-            prefix="pt.",
+            alias="pt",
         ),
     )
     util.create_column(cr, "payment_transaction", "callback_is_done", "bool")

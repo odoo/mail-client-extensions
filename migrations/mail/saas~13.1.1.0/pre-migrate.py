@@ -46,8 +46,8 @@ def migrate(cr, version):
                  WHERE t.id=mtv.id
             """,
             table="mail_tracking_value",
+            alias="t",
             bucket_size=250_000,
-            prefix="t.",
         ),
     )
 

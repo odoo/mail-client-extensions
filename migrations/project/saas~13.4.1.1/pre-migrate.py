@@ -44,7 +44,7 @@ def migrate(cr, version):
                  WHERE p.id = t.partner_id
             """,
             table="project_task",
-            prefix="t.",
+            alias="t",
         ),
     )
 

@@ -16,8 +16,8 @@ def migrate(cr, version):
                SET currency_id = p.currency_id
               FROM product_pricelist p
              WHERE p.id = s.pricelist_id
-        """,
-            prefix="s.",
+            """,
+            alias="s",
         ),
     )
 

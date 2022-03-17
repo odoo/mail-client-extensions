@@ -10,7 +10,7 @@ def migrate(cr, version):
          WHERE slot.sale_line_id IS NULL
            AND task.id = slot.task_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="planning_slot", prefix="slot."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="planning_slot", alias="slot"))
 
     query = """
         UPDATE planning_slot slot
@@ -19,7 +19,7 @@ def migrate(cr, version):
          WHERE slot.sale_line_id IS NULL
            AND project.id = slot.project_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="planning_slot", prefix="slot."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="planning_slot", alias="slot"))
 
     query = """
         UPDATE planning_slot slot
@@ -27,4 +27,4 @@ def migrate(cr, version):
           FROM sale_order_line sol
          WHERE slot.sale_line_id = sol.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="planning_slot", prefix="slot."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="planning_slot", alias="slot"))

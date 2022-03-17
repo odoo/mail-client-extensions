@@ -35,9 +35,7 @@ def migrate(cr, version):
          WHERE account_move.id = account_move_line.move_id
            AND account_journal.id = account_move_line.journal_id
     """
-    util.parallel_execute(
-        cr, util.explode_query_range(cr, query, table="account_move_line", prefix="account_move_line.")
-    )
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line"))
 
     # Entries with taxes on misc entries might need to see their tag reinverted
 
@@ -142,9 +140,7 @@ def migrate(cr, version):
           FROM amls_to_invert
          WHERE amls_to_invert.id = account_move_line.id
     """
-    util.parallel_execute(
-        cr, util.explode_query_range(cr, query, table="account_move_line", prefix="account_move_line.")
-    )
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line"))
 
     query = """
         UPDATE account_account_tag_account_move_line_rel rel

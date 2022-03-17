@@ -121,7 +121,7 @@ def migrate(cr, version):
            AND aml.partner_id IS NULL
            AND pay.move_id = aml.move_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
     # set destination_journal_id if one can be found via reconciled aml
     query = """
          UPDATE account_payment AS pay
@@ -137,4 +137,4 @@ def migrate(cr, version):
                  OR (pay.payment_type = 'inbound' AND rec.credit_move_id = aml.id)
             )
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", prefix="pay."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="pay"))

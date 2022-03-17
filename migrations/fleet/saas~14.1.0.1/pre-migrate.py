@@ -42,7 +42,7 @@ def migrate(cr, version):
          WHERE cte.future_driver_id = p.id
     """
     query = query.replace("{", "{{").replace("}", "}}")
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="res_partner"))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="res_partner", alias="p"))
 
     query = f"""
           WITH {cte}

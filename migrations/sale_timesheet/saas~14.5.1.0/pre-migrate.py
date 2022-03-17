@@ -14,9 +14,7 @@ def migrate(cr, version):
           FROM hr_employee emp
          WHERE emp.id = map.employee_id
     """
-    util.parallel_execute(
-        cr, util.explode_query_range(cr, query, table="project_sale_line_employee_map", prefix="map.")
-    )
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="project_sale_line_employee_map", alias="map"))
     util.remove_view(cr, "sale_timesheet.project_profitability_timesheet_panel")
     util.remove_view(cr, "sale_timesheet.progressbar")
     util.remove_view(cr, "sale_timesheet.timesheet_plan")
@@ -82,5 +80,5 @@ def migrate(cr, version):
                 FROM timesheets t
              WHERE t.id = aal.id
         """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", prefix="aal."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="aal"))
     util.remove_field(cr, "product.template", "service_upsell_warning")

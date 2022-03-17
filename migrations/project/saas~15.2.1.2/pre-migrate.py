@@ -22,4 +22,4 @@ def migrate(cr, version):
           FROM project_task_type s
          WHERE s.id = t.stage_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="project_task", prefix="t."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="project_task", alias="t"))
