@@ -61,9 +61,13 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "sale.order", "amount_undiscounted", "sale_quotation_builder", "sale")
     util.move_field_to_module(cr, "sale.order", "require_payment", "sale_quotation_builder", "sale")
     util.create_column(cr, "sale_order", "require_signature", "boolean")
-    if not util.column_exists(cr, 'sale_order', "require_payment"):
+    if not util.column_exists(cr, "sale_order", "require_payment"):
         util.create_column(cr, "sale_order", "require_payment", "boolean")
-        cr.execute("""
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
             WITH reqs AS (
                 SELECT o.id,
                        COALESCE(oc.portal_confirmation_pay, uc.portal_confirmation_pay) as pay,
@@ -72,23 +76,34 @@ def migrate(cr, version):
              LEFT JOIN res_company oc ON oc.id = o.company_id
              LEFT JOIN res_users u ON u.id = o.create_uid
                   JOIN res_company uc ON uc.id = u.company_id
+                 WHERE {parallel_filter}
             )
             UPDATE sale_order o
                SET require_payment = r.pay,
                    require_signature = r.sign
               FROM reqs r
              WHERE r.id = o.id
-        """)
+                """,
+                table="sale_order",
+                alias="o",
+            ),
+        )
     else:
         # existing column is int4; change type.
-        cr.execute("""
+        cr.execute(
+            """
             ALTER TABLE sale_order
            ALTER COLUMN require_payment
                    TYPE boolean
                   USING require_payment::boolean
-        """)
-        cr.execute(
-            "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false"
+        """
+        )
+        util.parallel_execute(
+            cr,
+            util.explode_query(
+                cr,
+                "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false",
+            ),
         )
 
     util.create_column(cr, "sale_order_line", "untaxed_amount_invoiced", "numeric")
