@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from odoo import SUPERUSER_ID
 
 from odoo.addons.base.maintenance.migrations import util
 
+NS = "odoo.addons.base.maintenance.migrations.stock_account.12.4."
+_logger = logging.getLogger(NS + __name__)
+
 
 def migrate(cr, version):
-    cr.execute(
-        """
+    _logger.info("Set anglo saxon accounting true when needed")
+    q = """
         WITH property_account AS (
             SELECT DISTINCT SUBSTRING(value_reference FROM '%,#"_*#"%' FOR '#')::int4 AS id
             FROM ir_property
@@ -21,24 +25,27 @@ def migrate(cr, version):
                 'property_account_income_categ_id',
                 'property_account_expense_categ_id'
             )
-        )
-        UPDATE account_move_line
-        SET is_anglo_saxon_line = 't'
-        WHERE id IN (
-            SELECT aml.id
+        ),
+        moves AS (
+          SELECT aml.id
             FROM account_move_line aml
             JOIN account_move move ON move.id = aml.move_id
             JOIN account_account aa ON aa.id = aml.account_id
             JOIN property_account prop_acc ON prop_acc.id = aml.account_id
-            WHERE move.type IN ('out_invoice', 'out_refund', 'out_receipt')
-            AND aml.product_id IS NOT NULL
-            AND aml.tax_repartition_line_id IS NULL
-            AND aml.display_type IS NULL
-            AND aml.exclude_from_invoice_tab
-            AND aa.internal_type NOT IN ('receivable', 'payable')
+           WHERE move.type IN ('out_invoice', 'out_refund', 'out_receipt')
+             AND aml.product_id IS NOT NULL
+             AND aml.tax_repartition_line_id IS NULL
+             AND aml.display_type IS NULL
+             AND aml.exclude_from_invoice_tab
+             AND aa.internal_type NOT IN ('receivable', 'payable')
+             AND {parallel_filter}
         )
+        UPDATE account_move_line
+           SET is_anglo_saxon_line = 't'
+          FROM moves
+         WHERE account_move_line.id=moves.id
     """
-    )
+    util.parallel_execute(cr, util.explode_query_range(cr, q, table="account_move_line", alias="aml"))
 
     # For other settings than (auto valuation (real_time) and FIFO costing method), stock valuation layers (SVL)
     # are created based on stock moves.
@@ -58,6 +65,7 @@ def migrate(cr, version):
            AND p1.res_id LIKE 'product.category,%'
         """
     )
+    _logger.info("Create stock valuation layers from stock moves")
     q = """
         INSERT INTO stock_valuation_layer(
             create_uid,
@@ -106,8 +114,9 @@ def migrate(cr, version):
             sm.state = 'done' AND
             rtf.id is NULL
     """
-    util.parallel_execute(cr, util.explode_query(cr, q, prefix="sm."))
+    util.parallel_execute(cr, util.explode_query(cr, q, alias="sm"))
 
+    _logger.info("Create stock valuation layers from account moves")
     # For auto valuation (real_time) and FIFO costing method, stock valuation layers (SVL)
     # are created based on account move lines.
     q = """
@@ -175,7 +184,7 @@ def migrate(cr, version):
             sm.state = 'done' AND
             {parallel_filter}
     """
-    util.parallel_execute(cr, util.explode_query(cr, q, prefix="sm."))
+    util.parallel_execute(cr, util.explode_query(cr, q, alias="sm"))
     cr.execute("DROP TABLE _upgrade_rtime_fifo")
 
     # Migrate price history
@@ -235,7 +244,7 @@ def migrate(cr, version):
     """
     util.parallel_execute(
         cr,
-        util.explode_query_range(cr, cr.mogrify(q, [SUPERUSER_ID]).decode(), "product_price_history", prefix="ph."),
+        util.explode_query_range(cr, cr.mogrify(q, [SUPERUSER_ID]).decode(), "product_price_history", alias="ph"),
     )
     cr.execute(
         """
@@ -250,6 +259,7 @@ def migrate(cr, version):
     # In some databases, the customer has played with valuation mode/costing method so the total valuation
     # of a product in stock quants may not be the same than the one in stock valuation layers.
     # For these cases, we create a new stock valuation layer per product/per company, to adjust this difference
+    _logger.info("Create stock valuation layers to adjust stock valuation")
     cr.execute(
         """
         -- get the list of products with their valuation according to existing stock quants
