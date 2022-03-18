@@ -686,17 +686,21 @@ def migrate(cr, version):
 
     # Compute 'is_reconciled'.
 
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         WITH residual_per_pay AS (
               SELECT pay.id AS payment_id
                 FROM account_payment pay
                 JOIN account_move move ON move.payment_id = pay.id
+                                      AND move.id = pay.move_id
                 JOIN account_move_line line ON line.move_id = move.id
+                                           AND line.account_id = pay.destination_account_id
                 JOIN account_account account ON account.id = line.account_id
-               WHERE move.id = pay.move_id
-                 AND account.reconcile IS TRUE
-                 AND line.account_id = pay.destination_account_id
+               WHERE account.reconcile IS TRUE
+                 AND {parallel_filter}
             GROUP BY pay.id
               HAVING COALESCE(SUM(
                     CASE WHEN line.currency_id IS NULL
@@ -709,7 +713,10 @@ def migrate(cr, version):
            SET is_reconciled = true
           FROM residual_per_pay
          WHERE residual_per_pay.payment_id = account_payment.id
-    """
+            """,
+            alias="pay",
+            table="account_payment",
+        ),
     )
 
     # Compute 'is_matched'.
