@@ -68,18 +68,17 @@ def migrate(cr, version):
     # Force update of record rules linked to invoices
     cr.execute(
         """
+        WITH rules AS (
+            SELECT r.id
+              FROM ir_rule r
+              JOIN ir_model m ON r.model_id=m.id
+             WHERE m.model in ('account.invoice','account.invoice.line','account.voucher')
+        )
         UPDATE ir_model_data
            SET noupdate=FALSE
+          FROM rules
          WHERE model='ir.rule'
-           AND res_id in (SELECT id
-                           FROM ir_rule
-                          WHERE model_id in (SELECT id
-                                               FROM ir_model
-                                              WHERE model in ('account.invoice',
-                                                              'account.invoice.line',
-                                                              'account.voucher')
-                                            )
-                         )
+           AND res_id=rules.id
         """
     )
 

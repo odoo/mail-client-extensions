@@ -105,7 +105,7 @@ def migrate(cr, version):
             FROM account_account account
             WHERE aml.account_id = account.id
             """,
-            prefix="aml.",
+            alias="aml",
         ),
     )
 
@@ -147,17 +147,26 @@ def migrate(cr, version):
     # The compute field `currency_id` becomes a regular *required* field
     # Prevent the ORM to init the defaults when adding the `NOT NULL`
     # To avoid issues regarding journals not being set for a company and for performances.
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
             UPDATE account_move move
                SET currency_id = company.currency_id
               FROM res_company company
              WHERE move.company_id = company.id
                AND move.currency_id IS NULL
-        """
+            """,
+            alias="move",
+            table="account_move",
+        ),
     )
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
             UPDATE account_move move
                SET currency_id = journal_company.currency_id
               FROM account_journal journal,
@@ -165,7 +174,10 @@ def migrate(cr, version):
              WHERE move.journal_id = journal.id
                AND journal.company_id = journal_company.id
                AND move.currency_id IS NULL
-        """
+            """,
+            alias="move",
+            table="account_move",
+        ),
     )
     cr.execute("ALTER TABLE account_move ALTER COLUMN currency_id SET NOT NULL")
 
@@ -174,8 +186,11 @@ def migrate(cr, version):
     util.remove_column(cr, "account_move", "type")
     util.create_column(cr, "account_move", "type", "varchar")
     # Update account_move from existing account_invoice.
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE account_move am
         SET type = inv.type,
             currency_id = inv.currency_id,
@@ -197,20 +212,32 @@ def migrate(cr, version):
         FROM account_invoice inv
         JOIN res_company comp ON comp.id = inv.company_id
         WHERE am.id = inv.move_id
-    """
+            """,
+            alias="am",
+            table="account_move",
+        ),
     )
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE account_move am
            SET ref = inv.name
           FROM account_invoice inv
          WHERE am.id = inv.move_id
            AND inv.type IN ('out_invoice', 'out_refund')
            AND am.ref = am.invoice_payment_ref
-        """
+            """,
+            alias="am",
+            table="account_move",
+        ),
     )
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE account_move_line aml
            SET name = am.invoice_payment_ref
           FROM account_move am, account_account account
@@ -218,13 +245,19 @@ def migrate(cr, version):
            AND am.type IN ('out_invoice', 'out_refund')
            AND account.id = aml.account_id
            AND account.internal_type = 'receivable'
-        """
+            """,
+            alias="aml",
+            table="account_move_line",
+        ),
     )
 
     if is_account_voucher_installed:
         # Update account_move from existing account_voucher.
-        cr.execute(
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
             UPDATE account_move am
                SET type = CASE WHEN inv.voucher_type = 'sale' THEN 'out_receipt' ELSE 'in_receipt' END,
                    commercial_partner_id = part.commercial_partner_id,
@@ -237,7 +270,10 @@ def migrate(cr, version):
          LEFT JOIN res_partner part ON part.id = inv.partner_id
              WHERE move_id IS NOT NULL
                AND am.id = inv.move_id
-            """
+                """,
+                alias="am",
+                table="account_move",
+            ),
         )
 
     # Fix quantity / price_unit / price_total / price_subtotal on tax lines.
@@ -297,7 +333,7 @@ def migrate(cr, version):
         cr,
         list(
             itertools.chain.from_iterable(
-                util.explode_query_range(cr, q, "account_move_line", prefix="aml.") for q in queries
+                util.explode_query_range(cr, q, "account_move_line", alias="aml") for q in queries
             )
         ),
     )
@@ -332,13 +368,19 @@ def migrate(cr, version):
     # cr.execute("SELECT id, reversed_entry_id FROM account_move WHERE reversed_entry_id IS NOT NULL")
     # for id, reversed_entry_id in cr.fetchall():
     #     cr.execute("UPDATE account_move SET reversed_entry_id = %s WHERE id = %s", (id, reversed_entry_id))
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE account_move am
            SET reversed_entry_id=amr.id
           FROM account_move amr
          WHERE am.id=amr.reversed_entry_id
-    """
+            """,
+            alias="am",
+            table="account_move",
+        ),
     )
 
     # Fix the many2many crosstable account_invoice_payment_rel that was between account_payment & account_invoice,
@@ -355,8 +397,8 @@ def migrate(cr, version):
         INSERT INTO account_invoice_payment_rel(invoice_id, payment_id)
              SELECT inv.move_id, old.payment_id
                FROM account_invoice_payment_rel_old old
-          LEFT JOIN account_invoice inv ON inv.id = old.invoice_id
-              WHERE inv.move_id IS NOT NULL;
+               JOIN account_invoice inv ON inv.id = old.invoice_id
+              WHERE inv.move_id IS NOT NULL
         """
     )
 

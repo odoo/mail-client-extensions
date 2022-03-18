@@ -10,7 +10,7 @@ def migrate(cr, version):
 
     util.parallel_execute(
         cr,
-        util.explode_query(
+        util.explode_query_range(
             cr,
             """
             UPDATE account_move_line aml
@@ -21,6 +21,7 @@ def migrate(cr, version):
               FROM account_move am
              WHERE am.id=aml.move_id
             """,
-            prefix="aml.",
+            alias="aml",
+            table="account_move_line",
         ),
     )
