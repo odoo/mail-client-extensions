@@ -426,23 +426,33 @@ def migrate(cr, version):
 
         # ===== Synchronize account.payment <=> account.move =====
 
-        cr.execute(
-            """
-            UPDATE account_move
-            SET payment_id = account_payment.id
-            FROM account_payment
-            WHERE account_payment.move_id = account_move.id
-            AND account_move.payment_id IS NULL
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+                UPDATE account_move
+                   SET payment_id = account_payment.id
+                  FROM account_payment
+                 WHERE account_payment.move_id = account_move.id
+                   AND account_move.payment_id IS NULL
+                """,
+                table="account_move",
+            ),
         )
 
-        cr.execute(
-            """
-            UPDATE account_move_line
-            SET payment_id = move.payment_id
-            FROM account_move move
-            WHERE account_move_line.move_id = move.id
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+                UPDATE account_move_line
+                   SET payment_id = move.payment_id
+                  FROM account_move move
+                 WHERE account_move_line.move_id = move.id
+                """,
+                table="account_move_line",
+            ),
         )
 
         # ===== Draft account.bank.statement.line =====
@@ -521,26 +531,35 @@ def migrate(cr, version):
         # ===== Synchronize account.bank.statement.line <=> account.move =====
 
         _logger.info("Synchronize statement lines & moves")
-        cr.execute(
-            """
-            UPDATE account_move
-            SET statement_line_id = account_bank_statement_line.id
-            FROM account_bank_statement_line
-            WHERE account_bank_statement_line.move_id = account_move.id
-            AND account_move.statement_line_id IS NULL
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+                UPDATE account_move
+                   SET statement_line_id = account_bank_statement_line.id
+                  FROM account_bank_statement_line
+                 WHERE account_bank_statement_line.move_id = account_move.id
+                   AND account_move.statement_line_id IS NULL
+                """,
+                table="account_move",
+            ),
         )
 
-        cr.execute(
-            """
-            UPDATE account_move_line
-            SET
-                statement_line_id = move.statement_line_id,
-                statement_id = st_line.statement_id
-            FROM account_move move
-            JOIN account_bank_statement_line st_line ON st_line.id = move.statement_line_id
-            WHERE account_move_line.move_id = move.id
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+                UPDATE account_move_line
+                   SET statement_line_id = move.statement_line_id,
+                       statement_id = st_line.statement_id
+                  FROM account_move move
+                  JOIN account_bank_statement_line st_line ON st_line.id = move.statement_line_id
+                 WHERE account_move_line.move_id = move.id
+                """,
+                table="account_move_line",
+            ),
         )
 
         # ===== RESTORE res.partner's company =====

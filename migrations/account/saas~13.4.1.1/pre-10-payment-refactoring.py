@@ -64,27 +64,48 @@ def migrate(cr, version):
         </p>
     """
     util.add_to_migration_reports(msg, "Accounting", format="html")
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         UPDATE account_bank_statement_line st_line
            SET move_name = NULL
-         WHERE move_name IN (SELECT name FROM account_move)
-    """
+          FROM account_move am
+         WHERE st_line.move_name=am.name
+            """,
+            alias="st_line",
+            table="account_bank_statement_line",
+        ),
     )
 
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+        WITH notfirstid AS (
+            SELECT unnest((array_agg(id))[2:]) as id
+              FROM account_bank_statement_line
+             WHERE move_name IS NOT NULL
+          GROUP BY move_name
+        )
         UPDATE account_bank_statement_line st_line
            SET move_name = NULL
-          FROM account_bank_statement_line older_st_line
-         WHERE st_line.move_name = older_st_line.move_name
-           AND st_line.id > older_st_line.id
-    """
+          FROM notfirstid
+         WHERE notfirstid.id = st_line.id
+            """,
+            alias="st_line",
+            table="account_bank_statement_line",
+        ),
     )
 
     # The currency_id and journal_currency_id shouldn't be same.
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
            UPDATE account_bank_statement_line st_line
               SET amount_currency = 0.0,
                   currency_id = NULL
@@ -98,7 +119,10 @@ def migrate(cr, version):
                     OR
                     st_line.currency_id = COALESCE(journal.currency_id, com.currency_id)
                   )
-        """
+            """,
+            alias="st_line",
+            table="account_bank_statement_line",
+        ),
     )
 
     # ===========================================================
