@@ -11,5 +11,11 @@ def migrate(cr, version):
     util.create_column(cr, "mail_message_res_partner_needaction_rel", "failure_type", "varchar")
     util.create_column(cr, "mail_message_res_partner_needaction_rel", "failure_reason", "text")
 
-    cr.execute("UPDATE mail_message_res_partner_needaction_rel SET failure_type='UNKNOWN' WHERE email_status = 'exception'")
-    cr.execute("UPDATE mail_message_res_partner_needaction_rel SET failure_type='BOUNCE' WHERE email_status = 'bounce'")
+    query = "UPDATE mail_message_res_partner_needaction_rel SET failure_type = %s WHERE email_status = %s AND failure_type != %s"
+
+    explode_queries = [
+        *util.explode_query(cr, cr.mogrify(query, ["UNKNOWN", "exception", "UNKNOWN"]).decode()),
+        *util.explode_query(cr, cr.mogrify(query, ["BOUNCE", "bounce", "BOUNCE"]).decode()),
+    ]
+
+    util.parallel_execute(cr, explode_queries)
