@@ -29,25 +29,37 @@ def migrate(cr, version):
         src_table = util.table_of_model(cr, src_model)
         dst_table = util.table_of_model(cr, dst_model)
         if transfer:
-            cr.execute(
-                """
-                UPDATE "%(dst_table)s" am
-                   SET "%(field)s"=inv."%(field)s"
-                  FROM "%(src_table)s" inv
-                  %(link)s
-                """
-                % {"dst_table": dst_table, "src_table": src_table, "field": field, "link": _get_linking(src_table)}
+            _logger.info("Transfer %s.%s", dst_table, field)
+            util.parallel_execute(
+                cr,
+                util.explode_query(
+                    cr,
+                    """
+                    UPDATE "%(dst_table)s" am
+                       SET "%(field)s"=inv."%(field)s"
+                      FROM "%(src_table)s" inv
+                      %(link)s
+                    """
+                    % {"dst_table": dst_table, "src_table": src_table, "field": field, "link": _get_linking(src_table)},
+                    alias="am",
+                ),
             )
     cr.execute("DROP TABLE mig_s124_accountfieldstotransfer")
 
-    cr.execute(
-        """
-        UPDATE "account_move_line" aml
-           SET sequence=inv.sequence
-          FROM "account_invoice_line" inv
-          JOIN invl_aml_mapping map ON map.invl_id=inv.id
-         WHERE aml.id = map.aml_id
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE "account_move_line" aml
+               SET sequence=inv.sequence
+              FROM "account_invoice_line" inv
+              JOIN invl_aml_mapping map ON map.invl_id=inv.id
+             WHERE aml.id = map.aml_id
+            """,
+            table="account_move_line",
+            alias="aml",
+        ),
     )
     is_account_voucher_installed = util.ENVIRON["account_voucher_installed"]
 

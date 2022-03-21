@@ -356,28 +356,40 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     }
 
     # precompute to speedup queries
+    _logger.info("Precompute fields on account.invoice")
     cr.execute("ALTER TABLE account_invoice ADD COLUMN rounding NUMERIC, ADD COLUMN decimal_places INTEGER")
-    cr.execute(
-        """
-            UPDATE account_invoice i
-               SET rounding = c.rounding,
-                   decimal_places = c.decimal_places
-              FROM res_currency c
-             WHERE i.currency_id=c.id;
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+                UPDATE account_invoice i
+                   SET rounding = c.rounding,
+                       decimal_places = c.decimal_places
+                  FROM res_currency c
+                 WHERE i.currency_id=c.id
+            """,
+            table="account_invoice",
+            alias="i",
+        ),
     )
 
+    _logger.info("Precompute fields on account.move.line")
     cr.execute("ALTER TABLE account_move_line ADD COLUMN _mig_124_precomputed_amount NUMERIC")
-    cr.execute(
-        """WITH computed AS
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+           WITH computed AS
             (
             SELECT
-                ml.id,
+                l.id,
                 (
                     CASE
                         WHEN i.currency_id = comp.currency_id
-                        THEN ml.balance
-                        ELSE ml.amount_currency
+                        THEN l.balance
+                        ELSE l.amount_currency
                     END
                     *
                     CASE i.type
@@ -389,12 +401,17 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                 ) AS _mig_124_precomputed_amount
             FROM account_invoice i
             JOIN account_move m ON m.id = i.move_id
-            JOIN account_move_line ml ON ml.move_id = m.id
+            JOIN account_move_line l ON l.move_id = m.id
             JOIN res_company comp ON comp.id = i.company_id
+            WHERE {parallel_filter}
         )
         UPDATE account_move_line l SET _mig_124_precomputed_amount = c._mig_124_precomputed_amount
           FROM computed c
-         WHERE c.id = l.id"""
+         WHERE c.id = l.id
+            """,
+            table="account_move_line",
+            alias="l",
+        ),
     )
 
     def generate_buckets():
@@ -513,11 +530,11 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                 break
             _logger.info("invoices: still %d to match", rem)
 
-    # clean optimizations
+    _logger.info("clean optimizations")
     cr.execute("ALTER TABLE account_move_line DROP COLUMN _mig_124_precomputed_amount")
     cr.execute("DROP TABLE invl_aml_mapping_temp")
 
-    # create move line for non matching invoice lines with subtotal zero
+    _logger.info("create move line for non matching invoice lines with subtotal zero")
     env = util.env(cr)
     MoveLine = env["account.move.line"]
 
@@ -685,7 +702,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
         INNER JOIN account_invoice_line invl ON invl.id = mapping.invl_id
              WHERE mapping.aml_id = aml.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
 
 
 def migrate_voucher_lines(cr):
@@ -1761,8 +1778,11 @@ def migrate_invoice_lines(cr):
     # Fix lines having display_type != False.
     _logger.info("invoices: fix lines having display_type IS NOT NULL")
 
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
             UPDATE account_move_line aml_upd
                SET sequence=il.sequence,
                    quantity=il.quantity,
@@ -1776,8 +1796,11 @@ def migrate_invoice_lines(cr):
              WHERE aml_upd.id = m.aml_id
                AND il.display_type IS NULL
                %s
-        """
-        % ("AND i.move_id < %s" % min(created_moves.ids) if created_moves else "",),
+            """
+            % ("AND i.move_id < %s" % min(created_moves.ids) if created_moves else "",),
+            table="account_move_line",
+            alias="aml_upd",
+        ),
     )
 
     cr.execute("SELECT max(id) FROM account_move_line")
@@ -1827,20 +1850,33 @@ def migrate_invoice_lines(cr):
     if True:
         # First un-exclude from invoice tab so that we can reuse exclude_from_invoice_tab field when computing amounts
         _logger.info("Un-exclude from invoice tab")
-        cr.execute(
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
             UPDATE account_move_line aml
                SET exclude_from_invoice_tab = FALSE
               FROM invl_aml_mapping m
              WHERE aml.id = m.aml_id
-            """
+               AND exclude_from_invoice_tab IS NOT FALSE
+                """,
+                table="account_move_line",
+                alias="aml",
+            ),
         )
-        cr.execute(
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
             UPDATE account_move_line
                SET exclude_from_invoice_tab = FALSE
              WHERE account_id is null
-            """
+               AND exclude_from_invoice_tab IS NOT FALSE
+                """,
+                table="account_move_line",
+            ),
         )
 
         _logger.info(
@@ -2015,60 +2051,73 @@ def migrate_invoice_lines(cr):
 
         _logger.info("Fix invoice_payment_state.")
         # A move is paid if all its payable/receivable lines (at least 1) are reconciled
-        cr.execute(
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+            WITH sub AS (
+                SELECT l.move_id,
+                       EVERY(l.reconciled) all_reconciled
+                  FROM account_move_line l
+                  JOIN account_move m ON m.id = l.move_id
+                 WHERE l.account_internal_type IN ('receivable', 'payable')
+                   AND {parallel_filter}
+              GROUP BY l.move_id
+            )
             UPDATE account_move am
                SET invoice_payment_state = CASE WHEN sub.all_reconciled THEN 'paid' ELSE 'not_paid' END
-              FROM (
-                   SELECT move_id, EVERY(reconciled) all_reconciled
-                     FROM account_move_line
-                    WHERE account_internal_type IN ('receivable', 'payable')
-                    GROUP BY move_id
-              ) AS sub
+              FROM sub
              WHERE am.id = sub.move_id
-        """
+                """,
+                table="account_move",
+                alias="m",
+            ),
         )
-        cr.execute("UPDATE account_move SET invoice_payment_state = 'not_paid' WHERE invoice_payment_state IS NULL")
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                "UPDATE account_move SET invoice_payment_state = 'not_paid' WHERE invoice_payment_state IS NULL",
+                table="account_move",
+            ),
+        )
 
         # The two queries below are separate for performance reason. (more details in the PR)
-        cr.execute(
-            """
-            UPDATE account_move am
-            SET invoice_payment_state = 'in_payment'
-            WHERE am.invoice_payment_state = 'paid'
-            AND am.id IN (
-                SELECT move.id
-                FROM account_move move
-                JOIN account_move_line line ON line.move_id = move.id
-                JOIN account_partial_reconcile part ON part.debit_move_id = line.id OR part.credit_move_id = line.id
-                /*slight variation with next query in next join*/
-                JOIN account_move_line rec_line ON (rec_line.id = part.debit_move_id AND line.id = part.credit_move_id)
-                JOIN account_payment payment ON payment.id = rec_line.payment_id
-                JOIN account_journal journal ON journal.id = rec_line.journal_id
-                WHERE payment.state IN ('posted', 'sent')
-                AND journal.post_at_bank_rec IS TRUE
-            )
-        """
-        )
-        cr.execute(
-            """
-            UPDATE account_move am
-            SET invoice_payment_state = 'in_payment'
-            WHERE am.invoice_payment_state = 'paid'
-            AND am.id IN (
-                SELECT move.id
-                FROM account_move move
-                JOIN account_move_line line ON line.move_id = move.id
-                JOIN account_partial_reconcile part ON part.debit_move_id = line.id OR part.credit_move_id = line.id
-                /*slight variation with previous query in next join*/
-                JOIN account_move_line rec_line ON (rec_line.id = part.credit_move_id AND line.id = part.debit_move_id)
-                JOIN account_payment payment ON payment.id = rec_line.payment_id
-                JOIN account_journal journal ON journal.id = rec_line.journal_id
-                WHERE payment.state IN ('posted', 'sent')
-                AND journal.post_at_bank_rec IS TRUE
-            )
-        """
-        )
+        for join1 in ["debit", "credit"]:
+            for join2 in [
+                "rec_line.id = part.debit_move_id  AND line.id = part.credit_move_id",
+                "rec_line.id = part.credit_move_id AND line.id = part.debit_move_id",
+            ]:
+                util.parallel_execute(
+                    cr,
+                    util.explode_query_range(
+                        cr,
+                        f"""
+                    with moves AS (
+                        SELECT line.move_id as id
+                          FROM account_move mv
+                          JOIN account_move_line line ON mv.id=line.move_id
+                          JOIN account_partial_reconcile part ON part.{join1}_move_id = line.id
+                          JOIN account_move_line rec_line ON ({join2})
+                          JOIN account_payment payment ON payment.id = rec_line.payment_id
+                          JOIN account_journal journal ON journal.id = rec_line.journal_id
+                         WHERE payment.state IN ('posted', 'sent')
+                           AND journal.post_at_bank_rec IS TRUE
+                           AND mv.invoice_payment_state = 'paid'
+                           AND {{parallel_filter}}
+                      GROUP BY line.move_id
+                    )
+                    UPDATE account_move am
+                       SET invoice_payment_state = 'in_payment'
+                      FROM moves
+                     WHERE am.invoice_payment_state = 'paid'
+                       AND am.id=moves.id
+                        """,
+                        table="account_move",
+                        alias="mv",
+                    ),
+                )
 
         _logger.info("Migrate refund_invoice_id => reversed_entry_id")
         cr.execute(
@@ -2082,31 +2131,51 @@ def migrate_invoice_lines(cr):
         )
 
         _logger.info("Migrate multiple important fields from account_invoice to account_move.")
-        cr.execute(
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
             UPDATE account_move am
                SET message_main_attachment_id = inv.message_main_attachment_id,
                    partner_id = inv.partner_id
               FROM account_invoice inv
              WHERE am.id = inv.move_id
-            """
+                """,
+                table="account_move",
+                alias="am",
+            ),
         )
 
         _logger.info("Un-exclude from invoice tab")
-        cr.execute(
-            """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
             UPDATE account_move_line aml
                SET exclude_from_invoice_tab = FALSE
               FROM invl_aml_mapping m
              WHERE aml.id = m.aml_id
-            """
+               AND exclude_from_invoice_tab IS NOT FALSE
+               """,
+                table="account_move_line",
+                alias="aml",
+            ),
         )
-        cr.execute(
-            """
-            UPDATE account_move_line
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+            UPDATE account_move_line aml
                SET exclude_from_invoice_tab = FALSE
              WHERE account_id is null
-            """
+               AND exclude_from_invoice_tab IS NOT FALSE
+            """,
+                table="account_move_line",
+                alias="aml",
+            ),
         )
 
 
@@ -2131,7 +2200,7 @@ def update_account_move_line_name(cr):
               JOIN account_invoice_line ail on ail.id = map.invl_id
              WHERE aml.id = map.aml_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
 
 
 def migrate(cr, version):

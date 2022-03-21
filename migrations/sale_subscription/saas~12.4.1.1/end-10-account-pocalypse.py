@@ -5,7 +5,7 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.parallel_execute(
         cr,
-        util.explode_query(
+        util.explode_query_range(
             cr,
             """
             UPDATE account_move_line aml
@@ -17,6 +17,7 @@ def migrate(cr, version):
               JOIN account_invoice_line invl ON invl.id = m.invl_id
              WHERE m.aml_id = aml.id
             """,
-            prefix="aml.",
+            table="account_move_line",
+            alias="aml",
         ),
     )
