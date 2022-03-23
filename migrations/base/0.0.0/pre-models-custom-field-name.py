@@ -1,0 +1,42 @@
+import logging
+
+from odoo.addons.base.maintenance.migrations import util
+
+
+def migrate(cr, version):
+    _logger = logging.getLogger(__name__)
+
+    # custom field names must start with a x_ and should not have spaces
+    cr.execute(
+        r"""
+            SELECT model,
+                   name
+              FROM ir_model_fields
+             WHERE state='manual'
+               AND (name NOT LIKE 'x\_%' OR name LIKE '% %')
+        """
+    )
+    renamed = []
+    for model, name in cr.fetchall():
+        new_name = name.strip(" _").replace(" ", "_")
+        if not new_name.startswith("x_"):
+            new_name = "x_%s" % (new_name)
+        util.rename_field(cr, model, name, new_name)
+        renamed.append((name, new_name))
+        _logger.info("ir_model_fields manual fields name: '%s' renamed field '%s' to '%s'", model, name, new_name)
+
+    if renamed:
+        util.add_to_migration_reports(
+            """
+                <details>
+                <summary>
+                    Custom field names must start with <kbd>x_</kbd> and may not
+                    include spaces. The following fields were renamed:
+                </summary>
+                <ul>%s</ul>
+                </details>
+            """
+            % ("\n".join("<li>%s &#8594; %s</li>" % (name, new_name) for name, new_name in renamed)),
+            "Custom Field Names",
+            format="html",
+        )
