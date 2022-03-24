@@ -97,7 +97,7 @@ def _explode_tax_groups(cr):
     )
 
 
-def _get_conditions():
+def _get_conditions(cr):
     # NOTE: as we ignore already matched lines, the conditions SHOULD be from more precise to less precise
     base_conditions = [
         {"same_name", "same_product", "exact_same_taxes"},
@@ -132,6 +132,26 @@ def _get_conditions():
             yield xtr | {"only_one_line"}
         yield {"same_amount", "same_name", "same_not_null_product"}
         yield {"same_amount", "same_not_null_product"}
+
+        if util.module_installed(cr, "stock_account"):
+            # To match price differences between PO/BILL, since this cannot use the amounts
+            # we try to be as strict as possible on the other conditions
+            # Frequent in this use case: Anglo saxon accounting
+            base_cond = {
+                "same_account",
+                "same_not_null_product",
+                "anglo_saxon",
+                "same_nonzero_qty",
+            }
+            for cond in [base_cond, base_cond - {"same_nonzero_qty"}]:
+                for name_criteria in [
+                    "same_name",
+                    "same_trimmed_name",
+                    "same_chopped_name",
+                    "same_name_first_line",
+                    "substring_name",
+                ]:
+                    yield cond | {name_criteria}
 
     # conditions = list(
     return iter(
@@ -353,6 +373,24 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                  WHERE id IN (il.account_id, ml.account_id)
             ) = 1
         """,
+        "anglo_saxon": """EXISTS (SELECT 1
+                                    FROM account_account aa
+                                    JOIN ir_property p ON
+                                         p.name IN (
+                                                'property_stock_account_input',
+                                                'property_stock_account_output',
+                                                'property_stock_account_input_categ_id',
+                                                'property_stock_account_output_categ_id',
+                                                'property_account_creditor_price_difference',
+                                                'property_account_creditor_price_difference_categ'
+                                                )
+                                     AND SUBSTRING(p.value_reference FROM '%%,#"_*#"%%' FOR '#')::int4=aa.id
+                                   WHERE aa.id = ml.account_id
+                                     AND aa.internal_type NOT IN ('receivable', 'payable')
+                                 )
+                          AND i.type in ('in_invoice','in_refund', 'in_receipt')
+        """,
+        "same_nonzero_qty": "il.quantity > 0 AND ml.quantity = il.quantity",
     }
 
     # precompute to speedup queries
@@ -469,7 +507,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
         )
 
         # execute the query in mutli-passes (leeloo?)
-        for i, cond in enumerate(_get_conditions(), start=1):
+        for i, cond in enumerate(_get_conditions(cr), start=1):
             _logger.info("insert query %s: cond:%s", i, cond)
             cr.execute("TRUNCATE TABLE invl_aml_mapping_temp")
             query = """
@@ -707,7 +745,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
 
 def migrate_voucher_lines(cr):
     def _get_voucher_conditions():
-        yield from _get_conditions()
+        yield from _get_conditions(cr)
         yield {"same_name", "same_not_null_analytic_account", "only_one_line"}
 
     env = util.env(cr)
