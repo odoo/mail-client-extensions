@@ -57,12 +57,15 @@ def _migrate(cr, version):
     util.create_index(
         cr, "_upgrade_tax_invoice_refund_idx", "account_tax_repartition_line", "invoice_tax_id", "refund_tax_id"
     )
+    util.create_index(
+        cr, "_upgrade_account_invoice_refund_idx", "account_invoice", "auto_invoice_id", "refund_invoice_id"
+    )
 
     # Abracadabra !
     # We consider the module was only updated. So, now, some tax_line_id are set while there is not tax_repartition_line_id
     # on the move lines. tax_line_id is supposed to be related on tax_repartition_line_id, so we have to fix this
     # inconsistency first
-    for tax in env["account.tax"].with_context(active_test=False).search([]):
+    for tax in util.iter_browse(env["account.tax"], env["account.tax"].with_context(active_test=False).search([]).ids):
         if not tax.invoice_repartition_line_ids and not tax.refund_repartition_line_ids:
             tax.write(
                 tax.with_context(default_company_id=tax.company_id).default_get(
@@ -289,7 +292,7 @@ def _migrate(cr, version):
             child_tax.type_tax_use == "none" and child_tax.amount_type == "percent" for child_tax in x.children_tax_ids
         )
     )
-    for group_to_treat in util.log_progress(groups_to_merge, _logger, qualifier="tax groups to merge"):
+    for group_to_treat in util.iter_browse(env["account.tax"], groups_to_merge.ids, logger=_logger, strategy="commit"):
         # The tax repartition lines of the group are useless
         # (except if the have amount = 0, in wich case we keep them for simplicity)
         inv_tax_line = group_to_treat.invoice_repartition_line_ids.filtered(lambda x: x.repartition_type == "tax")
@@ -674,7 +677,7 @@ def _migrate(cr, version):
     # Basic consistency check for taxes associated with a template xmlid
     _logger.info("Consistency check")
     all_templates_data = env["ir.model.data"].search([("model", "=", "account.tax.template")])
-    for tax_template_data in all_templates_data:
+    for tax_template_data in util.iter_browse(env["ir.model.data"], all_templates_data.ids):
         tax_template = env["account.tax.template"].browse(tax_template_data.res_id)
         template_instance_data = env["ir.model.data"].search(
             [
@@ -745,6 +748,7 @@ def _migrate(cr, version):
                         "Tax configuration",
                     )
     cr.execute("DROP INDEX IF EXISTS _upgrade_tax_invoice_refund_idx")
+    cr.execute("DROP INDEX IF EXISTS _upgrade_account_invoice_refund_idx")
 
 
 def set_fiscal_country(env):
@@ -1987,9 +1991,11 @@ def get_v13_migration_dicts(cr):
       GROUP BY account_tax.id
     """
     )
-    for tax_id, tax_tag_ids in util.log_progress(cr.fetchall(), _logger, qualifier="taxes"):
-        tax = env["account.tax"].browse(tax_id)
+    tax_id_dict = dict(cr.fetchall())
 
+    # As we are in a savepoint that will be rollbacked, we need to use the `flush` strategy.
+    for tax in util.iter_browse(env["account.tax"], tax_id_dict.keys(), logger=_logger, strategy="flush"):
+        tax_tag_ids = tax_id_dict[tax.id]
         # get account_id and refund_account_id in SQL, since they have been removed between 12.2 and 12.3
         cr.execute(
             """
@@ -1997,7 +2003,7 @@ def get_v13_migration_dicts(cr):
               FROM tax_accounts_v12_bckp
              WHERE id=%(tax_id)s;
         """,
-            {"tax_id": tax_id},
+            {"tax_id": tax.id},
         )
         tax_accounts_dict = cr.dictfetchall()[0]
 
@@ -2128,7 +2134,7 @@ def get_v13_migration_dicts(cr):
                             cr, "refund", "base", tax_rslt, candidate_to_add, is_financial, formula_evaluator
                         )
         else:
-            _logger.error("Cannot create invoice (lack of suitable account) for tax %s", tax_id)
+            _logger.error("Cannot create invoice (lack of suitable account) for tax %s", tax.id)
 
     # Convert financial tags
     _convert_financial_tags(cr, rslt)
