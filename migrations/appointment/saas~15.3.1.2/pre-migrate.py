@@ -53,3 +53,28 @@ def migrate(cr, version):
     _remove_records(cr, "calendar.appointment.answer", ids)
 
     util.create_column(cr, "calendar_appointment_answer", "sequence", "integer", default=10)
+
+    # Mutate Char location to M2O location_id
+    util.create_column(cr, "calendar_appointment_type", "location_id", "integer")
+
+    # --- The new `location_id` field will reference a partner (see Event.Event `venue`).
+    # --- During migration, partners are created so that their contact address will be formatted
+    # --- into the current appointment type `location` field.
+    cr.execute(
+        """
+        WITH new_partners AS (
+                INSERT INTO res_partner(name, display_name, active, type)
+            SELECT DISTINCT t.location, t.location, true, 'contact'
+                       FROM calendar_appointment_type t
+                      WHERE t.location IS NOT NULL
+                        AND t.location != ''
+                  RETURNING id, name
+        )
+        UPDATE calendar_appointment_type t
+           SET location_id = p.id
+          FROM new_partners p
+         WHERE p.name = t.location
+    """
+    )
+
+    util.remove_field(cr, "calendar.appointment.type", "location")
