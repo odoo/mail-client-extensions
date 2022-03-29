@@ -476,3 +476,108 @@ class TestAssetResequence(BaseAssetCase):
                 "active": True,
             },
         )
+
+
+class TestAssetsFromWebEditor(BaseAssetCase):
+    def prepare(self):
+        bundle_view = self.make_view(
+            {
+                "arch": """
+                    <t name="asset">
+                        <script type="text/javascript" src="/web/static/somefile.js" />
+                        <script type="text/javascript" src="/web/static/user_custom_somefile.js" />
+                        <link type="text/css" href="/web/static/somestyle.css" rel="stylesheet" />
+                        <link type="text/css" href="/web/static/user_custom_somestyle.css" rel="stylesheet" />
+                    </t>
+                """
+            },
+        )
+        calling_view = self.make_calling_view(bundle_view.key)
+
+        child_view_1 = self.make_view(
+            {
+                "arch": f"""
+                    <data>
+                        <xpath expr="//script[@src='/web/static/somefile.js']" position="attributes">
+                            <attribute name="src">/web/static/somefile.custom.{bundle_view.key}.js</attribute>
+                        </xpath>
+                    </data>
+                """,
+                "inherit_id": bundle_view.id,
+                "name": f"/web/static/somefile.custom.{bundle_view.key}.js",
+                "key": "web_editor.js_123abc",
+            },
+        )
+
+        child_view_2 = self.make_view(
+            {
+                "arch": f"""
+                    <data>
+                        <xpath expr="//link[@href='/web/static/somestyle.css']" position="attributes">
+                            <attribute name="href">/web/static/somestyle.custom.{bundle_view.key}.css</attribute>
+                        </xpath>
+                    </data>
+                """,
+                "inherit_id": bundle_view.id,
+                "name": f"/web/static/somestyle.custom.{bundle_view.key}.css",
+                "key": "web_editor.scss_123abc",
+            },
+        )
+
+        child_view_3 = self.make_view(
+            {
+                "arch": f"""
+                    <data>
+                        <xpath expr="//script[@src='/web/static/user_custom_somefile.js']" position="attributes">
+                            <attribute name="src">/web/static/user_custom_somefile.custom.{bundle_view.key}.js</attribute>
+                        </xpath>
+                    </data>
+                """,
+                "inherit_id": bundle_view.id,
+                "name": f"/web/static/user_custom_somefile.custom.{bundle_view.key}.js",
+                "key": "web_editor.js_fff666",
+            },
+        )
+
+        child_view_4 = self.make_view(
+            {
+                "arch": f"""
+                    <data>
+                        <xpath expr="//link[@href='/web/static/user_custom_somestyle.css']" position="attributes">
+                            <attribute name="href">/web/static/user_custom_somestyle.custom.{bundle_view.key}.css</attribute>
+                        </xpath>
+                    </data>
+                """,
+                "inherit_id": bundle_view.id,
+                "name": f"/web/static/user_custom_somestyle.custom.{bundle_view.key}.css",
+                "key": "web_editor.scss_fff666",
+            },
+        )
+
+        return {
+            "calling_view_id": calling_view.id,
+            "child_view_1_id": child_view_1.id,
+            "child_view_2_id": child_view_2.id,
+            "child_view_3_id": child_view_3.id,
+            "child_view_4_id": child_view_4.id,
+        }
+
+    def check(self, check):
+        self.assertTrue(self.env["ir.ui.view"].browse(check["calling_view_id"]).exists())
+
+        # views 1 and 2 must not have been migrated
+        child_view_1_id = check["child_view_1_id"]
+        child_view_2_id = check["child_view_2_id"]
+        self.assertTrue(self.env["ir.ui.view"].browse(child_view_1_id).exists())
+        self.assertTrue(self.env["ir.ui.view"].browse(child_view_2_id).exists())
+        self.assertFalse(self.env["ir.asset"].search([("name", "ilike", f"view_id:{child_view_1_id}")]))
+        self.assertFalse(self.env["ir.asset"].search([("name", "ilike", f"view_id:{child_view_2_id}")]))
+
+        # views 3 and 4 must have been migrated (as they has "/user_custom_" in their name)
+        child_view_3_id = check["child_view_3_id"]
+        child_view_4_id = check["child_view_4_id"]
+        self.assertTrue(self.env["ir.asset"].search([("name", "ilike", f"view_id:{child_view_3_id}")]))
+        self.assertTrue(self.env["ir.asset"].search([("name", "ilike", f"view_id:{child_view_4_id}")]))
+        self.assertFalse(self.env["ir.ui.view"].browse(child_view_3_id).exists())
+        self.assertFalse(self.env["ir.ui.view"].browse(child_view_4_id).exists())
+        pass

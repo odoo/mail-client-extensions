@@ -565,6 +565,19 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
 
         return result
 
+    # e.g. "web_editor.scss_0f1e32" or "web_editor.js_6bc32a"
+    web_editor_key_regex = re.compile(r"^web_editor\.(js|scss|xml)_[0-9a-f]{6}$")
+    # e.g. /(...).xml or /(...).custom.(...).js or /(...).custom.(...).css (or .scss)
+    web_editor_name_regex = re.compile(
+        r"""
+        ^/.+?(
+            (\.xml$) |                  # ends with *.xml
+            (\.custom\..+?\.(js|s?css)$) # has ".custom." and ends with *.js or *.scss
+        )
+        """,
+        re.VERBOSE,
+    )
+
     for view in results:
         module = view["module"]
         if module and (module in ODOO_SA_MODULES or module.startswith("saas_")):
@@ -583,6 +596,23 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         arch = etree.fromstring(view["arch_db"])
         if len(arch) == 0:
             continue
+
+        if web_editor_key_regex.match(view["key"]):
+            if "/user_custom_" not in view["name"] and web_editor_name_regex.match(view["name"]):
+                # do not migrate and add to migration report views that were:
+                # - created with the web_editor and
+                # - for whom the user has been warned that it was not advised to edit them this way as
+                #   it will prevent them from being updated during future App Upgrades
+                msg = f"""
+                    The view with id={view["id"]} has been created from the web editor but when doing so
+                    a warning was shown to discourage this way of editing it.
+                    You will need to evaluate the view content and adapt it if needed.
+                    You can try creating an `ir.asset` record that appends the
+                    attachment "{view["name"]}" to the bundle "{bundle_name}".
+                """
+                util.add_to_migration_reports(msg, MIGR_CATEG)
+                do_not_delete_view_ids.add(view["id"])
+                continue
 
         try:
             ir_assets = process_asset_node(arch, bundle_name, view)
