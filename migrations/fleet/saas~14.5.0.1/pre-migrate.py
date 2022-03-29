@@ -23,3 +23,13 @@ def migrate(cr, version):
     util.create_column(cr, "fleet_vehicle_model", "electric_assistance", "bool", default=False)
 
     util.create_column(cr, "fleet_vehicle", "co2_standard", "varchar")
+
+    cr.execute(
+        """
+            UPDATE fleet_vehicle_log_services AS log
+               SET company_id = vehicle.company_id
+              FROM fleet_vehicle AS vehicle
+             WHERE vehicle.id = log.vehicle_id
+               AND vehicle.company_id IS DISTINCT FROM log.company_id
+        """
+    )
