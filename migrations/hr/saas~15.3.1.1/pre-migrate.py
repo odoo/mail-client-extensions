@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -11,3 +12,5 @@ def migrate(cr, version):
                     AND mc.channel_type != 'channel'
         """
     )
+
+    util.remove_field(cr, "hr.job", "state")
