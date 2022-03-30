@@ -25,7 +25,7 @@ def migrate(cr, version):
     def curmap(f, t):
         a, b = util.ref(cr, f"base.{f}"), util.ref(cr, f"base.{t}")
         if a and b:
-            util.if_unchanged(cr, f"base.rate{f}", util.remove_record)
+            util.remove_record(cr, f"base.rate{f}")
             return {a: b}
         if a:
             util.rename_xmlid(cr, f"base.{f}", f"base.{t}")
