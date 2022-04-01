@@ -3,6 +3,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_view(cr, "website.snippet_options_header_brand")
+
     # Google Analytics Dashboard deprecated
     util.remove_field(cr, "website", "google_management_client_id")
     util.remove_field(cr, "website", "google_management_client_secret")
