@@ -177,6 +177,7 @@ LEFT JOIN ir_model_data AS d ON v.id = d.res_id AND d.model = 'ir.ui.view' AND d
 
 
 MIGR_CATEG = "Assets View to IrAsset"
+MIGR_JS_CATEG = "JS/CSS Assets"
 
 
 class UnmigrableCase(Exception):
@@ -184,7 +185,6 @@ class UnmigrableCase(Exception):
 
 
 def migrate(cr, version):
-
     # TODO: remove this horror
     path_column = "path"
     if util.column_exists(cr, "ir_asset", "glob"):
@@ -272,6 +272,32 @@ def migrate(cr, version):
         if not has_website:
             util.remove_column(cr, "ir_asset", "website_id")
 
+    if processed_results["to_report"]:
+        message = """
+        <details>
+            <summary>
+            Web assets are detecetd in your custom modules. We have moved the found assets to a
+            new model 'ir.asset'. Starting this version of Odoo, asset declaration is moved to
+            manifest files.
+            The following modules include asset views that should be declared according to the new standards.
+            Please make sure your assets are moved out of the views and your modules' manifests have an "assets"
+            key to define the desired bundles of each asset.
+            Follow <a href="{url}">this guide</a> for more details on how assets should be managed.
+            When all the assets are defined according to the standard, the records we created
+            for them in 'ir.asset' can be removed.
+            </summary>
+            <ul>{list}</ul>
+        <details>
+        """.format(
+            url="https://www.odoo.com/documentation/15.0/developer/reference/frontend/assets.html",
+            list="".join(
+                """<li>Module: %s, XML name: %s, View name: %s, Assigned bundle: %s.</li>"""
+                % (view["module"], view["xml_name"], view["name"], view["bundle"])
+                for view in processed_results["to_report"]
+            ),
+        )
+        util.add_to_migration_reports(message, MIGR_JS_CATEG, "html")
+
 
 def process_views_conversion(cr, results, has_website=False, path_column="path"):
     """
@@ -299,6 +325,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
     assets_to_create = []
     do_not_delete_view_ids = set()
     unique_irasset = 0
+    views_in_custom_modules = []
     #
     # HELPERS
     #
@@ -591,6 +618,10 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
             ir_assets = process_asset_node(arch, bundle_name, view)
             if ir_assets:
                 assets_to_create += ir_assets
+                if module and module not in ("studio_customization", "__export__", "__cloc_exclude__"):
+                    views_in_custom_modules += [
+                        {"module": module, "xml_name": view["xml_name"], "name": view["name"], "bundle": bundle_name}
+                    ]
         except UnmigrableCase as e:
             view_id = view["id"]
             msg = str(e) % {"view_id": view_id}
@@ -611,4 +642,5 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         "to_create": assets_to_create,
         "keep_view_ids": keep_view_chained,
         "remove_view_ids": (set(all_views.keys()) - keep_view_chained),
+        "to_report": sorted(views_in_custom_modules, key=lambda k: k["module"]),
     }
