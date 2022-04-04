@@ -17,3 +17,5 @@ def migrate(cr, version):
 
     util.remove_view(cr, "website_sale.website_sale_onboarding_payment_acquirer_step")
     util.remove_model(cr, "website.sale.payment.acquirer.onboarding.wizard")
+
+    util.remove_field(cr, "res.config.settings", "module_website_sale_gift_card")
