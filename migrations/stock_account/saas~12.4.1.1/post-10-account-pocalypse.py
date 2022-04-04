@@ -202,45 +202,30 @@ def migrate(cr, version):
     )
     cr.execute("CREATE INDEX ON _upgrade_fifo (id, company_id)")
     q = """
-        WITH svl_history AS
-        (
-            SELECT
-                svl.product_id,
-                ph.datetime AS datetime,
-                SUM(svl.quantity) AS quantity,
-                SUM(svl.value) AS value,
-                ph.cost AS new_cost,
-                SUM(svl.quantity) * ph.cost - SUM(svl.value) AS corrected_value,
-                svl.company_id AS company_id
-            FROM product_price_history ph
-            JOIN stock_valuation_layer svl ON ph.product_id = svl.product_id
-            JOIN product_product pp ON pp.id = svl.product_id
-            JOIN product_template pt ON pt.id = pp.product_tmpl_id
-       LEFT JOIN _upgrade_fifo ON _upgrade_fifo.company_id = svl.company_id
-                              AND _upgrade_fifo.id = pt.categ_id
-           WHERE svl.create_date < ph.DATETIME
-             AND svl.quantity != 0
-             AND svl.company_id = ph.company_id
-             AND ph.create_uid != %s
-             AND _upgrade_fifo.id IS NULL
-             AND {parallel_filter}
-            GROUP BY ph.id, svl.product_id, ph.datetime, ph.cost, svl.company_id
-        )
-        INSERT INTO stock_valuation_layer_tmp (create_date, write_date, product_id, quantity, VALUE, description, company_id)
-        SELECT
-            datetime,
-            datetime,
-            product_id,
-            0.0,
-            quantity
-            * new_cost
-            - value
-            - LAG(corrected_value, 1, 0.0) OVER (PARTITION BY product_id, company_id ORDER BY DATETIME)
-            AS corrected_value,
-            'Change cost to ' || new_cost,
-            company_id
-        FROM svl_history
-        WHERE corrected_value != 0;
+        INSERT INTO stock_valuation_layer_tmp (create_date, write_date, product_id, quantity, value, description, company_id)
+        SELECT ph.datetime,
+               ph.datetime,
+               svl.product_id,
+               0.0,
+                     SUM(svl.quantity) * ph.cost - SUM(svl.value)
+               - LAG(SUM(svl.quantity) * ph.cost - SUM(svl.value), 1, 0.0)
+                     OVER (PARTITION BY svl.product_id, svl.company_id ORDER BY ph.datetime),
+               'Change cost to ' || ph.cost,
+               svl.company_id
+          FROM product_price_history ph
+          JOIN stock_valuation_layer svl ON ph.product_id = svl.product_id
+          JOIN product_product pp ON pp.id = svl.product_id
+          JOIN product_template pt ON pt.id = pp.product_tmpl_id
+     LEFT JOIN _upgrade_fifo ON _upgrade_fifo.company_id = svl.company_id
+                            AND _upgrade_fifo.id = pt.categ_id
+         WHERE svl.create_date < ph.datetime
+           AND svl.quantity != 0
+           AND svl.company_id = ph.company_id
+           AND ph.create_uid != %s
+           AND _upgrade_fifo.id IS NULL
+           AND {parallel_filter}
+         GROUP BY ph.id, svl.product_id, ph.datetime, ph.cost, svl.company_id
+        HAVING SUM(svl.quantity) * ph.cost - SUM(svl.value) != 0
     """
     util.parallel_execute(
         cr,
