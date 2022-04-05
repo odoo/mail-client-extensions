@@ -1119,6 +1119,8 @@ def migrate_voucher_lines(cr):
                  WHERE id IN (il.account_id, ml.account_id)
             ) = 1
         """,
+        "anglo_saxon": "false",
+        "same_nonzero_qty": "il.quantity > 0 AND ml.quantity = il.quantity",
     }
 
     for cond in _get_voucher_conditions():
