@@ -60,8 +60,9 @@ class TestCrawler(IntegrityCase):
          - Sometimes, the xmlid and id changes, but the complete name name doesn't. We can match on that.
          - Sometimes, the xmlid, id, and complete name change, but the action id remained the same.
         """
-        before = value = [tuple(v) for v in value]
-        after = self.invariant()
+        test_start = datetime.datetime.fromisoformat(value[1])
+        before = [tuple(v) for v in value[0]]
+        after, _ = self.invariant()
 
         diff = []
         for a in after:
@@ -69,7 +70,8 @@ class TestCrawler(IntegrityCase):
                 if a[i] in [b[i] for b in before]:
                     break
             else:
-                if self.env["ir.ui.menu"].browse(a[1]).sudo().create_date.date() == fields.date.today():
+                menu_create = self.env["ir.ui.menu"].browse(a[1]).sudo().create_date
+                if menu_create >= test_start:
                     _logger.warning("A new menu is failing: %s", a)
                 else:
                     diff.append(a)
@@ -85,6 +87,8 @@ class TestCrawler(IntegrityCase):
         self.assertFalse(diff, msg)
 
     def invariant(self):
+
+        now = datetime.datetime.now()
 
         self.action_type_fields = {
             action_type: list(self.env.registry[action_type]._fields)
@@ -146,7 +150,7 @@ class TestCrawler(IntegrityCase):
                 for menu in root_menu["children"]:
                     failing.update(self.crawl_menu(get_menu(menu), get_menu))
 
-        return list(failing)
+        return [list(failing), str(now)]
 
     def _safe_eval(self, value):
         eval_context = {
