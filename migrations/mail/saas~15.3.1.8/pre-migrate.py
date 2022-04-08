@@ -25,3 +25,6 @@ def migrate(cr, version):
     )
 
     util.remove_model(cr, "mail.resend.cancel", drop_table=True)
+
+    util.update_record_from_xml(cr, "mail.mail_channel_rule")
+    util.update_record_from_xml(cr, "mail.ir_rule_mail_channel_partner_group_user")
