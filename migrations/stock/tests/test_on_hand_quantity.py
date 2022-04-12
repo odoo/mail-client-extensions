@@ -58,7 +58,7 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         self.env.cr.execute(query, where_params)
         results = []
         for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
-            self.env["product.product"].invalidate_cache()
+            util.invalidate(self.env["product.product"])
             products = self.env["product.product"].browse(sub_ids)
             # If a product is created or deleted, this can lead to an issue.
             # So, only compare products having quantities != 0
