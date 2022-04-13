@@ -27,6 +27,8 @@ def migrate(cr, version):
         """
     )
 
+    util.remove_constraint(cr, "sale_order", "sale_order_name_uniq")
+
     util.rename_field(cr, "sale.order", "payment_term", "payment_term_id")
     util.rename_field(cr, "sale.order", "fiscal_position", "fiscal_position_id")
     report = util.ref(cr, "sale.report_saleorder_document")
