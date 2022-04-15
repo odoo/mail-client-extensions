@@ -159,6 +159,7 @@
      cursor: pointer;
      width: fit-content;
      width: -moz-fit-content;
+     user-select: none;
  }
 
  .muted-text {

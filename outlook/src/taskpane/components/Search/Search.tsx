@@ -11,6 +11,7 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { TextField } from 'office-ui-fabric-react/lib-amd';
 import { _t } from '../../../utils/Translator';
+import './Search.css';
 
 const MAX_PARTNERS = 30;
 
@@ -29,17 +30,13 @@ export type SearchState = {
 class Search extends React.Component<SearchProps, SearchState> {
     constructor(props, context) {
         super(props, context);
-        let query = '';
         if (props.historyState) {
             this.state = { ...props.historyState };
         } else {
-            if (props.query) {
-                query = props.query;
-            }
             this.state = {
-                query: query,
+                query: props.query || '',
                 foundPartners: undefined,
-                isLoading: true,
+                isLoading: false,
             };
         }
     }
@@ -69,16 +66,14 @@ class Search extends React.Component<SearchProps, SearchState> {
                 api.baseURL + api.searchPartner,
                 ContentType.Json,
                 this.context.getConnectionToken(),
-                {
-                    search_term: query,
-                },
+                { search_term: query },
                 true,
             );
             this.context.addRequestCanceller(this.onGoingRequest);
             this.onGoingRequest.promise
                 .then((response) => {
                     const parsed = JSON.parse(response);
-                    let partners = parsed.result.partners.map((partner_json) => {
+                    const partners = parsed.result.partners.map((partner_json) => {
                         return PartnerData.fromJSON(partner_json);
                     });
                     this.setState({ foundPartners: partners, isLoading: false });
@@ -103,24 +98,12 @@ class Search extends React.Component<SearchProps, SearchState> {
     };
 
     private onQueryChanged = (event) => {
-        let query = event.target.value;
-        this.setState({ query: query });
+        this.setState({ query: event.target.value });
     };
 
-    componentDidMount() {
-        if (this.state.isLoading) this.getPartnersRequest(this.state.query);
-    }
-
     render() {
-        let searchBar = (
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'stretch',
-                    margin: '8px 8px 16px 8px',
-                }}>
+        const searchBar = (
+            <div className="search-container">
                 <TextField
                     className="input-search"
                     placeholder={_t('Search contact in Odoo...')}
@@ -128,10 +111,10 @@ class Search extends React.Component<SearchProps, SearchState> {
                     value={this.state.query}
                     onKeyDown={this.onKeyDown}
                     onFocus={(e) => e.target.select()}
+                    autoFocus
                 />
                 <div
-                    className="odoo-muted-button"
-                    style={{ height: '100%', borderLeft: 'none' }}
+                    className="odoo-muted-button search-icon"
                     onClick={() => this.getPartnersRequest(this.state.query)}>
                     <FontAwesomeIcon icon={faSearch} />
                 </div>
@@ -141,30 +124,29 @@ class Search extends React.Component<SearchProps, SearchState> {
         let resultsView = null;
         if (this.state.isLoading) {
             resultsView = (
-                <div className="section-card" style={{ padding: '32px' }}>
+                <div className="section-card search-spinner">
                     <Spinner theme={OdooTheme} size={SpinnerSize.large} style={{ margin: 'auto' }} />
                 </div>
             );
-        } else {
+        } else if (this.state.foundPartners !== undefined) {
             let foundContactsNumberText =
                 this.state.foundPartners.length >= MAX_PARTNERS ? '30+' : this.state.foundPartners.length.toString();
-            if (this.state.foundPartners)
-                resultsView = (
-                    <div className="section-card">
-                        <div className="section-top">
-                            <div className="custom-section-title-container">
-                                <div className="section-title-text custom">
-                                    {_t('Contacts Found (%(count)s)', {
-                                        count: foundContactsNumberText,
-                                    })}
-                                </div>
+            resultsView = (
+                <div className="section-card">
+                    <div className="section-top">
+                        <div className="custom-section-title-container">
+                            <div className="section-title-text custom">
+                                {_t('Contacts Found (%(count)s)', {
+                                    count: foundContactsNumberText,
+                                })}
                             </div>
                         </div>
-                        <div className="section-content">
-                            <ContactList partners={this.state.foundPartners} onItemClick={this.onPartnerClick} />
-                        </div>
                     </div>
-                );
+                    <div className="section-content">
+                        <ContactList partners={this.state.foundPartners} onItemClick={this.onPartnerClick} />
+                    </div>
+                </div>
+            );
         }
 
         return (
