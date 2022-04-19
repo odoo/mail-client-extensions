@@ -21,3 +21,22 @@ def migrate(cr, version):
              WHERE state = 'mail_post'
         """
     )
+
+    char_to_dt = """
+        create function char_to_dt(text) returns timestamp as $$
+        begin
+            return $1::timestamp;
+        exception when others then
+            return NULL;
+        end;
+        $$ LANGUAGE plpgsql IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE;
+    """
+    cr.execute(char_to_dt)
+    cr.execute(
+        """
+        ALTER TABLE mail_mail
+       ALTER COLUMN scheduled_date TYPE timestamp
+              USING char_to_dt(scheduled_date)
+    """
+    )
+    cr.execute("DROP FUNCTION char_to_dt(text)")
