@@ -38,6 +38,12 @@ NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
 
 
+def get_id(rec, name):
+    if name == "id":
+        return rec.ids[0] if rec.ids else False
+    return getattr(rec, name)
+
+
 class TestCrawler(IntegrityCase):
     view_tracebacks = {}
 
@@ -86,6 +92,7 @@ class TestCrawler(IntegrityCase):
         )
         self.assertFalse(diff, msg)
 
+    @patch("odoo.addons.base.models.ir_model.Unknown.__getattr__", get_id, create=True)
     def invariant(self):
 
         now = time.time()
