@@ -11,21 +11,10 @@ repos:
         language: script
         pass_filenames: false
         always_run: true
-      - id: saas-dash
-        name: No `saas-*` directories
-        entry: Bad directory name. `saas` versions must have a tilde separator, not a dash.
-        language: fail
-        files: 'migrations/.*/([0-9]+\.)?saas-.*/.*\.py$'
-      - id: saas-in-version
-        name: full saas
-        entry: Bad directory name. `saas` versions should be fully named.
-        language: fail
-        files: 'migrations/.*/[0-9]+\.[1-9]+.*/.*\.py$'
-      - id: full-version
-        name: fully-qualified version
-        entry: Bad directory name. Versions should be fully-qualified `SERVER_VERSION.MODULE_VERSION`
-        language: fail
-        files: '^migrations\/.+\/(?:(?!tests|(?:[0-9]+\.0|[0-9]+\.saas~[0-9]+|saas~[0-9]+\.[0-9])(?:\.[0-9]+)+).)+\/.*\.py$'
+      - id: check-filenames
+        name: Verify script filenames
+        entry: ./tools/check-filenames.py
+        language: script
       - id: no-license-comment
         name: Forbid LICENSE comments
         language: pygrep
