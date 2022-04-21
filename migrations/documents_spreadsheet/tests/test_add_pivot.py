@@ -269,6 +269,7 @@ class TestSpreadsheetAddPivot(UpgradeCase):
                 "groupBy": [],
                 "orderBy": [],
             },
+            "name": "MODEL",
         }
         data = json.loads(revisions[0].commands)
         self.assertEqual(

@@ -122,6 +122,7 @@ class TestSpreadsheetAddList(UpgradeCase):
                 "domain": [["A", "=", "test"]],
                 "orderBy": [],
             },
+            "name": "MODEL",
         }
         data = json.loads(revisions[0].commands)
         self.assertEqual(

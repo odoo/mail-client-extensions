@@ -84,6 +84,7 @@ def migrate(cr, version):
                             "domain": list.get("domain"),
                             "orderBy": [],
                         },
+                        "name": list.get("model"),
                     },
                 }
             )

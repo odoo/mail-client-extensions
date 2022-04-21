@@ -106,6 +106,7 @@ def migrate(cr, version):
                             "groupBy": [],
                             "orderBy": [],
                         },
+                        "name": pivot.get("model"),
                     },
                 }
             )
