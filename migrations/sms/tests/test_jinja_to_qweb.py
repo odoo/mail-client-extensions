@@ -32,3 +32,48 @@ class CheckJinjaToQweb(UpgradeCase):
         ]
         for field in inline_fields:
             self.assertEqual(inline_template_content, template[field])
+
+
+@change_version("saas~14.5")
+class JinjaToQweb_Data(UpgradeCase):
+    """
+    Force the tip `sms_template_demo_0` to be converted to QWeb via the upgrade script helpers
+    """
+
+    def _is_demo(self):
+        self.env.cr.execute("SELECT demo FROM ir_module_module WHERE name='base'")
+        return bool(self.env.cr.fetchone()[0])
+
+    def prepare(self):
+        if not self._is_demo():
+            # runbot also test the upgrade without demo data
+            return
+        sms_id = self.env.ref("sms.sms_template_demo_0").id
+        self.env.cr.execute(
+            """
+                UPDATE sms_template
+                   SET write_date = create_date + interval '42 minutes'
+                 WHERE id = %s
+            """,
+            [sms_id],
+        )
+        self.env.cr.execute(
+            """
+                UPDATE ir_translation
+                   SET src = src || '$$', value = value || '$$'
+                 WHERE name = 'sms.template,body'
+                   AND res_id = %s
+            """,
+            [sms_id],
+        )
+
+    def check(self, _):
+        if not self._is_demo():
+            return
+        sms = self.env.ref("sms.sms_template_demo_0")
+        self.assertIn(r"{{", sms.body)
+
+        # test translations have been updated.
+        fr = sms.with_context(lang="fr_FR")
+        self.assertIn(r"{{", fr.body)
+        self.assertIn(r"$$", fr.body)
