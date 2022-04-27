@@ -1,71 +1,82 @@
-import * as React from "react";
-import {ProfileCard, ProfileCardProps} from "../../../ProfileCard/ProfileCard";
+import * as React from 'react';
 import AppContext from '../../../AppContext';
-import Partner from "../../../../../classes/Partner";
+import Partner from '../../../../../classes/Partner';
 import './ContactListItem.css';
-import Logger from "../../../Log/Logger";
-import { _t } from "../../../../../utils/Translator";
+import Logger from '../../../Log/Logger';
+import { faEnvelope, faPhone } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { TooltipHost, TooltipOverflowMode } from 'office-ui-fabric-react';
+import { _t } from '../../../../../utils/Translator';
+
+const defaultCompanyImageSrc = 'assets/company_image.png';
 
 type CustomContactListItemProps = {
     partner: Partner;
     onItemClick?: (partner: Partner) => void;
-    selectable:boolean;
 };
 
-
-class ContactListItem extends React.Component<CustomContactListItemProps, {} > {
-
+class ContactListItem extends React.Component<CustomContactListItemProps, {}> {
     constructor(props, context) {
         super(props, context);
         this.state = {};
     }
 
+    private getIconOrInitials = () => {
+        const partnerImage = this.props.partner.image;
+        if (partnerImage) {
+            return <img className="icon" src={`data:image;base64, ${partnerImage}`} />;
+        } else if (this.props.partner.isCompany) {
+            return <img className="icon" src={defaultCompanyImageSrc} />;
+        }
+        return <div data-initials={this.props.partner.getInitials()} />;
+    };
 
     private onPartnerClick = () => {
-      this.props.onItemClick(this.props.partner);
+        this.props.onItemClick(this.props.partner);
     };
 
     render() {
-        const profileCardData = {
-            domain: undefined,
-            name: this.props.partner.name,
-            email: this.props.partner.email,
-            icon: this.props.partner.image ? "data:image;base64, " + this.props.partner.image : undefined,
-            initials: this.props.partner.getInitials(),
-            job: this.props.partner.title,
-            phone: this.props.partner.phone,
-            description: undefined,
-            twitter: undefined,
-            facebook: undefined,
-            crunchbase: undefined,
-            linkedin: undefined,
-            isBig: !this.context.isConnected() || (!this.props.partner.isAddedToDatabase()),
-            isCompany: this.props.partner.isCompany,
-        } as ProfileCardProps;
+        const logButton = this.props.partner.isAddedToDatabase() && (
+            <Logger resId={this.props.partner.id} model="res.partner" tooltipContent={_t('Log Email Into Contact')} />
+        );
 
-        let addButton = null;
-        let logButton = null;
+        const { name, email, title: jobTitle, phone } = this.props.partner;
+        const contactName = jobTitle ? name + ', ' + jobTitle : name;
 
-        if (this.props.partner.isAddedToDatabase())
-        {
-            logButton = (<Logger resId={this.props.partner.id} model="res.partner" tooltipContent={_t("Log Email Into Contact")}/>);
-        }
+        const emailDiv = email && (
+            <div className="contact-email">
+                <FontAwesomeIcon icon={faEnvelope} className="contact-info-icon fa-fw" />
+                <div className="text-truncate">
+                    <TooltipHost content={email} overflowMode={TooltipOverflowMode.Parent}>
+                        {email}
+                    </TooltipHost>
+                </div>
+            </div>
+        );
 
-        let classNames = "contact-list-item-container";
-        if (this.props.selectable)
-            classNames+= " contact-list-item-container-selectable";
+        const phoneDiv = phone && (
+            <div className="contact-phone">
+                <FontAwesomeIcon icon={faPhone} className="contact-info-icon fa-fw" />
+                <a className="link-like-button" href={`tel:${phone}`}>
+                    {phone}
+                </a>
+            </div>
+        );
 
-        return <React.Fragment>
-            <div onClick={this.onPartnerClick} className={classNames}>
-                {addButton}
-                <div className='contact-profile-card-container'>
-                    <ProfileCard {...profileCardData} />
+        return (
+            <div className={`contact-container ${this.props.onItemClick && 'clickable'}`} onClick={this.onPartnerClick}>
+                <div className="contact-card">
+                    {this.getIconOrInitials()}
+                    <div className="contact-info">
+                        <div className="contact-name">{contactName}</div>
+                        {emailDiv}
+                        {phoneDiv}
+                    </div>
                 </div>
                 {logButton}
             </div>
-        </React.Fragment>;
+        );
     }
-
 }
 ContactListItem.contextType = AppContext;
 export default ContactListItem;

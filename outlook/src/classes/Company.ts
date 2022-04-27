@@ -1,10 +1,6 @@
 import Address from './Address';
-import EnrichmentInfo, {EnrichmentInfoType} from "./EnrichmentInfo";
+import EnrichmentInfo, { EnrichmentInfoType } from './EnrichmentInfo';
 
-/***
- * id reserved for non empty companies which we fetch directly from IAP.
- */
-const ID_COMPANY_FROM_REVEAL: number = -2;
 /***
  * id reserved for empty companies.
  */
@@ -25,10 +21,9 @@ class Company {
     address: Address;
     phone: string;
     email: string;
-    additionalInfo: {};//Map<string, string>;
+    additionalInfo: {}; //Map<string, string>;
 
     enrichmentStatus: EnrichmentStatus;
-
 
     constructor() {
         this.id = ID_COMPANY_EMPTY;
@@ -48,25 +43,27 @@ class Company {
         company.address = Address.fromJSON(o['address']);
 
         if (enrichmentInfo != null) {
-            if (enrichmentInfo.type == EnrichmentInfoType.NoData) {
-                company.enrichmentStatus = EnrichmentStatus.enrichmentEmpty;
-            } else if (EnrichmentInfoType.CompanyCreated || EnrichmentInfoType.CompanyUpdated) {
-                company.enrichmentStatus = EnrichmentStatus.enriched;
+            switch (enrichmentInfo.type) {
+                case EnrichmentInfoType.NoData:
+                    company.enrichmentStatus = EnrichmentStatus.enrichmentEmpty;
+                    break;
+                case EnrichmentInfoType.CompanyCreated:
+                case EnrichmentInfoType.CompanyUpdated:
+                    company.enrichmentStatus = EnrichmentStatus.enriched;
+                    break;
             }
-
         } else if (JSON.stringify(company.additionalInfo) != '{}') {
             company.enrichmentStatus = EnrichmentStatus.enriched;
         } else {
             company.enrichmentStatus = EnrichmentStatus.enrichmentAvailable;
         }
 
-
         return company;
     }
 
     static fromRevealJSON(o: Object): Company {
         const company = new Company();
-        company.id = ID_COMPANY_FROM_REVEAL;
+        company.id = ID_COMPANY_EMPTY;
         company.additionalInfo = o;
         return company;
     }
@@ -75,9 +72,9 @@ class Company {
         const company = new Company();
         company.id = ID_COMPANY_EMPTY;
         return company;
-    }
+    };
 
-    getDomain() : string {
+    getDomain(): string {
         let domain = this.domain || this.additionalInfo['domain'] || this.website;
         if (domain && !domain.startsWith('http://') && !domain.startsWith('https://')) {
             domain = 'https://' + domain;
@@ -93,9 +90,8 @@ class Company {
         return domain;
     }
 
-    getPhone() : string {
-        if (this.phone)
-            return this.phone;
+    getPhone(): string {
+        if (this.phone) return this.phone;
 
         if (this.additionalInfo['phone_numbers'] && this.additionalInfo['phone_numbers'].length > 0)
             return this.additionalInfo['phone_numbers'][0];
@@ -103,40 +99,37 @@ class Company {
         return '';
     }
 
-    getName() : string {
+    getName(): string {
         return this.name || this.additionalInfo['name'];
     }
 
-    getDescription() : string {
+    getDescription(): string {
         return this.additionalInfo['description'];
     }
 
-    getIndustry() : string {
-        // TODO 'sector' ?
-        const industries = [this.additionalInfo['industry_group'], this.additionalInfo['sub_industry']]
-        return industries.filter(Boolean).join(", ");
+    getIndustry(): string {
+        const industries = [this.additionalInfo['industry_group'], this.additionalInfo['sub_industry']];
+        return industries.filter(Boolean).join(', ');
     }
 
-    getEmployees() : number {
-        // TODO remove the decimal
+    getEmployees(): number {
         return this.additionalInfo['employees'];
     }
 
-    getYearFounded() : number {
+    getYearFounded(): number {
         return this.additionalInfo['founded_year'];
     }
 
-    getKeywords() : string {
-        if (this.additionalInfo['tag'])
-            return this.additionalInfo['tag'].join(', ');
+    getKeywords(): string {
+        if (this.additionalInfo['tag']) return this.additionalInfo['tag'].join(', ');
         return '';
     }
 
-    getCompanyType() : string {
+    getCompanyType(): string {
         return this.additionalInfo['company_type'];
     }
 
-    getLogoURL() : string {
+    getLogoURL(): string {
         return this.additionalInfo['logo'];
     }
 
@@ -144,38 +137,36 @@ class Company {
         Data sample: "annual_revenue": 0.0,
                      "estimated_annual_revenue": "$50M-$100M",
     */
-    getRevenue() : string {
+    getRevenue(): string {
         return this.additionalInfo['estimated_annual_revenue'];
     }
 
-    // TODO: sort it out with the Address object, note: this location can be directly added to a query to maps:
-    // "http://maps.google.com/?q=Koning Albert II-Laan 27, 1000 Brussel, Belgium"
-    getLocation() : string {
+    getLocation(): string {
         return this.address.getLines().join(', ') || this.additionalInfo['location'];
     }
 
-    getTwitter() : string {
+    getTwitter(): string {
         return this.additionalInfo['twitter'];
     }
 
-    getFacebook() : string {
+    getFacebook(): string {
         return this.additionalInfo['facebook'];
     }
 
-    getLinkedin() : string {
+    getLinkedin(): string {
         return this.additionalInfo['linkedin'];
     }
 
-    getCrunchbase() : string {
+    getCrunchbase(): string {
         return this.additionalInfo['crunchbase'];
     }
 
-    getInitials() : string {
+    getInitials(): string {
         const name = this.getName();
         if (!name) {
-            return "";
+            return '';
         }
-        const names = this.name.split(" ");
+        const names = this.name.split(' ');
         let initials = names[0].substring(0, 1).toUpperCase();
 
         // If the company is more than two words, better only include the first letter of the first word.
@@ -189,10 +180,9 @@ class Company {
     /***
      * Returns True if the company exists in the Odoo database, False otherwise
      */
-    isAddedToDatabase (): boolean {
-        return this.id > 0;
+    isAddedToDatabase(): boolean {
+        return this.id && this.id > 0;
     }
-
 }
 
 export default Company;

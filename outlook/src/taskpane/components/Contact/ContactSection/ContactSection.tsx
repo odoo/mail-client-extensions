@@ -1,9 +1,9 @@
-import * as React from "react";
-import Partner from "../../../../classes/Partner";
+import * as React from 'react';
+import Partner from '../../../../classes/Partner';
 
-import ContactListItem from "../ContactList/ContactListItem/ContactListItem";
+import ContactListItem from '../ContactList/ContactListItem/ContactListItem';
 
-import api from "../../../api";
+import api from '../../../api';
 import AppContext from '../../AppContext';
 
 type ContactSectionProps = {
@@ -11,27 +11,22 @@ type ContactSectionProps = {
     onPartnerInfoChanged?: (partner: Partner) => void;
 };
 
-
 class ContactSection extends React.Component<ContactSectionProps, {}> {
-
     viewContact = (partner) => {
         const cids = this.context.getUserCompaniesString();
-        let url = api.baseURL+`/web#id=${partner.id}&model=res.partner&view_type=form${cids}`;
-        window.open(url,"_blank");
-    }
+        const url = `${api.baseURL}/web#id=${partner.id}&model=res.partner&view_type=form${cids}`;
+        window.open(url, '_blank');
+    };
 
     render() {
-        let selectable = this.props.partner.isAddedToDatabase();
-        let onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : undefined;
+        const onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : null;
 
         return (
-            <div className='section-card'>
-                <ContactListItem partner={this.props.partner} selectable={selectable}
-                                 onItemClick={onItemClick}/>
+            <div className="section-card">
+                <ContactListItem partner={this.props.partner} onItemClick={onItemClick} />
             </div>
         );
     }
-
 }
 ContactSection.contextType = AppContext;
 

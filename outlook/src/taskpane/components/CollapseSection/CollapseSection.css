@@ -1,3 +1,7 @@
+.section-card {
+    user-select: none;
+}
+
 .collapse-section-button {
     cursor: pointer;
     margin-right: 8px;

@@ -1,7 +1,14 @@
+.app-main {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
  body {
      margin: 0;
      background-color: whitesmoke;
-     overflow-y: scroll;
+     overflow-y: auto;
  }
  
 .full-width {
@@ -152,6 +159,7 @@
      cursor: pointer;
      width: fit-content;
      width: -moz-fit-content;
+     user-select: none;
  }
 
  .muted-text {
@@ -209,3 +217,9 @@
      font-size: medium;
      cursor: pointer;
  }
+
+.text-truncate {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}

@@ -34,3 +34,9 @@
     text-align: center;
     color: #8c8c8c;
 }
+
+.list-item-description {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #787878;
+}

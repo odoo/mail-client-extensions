@@ -1,9 +1,8 @@
 import Company from './Company';
 import EnrichmentInfo from './EnrichmentInfo';
-import Lead from "./Lead";
-import HelpdeskTicket from "./HelpdeskTicket";
+import Lead from './Lead';
+import HelpdeskTicket from './HelpdeskTicket';
 import Task from './Task';
-
 
 /***
  * id value for partners which have not been yet added to a Odoo database
@@ -28,19 +27,17 @@ class Partner {
 
     constructor() {
         this.id = ID_PARTNER_NOT_FROM_DATABASE;
-        this.name = "";
-        this.title = "";
-        this.phone = "";
-        this.mobile = "";
-        this.email = "";
+        this.name = '';
+        this.title = '';
+        this.phone = '';
+        this.mobile = '';
+        this.email = '';
         this.company = new Company();
-        this.image = "";
+        this.image = '';
         this.enrichmentInfo = new EnrichmentInfo();
         this.created = false;
         this.isCompany = false;
     }
-
-
 
     /***
      * Creates a partner which is not stored in a Odoo database
@@ -48,12 +45,12 @@ class Partner {
      * @param email
      * @param company
      */
-    static createNewPartnerFromEmail = (name: string, email: string) : Partner => {
-        let partner = new Partner();
+    static createNewPartnerFromEmail = (name: string, email: string): Partner => {
+        const partner = new Partner();
         partner.name = name;
         partner.email = email;
         return partner;
-    }
+    };
 
     static fromJSON(o: Object): Partner {
         if (!o) return new Partner();
@@ -74,16 +71,11 @@ class Partner {
      * @param name the contact's name
      * @param partners a list of partners
      */
-    static sortBestMatches(email: string, name: string, partners: Partner[]): Partner[]
-    {
+    static sortBestMatches(email: string, name: string, partners: Partner[]): Partner[] {
         return partners.sort((p1, p2) => {
-
-            if (p1.email === email && ((p2.email !== email) || (p1.name == name)))
-            {
+            if (p1.email === email && (p2.email !== email || p1.name == name)) {
                 return -1;
-            }
-            else
-            {
+            } else {
                 return 1;
             }
         });
@@ -94,26 +86,21 @@ class Partner {
      * last "words" composing the displayName, words having a length < 2 and which contain non alphabetical characters are
      * not taken into account.
      */
-    getInitials() : string {
-
+    getInitials(): string {
         //get all words having a length > 2 and containing only letters
-        let rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
+        const rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
 
-        let initials = [...this.name.matchAll(rgx)] || [];
+        const initials = [...this.name.matchAll(rgx)] || [];
 
-        return (
-            (initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')
-        ).toUpperCase();
-
-    };
+        return ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
+    }
 
     /***
      * Returns True if the partner exists in the Odoo database, False otherwise
      */
     isAddedToDatabase(): boolean {
-        return this.id > 0;
+        return this.id && this.id > 0;
     }
-
 }
 
 export default Partner;

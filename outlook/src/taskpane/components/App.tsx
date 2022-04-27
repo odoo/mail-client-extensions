@@ -1,11 +1,11 @@
-import * as React from "react";
-import Login from "./Login/Login"
-import Main from "./Main/Main";
+import * as React from 'react';
+import Login from './Login/Login';
+import Main from './Main/Main';
 import AppContext from './AppContext';
-import EnrichmentInfo, {EnrichmentInfoType} from "../../classes/EnrichmentInfo";
-import {IIconProps, Link, MessageBar, MessageBarType} from "office-ui-fabric-react";
-import Progress from "./GrayOverlay";
-import { _t } from "../../utils/Translator";
+import EnrichmentInfo, { EnrichmentInfoType } from '../../classes/EnrichmentInfo';
+import { IIconProps, Link, MessageBar, MessageBarType } from 'office-ui-fabric-react';
+import Progress from './GrayOverlay';
+import { _t } from '../../utils/Translator';
 
 enum Page {
     Login,
@@ -19,6 +19,7 @@ export interface AppProps {
 }
 
 export interface AppState {
+    mainKey: number;
     pageDisplayed: Page;
     EnrichmentInfo: EnrichmentInfo;
     showPartnerCreatedMessage: boolean;
@@ -26,19 +27,19 @@ export interface AppState {
     userCompanies: number[];
     loginErrorMessage: string;
     navigation: {
-        goToLogin: () => void,
-        goToMain: () => void
-        },
-    connect: (token) => void,
-    disconnect: () => void,
-    getConnectionToken: () => void,
-    getUserCompaniesString: () => string,
-    isConnected: () => Boolean,
-    cancelRequests: () => void,
-    addRequestCanceller: (canceller: () => void) => void,
-    setUserCompanies: (userCompanies: number[]) => void,
-    showTopBarMessage: (enrichmentInfo?: EnrichmentInfo) => void,
-    showHttpErrorMessage: (error) => void
+        goToLogin: () => void;
+        goToMain: () => void;
+    };
+    connect: (token) => void;
+    disconnect: () => void;
+    getConnectionToken: () => void;
+    getUserCompaniesString: () => string;
+    isConnected: () => Boolean;
+    cancelRequests: () => void;
+    addRequestCanceller: (canceller: () => void) => void;
+    setUserCompanies: (userCompanies: number[]) => void;
+    showTopBarMessage: (enrichmentInfo?: EnrichmentInfo) => void;
+    showHttpErrorMessage: (error) => void;
 }
 
 export default class App extends React.Component<AppProps, AppState> {
@@ -47,18 +48,19 @@ export default class App extends React.Component<AppProps, AppState> {
     constructor(props, context) {
         super(props, context);
 
-        props.itemChangedRegister(this.itemChanged);
+        props.itemChangedRegister(this.onItemChanged);
 
         this.state = {
+            mainKey: 0,
             EnrichmentInfo: new EnrichmentInfo(),
             showPartnerCreatedMessage: false,
             showEnrichmentInfoMessage: false,
             userCompanies: [],
             pageDisplayed: Page.Main,
-            loginErrorMessage: "",
+            loginErrorMessage: '',
             navigation: {
                 goToLogin: this.goToLogin,
-                goToMain: this.goToMain
+                goToMain: this.goToMain,
             },
             connect: (token) => {
                 localStorage.setItem('odooConnectionToken', token);
@@ -84,7 +86,7 @@ export default class App extends React.Component<AppProps, AppState> {
             cancelRequests: () => {
                 const cancellers = [...this.requestCancellers];
                 this.requestCancellers = [];
-                for (const canceller of cancellers){
+                for (const canceller of cancellers) {
                     canceller(); // Cancel the request.
                 }
             },
@@ -93,150 +95,190 @@ export default class App extends React.Component<AppProps, AppState> {
             },
 
             setUserCompanies: (companies: number[]) => {
-                this.setState({userCompanies: companies});
+                this.setState({ userCompanies: companies });
             },
 
             showTopBarMessage: (enrichmentInfo) => {
                 if (enrichmentInfo)
                     this.setState({
                         EnrichmentInfo: enrichmentInfo,
-                        showEnrichmentInfoMessage: true
+                        showEnrichmentInfoMessage: true,
                     });
                 else
                     this.setState({
                         EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
-                        showEnrichmentInfoMessage: true
+                        showEnrichmentInfoMessage: true,
                     });
             },
 
             showHttpErrorMessage: (error?) => {
-                if (error && error.message == '0')
-                {
+                if (error && error.message == '0') {
                     this.setState({
                         EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
-                        showEnrichmentInfoMessage: true
+                        showEnrichmentInfoMessage: true,
                     });
-                }
-                else
-                {
+                } else {
                     this.setState({
                         EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
-                        showEnrichmentInfoMessage: true
+                        showEnrichmentInfoMessage: true,
                     });
                 }
             },
-
         };
     }
 
     private getMessageBars = () => {
-        const {type, info} = this.state.EnrichmentInfo;
+        const { type, info } = this.state.EnrichmentInfo;
         const message = this.state.EnrichmentInfo.getTypicalMessage();
         const warningIcon: IIconProps = {
             iconName: 'Error',
-            style: {fontSize: "20px"},
+            style: { fontSize: '20px' },
         };
         let bars = [];
         if (this.state.showPartnerCreatedMessage) {
-            bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hidePartnerCreatedMessage}>{_t("Contact created")}</MessageBar>);
+            bars.push(
+                <MessageBar messageBarType={MessageBarType.success} onDismiss={this.hidePartnerCreatedMessage}>
+                    {_t('Contact created')}
+                </MessageBar>,
+            );
         }
         if (this.state.showEnrichmentInfoMessage) {
             switch (type) {
                 case EnrichmentInfoType.CompanyCreated:
-                    bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>{_t("Company created")}</MessageBar>);
+                    bars.push(
+                        <MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>
+                            {_t('Company created')}
+                        </MessageBar>,
+                    );
                     break;
                 case EnrichmentInfoType.CompanyUpdated:
-                    bars.push(<MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>{_t("Company updated")}</MessageBar>);
+                    bars.push(
+                        <MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>
+                            {_t('Company updated')}
+                        </MessageBar>,
+                    );
                     break;
                 case EnrichmentInfoType.NoData:
                 case EnrichmentInfoType.NotConnected_NoData:
-                    bars.push(<MessageBar messageBarType={MessageBarType.warning} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
+                    bars.push(
+                        <MessageBar messageBarType={MessageBarType.warning} onDismiss={this.hideEnrichmentInfoMessage}>
+                            {message}
+                        </MessageBar>,
+                    );
                     break;
                 case EnrichmentInfoType.InsufficientCredit:
-
-                    bars.push(<MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon}  onDismiss={this.hideEnrichmentInfoMessage}>
-                        {message}
-                        <br/>
-                        <Link href={info} target="_blank">
-                            {_t("Buy More")}
-                        </Link>
-                    </MessageBar>);
+                    bars.push(
+                        <MessageBar
+                            messageBarType={MessageBarType.error}
+                            messageBarIconProps={warningIcon}
+                            onDismiss={this.hideEnrichmentInfoMessage}>
+                            {message}
+                            <br />
+                            <Link href={info} target="_blank">
+                                {_t('Buy More')}
+                            </Link>
+                        </MessageBar>,
+                    );
                     break;
                 case EnrichmentInfoType.ConnectionError:
-                    bars.push(<>
-                        <MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon} onDismiss={this.hideEnrichmentInfoMessage}>
-                            {message}
-                            <div className="link-like-button" onClick={() =>{this.goToLogin()}}>{_t("Login")}</div>
-                        </MessageBar>
-                    </>);
+                    bars.push(
+                        <>
+                            <MessageBar
+                                messageBarType={MessageBarType.error}
+                                messageBarIconProps={warningIcon}
+                                onDismiss={this.hideEnrichmentInfoMessage}>
+                                {message}
+                                <div
+                                    className="link-like-button"
+                                    onClick={() => {
+                                        this.goToLogin();
+                                    }}>
+                                    {_t('Login')}
+                                </div>
+                            </MessageBar>
+                        </>,
+                    );
                     break;
                 case EnrichmentInfoType.EnrichContactWithNoEmail:
                 case EnrichmentInfoType.NotConnected_InsufficientCredit:
                 case EnrichmentInfoType.NotConnected_InternalError:
                 case EnrichmentInfoType.Other:
+                case EnrichmentInfoType.OdooCustomError:
                 case EnrichmentInfoType.CouldNotGetTranslations:
-                    bars.push(<MessageBar messageBarType={MessageBarType.error} messageBarIconProps={warningIcon} onDismiss={this.hideEnrichmentInfoMessage}>{message}</MessageBar>);
-                        break;
+                    bars.push(
+                        <MessageBar
+                            messageBarType={MessageBarType.error}
+                            messageBarIconProps={warningIcon}
+                            onDismiss={this.hideEnrichmentInfoMessage}>
+                            {message}
+                        </MessageBar>,
+                    );
+                    break;
             }
         }
         return bars;
-    }
+    };
 
     private goToLogin = () => {
         this.setState({
-        pageDisplayed: Page.Login
-        })
-    }
+            pageDisplayed: Page.Login,
+        });
+    };
 
     private goToMain = () => {
         this.setState({
-        pageDisplayed: Page.Main
-        })
-    }
+            pageDisplayed: Page.Main,
+        });
+    };
 
-    private itemChanged = () => {
-
-    }
+    private onItemChanged = () => {
+        // When we open a new email on Outlook Desktop,
+        // we want to reload the component (so we refetch the new partner)
+        this.setState({
+            mainKey: this.state.mainKey + 1,
+            showPartnerCreatedMessage: false,
+            showEnrichmentInfoMessage: false,
+        });
+    };
 
     private hideEnrichmentInfoMessage = () => {
         this.setState({
-            showEnrichmentInfoMessage: false
-        })
-    }
+            showEnrichmentInfoMessage: false,
+        });
+    };
 
     private hidePartnerCreatedMessage = () => {
         this.setState({
-            showPartnerCreatedMessage: false
-        })
-    }
+            showPartnerCreatedMessage: false,
+        });
+    };
 
     render() {
         const { isOfficeInitialized } = this.props;
 
         if (!isOfficeInitialized) {
-            return (
-                <Progress />
-            );
+            return <Progress />;
         }
 
         switch (this.state.pageDisplayed) {
-        case Page.Login:
-            return <AppContext.Provider value={this.state}><Login /></AppContext.Provider>
-        case Page.Main:
-        default:
-
-            return (
-                <AppContext.Provider value={this.state}>
-                    <div style={{height: "100vh", width:"100hw", display: "flex", flexDirection: "column"}}>
-                        <div>
-                            {this.getMessageBars()}
+            case Page.Login:
+                return (
+                    <AppContext.Provider value={this.state}>
+                        <Login />
+                    </AppContext.Provider>
+                );
+            case Page.Main:
+            default:
+                return (
+                    <AppContext.Provider value={this.state}>
+                        <div className="app-main">
+                            <div>{this.getMessageBars()}</div>
+                            <div style={{ flex: 1 }}>
+                                <Main key={this.state.mainKey} />
+                            </div>
                         </div>
-                        <div style={{flex: 1}}>
-                            <Main />
-                        </div>
-                    </div>
-                </AppContext.Provider>
-            );
+                    </AppContext.Provider>
+                );
         }
     }
 }

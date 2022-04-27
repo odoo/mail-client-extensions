@@ -7,15 +7,14 @@ class Lead {
     recurringPlan?: string;
 
     static fromJSON(o: Object): Lead {
-        var lead = new Lead();
+        const lead = new Lead();
         lead.id = o['lead_id'];
         lead.name = o['name'];
         lead.probability = o['probability'];
 
         lead.expectedRevenue = this.removeDecimals(o['expected_revenue']);
 
-        if (o['recurring_revenue'])
-        {
+        if (o['recurring_revenue']) {
             lead.recurringRevenue = this.removeDecimals(o['recurring_revenue']);
             lead.recurringPlan = o['recurring_plan'];
         }
@@ -32,16 +31,16 @@ class Lead {
         return newLead;
     }
 
-    private static removeDecimals (revenue: string): string
-    {
-        if (revenue.search(/\.00\D*$/) != -1) { // if it ends with ".00" or ".00 $" or ".00 €", etc.
-            return  revenue.replace(/\.00/, '');
-        } else if (revenue.search(/,00\D*$/) != -1) { // if it ends with ",00" or ",00 $" or ",00 €", etc.
-            return  revenue.replace(/,00/, '');
+    private static removeDecimals(revenue: string): string {
+        if (revenue.search(/\.00\D*$/) != -1) {
+            // if it ends with ".00" or ".00 $" or ".00 €", etc.
+            return revenue.replace(/\.00/, '');
+        } else if (revenue.search(/,00\D*$/) != -1) {
+            // if it ends with ",00" or ",00 $" or ",00 €", etc.
+            return revenue.replace(/,00/, '');
         }
         return revenue;
     }
-
 }
 
 export default Lead;
