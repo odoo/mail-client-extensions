@@ -17,3 +17,14 @@
     margin-top: 16px;
     color: rgb(164, 38, 44);
 }
+
+.connect-your-database {
+    font-size: 30px;
+    width: 200px;
+    margin: auto;
+    text-align: center;
+}
+
+.connect-your-database > img {
+    height: 30px;
+}

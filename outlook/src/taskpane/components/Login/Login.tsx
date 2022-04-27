@@ -223,15 +223,9 @@ class Login extends React.Component<{}, LoginState> {
                 </div>
 
                 <div className="bounded-tile">
-                    <div
-                        style={{
-                            fontSize: '30px',
-                            width: '200px',
-                            margin: 'auto',
-                            textAlign: 'center',
-                        }}>
+                    <div className="connect-your-database">
                         Connect Your
-                        <img src="assets/odoo-full.png" style={{ height: '30px' }} />
+                        <img src="assets/odoo-full.png" />
                         Database
                     </div>
                     <TextField
