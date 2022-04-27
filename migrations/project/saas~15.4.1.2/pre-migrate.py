@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    eb = util.expand_braces
     util.create_column(cr, "project_task", "ancestor_id", "int4")
 
     cr.execute(
@@ -26,3 +27,16 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "project.task.burndown.chart.report", "nb_tasks")
+    if util.module_installed(cr, "project_enterprise"):
+        renames = [
+            eb("project{_enterprise,}.project_task_kanban_action_view"),
+            eb("project{_enterprise,}.project_task_tree_action_view"),
+            eb("project{_enterprise,}.project_task_form_action_view"),
+            eb("project{_enterprise,}.project_all_task_calendar_action_view"),
+            eb("project{_enterprise,}.project_all_task_pivot_action_view"),
+            eb("project{_enterprise,}.project_all_task_graph_action_view"),
+            eb("project{_enterprise,}.project_all_task_activity_action_view"),
+        ]
+
+        for rename in renames:
+            util.rename_xmlid(cr, *rename)
