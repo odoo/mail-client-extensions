@@ -74,8 +74,12 @@ export function buildTasksView(state: State, card: Card) {
                 ),
             );
         }
-    } else {
+    } else if (state.canCreatePartner) {
         tasksSection.addWidget(CardService.newTextParagraph().setText(_t("Save the contact to create new tasks.")));
+    } else {
+        tasksSection.addWidget(
+            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Tasks.")),
+        );
     }
 
     card.addSection(tasksSection);

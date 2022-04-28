@@ -10,11 +10,20 @@ function onLogout(state: State) {
     resetAccessToken();
     clearTranslationCache();
 
-    const [partner, odooUserCompanies, error] = Partner.enrichPartner(
+    const [partner, odooUserCompanies, canCreatePartner, canCreateProject, error] = Partner.enrichPartner(
         state.email.contactEmail,
         state.email.contactName,
     );
-    const newState = new State(partner, state.email, odooUserCompanies, null, null, error);
+    const newState = new State(
+        partner,
+        canCreatePartner,
+        state.email,
+        odooUserCompanies,
+        null,
+        null,
+        canCreateProject,
+        error,
+    );
     return pushToRoot(buildView(newState));
 }
 

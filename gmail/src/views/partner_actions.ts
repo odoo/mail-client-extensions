@@ -17,11 +17,13 @@ function onSearchPartner(state: State) {
 }
 
 function onReloadPartner(state: State) {
-    [state.partner, state.odooUserCompanies, state.error] = Partner.getPartner(
-        state.partner.email,
-        state.partner.name,
-        state.partner.id,
-    );
+    [
+        state.partner,
+        state.odooUserCompanies,
+        state.canCreatePartner,
+        state.canCreateProject,
+        state.error,
+    ] = Partner.getPartner(state.partner.email, state.partner.name, state.partner.id);
 
     return updateCard(buildView(state));
 }

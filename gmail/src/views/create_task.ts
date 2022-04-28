@@ -115,7 +115,7 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
 
     card.addSection(projectSection);
 
-    if (!hideCreateProjectSection) {
+    if (!hideCreateProjectSection && state.canCreateProject) {
         const createProjectSection = CardService.newCardSection().setHeader(
             "<b>" + _t("Create a Task in a new Project") + "</b>",
         );

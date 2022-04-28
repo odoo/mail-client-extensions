@@ -61,15 +61,19 @@ export function buildPartnerView(state: State, card: Card) {
 
     let partnerButton = null;
     if (canContactOdooDatabase && !partner.id) {
-        partnerButton = CardService.newImageButton()
-            .setAltText(_t("Save in Odoo"))
-            .setIconUrl(UI_ICONS.save_in_odoo)
-            .setOnClickAction(actionCall(state, "onSavePartner"));
+        partnerButton = state.canCreatePartner
+            ? CardService.newImageButton()
+                  .setAltText(_t("Save in Odoo"))
+                  .setIconUrl(UI_ICONS.save_in_odoo)
+                  .setOnClickAction(actionCall(state, "onSavePartner"))
+            : null;
     } else if (canContactOdooDatabase && !isEmailLogged) {
-        partnerButton = CardService.newImageButton()
-            .setAltText(_t("Log email"))
-            .setIconUrl(UI_ICONS.email_in_odoo)
-            .setOnClickAction(actionCall(state, "onLogEmail"));
+        partnerButton = partner.isWriteable
+            ? CardService.newImageButton()
+                  .setAltText(_t("Log email"))
+                  .setIconUrl(UI_ICONS.email_in_odoo)
+                  .setOnClickAction(actionCall(state, "onLogEmail"))
+            : null;
     } else if (canContactOdooDatabase && isEmailLogged) {
         partnerButton = CardService.newImageButton()
             .setAltText(_t("Email already logged on the contact"))

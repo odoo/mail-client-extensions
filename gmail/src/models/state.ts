@@ -20,6 +20,7 @@ import { getAccessToken, getOdooAuthUrl } from "../services/odoo_auth";
 export class State {
     // Contact of the current card
     partner: Partner;
+    canCreatePartner: boolean;
     // Opened email with headers
     email: Email;
     // ID list of the Odoo user companies
@@ -28,6 +29,7 @@ export class State {
     searchedPartners: Partner[];
     // Searched projects in the search view
     searchedProjects: Project[];
+    canCreateProject: boolean;
     // Current error message displayed on the card
     error: ErrorMessage;
     // Used in the company card
@@ -35,17 +37,21 @@ export class State {
 
     constructor(
         partner: Partner,
+        canCreatePartner: boolean,
         email: Email,
         odooUserCompanies: number[],
         partners: Partner[],
         searchedProjects: Project[],
+        canCreateProject: boolean,
         error: ErrorMessage,
     ) {
         this.partner = partner;
+        this.canCreatePartner = canCreatePartner;
         this.email = email;
         this.odooUserCompanies = odooUserCompanies;
         this.searchedPartners = partners;
         this.searchedProjects = searchedProjects;
+        this.canCreateProject = canCreateProject;
         this.error = error;
     }
 
@@ -60,10 +66,12 @@ export class State {
         const values = JSON.parse(json);
 
         const partnerValues = values.partner || {};
+        const canCreatePartner = values.canCreatePartner;
         const emailValues = values.email || {};
         const errorValues = values.error || {};
         const partnersValues = values.searchedPartners;
         const projectsValues = values.searchedProjects;
+        const canCreateProject = values.canCreateProject;
 
         const partner = Partner.fromJson(partnerValues);
         const email = Email.fromJson(emailValues);
@@ -79,7 +87,16 @@ export class State {
         // "isCompanyDescriptionUnfolded" is not copied
         // to re-fold the description if we go back / refresh
 
-        return new State(partner, email, odooUserCompanies, searchedPartners, searchedProjects, error);
+        return new State(
+            partner,
+            canCreatePartner,
+            email,
+            odooUserCompanies,
+            searchedPartners,
+            searchedProjects,
+            canCreateProject,
+            error,
+        );
     }
 
     /**

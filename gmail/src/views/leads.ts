@@ -105,8 +105,12 @@ export function buildLeadsView(state: State, card: Card) {
                 ),
             );
         }
-    } else {
+    } else if (state.canCreatePartner) {
         leadsSection.addWidget(CardService.newTextParagraph().setText(_t("Save Contact to create new Opportunities.")));
+    } else {
+        leadsSection.addWidget(
+            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Opportunities.")),
+        );
     }
 
     card.addSection(leadsSection);

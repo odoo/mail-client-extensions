@@ -32,8 +32,21 @@ function onLogEmailPartner(state: State, parameters: any) {
 
 function onOpenPartner(state: State, parameters: any) {
     const partner = parameters.partner;
-    const [newPartner, odooUserCompanies, error] = Partner.getPartner(partner.email, partner.name, partner.id);
-    const newState = new State(newPartner, state.email, odooUserCompanies, null, null, error);
+    const [newPartner, odooUserCompanies, canCreatePartner, canCreateProject, error] = Partner.getPartner(
+        partner.email,
+        partner.name,
+        partner.id,
+    );
+    const newState = new State(
+        newPartner,
+        canCreatePartner,
+        state.email,
+        odooUserCompanies,
+        null,
+        null,
+        canCreateProject,
+        error,
+    );
     return pushCard(buildView(newState));
 }
 
@@ -68,7 +81,14 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
             .setText(partner.name)
             .setWrapText(true)
             .setOnClickAction(actionCall(state, "onOpenPartner", { partner: partner }))
-            .setButton(
+            .setStartIcon(
+                CardService.newIconImage()
+                    .setIconUrl(partner.image || (partner.isCompany ? UI_ICONS.no_company : UI_ICONS.person))
+                    .setImageCropType(CardService.ImageCropType.CIRCLE),
+            );
+
+        if (partner.isWriteable) {
+            partnerCard.setButton(
                 loggingState["partners"].indexOf(partner.id) < 0
                     ? CardService.newImageButton()
                           .setAltText(_t("Log email"))
@@ -83,12 +103,8 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
                           .setAltText(_t("Email already logged on the contact"))
                           .setIconUrl(UI_ICONS.email_logged)
                           .setOnClickAction(actionCall(state, "onEmailAlreadyLogged")),
-            )
-            .setStartIcon(
-                CardService.newIconImage()
-                    .setIconUrl(partner.image || (partner.isCompany ? UI_ICONS.no_company : UI_ICONS.person))
-                    .setImageCropType(CardService.ImageCropType.CIRCLE),
             );
+        }
 
         if (partner.email) {
             partnerCard.setBottomLabel(partner.email);

@@ -87,8 +87,12 @@ export function buildTicketsView(state: State, card: Card) {
                 ),
             );
         }
-    } else {
+    } else if (state.canCreatePartner) {
         ticketsSection.addWidget(CardService.newTextParagraph().setText(_t("Save the contact to create new tickets.")));
+    } else {
+        ticketsSection.addWidget(
+            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Tickets.")),
+        );
     }
 
     card.addSection(ticketsSection);

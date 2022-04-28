@@ -155,7 +155,7 @@ export function buildCompanyView(state: State, card: Card) {
         if (!company.isEnriched) {
             const enrichSection = CardService.newCardSection();
             enrichSection.addWidget(CardService.newTextParagraph().setText(_t("No insights for this company.")));
-            if (state.error.canCreateCompany) {
+            if (state.error.canCreateCompany && state.canCreatePartner) {
                 enrichSection.addWidget(
                     CardService.newTextButton()
                         .setText(_t("Enrich Company"))
@@ -168,7 +168,7 @@ export function buildCompanyView(state: State, card: Card) {
         const companySection = CardService.newCardSection().setHeader("<b>" + _t("Company Insights") + "</b>");
         companySection.addWidget(CardService.newTextParagraph().setText(_t("No company attached to this contact.")));
 
-        if (state.error.canCreateCompany) {
+        if (state.error.canCreateCompany && state.canCreatePartner) {
             companySection.addWidget(
                 CardService.newTextButton()
                     .setText(_t("Create a company"))
