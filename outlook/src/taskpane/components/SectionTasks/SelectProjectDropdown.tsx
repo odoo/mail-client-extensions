@@ -11,6 +11,7 @@ import AppContext from '../AppContext';
 
 type SelectProjectProps = {
     partner: Partner;
+    canCreateProject: boolean;
     onProjectClick: (project: Project) => void;
 };
 
@@ -104,15 +105,11 @@ class SelectProjectDropdown extends React.Component<SelectProjectProps, SelectPr
     };
 
     private getProjects = () => {
-        if (this.state.isLoading) {
-            return <Spinner theme={OdooTheme} size={SpinnerSize.large} className="project-result-spinner" />;
-        }
-
         const searchedTermExists = this.state.projects.filter(
             (p) => p.name.toUpperCase() === this.state.query.toUpperCase(),
         ).length;
 
-        const allowCreateNewProject = !!this.state.query.length && !searchedTermExists;
+        const allowCreateNewProject = this.props.canCreateProject && !!this.state.query.length && !searchedTermExists;
 
         return (
             <div>
@@ -128,6 +125,12 @@ class SelectProjectDropdown extends React.Component<SelectProjectProps, SelectPr
                     <div className="create-project-text" onClick={this.createProject}>
                         {_t('Create %(name)s', { name: this.state.query })}
                     </div>
+                )}
+                {this.state.query.length && !allowCreateNewProject && !this.state.projects.length ? (
+                    <div>{_t('No Project Found')}</div>
+                ) : null}
+                {this.state.isLoading && (
+                    <Spinner theme={OdooTheme} size={SpinnerSize.large} className="project-result-spinner" />
                 )}
             </div>
         );

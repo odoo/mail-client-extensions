@@ -11,6 +11,8 @@ import SelectProjectDropdown from './SelectProjectDropdown';
 
 type SectionTasksProps = {
     partner: Partner;
+    canCreatePartner: boolean;
+    canCreateProject: boolean;
 };
 
 type SectionTasksState = {
@@ -50,6 +52,7 @@ class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState>
                     className="collapse-task-section"
                     records={this.state.tasks}
                     partner={this.props.partner}
+                    canCreatePartner={this.props.canCreatePartner}
                     model="project.task"
                     odooEndpointCreateRecord={api.createTask}
                     odooRecordIdName="task_id"
@@ -57,6 +60,7 @@ class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState>
                     title="Tasks"
                     titleCount="Tasks (%(count)s)"
                     msgNoPartner="Save Contact to create new Tasks."
+                    msgNoPartnerNoAccess="The Contact needs to exist to create Task."
                     msgNoRecord="No tasks found for this contact."
                     msgLogEmail="Log Email Into Task"
                     getRecordDescription={(task) => task.projectName}
@@ -73,7 +77,11 @@ class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState>
                         gapSpace={0}
                         role="alertdialog"
                         target=".collapse-task-section .collapse-section-button">
-                        <SelectProjectDropdown partner={this.props.partner} onProjectClick={this.onProjectSelected} />
+                        <SelectProjectDropdown
+                            partner={this.props.partner}
+                            canCreateProject={this.props.canCreateProject}
+                            onProjectClick={this.onProjectSelected}
+                        />
                     </Callout>
                 )}
             </>

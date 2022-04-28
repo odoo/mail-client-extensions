@@ -24,13 +24,15 @@ type ContactPageProps = {
 
 type ContactPageState = {
     partner: Partner;
+    canCreatePartner: boolean;
     isLoading: boolean;
+    canCreateProject: boolean;
 };
 
 class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
     constructor(props, context) {
         super(props, context);
-        this.state = { partner: props.partner, isLoading: true };
+        this.state = { partner: props.partner, isLoading: true, canCreatePartner: true, canCreateProject: true };
     }
 
     private fetchContact = () => {
@@ -66,6 +68,9 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
                 if (parsed.result.tasks) {
                     newPartner.tasks = parsed.result.tasks.map((task_json) => Task.fromJSON(task_json));
                 }
+                // undefined should be considered as true for retro-compatibility
+                const canCreateProject = parsed.result.can_create_project !== false;
+
                 if (parsed.result.tickets) {
                     newPartner.tickets = parsed.result.tickets.map((ticket_json) =>
                         HelpdeskTicket.fromJSON(ticket_json),
@@ -74,7 +79,17 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
                 if (parsed.result.user_companies) {
                     this.context.setUserCompanies(parsed.result.user_companies);
                 }
-                this.setState({ partner: newPartner, isLoading: false });
+
+                // undefined should be considered as true for retro-compatibility
+                const canCreatePartner = parsed.result.can_create_partner !== false;
+                this.context.setCanCreatePartner(canCreatePartner);
+
+                this.setState({
+                    partner: newPartner,
+                    isLoading: false,
+                    canCreatePartner: canCreatePartner,
+                    canCreateProject: canCreateProject,
+                });
                 if (parsed.result.partner['enrichment_info']) {
                     const enrichmentInfo = new EnrichmentInfo(
                         parsed.result.partner['enrichment_info'].type,
@@ -124,24 +139,39 @@ class ContactPage extends React.Component<ContactPageProps, ContactPageState> {
             return <Spinner className="contact-spinner" size={SpinnerSize.large} theme={OdooTheme} />;
         }
 
-        const leadsList = this.isCrmInstalled() && <SectionLeads partner={this.state.partner} />;
+        const leadsList = this.isCrmInstalled() && (
+            <SectionLeads partner={this.state.partner} canCreatePartner={this.state.canCreatePartner} />
+        );
 
-        const tasksList = this.isProjectInstalled() && <SectionTasks partner={this.state.partner} />;
+        const tasksList = this.isProjectInstalled() && (
+            <SectionTasks
+                partner={this.state.partner}
+                canCreatePartner={this.state.canCreatePartner}
+                canCreateProject={this.state.canCreateProject}
+            />
+        );
 
-        const ticketsList = this.isHelpdeskInstalled() && <SectionTickets partner={this.state.partner} />;
+        const ticketsList = this.isHelpdeskInstalled() && (
+            <SectionTickets partner={this.state.partner} canCreatePartner={this.state.canCreatePartner} />
+        );
 
         const onItemClick = this.props.partner.isAddedToDatabase() ? this.viewContact : null;
 
         return (
             <div className="contact-page">
                 <div className="section-card">
-                    <ContactListItem partner={this.props.partner} onItemClick={onItemClick} />
+                    <ContactListItem
+                        partner={this.props.partner}
+                        canCreatePartner={this.state.canCreatePartner}
+                        onItemClick={onItemClick}
+                    />
                 </div>
                 {leadsList}
                 {tasksList}
                 {ticketsList}
                 <CompanySection
                     partner={this.state.partner}
+                    canCreatePartner={this.state.canCreatePartner}
                     onPartnerInfoChanged={this.propagatePartnerInfoChange}
                     hideCollapseButton={!leadsList && !tasksList && !ticketsList}
                 />

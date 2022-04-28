@@ -20,6 +20,10 @@ import Progress from '../GrayOverlay';
 import { TooltipHost } from 'office-ui-fabric-react';
 import { _t, saveTranslations, translationsExpired } from '../../../utils/Translator';
 
+type MainProps = {
+    canCreatePartner: boolean;
+};
+
 type MainState = {
     matchedPartners: Partner[];
     partnersLoading: boolean;
@@ -44,7 +48,7 @@ type BackStackItem = {
     historyState?: any;
 };
 
-class Main extends React.Component<{}, MainState> {
+class Main extends React.Component<MainProps, MainState> {
     companyCache: CompanyCache;
 
     constructor(props) {
@@ -395,7 +399,11 @@ class Main extends React.Component<{}, MainState> {
                 );
             }
 
-            if (this.state.selectedPartner && !this.state.selectedPartner.isAddedToDatabase()) {
+            if (
+                this.state.selectedPartner &&
+                !this.state.selectedPartner.isAddedToDatabase() &&
+                this.props.canCreatePartner
+            ) {
                 addPartnerButton = (
                     <TooltipHost content={_t('Add Contact To Database')}>
                         <div
@@ -452,6 +460,7 @@ class Main extends React.Component<{}, MainState> {
                 <div>
                     <Search
                         query={this.state.searchQuery}
+                        canCreatePartner={this.props.canCreatePartner}
                         historyState={
                             this.state.poppedElement && this.state.poppedElement.type == BackStackItemType.query
                                 ? this.state.poppedElement.historyState

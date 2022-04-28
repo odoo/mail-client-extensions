@@ -10,6 +10,7 @@ import { _t } from '../../../utils/Translator';
 
 type LeadSectionProps = {
     partner: Partner;
+    canCreatePartner: boolean;
 };
 
 type SectionLeadsState = {
@@ -43,6 +44,7 @@ class SectionLeads extends React.Component<LeadSectionProps, SectionLeadsState> 
             <Section
                 records={this.state.leads}
                 partner={this.props.partner}
+                canCreatePartner={this.props.canCreatePartner}
                 model="crm.lead"
                 odooEndpointCreateRecord={api.createLead}
                 odooRecordIdName="lead_id"
@@ -50,6 +52,7 @@ class SectionLeads extends React.Component<LeadSectionProps, SectionLeadsState> 
                 title="Opportunities"
                 titleCount="Opportunities (%(count)s)"
                 msgNoPartner="Save Contact to create new Opportunities."
+                msgNoPartnerNoAccess="The Contact needs to exist to create Opportunity."
                 msgNoRecord="No opportunities found for this contact."
                 msgLogEmail="Log Email Into Lead"
                 getRecordDescription={this.getLeadDescription}

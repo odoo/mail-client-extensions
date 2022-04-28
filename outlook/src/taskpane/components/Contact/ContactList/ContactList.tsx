@@ -4,6 +4,7 @@ import Partner from '../../../../classes/Partner';
 
 type ContactListProps = {
     partners: Partner[];
+    canCreatePartner: boolean;
     onItemClick?: (partner: Partner) => void;
 };
 
@@ -18,7 +19,14 @@ const ContactList = (props: ContactListProps) => {
     const contactsList = (
         <div>
             {props.partners.map((partner) => {
-                return <ContactListItem partner={partner} onItemClick={onPartnerClick} key={partner.id} />;
+                return (
+                    <ContactListItem
+                        partner={partner}
+                        canCreatePartner={props.canCreatePartner}
+                        onItemClick={onPartnerClick}
+                        key={partner.id}
+                    />
+                );
             })}
         </div>
     );

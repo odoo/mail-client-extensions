@@ -11,6 +11,7 @@ type SectionAbstractProps = {
     className?: string;
     records: any[];
     partner: Partner;
+    canCreatePartner: boolean;
 
     // Odoo Record creation
     model: string;
@@ -29,6 +30,7 @@ type SectionAbstractProps = {
     title: string;
     titleCount: string;
     msgNoPartner: string;
+    msgNoPartnerNoAccess: string;
     msgNoRecord: string;
     msgLogEmail: string;
     getRecordDescription: (any) => string;
@@ -102,7 +104,11 @@ class Section extends React.Component<SectionAbstractProps, SectionAbstractState
 
     private getSection = () => {
         if (!this.props.partner.isAddedToDatabase()) {
-            return <div className="list-text">{_t(this.props.msgNoPartner)}</div>;
+            return (
+                <div className="list-text">
+                    {_t(this.props.canCreatePartner ? this.props.msgNoPartner : this.props.msgNoPartnerNoAccess)}
+                </div>
+            );
         } else if (this.state.records.length > 0) {
             return (
                 <div className="section-content">
