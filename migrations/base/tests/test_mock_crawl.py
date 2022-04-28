@@ -263,7 +263,8 @@ class TestCrawler(IntegrityCase):
             "read",
             lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
         ):
-            views = model.load_views(
+            get_views = getattr(model, "get_views", None) or model.load_views
+            views = get_views(
                 action["views"], options={"action_id": action.get("id"), "toolbar": True, "load_filters": True}
             )
         env["ir.filters"].get_filters(model._name, action_id=action.get("id"))
@@ -295,12 +296,14 @@ class TestCrawler(IntegrityCase):
                 model._name,
             )
         else:
-            for view_type, data in views["fields_views"].items():
+            for view_type, data in (views.get("fields_views") or views.get("views")).items():
                 mock_method = getattr(self, "mock_view_%s" % view_type, None)
                 if mock_method:
-                    _logger.info("Mocking view %s: %s", view_type, data["name"])
-                    fields_list = list(data["fields"])
+                    _logger.info("Mocking %s %s view ", model._name, view_type)
                     view = etree.fromstring(data["arch"])
+                    fields_list = list(
+                        set(el.get("name") for el in view.xpath("//field[not(ancestor::field|ancestor::groupby)]"))
+                    )
                     mock_method(model, view, fields_list, domain, group_by)
 
     def mock_view_activity(self, model, view, fields_list, domain, group_by):
@@ -318,7 +321,9 @@ class TestCrawler(IntegrityCase):
 
     def mock_view_form(self, model, view, fields_list, domain, group_by):
         relation_fields_to_read = {
-            node.get("name") for node in view.xpath("//field") if node.get("widget", "").startswith("many2many_")
+            node.get("name")
+            for node in view.xpath("//field[not(ancestor::field|ancestor::groupby)]")
+            if node.get("widget", "").startswith("many2many_")
         }
         records = model.search(domain, limit=3)
         _logger.info("view_form, %s, %s", records, domain)
@@ -337,7 +342,7 @@ class TestCrawler(IntegrityCase):
                     value = value[0]
                 processed_data[fname] = value
 
-            for node in view.xpath("//field[@widget='statusbar']"):
+            for node in view.xpath("//field[not(ancestor::field|ancestor::groupby)][@widget='statusbar']"):
                 fname = node.get("name")
                 field = model._fields[fname]
                 if field.comodel_name:
