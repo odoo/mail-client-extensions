@@ -3,7 +3,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    one_user_type_group(cr, {1} | admin_ids(cr))
+    if util.version_gte("12.0"):
+        one_user_type_group(cr, {1} | admin_ids(cr))
 
 
 def admin_ids(cr):
