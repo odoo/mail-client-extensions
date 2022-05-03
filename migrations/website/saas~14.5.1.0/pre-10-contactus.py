@@ -36,8 +36,28 @@ def migrate(cr, version):
         remove_xml_id(cr, "website.contactus_thanks")
         remove_xml_id(cr, "website.contactus_thanks_ir_ui_view")
         # Keep customized contact pages as old unpublished pages
-        backup_contactus_related_views(cr, view_keys + oe_structure_view_keys)
-        backup_contactus_related_views(cr, t_called_view_keys, True)
+        backup_data = backup_contactus_related_views(cr, view_keys + oe_structure_view_keys)
+        backup_data.extend(backup_contactus_related_views(cr, t_called_view_keys, True))
+        if backup_data:
+            li = "".join(
+                "<li>{}</li>".format(util.get_anchor_link_to_record("ir.ui.view", vid, vname))
+                for vid, vname in backup_data
+            )
+            util.add_to_migration_reports(
+                f"""
+                    <details>
+                    <summary>
+                       The contactus page has been improved so now it is fully customizable and static, which is  also faster.
+                       But your original contactus page is also available, so you should either:<br/>
+                        - Keep the new one and delete the back up one (Use 'Contact Us' page)<br/>
+                        - If you want to use old 'Contact Us' page (Use 'Contact Us (v15 upgrade backup)' page):
+                    </summary>
+                    <ul>{li}</ul>
+                    </details>
+                """,
+                "Website",
+                format="html",
+            )
     else:
         util.remove_view(cr, "website.company_description")
         util.remove_view(cr, "website.company_description_google_map")
@@ -66,10 +86,11 @@ def backup_contactus_related_views(cr, keys, keep_key=False):
         UPDATE website_page p
            SET is_published = false,
                website_indexed = false,
-               url = concat('/_pre-v15-upgrade-', right(url, -1))
+               url = concat('/pre-v15-upgrade-', right(url, -1))
           FROM ir_ui_view v
          WHERE p.view_id = v.id
            AND v.key IN %s
+           AND v.website_id IS NOT NULL
     """,
         [tuple(keys)],
     )
@@ -79,11 +100,14 @@ def backup_contactus_related_views(cr, keys, keep_key=False):
            SET {key}
                name = name || ' (v15 upgrade backup)'
          WHERE key IN %s
+           AND website_id IS NOT NULL
+        RETURNING id, name
     """.format(
             key="" if keep_key else "key = key || '_v15_upgrade_backup',"
         ),
         [tuple(keys)],
     )
+    return cr.fetchall()
 
 
 def remove_xml_id(cr, xml_id):
