@@ -2123,6 +2123,13 @@ def migrate_invoice_lines(cr):
             ),
         )
 
+        cr.execute(
+            """
+            CREATE INDEX _upgrade_account_move_inv_payment_state
+                      ON account_move(invoice_payment_state)
+                   WHERE invoice_payment_state='paid'
+            """,
+        )
         # The two queries below are separate for performance reason. (more details in the PR)
         for join1 in ["debit", "credit"]:
             for join2 in [
@@ -2151,13 +2158,14 @@ def migrate_invoice_lines(cr):
                     UPDATE account_move am
                        SET invoice_payment_state = 'in_payment'
                       FROM moves
-                     WHERE am.invoice_payment_state = 'paid'
-                       AND am.id=moves.id
+                     WHERE am.id=moves.id
                         """,
                         table="account_move",
                         alias="mv",
+                        bucket_size=5000,
                     ),
                 )
+        cr.execute("DROP INDEX _upgrade_account_move_inv_payment_state")
 
         _logger.info("Migrate refund_invoice_id => reversed_entry_id")
         cr.execute(
