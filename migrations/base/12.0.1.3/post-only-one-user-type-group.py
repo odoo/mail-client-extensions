@@ -13,14 +13,14 @@ def admin_ids(cr):
         SELECT DISTINCT r.uid
           FROM res_groups_users_rel r
           JOIN res_users u ON r.uid = u.id
-         WHERE u.active
-           AND r.gid = (SELECT res_id
+         WHERE r.gid = (SELECT res_id
                           FROM ir_model_data
                          WHERE module = 'base'
                            AND name = 'group_system')
         """
     )
     return {u[0] for u in cr.fetchall()}
+
 
 def one_user_type_group(cr, admin_ids):
     admin_ids = tuple(admin_ids)
