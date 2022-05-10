@@ -275,15 +275,25 @@ class TestCrawler(IntegrityCase):
             domain, group_by = self.mock_view_search(model, view, action["domain"])
 
         kind_of_table = table_kind(self.env.cr, model._table)
-        if not kind_of_table:
+        is_view = kind_of_table in {"v", "m"}
+        view_columns = set(util.get_columns(env.cr, model._table, ignore=("",))[0]) if is_view else set()
+        stored_fields = (
+            set(name for name, field in model._fields.items() if field.store and not field.type.endswith("2many"))
+            if is_view
+            else set()
+        )
+
+        if not kind_of_table and not getattr(model, "_table_query", None):
             # Dashboard module: a menu / action without table or view.
             pass
-        elif kind_of_table in ("v", "m") and any(field.manual for field in model._fields.values()):
-            # Report SQL views with custom columns.
+        elif is_view and not view_columns.issuperset(stored_fields):
+            # Report SQL views with unkown columns.
+            missing_columns = stored_fields - view_columns
             _logger.warning(
-                "Mocking of model %s skipped because it is based on an SQL view with custom columns. "
+                "Mocking of model %s skipped because it is based on an SQL view without all stored fields (missing %r). "
                 "This is only possible with a custom module or a very technical manual intervention.",
                 model._name,
+                missing_columns,
             )
         elif any(
             # we need to check for None since the view is gone on test_check
