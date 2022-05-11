@@ -158,3 +158,6 @@ def migrate(cr, version):
     util.remove_view(cr, "account.onboarding_sample_invoice_step")
     util.remove_view(cr, "account.email_compose_onboarding_sample_invoice")
     util.remove_record(cr, "account.action_open_account_onboarding_sample_invoice")
+
+    # Now a dynamic view. See https://github.com/odoo/odoo/pull/56080
+    cr.execute("DROP VIEW IF EXISTS account_invoice_report CASCADE")
