@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
 
     # XXX for pos_data_drinks, see script it pos_data_drinks module
     # TODO demo data for website_sale
 
+    # This menu has been deduplicated into 2 modules. We have to choose one.
+    menu = "menu_action_currency_form"
+    if util.module_installed(cr, "account"):
+        util.rename_xmlid(cr, "base." + menu, "account." + menu)
+    elif util.module_installed(cr, "sales_team"):
+        util.rename_xmlid(cr, "base." + menu, "sales_team." + menu)
+    else:
+        util.remove_menus(cr, [util.ref(cr, "base." + menu)])
+
     # no braces = from base module
-    renames = list(util.splitlines("""
+    renames = """
         account.group_account_user
         association.menu_event_config
         base_setup.menu_config
@@ -47,7 +57,6 @@ def migrate(cr, version):
         sale_stock.menu_aftersale
         sale_stock.menu_invoiced
 
-        sales_team.menu_action_currency_form
         sales_team.menu_action_res_bank_form
         sales_team.menu_action_res_partner_bank_form
         sales_team.menu_sale_report
@@ -73,19 +82,18 @@ def migrate(cr, version):
         {stock,stock_barcode}.demo_package
         {document,website_sign}.menu_document
 
-    """))
+    """
 
-    # This menu has been deduplicated into 2 modules. We have to choose one.
-    if util.module_installed(cr, 'account'):
-        renames.append('account.menu_action_currency_form')
-    else:
-        renames.append('sales_team.menu_action_currency_form')
-
-    for rename in renames:
+    for rename in util.splitlines(renames):
         try:
             src_id, dest_id = util.expand_braces(rename)
+            dst_module = dest_id.partition(".")[0]
         except ValueError:
-            src_id = 'base.' + rename.partition('.')[2]
+            dst_module, _, dst_name = rename.partition(".")
+            src_id = "base." + dst_name
             dest_id = rename
 
-        util.rename_xmlid(cr, src_id, dest_id)
+        if util.module_installed(cr, dst_module):
+            util.rename_xmlid(cr, src_id, dest_id)
+        else:
+            util.remove_record(cr, src_id)
