@@ -11,7 +11,7 @@ from lxml import etree
 from odoo import fields
 from odoo.exceptions import RedirectWarning, UserError
 from odoo.osv import expression
-from odoo.tools import mute_logger, table_kind
+from odoo.tools import OrderedSet, mute_logger, table_kind
 from odoo.tools.safe_eval import safe_eval
 
 from odoo.addons.base.maintenance.migrations import util
@@ -302,8 +302,11 @@ class TestCrawler(IntegrityCase):
                     _logger.info("Mocking %s %s view ", model._name, view_type)
                     view = etree.fromstring(data["arch"])
                     fields_list = list(
-                        set(el.get("name") for el in view.xpath("//field[not(ancestor::field|ancestor::groupby)]"))
+                        OrderedSet(
+                            el.get("name") for el in view.xpath("//field[not(ancestor::field|ancestor::groupby)]")
+                        )
                     )
+
                     mock_method(model, view, fields_list, domain, group_by)
 
     def mock_view_activity(self, model, view, fields_list, domain, group_by):
@@ -320,11 +323,11 @@ class TestCrawler(IntegrityCase):
         pass
 
     def mock_view_form(self, model, view, fields_list, domain, group_by):
-        relation_fields_to_read = {
+        relation_fields_to_read = OrderedSet(
             node.get("name")
             for node in view.xpath("//field[not(ancestor::field|ancestor::groupby)]")
             if node.get("widget", "").startswith("many2many_")
-        }
+        )
         records = model.search(domain, limit=3)
         _logger.info("view_form, %s, %s", records, domain)
         for i in range(len(records)):
