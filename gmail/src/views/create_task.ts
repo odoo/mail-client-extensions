@@ -63,9 +63,11 @@ function onSelectProject(state: State, parameters: any) {
 }
 
 export function buildCreateTaskView(state: State, query: string = "", hideCreateProjectSection: boolean = false) {
+    let noProject = false;
     if (!state.searchedProjects) {
         // Initiate the search
         [state.searchedProjects, state.error] = Project.searchProject("");
+        noProject = !state.searchedProjects.length;
     }
 
     const odooServerUrl = State.odooServerUrl;
@@ -74,46 +76,47 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
     const projects = state.searchedProjects;
 
     const card = CardService.newCardBuilder();
-    const projectSection = CardService.newCardSection().setHeader(
-        "<b>" + _t("Create a Task in an existing Project") + "</b>",
-    );
 
-    projectSection.addWidget(
-        CardService.newTextInput()
-            .setFieldName("search_project_query")
-            .setTitle(_t("Search a Project"))
-            .setValue(query || "")
-            .setOnChangeAction(
-                actionCall(state, "onSearchProjectClick", { hideCreateProjectSection: hideCreateProjectSection }),
-            ),
-    );
-
-    projectSection.addWidget(
-        CardService.newTextButton()
-            .setText(_t("Search"))
-            .setOnClickAction(
-                actionCall(state, "onSearchProjectClick", { hideCreateProjectSection: hideCreateProjectSection }),
-            ),
-    );
-
-    if (!projects.length) {
-        projectSection.addWidget(CardService.newTextParagraph().setText(_t("No project found.")));
-    }
-
-    for (let project of projects) {
-        const projectCard = createKeyValueWidget(
-            null,
-            project.name,
-            null,
-            project.partnerName,
-            null,
-            actionCall(state, "onSelectProject", { project: project }),
+    if (!noProject) {
+        const projectSection = CardService.newCardSection().setHeader(
+            "<b>" + _t("Create a Task in an existing Project") + "</b>",
         );
 
-        projectSection.addWidget(projectCard);
-    }
+        projectSection.addWidget(
+            CardService.newTextInput()
+                .setFieldName("search_project_query")
+                .setTitle(_t("Search a Project"))
+                .setValue(query || "")
+                .setOnChangeAction(
+                    actionCall(state, "onSearchProjectClick", { hideCreateProjectSection: hideCreateProjectSection }),
+                ),
+        );
 
-    card.addSection(projectSection);
+        projectSection.addWidget(
+            CardService.newTextButton()
+                .setText(_t("Search"))
+                .setOnClickAction(
+                    actionCall(state, "onSearchProjectClick", { hideCreateProjectSection: hideCreateProjectSection }),
+                ),
+        );
+
+        if (!projects.length) {
+            projectSection.addWidget(CardService.newTextParagraph().setText(_t("No project found.")));
+        }
+        for (let project of projects) {
+            const projectCard = createKeyValueWidget(
+                null,
+                project.name,
+                null,
+                project.partnerName,
+                null,
+                actionCall(state, "onSelectProject", { project: project }),
+            );
+
+            projectSection.addWidget(projectCard);
+        }
+        card.addSection(projectSection);
+    }
 
     if (!hideCreateProjectSection && state.canCreateProject) {
         const createProjectSection = CardService.newCardSection().setHeader(
@@ -130,6 +133,20 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
                 .setOnClickAction(actionCall(state, "onCreateProjectClick")),
         );
         card.addSection(createProjectSection);
+    } else if (noProject) {
+        const noProjectSection = CardService.newCardSection();
+
+        noProjectSection.addWidget(CardService.newImage().setImageUrl(UI_ICONS.empty_folder));
+
+        noProjectSection.addWidget(CardService.newTextParagraph().setText("<b>" + _t("No project") + "</b>"));
+
+        noProjectSection.addWidget(
+            CardService.newTextParagraph().setText(
+                _t("There are no project in your database. Please ask your project manager to create one."),
+            ),
+        );
+
+        card.addSection(noProjectSection);
     }
 
     return card.build();

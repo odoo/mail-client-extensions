@@ -78,7 +78,7 @@ export function buildTasksView(state: State, card: Card) {
         tasksSection.addWidget(CardService.newTextParagraph().setText(_t("Save the contact to create new tasks.")));
     } else {
         tasksSection.addWidget(
-            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Tasks.")),
+            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Task.")),
         );
     }
 

@@ -109,7 +109,7 @@ export function buildLeadsView(state: State, card: Card) {
         leadsSection.addWidget(CardService.newTextParagraph().setText(_t("Save Contact to create new Opportunities.")));
     } else {
         leadsSection.addWidget(
-            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Opportunities.")),
+            CardService.newTextParagraph().setText(_t("You can only create opportunities for existing customers.")),
         );
     }
 
