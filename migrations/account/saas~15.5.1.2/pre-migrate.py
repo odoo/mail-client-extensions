@@ -96,3 +96,36 @@ def migrate(cr, version):
             )
         )
         util.add_to_migration_reports(category="Accounting", format="html", message=message)
+
+    # Refactoring of payment terms
+    util.remove_view(cr, "account.view_payment_term_line_form")
+    util.remove_view(cr, "account.view_payment_term_line_tree")
+    util.rename_field(cr, "account.payment.term.line", "day_of_the_month", "days_after")
+    util.create_column(cr, "account_payment_term_line", "months", "integer", default=0)
+    util.create_column(cr, "account_payment_term_line", "end_month", "boolean", default=False)
+    cr.execute(
+        """
+        UPDATE account_payment_term_line
+           SET months = 0,
+               days = 0,
+               end_month = True,
+               days_after = days
+         WHERE option IN ('day_current_month', 'after_invoice_month');
+
+        UPDATE account_payment_term_line
+           SET months = 0,
+               days = days,
+               end_month = (days_after != 0),
+               days_after = CASE WHEN days_after >= 30 THEN 0 ELSE days_after END
+         WHERE option = 'day_after_invoice_date';
+
+        UPDATE account_payment_term_line
+           SET months = (days >= 30)::int,
+               days = 0,
+               end_month = True,
+               days_after = CASE WHEN days < 30 THEN days ELSE 0 END
+         WHERE option = 'day_following_month';
+        """
+    )
+    util.remove_field(cr, "account.payment.term.line", "option")
+    util.remove_field(cr, "account.payment.term.line", "sequence")
