@@ -49,7 +49,7 @@ export function logEmail(recordId: number, recordModel: string, email: Email): E
     );
 
     if (!response) {
-        error.setError("http_error_odoo");
+        error.setError("unknown");
     }
 
     return error;

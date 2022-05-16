@@ -23,8 +23,11 @@ function onLogEmailPartner(state: State, parameters: any) {
         throw new Error(_t("This contact does not exist in the Odoo database."));
     }
 
-    if (State.setLoggingState(state.email.messageId, "partners", partnerId)) {
+    if (State.checkLoggingState(state.email.messageId, "partners", partnerId)) {
         state.error = logEmail(partnerId, "res.partner", state.email);
+        if (!state.error.code) {
+            State.setLoggingState(state.email.messageId, "partners", partnerId);
+        }
         return updateCard(buildSearchPartnerView(state, parameters.query));
     }
     return notify(_t("Email already logged on the contact"));

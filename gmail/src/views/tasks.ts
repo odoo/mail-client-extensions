@@ -16,8 +16,11 @@ function onCreateTask(state: State) {
 function onLogEmailOnTask(state: State, parameters: any) {
     const taskId = parameters.taskId;
 
-    if (State.setLoggingState(state.email.messageId, "tasks", taskId)) {
+    if (State.checkLoggingState(state.email.messageId, "tasks", taskId)) {
         logEmail(taskId, "project.task", state.email);
+        if (!state.error.code) {
+            State.setLoggingState(state.email.messageId, "tasks", taskId);
+        }
         return updateCard(buildView(state));
     }
     return notify(_t("Email already logged on the task"));

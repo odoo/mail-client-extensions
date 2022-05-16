@@ -219,4 +219,16 @@ export class State {
         }
         return false;
     }
+
+    /**
+     * Check if the email has not been logged on the record.
+     *
+     * Returns:
+     *     True if the record was not yet marked as "logged"
+     *     False if we already logged the email on the record
+     */
+    static checkLoggingState(messageId: string, res_model: string, res_id: number): boolean {
+        const loggingState = this.getLoggingState(messageId);
+        return loggingState[res_model].indexOf(res_id) < 0;
+    }
 }
