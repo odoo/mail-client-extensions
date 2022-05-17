@@ -75,7 +75,7 @@ def _migrate(cr, version):
         else:
             raise UserError("Tax %s has already some repartition lines. It should not at this point." % tax.id)
 
-    cr.execute(
+    q = (
         """
         WITH new_repartition AS (
             SELECT aml.id, tx_rep.id as rep_id
@@ -85,9 +85,9 @@ def _migrate(cr, version):
             JOIN account_tax tax ON tax.id = aml.tax_line_id
             LEFT JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
             LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+            WHERE {parallel_filter}
             GROUP BY aml.id, tx_rep.id, journal.id, tax.id, move.id
             HAVING
-
               CASE -- To manage CABA and invoice entries
                   WHEN array_agg(COALESCE(caba_info.invoice_type, move.type)) && ARRAY[cast('in_refund' AS varchar)]
                     THEN NOT array_agg(COALESCE(caba_info.invoice_type, move.type)) @> ARRAY[cast('in_invoice' AS varchar)]
@@ -117,11 +117,12 @@ def _migrate(cr, version):
            SET tax_repartition_line_id = new_repartition.rep_id
           FROM new_repartition
          WHERE new_repartition.id=aml.id
-    """
+        """
         % sql_dict
     )
+    util.parallel_execute(cr, util.explode_query_range(cr, q, table="account_move_line", alias="aml"))
 
-    cr.execute(
+    q = (
         """
         WITH new_repartition AS (
             SELECT aml.id, tx_rep.id as rep_id
@@ -131,6 +132,7 @@ def _migrate(cr, version):
             JOIN account_tax tax ON tax.id = aml.tax_line_id
             LEFT JOIN %(invoice_table)s move ON aml.move_id = move.%(invoice_move_id_field)s
             LEFT JOIN caba_aml_invoice_info caba_info ON aml.id = caba_info.aml_id
+            WHERE {parallel_filter}
             GROUP BY aml.id, tx_rep.id, journal.id, tax.id, move.id
             HAVING
               CASE -- To manage CABA and invoice entries
@@ -162,9 +164,10 @@ def _migrate(cr, version):
            SET tax_repartition_line_id = new_repartition.rep_id
           FROM new_repartition
          WHERE new_repartition.id=aml.id
-    """
+        """
         % sql_dict
     )
+    util.parallel_execute(cr, util.explode_query_range(cr, q, table="account_move_line", alias="aml"))
 
     env["account.move.line"].invalidate_cache(fnames=["tax_repartition_line_id"])
 
