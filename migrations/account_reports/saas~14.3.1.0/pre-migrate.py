@@ -13,7 +13,10 @@ def migrate(cr, version):
     # Multi-VAT tax reports (PR: 17299)
     # ===============================================================
     util.create_column(cr, "account_financial_html_report", "country_id", "int4")
-    util.rename_field(cr, "res.config.settings", "account_tax_fiscal_country_id", "account_fiscal_country_id")
+    if util.version_gte("15.0"):
+        util.remove_field(cr, "res.config.settings", "account_tax_fiscal_country_id")
+    else:
+        util.rename_field(cr, "res.config.settings", "account_tax_fiscal_country_id", "account_fiscal_country_id")
     util.remove_field(cr, "res.company", "account_tax_original_periodicity_reminder_day")
     util.remove_field(cr, "res.company", "account_tax_next_activity_type")
 
