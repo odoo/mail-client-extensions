@@ -2,7 +2,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute("UPDATE payment_acquirer SET support_authorization = TRUE WHERE provider = 'stripe'")
+    if util.version_gte("saas~15.4"):
+        cr.execute("SELECT id FROM payment_acquirer WHERE provider = 'stripe'")
+    else:
+        cr.execute("UPDATE payment_acquirer SET support_authorization = TRUE WHERE provider = 'stripe'")
 
     if cr.rowcount:
         util.add_to_migration_reports(
