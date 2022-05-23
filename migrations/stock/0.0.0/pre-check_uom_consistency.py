@@ -16,7 +16,7 @@ from odoo.addons.base.maintenance.migrations import util
 # - FROM_PRODUCT: update all the stock moves to use the UoM set on the product template
 
 allowed_methods = ["SKIP", "MOST_USED", "FROM_PRODUCT"]
-fix_inconsistencies_method = os.environ.get("ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX", "").upper()
+fix_inconsistencies_method = os.environ.get("ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX", "SKIP").upper()
 archived_product_env = os.environ.get("ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES")
 update_uom_for_archived_product = str2bool(archived_product_env, default=False)
 
@@ -261,25 +261,24 @@ def log_faulty_objects(cr, additional_conditions):
     There is a mismatch between the Unit of Measure (UoM) category of some of your stock moves.
     They do not match the UoM category of their corresponding products.
 
-    To be able to continue the upgrade, you can:
-    - fix these inconsistencies manually (below the details of the affected records)
-    OR
-    - make this script ignore these inconsistencies by setting the environment variable
-        ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX to SKIP
-    OR
-    - let this script automatically fix the affected records by setting the environment variable
-        ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX
-    to one of the following options:
-        * MOST_USED: to automatically use the most used category,
-        * FROM_PRODUCT: to automatically use the UoM from the product.
+    We allowed the upgrade to continue but those inconsistencies may cause issues on your
+    upgraded DB. Here are some options to avoid the issues:
+
+     * fix these inconsistencies manually (below the details of the affected records)
+     * let this script automatically fix the affected records by setting the environment variable
+       ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX to one of the following options:
+        - MOST_USED: to automatically use the most used category,
+        - FROM_PRODUCT: to automatically use the UoM from the product.
 
     You can also update stock move lines for archived products by setting the environment variable
     ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES to 1
 
-    Details of the faulty stock moves:\n{}""".format(
+    Details of the faulty stock moves:\n\n{}
+    """.format(
         "\n".join("     * {} (lines: {})".format(move_id, lines) for move_id, lines in cr.fetchall())
     )
-    raise util.MigrationError(msg)
+    util.add_to_migration_reports(message=msg, category="Stock", format="md")
+    util._logger.warning(msg)
 
 
 def fix_inconsistencies_from_previous_migrations(cr):
@@ -315,10 +314,7 @@ def migrate(cr, version):
 
     additional_conditions = "true" if update_uom_for_archived_product else "pp.active = true"
 
-    if fix_inconsistencies_method == "SKIP":
-        # if the customer absolutely wants to keep these inconsistencies as they are
-        return
-    elif fix_inconsistencies_method == "MOST_USED":
+    if fix_inconsistencies_method == "MOST_USED":
         fix_with_most_used_method(cr, additional_conditions)
     elif fix_inconsistencies_method == "FROM_PRODUCT":
         fix_with_from_product_method(cr, additional_conditions)
