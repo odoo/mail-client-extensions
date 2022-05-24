@@ -152,10 +152,10 @@ class TestContactus(UpgradeCase):
             recs = self.env["website.page"].search_read([("url", "=", url)], ["website_id"])
             return set([r["website_id"] and r["website_id"][0] for r in recs])
 
-        self.assertTrue(
-            get_page_wids("/contactus") == get_page_wids("/contactus-thank-you") == set([False]),
-            "Only one generic page should have been created.",
-        )
+        wids1 = get_page_wids("/contactus")
+        wids2 = get_page_wids("/contactus-thank-you")
+        self.assertEqual(wids1, wids2)
+
         self.assertEqual(get_page_wids(f"{UPG_PREFIX}contactus"), set([website_2.id, website_4.id]))
         self.assertEqual(get_page_wids(f"{UPG_PREFIX}contactus-thank-you"), set([website_1.id, website_2.id]))
 
