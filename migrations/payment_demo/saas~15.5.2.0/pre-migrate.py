@@ -2,7 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     util.rename_xmlid(
         cr,
         "payment_demo.payment_method_test",
@@ -12,9 +11,9 @@ def migrate(cr, version):
 
     cr.execute(
         """
-            UPDATE payment_acquirer
-               SET provider = 'demo'
-             WHERE provider = 'test'
+            UPDATE payment_provider
+               SET code = 'demo'
+             WHERE code = 'test'
         """
     )
     util.rename_field(cr, "payment.token", "test_simulated_state", "demo_simulated_state")

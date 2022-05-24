@@ -19,3 +19,12 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, "website_sale.access_ecom_extra_fields_publisher", "website_sale.access_ecom_extra_fields_restricted_editor"
     )
+    util.rename_field(
+        cr,
+        "res.company",
+        "website_sale_onboarding_payment_acquirer_state",
+        "website_sale_onboarding_payment_provider_state",
+    )
+    util.rename_xmlid(
+        cr, "website_sale.menu_ecommerce_payment_acquirers", "website_sale.menu_ecommerce_payment_providers"
+    )

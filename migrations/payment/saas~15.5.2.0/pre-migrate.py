@@ -20,53 +20,76 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, "payment.payment_acquirer_test", "payment.payment_acquirer_demo")
     util.remove_field(cr, "payment.acquirer", "description")
+    util.remove_field(cr, "payment.link.wizard", "access_token")
 
     eb = util.expand_braces
     for provider in {"alipay", "ogone", "payulatam", "payumoney"}:
         if util.module_installed(cr, f"payment_{provider}"):
-            util.rename_xmlid(cr, *eb(f"{{payment, payment_{provider}}}.payment_acquirer_{provider}"))
+            util.rename_xmlid(
+                cr, f"payment.payment_acquirer_{provider}", f"payment_{provider}.payment_provider_{provider}"
+            )
         else:
             util.remove_record(cr, f"payment.payment_acquirer_{provider}")
 
-    util.remove_field(cr, "payment.link.wizard", "access_token")
+    util.rename_model(cr, "payment.acquirer", "payment.provider")
+    util.rename_model(cr, "payment.acquirer.onboarding.wizard", "payment.provider.onboarding.wizard")
 
-    # Ir.ui.view
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.view_account_payment_register_form_inherit_payment"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.view_account_payment_form_inherit_payment"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.view_account_journal_form"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.account_invoice_view_form_inherit_payment"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_refund_wizard_view_form"))
+    util.rename_field(cr, "payment.icon", "acquirer_ids", "provider_ids")
+    cr.execute(
+        """
+        ALTER TABLE payment_acquirer_payment_icon_rel
+          RENAME TO payment_provider_payment_icon_rel
+    """
+    )
+    cr.execute(
+        """
+        ALTER TABLE payment_provider_payment_icon_rel
+      RENAME COLUMN payment_acquirer_id
+                 TO payment_provider_id
+    """
+    )
 
-    # Ir.actions.act_window
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.action_invoice_order_generate_link"))
+    util.rename_field(cr, "payment.provider", "provider", "code")
 
-    # Ir.rule
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_transaction_billing_rule"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_token_billing_rule"))
+    util.rename_field(cr, "payment.token", "acquirer_id", "provider_id")
+    util.rename_field(cr, "payment.token", "acquirer_ref", "provider_ref")
+    util.rename_field(cr, "payment.token", "provider", "provider_code")
 
-    # Ir.ui.menu
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_acquirer_menu"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_icon_menu"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_token_menu"))
-    util.rename_xmlid(cr, *eb("{payment,account_payment}.payment_transaction_menu"))
+    util.rename_field(cr, "payment.transaction", "acquirer_id", "provider_id")
+    util.rename_field(cr, "payment.transaction", "provider", "provider_code")
+    util.rename_field(cr, "payment.transaction", "acquirer_reference", "provider_reference")
 
-    util.move_model(cr, "payment.refund.wizard", "payment", "account_payment", move_data=True)
+    util.rename_field(cr, "res.company", "payment_acquirer_onboarding_state", "payment_provider_onboarding_state")
 
-    moved_fields = {
-        "account.move": ["transaction_ids", "authorized_transaction_ids", "amount_paid"],
-        "account.payment": [
-            "payment_transaction_id",
-            "payment_token_id",
-            "amount_available_for_refund",
-            "suitable_payment_token_ids",
-            "use_electronic_payment_method",
-            "source_payment_id",
-            "refunds_count",
-        ],
-        "account.payment.method.line": ["payment_acquirer_id", "payment_acquirer_state"],
-        "payment.acquirer": ["journal_id"],
-        "payment.transaction": ["payment_id", "invoice_ids", "invoices_count"],
-    }
-    for model, fields in moved_fields.items():
-        for field in fields:
-            util.move_field_to_module(cr, model, field, "payment", "account_payment")
+    util.rename_field(cr, "payment.link.wizard", "available_acquirer_ids", "available_provider_ids")
+    util.rename_field(cr, "payment.link.wizard", "has_multiple_acquirers", "has_multiple_providers")
+    util.rename_field(cr, "payment.link.wizard", "payment_acquirer_selection", "payment_provider_selection")
+
+    for provider in (
+        "adyen",
+        "authorize",
+        "buckaroo",
+        "demo",  # actually renamed from `test` above
+        "flutterwave",
+        "mollie",
+        "paypal",
+        "sepa_direct_debit",
+        "sips",
+        "stripe",
+        "transfer",
+    ):
+        util.rename_xmlid(cr, *eb(f"payment.payment_{{acquirer,provider}}_{provider}"))
+
+    util.rename_xmlid(cr, "payment.payment_acquirer_search", "payment.payment_provider_search")
+    util.rename_xmlid(cr, "payment.payment_acquirer_kanban", "payment.payment_provider_kanban")
+    util.rename_xmlid(cr, "payment.payment_acquirer_list", "payment.payment_provider_list")
+    util.rename_xmlid(cr, "payment.payment_acquirer_form", "payment.payment_provider_form")
+    util.rename_xmlid(
+        cr, "payment.payment_acquirer_onboarding_wizard_form", "payment.payment_provider_onboarding_wizard_form"
+    )
+
+    util.rename_xmlid(cr, *eb("payment.payment_{acquirer,provider}_company_rule"))
+    util.rename_xmlid(cr, *eb("payment.payment_{acquirer,provider}_onboarding_wizard"))
+    util.rename_xmlid(cr, *eb("payment.payment_{acquirer,provider}_system"))
+
+    util.rename_xmlid(cr, "payment.action_payment_acquirer", "payment.action_payment_provider")
