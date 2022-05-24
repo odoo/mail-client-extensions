@@ -11,7 +11,7 @@ def migrate(cr, version):
     cr.execute(
         """
        INSERT INTO appointment_type_res_users_rel(calendar_appointment_type_id, res_users_id)
-            SELECT wct.calendar_appointment_type_id, emp.user_id
+            SELECT DISTINCT wct.calendar_appointment_type_id, emp.user_id
               FROM appointment_type_employee_rel wct
               JOIN hr_employee emp ON wct.hr_employee_id = emp.id
              WHERE emp.user_id IS NOT NULL
