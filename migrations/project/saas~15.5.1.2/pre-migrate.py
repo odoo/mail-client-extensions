@@ -12,3 +12,5 @@ def migrate(cr, version):
     util.convert_model_to_abstract(cr, "project.task.burndown.chart.report")
     for field in ["date_group_by", "task_id"]:
         util.remove_field(cr, "project.task.burndown.chart.report", field)
+    util.remove_model(cr, "project.delete.wizard")
+    util.remove_record(cr, "project.unlink_project_action")
