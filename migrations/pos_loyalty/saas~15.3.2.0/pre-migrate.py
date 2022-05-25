@@ -236,7 +236,7 @@ def _migrate_pos_gift_card(cr):
             cr._obj,
             """
             INSERT INTO loyalty_rule_product_product_rel (
-                loyalty_rule_id, product_product_id
+                product_product_id, loyalty_rule_id
             )
             VALUES %s
             """,
