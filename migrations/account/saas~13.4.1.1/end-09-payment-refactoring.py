@@ -422,6 +422,7 @@ def migrate(cr, version):
             if cancelled_payment_ids:
                 env["account.payment"].browse(cancelled_payment_ids).with_context(**ctx).action_cancel()
 
+            env["base"].with_context(**ctx).flush()
             env.cr.commit()
 
         # ===== Synchronize account.payment <=> account.move =====
