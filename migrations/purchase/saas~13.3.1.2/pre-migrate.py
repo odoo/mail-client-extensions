@@ -32,7 +32,9 @@ def migrate(cr, version):
                 CASE
                     WHEN po.state NOT IN ('purchase', 'done') THEN 'no'
                     WHEN bool_or(l.qty_to_invoice != 0) THEN 'to invoice'
-                    WHEN bool_and(l.qty_to_invoice = 0) THEN 'invoiced'
+                    WHEN bool_and(l.qty_to_invoice = 0) AND
+                            EXISTS(SELECT 1 FROM account_move_purchase_order_rel p_rel WHERE p_rel.purchase_order_id = po.id)
+                        THEN 'invoiced'
                     ELSE 'no'
                 END AS invoice_status
               FROM purchase_order po
