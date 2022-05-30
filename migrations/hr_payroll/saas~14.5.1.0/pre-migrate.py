@@ -15,14 +15,14 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH helper AS (SELECT ctr.id,
-                               LAG(ctr.id) over (partition by (employee_id) order by (date_start)) AS previous,
-                               LEAD(ctr.id) over (partition by (employee_id) order by (date_start)) AS next,
+                               LAG(ctr.id) over (partition by (ctr.employee_id) order by (ctr.date_start)) AS previous,
+                               LEAD(ctr.id) over (partition by (ctr.employee_id) order by (ctr.date_start)) AS next,
                                COALESCE(cal.hours_per_week, 0) / COALESCE(NULLIF(cal.full_time_required_hours, 0), 1) AS work_time_rate
                           FROM hr_contract ctr
                           JOIN resource_calendar cal on cal.id = ctr.resource_calendar_id
-                         WHERE employee_id IS NOT NULL AND date_start IS NOT NULL
-                           AND resource_calendar_id IS NOT NULL AND state in ('open', 'close')
-                      ORDER BY date_start ASC
+                         WHERE ctr.employee_id IS NOT NULL AND ctr.date_start IS NOT NULL
+                           AND ctr.resource_calendar_id IS NOT NULL AND ctr.state in ('open', 'close')
+                      ORDER BY ctr.date_start ASC
                     )
         UPDATE hr_contract
            SET calendar_changed=TRUE
