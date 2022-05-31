@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from odoo.upgrade import util
+
 
 def migrate(cr, version):
     cr.execute(
@@ -22,3 +24,5 @@ def migrate(cr, version):
          WHERE name = 'mail.channel,name'
         """
     )
+
+    util.remove_inherit_from_model(cr, "mail.channel", "mail.alias.mixin")
