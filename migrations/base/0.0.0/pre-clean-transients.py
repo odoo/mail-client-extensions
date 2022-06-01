@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict
+
 import psycopg2
 
 from odoo.tools import ignore
+
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -12,12 +15,36 @@ def migrate(cr, version):
     # Before saas~15, we cannot ensure that there is no Model that link to a TransientModel
     # See odoo/odoo@f8e573db2350b025afec8407eeb5849c7a31afa4
     tables = get_tables_of_models(cr, models)
+
+    columns_to_set_null = defaultdict(list)
+    fks_to_drop = defaultdict(list)
     for table in tables:
         for fk_table, fk_column, fk_constraint, deltype in util.get_fk(cr, table):
             if deltype != "c":
-                cr.execute("ALTER TABLE {} ALTER COLUMN {} DROP NOT NULL".format(fk_table, fk_column))
-                cr.execute("UPDATE {} SET {} = NULL WHERE {} IS NOT NULL".format(fk_table, fk_column, fk_column))
-                cr.execute("ALTER TABLE {} DROP CONSTRAINT {}".format(fk_table, fk_constraint))
+                columns_to_set_null[fk_table].append(fk_column)
+                fks_to_drop[fk_table].append(fk_constraint)
+
+    if columns_to_set_null:
+        util.parallel_execute(
+            cr,
+            [
+                "ALTER TABLE {} {}".format(t, ", ".join("ALTER COLUMN {} DROP NOT NULL".format(c) for c in l))
+                for t, l in columns_to_set_null.items()
+            ],
+        )
+        update_set_null_queries = [
+            "UPDATE {} SET {} WHERE {}".format(
+                t, ", ".join("{} = NULL".format(c) for c in q), " OR ".join("{} IS NOT NULL".format(c) for c in q)
+            )
+            for t, q in columns_to_set_null.items()
+        ]
+        util.parallel_execute(cr, update_set_null_queries)
+
+    for table_name, constraints in fks_to_drop.items():
+        cr.execute(
+            "ALTER TABLE {} {}".format(table_name, ", ".join("DROP CONSTRAINT {}".format(c) for c in constraints))
+        )
+
     tables = ", ".join(tables)
     cr.execute("TRUNCATE {} CASCADE".format(tables))
 
