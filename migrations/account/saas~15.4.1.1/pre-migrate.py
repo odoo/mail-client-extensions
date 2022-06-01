@@ -20,3 +20,5 @@ def migrate(cr, version):
             util.ref(cr, "account.menu_action_account_moves_ledger_partner"),
         ],
     )
+
+    util.remove_field(cr, 'account.move', 'invoice_has_matching_suspense_amount')

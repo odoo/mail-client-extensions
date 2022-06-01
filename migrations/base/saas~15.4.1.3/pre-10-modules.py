@@ -9,3 +9,5 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.merge_module(cr, "documents_spreadsheet_bundle", "documents_spreadsheet")
         util.merge_module(cr, "sale_amazon_spapi", "sale_amazon")
+
+    util.remove_module(cr, 'account_accountant_check_printing')
