@@ -223,6 +223,40 @@ class TestAssetExtendsCommon(BaseAssetCase):
         )
 
 
+class TestAssetWithComment(BaseAssetCase):
+    def prepare(self):
+        assets_common = util.ref(self.env.cr, "web.assets_common")
+        self.assertIsNotNone(assets_common)
+        comment_child_view = self.make_view(
+            {
+                "arch": """
+                    <data>
+                        <!-- <xpath expr="//script[last()]" position="after"> -->
+                        <!--   <script type="text/javascript" src="/web/static/somefile2.js" /> -->
+                        <!-- </xpath> -->
+                        <xpath expr="//script[last()]" position="after">
+                            <script type="text/javascript" src="/web/static/somefile3.js" />
+                        </xpath>
+                    </data>
+                """,
+                "inherit_id": assets_common,
+            }
+        )
+        return {"comment_child_view": comment_child_view.id}
+
+    def check(self, init):
+        self.assertAsset(
+            init["comment_child_view"],
+            {
+                "bundle": "web.assets_common",
+                "directive": "append",
+                "glob": "/web/static/somefile3.js",
+                "target": False,
+                "active": True,
+            },
+        )
+
+
 class TestAssetExtendsFromAttributes(BaseAssetCase):
     def prepare(self):
         bundle_view = self.make_view(

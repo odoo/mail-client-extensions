@@ -548,6 +548,8 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
                 handler_args.append(view)
             elif node.tag == "style":
                 handler = handle_style_node
+            elif node.tag == etree.Comment:
+                continue
 
             if handler:
                 asset = handler(*handler_args)
