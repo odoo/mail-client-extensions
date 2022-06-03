@@ -12,6 +12,7 @@ const defaultCompanyImageSrc = 'assets/company_image.png';
 
 type CustomContactListItemProps = {
     partner: Partner;
+    canCreatePartner: boolean;
     onItemClick?: (partner: Partner) => void;
 };
 
@@ -36,7 +37,7 @@ class ContactListItem extends React.Component<CustomContactListItemProps, {}> {
     };
 
     render() {
-        const logButton = this.props.partner.isAddedToDatabase() && (
+        const logButton = this.props.partner.isAddedToDatabase() && this.props.partner.canWriteOnPartner && (
             <Logger resId={this.props.partner.id} model="res.partner" tooltipContent={_t('Log Email Into Contact')} />
         );
 

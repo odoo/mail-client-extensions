@@ -27,8 +27,11 @@ function onCreateTicket(state: State) {
 function onLogEmailOnTicket(state: State, parameters: any) {
     const ticketId = parameters.ticketId;
 
-    if (State.setLoggingState(state.email.messageId, "tickets", ticketId)) {
+    if (State.checkLoggingState(state.email.messageId, "tickets", ticketId)) {
         state.error = logEmail(ticketId, "helpdesk.ticket", state.email);
+        if (!state.error.code) {
+            State.setLoggingState(state.email.messageId, "tickets", ticketId);
+        }
         return updateCard(buildView(state));
     }
     return notify(_t("Email already logged on the ticket"));
@@ -87,8 +90,12 @@ export function buildTicketsView(state: State, card: Card) {
                 ),
             );
         }
-    } else {
+    } else if (state.canCreatePartner) {
         ticketsSection.addWidget(CardService.newTextParagraph().setText(_t("Save the contact to create new tickets.")));
+    } else {
+        ticketsSection.addWidget(
+            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Ticket.")),
+        );
     }
 
     card.addSection(ticketsSection);

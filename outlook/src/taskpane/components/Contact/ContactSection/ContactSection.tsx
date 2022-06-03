@@ -8,6 +8,7 @@ import AppContext from '../../AppContext';
 
 type ContactSectionProps = {
     partner: Partner;
+    canCreatePartner: boolean;
     onPartnerInfoChanged?: (partner: Partner) => void;
 };
 
@@ -23,7 +24,11 @@ class ContactSection extends React.Component<ContactSectionProps, {}> {
 
         return (
             <div className="section-card">
-                <ContactListItem partner={this.props.partner} onItemClick={onItemClick} />
+                <ContactListItem
+                    partner={this.props.partner}
+                    canCreatePartner={this.props.canCreatePartner}
+                    onItemClick={onItemClick}
+                />
             </div>
         );
     }

@@ -16,7 +16,7 @@ import { _t } from "../services/translation";
 function onGmailMessageOpen(event) {
     GmailApp.setCurrentMessageAccessToken(event.gmail.accessToken);
     const currentEmail = new Email(event.gmail.messageId);
-    const [partner, odooUserCompanies, error] = Partner.enrichPartner(
+    const [partner, odooUserCompanies, canCreatePartner, canCreateProject, error] = Partner.enrichPartner(
         currentEmail.contactEmail,
         currentEmail.contactName,
     );
@@ -26,7 +26,16 @@ function onGmailMessageOpen(event) {
         throw new Error(_t("Error during enrichment"));
     }
 
-    const state = new State(partner, currentEmail, odooUserCompanies, null, null, error);
+    const state = new State(
+        partner,
+        canCreatePartner,
+        currentEmail,
+        odooUserCompanies,
+        null,
+        null,
+        canCreateProject,
+        error,
+    );
 
     return [buildView(state)];
 }

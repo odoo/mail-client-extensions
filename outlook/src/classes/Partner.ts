@@ -24,6 +24,7 @@ class Partner {
     tasks?: Task[];
     tickets?: HelpdeskTicket[];
     isCompany: boolean;
+    canWriteOnPartner: boolean;
 
     constructor() {
         this.id = ID_PARTNER_NOT_FROM_DATABASE;
@@ -37,6 +38,7 @@ class Partner {
         this.enrichmentInfo = new EnrichmentInfo();
         this.created = false;
         this.isCompany = false;
+        this.canWriteOnPartner = true;
     }
 
     /***
@@ -58,6 +60,8 @@ class Partner {
         partner.company = Company.fromJSON(o['company']);
         partner.enrichmentInfo = EnrichmentInfo.fromJSON(o['enrichment_info']);
         partner.isCompany = o['is_company'];
+        // Undefined is considered as True for retro-compatibility
+        partner.canWriteOnPartner = o['can_write_on_partner'] !== false;
         return partner;
     }
 

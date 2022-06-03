@@ -24,6 +24,7 @@ export interface AppState {
     EnrichmentInfo: EnrichmentInfo;
     showPartnerCreatedMessage: boolean;
     showEnrichmentInfoMessage: boolean;
+    canCreatePartner: boolean;
     userCompanies: number[];
     loginErrorMessage: string;
     navigation: {
@@ -37,6 +38,7 @@ export interface AppState {
     isConnected: () => Boolean;
     cancelRequests: () => void;
     addRequestCanceller: (canceller: () => void) => void;
+    setCanCreatePartner: (canCreatePartner: boolean) => void;
     setUserCompanies: (userCompanies: number[]) => void;
     showTopBarMessage: (enrichmentInfo?: EnrichmentInfo) => void;
     showHttpErrorMessage: (error) => void;
@@ -55,6 +57,7 @@ export default class App extends React.Component<AppProps, AppState> {
             EnrichmentInfo: new EnrichmentInfo(),
             showPartnerCreatedMessage: false,
             showEnrichmentInfoMessage: false,
+            canCreatePartner: true,
             userCompanies: [],
             pageDisplayed: Page.Main,
             loginErrorMessage: '',
@@ -92,6 +95,10 @@ export default class App extends React.Component<AppProps, AppState> {
             },
             addRequestCanceller: (canceller: () => void) => {
                 this.requestCancellers.push(canceller);
+            },
+
+            setCanCreatePartner: (canCreatePartner: boolean) => {
+                this.setState({ canCreatePartner: canCreatePartner });
             },
 
             setUserCompanies: (companies: number[]) => {
@@ -274,7 +281,7 @@ export default class App extends React.Component<AppProps, AppState> {
                         <div className="app-main">
                             <div>{this.getMessageBars()}</div>
                             <div style={{ flex: 1 }}>
-                                <Main key={this.state.mainKey} />
+                                <Main key={this.state.mainKey} canCreatePartner={this.state.canCreatePartner} />
                             </div>
                         </div>
                     </AppContext.Provider>

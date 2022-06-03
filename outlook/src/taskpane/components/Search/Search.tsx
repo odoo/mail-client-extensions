@@ -17,6 +17,7 @@ const MAX_PARTNERS = 30;
 
 type SearchProps = {
     query?: string;
+    canCreatePartner: boolean;
     onPartnerClick: (partner: Partner, historyState?: SearchState) => void;
     historyState?: any;
 };
@@ -143,7 +144,11 @@ class Search extends React.Component<SearchProps, SearchState> {
                         </div>
                     </div>
                     <div className="section-content">
-                        <ContactList partners={this.state.foundPartners} onItemClick={this.onPartnerClick} />
+                        <ContactList
+                            partners={this.state.foundPartners}
+                            canCreatePartner={this.props.canCreatePartner}
+                            onItemClick={this.onPartnerClick}
+                        />
                     </div>
                 </div>
             );

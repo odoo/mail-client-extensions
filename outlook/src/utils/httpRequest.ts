@@ -27,6 +27,8 @@ export const sendHttpRequest = function(
             xhr.setRequestHeader('Authorization', token);
         }
 
+        xhr.setRequestHeader('Accept-Language', '*');
+
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 300) {
                 resolve(xhr.response);

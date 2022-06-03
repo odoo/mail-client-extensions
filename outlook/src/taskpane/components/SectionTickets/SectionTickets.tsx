@@ -8,6 +8,7 @@ import { _t } from '../../../utils/Translator';
 
 type SectionTicketsProps = {
     partner: Partner;
+    canCreatePartner: boolean;
 };
 
 type SectionTicketsState = {
@@ -26,6 +27,7 @@ class SectionTickets extends React.Component<SectionTicketsProps, SectionTickets
             <Section
                 records={this.state.tickets}
                 partner={this.props.partner}
+                canCreatePartner={this.props.canCreatePartner}
                 model="helpdesk.ticket"
                 odooEndpointCreateRecord={api.createTicket}
                 odooRecordIdName="ticket_id"
@@ -33,6 +35,7 @@ class SectionTickets extends React.Component<SectionTicketsProps, SectionTickets
                 title="Tickets"
                 titleCount="Tickets (%(count)s)"
                 msgNoPartner="Save Contact to create new Tickets.."
+                msgNoPartnerNoAccess="The Contact needs to exist to create Ticket."
                 msgNoRecord="No tickets found for this contact."
                 msgLogEmail="Log Email Into Ticket"
                 getRecordDescription={(ticket) => ticket.isClosed && _t('Closed')}

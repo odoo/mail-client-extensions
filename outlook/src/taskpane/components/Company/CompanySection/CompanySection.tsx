@@ -30,6 +30,7 @@ import { _t } from '../../../../utils/Translator';
 
 type CompanySectionProps = {
     partner: Partner;
+    canCreatePartner: boolean;
     onPartnerInfoChanged?: (partner: Partner) => void;
     hideCollapseButton: boolean;
 };
@@ -301,7 +302,7 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             return (
                 <div>
                     {this.getCompanyInsightsSection()}
-                    {!this.state.hideEnrichmentButton && (
+                    {!this.state.hideEnrichmentButton && this.props.canCreatePartner && (
                         <div>
                             <div className="odoo-secondary-button insights-button" onClick={this.enrichAndUpdate}>
                                 {_t('Enrich Company')}
@@ -314,14 +315,14 @@ class CompanySection extends React.Component<CompanySectionProps, CompanySection
             return (
                 <div className="muted-text insights-info">
                     {_t('No company attached to this contact')}
-                    {!this.state.hideEnrichmentButton && (
+                    {!this.state.hideEnrichmentButton && this.props.canCreatePartner && (
                         <div className="odoo-secondary-button insights-button" onClick={this.enrichAndCreate}>
                             {_t('Create a Company')}
                         </div>
                     )}
                 </div>
             );
-        } else {
+        } else if (this.props.canCreatePartner) {
             return <div className="muted-text insights-info">{_t('Save the contact to create the company')}</div>;
         }
         return null;

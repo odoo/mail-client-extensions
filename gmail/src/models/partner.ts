@@ -25,6 +25,8 @@ export class Partner {
     tickets: Ticket[];
     tasks: Task[];
 
+    isWriteable: boolean;
+
     /**
      * Unserialize the partner object (reverse JSON.stringify).
      */
@@ -41,6 +43,7 @@ export class Partner {
         partner.mobile = values.mobile;
 
         partner.company = values.company ? Company.fromJson(values.company) : null;
+        partner.isWriteable = values.isWriteable;
 
         partner.leads = values.leads ? values.leads.map((leadValues: any) => Lead.fromJson(leadValues)) : null;
 
@@ -49,6 +52,7 @@ export class Partner {
             : null;
 
         partner.tasks = values.tasks ? values.tasks.map((taskValues: any) => Task.fromJson(taskValues)) : null;
+
         return partner;
     }
 
@@ -66,6 +70,9 @@ export class Partner {
         partner.phone = values.phone;
         partner.mobile = values.mobile;
 
+        // Undefined should be considered as True for retro-compatibility
+        partner.isWriteable = values.can_write_on_partner !== false;
+
         if (values.company && values.company.id && values.company.id > 0) {
             partner.company = Company.fromOdooResponse(values.company);
         }
@@ -77,8 +84,10 @@ export class Partner {
      *
      * If we are not logged to an Odoo database, enrich the email domain with IAP.
      * Otherwise fetch the partner on the user database.
+     *
+     * See `getPartner`
      */
-    static enrichPartner(email: string, name: string): [Partner, number[], ErrorMessage] {
+    static enrichPartner(email: string, name: string): [Partner, number[], boolean, boolean, ErrorMessage] {
         const odooServerUrl = State.odooServerUrl;
         const odooAccessToken = State.accessToken;
 
@@ -86,7 +95,7 @@ export class Partner {
             return this.getPartner(email, name);
         } else {
             const [partner, error] = this._enrichFromIap(email, name);
-            return [partner, null, error];
+            return [partner, null, false, false, error];
         }
     }
 
@@ -140,8 +149,19 @@ export class Partner {
 
     /**
      * Fetch the given partner on the Odoo database and return all information about him.
+     *
+     * Return
+     *      - The Partner related to the given email address
+     *      - The list of Odoo companies in which the current user belongs
+     *      - True if the current user can create partner in his Odoo database
+     *      - True if the current user can create projects in his Odoo database
+     *      - The error message if something bad happened
      */
-    static getPartner(email: string, name: string, partnerId: number = null): [Partner, number[], ErrorMessage] {
+    static getPartner(
+        email: string,
+        name: string,
+        partnerId: number = null,
+    ): [Partner, number[], boolean, boolean, ErrorMessage] {
         const url = State.odooServerUrl + URLS.GET_PARTNER;
         const accessToken = State.accessToken;
 
@@ -154,7 +174,7 @@ export class Partner {
         if (!response || !response.partner) {
             const error = new ErrorMessage("http_error_odoo");
             const partner = Partner.fromJson({ name: name, email: email });
-            return [partner, null, error];
+            return [partner, null, false, false, error];
         }
 
         const error = new ErrorMessage();
@@ -181,10 +201,13 @@ export class Partner {
         if (response.tasks) {
             partner.tasks = response.tasks.map((taskValues: any) => Task.fromOdooResponse(taskValues));
         }
+        const canCreateProject = response.can_create_project !== false;
 
         const odooUserCompanies = response.user_companies || null;
+        // undefined must be considered as true
+        const canCreatePartner = response.can_create_partner !== false;
 
-        return [partner, odooUserCompanies, error];
+        return [partner, odooUserCompanies, canCreatePartner, canCreateProject, error];
     }
 
     /**
