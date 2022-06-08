@@ -40,8 +40,8 @@ def single_image(cr, model):
 
 
 def migrate(cr, version):
-    cr.commit()  # make performance of image_small field removal more consistent (deterministic)
     util.ENVIRON["s125_image_mixin_recompute"] = {"all": [], "512": []}
+    cr.execute("REINDEX TABLE res_partner")
     new_inherit_mixin(cr, "res.partner")
     new_inherit_mixin(cr, "res.users")  # due to inheritS
 
