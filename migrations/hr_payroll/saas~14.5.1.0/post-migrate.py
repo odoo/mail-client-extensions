@@ -40,7 +40,9 @@ def migrate(cr, version):
                 s.write_date
            FROM l10n_be_attachment_salary s
            JOIN hr_contract c ON s.contract_id=c.id
-          WHERE s.date_from IS NOT NULL AND s.contract_id IS NOT NULL
+          WHERE s.date_from IS NOT NULL
+            AND s.contract_id IS NOT NULL
+            AND s.amount > 0.0
             """
         )
 
