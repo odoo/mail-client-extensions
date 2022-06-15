@@ -14,7 +14,16 @@ def migrate(cr, version):
               FROM ir_model_fields
              WHERE state='manual'
                AND (name NOT LIKE 'x\_%' OR name LIKE '% %')
-        """
+               AND name NOT IN (
+                    '__last_update',
+                    'create_date',
+                    'create_uid',
+                    'display_name',
+                    'id',
+                    'write_date',
+                    'write_uid'
+                   )
+        """,
     )
     renamed = []
     for model, name in cr.fetchall():
