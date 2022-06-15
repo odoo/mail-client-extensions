@@ -87,12 +87,14 @@ def migrate(cr, version):
 
     fields = """
         invoice_id
-        credit_cash_basis debit_cash_basis balance_cash_basis
+        credit_cash_basis
+        debit_cash_basis
+        balance_cash_basis
         narration  # related to move
         tax_line_grouping_key
         user_type_id
     """
-    for field in fields.split():
+    for field in util.splitlines(fields):
         util.remove_field(cr, "account.move.line", field)
 
     util.parallel_execute(
