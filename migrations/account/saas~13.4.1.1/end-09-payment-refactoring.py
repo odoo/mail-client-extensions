@@ -414,9 +414,9 @@ def migrate(cr, version):
                   FROM account_payment_pre_backup pay_backup
                   JOIN account_move m ON pay_backup.id = m.payment_id
                  WHERE pay_backup.state = 'cancelled'
-                   AND m.id IN %s
+                   AND m.id = ANY(%s)
                 """,
-                [tuple(moves.ids)],
+                [list(moves.ids)],
             )
             cancelled_payment_ids = [res[0] for res in cr.fetchall()]
             if cancelled_payment_ids:
