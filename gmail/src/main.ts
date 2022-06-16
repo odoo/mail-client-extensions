@@ -14,8 +14,9 @@ import { _t } from "../services/translation";
  * and other information like his leads, tickets, company...
  */
 function onGmailMessageOpen(event) {
-    GmailApp.setCurrentMessageAccessToken(event.gmail.accessToken);
-    const currentEmail = new Email(event.gmail.messageId);
+    GmailApp.setCurrentMessageAccessToken(event.messageMetadata.accessToken);
+    const currentEmail = new Email(event.gmail.messageId, event.gmail.accessToken);
+
     const [partner, odooUserCompanies, canCreatePartner, canCreateProject, error] = Partner.enrichPartner(
         currentEmail.contactEmail,
         currentEmail.contactName,

@@ -4,29 +4,38 @@ import { ErrorMessage } from "../models/error_message";
  * Represent the current email open in the Gmail application.
  */
 export class Email {
+    accessToken: string;
     messageId: string;
     subject: string;
 
-    body: string;
     contactEmail: string;
     contactFullEmail: string;
     contactName: string;
 
-    constructor(messageId: string = null) {
+    constructor(messageId: string = null, accessToken: string = null) {
         if (messageId) {
             const userEmail = Session.getEffectiveUser().getEmail().toLowerCase();
+
+            this.accessToken = accessToken;
 
             this.messageId = messageId;
             const message = GmailApp.getMessageById(this.messageId);
             this.subject = message.getSubject();
-
-            this.body = message.getBody();
 
             const fromHeaders = message.getFrom();
             const sent = fromHeaders.toLowerCase().indexOf(userEmail) >= 0;
             this.contactFullEmail = sent ? message.getTo() : message.getFrom();
             [this.contactName, this.contactEmail] = this._emailSplitTuple(this.contactFullEmail);
         }
+    }
+
+    /**
+     * Ask the email body only if the user asked for it (e.g. asked to log the email).
+     */
+    public get body() {
+        GmailApp.setCurrentMessageAccessToken(this.accessToken);
+        const message = GmailApp.getMessageById(this.messageId);
+        return message.getBody();
     }
 
     /**
@@ -65,10 +74,10 @@ export class Email {
     static fromJson(values: any): Email {
         const email = new Email();
 
+        email.accessToken = values.accessToken;
         email.messageId = values.messageId;
         email.subject = values.subject;
 
-        email.body = values.body;
         email.contactEmail = values.contactEmail;
         email.contactFullEmail = values.contactFullEmail;
         email.contactName = values.contactName;
@@ -88,6 +97,7 @@ export class Email {
      *     - Otherwise, the list of attachments base 64 encoded and an empty error message
      */
     getAttachments(): [string[][], ErrorMessage] {
+        GmailApp.setCurrentMessageAccessToken(this.accessToken);
         const message = GmailApp.getMessageById(this.messageId);
         const gmailAttachments = message.getAttachments();
         const attachments: string[][] = [];
