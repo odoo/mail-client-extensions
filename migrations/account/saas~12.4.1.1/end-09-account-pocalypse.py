@@ -576,7 +576,8 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     env = util.env(cr)
     MoveLine = env["account.move.line"]
 
-    cr.execute(
+    ncr = util.named_cursor(cr, 2000)
+    ncr.execute(
         """
         SELECT l.id, i.move_id, l.name, l.product_id, l.uom_id,
                l.price_unit, l.discount, l.sequence,
@@ -588,7 +589,6 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                i.id as invoice_id, i.type as invoice_type, i.journal_id, i.fiscal_position_id,
                array_remove(array_agg(x.tax_id), NULL) as taxes,
                array_remove(array_agg(g.account_analytic_tag_id), NULL) as tags
-
           FROM account_invoice_line l
           JOIN account_invoice i ON i.id = l.invoice_id
      LEFT JOIN account_invoice_line_tax x ON x.invoice_line_id = l.id
@@ -605,7 +605,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     )
     line_ids = []
     to_process = []
-    for line in util.log_progress(cr.dictfetchall(), _logger, qualifier="zero-line"):
+    for line in util.log_chunks(ncr.iterdict(), _logger, chunk_size=10 * ncr.itersize, qualifier="zero-lines"):
         if line["invoice_id"] in ignored_unposted_invoices.keys():
             continue
         line_ids.append(line["id"])
@@ -616,6 +616,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             updated_invoices.setdefault(line["invoice_id"], []).append(line["name"])
 
         to_process.append(line)
+    ncr.close()
 
     def get_mls():
         for line in to_process:
