@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from odoo.upgrade import util
-from odoo.upgrade.util.records import _remove_records
 
 
 def migrate(cr, version):
@@ -101,7 +100,7 @@ def migrate(cr, version):
     # --- Delete unused answers
     cr.execute("SELECT id FROM appointment_answer WHERE question_id IS NULL")
     ids = [aid for aid, in cr.fetchall()]
-    _remove_records(cr, "appointment.answer", ids)
+    util.remove_records(cr, "appointment.answer", ids)
 
     util.create_column(cr, "appointment_answer", "sequence", "integer", default=10)
 

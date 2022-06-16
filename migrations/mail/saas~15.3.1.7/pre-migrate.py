@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo.upgrade.util.records import _remove_records
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -13,4 +13,4 @@ def migrate(cr, version):
              WHERE channel_type IS NULL
         """
     )
-    _remove_records(cr, "mail.channel", [cid for cid, in cr.fetchall()])
+    util.remove_records(cr, "mail.channel", [cid for cid, in cr.fetchall()])
