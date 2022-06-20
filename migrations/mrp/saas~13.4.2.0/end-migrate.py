@@ -10,14 +10,7 @@ def migrate(cr, version):
     # Migration for PR: odoo/odoo#52949 and odoo/enterprise#11149, task_id: 2241471
     util.remove_column(cr, "mrp_routing_workcenter", "old_id")
     # Remove old operation
-    util.parallel_execute(
-        cr,
-        util.explode_query_range(
-            cr,
-            "DELETE FROM mrp_routing_workcenter WHERE bom_id IS NULL",
-            table="mrp_routing_workcenter",
-        ),
-    )
+    cr.execute("DELETE FROM mrp_routing_workcenter WHERE bom_id IS NULL")
     cr.execute(
         """
         DROP TABLE IF EXISTS mrp_workorder_line CASCADE;
