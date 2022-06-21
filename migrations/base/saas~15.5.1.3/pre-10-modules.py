@@ -27,6 +27,7 @@ def migrate(cr, version):
     util.merge_module(cr, "account_edi_ubl_bis3", "account_edi_ubl_cii")
     util.merge_module(cr, "account_edi_facturx", "account_edi_ubl_cii")
 
+    util.merge_module(cr, "fetchmail", "mail")
     util.merge_module(cr, "fetchmail_gmail", "google_gmail")
     util.merge_module(cr, "fetchmail_outlook", "microsoft_outlook")
 
