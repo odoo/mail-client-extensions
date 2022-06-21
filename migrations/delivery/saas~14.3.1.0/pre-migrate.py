@@ -6,7 +6,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     cr.execute("SELECT value FROM ir_config_parameter WHERE key='product.volume_in_cubic_feet'")
     value = cr.fetchone()
-    if value != "1":
+    if value != ("1",):
         cr.execute(
             """
             UPDATE stock_package_type p
