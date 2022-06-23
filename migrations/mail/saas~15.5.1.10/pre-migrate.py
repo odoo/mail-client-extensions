@@ -6,6 +6,29 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_view(cr, "mail.email_message_tree_view")
 
+    # The following templates layout have been renamed:
+    # mail.message_notification_email --> mail.mail_notification_layout
+    # mail.mail_notification_paynow --> mail.mail_notification_layout_with_responsible_signature
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """UPDATE mail_message
+                  SET email_layout_xmlid = 'mail.mail_notification_layout'
+                WHERE email_layout_xmlid = 'mail.message_notification_email'""",
+            table="mail_message",
+        )
+        + util.explode_query_range(
+            cr,
+            """UPDATE mail_message
+                  SET email_layout_xmlid = 'mail.mail_notification_layout_with_responsible_signature'
+                WHERE email_layout_xmlid = 'mail.mail_notification_paynow'""",
+            table="mail_message",
+        ),
+    )
+    util.remove_view(cr, "mail.mail_notification_paynow")
+    util.remove_view(cr, "mail.message_notification_email")
+
     util.remove_field(cr, "mail.render.mixin", "model_object_field")
     util.remove_field(cr, "mail.render.mixin", "sub_object")
     util.remove_field(cr, "mail.render.mixin", "sub_model_object_field")
