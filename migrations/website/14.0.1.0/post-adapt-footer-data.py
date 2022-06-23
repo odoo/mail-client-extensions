@@ -10,6 +10,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     def set_value(key, value):
+        value = html_escape(value)
         nodes = tree.xpath(f".//a[starts-with(@href, '{key}:')]")
         if not nodes:
             return False
@@ -65,14 +66,16 @@ def migrate(cr, version):
             tree_updated = set_value("mailto", partner.email)
             tree_updated |= set_value("tel", partner.phone)
             if address_fmt:
-                address = partner._display_address(without_company=True)
+                address = html_escape(partner._display_address(without_company=True))
                 address = (
                     re.sub(r"\n(\s|\n)*\n+", "\n", address, flags=re.MULTILINE)
                     .strip()
                     .replace("\n", address_fmt["separator"])
                 )
                 node = tree.find(address_fmt["xpath"])
-                new_node = etree.fromstring(address_fmt["node"].format(address=address, company_name=partner.name))
+                new_node = etree.fromstring(
+                    address_fmt["node"].format(address=address, company_name=html_escape(partner.name))
+                )
                 node.getparent().replace(node, new_node)
                 tree_updated = True
 
