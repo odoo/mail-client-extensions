@@ -108,7 +108,7 @@ def migrate(cr, version):
         RETURNING id, name
         """
     )
-    updated_events = [f"<li>{name} (id: {id})</li>" for id, name in cr.fetchall()]
+    updated_events = [f"<li>{util.html_escape(name)} (id: {id})</li>" for id, name in cr.fetchall()]
 
     if updated_events:
         util.add_to_migration_reports(

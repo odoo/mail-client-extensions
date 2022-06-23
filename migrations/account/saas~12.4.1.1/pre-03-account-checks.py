@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
-import os
 
 
 def migrate(cr, version):
@@ -65,7 +64,9 @@ def migrate(cr, version):
                         accounting was posted. If the entry was unposted, than the invoice has been left as
                         draft/cancelled. Anyhow, you should really give it a look to make sure everything is correct.
                     </summary>
-                    Invoices: {", ".join(f"{number}({date})" for _, number, date in same_amount)}
+                    Invoices: {", ".join(
+                        util.html_escape(f"{number}({date})")
+                        for _, number, date in same_amount)}
                     </details>
                 """,
                 "Accounting",
@@ -99,7 +100,9 @@ def migrate(cr, version):
                         and their entry have been removed.
                         The moves, even if empty, have been kept, for history purposes.
                     </summary>
-                    Invoices: {", ".join(f"{number}({date})" for _, number, date in unlink_because_empty)}
+                    Invoices: {", ".join(
+                        util.html_escape(f"{number}({date})")
+                        for _, number, date in unlink_because_empty)}
                     </details>
                 """,
                 "Accounting",
@@ -132,7 +135,9 @@ def migrate(cr, version):
                         To be able to upgrade properly, the links between the invoices and their entry have been
                         removed. The moves have been kept as is.
                     </summary>
-                    Invoices: {", ".join(f"{number}({date})" for number, date in inconsistent_invoices)}
+                    Invoices: {", ".join(
+                        util.html_escape(f"{number}({date})")
+                        for number, date in inconsistent_invoices)}
                     </details>
                 """,
                 "Accounting",

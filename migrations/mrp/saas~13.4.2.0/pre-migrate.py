@@ -92,7 +92,7 @@ def migrate(cr, version):
                             using the targeted routing.
                         </summary>
                         <h4>Impacted ECO</h4>
-                            <ul>{", ".join(f"<li>{name}</li>" for name, in mrp_eco_transform)}</ul>
+                            <ul>{", ".join(f"<li>{util.html_escape(name)}</li>" for name, in mrp_eco_transform)}</ul>
                         </details>
                     """,
                     "PLM",

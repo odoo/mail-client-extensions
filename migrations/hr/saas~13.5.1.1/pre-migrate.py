@@ -69,7 +69,7 @@ def migrate(cr, version):
                     <ul>%s</ul>
                 </details>
             """
-            % "\n".join(f"<li>{name}(#{_id})</li>" for _id, name in employees),
+            % "\n".join(f"<li>{util.html_escape(name)}(#{_id})</li>" for _id, name in employees),
             "Employees",
             format="html",
         )

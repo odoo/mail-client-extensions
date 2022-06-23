@@ -28,7 +28,7 @@ def migrate(cr, version):
               <ul>%s</ul>
             </details>
         """ % "".join(
-            f"<li>{product}</li>" for product, in cr.fetchall()
+            f"<li>{util.html_escape(product)}</li>" for product, in cr.fetchall()
         )
 
         util.add_to_migration_reports(msg, "Inventory", format="html")

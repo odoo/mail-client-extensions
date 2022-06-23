@@ -388,7 +388,8 @@ def migrate(cr, version):
                     """
                     % (
                         "\n".join(
-                            "<li>%s(#%s)</li>" % (move.payment_id.name, move.payment_id.id) for move in invalid_moves
+                            "<li>%s(#%s)</li>" % (util.html_escape(move.payment_id.name), move.payment_id.id)
+                            for move in invalid_moves
                         ),
                     ),
                     "Accounting",

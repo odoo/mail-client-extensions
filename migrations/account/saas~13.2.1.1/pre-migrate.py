@@ -117,7 +117,7 @@ def migrate(cr, version):
                  <ul>{}</ul>
                </details>
             """.format(
-                "".join(f"<li>{b}</li>" for b in bad_journals)
+                "".join(f"<li>{util.html_escape(b)}</li>" for b in bad_journals)
             ),
             format="html",
             category="Accounting",

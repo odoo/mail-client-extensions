@@ -45,7 +45,12 @@ def migrate(cr, version):
                 <ul>%s</ul>
                 </details>
             """
-            % ("\n".join("<li>%s &#8594; %s</li>" % (name, new_name) for name, new_name in renamed)),
+            % (
+                "\n".join(
+                    "<li>%s &#8594; %s</li>" % (util.html_escape(name), util.html_escape(new_name))
+                    for name, new_name in renamed
+                )
+            ),
             "Custom Field Names",
             format="html",
         )

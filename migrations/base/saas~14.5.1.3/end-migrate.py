@@ -57,8 +57,8 @@ def migrate(cr, version):
     </details>
     """.format(
         "\n".join(
-            f"<li>'{name}' (with id={id}) has address format `{aformat}` using (at least) "
-            f"the invalid field '{field}' [{link}].</li>"
+            f"<li>'{util.html_escape(name)}' (with id={id}) has address format `{util.html_escape(aformat)}` using "
+            f"(at least) the invalid field '{util.html_escape(field)}' [{link}].</li>"
             for id, name, aformat, field, link in to_report
         )
     )

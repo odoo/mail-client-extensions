@@ -99,7 +99,9 @@ def migrate(cr, version):
                     """
                     % (
                         "\n".join(
-                            "<li>The tag %s has been added to the tax %s</li>" % (tag, tax) for tax, tag in tax_tags
+                            "<li>The tag %s has been added to the tax %s</li>"
+                            % (util.html_escape(tag), util.html_escape(tax))
+                            for tax, tag in tax_tags
                         ),
                     ),
                     "Accounting",

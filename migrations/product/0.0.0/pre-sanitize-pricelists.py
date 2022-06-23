@@ -47,8 +47,8 @@ def migrate(cr, version):
                 </details>
             """
             % (
-                deleted[0]["property_company"],
-                deleted[0]["pricelist_company"],
+                util.html_escape(deleted[0]["property_company"]),
+                util.html_escape(deleted[0]["pricelist_company"]),
                 "\n".join(
                     """
                         <li>

@@ -207,9 +207,13 @@ def log_customer_report(cr, explanation, moves=None, templates=None):
     Add an explanation of modified objects to the customer report.
     """
     if moves or templates:
-        move_details = "<h4>Stock moves</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % m for m in moves]) if moves else ""
+        move_details = (
+            "<h4>Stock moves</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % util.html_escape(m) for m in moves])
+            if moves
+            else ""
+        )
         template_details = (
-            "<h4>Product templates</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % t for t in templates])
+            "<h4>Product templates</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % util.html_escape(t) for t in templates])
             if templates
             else ""
         )

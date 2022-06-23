@@ -38,6 +38,11 @@ def clean_recursive_rules(env):
     if not info:
         return
 
+    lis = [
+        f"""<li>Rule(id={r.rid}) for Product(id={r.pid},
+        name={util.html_escape(r.pname)}):<br/>{util.html_escape(r.desc)}</li>"""
+        for r in info
+    ]
     # report the changes to the user
     util.add_to_migration_reports(
         f"""
@@ -48,7 +53,7 @@ def clean_recursive_rules(env):
         </summary>
         <h4>Disabled rules:</h4>
         <ul>
-        {"".join(f"<li>Rule(id={r.rid}) for Product(id={r.pid}, name={r.pname}):<br/>{r.desc}</li>" for r in info)}
+        {"".join(lis)}
         </ul>
         </details>
         """,

@@ -40,7 +40,8 @@ def migrate(cr, version):
             for field in badge_fields:
                 if not is_html_empty(event_with_customized_badge_report.get(field)):
                     content = html_escape(event_with_customized_badge_report[field])
-                    event_message += f"<details><summary>{field}</summary><code>{content}</code></details>"
+                    event_message += f"""<details><summary>{util.html_escape(field)}</summary>
+                    <code>{content}</code></details>"""
             event_messages.append(event_message)
 
         if event_messages:

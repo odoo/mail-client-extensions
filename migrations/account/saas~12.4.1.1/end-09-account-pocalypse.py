@@ -1566,7 +1566,9 @@ def migrate_invoice_lines(cr):
                     If there is already a move for these invoices, you should assign the move on the invoice before
                     sending your database for upgrade (set the `move_id` field on the invoice).
                 </summary>
-                Invoices: {", ".join(f"{number}({date})" for number, date in open_invoices_without_move)}
+                Invoices: {", ".join(
+                    util.html_escape(f"{number}({date})")
+                    for number, date in open_invoices_without_move)}
                 </details>
             """,
             "Accounting",
@@ -1790,7 +1792,10 @@ def migrate_invoice_lines(cr):
             """
             % (
                 len(ignored_unposted_invoices),
-                ", ".join(f"<li>{invoice_id}: {error}</li>" for invoice_id, error in ignored_unposted_invoices.items()),
+                ", ".join(
+                    f"<li>{invoice_id}: {util.html_escape(error)}</li>"
+                    for invoice_id, error in ignored_unposted_invoices.items()
+                ),
             ),
             "Accounting",
             format="html",
@@ -1824,7 +1829,10 @@ def migrate_invoice_lines(cr):
                 </details>
             """
             % (
-                ", ".join(f"<li>{name} (#{tax_id}, {error})</li>" for tax_id, (name, error) in skipped_taxes.items()),
+                ", ".join(
+                    f"<li>{util.html_escape(name)} (#{tax_id}, {util.html_escape(error)})</li>"
+                    for tax_id, (name, error) in skipped_taxes.items()
+                ),
                 ", ".join(f"<li>{move_id}</li>" for move_id in recompute_tax_move_ids),
             ),
             "Accounting",

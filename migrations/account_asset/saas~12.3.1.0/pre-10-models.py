@@ -478,7 +478,8 @@ def migrate(cr, version):
     if balance_moves:
         balance_moves.invalidate_cache()
         lis = "\n".join(
-            "<li>account.move record #%s: %s, account.journal record: #%s</li>" % (m.id, m.name, m.journal_id.id)
+            "<li>account.move record #%s: %s, account.journal record: #%s</li>"
+            % (m.id, util.html_escape(m.name), m.journal_id.id)
             for m in balance_moves
         )
         util.add_to_migration_reports(
