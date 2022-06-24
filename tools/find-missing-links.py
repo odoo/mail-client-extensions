@@ -3,8 +3,10 @@
 
 import ast
 import sys
+from argparse import ArgumentParser
 from pathlib import Path
 
+VERBOSE = False
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 EXCEPTIONS = {
@@ -60,7 +62,8 @@ def _match_linked_files(version, new, found, reason):
 
     for exc in expected & EXCEPTIONS:
         exc = exc.relative_to(MIGRATIONS_DIR)
-        print(f"🆗 {exc} manually handled in {new}/{version} ▶︎ [module {reason}]")
+        if VERBOSE:
+            print(f"🆗 {exc} manually handled in {new}/{version} ▶︎ [module {reason}]")
 
     expected -= EXCEPTIONS
     if not expected:
@@ -76,7 +79,8 @@ def _match_linked_files(version, new, found, reason):
         for link, target in target_links.items():
             if target in expected:
                 ltarget = target.relative_to(MIGRATIONS_DIR)
-                print(f"✅ {link} -> {ltarget} ▶︎ [{reason} in {version}]")
+                if VERBOSE:
+                    print(f"✅ {link} -> {ltarget} ▶︎ [{reason} in {version}]")
     else:
         result = False
         link = f"{new}/{version}.???"
@@ -101,7 +105,8 @@ def check_module_rename(version, old, new):
 
             if maybe_link.is_symlink():
                 if maybe_link.samefile(found):
-                    print(f"✅ {link} -> {lfound} ▶︎ [renamed in {version}]")
+                    if VERBOSE:
+                        print(f"✅ {link} -> {lfound} ▶︎ [renamed in {version}]")
                 else:
                     result = False
                     print(f"💥 INVALID SYMLINK: {link} -/-> {lfound} ▶︎ [renamed in {version}]")
@@ -132,7 +137,13 @@ def check_module_merge(version, old, new):
 
 
 def main():
+    global VERBOSE
     rc = 0
+
+    parser = ArgumentParser()
+    parser.add_argument("-v", "--verbose", action="store_true", default=False)
+    options = parser.parse_args()
+    VERBOSE = options.verbose
 
     for pyfile in MIGRATIONS_DIR.glob("base/*/*.py"):
         version = pyfile.parent.name
