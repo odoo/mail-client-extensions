@@ -494,14 +494,21 @@ class IrUiView(models.Model):
             # If a child fails we then recursively fix it
             standard_children = filter(is_standard_view, children)
             custom_children = itertools.filterfalse(is_standard_view, children)
+            has_error = []
             for child in itertools.chain(standard_children, custom_children):
                 child.active = True
                 if check() is not None:
                     if not child._upgrade_fix_views(root_view):
-                        # Can't fix this view since a failing child can't be fixed
-                        return False
+                        # This view will fail since a failing child can't be fixed
+                        # we continue to the rest of the children to check them more
+                        has_error.append(child)
+                        child.active = False
 
-            # Final check
+            # We need to ensure that all children get activated again
+            for child in has_error:
+                child.active = True
+
+            # Final check, even if has_error
             return check() is None
 
         @api.model
