@@ -143,7 +143,13 @@ def main():
         if not pyfile.name.startswith(("pre-", "post-", "end-")):
             continue
 
-        tree = ast.parse(pyfile.read_bytes(), filename=pyfile)
+        content = pyfile.read_bytes()
+
+        if b"util.dispatch_by_dbuuid" in content:
+            # db-specific change, we can ignore this file
+            continue
+
+        tree = ast.parse(content, filename=pyfile)
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
                 if (
