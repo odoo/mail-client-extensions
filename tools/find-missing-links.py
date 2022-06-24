@@ -44,16 +44,12 @@ def previous_versions(version):
     v = list(map(int, version.replace("saas~", "").split(".")))
 
     if v[1] == 0:
-        matches = ["%s.0" % (v[0] - 1,), saas(v[0] - 1, "*")]
+        matches = [saas(v[0] - 1, "*")]
     else:
         min_saas = {8: 6, 9: 7, 10: 14}
-        # fmt:off
-        matches = ["%s.0" % v[0]] + [
-            saas(v[0], "%s.*" % m) for m in range(min_saas.get(v[0], 1), v[1])
-        ]
-        # fmt:on
+        matches = [saas(v[0], f"{m}.*") for m in range(min_saas.get(v[0], 1), v[1])]
 
-    return matches
+    return matches + [f"{version}.*"]
 
 
 def _match_linked_files(version, new, found, reason):
