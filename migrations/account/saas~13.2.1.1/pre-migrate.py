@@ -73,9 +73,10 @@ def migrate(cr, version):
                 bad_journals.append(msg)
 
             xfix = prefix + suffix
-            if any(p in xfix for p in deprecated_placeholders):
+            deprec = ",".join(p for p in deprecated_placeholders if p in xfix)
+            if deprec:
                 deactivate = True
-                msg = f"The journal {name} (id={jid} use deprecated placeholders that are not supported anymore."
+                msg = f"The journal {name} (id={jid}) use deprecated placeholder(s) ({deprec}) that are not supported anymore."
                 _logger.error(msg)
                 bad_journals.append(msg)
 
