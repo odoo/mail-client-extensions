@@ -21,11 +21,17 @@ def migrate(cr, version):
             data = json.loads(data)
 
         commands = data.get("commands", [])
+        changed = False
         for command in commands:
-            command["type"] = filter_command_pattern.sub("\\1_GLOBAL_FILTER", command["type"])
+            old_type = command["type"]
+            command["type"] = filter_command_pattern.sub("\\1_GLOBAL_FILTER", old_type)
+            if command["type"] != old_type:
+                changed = True
             if command["type"] in {"ADD_GLOBAL_FILTER", "EDIT_GLOBAL_FILTER"}:
                 fields = command["filter"].pop("fields")
                 command["filter"]["pivotFields"] = fields
+        if not changed:
+            continue
         if commands:
             data["commands"] = commands
 
