@@ -6,3 +6,5 @@ def migrate(cr, version):
     util.modules_auto_discovery(cr)
 
     util.force_upgrade_of_fresh_module(cr, "website_sale_stock_wishlist")
+
+    util.merge_module(cr, "payment_adyen_paybylink", "payment_adyen")
