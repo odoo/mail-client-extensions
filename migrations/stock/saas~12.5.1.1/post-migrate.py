@@ -11,3 +11,5 @@ def migrate(cr, version):
     util.env(cr)["res.company"].create_missing_scrap_sequence()
     util.update_record_from_xml(cr, "stock.stock_move_rule")
     util.update_record_from_xml(cr, "stock.stock_move_line_rule")
+
+    cr.execute("UPDATE stock_location SET complete_name = name WHERE usage = 'view'")
