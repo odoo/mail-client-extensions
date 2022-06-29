@@ -119,6 +119,35 @@ jinja_to_qweb_content = [
         "before": r"<!-- commenting ${foo} code -->",
         "after": r'<!-- commenting <t t-out="foo"/> code -->',
     },
+    {
+        "before": """
+        <?xml version="1.0"?>
+        <html><body>
+            %if True:
+            hi
+            %endif
+        </body></html>
+        """,
+        "after": """
+            <t t-if="True">
+            hi
+            </t>
+        """,
+    },
+    {
+        "before": """
+        <html><body>
+            %if True:
+            hi
+            %endif
+        </body></html>
+        """,
+        "after": """
+            <t t-if="True">
+            hi
+            </t>
+        """,
+    },
 ]
 
 
