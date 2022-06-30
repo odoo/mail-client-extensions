@@ -305,7 +305,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
     subprocess.run(["createdb", dbname], check=True)  # version 7.0 does not create database itself
     subprocess.run(["psql", "-Xq", "-d", dbname, "-c", "CREATE EXTENSION unaccent"], check=False)  # may fail
 
-    def odoo(cmd: List[str], version: Version) -> bool:
+    def odoo(cmd: List[str], *, version: Version, module: str = module) -> bool:
         cwd = workdir / "odoo" / version.odoo
         ad_path = ",".join(
             str(ad)
@@ -350,9 +350,23 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
     # If we cannot determine the version name, we assume than we try to upgrade from a version >= 9.0.
     if "l10n_" in module and (not options.source.name or options.source.ints >= (9, 0)):
         # create a `base` db and modify the non-demo partners country before installing the localization
-        odoo(["-i", "base"], version=options.source)
+        odoo(["-i", "base"], version=options.source, module="base")
         cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
-        cc = {"eu": "be", "uk": "gb", "latam": "cl", "syscohada": "cd", "generic": "us", "multilang": "be"}.get(cc, cc)
+
+        # 3 cases:
+        # - `module` should not be changed. Just the country code is different (uk, generic, syscohada)
+        # - `module` is a common dependency of multiple `l10n_{cc}` modules and is not useful on itself (latam, multilang)
+        # - `module` is independent of any `l10n_{cc}` module, but required one to be installed (eu)
+        cc_map = {
+            #     (country code, actual module to test, explicit l10n module to pre-install)
+            "eu": ("be", module, "l10n_be"),
+            "uk": ("gb", module, None),
+            "latam": ("cl", "l10n_cl", None),
+            "syscohada": ("cd", module, None),
+            "generic": ("us", module, None),
+            "multilang": ("be", "l10n_be", None),
+        }
+        cc, module, l10n_module = cc_map.get(cc, (cc, module, None))
 
         sql = f"""
             UPDATE res_partner p
@@ -372,9 +386,14 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         """
         sql = re.sub(r"\s{2,}", " ", sql).strip()  # one-line the query
 
+        logger.debug("locate partners in %s", cc.upper())
         subprocess.run(["psql", "--no-psqlrc", "--quiet", "-d", dbname, "-c", sql], check=True)
 
-    odoo(["-i", module], version=options.source)
+        if l10n_module:
+            # Explicitly install the localisation.
+            odoo(["-i", l10n_module], version=options.source, module=l10n_module)
+
+    odoo(["-i", module], version=options.source, module=module)
 
     # tests: preparation
     if options.run_tests:
