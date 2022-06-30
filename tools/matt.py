@@ -165,7 +165,7 @@ index a26d1885ea6..b092f3c836e 100644
              #context = self.get_context(record, self.eval_context)
 """
 
-ADDONS_DATA_DIR_PATCH = br"""\
+ADDONS_DATA_DIR_PATCH = rb"""\
 diff --git openerp/tools/config.py openerp/tools/config.py
 index 995d10ec5148..0421abaf8e45 100644
 --- openerp/tools/config.py
@@ -533,7 +533,7 @@ class VersionAction(Action):
                     try:
                         v = v._replace(**{Repo.get(repo).ident: f"pr/{pr}"})
                     except ValueError:
-                        raise ArgumentError(self, f"Invalid repository defined in version: {values!r}")
+                        raise ArgumentError(self, f"Invalid repository defined in version: {values!r}") from None
                     break
             else:
                 if fallback is not None:
