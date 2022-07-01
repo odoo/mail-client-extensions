@@ -5,9 +5,11 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     # reset mail templates (rendering context changed)
-    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_invitation")
-    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_changedate")
-    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_reminder")
+    rt = dict(reset_translations={"subject", "body_html"})
+
+    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_invitation", **rt)
+    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_changedate", **rt)
+    util.update_record_from_xml(cr, "calendar.calendar_template_meeting_reminder", **rt)
 
     models = ["calendar.event", "calendar.recurrence"]
     rename_fields = {
