@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import inspect
 import logging
 import math
 from ast import literal_eval
@@ -50,6 +51,28 @@ def get_id(rec, name):
 
 class TestCrawler(IntegrityCase):
     view_tracebacks = {}
+
+    def setUp(self):
+        super().setUp()
+        if hasattr(self.env["ir.actions.report"], "_render"):
+            if len(inspect.signature(self.env["ir.actions.report"]._render).parameters) == 3:
+                self.render_method = self.env["ir.actions.report"]._render
+            else:
+
+                def render(name, res_id, data):
+                    report = self.env["ir.actions.report"].search([("report_name", "=", name)])
+                    self.assertTrue(report)
+                    return report._render(res_id, data)
+
+                self.render_method = render
+        else:
+
+            def render(name, res_id, data):
+                report = self.env["ir.actions.report"].search([("report_name", "=", name)])
+                self.assertTrue(report)
+                return report.render(res_id, data)
+
+            self.render_method = render
 
     def check(self, value):
         """
@@ -229,11 +252,7 @@ class TestCrawler(IntegrityCase):
         elif action["type"] in ("ir.actions.client", "ir.actions.act_url"):
             return
         elif action["type"] == "ir.actions.report":
-            report = self.env["ir.actions.report"].search([("report_name", "=", action["report_name"])], limit=1)
-            self.assertTrue(report)
-            render = getattr(report, "_render", None) or getattr(report, "render", None)
-            self.assertIsNotNone(render)
-            result = render([], data=None)
+            result = self.render_method(action["report_name"], [], data=None)
             if result:
                 data, report_format = result
                 self.assertTrue(data)
