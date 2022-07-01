@@ -54,7 +54,7 @@ if util.version_gte("11.0"):
             if cr.rowcount:
                 _logger.warning(
                     "%s records of the table `%s` have been deleted "
-                    "because the many2one column `%s` referred to records that longer exist (`%s` of `%s`), "
+                    "because the many2one column `%s` referred to records that no longer exist (`%s` of `%s`), "
                     "and the foreign key is set as `ON DELETE CASCADE`.",
                     cr.rowcount,
                     tablename1,
