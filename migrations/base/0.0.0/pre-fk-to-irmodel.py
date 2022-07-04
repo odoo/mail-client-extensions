@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 import itertools
+import logging
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
 
@@ -40,26 +40,26 @@ with fks as (SELECT (cl1.relname) as table,
           JOIN (pg_class c JOIN pg_namespace nc ON c.relnamespace = nc.oid) ON a.attrelid = c.oid
           JOIN (pg_type t JOIN pg_namespace nt ON t.typnamespace = nt.oid) ON a.atttypid = t.oid
           JOIN fks ON c.relname = fks.table AND a.attname = fks.column
-        WHERE fks.confdeltype != 'c'
-        AND NOT (%s)
-        AND (a.attnotnull OR t.typtype = 'd'::"char" AND t.typnotnull)
+         WHERE fks.confdeltype != 'c'
+           AND NOT (%s)
+           AND (a.attnotnull OR t.typtype = 'd'::"char" AND t.typnotnull)
     """
         % "OR".join(itertools.repeat("(c.relname=%s AND a.attname=%s)", len(std_notnullable_fields))),
         [param for param in itertools.chain.from_iterable(std_notnullable_fields)],
     )
     for table, column, conname, confdeltype in cr.fetchall():
         # If field is not on delete cascade, ensure it permit null values...
-        cr.execute(
-            'ALTER TABLE "{table}" ALTER COLUMN "{column}" DROP NOT NULL'.format(
-                table=table, column=column
-            )
-        )
+        cr.execute('ALTER TABLE "{table}" ALTER COLUMN "{column}" DROP NOT NULL'.format(table=table, column=column))
         log_message = "Permit NULL values on column %s.%s because it's linked to the `ir.model` model"
-        if confdeltype=='r':
-            cr.execute("""
+        if confdeltype == "r":
+            cr.execute(
+                """
                 ALTER TABLE "{table}" DROP CONSTRAINT "{conname}";
                 ALTER TABLE "{table}" ADD CONSTRAINT "{conname}" FOREIGN KEY ("{column}") references ir_model(id) ON DELETE SET NULL
-                """.format(table=table, column=column, conname=conname))
+                """.format(
+                    table=table, column=column, conname=conname
+                )
+            )
             log_message += " and changed constraint type from 'on delete restrict' to 'on delete cascade'"
 
         _logger.warning(
