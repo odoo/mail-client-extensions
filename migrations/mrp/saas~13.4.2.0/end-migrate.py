@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from collections import defaultdict
 
 from odoo.upgrade import util
 
@@ -52,18 +53,22 @@ def migrate(cr, version):
            SET qty_producing = mo_qty_producing.qty_producing
           FROM mo_qty_producing
          WHERE mrp_production.id = mo_qty_producing.mo_id
-     RETURNING mrp_production.id
+     RETURNING mrp_production.id, mrp_production.company_id
         """
     )
-    ids_to_backorder = [mo_id for mo_id, in cr.fetchall()]
+    ids_to_backorder_by_company = defaultdict(list)
+    for production_id, company_id in cr.fetchall():
+        ids_to_backorder_by_company[company_id].append(production_id)
+
     # (3.) For MO in progress with the done move
     _logger.info("Create backorder for in progress MO")
     env = util.env(cr)
-    for mos in util.iter_browse(env["mrp.production"], ids_to_backorder, strategy="commit", chunk_size=50):
-        mos = mos.filtered(lambda mo: mo.state != "done" and mo._get_quantity_to_backorder() > 0)
-        mos._generate_backorder_productions(close_mo=True)
-        for mo in mos:
-            mo.product_qty = mo.qty_producing
+    for company_id, ids_to_backorder in ids_to_backorder_by_company.items():
+        for mos in util.iter_browse(env["mrp.production"], ids_to_backorder, strategy="commit", chunk_size=50):
+            mos = mos.filtered(lambda mo: mo.state != "done" and mo._get_quantity_to_backorder() > 0)
+            mos.with_company(company_id)._generate_backorder_productions(close_mo=True)
+            for mo in mos:
+                mo.product_qty = mo.qty_producing
 
     # (2.)
     _logger.info("Remove move line of unfinished MO and set qty_producing on it")
