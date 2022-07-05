@@ -208,7 +208,7 @@ def get_name_country_ids(cr, company_id, main_country_ids):
 
     cr.execute(
         """
-          SELECT res_country.id
+          SELECT res_country.id, res_country.name
             FROM res_country,res_company
            WHERE res_company.name ~* ANY(ARRAY[res_country.name])
              AND res_company.id=%s
@@ -220,7 +220,11 @@ def get_name_country_ids(cr, company_id, main_country_ids):
     if cr.rowcount == 0:
         return name_clues, ""
     else:
-        name_clues.add(cr.fetchone()[0])
+        country_list = cr.fetchall()
+        # If a country is a subword of another, keep the longer one:
+        country_list = [c1[0] for c1 in country_list if not any([c1[1] in c2[1] for c2 in country_list if c1 != c2])]
+
+        name_clues.update(country_list)
         return name_clues, "the country being included in the company name"
 
 
