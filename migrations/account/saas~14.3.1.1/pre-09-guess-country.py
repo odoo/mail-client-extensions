@@ -95,7 +95,12 @@ def migrate(cr, version):
         else:
             # no single-country candidate found for at least one company
             raise util.MigrationError(
-                f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}"
+                "\n".join(
+                    [
+                        f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}",
+                        f"Clues found so far are ([company ID: (country ID, reason for clue)]): {country_dict}",
+                    ]
+                )
             )
 
     if country_dict:
@@ -266,7 +271,7 @@ def get_currency_country_ids(cr, company_id, main_country_ids):
         clue = [c for c in currency_countries if c in main_country_ids][0]
     if clue:
         return {clue}, "the company's currency"
-    currency_clues.update([c for c in currency_countries])
+    currency_clues.update([c[0] for c in currency_countries])
 
     # If not yet returned, either none or a multitude of countries were found
     return currency_clues, ""
