@@ -8,8 +8,8 @@ def migrate(cr, version):
     cr.execute(
         """
         UPDATE hr_employee e
-           SET last_check_in = check_in,
-               last_check_out = check_out
+           SET last_check_in = a.check_in,
+               last_check_out = a.check_out
           FROM hr_attendance a
          WHERE a.id = e.last_attendance_id
     """
