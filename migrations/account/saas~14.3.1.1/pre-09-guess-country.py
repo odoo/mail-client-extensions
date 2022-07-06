@@ -79,6 +79,7 @@ def migrate(cr, version):
         get_name_country_ids,
         get_tz_country_ids,
         get_phone_country_ids,
+        get_journal_currency_country_ids,
         get_currency_country_ids,
         get_tld_country_ids,
         get_lang_country_ids,
@@ -228,16 +229,11 @@ def get_name_country_ids(cr, company_id, main_country_ids):
         return name_clues, "the country being included in the company name"
 
 
-def get_currency_country_ids(cr, company_id, main_country_ids):
-    """Returns countries whose currency is used by the company.
+def get_journal_currency_country_ids(cr, company_id, main_country_ids):
+    """Returns countries whose currency is used by the company's journal.
 
-    First, the currency of the company's journals is looked up. If empty, the currency of the
-    company itself is used instead. Finally, all countries using any of the currencies
-    are returned. Multi-country currencies return all countries in the currency union.
+    Multi-country currencies return all countries in the currency union.
     """
-    currency_clues = set()
-
-    # Get country based on currency of company's journal
     cr.execute(
         """
             SELECT c.id, j.id, j.name
@@ -248,17 +244,24 @@ def get_currency_country_ids(cr, company_id, main_country_ids):
         """,
         locals(),
     )
-    currency_countries = cr.fetchall()
+    journal_currency_countries = cr.fetchall()
     clue = None
-    if len(currency_countries) == 1:
-        clue = currency_countries[0]
-    elif len(set([c[0] for c in currency_countries]).intersection(main_country_ids)) == 1:
-        clue = [c for c in currency_countries if c[0] in main_country_ids][0]
+    if len(journal_currency_countries) == 1:
+        clue = journal_currency_countries[0]
+    elif len(set([c[0] for c in journal_currency_countries]).intersection(main_country_ids)) == 1:
+        clue = [c for c in journal_currency_countries if c[0] in main_country_ids][0]
     if clue:
         return {clue[0]}, f"the journal's (id: {clue[1]}, name: {clue[2]}) currency"
-    currency_clues.update([c[0] for c in currency_countries])
 
-    # Get country based on currency of company
+    # If not yet returned, either none or a multitude of countries were found
+    return {c[0] for c in journal_currency_countries}, ""
+
+
+def get_currency_country_ids(cr, company_id, main_country_ids):
+    """Returns countries whose currency is used by the company.
+
+    Multi-country currencies return all countries in the currency union.
+    """
     cr.execute(
         """
             SELECT ctr.id
@@ -269,16 +272,16 @@ def get_currency_country_ids(cr, company_id, main_country_ids):
         locals(),
     )
     currency_countries = cr.fetchall()
+    clue = None
     if len(currency_countries) == 1:
         clue = currency_countries[0]
     elif len(set([c for c in currency_countries]).intersection(main_country_ids)) == 1:
         clue = [c for c in currency_countries if c in main_country_ids][0]
     if clue:
         return {clue}, "the company's currency"
-    currency_clues.update([c[0] for c in currency_countries])
 
     # If not yet returned, either none or a multitude of countries were found
-    return currency_clues, ""
+    return {c[0] for c in currency_countries}, ""
 
 
 def get_phone_country_ids(cr, company_id, main_country_ids):
