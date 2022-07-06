@@ -19,6 +19,7 @@ class Base(models.AbstractModel):
     if util.version_gte("12.0"):
 
         @api.model_create_multi
+        @util.no_selection_cache_validation
         def create(self, vals_list):
             if not getattr(self, "_match_uniq", False) or self.pool.ready:
                 return super().create(vals_list)
@@ -96,6 +97,7 @@ class Base(models.AbstractModel):
     else:
 
         @api.model
+        @util.no_selection_cache_validation
         def create(self, values):
             if not getattr(self, "_match_uniq", False) or self.pool.ready:
                 return super(Base, self).create(values)
