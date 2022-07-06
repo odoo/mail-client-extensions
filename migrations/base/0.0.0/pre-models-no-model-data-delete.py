@@ -82,6 +82,9 @@ class IrModelData(models.Model):
                         util.force_noupdate(self.env.cr, xmlid)
                     noupdate_forced = True
 
+                if not noupdate_forced:
+                    continue
+
                 suppress = set(
                     xmlid
                     for (type_, _, xmlid) in (
@@ -96,8 +99,5 @@ class IrModelData(models.Model):
                 if error_xmlids:
                     error_msg = "It looks like you forgot to call `util.delete_unused` on %s" % (",".join(error_xmlids))
                     _logger.critical(error_msg)
-                    if util.on_CI() and noupdate_forced:
-                        # Hard fail only in CI.
-                        raise util.MigrationError(error_msg)
 
         return super(IrModelData, self)._process_end(modules)

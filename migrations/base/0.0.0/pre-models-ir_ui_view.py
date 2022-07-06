@@ -479,6 +479,8 @@ class IrUiView(models.Model):
                         disable(self, md)
                         return True
                     elif not util.on_CI():
+                        # Only log a warning for non-CI upgrades as this situation occurs due to test data.
+                        # This is expected and should not mark the build as failed.
                         _logger.warning(
                             "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
                             "It was automatically adapted from:\n%sto:\n%s",
@@ -682,11 +684,6 @@ class IrUiView(models.Model):
                         _logger.log(25, "View unlink %s explicitly ignored", (view.xml_id))
                     else:
                         _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
-                        if util.on_CI():
-                            # Hard fail only in CI.
-                            raise util.MigrationError(
-                                "It looks like you forgot to call `util.remove_view(cr, %r)`" % view.xml_id
-                            )
 
             return super().unlink()
 
