@@ -49,7 +49,7 @@ def countries_with_regions(cr):
         """,
         [tuple(codes)],
     )
-    return set([code[0] for code in cr.fetchall()])
+    return {code[0] for code in cr.fetchall()}
 
 
 def migrate(cr, version):
@@ -144,8 +144,6 @@ def get_coa_country_ids(cr, company_id, main_country_ids):
 
     Originally from pre-10.py, refactored together with other clues into separate file.
     """
-    coa_clues = set()
-
     cr.execute(
         """
         SELECT country.id
@@ -163,10 +161,9 @@ def get_coa_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return coa_clues, ""
+        return set(), ""
     else:
-        coa_clues.add(cr.fetchone()[0])
-        return coa_clues, "the Chart of Accounts"
+        return {cr.fetchone()[0]}, "the Chart of Accounts"
 
 
 def get_partner_country_ids(cr, company_id, main_country_ids):
@@ -174,8 +171,6 @@ def get_partner_country_ids(cr, company_id, main_country_ids):
 
     Originally from pre-10.py, refactored together with other clues into separate file.
     """
-    partner_clues = set()
-
     cr.execute(
         """
         SELECT p.country_id
@@ -188,10 +183,9 @@ def get_partner_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return partner_clues, ""
+        return set(), ""
     else:
-        partner_clues.add(cr.fetchone()[0])
-        return partner_clues, "the company's partner entry's country"
+        return {cr.fetchone()[0]}, "the company's partner entry's country"
 
 
 def get_name_country_ids(cr, company_id, main_country_ids):
@@ -201,8 +195,6 @@ def get_name_country_ids(cr, company_id, main_country_ids):
     are matched (e.g. 'Nigeria Tech Solutions' matches both 'Niger' and 'Nigeria'),
     keep the one with the longer name.
     """
-    name_clues = set()
-
     cr.execute(
         """
           SELECT res_country.id, res_country.name
@@ -215,14 +207,13 @@ def get_name_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return name_clues, ""
+        return set(), ""
     else:
         country_list = cr.fetchall()
         # If a country is a subword of another, keep the longer one:
         country_list = [c1[0] for c1 in country_list if not any([c1[1] in c2[1] for c2 in country_list if c1 != c2])]
 
-        name_clues.update(country_list)
-        return name_clues, "the country being included in the company name"
+        return {c for c in country_list}, "the country being included in the company name"
 
 
 def get_journal_currency_country_ids(cr, company_id, main_country_ids):
@@ -331,8 +322,6 @@ def get_tld_country_ids(cr, company_id, main_country_ids):
     A special provision needs to be made for the UK, whose country code is 'gb'
     but still uses the TLD of 'uk'.
     """
-    ccTLD_clues = set()
-
     cr.execute(
         r"""
         SELECT res_country.id
@@ -359,10 +348,9 @@ def get_tld_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return ccTLD_clues, ""
+        return set(), ""
     else:
-        ccTLD_clues.add(cr.fetchone()[0])
-        return ccTLD_clues, "the country Top Level Domain in the company's website/email address"
+        return {cr.fetchone()[0]}, "the country Top Level Domain in the company's website/email address"
 
 
 def get_tz_country_ids(cr, company_id, main_country_ids):
@@ -373,8 +361,6 @@ def get_tz_country_ids(cr, company_id, main_country_ids):
     for more general timezone names like 'UTC-1' though - the country-timezone mapping is taken from
     pytz.
     """
-
-    tz_clues = set()
 
     # Create mapping timezones->countries:
     # pytz offers only countries->timezones, so we have to reverse it
@@ -395,10 +381,9 @@ def get_tz_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return tz_clues, ""
+        return set(), ""
     else:
-        tz_clues.add(cr.fetchone()[0])
-        return tz_clues, "the company's timezone"
+        return {cr.fetchone()[0]}, "the company's timezone"
 
 
 def get_lang_country_ids(cr, company_id, main_country_ids):
@@ -409,8 +394,6 @@ def get_lang_country_ids(cr, company_id, main_country_ids):
     however it will often be set wrongly (oftentimes en_US is used in place of the real language).
     It should thus be consulted only as a last resort.
     """
-    lang_clues = set()
-
     cr.execute(
         """
         SELECT y.id
@@ -424,7 +407,6 @@ def get_lang_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return lang_clues, ""
+        return set(), ""
     else:
-        lang_clues.add(cr.fetchone()[0])
-        return lang_clues, "the company's language locale"
+        return {cr.fetchone()[0]}, "the company's language locale"
