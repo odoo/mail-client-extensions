@@ -28,7 +28,7 @@ def migrate(cr, version):
             ON d2.res_id = f.model_id
            AND d2.model = 'ir.model'
          WHERE d.module = ANY(%(standard_modules)s)
-           AND d2.module != ANY(%(standard_modules)s)
+           AND d2.module != ALL(%(standard_modules)s)
             ON CONFLICT DO NOTHING
   """,
         {"standard_modules": list(modules.get_modules())},
