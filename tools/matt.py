@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import itertools
+import json
 import logging
 import os
 import re
@@ -8,6 +9,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 from argparse import Action, ArgumentError, ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
@@ -413,6 +415,19 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
 
 
+def dump_progress(options: Namespace, start: int, done: int, total: int) -> None:
+    outfile = options.progress_file
+    if not outfile:
+        return
+    progress = {
+        "start": start,
+        "done": done,
+        "total": total,
+        "at": int(time.time()),
+    }
+    outfile.write_text(json.dumps(progress))
+
+
 def matt(options: Namespace) -> int:
     with tempfile.TemporaryDirectory() as workdir_s, ExitStack() as stack:
         workdir = Path(workdir_s)
@@ -525,8 +540,11 @@ def matt(options: Namespace) -> int:
 
         rc = 0
         with ProcessPoolExecutor(max_workers=min(options.workers, total)) as executor:
+            st = int(time.time())
+            dump_progress(options, st, 0, total)
             it = executor.map(process_module, modules, itertools.repeat(workdir), itertools.repeat(options))
             for i, r in enumerate(it, 1):
+                dump_progress(options, st, i, total)
                 setproctitle(f"matt :: {options.source} -> {options.target} [{i}/{total}]")
                 if isinstance(r, Ok):
                     logger.info("Processed module %d/%d", i, total)
@@ -630,6 +648,7 @@ It allows to test upgrades against development branches.
     )
 
     parser.add_argument("-l", "--log-file", type=Path)
+    parser.add_argument("--progress-file", type=Path)
     parser.add_argument(
         "-q",
         "--quiet",
