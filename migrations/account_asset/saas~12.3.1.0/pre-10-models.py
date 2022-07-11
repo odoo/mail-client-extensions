@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from odoo.addons.base.maintenance.migrations import util
 from collections import defaultdict
+
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
@@ -14,24 +15,24 @@ def migrate(cr, version):
                           ORDER BY name DESC LIMIT 1
                       )"""
 
-    util.create_column(cr, 'account_account', 'asset_model', 'int4')
-    util.create_column(cr, 'account_account', 'create_asset', 'varchar')
+    util.create_column(cr, "account_account", "asset_model", "int4")
+    util.create_column(cr, "account_account", "create_asset", "varchar")
 
     cr.execute("UPDATE account_account SET create_asset='no'")
 
-    util.rename_model(cr, 'account.asset.asset', 'account.asset')
+    util.rename_model(cr, "account.asset.asset", "account.asset")
 
-    util.create_column(cr, 'account_asset', 'value_residual', 'numeric')
-    util.create_column(cr, 'account_asset', 'prorata_date', 'date')
+    util.create_column(cr, "account_asset", "value_residual", "numeric")
+    util.create_column(cr, "account_asset", "prorata_date", "date")
     util.rename_field(cr, "account.asset", "type", "asset_type")  # was a related to category type
-    util.create_column(cr, 'account_asset', 'asset_type', 'varchar')
+    util.create_column(cr, "account_asset", "asset_type", "varchar")
     util.rename_field(cr, "account.asset", "first_depreciation_manual_date", "first_depreciation_date")
-    util.create_column(cr, 'account_asset', 'disposal_date', 'date')
-    util.create_column(cr, 'account_asset', 'account_asset_id', 'int4')
-    util.create_column(cr, 'account_asset', 'account_depreciation_id', 'int4')
-    util.create_column(cr, 'account_asset', 'account_depreciation_expense_id', 'int4')
-    util.create_column(cr, 'account_asset', 'journal_id', 'int4')
-    util.create_column(cr, 'account_asset', 'model_id', 'int4')
+    util.create_column(cr, "account_asset", "disposal_date", "date")
+    util.create_column(cr, "account_asset", "account_asset_id", "int4")
+    util.create_column(cr, "account_asset", "account_depreciation_id", "int4")
+    util.create_column(cr, "account_asset", "account_depreciation_expense_id", "int4")
+    util.create_column(cr, "account_asset", "journal_id", "int4")
+    util.create_column(cr, "account_asset", "model_id", "int4")
 
     cr.execute("UPDATE account_asset SET first_depreciation_date = date WHERE first_depreciation_date IS NULL")
     cr.execute("UPDATE account_asset SET prorata_date = first_depreciation_date WHERE prorata_date IS NULL")
@@ -42,7 +43,8 @@ def migrate(cr, version):
     # We need to keep the purchase date to get the right currency rate in case assets are in foreign currencies
     cr.execute("ALTER TABLE account_asset ALTER COLUMN date DROP NOT NULL")
 
-    cr.execute("""
+    cr.execute(
+        """
         INSERT INTO account_asset
             (state,category_id,active, name, account_analytic_id,
             account_asset_id,account_depreciation_id,
@@ -57,9 +59,11 @@ def migrate(cr, version):
                     ac.prorata,c.currency_id,CURRENT_DATE,0
                FROM account_asset_category ac
                INNER JOIN res_company c on ac.company_id=c.id
-    """)
+    """
+    )
 
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_asset
            SET asset_type = c.type,
                account_asset_id = c.account_asset_id,
@@ -68,27 +72,32 @@ def migrate(cr, version):
                journal_id = c.journal_id
           FROM account_asset_category c
          WHERE account_asset.category_id = c.id
-    """)
+    """
+    )
 
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_asset a
            SET model_id = a2.id
           FROM account_asset a2
          WHERE a2.category_id = a.category_id
            AND a2.state = 'model'
            AND a.state <> 'model'
-    """)
+    """
+    )
 
-    cr.execute("""
+    cr.execute(
+        """
         ALTER TABLE account_asset
         ALTER COLUMN method_period TYPE varchar
         USING CASE WHEN method_period = '1' THEN '1' ELSE '12' END
-    """)
+    """
+    )
 
-    util.create_column(cr, 'account_move', 'asset_id', 'int4')
-    util.create_column(cr, 'account_move', 'asset_remaining_value', 'numeric')
-    util.create_column(cr, 'account_move', 'asset_depreciated_value', 'numeric')
-    util.create_column(cr, 'account_move', 'asset_manually_modified', 'boolean')
+    util.create_column(cr, "account_move", "asset_id", "int4")
+    util.create_column(cr, "account_move", "asset_remaining_value", "numeric")
+    util.create_column(cr, "account_move", "asset_depreciated_value", "numeric")
+    util.create_column(cr, "account_move", "asset_manually_modified", "boolean")
 
     if util.version_gte("saas~12.4"):
         amount_col = "amount_total"
@@ -96,16 +105,22 @@ def migrate(cr, version):
         amount_col = "amount"
 
     cr.execute("SELECT DISTINCT company_id FROM account_asset")
-    migration_journals = env['account.journal'].create([{
-        'name': 'Assets Upgrade',
-        'code': 'UPGASSET',
-        'type': 'general',
-        'company_id': cid[0],
-        'active': False,
-    } for cid in cr.fetchall() or [[env.user.company_id.id]]])
+    migration_journals = env["account.journal"].create(
+        [
+            {
+                "name": "Assets Upgrade",
+                "code": "UPGASSET",
+                "type": "general",
+                "company_id": cid[0],
+                "active": False,
+            }
+            for cid in cr.fetchall() or [[env.user.company_id.id]]
+        ]
+    )
 
     cr.execute("ALTER TABLE account_move ADD COLUMN _upg_depreciation_line_id INTEGER")
-    cr.execute(f"""
+    cr.execute(
+        f"""
                 INSERT INTO account_move(
                                 name, state, ref, journal_id, company_id, asset_id, _upg_depreciation_line_id,
                                 date, partner_id, currency_id,
@@ -188,10 +203,13 @@ def migrate(cr, version):
                            GROUP BY move.id
                              HAVING COUNT(*) != 2
                          )
-    """, {
-        'journal_ids': tuple(migration_journals.ids),
-    })
-    cr.execute(f"""
+    """,
+        {
+            "journal_ids": tuple(migration_journals.ids),
+        },
+    )
+    cr.execute(
+        f"""
                 INSERT INTO account_move_line(
                                 move_id, name, company_id, account_id, ref,
                                 partner_id, analytic_account_id, date, date_maturity,
@@ -279,8 +297,10 @@ def migrate(cr, version):
                        JOIN account_account account ON account.id = category.account_depreciation_expense_id
                   LEFT JOIN res_currency currency ON currency.id = asset.currency_id
                   LEFT JOIN LATERAL {rate_subquery} rate ON true
-    """)
-    cr.execute("""
+    """
+    )
+    cr.execute(
+        """
                 INSERT INTO account_analytic_tag_account_move_line_rel(
                                 account_move_line_id, account_analytic_tag_id
                             )
@@ -290,11 +310,13 @@ def migrate(cr, version):
                        JOIN account_move_line move_line ON move_line.move_id = move.id
                        JOIN account_analytic_tag_account_asset_asset_rel tag
                          ON tag.account_asset_asset_id = asset.id
-    """)
+    """
+    )
 
     # Reverse the moves linked to depreciation lines so that the migration journals are balanced
     cr.execute("ALTER TABLE account_move ADD COLUMN _upg_original_move INTEGER")
-    cr.execute(f"""
+    cr.execute(
+        f"""
         INSERT INTO account_move (
                         name, state, ref, journal_id, company_id, _upg_original_move,
                         date, partner_id, currency_id, {amount_col}
@@ -309,10 +331,13 @@ def migrate(cr, version):
                   FROM account_asset_depreciation_line line
                   JOIN account_move move ON line.id = move._upg_depreciation_line_id
               )
-    """, {
-        'journal_ids': tuple(migration_journals.ids),
-    })
-    cr.execute("""
+    """,
+        {
+            "journal_ids": tuple(migration_journals.ids),
+        },
+    )
+    cr.execute(
+        """
         INSERT INTO account_move_line(
                         move_id, name, company_id, account_id,
                         partner_id, analytic_account_id, date, date_maturity,
@@ -328,32 +353,40 @@ def migrate(cr, version):
                FROM account_move original_move
                JOIN account_move new ON original_move.id = new._upg_original_move
                JOIN account_move_line original ON original.move_id = original_move.id
-    """)
+    """
+    )
 
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE account_asset_depreciation_line line
            SET move_id = move.id
           FROM account_move move
          WHERE move._upg_depreciation_line_id = line.id
-    """)
-    cr.execute("""
+    """
+    )
+    cr.execute(
+        """
         UPDATE account_move original
            SET reverse_entry_id = new.id
           FROM account_move new
          WHERE new._upg_original_move = original.id
-    """)
+    """
+    )
     cr.execute("ALTER TABLE account_move DROP COLUMN _upg_original_move")
     cr.execute("ALTER TABLE account_move DROP COLUMN _upg_depreciation_line_id")
 
     # Balance the journal so that it has a zero balance for each account at any point of time.
-    cr.execute("""
+    cr.execute(
+        """
           SELECT journal_id, date, account_id, SUM(balance)
             FROM account_move_line
            WHERE journal_id IN %(journal_ids)s
         GROUP BY account_id, journal_id, date
-    """, {
-        'journal_ids': tuple(migration_journals.ids),
-    })
+    """,
+        {
+            "journal_ids": tuple(migration_journals.ids),
+        },
+    )
 
     unbalanced_by_journal = defaultdict(list)
     for unbalanced in cr.fetchall():
@@ -361,27 +394,39 @@ def migrate(cr, version):
 
     # Ignore roundings, in case the rounding of the currency has been changed after the asset move lines were created
     origin_rounding = {}
-    for currency in migration_journals.mapped('company_id.currency_id'):
+    for currency in migration_journals.mapped("company_id.currency_id"):
         origin_rounding[currency] = (currency.rounding, currency.decimal_places)
         currency.rounding = 1e-6
 
-    balance_moves = env['account.move'].create([{
-        'journal_id': journal_id,
-        'date': date,
-        'ref': 'Upgrade balance',
-        'line_ids': [(0, 0, {
-            'account_id': account_id,
-            'debit': max(0, -balance),
-            'credit': max(0, balance),
-        }) for account_id, balance in values]
-    } for (journal_id, date), values in unbalanced_by_journal.items()])
+    balance_moves = env["account.move"].create(
+        [
+            {
+                "journal_id": journal_id,
+                "date": date,
+                "ref": "Upgrade balance",
+                "line_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "account_id": account_id,
+                            "debit": max(0, -balance),
+                            "credit": max(0, balance),
+                        },
+                    )
+                    for account_id, balance in values
+                ],
+            }
+            for (journal_id, date), values in unbalanced_by_journal.items()
+        ]
+    )
 
     for currency, (rounding, decimal_places) in origin_rounding.items():
         cr.execute(
             """
                 UPDATE res_currency SET rounding = %s, decimal_places = %s WHERE id = %s
             """,
-            [rounding, decimal_places, currency.id]
+            [rounding, decimal_places, currency.id],
         )
         currency.invalidate_cache(["rounding"], currency.ids)
 
@@ -392,7 +437,8 @@ def migrate(cr, version):
     for journal in migration_journals:
         for year in years:
             cr.execute("CREATE TEMP SEQUENCE temp_sequence_%s_%s", [year, journal.id])
-    cr.execute("""
+    cr.execute(
+        """
         -- Use a CTE to control the order of updates
         WITH cte AS (
             SELECT move.id,
@@ -409,25 +455,30 @@ def migrate(cr, version):
         UPDATE account_move m SET state='posted', name = cte.name
           FROM cte
          WHERE m.id = cte.id
-    """, {
-        'journal_ids': tuple(migration_journals.ids),
-    })
+    """,
+        {
+            "journal_ids": tuple(migration_journals.ids),
+        },
+    )
 
     # Remove useless journals when it was not needed
-    cr.execute("""
+    cr.execute(
+        """
         SELECT journal.id
           FROM account_journal journal
          WHERE id IN %(journal_ids)s
            AND NOT EXISTS (SELECT 1 FROM account_move WHERE journal_id = journal.id)
-    """, {
-        'journal_ids': tuple(migration_journals.ids),
-    })
-    env['account.journal'].browse(j[0] for j in cr.fetchall()).unlink()
+    """,
+        {
+            "journal_ids": tuple(migration_journals.ids),
+        },
+    )
+    env["account.journal"].browse(j[0] for j in cr.fetchall()).unlink()
 
     if balance_moves:
         balance_moves.invalidate_cache()
-        lis = '\n'.join(
-            '<li>account.move record #%s: %s, account.journal record: #%s</li>' % (m.id, m.name, m.journal_id.id)
+        lis = "\n".join(
+            "<li>account.move record #%s: %s, account.journal record: #%s</li>" % (m.id, m.name, m.journal_id.id)
             for m in balance_moves
         )
         util.add_to_migration_reports(
@@ -448,7 +499,8 @@ def migrate(cr, version):
             category="Accounting",
         )
 
-    cr.execute(f"""
+    cr.execute(
+        f"""
            UPDATE account_move
               SET asset_id = line.asset_id,
                   asset_remaining_value = CASE
@@ -471,41 +523,44 @@ def migrate(cr, version):
         LEFT JOIN res_currency currency ON currency.id = asset.currency_id
         LEFT JOIN LATERAL {rate_subquery} rate ON true
          WHERE line.move_id=account_move.id
-    """)
-    cr.execute("""
+    """
+    )
+    cr.execute(
+        """
         UPDATE account_move move
            SET auto_post = TRUE
           FROM account_asset asset
          WHERE move.state != 'posted'
            AND move.asset_id = asset.id
            AND asset.active
-    """)
-    util.create_column(cr, 'account_move_line', 'asset_id', 'int4')
+    """
+    )
+    util.create_column(cr, "account_move_line", "asset_id", "int4")
 
-    util.create_column(cr, 'asset_modify', 'asset_id', 'int4')
-    util.remove_field(cr, 'asset.modify', 'method_period')
-    util.create_column(cr, 'asset_modify', 'method_period', 'varchar')
-    util.create_column(cr, 'asset_modify', 'value_residual', 'numeric')
-    util.create_column(cr, 'asset_modify', 'salvage_value', 'numeric')
-    util.create_column(cr, 'asset_modify', 'currency_id', 'int4')
-    util.create_column(cr, 'asset_modify', 'resume_date', 'date')
-    util.create_column(cr, 'asset_modify', 'need_date', 'boolean')
+    util.create_column(cr, "asset_modify", "asset_id", "int4")
+    util.remove_field(cr, "asset.modify", "method_period")
+    util.create_column(cr, "asset_modify", "method_period", "varchar")
+    util.create_column(cr, "asset_modify", "value_residual", "numeric")
+    util.create_column(cr, "asset_modify", "salvage_value", "numeric")
+    util.create_column(cr, "asset_modify", "currency_id", "int4")
+    util.create_column(cr, "asset_modify", "resume_date", "date")
+    util.create_column(cr, "asset_modify", "need_date", "boolean")
 
     fields = "entry_count code note category_id partner_id method_end invoice_id depreciation_line_ids"
     for field in fields.split():
         util.remove_field(cr, "account.asset", field)
 
     util.remove_field(cr, "account.asset", "date")
-    util.remove_field(cr, 'account.move', 'asset_depreciation_ids')
-    util.remove_field(cr, 'account.invoice.line', 'asset_category_id')
-    util.remove_field(cr, 'account.invoice.line', 'asset_mrr')
-    util.remove_field(cr, 'asset.modify', 'method_end')
-    util.remove_field(cr, 'asset.modify', 'asset_method_time')
+    util.remove_field(cr, "account.move", "asset_depreciation_ids")
+    util.remove_field(cr, "account.invoice.line", "asset_category_id")
+    util.remove_field(cr, "account.invoice.line", "asset_mrr")
+    util.remove_field(cr, "asset.modify", "method_end")
+    util.remove_field(cr, "asset.modify", "asset_method_time")
 
-    util.remove_field(cr, 'product.template', 'asset_category_id')
-    util.remove_field(cr, 'product.template', 'deferred_revenue_category_id')
+    util.remove_field(cr, "product.template", "asset_category_id")
+    util.remove_field(cr, "product.template", "deferred_revenue_category_id")
 
-    util.remove_model(cr, 'account.asset.category')
-    util.remove_model(cr, 'account.asset.depreciation.line')
-    util.remove_model(cr, 'asset.asset.report')
-    util.remove_model(cr, 'asset.depreciation.confirmation.wizard')
+    util.remove_model(cr, "account.asset.category")
+    util.remove_model(cr, "account.asset.depreciation.line")
+    util.remove_model(cr, "asset.asset.report")
+    util.remove_model(cr, "asset.depreciation.confirmation.wizard")
