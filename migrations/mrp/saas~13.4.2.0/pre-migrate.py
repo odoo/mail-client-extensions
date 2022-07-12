@@ -38,18 +38,18 @@ def migrate(cr, version):
             # for other routing (operations relink)
             util.create_column(cr, "mrp_eco", "old_eco_id", "int4")  # Working column
             util.create_column(cr, "mrp_bom", "old_bom_id", "int4")  # Working column
-            column_eco, column_eco_pre = util.get_columns(
+            column_eco = util.get_columns(
                 cr,
                 "mrp_eco",
                 ignore=("id", "type", "product_tmpl_id", "bom_id", "new_bom_id", "old_eco_id"),
-                extra_prefixes=["me"],
             )
-            column_bom, column_bom_pre = util.get_columns(
+            column_eco_pre = [f"me.{c}" for c in column_eco]
+            column_bom = util.get_columns(
                 cr,
                 "mrp_bom",
                 ignore=("id", "version", "active", "previous_bom_id", "routing_id", "old_bom_id"),
-                extra_prefixes=["mb"],
             )
+            column_bom_pre = [f"mb.{c}" for c in column_bom]
 
             # (plm 1.)
             cr.execute(
@@ -209,12 +209,9 @@ def migrate(cr, version):
                 )
             )
 
-            column_approval, column_approval_pre_1, column_approval_pre_2 = util.get_columns(
-                cr,
-                "mrp_eco_approval",
-                ignore=("id", "eco_id"),
-                extra_prefixes=["mrp_eco_approval", "delete_eco_approval"],
-            )
+            column_approval = util.get_columns(cr, "mrp_eco_approval", ignore=("id", "eco_id"))
+            column_approval_pre_1 = [f"mrp_eco_approval.{c}" for c in column_approval]
+            column_approval_pre_2 = [f"delete_eco_approval.{c}" for c in column_approval]
             # Duplicate/Reassign ECO approvals on the duplicate ECO
             cr.execute(
                 """
@@ -255,18 +252,10 @@ def migrate(cr, version):
             )
 
             # Duplicate bom line and byproduct for the duplicate BoM
-            column_bom_line, column_bom_line_pre = util.get_columns(
-                cr,
-                "mrp_bom_line",
-                ignore=("id", "bom_id"),
-                extra_prefixes=["mbl"],
-            )
-            column_bom_by_product, column_bom_by_product_pre = util.get_columns(
-                cr,
-                "mrp_bom_byproduct",
-                ignore=("id", "bom_id"),
-                extra_prefixes=["mbp"],
-            )
+            column_bom_line = util.get_columns(cr, "mrp_bom_line", ignore=("id", "bom_id"))
+            column_bom_line_pre = [f"mbl.{c}" for c in column_bom_line]
+            column_bom_by_product = util.get_columns(cr, "mrp_bom_byproduct", ignore=("id", "bom_id"))
+            column_bom_by_product_pre = [f"mbp.{c}" for c in column_bom_by_product]
             cr.execute(
                 """
                 INSERT INTO mrp_bom_line ({column_bom_line}, bom_id)
@@ -298,9 +287,8 @@ def migrate(cr, version):
             util.remove_column(cr, "mrp_eco", "old_eco_id")
             util.remove_column(cr, "mrp_bom", "old_bom_id")
 
-        column_op, column_op_pre = util.get_columns(
-            cr, "mrp_routing_workcenter", ignore=("id", "bom_id", "old_id"), extra_prefixes=["old_operation"]
-        )
+        column_op = util.get_columns(cr, "mrp_routing_workcenter", ignore=("id", "bom_id", "old_id"))
+        column_op_pre = [f"old_operation.{c}" for c in column_op]
 
         # For mrp.routing.workcenter:
         # 1) just set bom_id if there is only one bom_id linked to this operation
@@ -350,7 +338,8 @@ def migrate(cr, version):
             )
         )
 
-        cols, pre_cols = util.get_columns(cr, "ir_attachment", ignore=("id", "res_id"), extra_prefixes=["a"])
+        cols = util.get_columns(cr, "ir_attachment", ignore=("id", "res_id"))
+        pre_cols = [f"a.{c}" for c in cols]
         update_queries = [
             """
             INSERT INTO ir_attachment({cols}, res_id)

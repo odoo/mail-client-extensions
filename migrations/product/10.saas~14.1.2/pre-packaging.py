@@ -4,8 +4,10 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.create_column(cr, 'product_packaging', 'product_id', 'int4')
     util.create_column(cr, 'product_packaging', '_tmp', 'int4')
-    cols, k_cols = map(','.join, util.get_columns(cr, 'product_packaging',
-                                                  ('id', 'product_id', '_tmp'), ['k']))
+    cols = util.get_columns(cr, 'product_packaging', ('id', 'product_id', '_tmp'))
+
+    k_cols = ",".join("k." + c for c in cols)
+    cols = ",".join(cols)
 
     update_sol = ""
     if util.column_exists(cr, 'sale_order_line', 'product_packaging'):

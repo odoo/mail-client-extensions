@@ -40,7 +40,8 @@ def migrate(cr, version):
         """
     )
 
-    pa_cols, pa_pref_cols = map(",".join, util.get_columns(cr, "hr_plan_activity_type", ("id", "plan_id"), ["p"]))
+    pa_cols = util.get_columns(cr, "hr_plan_activity_type", ("id", "plan_id"))
+    pa_pref_cols = [f"p.{c}" for c in pa_cols]
     cr.execute(
         f"""
             WITH plan_activities AS (
@@ -54,8 +55,8 @@ def migrate(cr, version):
                   FROM plan_activities pa
                  WHERE pa.hr_plan_activity_type_id = a.id
             )
-            INSERT INTO hr_plan_activity_type({pa_cols}, plan_id)
-                 SELECT {pa_pref_cols}, UNNEST(pa.plans[2:])
+            INSERT INTO hr_plan_activity_type({','.join(pa_cols)}, plan_id)
+                 SELECT {','.join(pa_pref_cols)}, UNNEST(pa.plans[2:])
                    FROM hr_plan_activity_type p
                    JOIN plan_activities pa
                      ON p.id = pa.hr_plan_activity_type_id

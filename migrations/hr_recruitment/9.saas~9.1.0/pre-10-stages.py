@@ -6,7 +6,9 @@ from openerp.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     util.create_column(cr, 'hr_recruitment_stage', 'job_id', 'int4')
     util.create_column(cr, 'hr_recruitment_stage', '_tmp', 'int4')
-    cols, s_cols = map(','.join, util.get_columns(cr, 'hr_recruitment_stage', ('id', 'job_id', '_tmp'), ['s']))
+    cols = util.get_columns(cr, 'hr_recruitment_stage', ('id', 'job_id', '_tmp'))
+    s_cols = ",".join("s." + c for c in cols)
+    cols = ",".join(cols)
 
     cr.execute("""
         WITH only_one_job AS (

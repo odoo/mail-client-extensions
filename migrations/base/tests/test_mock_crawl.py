@@ -299,7 +299,7 @@ class TestCrawler(IntegrityCase):
 
         kind_of_table = table_kind(self.env.cr, model._table)
         is_view = kind_of_table in {"v", "m"}
-        view_columns = set(util.get_columns(env.cr, model._table, ignore=("",))[0]) if is_view else set()
+        view_columns = set(util.get_columns(env.cr, model._table, ignore=[])) if is_view else set()
         stored_fields = (
             set(name for name, field in model._fields.items() if field.store and not field.type.endswith("2many"))
             if is_view

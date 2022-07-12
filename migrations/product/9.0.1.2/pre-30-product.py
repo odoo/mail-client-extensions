@@ -20,8 +20,9 @@ def migrate(cr, version):
     util.remove_field(cr, 'product.template', 'weight_net', cascade=True)
 
     # update product.price.history see http://git.io/vZxdR
-    columns, h_columns = util.get_columns(cr, 'product_price_history',
-                                          ('id', 'product_template_id'), ['h'])
+    columns = util.get_columns(cr, 'product_price_history', ('id', 'product_template_id'))
+    h_columns = ["h." + c for c in columns]
+
     util.create_column(cr, 'product_price_history', 'product_id', 'int4')
     cr.execute("ALTER TABLE product_price_history ALTER COLUMN product_template_id DROP NOT NULL")
 

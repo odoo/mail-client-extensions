@@ -111,8 +111,8 @@ def migrate(cr, version):
         )
 
     ignore = ("id", "description")
-    cols = set(util.get_columns(cr, "project_task", ignore)[0]) & set(
-        util.get_columns(cr, "project_issue", ignore)[0]
+    cols = set(util.get_columns(cr, "project_task", ignore)) & set(
+        util.get_columns(cr, "project_issue", ignore)
     )  # noqa:E127
 
     pv = util.parse_version

@@ -127,7 +127,7 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
                     not_ids.append(record_id)
 
         if not_ids:
-            cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content"))[0])
+            cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content")))
             cr.execute(
                 """
                 INSERT INTO ir_attachment(res_field, {cols}, index_content)

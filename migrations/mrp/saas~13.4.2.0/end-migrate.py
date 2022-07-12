@@ -121,18 +121,18 @@ def migrate(cr, version):
     #        dates fields need to split/relink, recreate m2m, relink stock_move to workorder, etc
     util.create_column(cr, "mrp_production", "old_id", "int4")
     util.create_column(cr, "stock_move", "old_id", "int4")
-    column_production, column_production_pre = util.get_columns(
+    column_production = util.get_columns(
         cr,
         "mrp_production",
         ignore=("id", "old_id", "lot_producing_id", "backorder_sequence", "name", "product_qty", "qty_producing"),
-        extra_prefixes=["mp"],
     )
-    column_stock_move, column_stock_move_pre = util.get_columns(
+    column_production_pre = [f"mp.{c}" for c in column_production]
+    column_stock_move = util.get_columns(
         cr,
         "stock_move",
         ignore=("id", "old_id", "product_uom_qty", "production_id", "raw_material_production_id"),
-        extra_prefixes=["sm"],
     )
+    column_stock_move_pre = [f"sm.{c}" for c in column_stock_move]
     if not util.table_exists(cr, "temp_mo_backorder_info"):
         # (1.) temp_mo_backorder_info : source mo id, finished lot id, qty by backorder, backorder sequence
         _logger.info("Create backorder info temporary table")

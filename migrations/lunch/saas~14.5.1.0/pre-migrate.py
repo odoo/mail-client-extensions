@@ -27,7 +27,8 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="lunch_order", alias="lo"))
 
     # Duplicate toppings used by multiple suppliers
-    columns, columns_pre = map(",".join, util.get_columns(cr, "lunch_topping", ("id",), extra_prefixes=["t"]))
+    columns = util.get_columns(cr, "lunch_topping", ("id",))
+    columns_pre = [f"t.{c}" for c in columns]
 
     util.create_column(cr, "lunch_topping", "supplier_id", "int4")
 
@@ -49,8 +50,8 @@ def migrate(cr, version):
                   FROM suppliers_per_category s
                  WHERE s.category_id = t.category_id
             )
-            INSERT INTO lunch_topping({columns}, supplier_id)
-            SELECT {columns_pre}, unnest(s.sup_ids) supplier_id
+            INSERT INTO lunch_topping({','.join(columns)}, supplier_id)
+            SELECT {','.join(columns_pre)}, unnest(s.sup_ids) supplier_id
               FROM lunch_topping t
               JOIN suppliers_per_category s USING (category_id)
         """

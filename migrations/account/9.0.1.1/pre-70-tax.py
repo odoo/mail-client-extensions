@@ -239,7 +239,7 @@ def migrate(cr, version):
 
     cr.execute("UPDATE account_tax SET type_tax_use = 'none' WHERE parent_id IS NOT NULL")
 
-    columns = map(','.join, util.get_columns(cr, 'account_tax', ('id', 'name', 'type_tax_use')))[0]
+    columns = ','.join(util.get_columns(cr, 'account_tax', ('id', 'name', 'type_tax_use')))
     cr.execute(""" INSERT INTO account_tax (name, type_tax_use, {columns})
                         SELECT name || ' (purchase)', 'purchase', {columns}
                           FROM account_tax

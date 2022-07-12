@@ -6,9 +6,8 @@ def migrate(cr, version):
     util.create_column(cr, "approval_category", "company_id", "integer")
     util.create_column(cr, "approval_category", "_tmp", "integer")
 
-    columns, columns_ac = util.get_columns(
-        cr, "approval_category", ignore=("id", "_tmp", "company_id"), extra_prefixes=["ac"]
-    )
+    columns = util.get_columns(cr, "approval_category", ignore=("id", "_tmp", "company_id"))
+    columns_ac = [f"ac.{c}" for c in columns]
 
     # duplicate categories
     cr.execute(

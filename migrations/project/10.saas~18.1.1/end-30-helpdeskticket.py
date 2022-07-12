@@ -96,8 +96,8 @@ def migrate(cr, version):
         )
 
         ignore = ("id", "_tmp", "team_id", "stage_id")
-        columns = set(util.get_columns(cr, "helpdesk_ticket", ignore)[0]) & set(
-            util.get_columns(cr, "project_issue", ignore)[0]
+        columns = set(util.get_columns(cr, "helpdesk_ticket", ignore)) & set(
+            util.get_columns(cr, "project_issue", ignore)
         )  # noqa:E127
 
         cr.execute(

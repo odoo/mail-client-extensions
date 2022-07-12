@@ -73,8 +73,9 @@ def migrate(cr, version):
             cr.execute("UPDATE {0} SET {1}='hr.expense' WHERE {1}='hr.expense.expense'"
                        .format(table, res_model))
         else:
-            cols, o_cols = map(', '.join, util.get_columns(cr, table,
-                                                           ('id', res_model, res_id), ['o']))
+            cols = util.get_columns(cr, table, ('id', res_model, res_id))
+            o_cols = ",".join("o." + c for c in cols)
+            cols = ",".join(cols)
             cr.execute("""
                 INSERT INTO {table} ({res_model}, {res_id}, {cols})
                 SELECT 'hr.expense', l.id, {o_cols}

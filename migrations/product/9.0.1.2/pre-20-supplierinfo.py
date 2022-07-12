@@ -7,8 +7,8 @@ def migrate(cr, version):
     util.create_column(cr, 'product_supplierinfo', 'price', 'numeric')
     util.create_column(cr, 'product_supplierinfo', 'currency_id', 'int4')
 
-    columns, i_columns = util.get_columns(cr, 'product_supplierinfo',
-                                          ('id', 'price', 'min_qty'), ['i'])
+    columns = util.get_columns(cr, 'product_supplierinfo', ('id', 'price', 'min_qty'))
+    i_columns = ["i." + c for c in columns]
     updated_si = set()
     cr.execute("SELECT suppinfo_id, price, min_quantity FROM pricelist_partnerinfo")
     for sid, price, qty in cr.fetchall():

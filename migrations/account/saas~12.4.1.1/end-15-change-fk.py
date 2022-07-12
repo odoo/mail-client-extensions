@@ -28,7 +28,7 @@ def fix_fk(cr, target, update_query):
 
             util.remove_column(cr, table, old_column)
 
-            other_columns = util.get_columns(cr, table, ignore=(column,))[0]
+            other_columns = util.get_columns(cr, table, ignore=(column,))
             is_m2m = len(other_columns) == 1
 
             if not is_m2m:

@@ -68,9 +68,8 @@ def migrate(cr, version):
         # wil delete cascade line & country+state m2m entries
         cr.execute("DELETE FROM delivery_grid WHERE id=ANY(%s)", [todel])
 
-    columns, c_columns = map(','.join, util.get_columns(cr, 'delivery_carrier',
-                                                        ('id', 'zip_from', 'zip_to', 'name'),
-                                                        ['c']))
+    columns = util.get_columns(cr, 'delivery_carrier', ('id', 'zip_from', 'zip_to', 'name'))
+    c_columns = ["c." + c for c in columns]
 
     util.create_column(cr, 'delivery_carrier', '_tmp', 'int4')
     cr.execute("""SELECT carrier_id, array_agg(id)
@@ -99,7 +98,7 @@ def migrate(cr, version):
                  WHERE c.id=%s
                    AND g.id=ANY(%s)
                    RETURNING id, _tmp
-            """.format(columns=columns, c_columns=c_columns), [cid, grids])
+            """.format(columns=",".join(columns), c_columns=",".join(c_columns)), [cid, grids])
             for ncid, gid in cr.fetchall():
                 cr.execute("UPDATE delivery_grid SET carrier_id=%s WHERE id=%s", [ncid, gid])
 

@@ -12,8 +12,8 @@ def migrate(cr, version):
         cr.execute(index_query('account_analytic_line', 'holiday_id'))
 
     columns = (
-        set(util.get_columns(cr, 'hr_leave_allocation', ignore=('id', 'parent_id'))[0])
-        & set(util.get_columns(cr, 'hr_leave')[0])
+        set(util.get_columns(cr, 'hr_leave_allocation', ignore=('id', 'parent_id')))
+        & set(util.get_columns(cr, 'hr_leave'))
     )
 
     util.create_column(cr, 'hr_leave_allocation', '_tmp', 'int4')

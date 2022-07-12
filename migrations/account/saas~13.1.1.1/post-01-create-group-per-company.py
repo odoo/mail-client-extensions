@@ -5,7 +5,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     # column used in `end-` script
     ignore = ("id", "parent_id", "parent_path", "company_id")
-    cols = util.get_columns(cr, "account_group", ignore, ["ag"])
+    cols = util.get_columns(cr, "account_group", ignore)
 
     # Old groups use as template to create group per company
     cr.execute("SELECT id from account_group")
@@ -13,8 +13,8 @@ def migrate(cr, version):
 
     if old_groups_ids:
         # All groups will be duplicated for all companies that have at least one group
-        cols_str = ",".join(cols[0])
-        cols_with_pre_fix = ",".join(cols[1])
+        cols_str = ",".join(cols)
+        cols_with_pre_fix = ",".join(f"ag.{c}" for c in cols)
         cr.execute(
             f"""
             WITH RECURSIVE parent_tree(id, parent_ids) AS (

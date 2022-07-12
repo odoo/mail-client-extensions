@@ -12,7 +12,7 @@ class LockDateCase(UpgradeCase):
 
     def prepare(self):
         lock_date = (datetime.now() + timedelta(days=15)).strftime("%Y-%m-%d")
-        columns = [col for col in util.get_columns(self.env.cr, "res_company")[0] if col.endswith("_lock_date")]
+        columns = [col for col in util.get_columns(self.env.cr, "res_company") if col.endswith("_lock_date")]
         if not columns:
             return
         query = "UPDATE res_company SET {}".format(",".join("{} = %(lock_date)s".format(col) for col in columns))

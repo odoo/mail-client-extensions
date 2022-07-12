@@ -23,7 +23,7 @@ def migrate(cr, version):
     p2id = try_id_2("res_partner")
 
     # copy partner
-    cols = ", ".join(util.get_columns(cr, "res_partner")[0])
+    cols = ", ".join(util.get_columns(cr, "res_partner"))
     query = """
         INSERT INTO res_partner(id, {0})
              SELECT %s, {0}
@@ -34,7 +34,7 @@ def migrate(cr, version):
 
     # and user (but keep same partner)
     # by keeping same partner we do not need to reassign every fk...
-    cols = ", ".join(util.get_columns(cr, "res_users", ignore=("id", "login", "oauth_uid"))[0])
+    cols = ", ".join(util.get_columns(cr, "res_users", ignore=("id", "login", "oauth_uid")))
     query = """
         INSERT INTO res_users(id, login, {0})
           SELECT %s, CONCAT('\a', login), {0}

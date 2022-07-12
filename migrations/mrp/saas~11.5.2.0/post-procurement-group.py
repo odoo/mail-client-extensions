@@ -19,14 +19,13 @@ def migrate(cr, version):
         util.create_column(cr, "procurement_group", "_tmp", "int4")
 
         extra_move_cond = "AND sm.purchase_line_id IS NULL" if util.modules_installed(cr, "purchase") else ""
-        fields, pg_fields = map(
-            ",".join,
-            util.get_columns(cr, "procurement_group", ignore=("id", "name", "sale_id", "_tmp"), extra_prefixes=["pg"]),
-        )
+        fields = util.get_columns(cr, "procurement_group", ignore=("id", "name", "sale_id", "_tmp"))
+        pg_fields = [f"pg.{c}" for c in fields]
+
         cr.execute(
             f"""
-            INSERT INTO procurement_group (name, _tmp, {fields})
-                 SELECT mo.name, mo.id, {pg_fields}
+            INSERT INTO procurement_group (name, _tmp, {','.join(fields)})
+                 SELECT mo.name, mo.id, {','.join(pg_fields)}
                    FROM mrp_production mo
                    JOIN procurement_group pg ON pg.id = mo.procurement_group_id
                   WHERE mo.id IN %s

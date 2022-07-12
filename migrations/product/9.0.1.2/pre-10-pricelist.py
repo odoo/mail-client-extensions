@@ -9,7 +9,8 @@ def migrate(cr, version):
     # duplicate the pricelist to include all deactivated versions
     cr.execute("SELECT 1 FROM product_pricelist_version WHERE active=false")
     if cr.rowcount:
-        columns, p_columns = util.get_columns(cr, 'product_pricelist', ('id', 'active'), ['p'])
+        columns = util.get_columns(cr, 'product_pricelist', ('id', 'active'))
+        p_columns = ["p." + c for c in columns]
         util.create_column(cr, 'product_pricelist', '_tmp', 'integer')
         cr.execute("""
             WITH n AS (
@@ -108,9 +109,12 @@ def migrate(cr, version):
             price = min(price, price_limit + max_margin)
         return price
 
-    columns, i_columns = util.get_columns(cr, 'product_pricelist_item',
-                                          ('id', 'product_id', 'product_tmpl_id', 'categ_id',
-                                           'fixed_price', 'applied_on'), ['i'])
+    columns = util.get_columns(
+        cr,
+        "product_pricelist_item",
+        ("id", "product_id", "product_tmpl_id", "categ_id", "fixed_price", "applied_on"),
+    )
+    i_columns = ["i." + c for c in columns]
 
     cr.execute("""SELECT id, _base, product_id, product_tmpl_id, categ_id,
                          ARRAY [price_discount::float8, price_round::float8, price_surcharge::float8,

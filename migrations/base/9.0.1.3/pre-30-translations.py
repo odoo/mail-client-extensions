@@ -104,8 +104,8 @@ def migrate(cr, version):
             xml_translate(cb, arch)
 
     # copy non-qweb view translations for each matching view
-    columns, t_columns = util.get_columns(cr, 'ir_translation',
-                                          ('id', 'type', 'name', 'res_id'), ['t'])
+    columns = util.get_columns(cr, 'ir_translation', ('id', 'type', 'name', 'res_id'))
+    t_columns = ["t." + c for c in columns]
     cr.execute("""INSERT INTO ir_translation(name, type, res_id, {columns})
                        SELECT 'ir.ui.view,arch_db', 'model', v.id, {t_columns}
                          FROM ir_translation t

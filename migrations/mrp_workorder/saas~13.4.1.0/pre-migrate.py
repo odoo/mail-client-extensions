@@ -4,9 +4,8 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.create_column(cr, "quality_point", "old_id", "int4")  # Working column
-    column_qua, column_qua_pre = util.get_columns(
-        cr, "quality_point", ignore=("id", "old_id", "operation_id"), extra_prefixes=["quality_point_by_new_op"]
-    )
+    column_qua = util.get_columns(cr, "quality_point", ignore=("id", "old_id", "operation_id"))
+    column_qua_pre = [f"quality_point_by_new_op.{c}" for c in column_qua]
     # A quality point was link to a operation, then we need to duplicate also quality point for each operation
     # duplicate (for each operation) related to ...
     # => point_id of quality_point update via production_id.bom_id

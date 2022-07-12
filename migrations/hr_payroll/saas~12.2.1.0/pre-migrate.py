@@ -35,7 +35,7 @@ def migrate(cr, version):
     # hr.payslip.run
     util.create_column(cr, "hr_payslip_run", "company_id", "int4")
     util.create_column(cr, "hr_payslip_run", "_src_id", "int4")
-    cols, r_cols = map(",".join, util.get_columns(cr, "hr_payslip_run", ("id", "company_id", "_src_id"), ["r"]))
+    cols = util.get_columns(cr, "hr_payslip_run", ("id", "company_id", "_src_id"))
     cr.execute("""
         WITH slips AS (
             SELECT payslip_run_id, company_id, count(*) as cnt
@@ -67,7 +67,7 @@ def migrate(cr, version):
           FROM _ins i
          WHERE s.payslip_run_id = i._src_id
            AND s.company_id = i.company_id
-    """.format(cols, r_cols))
+    """.format(",".join(cols), ",".join("r." + c for c in cols)))
 
     cr.execute("""
         UPDATE hr_payslip_run r
