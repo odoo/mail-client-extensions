@@ -538,6 +538,8 @@ class IrUiView(models.Model):
             def custom_view_in_tree(view):
                 # Starting from the first primary ancestor, check the views' tree for custom views
                 # Return true if at least one view is custom
+                if view.mode == "primary" and view.id not in standard_ids:
+                    return True
                 while view.mode != "primary" and view.inherit_id:
                     view = view.inherit_id
                 q = """
