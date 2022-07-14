@@ -30,3 +30,20 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.line", "exclude_from_invoice_tab")
     util.remove_field(cr, "account.move.line", "recompute_tax_line")
     util.rename_field(cr, "account.move", *eb("tax_totals{_json,}"))
+
+    # Reportalypse
+    cr.execute("CREATE TABLE account_tax_report_line_tags_rel_backup AS TABLE account_tax_report_line_tags_rel")
+    cr.execute(
+        "ALTER TABLE account_tax_report_line_tags_rel_backup ADD PRIMARY KEY(account_tax_report_line_id, account_account_tag_id)"
+    )
+
+    for model in ("account.tax.carryover.line", "account.tax.report.line", "account.tax.report"):
+        util.remove_model(cr, model, drop_table=False)
+
+    for model in ("tax.adjustments.wizard", "account.common.journal.report", "account.print.journal"):
+        util.remove_model(cr, model)
+
+    util.remove_field(cr, "account_reports.export.wizard", "report_model")
+    util.remove_field(cr, "account.tax.repartition.line.template", "plus_report_line_ids")
+    util.remove_field(cr, "account.tax.repartition.line.template", "minus_report_line_ids")
+    util.remove_field(cr, "account.account.tag", "tax_report_line_ids")

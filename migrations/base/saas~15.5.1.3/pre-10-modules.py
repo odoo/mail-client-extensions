@@ -41,3 +41,7 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.force_migration_of_fresh_module(cr, "spreadsheet_edition")
         util.remove_module(cr, "project_account_accountant")
+
+    util.remove_module(cr, "l10n_nl_report_intrastat")
+    util.remove_module(cr, "l10n_es_reports_2021")
+    util.remove_module(cr, "l10n_mx_reports_closing")

@@ -6,6 +6,7 @@ from . import (
     test_14_4_journal_methods,
     test_14_4_tax_group_country,
     test_14_5_aml_tax_details,
+    test_15_5_reportalypse,
     test_account,
     test_account_group,
     test_account_pocalypse,
