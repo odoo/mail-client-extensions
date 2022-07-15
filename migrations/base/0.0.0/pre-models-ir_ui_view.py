@@ -17,6 +17,11 @@ except AttributeError:
 else:
     zip_longest = itertools.izip_longest
 
+try:
+    filterfalse = itertools.filterfalse
+except AttributeError:
+    filterfalse = itertools.ifilterfalse
+
 from lxml import etree
 
 from odoo import api, models
@@ -537,7 +542,7 @@ class IrUiView(models.Model):
             # Let's try to activate children one by one
             # If a child fails we then recursively fix it
             standard_children = filter(is_standard_view, children)
-            custom_children = itertools.filterfalse(is_standard_view, children)
+            custom_children = filterfalse(is_standard_view, children)
             has_error = []
             for child in itertools.chain(standard_children, custom_children):
                 child.active = True
