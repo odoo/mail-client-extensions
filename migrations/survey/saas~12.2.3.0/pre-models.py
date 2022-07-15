@@ -55,7 +55,7 @@ def migrate(cr, version):
     )
 
     # update fk
-    cr.execute("ALTER TABLE survey_question DROP CONSTRAINT survey_question_page_id_fkey")
+    cr.execute("ALTER TABLE survey_question DROP CONSTRAINT IF EXISTS survey_question_page_id_fkey")
     cr.execute("ALTER TABLE survey_question ALTER COLUMN page_id DROP NOT NULL")
 
     for table, column, fk, _ in util.get_fk(cr, "survey_page"):
