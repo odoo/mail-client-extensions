@@ -269,11 +269,15 @@ def heuristic_fixes(cr, view, check, e):
     # Handle xpaths that cannot be anchored
     m = re.search("Element '<xpath expr=.(.+).>' cannot be located in parent view", e)
     if m:
-        expr = unescape(m.group(1))  # unescape needed for '<xpath expr="//field[@name=&#39;price&#39;]">'
-        xpath_elem = find_xpath_elem(arch, expr)
-        if xpath_elem is None:
+        expr = m.group(1)
+        for _expr in (expr, unescape(expr)):
+            xpath_elem = find_xpath_elem(arch, _expr)
+            if xpath_elem is not None:
+                break
+        else:
             _logger.info("Couldn't find <xpath expr=%r> maybe it has some escaped characters.", m.group(1))
             return False
+        expr = unescape(expr)  # unescape needed for '<xpath expr="//field[@name=&#39;price&#39;]">'
         if xpath_elem.getparent() is None:
             # wrap arch in <data> to always have a parent
             old_arch = arch
