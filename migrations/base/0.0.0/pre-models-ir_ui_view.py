@@ -128,7 +128,11 @@ def validate_expr(tree, elem, expr):
 def valid_models(view):
     # get all models valid as model for parent views
     view_model = view.env[view.model]
-    return {view.model} | set(view_model._inherit) | set(view_model._inherits)
+    return (
+        {view.model}
+        | ({view_model._inherit} if isinstance(view_model._inherit, str) else set(view_model._inherit))
+        | set(view_model._inherits)
+    )
 
 
 def field_change(view, name):
