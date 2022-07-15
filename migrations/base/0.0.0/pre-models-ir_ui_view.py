@@ -140,6 +140,21 @@ def field_change(view, name):
     return any(name in util.ENVIRON["__renamed_fields"][model] for model in valid_models(view))
 
 
+def field_new_name(view, name):
+    info = getattr(field_new_name, "info", None)
+    if info is None:
+        # invert the relation, we want to know how an old field is named now
+        info = {
+            model: {old: new for new, old in fields.items()}
+            for model, fields in util.ENVIRON["__renamed_fields"].items()
+        }
+        field_new_name.info = info
+    # return field new name, if any
+    for model in valid_models(view):
+        if name in info.get(model, {}):
+            return info[model][name]
+
+
 def get_standard_modules(self):
     if not util.ENVIRON.get("standard_modules"):
         standard_modules = get_modules()
@@ -232,9 +247,14 @@ def heuristic_fixes(cr, view, check, e):
         if not elems:
             return False
         if not field_change(view, field_name):
-            # this field was not removed during upgrade, let this view fail
+            # this field was not changed during upgrade, let this view fail
             return False
+        new_name = field_new_name(view, field_name)
         for field_elem in elems:
+            if new_name:
+                _logger.info("Field %r was renamed to %r", field_name, new_name)
+                field_elem.attrib["name"] = new_name
+                continue
             parent = field_elem.getparent()
             parent.remove(field_elem)
             _logger.info(
@@ -285,11 +305,26 @@ def heuristic_fixes(cr, view, check, e):
             arch.append(old_arch)
             assert xpath_elem.getparent().tag == "data"
 
+        # Extract the field name to know what happened to it
+        m = re.search(r"""@name=("|')([A-Za-z_]+)\1""", expr)
+        field_name = m.group(2) if m else None
+        new_name = field_new_name(view, field_name)
+        if new_name:
+            new_expr = re.sub("@name=.{}.".format(field_name), "@name='{}'".format(new_name), expr)
+            _logger.info("Field %r was renamed to %r", field_name, new_name)
+            xpath_elem.set("expr", new_expr)
+            save_arch(view, arch)
+            return heuristic_fixes(cr, view, check, check())
+
         # If we only change attributes or remove the field from the view
         # then don't do it anymore since we cannot find the field anyway
         if xpath_elem.attrib["position"] == "attributes" or (
             xpath_elem.attrib["position"] == "replace" and len(xpath_elem) == 0
         ):
+            _logger.info(
+                "Removing %s from the arch since it only replaces or change attributes from an invalid field.",
+                pp_xml_elem(xpath_elem),
+            )
             xpath_elem.getparent().remove(xpath_elem)
             save_arch(view, arch)
             return heuristic_fixes(cr, view, check, check())
@@ -299,10 +334,9 @@ def heuristic_fixes(cr, view, check, e):
         # We test here if changing the xpath from replace to position after solves the
         # original error. If not, then fail
         if xpath_elem.attrib["position"] == "replace":
+            _logger.info("Changing 'replace' position on %s", pp_xml_elem(xpath_elem))
             xpath_elem.set("position", "after")
 
-            m = re.search("@name=.(.+).", expr)
-            field_name = m.group(1) if m else None
             # check first that the field  was not renamed/removed during the upgrade
             if not field_change(view, field_name):
                 save_arch(view, arch)
