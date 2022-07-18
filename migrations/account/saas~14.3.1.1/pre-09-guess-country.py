@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import functools
 import json
 from pathlib import Path
 
@@ -6,6 +7,8 @@ import pytz
 from psycopg2.extras import execute_values
 
 from odoo.addons.base.maintenance.migrations import util
+
+BIG_COUNTRIES = set()
 
 
 def countries_with_regions(cr):
@@ -52,6 +55,46 @@ def countries_with_regions(cr):
     return {code[0] for code in cr.fetchall()}
 
 
+def clue_func(reason, prefer_big_countries=True):
+    """Decorator for filtering clue functions
+
+    Clue functions (of name, currency, phone code etc.) return a set of country ids based on the clue,
+    and optionally also some details about the clue source ("reason").
+    With this decorator, each clue function gets assigned a proper string for its reason, and has its
+    country_ids set filtered as follows:
+    - If there is only one country_id, return it
+    - If there are multiple, but the big_countries are significant, check if there is only one big_country in the set
+    - If there's still zero or multiple countries in the set, return the whole set
+    The first two result in the migrate() function assigning the country_id to the company
+    The latter results in the migrate() function trying the next clue function, keeping the set only for informative purposes
+    """
+
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(cr, company_id):
+            ans = f(cr, company_id)
+            matched_countries = ans if isinstance(ans,set) else ans[0]
+            details = tuple() if isinstance(ans,set) else ans[1:]
+            wrapper.reason = reason.format(*details)
+
+            if len(matched_countries) == 1:
+                return matched_countries
+
+            global BIG_COUNTRIES
+            if not BIG_COUNTRIES:
+                BIG_COUNTRIES = countries_with_regions(cr)
+            if prefer_big_countries:
+                if len(matched_countries.intersection(BIG_COUNTRIES)) == 1:
+                    return matched_countries.intersection(BIG_COUNTRIES)
+
+            # Didn't find a single country, return all of them to be at least displayed to the user as hints
+            return matched_countries
+
+        return wrapper
+
+    return decorator
+
+
 def migrate(cr, version):
     """Attempting to deduce the company's country
 
@@ -70,7 +113,6 @@ def migrate(cr, version):
         """
     )
     company_no_country_ids = [res[0] for res in cr.fetchall()]
-    main_country_ids = countries_with_regions(cr)
 
     # Clues for finding a country, in order of precedence
     clue_funcs = [
@@ -88,16 +130,19 @@ def migrate(cr, version):
     country_dict = dict()  # will hold company_id -> (country_id,reason)
     for company_id in company_no_country_ids:
         # run all clue functions on the company, and keep only the first entry with len==1
+        all_country_hints = []  # will hold all non-empty hints, in case of a MigrationError
         for f in clue_funcs:
-            country_ids, reason_str = f(cr, company_id, main_country_ids)
+            country_ids = f(cr, company_id)
+            if len(country_ids) != 0:
+                all_country_hints.append((country_ids, f.reason))
             if len(country_ids) == 1:
-                country_dict[company_id] = (country_ids.pop(), reason_str)
+                country_dict[company_id] = (country_ids.pop(), f.reason)
                 break  # found our clue
         else:
             # no single-country candidate found for at least one company
             raise util.MigrationError(
                 f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}\n"
-                f"Clues found so far are ([company ID: (country ID, reason for clue)]): {country_dict}"
+                f"Clues found so far are ([company ID: (country ID, reason for clue)]): {all_country_hints}"
             )
 
     if country_dict:
@@ -139,7 +184,8 @@ def migrate(cr, version):
         util.add_to_migration_reports(category="Accounting", message=report_str)
 
 
-def get_coa_country_ids(cr, company_id, main_country_ids):
+@clue_func("the Chart of Accounts")
+def get_coa_country_ids(cr, company_id):
     """Returns the country id based on CoA
 
     Originally from pre-10.py, refactored together with other clues into separate file.
@@ -165,13 +211,11 @@ def get_coa_country_ids(cr, company_id, main_country_ids):
         [company_id],
     )
 
-    if cr.rowcount == 0:
-        return set(), ""
-    else:
-        return {cr.fetchone()[0]}, "the Chart of Accounts"
+    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
 
 
-def get_partner_country_ids(cr, company_id, main_country_ids):
+@clue_func("the company's partner entry's country")
+def get_partner_country_ids(cr, company_id):
     """Returns the country id based on the company's partner entry
 
     Originally from pre-10.py, refactored together with other clues into separate file.
@@ -187,13 +231,11 @@ def get_partner_country_ids(cr, company_id, main_country_ids):
         [company_id],
     )
 
-    if cr.rowcount == 0:
-        return set(), ""
-    else:
-        return {cr.fetchone()[0]}, "the company's partner entry's country"
+    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
 
 
-def get_name_country_ids(cr, company_id, main_country_ids):
+@clue_func("the country being included in the company name", False)
+def get_name_country_ids(cr, company_id):
     """Returns the country whose name is a substring of the company's name.
 
     In the case where one country is the subword of another and multiple countries
@@ -212,16 +254,17 @@ def get_name_country_ids(cr, company_id, main_country_ids):
     )
 
     if cr.rowcount == 0:
-        return set(), ""
+        return set()
     else:
         country_list = cr.fetchall()
         # If a country is a subword of another, keep the longer one:
         country_list = [c1[0] for c1 in country_list if not any([c1[1] in c2[1] for c2 in country_list if c1 != c2])]
 
-        return {c for c in country_list}, "the country being included in the company name"
+        return {c for c in country_list}
 
 
-def get_journal_currency_country_ids(cr, company_id, main_country_ids):
+@clue_func("the journal's ({}) currency")
+def get_journal_currency_country_ids(cr, company_id):
     """Returns countries whose currency is used by the company's journal.
 
     Multi-country currencies return all countries in the currency union.
@@ -237,19 +280,16 @@ def get_journal_currency_country_ids(cr, company_id, main_country_ids):
         locals(),
     )
     journal_currency_countries = cr.fetchall()
-    clue = None
     if len(journal_currency_countries) == 1:
         clue = journal_currency_countries[0]
-    elif len(set([c[0] for c in journal_currency_countries]).intersection(main_country_ids)) == 1:
-        clue = [c for c in journal_currency_countries if c[0] in main_country_ids][0]
-    if clue:
-        return {clue[0]}, f"the journal's (id: {clue[1]}, name: {clue[2]}) currency"
+        return {clue[0]}, f"id: clue[1], name: clue[2]"
 
     # If not yet returned, either none or a multitude of countries were found
-    return {c[0] for c in journal_currency_countries}, ""
+    return {c[0] for c in journal_currency_countries}, f"one of (journal id, journal name): {[(c[1], c[2]) for c in journal_currency_countries]}"
 
 
-def get_currency_country_ids(cr, company_id, main_country_ids):
+@clue_func("the company's currency")
+def get_currency_country_ids(cr, company_id):
     """Returns countries whose currency is used by the company.
 
     Multi-country currencies return all countries in the currency union.
@@ -263,25 +303,14 @@ def get_currency_country_ids(cr, company_id, main_country_ids):
         """,
         locals(),
     )
-    currency_countries = cr.fetchall()
-    clue = None
-    if len(currency_countries) == 1:
-        clue = currency_countries[0]
-    elif len(set([c for c in currency_countries]).intersection(main_country_ids)) == 1:
-        clue = [c for c in currency_countries if c in main_country_ids][0]
-    if clue:
-        return {clue}, "the company's currency"
-
-    # If not yet returned, either none or a multitude of countries were found
-    return {c[0] for c in currency_countries}, ""
+    return {c[0] for c in cr.fetchall()}
 
 
-def get_phone_country_ids(cr, company_id, main_country_ids):
+@clue_func("the country code of the company's phone number")
+def get_phone_country_ids(cr, company_id):
     """
     Returns countries that have the same phone code as the ones listed in the company's fields.
     """
-    phone_clues = set()
-
     # Get country based on phone/mobile number country code
     cr.execute(
         r"""
@@ -300,23 +329,11 @@ def get_phone_country_ids(cr, company_id, main_country_ids):
         """,
         [company_id],
     )
-
-    if cr.rowcount == 0:
-        return phone_clues, ""
-    else:
-        phone_countries = [cid[0] for cid in cr.fetchall()]
-        phone_clues.update(phone_countries)
-        if len(phone_countries) == 1:
-            return phone_clues, "the country code of the company's phone number"
-        # If multiple countries share a code, check for "main" country (see 'countries_with_regions')
-        elif len(phone_clues.intersection(main_country_ids)) == 1:
-            phone_clues = phone_clues.intersection(main_country_ids)
-            return phone_clues, "the country code of the company's phone number"
-        else:
-            return phone_clues, ""
+    return {cid[0] for cid in cr.fetchall()}
 
 
-def get_tld_country_ids(cr, company_id, main_country_ids):
+@clue_func("the country Top Level Domain in the company's website/email address")
+def get_tld_country_ids(cr, company_id):
     """
     Returns country based on the Top Level Domain code of:
     a) the company's website or, if unavailable
@@ -352,13 +369,11 @@ def get_tld_country_ids(cr, company_id, main_country_ids):
         [company_id],
     )
 
-    if cr.rowcount == 0:
-        return set(), ""
-    else:
-        return {cr.fetchone()[0]}, "the country Top Level Domain in the company's website/email address"
+    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
 
 
-def get_tz_country_ids(cr, company_id, main_country_ids):
+@clue_func("the company's timezone")
+def get_tz_country_ids(cr, company_id):
     """Returns country of supplied timezone.
 
     Some timezones (usually the ones involving a city in their name) are linked to a specific country.
@@ -385,13 +400,11 @@ def get_tz_country_ids(cr, company_id, main_country_ids):
         [company_id, tz_tuples],
     )
 
-    if cr.rowcount == 0:
-        return set(), ""
-    else:
-        return {cr.fetchone()[0]}, "the company's timezone"
+    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
 
 
-def get_lang_country_ids(cr, company_id, main_country_ids):
+@clue_func("the company's language locale")
+def get_lang_country_ids(cr, company_id):
     """Returns country of company's language locale.
 
     The company's language locale is noted of the form xx_YY, where xx is the language code
@@ -411,7 +424,4 @@ def get_lang_country_ids(cr, company_id, main_country_ids):
         [company_id],
     )
 
-    if cr.rowcount == 0:
-        return set(), ""
-    else:
-        return {cr.fetchone()[0]}, "the company's language locale"
+    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
