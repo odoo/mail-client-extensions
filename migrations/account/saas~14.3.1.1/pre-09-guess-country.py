@@ -58,8 +58,7 @@ def countries_with_regions(cr):
 def clue_func(reason, prefer_big_countries=True):
     """Decorator for filtering clue functions
 
-    Clue functions (of name, currency, phone code etc.) return a set of country ids based on the clue,
-    and optionally also some details about the clue source ("reason").
+    Clue functions (of name, currency, phone code etc.) return a set of country ids based on the clue.
     With this decorator, each clue function gets assigned a proper string for its reason, and has its
     country_ids set filtered as follows:
     - If there is only one country_id, return it
@@ -72,10 +71,7 @@ def clue_func(reason, prefer_big_countries=True):
     def decorator(f):
         @functools.wraps(f)
         def wrapper(cr, company_id):
-            ans = f(cr, company_id)
-            matched_countries = ans if isinstance(ans,set) else ans[0]
-            details = tuple() if isinstance(ans,set) else ans[1:]
-            wrapper.reason = reason.format(*details)
+            matched_countries = f(cr, company_id)
 
             if len(matched_countries) == 1:
                 return matched_countries
@@ -90,6 +86,7 @@ def clue_func(reason, prefer_big_countries=True):
             # Didn't find a single country, return all of them to be at least displayed to the user as hints
             return matched_countries
 
+        wrapper.reason = reason
         return wrapper
 
     return decorator
@@ -211,7 +208,7 @@ def get_coa_country_ids(cr, company_id):
         [company_id],
     )
 
-    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
+    return {c[0] for c in cr.fetchall()}
 
 
 @clue_func("the company's partner entry's country")
@@ -231,7 +228,7 @@ def get_partner_country_ids(cr, company_id):
         [company_id],
     )
 
-    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
+    return {c[0] for c in cr.fetchall()}
 
 
 @clue_func("the country being included in the company name", False)
@@ -263,7 +260,7 @@ def get_name_country_ids(cr, company_id):
         return {c for c in country_list}
 
 
-@clue_func("the journal's ({}) currency")
+@clue_func("the currency of the company's journals")
 def get_journal_currency_country_ids(cr, company_id):
     """Returns countries whose currency is used by the company's journal.
 
@@ -271,21 +268,15 @@ def get_journal_currency_country_ids(cr, company_id):
     """
     cr.execute(
         """
-            SELECT c.id, j.id, j.name
+            SELECT c.id
               FROM res_country AS c
         INNER JOIN account_journal AS j ON c.currency_id=j.currency_id
-             WHERE j.currency_id IS NOT NULL
-               AND j.company_id=%(company_id)s
+             WHERE j.company_id=%(company_id)s
+          GROUP BY c.id;
         """,
         locals(),
     )
-    journal_currency_countries = cr.fetchall()
-    if len(journal_currency_countries) == 1:
-        clue = journal_currency_countries[0]
-        return {clue[0]}, f"id: clue[1], name: clue[2]"
-
-    # If not yet returned, either none or a multitude of countries were found
-    return {c[0] for c in journal_currency_countries}, f"one of (journal id, journal name): {[(c[1], c[2]) for c in journal_currency_countries]}"
+    return {c[0] for c in cr.fetchall()}
 
 
 @clue_func("the company's currency")
@@ -369,7 +360,7 @@ def get_tld_country_ids(cr, company_id):
         [company_id],
     )
 
-    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
+    return {c[0] for c in cr.fetchall()}
 
 
 @clue_func("the company's timezone")
@@ -400,7 +391,7 @@ def get_tz_country_ids(cr, company_id):
         [company_id, tz_tuples],
     )
 
-    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
+    return {c[0] for c in cr.fetchall()}
 
 
 @clue_func("the company's language locale")
@@ -424,4 +415,4 @@ def get_lang_country_ids(cr, company_id):
         [company_id],
     )
 
-    return {cr.fetchone()[0]} if cr.rowcount > 0 else set()
+    return {c[0] for c in cr.fetchall()}
