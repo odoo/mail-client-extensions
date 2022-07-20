@@ -72,7 +72,7 @@ def migrate(cr, version):
     company_no_country_ids = [res[0] for res in cr.fetchall()]
     main_country_ids = countries_with_regions(cr)
 
-    # Collecting clues for the country:
+    # Clues for finding a country, in order of precedence
     clue_funcs = [
         get_coa_country_ids,
         get_partner_country_ids,
@@ -96,12 +96,8 @@ def migrate(cr, version):
         else:
             # no single-country candidate found for at least one company
             raise util.MigrationError(
-                "\n".join(
-                    [
-                        f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}",
-                        f"Clues found so far are ([company ID: (country ID, reason for clue)]): {country_dict}",
-                    ]
-                )
+                f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}\n"
+                f"Clues found so far are ([company ID: (country ID, reason for clue)]): {country_dict}"
             )
 
     if country_dict:
@@ -401,8 +397,7 @@ def get_tz_country_ids(cr, company_id, main_country_ids):
     if cr.rowcount == 0:
         return tz_clues, ""
     else:
-        tz_countries = [cid[0] for cid in cr.fetchall()]
-        tz_clues.update(tz_countries)
+        tz_clues.add(cr.fetchone()[0])
         return tz_clues, "the company's timezone"
 
 
