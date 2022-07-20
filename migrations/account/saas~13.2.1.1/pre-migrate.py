@@ -125,14 +125,16 @@ def migrate(cr, version):
 
     # default match
     for table in ["account_move", "account_bank_statement"]:
-        cr.execute(
-            rf"""
-                UPDATE {table}
+        query = (
+            r"""
+                UPDATE %s
                    SET sequence_prefix = (regexp_match(name, '^(.*?)(?:\d{{0,9}})(?:\D*?)$'))[1],
                        sequence_number = ('0' || (regexp_match(name, '^(?:.*?)(\d{{0,9}})(?:\D*?)$'))[1])::integer
-                 WHERE sequence_number IS NULL;
+                 WHERE sequence_number IS NULL
             """
+            % table
         )
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table))
 
     # ===
     util.remove_field(cr, "account.journal", "sequence_id")
