@@ -151,10 +151,15 @@ def get_coa_country_ids(cr, company_id, main_country_ids):
          WHERE ir_model_data.model = 'account.chart.template'
            AND ir_model_data.res_id = company.chart_template_id
            AND (
-               (ir_model_data.module ~ '^l10n_[a-z]{2}(_.*)?$'
-               AND lower(country.code) = substring(ir_model_data.module from 6 for 2))
-                OR (ir_model_data.module = 'l10n_uk' AND lower(country.code) = 'gb')
-                OR (ir_model_data.module = 'l10n_generic_coa' AND lower(country.code) = 'us')
+                  (   ir_model_data.module ~ '^l10n_[a-z]{2}(_.*)?$'
+                  AND lower(country.code) = substring(ir_model_data.module from 6 for 2)
+                  )
+               OR (   ir_model_data.module = 'l10n_uk'
+                  AND lower(country.code) = 'gb'
+                  )
+               OR (   ir_model_data.module = 'l10n_generic_coa'
+                  AND lower(country.code) = 'us'
+                  )
          ) AND company.id=%s;
         """,
         [company_id],
