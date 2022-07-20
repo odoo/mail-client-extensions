@@ -76,10 +76,9 @@ def clue_func(reason, prefer_big_countries=True):
             if len(matched_countries) == 1:
                 return matched_countries
 
-            global BIG_COUNTRIES
-            if not BIG_COUNTRIES:
-                BIG_COUNTRIES = countries_with_regions(cr)
             if prefer_big_countries:
+                if not BIG_COUNTRIES:
+                    BIG_COUNTRIES.update(countries_with_regions(cr))
                 if len(matched_countries.intersection(BIG_COUNTRIES)) == 1:
                     return matched_countries.intersection(BIG_COUNTRIES)
 
