@@ -99,7 +99,7 @@ def migrate(cr, version):
             )
 
     if country_dict:
-        country_list = [(int(company_id), country_dict[company_id][0]) for company_id in country_dict]
+        country_list = [(company_id, country) for company_id, (country, reason) in country_dict.items()]
         # Update the country in the db
         execute_values(
             cr._obj,
