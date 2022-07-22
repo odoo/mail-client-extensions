@@ -8,9 +8,8 @@ from psycopg2.extras import execute_values
 
 from odoo.addons.base.maintenance.migrations import util
 
-BIG_COUNTRIES = set()
 
-
+@functools.lru_cache(maxsize=1)
 def countries_with_regions(cr):
     """Return a set of country ids with dependent regions
 
@@ -77,10 +76,9 @@ def clue_func(reason, prefer_big_countries=True):
                 return matched_countries
 
             if prefer_big_countries:
-                if not BIG_COUNTRIES:
-                    BIG_COUNTRIES.update(countries_with_regions(cr))
-                if len(matched_countries.intersection(BIG_COUNTRIES)) == 1:
-                    return matched_countries.intersection(BIG_COUNTRIES)
+                matched_big_countries = matched_countries.intersection(countries_with_regions(cr))
+                if len(matched_big_countries) == 1:
+                    return matched_big_countries
 
             # Didn't find a single country, return all of them to be at least displayed to the user as hints
             return matched_countries
