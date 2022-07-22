@@ -17,5 +17,3 @@ def migrate(cr, version):
     # convert text data to html data
     util.convert_field_to_html(cr, "stock.location", "comment")
     util.convert_field_to_html(cr, "stock.picking", "note")
-    util.convert_field_to_html(cr, "product.template", "description_pickingin")
-    util.convert_field_to_html(cr, "product.template", "description_pickingout")
