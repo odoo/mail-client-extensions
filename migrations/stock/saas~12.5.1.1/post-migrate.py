@@ -12,4 +12,28 @@ def migrate(cr, version):
     util.update_record_from_xml(cr, "stock.stock_move_rule")
     util.update_record_from_xml(cr, "stock.stock_move_line_rule")
 
-    cr.execute("UPDATE stock_location SET complete_name = name WHERE usage = 'view'")
+    cr.execute(
+        """
+        WITH RECURSIVE info(id, complete_name) AS (
+             SELECT s.id, s.name
+               FROM stock_location s
+              WHERE s.usage = 'view'
+
+              UNION ALL
+
+             SELECT s.id,
+                    concat(
+                        coalesce(info.complete_name,''),
+                        '/',
+                        coalesce(s.name,'')
+                    )
+               FROM stock_location s
+               JOIN info
+                 ON s.location_id = info.id
+              WHERE s.usage != 'view'
+        ) UPDATE stock_location s
+             SET complete_name = info.complete_name
+            FROM info
+           WHERE s.id = info.id
+           """
+    )
