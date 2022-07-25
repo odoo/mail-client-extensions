@@ -261,3 +261,27 @@ def migrate(cr, version):
               AND l.move_id IS NULL
          """
     )
+
+    cr.execute(
+        """
+      WITH multi_company AS (
+            SELECT pt.id AS id
+              FROM product_template pt
+              JOIN product_product p ON p.product_tmpl_id = pt.id
+              JOIN stock_move sm ON sm.product_id = p.id
+             WHERE pt.company_id IS NOT NULL
+               AND sm.company_id IS DISTINCT FROM pt.company_id
+          UNION
+            SELECT pt.id AS id
+              FROM product_template pt
+              JOIN product_product p ON p.product_tmpl_id = pt.id
+              JOIN stock_move_line sml ON sml.product_id = p.id
+             WHERE pt.company_id IS NOT NULL
+               AND sml.company_id IS DISTINCT FROM pt.company_id
+        )
+        UPDATE product_template
+           SET company_id = NULL
+          FROM multi_company
+         WHERE multi_company.id = product_template.id
+     """
+    )
