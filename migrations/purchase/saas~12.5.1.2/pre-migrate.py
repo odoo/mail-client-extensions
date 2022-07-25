@@ -35,3 +35,20 @@ def migrate(cr, version):
            AND o.company_id IS NULL
         """
     )
+
+    cr.execute(
+        """
+        WITH multi_company AS (
+            SELECT pt.id AS id
+              FROM product_template pt
+              JOIN product_product p ON p.product_tmpl_id = pt.id
+              JOIN purchase_order_line pol ON pol.product_id = p.id
+             WHERE pt.company_id IS NOT NULL
+               AND pol.company_id IS DISTINCT FROM pt.company_id
+        )
+        UPDATE product_template
+           SET company_id = NULL
+          FROM multi_company
+         WHERE multi_company.id = product_template.id
+    """
+    )
