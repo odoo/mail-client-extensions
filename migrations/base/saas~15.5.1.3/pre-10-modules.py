@@ -36,5 +36,7 @@ def migrate(cr, version):
     util.remove_module(cr, "google_drive")
     util.remove_module(cr, "google_spreadsheet")
 
+    util.remove_module(cr, "website_utm")
+
     if util.has_enterprise():
         util.force_migration_of_fresh_module(cr, "spreadsheet_edition")
