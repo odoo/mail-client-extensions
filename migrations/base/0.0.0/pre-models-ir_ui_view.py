@@ -502,6 +502,7 @@ class IrUiView(models.Model):
             for child in children:
                 child.active = False
 
+            md = self.env["ir.model.data"].search([("model", "=", "ir.ui.view"), ("res_id", "=", self.id)], limit=1)
             e = check()
             if e is not None:
                 # Try to fix this view:
@@ -509,7 +510,6 @@ class IrUiView(models.Model):
                 #  * If not standard:
                 #    a. Try some heuristics based on the exception
                 #    b. If still failing, disable the view
-                md = self.env["ir.model.data"].search([("model", "=", "ir.ui.view"), ("res_id", "=", self.id)], limit=1)
                 if md and md.noupdate and md.module and self.arch_fs:
                     md.noupdate = False
                     restore_from_file(self, md)
@@ -556,6 +556,13 @@ class IrUiView(models.Model):
             # We need to ensure that all children get activated again
             for child in has_error:
                 child.active = True
+
+            if check() is not None:
+                # We still need to try restoring this standard view since it's in error
+                # and we already tried to fix all its children
+                if md and md.noupdate and md.module and self.arch_fs:
+                    md.noupdate = False
+                    restore_from_file(self, md)
 
             # Final check, even if has_error
             return check() is None
