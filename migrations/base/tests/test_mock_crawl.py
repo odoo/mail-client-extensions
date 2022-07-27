@@ -40,7 +40,11 @@ _logger = logging.getLogger(NS + __name__)
 
 def get_id(rec, name):
     if name == "id":
-        return rec.ids[0] if rec.ids else False
+        return rec._ids[0] if rec._ids else False
+    elif name == "__last_update":
+        return False
+    elif name == "display_name":
+        return "Unknown record" + " (id={})".format(rec._ids[0]) if rec._ids else ""
     return getattr(rec, name)
 
 
