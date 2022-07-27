@@ -307,6 +307,10 @@ class TestCrawler(IntegrityCase):
             )
         else:
             for view_type, data in (views.get("fields_views") or views.get("views")).items():
+                if view_type == "search":
+                    # Ignore, the searh view is already mocked before.
+                    # Otherwise we get an error in the number of args below when we call it.
+                    continue
                 mock_method = getattr(self, "mock_view_%s" % view_type, None)
                 if mock_method:
                     _logger.info("Mocking %s %s view ", model._name, view_type)
