@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -11,3 +12,24 @@ def migrate(cr, version):
            AND l.usage = 'internal'
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_location", alias="l"))
+    util.create_column(cr, "stock_location", "warehouse_id", "int4")
+
+    query = """
+        UPDATE stock_location l
+           SET warehouse_id = w.id
+          FROM stock_warehouse w
+          JOIN stock_location sl ON sl.id = w.view_location_id
+         WHERE l.parent_path LIKE sl.parent_path || '%'
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_location", alias="l"))
+    util.remove_view(cr, "stock.stock_report_view_search")
+    util.remove_menus(
+        cr,
+        [
+            util.ref(cr, "stock.stock_move_menu"),
+            util.ref(cr, "stock.menu_forecast_inventory"),
+            util.ref(cr, "stock.stock_move_action"),
+        ],
+    )
+    util.remove_record(cr, "stock.report_stock_quantity_action")
+    util.remove_record(cr, "stock.report_stock_quantity_action_product")
