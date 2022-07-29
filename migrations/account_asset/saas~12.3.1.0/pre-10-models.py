@@ -363,7 +363,7 @@ def migrate(cr, version):
     origin_rounding = {}
     for currency in migration_journals.mapped('company_id.currency_id'):
         origin_rounding[currency] = (currency.rounding, currency.decimal_places)
-        currency.rounding = 0.00001
+        currency.rounding = 1e-6
 
     balance_moves = env['account.move'].create([{
         'journal_id': journal_id,
