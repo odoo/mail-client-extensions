@@ -150,7 +150,7 @@ def field_new_name(view, name):
     if info is None:
         # invert the relation, we want to know how an old field is named now
         info = {
-            model: {old: new for new, old in fields.items()}
+            model: {old: new for new, old in fields.items() if old}
             for model, fields in util.ENVIRON["__renamed_fields"].items()
         }
         field_new_name.info = info
