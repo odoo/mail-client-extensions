@@ -62,6 +62,14 @@ def migrate(cr, version):
                 continue
 
             view = util.env(cr)["ir.ui.view"].browse(view_id)
+            if xmlid == "website.footer_custom" and util.env(cr)["ir.ui.view"].search_count(
+                [
+                    ("key", "=", xmlid),
+                    ("website_id", "=", website_id),
+                    ("arch_db", "!=", re.sub("<.xml.*?>\\n", "", view.arch_db)),
+                ]
+            ):
+                continue
             tree = etree.fromstring(view.arch_db)
             tree_updated = set_value("mailto", partner.email)
             tree_updated |= set_value("tel", partner.phone)
