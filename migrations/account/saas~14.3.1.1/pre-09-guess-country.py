@@ -128,16 +128,22 @@ def migrate(cr, version):
         for f in clue_funcs:
             country_ids = f(cr, company_id)
             if len(country_ids) != 0:
-                all_country_hints.append((country_ids, f.reason))
+                all_country_hints.append((f.reason, country_ids))
             if len(country_ids) == 1:
                 country_dict[company_id] = (country_ids.pop(), f.reason)
                 break  # found our clue
         else:
             # no single-country candidate found for at least one company
-            raise util.MigrationError(
-                f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}\n"
-                f"Clues found so far are ([company ID: (country ID, reason for clue)]): {all_country_hints}"
+            env = util.env(cr)
+            error_msg = (
+                f"Please define a fiscal country on companies with these IDs before upgrading: {company_no_country_ids}"
             )
+            if all_country_hints:
+                error_msg += f"\nMultiple countries matches have been found for the company with ID={company_id}:"
+            for reason, country_ids in all_country_hints:
+                country_names = env["res.country"].browse(country_ids).mapped("name")
+                error_msg += f"\n * {reason}: {country_names}"
+            raise util.MigrationError(error_msg)
 
     if country_dict:
         country_list = [(company_id, country) for company_id, (country, reason) in country_dict.items()]
