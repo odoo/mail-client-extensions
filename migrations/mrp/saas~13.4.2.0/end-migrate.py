@@ -20,6 +20,12 @@ def migrate(cr, version):
         DROP TABLE IF EXISTS temp_new_mrp_operation CASCADE;
         """
     )
+    _logger.info("Generate missing `move_finished_ids` for draft MOs")
+    env = util.env(cr)
+    cr.execute("SELECT id FROM mrp_production WHERE state = 'draft'")
+    draft_mo_ids = [res[0] for res in cr.fetchall()]
+    for mo in util.iter_browse(env["mrp.production"], draft_mo_ids):
+        mo.with_company(mo.company_id)._onchange_move_finished_product()
 
     # The first part of the migration script is to fill the new `qty_producing` field.
     # There are multiple cases to handle:
@@ -63,7 +69,6 @@ def migrate(cr, version):
 
     # (3.) For MO in progress with the done move
     _logger.info("Create backorder for in progress MO")
-    env = util.env(cr)
     for company_id, ids_to_backorder in ids_to_backorder_by_company.items():
         for mos in util.iter_browse(env["mrp.production"], ids_to_backorder, strategy="commit", chunk_size=50):
             mos = mos.filtered(lambda mo: mo.state != "done" and mo._get_quantity_to_backorder() > 0)

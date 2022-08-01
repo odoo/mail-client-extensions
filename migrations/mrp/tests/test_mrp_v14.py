@@ -7,7 +7,7 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 
 @tagged("mrp_v14")
 @change_version("saas~13.4")
-class TestBackorders(UpgradeCase):
+class TestMRP(UpgradeCase):
     def prepare(self):
         uom_unit = self.env.ref("uom.product_uom_unit")
         product_category_all = self.env.ref("product.product_category_all")
@@ -226,8 +226,14 @@ class TestBackorders(UpgradeCase):
         self.assertEqual(order6.qty_produced, 2)
 
         # ---------------------------------------------------------------------
-        # order7: Focus on UoM issue
+        # order7: simple draft MO
         # ---------------------------------------------------------------------
+        order7 = Form(self.env["mrp.production"])
+        order7.product_id = bom1finished1
+        order7.bom_id = bom1
+        order7 = order7.save()
+        self.assertEqual(order7.state, "draft")
+        self.assertFalse(order7.move_finished_ids)
 
         return {
             "order1": {"id": order1.id, "lots_produced": [], "qties_produced": [2]},
@@ -236,6 +242,7 @@ class TestBackorders(UpgradeCase):
             "order4": {"id": order4.id, "lots_produced": lots_finished.ids, "qties_produced": [1] * nb_qty_order4},
             "order5": {"id": order5.id, "lots_produced": [], "qties_produced": 2},
             "order6": {"id": order6.id, "lots_produced": [], "qties_produced": 2},
+            "order7": {"id": order7.id, "lots_produced": [], "qties_produced": 0},
         }
 
     def check(self, init):
@@ -307,3 +314,8 @@ class TestBackorders(UpgradeCase):
         self.assertEqual(order6.qty_produced, 0)  # stock move line will be recreate at "Mark as Done"
         self.assertEqual(order6.move_raw_ids.mapped("quantity_done"), [2, 2])
         self.assertEqual(sum(order6.move_raw_ids.mapped("product_uom_qty")), 6)
+
+        # order7: `move_finished_ids` have been generated in `draft` state
+        order7 = self.env["mrp.production"].browse(init["order7"]["id"])
+        self.assertEqual(order7.state, "draft")
+        self.assertTrue(order7.move_finished_ids)
