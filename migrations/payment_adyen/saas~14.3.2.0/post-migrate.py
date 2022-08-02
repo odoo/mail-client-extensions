@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 from odoo.upgrade import util
 
 
@@ -16,4 +18,8 @@ def migrate(cr, version):
         [util.ref(cr, "payment_adyen.inline_form")],
     )
     if cr.rowcount:
-        util.add_to_migration_reports("You will need to reconfigure your Adyen providers.", "Payment Providers")
+        msg = """
+              You will need to reconfigure your Adyen providers.
+              To be able to reconfigure Adyen providers, you have to follow [https://www.odoo.com/documentation/15.0/applications/general/payment_acquirers/adyen.html](the tutorial in the Odoo documentation).
+              """  # noqa: B950
+        util.add_to_migration_reports(dedent(msg.strip()), "Payment Providers")
