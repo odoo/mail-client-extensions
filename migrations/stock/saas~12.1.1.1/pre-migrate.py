@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from operator import itemgetter
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -16,9 +15,7 @@ def migrate(cr, version):
           FROM res_partner p
          WHERE s.partner_id IS NOT NULL
            AND s.partner_id=p.id
-     RETURNING s.id
     """)
-    ids = list(map(itemgetter(0), cr.fetchall()))
     #Recompute complete_names of the childs?
 
     util.remove_field(cr, 'stock.location', 'partner_id')
