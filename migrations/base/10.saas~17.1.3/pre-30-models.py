@@ -87,4 +87,4 @@ def migrate(cr, version):
             charset
         )
     )
-    delattr(util.helpers._ir_values_value, "result")
+    delattr(util.helpers._ir_values_value, "cache")

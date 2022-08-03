@@ -16,7 +16,7 @@ def migrate(cr, version):
     util.create_column(cr, "ir_actions", "binding_model_id", "int4")
     util.create_column(cr, "ir_actions", "binding_type", "varchar")
 
-    col, _ = util.helpers._ir_values_value(cr)
+    col, _ = util.helpers._ir_values_value(cr, prefix="v")
 
     cr.execute(
         """
