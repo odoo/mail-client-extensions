@@ -82,7 +82,11 @@ def migrate(cr, version):
                 )
 
         for (tag_id, company_id), codes in remove_tags.items():
-            if not tags[tag_id]["xmlid"] or tags[tag_id]["xmlid"].split(".")[0] not in standard_modules:
+            if (
+                tag_id not in tags
+                or not tags[tag_id]["xmlid"]
+                or tags[tag_id]["xmlid"].split(".")[0] not in standard_modules
+            ):
                 # Do not remove custom tags from the accounts
                 # They could have been deleted from the templates because of a `[(6,)]` command
                 # in the standard module of the l10n module, but they should actually remain because
