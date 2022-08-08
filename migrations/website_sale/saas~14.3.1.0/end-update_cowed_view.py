@@ -23,7 +23,7 @@ def migrate(cr, version):
                 node.append(div)
             div2.attrib.update({"id": "o_product_terms_and_share"})
             for node in arch.xpath("//div[@id='product_attributes_simple']"):
-                node.append(div2)
+                node.addnext(div2)
 
     cr.execute(
         r"""
