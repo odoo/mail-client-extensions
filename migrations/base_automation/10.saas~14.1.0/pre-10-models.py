@@ -41,16 +41,18 @@ def migrate(cr, version):
         """
         SELECT bar.id, bar.name, bar.model_id, bar.sequence, bar.act_user_id,
                array_remove(array_agg(sa.ir_act_server_id), NULL),
-               array_remove(array_agg(p.res_partner_id), NULL)
+               array_remove(array_agg(p.res_partner_id), NULL),
+               array_agg(concat_ws('|', d.module, d.name, COALESCE(d.noupdate, False)))
           FROM base_automation bar
      LEFT JOIN base_action_rule_ir_act_server_rel sa ON (sa.base_action_rule_id = bar.id)
      LEFT JOIN base_action_rule_res_partner_rel p ON (p.base_action_rule_id = bar.id)
+     LEFT JOIN ir_model_data d ON (d.res_id = bar.id AND d.model = 'base.automation')
       GROUP BY bar.id, bar.name, bar.model_id, bar.act_user_id
       ORDER BY bar.id
     """
     )
 
-    for bar_id, bar_name, bar_model_id, bar_seq, set_user_id, action_ids, partner_ids in cr.fetchall():
+    for bar_id, bar_name, bar_model_id, bar_seq, set_user_id, action_ids, partner_ids, imds in cr.fetchall():
         act_set_user = act_set_followers = ""
         if set_user_id:
             act_set_user = "records.write({'user_id': %d})\n" % (set_user_id,)
@@ -108,6 +110,17 @@ def migrate(cr, version):
                 # XXX update action name with `bar_name`?
                 as_id = action.id
 
+        for imd in imds:
+            module, name, noupdate = imd.split("|")
+            # create the xmlid for the server action
+            cr.execute(
+                """
+                INSERT INTO ir_model_data(module, name, noupdate, res_id, model)
+                VALUES %s
+                ON CONFLICT DO NOTHING
+                """,
+                [(module, name + "_ir_actions_server", noupdate, as_id, "ir.actions.server")],
+            )
         # set correct usage for action server (can't do it using ORM as module is not loaded yet)
         cr.execute("UPDATE ir_act_server SET usage='base_automation', sequence=%s WHERE id=%s", [bar_seq, as_id])
         # and link base.automation to the action server

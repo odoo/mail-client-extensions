@@ -14,12 +14,26 @@ def migrate(cr, version):
                    FROM ir_cron c
                    JOIN ir_model m ON (m.model = c.model)
               RETURNING id as act_id, sequence as cron_id
+        ), upd_crons AS (
+            UPDATE ir_cron c
+               SET ir_actions_server_id = a.act_id
+              FROM actions a
+             WHERE a.cron_id = c.id
+         RETURNING c.id, c.ir_actions_server_id
         )
-        UPDATE ir_cron c
-           SET ir_actions_server_id = a.act_id
-          FROM actions a
-         WHERE a.cron_id = c.id
+        INSERT INTO ir_model_data(
+               module, name,
+               model, res_id, noupdate,
+               create_uid, write_uid, create_date, write_date)
+        SELECT cd.module, cd.name || '_ir_actions_server',
+               'ir.actions.server', c.ir_actions_server_id, cd.noupdate,
+               cd.create_uid, cd.write_uid, cd.create_date, cd.write_date
+          FROM upd_crons c
+          JOIN ir_model_data cd
+            ON cd.model = 'ir.cron'
+           AND cd.res_id = c.id
     """)
+
     cr.execute("""
         UPDATE ir_act_server s
            SET sequence = c.priority

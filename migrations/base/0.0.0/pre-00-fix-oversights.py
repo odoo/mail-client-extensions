@@ -11,6 +11,28 @@ def migrate(cr, version):
     cr.execute("DROP TABLE IF EXISTS saas124_acc_mig_bad_mappings")
 
     if util.version_gte("12.0"):
+        # server actions associated to cron jobs should have xmlids
+        cr.execute(
+            """
+            INSERT INTO ir_model_data(
+                   module, name,
+                   model, res_id, noupdate,
+                   create_uid, write_uid, create_date, write_date)
+            SELECT cd.module, cd.name || '_ir_actions_server',
+                   'ir.actions.server', c.ir_actions_server_id, cd.noupdate,
+                   cd.create_uid, cd.write_uid, cd.create_date, cd.write_date
+              FROM ir_cron c
+              JOIN ir_model_data cd
+                ON cd.model = 'ir.cron'
+               AND cd.res_id = c.id
+         LEFT JOIN ir_model_data ad
+                ON ad.model = 'ir.actions.server'
+               AND ad.res_id = c.ir_actions_server_id
+             WHERE ad.id IS NULL
+            """,
+        )
+
+    if util.version_gte("12.0"):
         cr.execute(
             r"""
                UPDATE ir_model_fields fields
