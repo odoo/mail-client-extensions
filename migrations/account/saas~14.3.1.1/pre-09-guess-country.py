@@ -118,6 +118,7 @@ def migrate(cr, version):
         get_journal_currency_country_ids,
         get_currency_country_ids,
         get_tld_country_ids,
+        get_l10n_country_ids,
         get_lang_country_ids,
     ]
 
@@ -202,9 +203,6 @@ def get_coa_country_ids(cr, company_id):
                   )
                OR (   ir_model_data.module = 'l10n_uk'
                   AND lower(country.code) = 'gb'
-                  )
-               OR (   ir_model_data.module = 'l10n_generic_coa'
-                  AND lower(country.code) = 'us'
                   )
          ) AND company.id=%s;
         """,
@@ -416,6 +414,37 @@ def get_lang_country_ids(cr, company_id):
            AND substring(p.lang FROM '_([A-Z]{2})$')=UPPER(y.code);
         """,
         [company_id],
+    )
+
+    return {c[0] for c in cr.fetchall()}
+
+
+@clue_func("the installed localization")
+def get_l10n_country_ids(cr, company_id):
+    """Returns country of installed localizations.
+
+    The localization addons have a name convention l10n_xx, where xx is the country code.
+    If an acounting localization is installed and there is only a single company
+    we can guess the related country.
+    """
+    cr.execute(
+        """
+        SELECT DISTINCT country.id
+          FROM res_country country, ir_module_module module
+         WHERE module.state in ('installed', 'to upgrade')
+           AND (
+                  (   module.name ~ '^l10n_[a-z]{2}(_.*)?$'
+                  AND lower(country.code) = substring(module.name from 6 for 2)
+                  )
+               OR (   module.name = 'l10n_uk'
+                  AND lower(country.code) = 'gb'
+                  )
+                )
+           AND (
+                SELECT COUNT(id) = 1
+                  FROM res_company
+                )
+        """,
     )
 
     return {c[0] for c in cr.fetchall()}
