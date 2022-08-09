@@ -30,3 +30,20 @@ def migrate(cr, version):
     )
     # Convert end_hour 23.99 (value we will get if the user has set 24 or greater in the interface) into 00:00 of next day
     parallel_explode_execute_appointment_slot("UPDATE appointment_slot SET end_hour=0 WHERE end_hour=23.99")
+
+    util.rename_xmlid(
+        cr,
+        "appointment.menu_appointment_type_custom_and_work_hours",
+        "appointment.menu_appointment_type_custom_and_anytime",
+    )
+    util.rename_xmlid(
+        cr,
+        "appointment.appointment_type_action_custom_and_work_hours",
+        "appointment.appointment_type_action_custom_and_anytime",
+    )
+    util.rename_xmlid(
+        cr,
+        "website_appointment.appointment_type_view_form_add",
+        "appointment.appointment_type_view_form_add_simplified",
+    )
+    util.update_record_from_xml(cr, "appointment.appointment_type_view_form_add_simplified")

@@ -19,3 +19,5 @@ def migrate(cr, version):
             alias="s",
         ),
     )
+
+    util.change_field_selection_values(cr, "appointment.type", "category", {"work_hours": "anytime"})
