@@ -13,6 +13,20 @@ let isOfficeInitialized = false;
 const title = 'Odoo for Outlook';
 
 const render = (Component) => {
+    if (navigator.userAgent.indexOf('Trident') >= 0 || navigator.userAgent.indexOf('Edge') >= 0) {
+        // Use the addin with Internet Explorer
+        ReactDOM.render(
+            <AppContainer>
+                <div className="warning-message">
+                    This addin is unfortunately not compatible with Internet Explorer. Please try again with another
+                    browser.
+                </div>
+            </AppContainer>,
+            document.getElementById('container'),
+        );
+        return;
+    }
+
     ReactDOM.render(
         <AppContainer>
             <Component
