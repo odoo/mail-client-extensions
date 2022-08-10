@@ -676,6 +676,7 @@ It allows to test upgrades against development branches.
         "--no-demo", action="store_false", dest="demo", default=True, help="Create databases without demo data"
     )
     parser.add_argument("-t", "--tests", action="store_true", dest="run_tests", default=False, help="Run upgrade tests")
+    parser.add_argument("--no-tests", action="store_false", dest="run_tests", help="Run upgrade tests")
     parser.add_argument(
         "--no-fetch", action="store_false", dest="fetch", default=True, help="Do not fetch repositories from remote"
     )
