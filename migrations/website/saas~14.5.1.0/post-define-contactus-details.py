@@ -60,6 +60,9 @@ def migrate(cr, version):
             # according the company data.
             with util.edit_view(cr, view_id=view_id) as arch:
                 nodes = arch.findall(".//li")
+                if not nodes:  # No <li> tags found, the page may remain custom
+                    continue
+
                 set_value(nodes[0], partner.name)
                 address = partner._display_address(without_company=True)
                 address = re.sub(r"\n(\s|\n)*\n+", "\n", address, flags=re.MULTILINE).strip().replace("\n", "<br>")
