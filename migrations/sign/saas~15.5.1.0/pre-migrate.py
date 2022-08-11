@@ -101,3 +101,29 @@ def migrate(cr, version):
     ]
     for old_xmlid, new_xmlid in xmlids:
         util.rename_xmlid(cr, old_xmlid, new_xmlid)
+
+    util.create_column(cr, "sign_item_role", "auth_method", "varchar")
+    util.create_column(cr, "res_config_settings", "module_sign_itsme", "boolean")
+
+    util.parallel_execute(
+        cr,
+        util.explode_query(
+            cr,
+            """
+            UPDATE sign_item_role
+               SET auth_method = 'sms'
+             WHERE sms_authentification = true
+            """,
+        ),
+    )
+
+    def auth_method_adapter(leaf, is_or, negated):
+        left, operator, right = leaf
+        operator = "=" if bool(right) else "!="
+        return [(left, operator, "sms")]
+
+    util.update_field_references(
+        cr, "sms_authentification", "auth_method", only_models=("sign.item.role",), domain_adapter=auth_method_adapter
+    )
+
+    util.remove_field(cr, "sign.item.role", "sms_authentification")
