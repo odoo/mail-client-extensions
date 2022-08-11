@@ -69,6 +69,14 @@ def migrate(cr, version):
                 SELECT 1
                   FROM account_analytic_line
                  WHERE general_account_id = a.id
+                 UNION
+                SELECT 1
+                  FROM account_fiscal_position_account
+                 WHERE account_src_id = a.id
+                 UNION
+                SELECT 1
+                  FROM account_fiscal_position_account
+                 WHERE account_dest_id = a.id
            )
     """)
     cr.execute("""

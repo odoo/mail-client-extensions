@@ -178,33 +178,11 @@ def _ephyla(cr, version):
         WHERE id=1024; """)
 
 def _icus(cr, version):
-    cr.execute(""" UPDATE account_account a
-                       SET type = 'other'
-                       WHERE a.type IN ('view', 'consolidation')
-                             AND EXISTS (SELECT 1
-                                             FROM account_fiscal_position_account
-                                             WHERE account_src_id = a.id
-                                         UNION
-                                         SELECT 1
-                                             FROM account_fiscal_position_account
-                                         WHERE account_dest_id = a.id)
-                       RETURNING id; """)
     cr.execute(""" UPDATE res_partner
                    SET title = NULL
                    WHERE title = 1; """)
 
 def _metalpros(cr, version):
-    cr.execute(""" UPDATE account_account a
-                       SET type = 'other'
-                       WHERE a.type IN ('view', 'consolidation')
-                             AND EXISTS (SELECT 1
-                                             FROM account_fiscal_position_account
-                                             WHERE account_src_id = a.id
-                                         UNION
-                                         SELECT 1
-                                             FROM account_fiscal_position_account
-                                         WHERE account_dest_id = a.id)
-                       RETURNING id; """)
     # these f... ir_values prevent the creation of new products, by example when you import xml data
     cr.execute(""" delete from ir_values where id in (425,426) """)
     cr.execute("""delete from account_fiscal_position_tax_template""")
