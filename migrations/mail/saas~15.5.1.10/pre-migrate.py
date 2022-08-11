@@ -6,6 +6,12 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_view(cr, "mail.email_message_tree_view")
 
+    util.remove_field(cr, "mail.render.mixin", "model_object_field")
+    util.remove_field(cr, "mail.render.mixin", "sub_object")
+    util.remove_field(cr, "mail.render.mixin", "sub_model_object_field")
+    util.remove_field(cr, "mail.render.mixin", "null_value")
+    util.remove_field(cr, "mail.render.mixin", "copyvalue")
+
     util.change_field_selection_values(
         cr,
         "ir.actions.server",
