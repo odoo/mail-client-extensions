@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import contextlib
 import functools
 import itertools
 import logging
@@ -1726,7 +1727,37 @@ def migrate_invoice_lines(cr):
     # Create account_move
     ignored_unposted_invoices = {}
     skipped_taxes = {}
-    with skip_failing_python_taxes(env, skipped_taxes):
+
+    @contextlib.contextmanager
+    def replace_non_standard_terms():
+        cr.execute(
+            """
+            WITH info AS (
+            UPDATE account_payment_term_line old
+               SET value = 'balance'
+              FROM account_payment_term_line new
+             WHERE old.id = new.id
+               AND COALESCE(old.value, '') NOT IN ('fixed', 'balance', 'percent')
+         RETURNING old.id AS id,
+                   old.value AS value
+            ) SELECT *
+                INTO UNLOGGED _upg_custom_payment_terms
+                FROM info
+            """,
+        )
+        yield
+        cr.execute(
+            """
+            UPDATE account_payment_term_line l
+               SET value = info.value
+              FROM _upg_custom_payment_terms info
+             WHERE info.id = l.id;
+
+            DROP TABLE _upg_custom_payment_terms;
+            """
+        )
+
+    with skip_failing_python_taxes(env, skipped_taxes), replace_non_standard_terms():
         Move = env["account.move"].with_context(check_move_validity=False)
         created_moves = Move.browse()
         mappings = []
