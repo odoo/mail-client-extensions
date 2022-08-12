@@ -47,3 +47,4 @@ def migrate(cr, version):
     util.remove_field(cr, "account.tax.repartition.line.template", "plus_report_line_ids")
     util.remove_field(cr, "account.tax.repartition.line.template", "minus_report_line_ids")
     util.remove_field(cr, "account.account.tag", "tax_report_line_ids")
+    util.remove_field(cr, "res.config.settings", "module_l10n_fr_fec_import")
