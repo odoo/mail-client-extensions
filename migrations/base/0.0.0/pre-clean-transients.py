@@ -3,7 +3,10 @@ from collections import defaultdict
 
 import psycopg2
 
-from odoo.tools import ignore
+try:
+    from contextlib import suppress
+except ImportError:
+    from odoo.tools import ignore as suppress
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -50,7 +53,7 @@ def migrate(cr, version):
 
     for ir in util.indirect_references(cr, bound_only=True):
         query = 'DELETE FROM "{0}" WHERE {1} AND "{2}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
-        with ignore(psycopg2.Error), util.savepoint(cr):
+        with suppress(psycopg2.Error), util.savepoint(cr):
             cr.executemany(query, models)
 
 
