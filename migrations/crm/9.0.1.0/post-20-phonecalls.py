@@ -14,6 +14,8 @@ def migrate(cr, version):
     if want:
         util.force_install_module(cr, 'voip')
         util.force_install_module(cr, 'crm_voip')
+
+    if util.module_installed(cr, 'crm_voip'):
         util.remove_record(cr, 'crm.filter_crm_phonecall_sales_team')
         util.remove_record(cr, 'crm.filter_crm_phonecall_phone_call_to_do')
 
@@ -22,6 +24,7 @@ def migrate(cr, version):
         util.rename_xmlid(cr, 'crm.crm_case_phone_calendar_view', 'crm_voip.crm_phonecall_calendar_view')
         util.rename_xmlid(cr, 'crm.view_crm_case_phonecalls_filter', 'crm_voip.view_crm_case_phonecalls_filter')
         util.rename_xmlid(cr, 'crm.phonecall_to_phonecall_view', 'crm_voip.phonecall_to_phonecall_view')
+        util.remove_view(cr, 'crm_voip.overide_phonecall_to_phonecall_view')
         return
 
     # If crm_voip will not be installed, then we can delete these phonecall views as well.
