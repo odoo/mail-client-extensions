@@ -7,13 +7,14 @@ def migrate(cr, version):
     util.create_column(cr, "planning_slot", "allocated_hours_cost", "float8", default=0.0)
     util.create_column(cr, "planning_slot", "effective_hours_cost", "float8", default=0.0)
 
+    field_name = "hourly_cost" if util.version_gte("saas~15.5") else "timesheet_cost"
     cr.execute(
-        """
+        f"""
         UPDATE planning_slot s
-           SET allocated_hours_cost = COALESCE(s.allocated_hours, 0.0) * e.timesheet_cost,
-               effective_hours_cost = COALESCE(s.effective_hours, 0.0) * e.timesheet_cost
-          FROM hr_employee e
-         WHERE e.id = s.employee_id
-           AND e.timesheet_cost IS NOT NULL
+        SET allocated_hours_cost = COALESCE(s.allocated_hours, 0.0) * e.{field_name},
+            effective_hours_cost = COALESCE(s.effective_hours, 0.0) * e.{field_name}
+        FROM hr_employee e
+        WHERE e.id = s.employee_id
+        AND e.{field_name} IS NOT NULL
     """
     )
