@@ -2,12 +2,33 @@
 
 import decimal
 
-from odoo import release
+from odoo import models, release
 from odoo.tools import float_repr
 from odoo.tools.parse_version import parse_version
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
+
+if util.version_gte("15.0"):
+
+    class ProductProduct(models.Model):
+        _name = "product.product"
+        _inherit = "product.product"
+        # The reason to use mrp here is twofold:
+        # * The mismatch in ordering by product_id happens on mrp when searching the boms
+        # * This override won't work for `_modele = "stock"` since the module is already
+        #   loaded at the moment this file is loaded.
+        # For the details on why this override is needed see the commit message
+        _module = "mrp"
+
+        def _generate_order_by_inner(self, alias, order_spec, query, reverse_direction=False, seen=None):
+            res = super()._generate_order_by_inner(alias, order_spec, query, reverse_direction, seen)
+            for i, item in enumerate(res):
+                field, _, direction = item.rpartition(" ")
+                if field.split(".")[-1].strip("'\"") == "priority":
+                    nullorder = "LAST" if direction == "DESC" else "FIRST"
+                    res[i] = item + " NULLS " + nullorder
+            return res
 
 
 class TestOnHandQuantityUnchanged(IntegrityCase):
