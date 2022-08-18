@@ -42,7 +42,7 @@ def migrate(cr, version):
         SELECT bar.id, bar.name, bar.model_id, bar.sequence, bar.act_user_id,
                array_remove(array_agg(sa.ir_act_server_id), NULL),
                array_remove(array_agg(p.res_partner_id), NULL),
-               array_agg(concat_ws('|', d.module, d.name, COALESCE(d.noupdate, False)))
+               array_agg(concat_ws('|', d.module, d.name, COALESCE(d.noupdate, 'f'))) FILTER (WHERE d.id IS NOT NULL)
           FROM base_automation bar
      LEFT JOIN base_action_rule_ir_act_server_rel sa ON (sa.base_action_rule_id = bar.id)
      LEFT JOIN base_action_rule_res_partner_rel p ON (p.base_action_rule_id = bar.id)
@@ -110,7 +110,7 @@ def migrate(cr, version):
                 # XXX update action name with `bar_name`?
                 as_id = action.id
 
-        for imd in imds:
+        for imd in imds if imds else []:
             module, name, noupdate = imd.split("|")
             # create the xmlid for the server action
             cr.execute(
