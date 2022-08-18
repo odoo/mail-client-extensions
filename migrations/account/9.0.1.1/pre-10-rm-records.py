@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
+
+from openerp.tools import pickle
+
 from openerp.addons.base.maintenance.migrations import util
 
-NS = 'openerp.addons.base.maintenance.migrations.account.9.0.'
+NS = "openerp.addons.base.maintenance.migrations.account.9.0."
 _logger = logging.getLogger(NS + __name__)
 
 
@@ -41,10 +44,12 @@ def migrate(cr, version):
         DELETE FROM account_tax t
               USING bad_taxes b
               WHERE b.id = t.id
-          RETURNING t.name
+          RETURNING t.id, t.name
     """)
-    bad_taxes = ', '.join(t[0] for t in cr.fetchall())
-    _logger.info("deleted unusable tax %s", bad_taxes)
+    bad_taxes = cr.fetchall()
+    bad_tax_ids = set(t[0] for t in bad_taxes)
+    bad_tax_names = ', '.join(t[1] for t in bad_taxes)
+    _logger.info("deleted unusable tax %s", bad_tax_names)
 
     cr.execute("""
         UPDATE account_account a
@@ -153,3 +158,38 @@ def migrate(cr, version):
     #                           'account.tax.template',
     #                           'account.account.template')
     # """)
+
+    # Remove bad taxes from default values
+    cr.execute(
+        """
+        SELECT v.id,
+               v.value,
+               f.ttype
+          FROM ir_values v
+          JOIN ir_model_fields f
+            ON v.name = f.name
+           AND v.model = f.model
+         WHERE f.relation = 'account.tax'
+           AND f.ttype IN ('many2many', 'many2one')
+    """
+    )
+    defaults = cr.fetchall()
+    ids_to_delete = []
+    for id, value, ttype in defaults:
+        pickled_value = pickle.loads(value)
+        if pickled_value is False:
+            continue
+        if ttype == "many2one":
+            if type(pickled_value) is not int or pickled_value in bad_tax_ids:
+                ids_to_delete.append(id)
+        else:
+            filtered_values = (set(pickled_value) - bad_tax_ids) if type(pickled_value) is list else None
+            if not filtered_values:
+                ids_to_delete.append(id)
+            elif len(filtered_values) != len(pickled_value):
+                filtered_pickle = pickle.dumps(list(filtered_values))
+                cr.execute("UPDATE ir_values SET value = %s WHERE id = %s", [filtered_pickle, id])
+
+    if ids_to_delete:
+        cr.execute("DELETE FROM ir_values WHERE id IN %s", [tuple(ids_to_delete)])
+        _logger.info("Deleted default values using unusable taxes %s", ids_to_delete)
