@@ -147,6 +147,10 @@ def _migrate_pos_coupon(cr):
     util.remove_field(cr, "pos.config", "program_ids")
     util.remove_field(cr, "pos.order.line", "program_id")
     util.remove_field(cr, "loyalty.card", "pos_order_id")
+
+    for field in {"valid_product_ids", "valid_partner_ids", "pos_order_ids", "pos_order_line_ids", "promo_barcode"}:
+        util.remove_field(cr, "loyalty.program", field)
+
     # Old data
     util.remove_view(cr, "loyalty.view_pos_pos_form")
     util.remove_view(cr, "pos_loyalty.res_config_view_form_inherit_pos_coupon")

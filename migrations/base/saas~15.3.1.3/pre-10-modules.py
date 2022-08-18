@@ -31,12 +31,15 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.rename_module(cr, "helpdesk_sale_coupon", "helpdesk_sale_loyalty")
 
-    util.merge_module(cr, "pos_coupon", "pos_loyalty")
+    if util.has_enterprise():
+        util.merge_module(cr, "pos_coupon", "pos_loyalty")
+    else:
+        util.rename_module(cr, "pos_coupon", "pos_loyalty")
+
     util.merge_module(cr, "pos_gift_card", "pos_loyalty")
+
     # Same as sale_loyalty.
     util.force_upgrade_of_fresh_module(cr, "pos_loyalty")
-
-    util.modules_auto_discovery(cr)
 
     # Required due to a precompute on products.
     util.force_upgrade_of_fresh_module(cr, "loyalty_delivery")
