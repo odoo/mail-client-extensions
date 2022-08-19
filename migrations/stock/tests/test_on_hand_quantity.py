@@ -19,6 +19,7 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         )
         self.assertEqual(before_results, self.convert_check(after_results), self.message)
 
+    @util.no_selection_cache_validation
     def invariant(self, ignore_kits=False, only_product_ids=None):
         def trim_trailing_zeros(value):
             return value.rstrip("0").rstrip(".")
