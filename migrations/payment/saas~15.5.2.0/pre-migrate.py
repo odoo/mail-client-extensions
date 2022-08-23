@@ -17,3 +17,5 @@ def migrate(cr, version):
             table="payment_token",
         ),
     )
+
+    util.remove_field(cr, "payment.acquirer", "description")
