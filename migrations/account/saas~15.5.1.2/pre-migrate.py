@@ -157,3 +157,6 @@ def migrate(cr, version):
         IN ('done', 'just_done')
     """
     )
+
+    # Move attachment_ids from account_accountant to account, for use in l10n_mx_edi
+    util.move_field_to_module(cr, "account.move", "attachment_ids", "account_accountant", "account")

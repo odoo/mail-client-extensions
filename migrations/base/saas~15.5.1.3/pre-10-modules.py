@@ -62,6 +62,7 @@ def migrate(cr, version):
         util.remove_module(cr, "project_account_accountant")
         util.remove_module(cr, "sale_project_enterprise")
         util.merge_module(cr, "account_intrastat_expiry", "account_intrastat")
+        util.merge_module(cr, "l10n_mx_xml_polizas_edi", "l10n_mx_xml_polizas")
 
     util.remove_module(cr, "l10n_nl_report_intrastat")
     util.remove_module(cr, "l10n_es_reports_2021")
