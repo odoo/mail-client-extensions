@@ -51,3 +51,6 @@ def migrate(cr, version):
 
     util.rename_module(cr, "payment_test", "payment_demo")
     util.rename_module(cr, "payment_transfer", "payment_custom")
+
+    if util.module_installed(cr, "payment"):
+        util.force_install_module(cr, "account_payment")
