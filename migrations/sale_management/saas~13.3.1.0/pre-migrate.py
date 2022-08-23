@@ -130,7 +130,7 @@ def migrate(cr, version):
         discount_pricelists AS (
             INSERT INTO product_pricelist
                         (_tmp_so_template_id, name, currency_id, company_id, sequence, active, discount_policy)
-            SELECT t.id, t.name, coalesce(min(c.currency_id), %s), t.company_id, 1,  TRUE, 'without_discount'
+            SELECT t.id, t.name, coalesce(min(c.currency_id), %s), t.company_id, 9999,  TRUE, 'without_discount'
             FROM lines l
             JOIN        sale_order_template t ON t.id = l.sale_order_template_id
             LEFT JOIN   res_company c ON c.id = t.company_id
@@ -147,7 +147,7 @@ def migrate(cr, version):
         fixed_price_pricelists AS (
             INSERT INTO product_pricelist
                         (_tmp_so_template_id, name, currency_id, company_id, sequence, discount_policy, active)
-            SELECT      t.id, t.name, COALESCE(min(c.currency_id), %s), t.company_id, 1, 'with_discount', max(l.discount) = 0
+            SELECT      t.id, t.name, COALESCE(min(c.currency_id), %s), t.company_id, 9999, 'with_discount', max(l.discount) = 0
             FROM lines l
             JOIN        sale_order_template t ON t.id = l.sale_order_template_id
             LEFT JOIN   res_company c ON c.id = t.company_id
