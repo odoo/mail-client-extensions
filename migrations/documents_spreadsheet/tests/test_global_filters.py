@@ -2,8 +2,8 @@
 
 import json
 
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-from odoo.upgrade import util
 
 
 @change_version("saas~15.5")
