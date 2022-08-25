@@ -34,5 +34,16 @@ def migrate(cr, version):
               'purchase_requisition_partner', 'res_partner', 'requisition_id', 'partner_id')
 
     # website_sale@saas-5
-    util.fixup_m2m(cr, 'product_public_category_product_template_rel',
-              'product_template', 'product_public_category')
+    if util.module_installed(cr, "website_sale"):
+        util.fixup_m2m(
+            cr, "product_public_category_product_template_rel", "product_template", "product_public_category"
+        )
+    else:
+        cr.execute(
+            """
+            DROP TABLE IF EXISTS product_public_category_product_template_rel;
+            DROP TABLE IF EXISTS product_style_product_template_rel;
+            DROP TABLE IF EXISTS product_alternative_rel;
+            DROP TABLE IF EXISTS product_accessory_rel;
+        """
+        )
