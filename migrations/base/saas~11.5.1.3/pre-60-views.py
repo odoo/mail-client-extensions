@@ -26,7 +26,8 @@ def migrate(cr, version):
     )
 
     # Due to bootstrap 4, force update of all qweb views with a known xmlid
-    cr.execute("""
+    cr.execute(
+        """
         UPDATE ir_model_data d
            SET noupdate = false
           FROM ir_ui_view v
@@ -34,4 +35,18 @@ def migrate(cr, version):
            AND d.res_id = v.id
            AND COALESCE(d.module, '') NOT IN ('', '__export__')
            AND v.type = 'qweb'
-    """)
+    """
+    )
+
+    if util.module_installed(cr, "website"):
+        cr.execute(
+            """
+            UPDATE ir_model_data d
+               SET noupdate = True
+              FROM website_page w
+             WHERE d.model = 'ir.ui.view'
+               AND d.module = 'website'
+               AND d.res_id = w.view_id
+               AND w.url = '/page/'|| d.name
+            """
+        )
