@@ -52,7 +52,7 @@ class JinjaToQweb_Data(UpgradeCase):
         self.env.cr.execute(
             """
                 UPDATE sms_template
-                   SET write_date = create_date + interval '42 minutes'
+                   SET create_date = create_date - interval '42 minutes'
                  WHERE id = %s
             """,
             [sms_id],
