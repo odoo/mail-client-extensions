@@ -19,3 +19,10 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "payment.acquirer", "description")
+
+    eb = util.expand_braces
+    for provider in {"alipay", "ogone", "payulatam", "payumoney"}:
+        if util.module_installed(cr, f"payment_{provider}"):
+            util.rename_xmlid(cr, *eb(f"{{payment, payment_{provider}}}.payment_acquirer_{provider}"))
+        else:
+            util.remove_record(cr, f"payment.payment_acquirer_{provider}")
