@@ -28,6 +28,7 @@ def migrate(cr, version):
     util.force_upgrade_of_fresh_module(cr, "website_sale_loyalty")
 
     util.rename_module(cr, "website_sale_coupon_delivery", "website_sale_loyalty_delivery")
+    util.merge_module(cr, "website_sale_delivery_giftcard", "website_sale_loyalty_delivery")
     if util.has_enterprise():
         util.rename_module(cr, "helpdesk_sale_coupon", "helpdesk_sale_loyalty")
 
