@@ -18,6 +18,7 @@ def migrate(cr, version):
         ),
     )
 
+    util.rename_xmlid(cr, "payment.payment_acquirer_test", "payment.payment_acquirer_demo")
     util.remove_field(cr, "payment.acquirer", "description")
 
     eb = util.expand_braces
