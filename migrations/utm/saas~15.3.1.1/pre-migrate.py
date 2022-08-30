@@ -20,9 +20,10 @@ def migrate(cr, version):
         cr.execute(
             f"""
             WITH duplicates AS (
-              SELECT unnest((array_agg(id))[2:]) id
+              SELECT unnest(array_agg(id)) id
                     FROM {table}
                 GROUP BY name
+                Having count(*)>1
             )
             UPDATE {table} t
                SET name = CONCAT(t.name, ' [', t.id::text, ']')
