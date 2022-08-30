@@ -7,3 +7,4 @@ def migrate(cr, version):
 
     util.remove_record(cr, "payment.action_open_payment_onboarding_payment_acquirer_wizard")
     util.remove_view(cr, "payment.onboarding_payment_acquirer_step")
+    cr.execute("create index on payment_transaction(callback_model_id,callback_res_id)")
