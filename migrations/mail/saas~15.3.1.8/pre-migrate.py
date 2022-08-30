@@ -28,15 +28,20 @@ def migrate(cr, version):
 
     util.update_record_from_xml(cr, "mail.mail_channel_rule")
     util.update_record_from_xml(cr, "mail.ir_rule_mail_channel_partner_group_user")
-
-    cr.execute(
-        """
+    
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
           WITH subquery AS (
-        SELECT cp.id, MAX(m.id) as max_id
+        SELECT cp.id,
+               MAX(m.id) as max_id
           FROM mail_channel_partner as cp
           JOIN mail_message as m ON m.model = 'mail.channel'
            AND cp.channel_id = m.res_id
            AND m.author_id = cp.partner_id
+         WHERE {parallel_filter}
       GROUP BY cp.id
         HAVING cp.seen_message_id < MAX(m.id) OR cp.seen_message_id IS NULL
         )
@@ -44,5 +49,8 @@ def migrate(cr, version):
            SET seen_message_id = subquery.max_id
           FROM subquery
          WHERE mail_channel_partner.id = subquery.id
-        """
+            """,
+            table="mail_channel_partner",
+            alias="cp",
+        ),
     )
