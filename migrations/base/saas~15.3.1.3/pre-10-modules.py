@@ -3,7 +3,24 @@
 from odoo.upgrade import util
 
 
+def _openerp(cr, version):
+    cr.execute(
+        """
+        DELETE FROM ir_model_data
+              WHERE module = 'account_taxcloud'
+                AND name = 'account_fiscal_position_taxcloud_us'
+    """
+    )
+
+    util.uninstall_module(cr, "website_sale_taxcloud_delivery")
+    util.uninstall_module(cr, "website_sale_account_taxcloud")
+    util.uninstall_module(cr, "sale_subscription_taxcloud")
+    util.uninstall_module(cr, "sale_account_taxcloud")
+    util.uninstall_module(cr, "account_taxcloud")
+
+
 def migrate(cr, version):
+    util.dispatch_by_dbuuid(cr, version, {"8851207e-1ff9-11e0-a147-001cc0f2115e": _openerp})
     util.merge_module(cr, "l10n_sa_invoice", "l10n_sa")
     util.merge_module(cr, "sale_project_account", "sale_project")
     util.merge_module(cr, "account_sale_timesheet", "sale_project")
@@ -48,3 +65,4 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.remove_module(cr, "delivery_barcode")
         util.remove_module(cr, "sale_subscription_timesheet")
+        util.force_upgrade_of_fresh_module(cr, "sale_temporal")

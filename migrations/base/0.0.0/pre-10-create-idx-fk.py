@@ -17,6 +17,16 @@ def migrate(cr, version):
         "CREATE INDEX upg_attachment_cleanup_speedup_idx ON ir_attachment(res_model, res_field, id)"
     )
     util.ENVIRON["__created_fk_idx"].append("upg_attachment_cleanup_speedup_idx")
+    if util.table_exists(cr, "mail_message"):
+        create_index_queries.append(
+            "create index tmp_mig_mcplastseenmsg_speedup_idx on mail_message(model, author_id, res_id, id desc)"
+        )
+        util.ENVIRON["__created_fk_idx"].append("tmp_mig_mcplastseenmsg_speedup_idx")
+    if util.column_exists(cr, "website_visitor", "push_token"):
+        create_index_queries.append(
+            "create index tmp_mig_websitevisitortoken_speedup_idx on website_visitor(id) WHERE push_token IS NOT NULL"
+        )
+        util.ENVIRON["__created_fk_idx"].append("tmp_mig_websitevisitortoken_speedup_idx")
 
     # create indexes on `ir_model{,_fields}` to speed up models/fields deletion
     cr.execute(

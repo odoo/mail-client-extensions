@@ -15,8 +15,10 @@ if util.version_gte("11.0"):
     origin_add_foreign_key = sql.add_foreign_key
 
     def add_foreign_key(cr, tablename1, columnname1, tablename2, columnname2, ondelete):
-        if not util.table_exists(cr, tablename1) or not util.table_exists(cr, tablename2) or not util.column_exists(cr, tablename1, columnname1) or not util.column_exists(cr, tablename2, columnname2):
-            _logger.error("One of the table/field was missing %s.%s / %s.%s", tablename1, columnname1, tablename2, columnname2)
+        if not util.column_exists(cr, tablename1, columnname1) or not util.column_exists(cr, tablename2, columnname2):
+            _logger.error(
+                "One of the table/field was missing %s.%s / %s.%s", tablename1, columnname1, tablename2, columnname2
+            )
             return False
         allowed_cascade = util.ENVIRON["__fix_fk_allowed_cascade"]
         if ondelete in ("set null", "restrict") and util.column_nullable(cr, tablename1, columnname1):
