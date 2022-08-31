@@ -2,9 +2,7 @@
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 
 
-class TestAccountingSetupCommon(UpgradeCase):
-    _abstract = True
-
+class TestAccountingSetupCommon(UpgradeCase, abstract=True):
     def _get_tax_by_xml_id(self, module, xml_id):
         """Helper to retrieve a tax easily from a chart template.
 
