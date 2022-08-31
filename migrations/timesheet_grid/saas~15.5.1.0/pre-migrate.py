@@ -23,3 +23,5 @@ def migrate(cr, version):
          WHERE I.employee_id = E.id
     """
     )
+    util.remove_view(cr, "timesheet_grid.timesheet_grid_pivot_view")
+    util.remove_view(cr, "timesheet_grid.timesheet_grid_pivot_view_my")
