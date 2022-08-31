@@ -64,6 +64,9 @@ def migrate(cr, version):
         # was 'website_form.contactus_form' before module_merge, and
         # `website.contactus_form` doesn't exists anymore
         util.remove_view(cr, "website.contactus_form")
+        # as `website.company_description` is previously removed, we need to ensure that the `website.contactus` view
+        # will be updated to the new saas~14.5 one (needed for website/saas~14.5.1.0/post-define-contactus-details.py)
+        util.force_noupdate(cr, "website.contactus", noupdate=False)
 
 
 def has_cow_view(cr, xml_ids):

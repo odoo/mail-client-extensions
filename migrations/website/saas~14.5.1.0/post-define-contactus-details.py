@@ -7,13 +7,15 @@ from odoo.upgrade import util
 def migrate(cr, version):
     def set_value(node, value):
         if not value:
-            return node.getparent().remove(node)
+            node.getparent().remove(node)
+            return False
 
         span = node.find(".//span")
         if span is not None:
             span.text = value
         else:
             node.text = value
+        return True
 
     cr.execute("SELECT id, company_id FROM website")
     website_ids = cr.fetchall()
@@ -69,13 +71,28 @@ def migrate(cr, version):
             # according the company data, if the key is the same. Otherwise we assume this is a truly custom view.
             if not view_id:
                 continue
-            with util.edit_view(cr, view_id=view_id) as arch:
-                nodes = arch.findall(".//li")
 
-                set_value(nodes[0], partner.name)
+            with util.edit_view(cr, view_id=view_id) as arch:
+                res = arch.xpath(
+                    "//div/section/div/div/div/ul[count(li)=4]/li[1][text()='My Company']/"
+                    "following-sibling::li/span[text()='3575 Fake Buena Vista Avenue']/../"
+                    "following-sibling::li/span[text()='+1 (650) 555-0111']/../"
+                    "following-sibling::li/span[text()='info@yourcompany.example.com']/../.."
+                )
+                if len(res) == 1:
+                    nodes = res[0]
+                else:
+                    # if we don't get exactly one list with 4 items we move on
+                    continue
+
+                # set_value() can remove node if value is missing, start by the end to avoid IndexError
+                set_value(nodes[3], partner.email)
+                set_value(nodes[2], partner.phone)
                 address = partner._display_address(without_company=True)
                 address = re.sub(r"\n(\s|\n)*\n+", "\n", address, flags=re.MULTILINE).strip().replace("\n", "<br>")
-                set_value(nodes[1], address)
-                nodes[1].attrib["class"] = (nodes[1].attrib.get("class", "") + " d-flex align-items-baseline").strip()
-                set_value(nodes[2], partner.phone)
-                set_value(nodes[3], partner.email)
+                address_updated = set_value(nodes[1], address)
+                if address_updated:
+                    nodes[1].attrib["class"] = (
+                        nodes[1].attrib.get("class", "") + " d-flex align-items-baseline"
+                    ).strip()
+                set_value(nodes[0], partner.name)
