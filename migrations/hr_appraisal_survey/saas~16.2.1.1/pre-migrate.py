@@ -4,4 +4,4 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_field(cr, "account_followup.manual_reminder", "body_html")
+    util.remove_field(cr, "appraisal.ask.feedback", "email_from")
