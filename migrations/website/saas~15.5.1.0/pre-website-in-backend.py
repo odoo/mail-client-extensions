@@ -11,3 +11,5 @@ def migrate(cr, version):
     util.remove_view(cr, "website.user_navbar")
     util.remove_view(cr, "website.website_configurator")
     util.remove_view(cr, "website.website_publisher")
+
+    util.remove_view(cr, "website.compiled_assets_wysiwyg")
