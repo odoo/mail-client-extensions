@@ -28,3 +28,17 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, "website.access_website_ir_ui_view_publisher", "website.access_website_ir_ui_view_restricted_editor"
     )
+
+    # Homepage refactoring
+    util.create_column(cr, "website", "homepage_url", "varchar")
+    cr.execute(
+        """
+        UPDATE website w
+           SET homepage_url = p.url
+          FROM website_page p
+         WHERE w.homepage_id = p.id
+           AND p.url != '/'
+    """
+    )
+    util.remove_field(cr, "website", "homepage_id")
+    util.remove_field(cr, "res.config.settings", "homepage_id")
