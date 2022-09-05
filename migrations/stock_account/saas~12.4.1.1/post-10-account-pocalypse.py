@@ -91,9 +91,9 @@ def migrate(cr, version):
             pp.id,
             CASE
                 WHEN (ls.usage = 'internal' OR (ls.usage = 'transit' AND ls.company_id IS NOT NULL))
-                    AND ld.usage != 'internal'
+                    AND NOT (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
                     THEN -sm.product_qty
-                WHEN ls.usage != 'internal'
+                WHEN NOT (ls.usage = 'internal' OR (ls.usage = 'transit' AND ls.company_id IS NOT NULL))
                     AND (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
                     THEN sm.product_qty
             END as quantity,
@@ -160,9 +160,9 @@ def migrate(cr, version):
             sm.product_id,
             CASE
                 WHEN (ls.usage = 'internal' OR (ls.usage = 'transit' AND ls.company_id IS NOT NULL))
-                    AND ld.usage != 'internal'
+                    AND NOT (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
                     THEN -sm.product_qty
-                WHEN ls.usage != 'internal'
+                WHEN NOT (ls.usage = 'internal' OR (ls.usage = 'transit' AND ls.company_id IS NOT NULL))
                     AND (ld.usage = 'internal' OR (ld.usage = 'transit' AND ld.company_id IS NOT NULL))
                     THEN sm.product_qty
             END as quantity,
