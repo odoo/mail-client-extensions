@@ -78,3 +78,4 @@ def migrate(cr, version):
         util.force_install_module(cr, "account_payment")
 
     util.force_upgrade_of_fresh_module(cr, "hr_hourly_cost")
+    util.remove_module(cr, "planning_calendar")
