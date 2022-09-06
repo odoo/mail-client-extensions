@@ -110,7 +110,7 @@ def check_module_rename(version, old, new):
                 result = False
                 print(
                     f"❗ DUPLICATED SCRIPTS: {link} is a real folder; "
-                    "expected symlink to {lfound} ▶︎ [renamed in {version}]"
+                    f"expected symlink to {lfound} ▶︎ [renamed in {version}]"
                 )
             elif not _match_linked_files(version, new, found, "renamed"):
                 result = False
