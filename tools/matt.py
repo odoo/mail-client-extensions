@@ -305,7 +305,16 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
     logger.info("create db %s in version %s", dbname, options.source)
     subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
     subprocess.run(["createdb", dbname], check=True)  # version 7.0 does not create database itself
-    subprocess.run(["psql", "-Xq", "-d", dbname, "-c", "CREATE EXTENSION unaccent"], check=False)  # may fail
+
+    extensions = ["unaccent"]
+    query = "SELECT usesuper FROM pg_user WHERE usename = CURRENT_USER"
+    issuper = subprocess.check_output(["psql", "--no-psqlrc", "--quiet", "--tuples-only", "-d", dbname, "-c", query])
+    if issuper.decode().strip() == "t":
+        extensions.append("pg_trgm")
+
+    for ext in extensions:
+        query = f"CREATE EXTENSION IF NOT EXISTS {ext}"
+        subprocess.run(["psql", "--no-psqlrc", "--quiet", "-d", dbname, "-c", query], check=False)  # may fail
 
     def odoo(cmd: List[str], *, version: Version, module: str = module) -> bool:
         cwd = workdir / "odoo" / version.odoo
