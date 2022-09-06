@@ -46,6 +46,9 @@ def migrate(cr, version):
             )
     cr.execute("DROP TABLE mig_s124_accountfieldstotransfer")
 
+    # the invoice `number` is the move `name`, fix domains still using `number`
+    util.adapt_domains(cr, "account.move", "number", "name")
+
     util.parallel_execute(
         cr,
         util.explode_query_range(
