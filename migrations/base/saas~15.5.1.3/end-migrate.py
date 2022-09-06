@@ -23,7 +23,7 @@ def migrate(cr, version):
                 field.index,
                 getattr(field, "unaccent", False),
             )
-            for Model in env
+            for Model in env.values()
             if Model._auto and not Model._abstract
             for field in Model._fields.values()
             if field.column_type and field.store and field.index == "trigram"
