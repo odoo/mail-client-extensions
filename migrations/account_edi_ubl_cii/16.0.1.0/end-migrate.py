@@ -36,3 +36,40 @@ def migrate(cr, version):
         cr, ("account.edi.format", code_ids["ehf_3"]), ("account.edi.format", code_ids["ubl_bis3"]), replace_xmlid=False
     )
     util.remove_record(cr, ("account.edi.format", code_ids["ehf_3"]))
+
+    # Factur-X is now always generated silently, uncheck the Factur-X edi format for everyone except for those who enabled
+    # the PDF/A3 system parameter (on their FR/DE journals). Keeping the Factur-X edi format option will validate the invoice and
+    # show warnings and create a PDF/A-3 such that it works with Chorus Pro.
+    cr.execute("SELECT value FROM ir_config_parameter WHERE key = 'edi.use_pdfa'")
+    if cr.rowcount and util.str2bool(cr.fetchone()[0], False):
+        # Uncheck Factur-X for all except on FR/DE journals
+        cr.execute(
+            """
+            WITH to_delete AS (
+                SELECT journal.id AS journal_id, format.id AS format_id
+                  FROM account_journal journal
+                  JOIN res_company ON res_company.id = journal.company_id
+                  JOIN res_partner ON res_partner.id = res_company.partner_id
+                  JOIN res_country ON res_partner.country_id = res_country.id
+                  JOIN account_edi_format_account_journal_rel m2m ON m2m.account_journal_id = journal.id
+                  JOIN account_edi_format format ON format.id = m2m.account_edi_format_id
+                 WHERE res_country.code NOT IN ('FR', 'DE')
+                   AND format.code = 'facturx_1_0_05'
+            )
+            DELETE FROM account_edi_format_account_journal_rel
+                  WHERE (account_journal_id, account_edi_format_id)
+                     IN (SELECT journal_id, format_id FROM to_delete)
+            """
+        )
+    else:
+        # Uncheck Factur-X for all
+        cr.execute(
+            """
+            DELETE FROM account_edi_format_account_journal_rel
+                  WHERE account_edi_format_id = (SELECT id
+                                                   FROM account_edi_format
+                                                  WHERE code = 'facturx_1_0_05')
+        """
+        )
+
+    util.remove_record(cr, "account_edi_ubl_cii.ir_config_parameter_use_pdfa")
