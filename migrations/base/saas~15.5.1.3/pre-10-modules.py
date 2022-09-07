@@ -34,6 +34,28 @@ def migrate(cr, version):
 
     util.remove_module(cr, "purchase_requisition_stock_dropshipping")
 
+    if util.module_installed(cr, "google_spreadsheet"):
+        util.add_to_migration_reports(
+            """
+                <p><strong>Important notice regarding Google Spreadsheet</strong></p>
+                <p>
+                    The Google Spreadsheet integration has been removed from Odoo 16.0.
+                </p>
+                <p>
+                    Spreadsheets created before the upgrade will keep working,
+                    provided that the data they fetch is still in the same format as
+                    in your previous version, but you will not be able to create new
+                    spreadsheets after the upgrade.
+                </p>
+                <p>
+                    We advise you to use the Documents application and the
+                    Odoo-integrated spreadsheets to replace that feature.
+                </p>
+            """,
+            category="Removed modules",
+            format="html",
+        )
+
     util.remove_module(cr, "google_drive")
     util.remove_module(cr, "google_spreadsheet")
 
