@@ -7,7 +7,6 @@ def migrate(cr, version):
     util.rename_field(cr, "sign.send.request", "follower_ids", "cc_partner_ids")
     util.remove_model(cr, "sign.request.send.copy")
     util.remove_model(cr, "sign.template.share")
-    util.remove_field(cr, "sign.template", "share_link")
     util.change_field_selection_values(cr, "sign.request.item", "state", {"draft": "canceled"})
 
     # change all old 'sent' sign request items in 'refused' sign requests to 'canceled'
@@ -80,3 +79,32 @@ def migrate(cr, version):
              WHERE sri.partner_id is NULL
         """
     )
+    # Create the shared sign request to avoid losing the shared links. The access token field is used to update the controller
+    cr.execute(
+        """
+        INSERT INTO sign_request (reference,template_id,state,access_token,refusal_allowed,active)
+        SELECT CONCAT(ia.name, ' - Shared'),
+               st.id,
+               'shared',
+               md5(concat(clock_timestamp()::varchar, ';', random()::varchar))::uuid::varchar,
+               false,
+               true
+          FROM sign_template st
+          JOIN ir_attachment ia on st.attachment_id = ia.id
+         WHERE st.share_link IS NOT NULL
+        """
+    )
+    default_role_id = util.ref(cr, "sign.sign_item_role_default")
+    cr.execute(
+        """
+            INSERT INTO sign_request_item (sign_request_id,role_id,access_token,state)
+            SELECT DISTINCT sr.id,COALESCE(si.responsible_id, %s),st.share_link,'sent'
+            FROM sign_request sr
+            JOIN sign_template st ON st.id=sr.template_id
+            JOIN sign_item si ON si.template_id = st.id
+            WHERE sr.state = 'shared'
+              AND st.share_link IS NOT NULL
+        """,
+        [default_role_id],
+    )
+    util.remove_field(cr, "sign.template", "share_link")
