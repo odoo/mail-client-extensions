@@ -39,7 +39,10 @@ if parse_version('10.0') <= parse_version(release.version) < parse_version('saas
                     xml_file = get_resource_from_path(filename)
                     if xml_file:
                         view = self.env['ir.ui.view'].browse(external_identifier.res_id)
+                        orig_log_access = view._log_access
+                        view._log_access = False
                         view.arch_fs = '/'.join(xml_file[0:2])
+                        view._log_access = orig_log_access
                         force_check_view = view
             res = super(IrModelData, self)._update(model, module, values, xml_id=xml_id,
                                                    store=store, noupdate=noupdate, mode=mode, res_id=res_id)
