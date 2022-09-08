@@ -52,3 +52,10 @@ def migrate(cr, version):
         "account_report_print_journal_view",
     ):
         util.remove_view(cr, f"account_reports.{template}")
+
+    util.remove_field(cr, "account.move.line", "internal_note")
+    # Field moved in account_followup
+    if util.module_installed(cr, "account_followup"):
+        util.move_field_to_module(cr, 'account.move.line', 'next_action_date', "account_reports", "account_followup")
+    else:
+        util.remove_field(cr, "account.move.line", "next_action_date")
