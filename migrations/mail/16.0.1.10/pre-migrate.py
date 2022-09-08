@@ -72,7 +72,7 @@ def migrate(cr, version):
 
     query = """
         UPDATE mail_channel
-           SET channel_type = 'group'
+           SET channel_type = 'group', group_public_id = NULL
          WHERE channel_type = 'channel'
            AND public = 'private'
     """
