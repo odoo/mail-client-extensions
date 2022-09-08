@@ -129,3 +129,14 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "account.payment.term.line", "option")
     util.remove_field(cr, "account.payment.term.line", "sequence")
+
+    # Remove unused view
+    util.remove_record(cr, "account.action_account_chart_template_form")
+    util.remove_view(cr, "account.view_account_chart_template_form")
+    util.remove_view(cr, "account.view_account_chart_template_seacrh")
+    util.remove_view(cr, "account.view_account_chart_template_tree")
+    util.remove_view(cr, "account.view_account_template_form")
+    util.remove_view(cr, "account.view_account_template_tree")
+    util.remove_view(cr, "account.view_account_template_search")
+    util.remove_view(cr, "account.account_common_report_view")
+    util.remove_model(cr, "account.common.report")
