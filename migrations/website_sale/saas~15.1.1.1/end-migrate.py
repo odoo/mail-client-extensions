@@ -4,13 +4,15 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    jsonb_column = util.column_type(cr, "ir_ui_view", "arch_db") == "jsonb"
+    arch_db_column = "arch_db->>'en_US'" if jsonb_column else "arch_db"
     cr.execute(
-        r"""
+        rf"""
             SELECT id
               FROM ir_ui_view
              WHERE key = 'website_sale.product'
                AND website_id IS NOT NULL
-               AND arch_db !~ '\yo_wsale_cta_wrapper\y'
+               AND {arch_db_column} !~ '\yo_wsale_cta_wrapper\y'
         """
     )
     for (view,) in cr.fetchall():

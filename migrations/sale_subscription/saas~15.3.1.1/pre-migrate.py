@@ -95,12 +95,14 @@ def migrate(cr, version):
         """
     )
     cr.commit()
+    jsonb_column = util.column_type(cr, "sale_order_template", "note") == "jsonb"
+    sst_description = "jsonb_build_object('en_US', sst.description)" if jsonb_column else "sst.description"
     cr.execute(
-        """
+        f"""
         INSERT INTO sale_order_template (old_template_id,name,active,note,recurring_rule_type,
                                          recurring_rule_boundary,recurring_rule_count,user_closable,auto_close_limit,
                                          good_health_domain,bad_health_domain,invoice_mail_template_id,company_id,recurrence_id)
-             SELECT sst.id,CONCAT ('Upgraded ', sst.name),sst.active,sst.description,sst.recurring_rule_type,
+             SELECT sst.id,CONCAT ('Upgraded ', sst.name),sst.active,{sst_description},sst.recurring_rule_type,
                     sst.recurring_rule_boundary,sst.recurring_rule_count,sst.user_closable,sst.auto_close_limit,
                     sst.good_health_domain,sst.bad_health_domain,sst.invoice_mail_template_id,sst.company_id,str.id
                FROM sale_subscription_template sst

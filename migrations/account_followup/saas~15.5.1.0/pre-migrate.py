@@ -69,11 +69,13 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH template_inserted AS (
-            INSERT INTO mail_template(name, model_id, subject, body_html, create_uid, create_date, write_uid, write_date, _tmp_followup_line_id)
-            SELECT followup_line.name,
+            INSERT INTO mail_template(name, model_id, subject, body_html,
+                                      create_uid, create_date, write_uid, write_date,
+                                      _tmp_followup_line_id)
+            SELECT jsonb_build_object('en_US', followup_line.name),
                    model.id,
-                   followup_line.email_subject,
-                   followup_line.description,
+                   jsonb_build_object('en_US', followup_line.email_subject),
+                   jsonb_build_object('en_US', followup_line.description),
                    followup_line.create_uid,
                    followup_line.create_date,
                    followup_line.write_uid,
@@ -95,10 +97,12 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH template_inserted AS (
-            INSERT INTO sms_template(name, model_id, body, create_uid, create_date, write_uid, write_date, _tmp_followup_line_id)
-            SELECT followup_line.name,
+            INSERT INTO sms_template(name, model_id, body,
+                                     create_uid, create_date, write_uid, write_date,
+                                     _tmp_followup_line_id)
+            SELECT jsonb_build_object('en_US', followup_line.name),
                    model.id,
-                   followup_line.sms_description,
+                   jsonb_build_object('en_US', followup_line.sms_description),
                    followup_line.create_uid,
                    followup_line.create_date,
                    followup_line.write_uid,

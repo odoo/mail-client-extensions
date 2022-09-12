@@ -4,6 +4,7 @@ import re
 from lxml import etree, html
 
 import odoo.upgrade.util.snippets as snip
+from odoo.upgrade import util
 
 utf8_parser = html.HTMLParser(encoding="utf-8")
 
@@ -32,12 +33,18 @@ def remove_dnone_anchors(content):
     return (True, content)
 
 
-def migrate_social_media(cr, table, column, extra_where=''):
+def migrate_social_media(cr, table, column, extra_where=""):
+    if util.column_type(cr, table, column.strip('"')) == "jsonb":
+        column_select = f"{column}->>'en_US'"
+        column_value = "jsonb_build_object('en_US', %s)"
+    else:
+        column_select = column
+        column_value = "%s"
     cr.execute(
         f"""
-            SELECT id, {column}
+            SELECT id, {column_select}
             FROM {table}
-            WHERE {column} LIKE '%s_social_media%d-none%'
+            WHERE {column_select} LIKE '%s_social_media%d-none%'
             {extra_where}
         """
     )
@@ -49,7 +56,7 @@ def migrate_social_media(cr, table, column, extra_where=''):
         cr.execute(
             f"""
                 UPDATE {table}
-                SET {column} = %s
+                SET {column} = {column_value}
                 WHERE id = %s
             """,
             [new_content, id],

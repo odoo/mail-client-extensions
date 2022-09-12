@@ -2,6 +2,7 @@
 import logging
 
 from odoo.modules.db import has_trigram, has_unaccent
+from odoo.tools.translate import _get_translation_upgrade_queries
 
 from odoo.upgrade import util
 
@@ -11,10 +12,10 @@ _logger = logging.getLogger("odoo.upgrade.saas-15.5.1.3." + __name__)
 def migrate(cr, version):
     trigram = has_trigram(cr)
     unaccent = has_unaccent(cr)
+    env = util.env(cr)
 
     if trigram and unaccent:
         # Fix trigram index to use
-        env = util.env(cr)
         expected = [
             (
                 f"{Model._table}_{field.name}_index",
@@ -47,3 +48,24 @@ def migrate(cr, version):
                     len(indexes_to_delete),
                 )
                 env.registry.check_indexes(cr, list(env))
+
+    # backup ir_translation
+    cr.execute("ALTER TABLE ir_translation RENAME TO _ir_translation")
+
+    # upgrade translations
+    cleanup_queries = []
+    for Model in env.registry.values():
+        if Model._auto and not Model._abstract:
+            for field in Model._fields.values():
+                if field.store and field.translate:
+                    migrate, cleanup = _get_translation_upgrade_queries(cr, field)
+                    # don't parallelize data migration queries from different
+                    # fields, as it may cause serialization errors
+                    util.parallel_execute(cr, migrate)
+                    cleanup_queries.extend(cleanup)
+
+    # remove translations; leftovers should be migrated manually
+    cleanup_queries.append("DELETE FROM _ir_translation WHERE type = 'code'")
+    util.parallel_execute(cr, cleanup_queries)
+
+    util.remove_model(cr, "ir.translation")

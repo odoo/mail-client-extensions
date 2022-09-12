@@ -18,11 +18,17 @@ def migrate(cr, version):
 
 def migrate_event_snippet(cr, table, column):
     filter_id = str(util.ref(cr, "website_event.website_snippet_filter_event_list"))
+    if util.column_type(cr, table, column.strip('"')) == "jsonb":
+        column_select = f"{column}->>'en_US'"
+        column_value = "jsonb_build_object('en_US', %s)"
+    else:
+        column_select = column
+        column_value = "%s"
     cr.execute(
-        fr"""
-            SELECT id, {column}
+        rf"""
+            SELECT id, {column_select}
               FROM {table}
-              WHERE {column} ~ '\ys_country_events\y'
+              WHERE {column_select} ~ '\ys_country_events\y'
         """
     )
     for res_id, body in cr.fetchall():
@@ -61,4 +67,4 @@ def migrate_event_snippet(cr, table, column):
 
         if snippet_els:
             body = etree.tostring(body, encoding="unicode")
-            cr.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s", [body, res_id])
+            cr.execute(f"UPDATE {table} SET {column} = {column_value} WHERE id = %s", [body, res_id])

@@ -19,10 +19,17 @@ def migrate(cr, version):
     # Rename publisher into restricted editor
     util.rename_xmlid(cr, "website.group_website_publisher", "website.group_website_restricted_editor")
     cr.execute(
-        """
+        r"""
         UPDATE ir_ui_view
-           SET arch_db = REPLACE(arch_db, 'website.group_website_publisher', 'website.group_website_restricted_editor')
-         WHERE arch_db LIKE '%website.group\\_website\\_publisher%'
+           SET arch_db = jsonb_build_object(
+                   'en_US',
+                   REGEXP_REPLACE(
+                       arch_db->>'en_US',
+                       '\ywebsite\.group_website_publisher\y',
+                       'website.group_website_restricted_editor',
+                       'g'
+                    ))
+         WHERE arch_db->>'en_US' LIKE '%website.group\_website\_publisher%'
     """
     )
     util.rename_xmlid(

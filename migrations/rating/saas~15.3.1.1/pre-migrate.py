@@ -17,15 +17,18 @@ def migrate(cr, version):
 
     # adapt mail templates (and their translations) from method renaming
     fields_toupdate = [
-        "body_html",
         "email_cc",
         "email_from",
         "email_to",
         "lang",
         "partner_to",
+    ]
+    translated_fields_toupdate = [
+        "body_html",
         "report_name",
         "subject",
     ]
+    jsonb_column = util.column_type(cr, "mail_template", "body_html") == "jsonb"
     for old, new in [
         ("rating_get_rated_partner_id", "_rating_get_operator"),
         ("rating_get_partner_id", "_rating_get_partner"),
@@ -33,6 +36,7 @@ def migrate(cr, version):
     ]:
         re_old = r"\y" + re.escape(f"object.{old}()")
         re_new = f"object.{new}()"
+        # from saas~15.5 we use jsonb for translated fields
         cr.execute(
             """
             UPDATE mail_template
@@ -40,8 +44,28 @@ def migrate(cr, version):
              WHERE %s
             """
             % (
-                ",\n".join(f"{fname} = regexp_replace({fname}, %(old)s, %(new)s, 'g')" for fname in fields_toupdate),
-                " OR ".join(f"{fname} ~ %(old)s" for fname in fields_toupdate),
+                ",\n".join(
+                    [
+                        ",\n".join(
+                            f"{fname} = regexp_replace({fname}, %(old)s, %(new)s, 'g')" for fname in fields_toupdate
+                        ),
+                        ",\n".join(
+                            f"{fname} = jsonb_build_object('en_US', regexp_replace({fname}->>'en_US', %(old)s, %(new)s, 'g'))"
+                            if jsonb_column
+                            else f"{fname} = regexp_replace({fname}, %(old)s, %(new)s, 'g')"
+                            for fname in translated_fields_toupdate
+                        ),
+                    ]
+                ),
+                " OR ".join(
+                    [
+                        " OR ".join(f"{fname} ~ %(old)s" for fname in fields_toupdate),
+                        " OR ".join(
+                            f"{fname}->>'en_US' ~ %(old)s" if jsonb_column else f"{fname} ~ %(old)s"
+                            for fname in translated_fields_toupdate
+                        ),
+                    ]
+                ),
             ),
             {"old": re_old, "new": re_new},
         )

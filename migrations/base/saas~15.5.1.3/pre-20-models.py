@@ -4,6 +4,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_model(cr, "base.update.translations")
+
     util.remove_field(cr, "ir.module.module.dependency", "write_date")
     util.remove_field(cr, "ir.module.module.dependency", "create_date")
     util.remove_field(cr, "ir.module.module.dependency", "write_uid")
