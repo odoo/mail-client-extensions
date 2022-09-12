@@ -432,6 +432,7 @@ def migrate(cr, version):
     ]
     util.create_column(cr, "sale_subscription", "new_sale_order_id", "int4")
     util.create_column(cr, "sale_subscription_line", "new_sale_order_line_id", "int4")
+    util.create_column(cr, "sale_subscription_template", "new_sale_order_template_id", "int4")
     util.parallel_execute(
         cr,
         [
@@ -447,6 +448,12 @@ def migrate(cr, version):
           FROM sale_order_line sol
          WHERE sol.old_subscription_line_id=ssl.id
             """,
+            """
+        UPDATE sale_subscription_template sst
+           SET new_sale_order_template_id=sot.id
+          FROM sale_order_template sot
+         WHERE sot.old_template_id=sst.id
+            """,
         ],
     )
     cr.execute("CREATE INDEX ON sale_subscription(new_sale_order_id)")
@@ -455,6 +462,7 @@ def migrate(cr, version):
     for main_table, map_field in [
         ("sale_subscription", "new_sale_order_id"),
         ("sale_subscription_line", "new_sale_order_line_id"),
+        ("sale_subscription_template", "new_sale_order_template_id"),
     ]:
         for table, column, conname, _ in util.get_fk(cr, main_table, quote_ident=False):
             if (table, column) not in already_processed_fk:
