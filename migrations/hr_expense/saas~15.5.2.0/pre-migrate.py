@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations.util.accounting import upgrade_analytic_distribution
 from odoo.upgrade import util
 
 
@@ -28,3 +29,5 @@ def migrate(cr, version):
             util.ref(cr, "hr_expense.menu_hr_expense_sheet_all"),
         ],
     )
+
+    upgrade_analytic_distribution(cr, model="hr.expense")

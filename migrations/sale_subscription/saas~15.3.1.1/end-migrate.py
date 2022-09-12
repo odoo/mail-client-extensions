@@ -7,14 +7,15 @@ def migrate(cr, version):
     util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_in_progress", False)
     util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_closed", False)
     # Migrate the account analytic tags
-    cr.execute(
-        """
-        INSERT INTO account_analytic_tag_sale_order_rel(sale_order_id,account_analytic_tag_id)
-            SELECT sale_subscription_id,account_analytic_tag_id
-              FROM account_analytic_tag_sale_subscription_rel
+    if util.table_exists(cr, "account_analytic_tag_sale_order_rel"):
+        cr.execute(
+            """
+            INSERT INTO account_analytic_tag_sale_order_rel(sale_order_id,account_analytic_tag_id)
+                 SELECT sale_subscription_id,account_analytic_tag_id
+                   FROM account_analytic_tag_sale_subscription_rel
             ON CONFLICT DO NOTHING
-        """
-    )
+            """
+        )
 
     util.remove_model(cr, "sale.subscription.template")
 

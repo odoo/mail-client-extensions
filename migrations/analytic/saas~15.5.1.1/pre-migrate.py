@@ -1,0 +1,53 @@
+# -*- coding: utf-8 -*-
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    eb = util.expand_braces
+
+    util.rename_model(cr, *eb("account.analytic.{group,plan}"))
+    util.create_column(cr, "account_analytic_account", "root_plan_id", "int4")
+    util.rename_field(cr, "account.analytic.account", "group_id", "plan_id")
+    util.rename_field(cr, "account.analytic.line", "group_id", "plan_id")
+    util.rename_xmlid(cr, *eb("analytic.account_analytic_{group,plan}_form_view"))
+    util.rename_xmlid(cr, *eb("analytic.account_analytic_{group,plan}_tree_view"))
+    util.rename_xmlid(cr, *eb("analytic.account_analytic_{group,plan}_action"))
+    util.rename_xmlid(cr, *eb("analytic.analytic_{group,plan}_comp_rule"))
+    util.rename_xmlid(cr, *eb("analytic.access_account_analytic_{group,plan}"))
+
+    cr.execute(
+        """INSERT INTO account_analytic_plan(name, complete_name, parent_path)
+                       VALUES ('Default', 'Default', currval('account_analytic_plan_id_seq') || '/')
+             RETURNING id
+        """
+    )
+    default_plan_id = cr.fetchone()[0]
+    query = """
+        UPDATE account_analytic_account account
+           SET plan_id = %s,
+               root_plan_id = %s
+         WHERE plan_id IS NULL
+    """
+    query = cr.mogrify(query, [default_plan_id, default_plan_id]).decode()
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_account", alias="account"))
+
+    query = """
+        UPDATE account_analytic_account account
+           SET root_plan_id = split_part(plan.parent_path, '/', 1)::integer
+          FROM account_analytic_plan plan
+         WHERE plan.id = account.plan_id
+           AND account.root_plan_id IS NULL
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_account", alias="account"))
+
+    query = """
+        UPDATE account_analytic_line line
+           SET plan_id = account.plan_id
+          FROM account_analytic_account account
+         WHERE account.id = line.account_id
+           AND account.plan_id IS NULL
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="line"))
+
+    util.remove_field(cr, "account.analytic.line", "tag_ids")
+    util.remove_record(cr, "analytic.group_analytic_tags")

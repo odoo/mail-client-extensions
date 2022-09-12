@@ -19,3 +19,6 @@ def migrate(cr, version):
     util.remove_model(cr, "project.milestone.reach.wizard")
     util.remove_model(cr, "project.milestone.reach.line.wizard")
     util.remove_record(cr, "project.unlink_project_action")
+
+    util.remove_field(cr, "project.project", "analytic_tag_ids")
+    util.remove_field(cr, "project.task", "analytic_tag_ids")

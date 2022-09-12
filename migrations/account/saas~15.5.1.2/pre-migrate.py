@@ -2,6 +2,7 @@
 from odoo.osv.expression import get_unaccent_wrapper
 from odoo.tools import html_escape
 
+from odoo.addons.base.maintenance.migrations.util.accounting import upgrade_analytic_distribution
 from odoo.upgrade import util
 
 eb = util.expand_braces
@@ -157,6 +158,31 @@ def migrate(cr, version):
         IN ('done', 'just_done')
     """
     )
-
     # Move attachment_ids from account_accountant to account, for use in l10n_mx_edi
     util.move_field_to_module(cr, "account.move", "attachment_ids", "account_accountant", "account")
+
+    # Analytic
+    upgrade_analytic_distribution(cr, model="account.move.line")
+    upgrade_analytic_distribution(
+        cr,
+        model="account.reconcile.model.line",
+        tag_table="account_reconcile_model_analytic_tag_rel",
+    )
+
+    util.rename_field(cr, "account.analytic.line", "move_id", "move_line_id")  # was never a move
+    util.create_column(cr, "account_analytic_line", "journal_id", "int4")
+    query = """
+        UPDATE account_analytic_line line
+           SET journal_id = aml.journal_id,
+               partner_id = COALESCE(aml.partner_id, line.partner_id)
+          FROM account_move_line aml
+         WHERE line.move_line_id = aml.id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="line"))
+
+    util.remove_model(cr, "account.analytic.default")
+    util.remove_field(cr, "account.invoice.report", "analytic_account_id")
+    util.remove_field(cr, "res.config.settings", "group_analytic_tags")
+    util.remove_record(cr, "account.analytic_default_comp_rule")
+    util.remove_view(cr, "account.view_account_invoice_report_search_analytic_accounting")
+    util.remove_view(cr, "account.account_analytic_account_view_form_inherit")

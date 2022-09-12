@@ -22,3 +22,35 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *eb("sale.access_sale_payment_{acquirer,provider}_onboarding_wizard"))
     util.rename_xmlid(cr, *eb("sale.sale_payment_{acquirer,provider}_onboarding_wizard_rule"))
+
+    util.create_column(cr, "sale_order_line", "analytic_distribution_stored_char", "varchar")
+
+    # The accounts were set on the SO and the tags on the SOL, this is why we can't use `upgrade_analytic_distribution`
+    # The total amount of the account is added as 100% in the business code
+    query = """
+        WITH _lines AS (
+            SELECT id FROM sale_order_line line WHERE {parallel_filter}
+        ), line_sum AS (
+            SELECT line.id AS line_id,
+                   distribution.account_id AS account_id,
+                   SUM(distribution.percentage) AS percentage
+              FROM _lines line
+              JOIN account_analytic_tag_sale_order_line_rel analytic_rel ON analytic_rel.sale_order_line_id = line.id
+              JOIN account_analytic_distribution distribution ON analytic_rel.account_analytic_tag_id = distribution.tag_id
+          GROUP BY line_id, account_id
+        ),
+        line_distribution AS (
+            SELECT line_id,
+                   CAST(json_object_agg(account_id, percentage) AS VARCHAR) AS distribution
+              FROM line_sum
+          GROUP BY line_id
+        )
+        UPDATE sale_order_line line
+           SET analytic_distribution_stored_char = line_distribution.distribution
+          FROM line_distribution
+         WHERE line.id = line_distribution.line_id
+    """
+
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_order_line", alias="line"))
+
+    util.remove_field(cr, "sale.order.line", "analytic_tag_ids")
