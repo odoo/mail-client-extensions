@@ -140,3 +140,20 @@ def migrate(cr, version):
     util.remove_view(cr, "account.view_account_template_search")
     util.remove_view(cr, "account.account_common_report_view")
     util.remove_model(cr, "account.common.report")
+
+    cr.execute(
+        """
+        ALTER TABLE res_company
+        RENAME COLUMN account_onboarding_create_invoice_state
+        TO account_onboarding_create_invoice_state_flag
+    """
+    )
+    cr.execute(
+        """
+        ALTER TABLE res_company
+        ALTER COLUMN account_onboarding_create_invoice_state_flag
+        TYPE boolean
+        USING account_onboarding_create_invoice_state_flag
+        IN ('done', 'just_done')
+    """
+    )
