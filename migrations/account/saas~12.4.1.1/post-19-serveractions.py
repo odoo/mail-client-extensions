@@ -34,10 +34,21 @@ def migrate(cr, version):
         ("payments_widget", "invoice_payments_widget"),
         ("payment_term_id", "invoice_payment_term_id"),
     ]
+    invoice_move_line_field_map = [
+        ("invoice_id", "move_id"),
+        ("uom_id", "product_uom_id"),
+        ("invoice_line_tax_ids", "tax_ids"),
+        ("account_analytic_id", "analytic_account_id"),
+    ]
 
     util.update_server_actions_fields(
         cr, src_model="account.invoice", dst_model="account.move", fields_mapping=field_name_mapping
     )
+    util.update_server_actions_fields(
+        cr, src_model="account.invoice.line", dst_model="account.move.line", fields_mapping=invoice_move_line_field_map
+    )
+    for old, new in invoice_move_line_field_map:
+        util.update_field_references(cr, old, new, ("account.move.line",))
     for old, new in field_name_mapping:
         util.update_field_references(cr, old, new, ("account.move",))
 
