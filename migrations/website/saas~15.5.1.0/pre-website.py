@@ -42,3 +42,20 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "website", "homepage_id")
     util.remove_field(cr, "res.config.settings", "homepage_id")
+
+    # Remove "multi website by country" and make domain unique
+    cr.execute(
+        """
+        UPDATE website
+           SET domain = NULL
+         WHERE id IN (
+             SELECT unnest((array_agg(id ORDER BY id))[2:])
+               FROM website
+           GROUP BY domain
+             HAVING count(*) > 1
+         )
+    """
+    )
+    util.remove_field(cr, "website", "country_group_ids")
+    cr.execute("DROP TABLE IF EXISTS website_country_group_rel")
+    util.remove_field(cr, "res.config.settings", "website_country_group_ids")
