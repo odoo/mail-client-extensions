@@ -3,19 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute(
-        """CREATE TABLE IF NOT EXISTS sale_temporal_recurrence (
-        id SERIAL PRIMARY KEY,
-        create_uid integer,
-        create_date timestamp without time zone,
-        write_uid integer,
-        write_date timestamp without time zone,
-        name varchar,
-        duration integer,
-        unit varchar
-    )"""
-    )
-
     cr.execute("ALTER TABLE sale_temporal_recurrence ADD COLUMN _mig_rental_pricing_id integer[]")
     cr.execute(
         """
@@ -32,8 +19,13 @@ def migrate(cr, version):
            AND str.unit = rp.unit
         """
     )
+    if util.column_exists(cr, "sale_temporal_recurrence", "active"):
+        active_field = ", active"
+        active_val = ", true"
+    else:
+        active_field = active_val = ""
     cr.execute(
-        """
+        f"""
         WITH rp AS (   SELECT rp.duration,
                               rp.unit,
                               array_agg(rp.id) agg
@@ -44,8 +36,8 @@ def migrate(cr, version):
                         WHERE str.id IS NULL
                      GROUP BY rp.duration,
                               rp.unit)
-        INSERT INTO sale_temporal_recurrence (duration, unit, _mig_rental_pricing_id)
-        SELECT rp.duration, rp.unit, rp.agg
+        INSERT INTO sale_temporal_recurrence (duration, unit, _mig_rental_pricing_id {active_field})
+        SELECT rp.duration, rp.unit, rp.agg {active_val}
           FROM rp
         """
     )

@@ -53,20 +53,6 @@ def migrate(cr, version):
         {"daily": "day", "weekly": "week", "monthly": "month", "yearly": "year"},
     )
     cr.execute("ALTER TABLE product_pricing ADD COLUMN _mig_sub_line_id integer[]")
-    cr.commit()
-
-    cr.execute(
-        """CREATE TABLE IF NOT EXISTS sale_temporal_recurrence (
-        id SERIAL PRIMARY KEY,
-        create_uid integer,
-        create_date timestamp without time zone,
-        write_uid integer,
-        write_date timestamp without time zone,
-        name varchar,
-        duration integer,
-        unit varchar
-    )"""
-    )
 
     # temporary column used to retrieve easily the recurrence
     cr.execute("ALTER TABLE sale_temporal_recurrence ADD COLUMN _mig_sst_id integer[]")
@@ -86,8 +72,13 @@ def migrate(cr, version):
            AND str.unit = sst.unit
         """
     )
+    if util.column_exists(cr, "sale_temporal_recurrence", "active"):
+        active_field = ", active"
+        active_val = ", true"
+    else:
+        active_field = active_val = ""
     cr.execute(
-        """
+        f"""
         WITH sst AS (   SELECT sst.recurring_interval duration,
                                sst.recurring_rule_type unit,
                                array_agg(sst.id) agg
@@ -98,8 +89,8 @@ def migrate(cr, version):
                          WHERE str.id IS NULL
                       GROUP BY sst.recurring_interval,
                                sst.recurring_rule_type)
-        INSERT INTO sale_temporal_recurrence (duration, unit, _mig_sst_id)
-        SELECT duration, unit, agg
+        INSERT INTO sale_temporal_recurrence (duration, unit, _mig_sst_id {active_field})
+        SELECT duration, unit, agg {active_val}
           FROM sst
         """
     )
