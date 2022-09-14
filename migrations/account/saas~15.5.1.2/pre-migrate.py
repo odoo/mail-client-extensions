@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from xmlrpc.client import MAXINT
+
 from odoo.osv.expression import get_unaccent_wrapper
 from odoo.tools import html_escape
 
@@ -186,3 +188,121 @@ def migrate(cr, version):
     util.remove_record(cr, "account.analytic_default_comp_rule")
     util.remove_view(cr, "account.view_account_invoice_report_search_analytic_accounting")
     util.remove_view(cr, "account.account_analytic_account_view_form_inherit")
+
+    util.remove_model(cr, "account.cashbox.line")
+    util.remove_model(cr, "cash.box.out")
+    util.remove_model(cr, "account.bank.statement.cashbox")
+    util.remove_model(cr, "account.bank.statement.closebalance")
+
+    util.remove_view(cr, "account.view_bank_statement_form")
+    util.remove_view(cr, "account.view_bank_statement_line_search")
+    util.remove_view(cr, "account.view_bank_statement_line_form")
+    util.remove_view(cr, "account.view_bank_statement_line_tree")
+
+    util.rename_field(cr, "account.payment", "reconciled_statements_count", "reconciled_statement_lines_count")
+    util.remove_field(cr, "account.payment", "reconciled_statement_ids")
+
+    util.remove_field(cr, "account.move", "statement_id", skip_inherit=("account.bank.statement.line",))
+
+    util.remove_inherit_from_model(cr, "account.bank.statement", "mail.thread")
+    util.remove_inherit_from_model(cr, "account.bank.statement", "sequence.mixin")
+    for field in (
+        "date_done",
+        "state",
+        "total_entry_encoding",
+        "difference",
+        "is_difference_zero",
+        "cashbox_end_id",
+        "cashbox_start_id",
+        "user_id",
+        "previous_statement_id",
+        "is_valid_balance_start",
+        "all_lines_reconciled",
+        "move_line_count",
+        "move_line_ids",
+        "journal_type",
+        "country_code",
+    ):
+        util.remove_field(cr, "account.bank.statement", field)
+
+    util.create_column(cr, "account_bank_statement_line", "internal_index", "varchar")
+    util.create_column(cr, "account_bank_statement_line", "currency_id", "int4")
+
+    query = cr.mogrify(
+        """
+            UPDATE account_bank_statement_line
+               SET internal_index = REPLACE(account_move.date::text, '-', '')
+                                    || TO_CHAR(%s - account_bank_statement_line.sequence, 'fm0000000000')
+                                    || TO_CHAR(account_bank_statement_line.id, 'fm0000000000'),
+                   currency_id = COALESCE(account_journal.currency_id, res_company.currency_id)
+              FROM account_move
+              JOIN account_journal
+                ON account_journal.id = account_move.journal_id
+              JOIN res_company
+                ON res_company.id = account_move.company_id
+             WHERE account_move.statement_line_id = account_bank_statement_line.id
+        """,
+        [MAXINT],
+    ).decode()
+
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_bank_statement_line"))
+
+    cr.execute(
+        "CREATE INDEX account_bank_statement_line_internal_index_index ON account_bank_statement_line(internal_index)"
+    )
+
+    util.create_column(cr, "account_bank_statement", "first_line_index", "varchar")
+    cr.execute('ALTER TABLE account_bank_statement ALTER COLUMN "date" DROP NOT NULL')
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(cr, 'UPDATE account_bank_statement SET "date" = NULL', table="account_bank_statement"),
+    )
+    cr.execute(
+        """
+        WITH min_max_statement_index AS (
+            SELECT st_line.statement_id,
+                   MIN(st_line.internal_index) AS min_internal_index,
+                   MAX(st_line.internal_index) AS max_internal_index
+              FROM account_bank_statement_line st_line
+             WHERE st_line.statement_id IS NOT NULL
+          GROUP BY st_line.statement_id
+        )
+        UPDATE account_bank_statement
+           SET first_line_index = min_max_statement_index.min_internal_index,
+               date = move.date
+          FROM min_max_statement_index
+          JOIN account_bank_statement_line st_line
+            ON st_line.internal_index = min_max_statement_index.max_internal_index
+          JOIN account_move move
+            ON move.statement_line_id = st_line.id
+         WHERE account_bank_statement.id = min_max_statement_index.statement_id
+        """
+    )
+
+    util.create_column(cr, "account_bank_statement", "is_complete", "bool")
+    cr.execute(
+        """
+        WITH st_line_amount_per_st AS (
+            SELECT st_line.statement_id,
+                   COALESCE(journal.currency_id, company.currency_id) AS currency_id,
+                   SUM(st_line.amount) AS amount
+              FROM account_bank_statement_line st_line
+              JOIN account_move move
+                ON move.statement_line_id = st_line.id
+              JOIN account_journal journal
+                ON journal.id = move.journal_id
+              JOIN res_company company
+                ON company.id = journal.company_id
+          GROUP BY st_line.statement_id, journal.currency_id, company.currency_id
+        )
+        UPDATE account_bank_statement
+           SET is_complete = ROUND(
+                    account_bank_statement.balance_end_real - st_line_amount_per_st.amount - account_bank_statement.balance_start,
+                    res_currency.decimal_places
+                ) = 0
+          FROM st_line_amount_per_st
+          JOIN res_currency
+            ON res_currency.id = st_line_amount_per_st.currency_id
+         WHERE st_line_amount_per_st.statement_id = account_bank_statement.id
+        """
+    )
