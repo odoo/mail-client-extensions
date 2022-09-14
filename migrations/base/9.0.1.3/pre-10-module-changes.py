@@ -31,6 +31,10 @@ def migrate(cr, version):
 
     util.merge_module(cr, "im_chat", "mail")
 
+    # keep some tables used by other migration scripts
+    if not util.modules_installed(cr, "sale_contract"):
+        util.remove_module(cr, "hr_timesheet_invoice")
+
     util.new_module_dep(cr, 'base_iban', 'account')  # we can leave the 'base' dep
 
     no_more_board = 'account crm event fleet google_drive hr project stock'.split()
@@ -116,10 +120,10 @@ def migrate(cr, version):
 
     util.new_module_dep(cr, 'project', 'portal')
     util.new_module_dep(cr, 'project', 'web_planner')
-    util.new_module_dep(cr, 'project_issue_sheet', 'project_timesheet')
 
     util.remove_module_deps(cr, 'project_timesheet',
                             ('hr_timesheet', 'sale_contract', 'procurement'))
+    util.new_module_dep(cr, 'project_issue_sheet', 'project_timesheet')
 
     util.new_module_dep(cr, 'report_intrastat', 'delivery')
 
@@ -212,9 +216,6 @@ def migrate(cr, version):
         util.new_module(cr, 'mass_mailing_themes', deps=('mass_mailing',), auto_install=True)
         util.new_module(cr, 'website_enterprise', deps=('website',), auto_install=True)
 
-    # keep some tables used by other migration scripts
-    if not util.modules_installed(cr, 'sale_contract'):
-        util.remove_module(cr, 'hr_timesheet_invoice')
 
     # some cleanup
     removed_modules = util.splitlines("""
