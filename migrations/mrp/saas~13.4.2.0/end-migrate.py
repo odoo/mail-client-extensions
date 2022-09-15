@@ -370,7 +370,10 @@ def migrate(cr, version):
     util.recompute_fields(cr, "stock.move", ["unit_factor", "reference"], ids=ids_recompute_stock_move)
 
     # Recompute store fields of mrp.production where the compute method changed
-    util.recompute_fields(cr, "mrp.production", ["state", "production_location_id"], strategy="commit")
+    cr.execute("SELECT id FROM mrp_production WHERE state != 'cancel'")
+    recompute_state_ids = [id for id, in cr.fetchall()]
+    util.recompute_fields(cr, "mrp.production", ["state"], ids=recompute_state_ids, strategy="commit")
+    util.recompute_fields(cr, "mrp.production", ["production_location_id"], strategy="commit")
 
     # New field consumption of workorder is the same than his MO
     cr.execute(
