@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
-    cr.execute(
-        """
-    UPDATE stock_location l
-       SET is_subcontracting_location = true
-      FROM res_company c
-      JOIN stock_location sl ON sl.id = c.subcontracting_location_id
-     WHERE l.parent_path LIKE sl.parent_path || '%'
-        """
-    )
+    query = """
+        UPDATE stock_location l
+           SET is_subcontracting_location = true
+          FROM res_company c
+         WHERE l.id = c.subcontracting_location_id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_location", alias="l"))
