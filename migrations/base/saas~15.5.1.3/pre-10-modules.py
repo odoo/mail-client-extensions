@@ -4,15 +4,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    # Temporary: needed for the backport of PR https://github.com/odoo/odoo/pull/93135
-    # to avoid "New module 'account_edi_ubl_cii' already defined" exception
-    cr.execute(
-        """
-    SELECT id FROM ir_module_module WHERE name = 'account_edi_ubl_cii' LIMIT 1;
-    """
-    )
-    if not cr.fetchone():
-        util.new_module(cr, "account_edi_ubl_cii", deps={"account_edi"}, auto_install=True)
     util.force_migration_of_fresh_module(cr, "account_edi_ubl_cii")
 
     util.rename_xmlid(cr, "l10n_be_edi.edi_efff_1", "account_edi_ubl_cii.edi_efff_1")
