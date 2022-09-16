@@ -16,3 +16,5 @@ def migrate(cr, version):
            AND att.res_field = 'thumbnail'
         """
     )
+
+    util.remove_view(cr, "documents.pdf_js_assets")
