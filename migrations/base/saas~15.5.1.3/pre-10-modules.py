@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+from odoo import tools
 
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    tools.config["default_productivity_apps"] = False  # don't auto-install productivity apps on upgrade
+
     util.force_migration_of_fresh_module(cr, "account_edi_ubl_cii")
 
     util.rename_xmlid(cr, "l10n_be_edi.edi_efff_1", "account_edi_ubl_cii.edi_efff_1")
