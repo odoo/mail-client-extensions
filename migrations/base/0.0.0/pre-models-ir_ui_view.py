@@ -68,7 +68,8 @@ def migrate(cr, version):
         cr.execute("SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1".format(DATA_TABLE))
         ODOO_MIG_TRY_FIX_VIEWS |= bool(cr.rowcount)  # force fixing views whenever TestFixViews.test_prepare was run
 
-    cr.execute("SELECT id,model,arch_db INTO UNLOGGED ir_ui_view_data_backup FROM ir_ui_view")
+    cast = "->>'en_US' as arch_db" if util.column_type(cr, "ir_ui_view", "arch_db") == "jsonb" else ""
+    cr.execute("SELECT id,model,arch_db{} INTO UNLOGGED ir_ui_view_data_backup FROM ir_ui_view".format(cast))
     cr.execute("ALTER TABLE ir_ui_view_data_backup ADD PRIMARY KEY(id)")
 
 
