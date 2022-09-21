@@ -1,20 +1,32 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if util.table_exists(cr, "account_account_type"):
+        join = "JOIN account_account_type t ON (t.id = a.user_type_id)"
+        condition = "t.type IN ('payable', 'receivable')"
+        prop_label = "t.type"
+    else:
+        join = ""
+        condition = "a.account_type IN ('asset_receivable', 'liability_payable')"
+        prop_label = "split_part(a.account_type, '_', 2)"
+
     # ensure each company have a defaults partner properties set
     cr.execute(
         """
         INSERT INTO ir_property(name, company_id, type, fields_id, value_reference)
         SELECT f.name, a.company_id, 'many2one', f.id, CONCAT('account.account,', (array_agg(a.id ORDER BY a.code))[1])
           FROM account_account a
-          JOIN account_account_type t ON (t.id = a.user_type_id)
-          JOIN ir_model_fields f ON (f.model = 'res.partner' AND f.name = CONCAT('property_account_', t.type, '_id'))
+          {}
+          JOIN ir_model_fields f ON (f.model = 'res.partner' AND f.name = CONCAT('property_account_', {}, '_id'))
      LEFT JOIN ir_property p ON (p.fields_id = f.id AND p.company_id = a.company_id AND p.res_id IS NULL)
-         WHERE t.type IN ('payable', 'receivable')
+         WHERE {}
            AND p.id IS NULL
       GROUP BY f.name, a.company_id, f.id
-    """
+    """.format(
+            join, prop_label, condition
+        )
     )
 
     # If you didn't understand the previous query, here is the equivalent in human readable code
