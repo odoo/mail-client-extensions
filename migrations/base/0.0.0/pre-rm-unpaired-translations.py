@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    cr.execute(r"""
+    if not util.table_exists(cr, "ir_translation"):
+        return
+
+    cr.execute(
+        r"""
         WITH src_pc AS (
             SELECT id, array_agg(pc) pc
               FROM (
@@ -36,4 +41,5 @@ def migrate(cr, version):
                  WHERE s.pc IS DISTINCT FROM v.pc
                    AND t.type = 'code'
         )
-    """)
+    """
+    )

@@ -2,6 +2,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if not util.table_exists(cr, "ir_translation"):
+        return
+
     query = """
         UPDATE ir_translation
            SET state = NULL
