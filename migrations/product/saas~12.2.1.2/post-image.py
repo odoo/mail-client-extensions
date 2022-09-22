@@ -60,7 +60,7 @@ def get_orig_field(cr, model, infix):
     return False
 
 
-def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_size=500):
+def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_size=5000):
     fields = ["image{}_{}".format(infix, s) for s in SUFFIXES]
     fields = [f for f in fields if check_field(cr, model, f)]
 
@@ -76,43 +76,58 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
     env = util.env(cr)
     full_path = env["ir.attachment"]._full_path
 
-    # FIXME handle when attachments are stored in database
+    def get_ids():
+        # FIXME handle when attachments are stored in database
+        with util.named_cursor(cr, 1000) as ncr:
+            ncr.execute(
+                """
+                SELECT res_id, store_fname
+                  FROM ir_attachment
+                 WHERE res_model = %s
+                   AND res_field = %s
+                   AND res_id IS NOT NULL
+                """,
+                [model, orig_field],
+            )
+            chunk = ncr.fetchmany(chunk_size)
+            while chunk:
+                not_ids = []
+                has_ids = []
+                for res_id, store_fname in chunk:
+                    if model not in FORCE_COPY and store_fname and os.path.isfile(full_path(store_fname)):
+                        has_ids.append(res_id)
+                    else:
+                        not_ids.append(res_id)
+                yield not_ids, has_ids
+                chunk = ncr.fetchmany(chunk_size)
+
     cr.execute(
         """
-        SELECT res_id, store_fname
+        SELECT count(*)
           FROM ir_attachment
          WHERE res_model = %s
            AND res_field = %s
            AND res_id IS NOT NULL
-    """,
+        """,
         [model, orig_field],
     )
+    size = (cr.fetchone()[0] - 1) // chunk_size + 1
+    inject_cron = False
+    for not_ids, has_ids in util.log_progress(get_ids(), _logger, "chunks of {} records".format(chunk_size), size):
+        if has_ids:
+            compute_fields = list(fields)
+            if zoom:
+                compute_fields += [zoom]
+            for record_id in has_ids:
+                try:
+                    util.recompute_fields(cr, model, compute_fields, ids=[record_id])
+                except Exception:
+                    # If the image is broken, fuck it
+                    _logger.exception("Cannot resize images, %s.%s,%s", model, compute_fields, record_id)
+                    not_ids.append(record_id)
 
-    not_ids = []
-    has_ids = []
-    for res_id, store_fname in cr.fetchall():
-        if model not in FORCE_COPY and store_fname and os.path.isfile(full_path(store_fname)):
-            has_ids.append(res_id)
-        else:
-            not_ids.append(res_id)
-
-    if has_ids:
-        compute_fields = list(fields)
-        if zoom:
-            compute_fields += [zoom]
-        for record_id in util.log_progress(has_ids, _logger, qualifier="records"):
-            try:
-                util.recompute_fields(cr, model, compute_fields, ids=[record_id])
-            except Exception:
-                # If the image is broken, fuck it
-                _logger.exception("Cannot resize images, %s.%s,%s", model, compute_fields, record_id)
-                not_ids.append(record_id)
-
-    if not_ids:
-        cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content"))[0])
-        size = (len(not_ids) + chunk_size - 1) / chunk_size
-        qual = "%s %d-bucket" % (model, chunk_size)
-        for sub_ids in util.log_progress(util.chunks(not_ids, chunk_size, list), _logger, qualifier=qual, size=size):
+        if not_ids:
+            cols = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_field", "index_content"))[0])
             cr.execute(
                 """
                 INSERT INTO ir_attachment(res_field, {cols}, index_content)
@@ -125,15 +140,14 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
             """.format(
                     cols=cols
                 ),
-                [fields, model, orig_field, sub_ids],
+                [fields, model, orig_field, not_ids],
             )
-        if zoom:
-            table = util.table_of_model(cr, model)
-            qual = "%s:%s %d-bucket" % (model, zoom, chunk_size)
-            chnk = util.chunks(not_ids, chunk_size, list)
-            for sub_ids in util.log_progress(chnk, _logger, qualifier=qual, size=size):
-                cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [sub_ids])
+            if zoom:
+                table = util.table_of_model(cr, model)
+                cr.execute("UPDATE {} SET {}=false WHERE id = ANY(%s)".format(table, zoom), [not_ids])
+            inject_cron = True
 
+    if inject_cron:
         # Inject the cron which will resize the images which have not been resized during the upgrade
         util.create_cron(cr, "Resize Images", "ir.attachment", CRON_CODE)
 
