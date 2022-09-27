@@ -28,10 +28,15 @@ class Model(models.Model):
             else:
                 invalid_models.append(model)
         if invalid_models:
-            raise util.MigrationError(
+            message = (
                 "💥 It looks like you forgot to call `util.remove_model` on the following models: %s"
                 % ", ".join(invalid_models)
             )
+            if util.on_CI():
+                util._logger.critical(message)
+            else:
+                raise util.MigrationError(message)
+
         return super(Model, self).unlink()
 
 
@@ -156,7 +161,13 @@ class Field(models.Model):
         invalid_unlink_fields = unlink_fields - ignore_fields
         if invalid_unlink_fields:
             fields = ["%s.%s" % (f.model, f.name) for f in invalid_unlink_fields]
-            raise util.MigrationError(
+            message = (
                 "💥 It looks like you forgot to call `util.remove_field` on the following fields: %s" % ", ".join(fields)
             )
+            if util.on_CI():
+                util._logger.critical(message)
+            else:
+                raise util.MigrationError(message)
+
+
         return super(Field, unlink_fields).unlink()
