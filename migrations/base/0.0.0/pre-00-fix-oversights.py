@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import collections
+
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -50,17 +52,27 @@ def migrate(cr, version):
                       fields.name
         """
         )
+        info = collections.defaultdict(list)
         for model, name in cr.fetchall():
             table = util.table_of_model(cr, model)
             if not util.column_exists(cr, table, name):
                 continue
-            cr.execute(
-                """
-                ALTER TABLE {table}
-                ALTER COLUMN "{name}"
-                 TYPE varchar
-                USING CONVERT_FROM("{name}",'UTF8')
-            """.format(
-                    **locals()
+            info[table].append(name)
+
+        queries = [
+            "ALTER TABLE {table}\n{alter_columns}".format(
+                table=table,
+                alter_columns=",\n".join(
+                    """
+                    ALTER COLUMN "{name}"
+                     TYPE varchar
+                    USING CONVERT_FROM("{name}",'UTF8')
+                    """.format(
+                        name=name
+                    )
+                    for name in names
                 ),
             )
+            for table, names in info.items()
+        ]
+        util.parallel_execute(cr, queries)
