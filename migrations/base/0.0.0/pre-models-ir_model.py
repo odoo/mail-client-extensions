@@ -53,7 +53,6 @@ class Field(models.Model):
             if "field:%s.%s" % (field.model, field.name) in os.environ.get("suppress_upgrade_warnings", "").split(","):
                 ignore_fields |= field
                 util._logger.log(25, "Field unlink %s.%s explicitly ignored, skipping" % (field.model, field.name))
-                continue
             elif f and f.inherited:
                 # See https://github.com/odoo/odoo/pull/53632
                 util._logger.critical(
