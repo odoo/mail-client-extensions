@@ -49,5 +49,15 @@ def migrate(cr, version):
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="line"))
 
+    query = """
+        UPDATE account_analytic_account account
+           SET company_id = NULL
+          FROM account_analytic_line line
+         WHERE account.id = line.account_id
+           AND line.company_id != account.company_id
+           AND account.company_id IS NOT NULL
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_account", alias="account"))
+
     util.remove_field(cr, "account.analytic.line", "tag_ids")
     util.remove_record(cr, "analytic.group_analytic_tags")
