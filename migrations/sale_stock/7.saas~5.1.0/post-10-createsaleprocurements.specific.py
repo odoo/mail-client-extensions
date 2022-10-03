@@ -187,6 +187,7 @@ def _migrate(cr, version):
                 """,
                 [group_id, picking_id],
             )
+        cr.commit()
 
 
 def insert_procurement_order(cr, vals):
