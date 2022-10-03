@@ -100,7 +100,6 @@ def _migrate(cr, version):
         WHERE id = %s
         """
 
-    t1 = datetime.datetime.now()
     chunk_size = 200
     size = (len(sol_dict.keys()) + chunk_size - 1) / chunk_size
     qual = 'chunks of %s sale.order.line records' % chunk_size
@@ -252,7 +251,6 @@ def _check(cr, proc_id, state_by_procurement):
 
     cancel_test_list = [move['state'] == 'cancel' for move in moves]
     done_cancel_test_list = [move['state'] in ('done', 'cancel') for move in moves]
-    at_least_one_cancel = any(cancel_test_list)
     all_done_or_cancel = all(done_cancel_test_list)
     all_cancel = all(cancel_test_list)
     if not all_done_or_cancel:
