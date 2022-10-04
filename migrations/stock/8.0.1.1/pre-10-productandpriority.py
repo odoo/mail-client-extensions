@@ -4,7 +4,14 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
 
-    cr.execute("UPDATE stock_move SET priority = '2' WHERE priority = '1'")
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            "UPDATE stock_move SET priority = '2' WHERE priority = '1'",
+            table="stock_move",
+        ),
+    )
 
     # Verify incompatible UoM on stock.move vs product UoM and warn about it
     cr.execute(
@@ -34,11 +41,17 @@ def migrate(cr, version):
             ""
         ) % count
         util.announce(cr, "8.0", msg, recipient=None, header=header, footer=footer)
-        cr.execute(
-            """
-            UPDATE stock_move m SET product_uom = t.uom_id
-                FROM product_product p, product_template t, product_uom u1, product_uom u2
-                WHERE (m.product_id = p.id) AND (t.id=p.product_tmpl_id) AND (u1.id = m.product_uom) AND
-                      (u2.id = t.uom_id) AND u1.category_id != u2.category_id;
-        """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(
+                cr,
+                """
+                UPDATE stock_move m SET product_uom = t.uom_id
+                    FROM product_product p, product_template t, product_uom u1, product_uom u2
+                    WHERE (m.product_id = p.id) AND (t.id=p.product_tmpl_id) AND (u1.id = m.product_uom) AND
+                          (u2.id = t.uom_id) AND (u1.category_id != u2.category_id)
+                """,
+                table="stock_move",
+                alias="m",
+            ),
         )
