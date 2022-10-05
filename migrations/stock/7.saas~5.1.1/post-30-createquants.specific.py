@@ -1,16 +1,15 @@
+import datetime
 import logging
 import os
 from itertools import groupby
 from operator import itemgetter
 
 from openerp import SUPERUSER_ID
-from openerp.modules.registry import RegistryManager
 from openerp.addons.base.maintenance.migrations import util
 from openerp.osv import osv
 
 from openerp.tools import float_round
-from datetime import date, datetime
-from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT, DEFAULT_SERVER_DATE_FORMAT
+from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT
 from openerp.tools import float_compare
 
 refresh_dict = {'quant': 'stock_quant',
@@ -510,8 +509,6 @@ def _quant_split(cr, uid, quant, qty, context=None):
     if float_compare(abs(quant['qty']), abs(qty), precision_rounding=rounding) <= 0:
         # if quant <= qty in abs, take it entirely
         return False
-    qty_round = float_round(qty, precision_rounding=rounding)
-    new_qty_round = float_round(quant['qty'] - qty, precision_rounding=rounding)
     # Fetch the history_ids manually as it will not do a join with the stock moves then
     # (=> a lot faster)
     cr.execute("""
@@ -996,15 +993,6 @@ def insert_stock_quant_move_rel(cr, quant_id, move_id):
            FROM stock_quant_move_rel
            WHERE quant_id=%s)
         """, [quant_id, move_id, quant_id, ])
-
-def refresh(cr, table, record):
-    cr.execute("""
-        SELECT *
-        FROM {TABLE}
-        WHERE id = %s
-    """.format(table=refresh_dict.get(table)), [record.get('id')])
-    data = cr.dictfetchone()
-    return data
 
 def recursive_child_id(cr, location_id):
     res = self.recursive_child_id.get(location_id)
