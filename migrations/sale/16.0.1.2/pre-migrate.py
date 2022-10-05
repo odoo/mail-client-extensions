@@ -23,7 +23,7 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("sale.access_sale_payment_{acquirer,provider}_onboarding_wizard"))
     util.rename_xmlid(cr, *eb("sale.sale_payment_{acquirer,provider}_onboarding_wizard_rule"))
 
-    util.create_column(cr, "sale_order_line", "analytic_distribution_stored_char", "varchar")
+    util.create_column(cr, "sale_order_line", "analytic_distribution", "jsonb")
 
     # The accounts were set on the SO and the tags on the SOL, this is why we can't use `upgrade_analytic_distribution`
     # The total amount of the account is added as 100% in the business code
@@ -41,12 +41,12 @@ def migrate(cr, version):
         ),
         line_distribution AS (
             SELECT line_id,
-                   CAST(json_object_agg(account_id, percentage) AS VARCHAR) AS distribution
+                   json_object_agg(account_id, percentage) AS distribution
               FROM line_sum
           GROUP BY line_id
         )
         UPDATE sale_order_line line
-           SET analytic_distribution_stored_char = line_distribution.distribution
+           SET analytic_distribution = line_distribution.distribution
           FROM line_distribution
          WHERE line.id = line_distribution.line_id
     """

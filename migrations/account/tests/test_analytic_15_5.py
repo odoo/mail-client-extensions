@@ -94,9 +94,9 @@ class TestAnalyticApocalypse(TestAccountingSetupCommon):
     def _check_analytic_test(self, config, invoice_id, analytic_account_id):
         invoice = self.env["account.move"].browse(invoice_id)
 
-        self.assertEqual(invoice.invoice_line_ids[0].analytic_distribution, {analytic_account_id: 100.0})
-        self.assertEqual(invoice.invoice_line_ids[1].analytic_distribution, {analytic_account_id: 150.0})
-        self.assertEqual(invoice.invoice_line_ids[2].analytic_distribution, {analytic_account_id: 50.0})
+        self.assertEqual(invoice.invoice_line_ids[0].analytic_distribution, {str(analytic_account_id): 100.0})
+        self.assertEqual(invoice.invoice_line_ids[1].analytic_distribution, {str(analytic_account_id): 150.0})
+        self.assertEqual(invoice.invoice_line_ids[2].analytic_distribution, {str(analytic_account_id): 50.0})
         self.assertEqual(invoice.invoice_line_ids[3].analytic_distribution, False)
 
     def prepare(self):
