@@ -10,12 +10,18 @@ def migrate(cr, version):
     """
     util.create_column(cr, "stock_move", "procure_method", "varchar")
 
-    cr.execute(
-        """
-        UPDATE stock_move move
-        SET procure_method = p.procure_method
-        FROM procurement_order p WHERE p.move_id = move.id
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE stock_move move
+            SET procure_method = p.procure_method
+            FROM procurement_order p WHERE p.move_id = move.id
+            """,
+            table="stock_move",
+            alias="move",
+        ),
     )
 
     if util.table_exists(cr, "sale_order_line"):
@@ -60,19 +66,18 @@ def migrate(cr, version):
     # Change states of procurements:
     # draft, ready should be confirmed
     # waiting should pass to running
-    cr.execute(
-        """
-    UPDATE procurement_order po
-    SET state = 'confirmed'
-    WHERE po.state in ('draft', 'ready')
-    """
-    )
-    cr.execute(
-        """
-    UPDATE procurement_order po
-    SET state = 'running'
-    WHERE po.state = 'waiting'
-    """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE procurement_order po
+               SET state = CASE WHEN state='waiting' THEN 'running' ELSE 'confirmed' END
+            WHERE po.state in ('draft', 'ready', 'waiting')
+            """,
+            table="procurement_order",
+            alias="po",
+        ),
     )
 
     # Migration of stock_location
