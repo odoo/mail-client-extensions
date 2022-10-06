@@ -983,16 +983,14 @@ def get_rounding(cr, product_id):
     return self.rounding_by_product_id[product_id]
 
 def insert_stock_quant_move_rel(cr, quant_id, move_id):
-    cr.execute("""
+    cr.execute(
+        """
         INSERT INTO stock_quant_move_rel (quant_id, move_id)
-          (SELECT %s,
-                  unnest(ARRAY[%s]))
-        EXCEPT
-          (SELECT quant_id,
-                  move_id
-           FROM stock_quant_move_rel
-           WHERE quant_id=%s)
-        """, [quant_id, move_id, quant_id, ])
+             VALUES (%(quant_id)s, %(move_id)s)
+        ON CONFLICT DO NOTHING
+        """,
+        locals(),
+    )
 
 def recursive_child_id(cr, location_id):
     res = self.recursive_child_id.get(location_id)
