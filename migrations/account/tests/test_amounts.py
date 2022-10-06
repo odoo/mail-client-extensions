@@ -4,6 +4,7 @@ from collections import namedtuple
 
 from odoo import fields
 from odoo.tests import tagged
+from odoo.tools.float_utils import float_compare
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
@@ -37,11 +38,17 @@ class TestAccountAmountsUnchanged(IntegrityCase):
         data = self.Data(*value)
 
         new_data = self.invariant(date=data.date)
-        self.assertEqual(
-            data.value,
-            self.convert_check(new_data.value),
-            self.message,
-        )
+        for data_iter, new_data_iter in zip(data.value, new_data.value):
+            self.assertEqual(data_iter[:2], list(new_data_iter[:2]), self.message)
+            self.assertEqual(
+                float_compare(
+                    float(data_iter[2]),
+                    new_data_iter[2],
+                    precision_digits=new_data_iter[3] or data_iter[3] or 2,
+                ),
+                0,
+                self.message,
+            )
 
     def invariant(self, date=None):
         # In CI, new demo and test data can be added. We should ignore them.
@@ -53,7 +60,8 @@ class TestAccountAmountsUnchanged(IntegrityCase):
         query = f"""
             SELECT l.company_id cid,
                    l.account_id aid,
-                   sum(round(l.balance, c.decimal_places))
+                   sum(round(l.balance, c.decimal_places)),
+                   c.decimal_places as dec
               FROM account_move_line l
               JOIN account_move m
                 ON l.move_id = m.id
@@ -66,7 +74,8 @@ class TestAccountAmountsUnchanged(IntegrityCase):
                 ON co.currency_id = c.id
              WHERE {filter_}
              GROUP BY cid,
-                      aid
+                      aid,
+                      dec
             HAVING sum(round(l.balance, c.decimal_places)) <> 0
              ORDER BY cid,
                       aid;
