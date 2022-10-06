@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from odoo import api, models
+from odoo import api, models, release
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -22,6 +22,11 @@ def migrate(cr, version):
             "create index tmp_mig_mcplastseenmsg_speedup_idx on mail_message(model, author_id, res_id, id desc)"
         )
         util.ENVIRON["__created_fk_idx"].append("tmp_mig_mcplastseenmsg_speedup_idx")
+
+    if release.version_info[:2] == (16, 0) and util.column_exists(cr, "mail_message", "email_layout_xmlid"):
+        create_index_queries.append("CREATE INDEX upg_mailmsg_layout_xid ON mail_message(email_layout_xmlid)")
+        util.ENVIRON["__created_fk_idx"].append("upg_mailmsg_layout_xid")
+
     if util.column_exists(cr, "website_visitor", "push_token"):
         create_index_queries.append(
             "create index tmp_mig_websitevisitortoken_speedup_idx on website_visitor(id) WHERE push_token IS NOT NULL"
