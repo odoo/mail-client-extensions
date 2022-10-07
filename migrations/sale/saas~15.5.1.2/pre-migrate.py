@@ -54,3 +54,4 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_order_line", alias="line"))
 
     util.remove_field(cr, "sale.order.line", "analytic_tag_ids")
+    util.move_field_to_module(cr, "sale.order.line", "product_type", "sale_stock", "sale")
