@@ -218,8 +218,7 @@ def _migrate(cr, version):
                 cr, SUPERUSER_ID, quants, move, location_dest, lot_id=move['restrict_lot_id'],
                 src_package_id=package['id'] if package else None,
                 dest_package_id=result_package['id'] if result_package else None, context=context)
-        cr.execute('commit')
-        cr.execute('begin')
+        cr.commit()
 
     #Take in_date as first date of stock_move
     cr.execute("""
