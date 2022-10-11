@@ -6,7 +6,7 @@ from odoo.tools.translate import _get_translation_upgrade_queries
 
 from odoo.upgrade import util
 
-_logger = logging.getLogger("odoo.upgrade.saas-15.5.1.3." + __name__)
+_logger = logging.getLogger("odoo.upgrade.16.0.1.3." + __name__)
 
 
 def migrate(cr, version):

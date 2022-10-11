@@ -3,7 +3,7 @@ from .common import TestAccountingSetupCommon
 from odoo.addons.base.maintenance.migrations.testing import change_version
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestReportalypse(TestAccountingSetupCommon):
 
     # -------------------------------------------------------------------------

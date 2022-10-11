@@ -6,7 +6,7 @@ from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestSpreadsheetGlobalFilters(UpgradeCase):
     def prepare(self):
         if not util.table_exists(self.env.cr, "spreadsheet_revision"):

@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestAccountTypeDomains(UpgradeCase):
     def prepare(self):
         domains_dict = {

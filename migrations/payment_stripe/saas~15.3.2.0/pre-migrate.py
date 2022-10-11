@@ -2,7 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if util.version_gte("saas~15.5"):
+    if util.version_gte("16.0"):
         cr.execute("SELECT id FROM payment_provider WHERE code = 'stripe'")
     elif util.version_gte("saas~15.4"):
         cr.execute("SELECT id FROM payment_acquirer WHERE provider = 'stripe'")

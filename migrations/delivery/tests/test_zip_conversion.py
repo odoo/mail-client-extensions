@@ -5,7 +5,7 @@ from collections import namedtuple
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestZipConversion(UpgradeCase):
     def prepare(self):
         product_delivery_normal = self.env["product.product"].create(

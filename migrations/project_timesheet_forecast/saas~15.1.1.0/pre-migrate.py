@@ -7,7 +7,7 @@ def migrate(cr, version):
     util.create_column(cr, "planning_slot", "allocated_hours_cost", "float8", default=0.0)
     util.create_column(cr, "planning_slot", "effective_hours_cost", "float8", default=0.0)
 
-    field_name = "hourly_cost" if util.version_gte("saas~15.5") else "timesheet_cost"
+    field_name = "hourly_cost" if util.version_gte("16.0") else "timesheet_cost"
     cr.execute(
         f"""
         UPDATE planning_slot s

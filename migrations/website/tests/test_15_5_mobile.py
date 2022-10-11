@@ -9,7 +9,7 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 utf8_parser = html.HTMLParser(encoding="utf-8")
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestHiddenOnMobile(UpgradeCase):
     def prepare(self):
 

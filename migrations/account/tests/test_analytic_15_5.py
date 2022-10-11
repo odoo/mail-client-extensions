@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import change_version
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestAnalyticApocalypse(TestAccountingSetupCommon):
     def _prepare_analytic_test(self):
         self.env.user.write(

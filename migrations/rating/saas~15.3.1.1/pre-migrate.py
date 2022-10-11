@@ -36,7 +36,7 @@ def migrate(cr, version):
     ]:
         re_old = r"\y" + re.escape(f"object.{old}()")
         re_new = f"object.{new}()"
-        # from saas~15.5 we use jsonb for translated fields
+        # from 16.0 we use jsonb for translated fields
         cr.execute(
             """
             UPDATE mail_template

@@ -5,7 +5,7 @@ def migrate(cr, version):
     pass
 
 
-if not util.version_gte("saas~15.5"):
+if not util.version_gte("16.0"):
     from odoo import models
 
     from odoo.addons.account_reports.models import account_financial_report  # noqa

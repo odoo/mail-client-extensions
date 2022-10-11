@@ -3,9 +3,17 @@
 from odoo.addons.account_asset.models.account_asset import DAYS_PER_MONTH, DAYS_PER_YEAR
 
 from odoo.upgrade import util
+from odoo.upgrade.util.accounting import upgrade_analytic_distribution
 
 
 def migrate(cr, version):
+
+    upgrade_analytic_distribution(
+        cr,
+        model="account.asset",
+        account_field="account_analytic_id",
+    )
+
     # assets refactoring
 
     assert isinstance(DAYS_PER_MONTH, int)
@@ -138,6 +146,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.asset", "display_model_choice")
     util.remove_field(cr, "account.asset", "depreciation_number_import")
     util.remove_field(cr, "account.asset", "first_depreciation_date_import")
+    util.remove_field(cr, "account.asset", "user_type_id")
 
     util.remove_column(cr, "account_move", "asset_remaining_value")
     util.remove_column(cr, "account_move", "asset_depreciated_value")
@@ -147,3 +156,8 @@ def migrate(cr, version):
     util.remove_field(cr, "asset.modify", "need_date")
     util.remove_field(cr, "asset.modify", "invoice_id")
     util.remove_field(cr, "asset.modify", "invoice_line_id")
+
+    util.remove_model(cr, "account.assets.report")
+
+    util.remove_view(cr, "account_asset.line_caret_options")
+    util.remove_view(cr, "account_asset.main_template_asset_report")

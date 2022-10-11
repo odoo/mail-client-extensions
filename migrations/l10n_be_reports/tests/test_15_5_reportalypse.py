@@ -8,7 +8,7 @@ from odoo.addons.base.maintenance.migrations.testing import change_version
 common = util.import_script("account/tests/common.py")
 
 
-@change_version("saas~15.5")
+@change_version("16.0")
 class TestReportalypseL10nBeReports(common.TestAccountingSetupCommon):
 
     # -------------------------------------------------------------------------
