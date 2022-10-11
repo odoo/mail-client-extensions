@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import itertools
 from collections import defaultdict
 
 import psycopg2
@@ -35,12 +36,20 @@ def migrate(cr, version):
                 for t, l in columns_to_set_null.items()
             ],
         )
-        update_set_null_queries = [
-            "UPDATE {} SET {} WHERE {}".format(
-                t, ", ".join("{} = NULL".format(c) for c in q), " OR ".join("{} IS NOT NULL".format(c) for c in q)
+        update_set_null_queries = list(
+            itertools.chain.from_iterable(
+                util.explode_query_range(
+                    cr,
+                    "UPDATE {} SET {} WHERE ({})".format(
+                        t,
+                        ", ".join("{} = NULL".format(c) for c in q),
+                        " OR ".join("{} IS NOT NULL".format(c) for c in q),
+                    ),
+                    table=t,
+                )
+                for t, q in columns_to_set_null.items()
             )
-            for t, q in columns_to_set_null.items()
-        ]
+        )
         util.parallel_execute(cr, update_set_null_queries)
 
     for table_name, constraints in fks_to_drop.items():
