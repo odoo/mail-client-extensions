@@ -440,7 +440,8 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         return dict([(path_column, asset_key)], directive="include")
 
     def handle_xpath(node, bundle_name, view):
-        directive = XPATH_POSITION_TO_DIRECTIVE.get(node.get("position"))
+        xpath_position = node.get("position") or "inside"
+        directive = XPATH_POSITION_TO_DIRECTIVE.get(xpath_position)
         target = get_target_from_xpath(node)
         expr = node.get("expr")
 

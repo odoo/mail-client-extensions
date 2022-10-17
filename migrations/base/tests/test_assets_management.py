@@ -510,3 +510,60 @@ class TestAssetResequence(BaseAssetCase):
                 "active": True,
             },
         )
+
+
+@change_version("saas~14.3")
+class TestAssetXpathPositionNotSet(BaseAssetCase):
+    def prepare(self):
+        asset_base = self.make_view(
+            {
+                "arch": """
+                    <t name="asset">
+                        <script type="text/javascript" src="/web/static/somefile.js" />
+                    </t>
+                """
+            },
+        )
+        calling_view = self.make_calling_view(asset_base.key)
+
+        asset_child = self.make_view(
+            {
+                "arch": """
+                    <data>
+                        <xpath expr=".">
+                            <script type="text/javascript" src="/web/static/somenewfile.js" />
+                        </xpath>
+                    </data>
+                """,
+                "inherit_id": asset_base.id,
+            },
+        )
+
+        return {
+            "asset_base_id": asset_base.id,
+            "asset_base_key": asset_base.key,
+            "asset_child_id": asset_child.id,
+            "calling_view_id": calling_view.id,
+        }
+
+    def check(self, check):
+        self.assertTrue(self.env["ir.ui.view"].browse(check["calling_view_id"]).exists())
+        self.assertAsset(
+            check["asset_base_id"],
+            {
+                "directive": "append",
+                "glob": "/web/static/somefile.js",
+                "target": False,
+                "active": True,
+            },
+        )
+
+        self.assertAsset(
+            check["asset_child_id"],
+            {
+                "directive": "append",
+                "glob": "/web/static/somenewfile.js",
+                "target": False,
+                "active": True,
+            },
+        )
