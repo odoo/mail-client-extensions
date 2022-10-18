@@ -29,7 +29,7 @@ def migrate(cr, version):
                     xid = node.getparent().get("id")
                     acq = xid[len("payment_acquirer_") :]
 
-                    util.rename_xmlid(cr, "{0}.{1}".format(acq, xid), "payment.{0}".format(xid))
+                    util.rename_xmlid(cr, "payment_{0}.{1}".format(acq, xid), "payment.{0}".format(xid))
 
                     desc = "".join(map(etree.tostring, node.iterchildren()))
                     case_query += "WHEN provider=%s THEN %s "
