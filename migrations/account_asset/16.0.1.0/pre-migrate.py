@@ -27,8 +27,8 @@ def migrate(cr, version):
     fiscal_year_query = """
         UPDATE account_asset AS asset
            SET prorata_date = (TO_DATE(date_part('year', asset.acquisition_date)
-                                                    || company.fiscalyear_last_month
-                                                    || company.fiscalyear_last_day,
+                                                    || to_char(company.fiscalyear_last_month::int, '00')
+                                                    || to_char(company.fiscalyear_last_day, '00'),
                                                  'YYYYMMDD') + INTERVAL '1 day' - INTERVAL '1 year')::DATE
           FROM res_company AS company
          WHERE asset.company_id = company.id
