@@ -383,6 +383,13 @@ class IrUiView(models.Model):
     _inherit = "ir.ui.view"
     _module = "base"
 
+    if util.version_gte("12.0"):
+
+        def _load_records_write(self, values):
+            # https://github.com/odoo/odoo/blob/c53081f10befd4f1c98e46a450ed3bc71a6246ed/odoo/fields.py#L507
+            values.setdefault("priority", self._fields["priority"].default(self))
+            return super()._load_records_write(values)
+
     if util.version_gte("10.0"):
 
         def _check_xml(self):
