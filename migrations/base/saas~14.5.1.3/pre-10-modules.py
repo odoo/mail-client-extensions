@@ -7,6 +7,18 @@ def migrate(cr, version):
     util.rename_module(cr, "crm_iap_lead_enrich", "crm_iap_enrich")
     util.rename_module(cr, "crm_iap_lead", "crm_iap_mine")
     util.rename_module(cr, "crm_iap_lead_website", "website_crm_iap_reveal")
+
+    # OCA module wildly used
+    cr.execute(
+        """
+        SELECT 1
+          FROM ir_module_module
+         WHERE name = 'l10n_eu_oss'
+           AND author ILIKE '%Odoo Community Association (OCA)%'
+        """
+    )
+    if cr.rowcount:
+        util.rename_module(cr, "l10n_eu_oss", "l10n_eu_oss_oca")  # nofml
     util.rename_module(cr, "l10n_eu_service", "l10n_eu_oss")
 
     # merges
