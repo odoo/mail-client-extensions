@@ -11,3 +11,4 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.remove_module(cr, "project_timesheet_forecast_contract")
         util.remove_module(cr, "event_sale_dashboard")
+        util.merge_module(cr, "sale_enterprise", "sale")
