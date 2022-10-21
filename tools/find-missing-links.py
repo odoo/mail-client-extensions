@@ -156,6 +156,8 @@ def main():
             # db-specific change, we can ignore this file
             continue
 
+        content_lines = content.splitlines()
+
         tree = ast.parse(content, filename=pyfile)
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
@@ -163,6 +165,7 @@ def main():
                     isinstance(node.func.value, ast.Name)
                     and node.func.value.id == "util"
                     and node.func.attr == "rename_module"
+                    and not content_lines[node.lineno - 1].endswith(b"# nofml")
                 ):
                     if not check_module_rename(version, node.args[1].s, node.args[2].s):
                         rc = 1
@@ -170,6 +173,7 @@ def main():
                     isinstance(node.func.value, ast.Name)
                     and node.func.value.id == "util"
                     and node.func.attr == "merge_module"
+                    and not content_lines[node.lineno - 1].endswith(b"# nofml")
                 ):
                     if not check_module_merge(version, node.args[1].s, node.args[2].s):
                         rc = 1
