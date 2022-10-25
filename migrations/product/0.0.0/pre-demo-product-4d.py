@@ -37,6 +37,7 @@ def migrate(cr, version):
                     product_tmpl_id, default_code, active, combination_indices, weight, can_image_variant_1024_be_zoomed
                     {extra_columns}
                 ) VALUES(%s, 'DESK0004', true, '2,4', 0.01, false {extra_values})
+                ON CONFLICT (product_tmpl_id, combination_indices) WHERE (active IS true) DO UPDATE SET weight = excluded.weight
                 RETURNING id
             )
             INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
@@ -47,3 +48,5 @@ def migrate(cr, version):
         ),
         [util.ref(cr, "product.product_product_4_product_template")],
     )
+
+    util.env(cr).registry.loaded_xmlids.add("product.product_product_4d")
