@@ -55,6 +55,9 @@ def migrate(cr, version):
     # adapt filters
     adapt_filters(cr, 'project.project')
     for tbl, col, _, _ in util.get_fk(cr, 'project_project'):
+        if not util.column_exists(cr, tbl, "id"):
+            # ignore m2m tables
+            continue
         model = util.model_of_table(cr, tbl)
         adapt_filters(cr, model, prefix=col)
 
