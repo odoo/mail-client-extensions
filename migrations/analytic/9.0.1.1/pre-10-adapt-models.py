@@ -2,20 +2,23 @@
 from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
-    cr.execute("""
-        WITH tmplvw AS (
-            SELECT id
-              FROM account_analytic_account
-             WHERE state='template'
-                OR type='view'
-        ),
-        del_lines AS (
-            DELETE FROM account_analytic_line
-                  WHERE account_id IN (SELECT id FROM tmplvw)
-        )
-        DELETE FROM account_analytic_account
-              WHERE id IN (SELECT id FROM tmplvw)
-    """)
+
+    cr.execute(
+        """
+         SELECT id
+           FROM account_analytic_account
+          WHERE state='template'
+             OR type='view'
+        """
+    )
+
+    sz = 10000
+    for aaa in util.chunks((a for a, in cr.fetchall()), sz, fmt=tuple):
+        cr.execute("SELECT id FROM account_analytic_line WHERE account_id IN %s", [aaa])
+        for aal in util.chunks((a for a, in cr.fetchall()), sz, fmt=tuple):
+            util.remove_records(cr, "account.analytic.line", aal)
+
+        util.remove_records(cr, "account.analytic.account", aaa)
 
     models = list(util.splitlines("""
         account.analytic.balance
