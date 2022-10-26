@@ -147,6 +147,7 @@ def migrate(cr, version):
     def get_queries(table, columns, filter_modules, sequential):
         if not columns:
             return []
+        model = util.model_of_table(cr, table) if util.column_exists(cr, table, "id") else None
         query = "UPDATE {} t SET {} WHERE {}\n{}".format(
             table,
             ",\n".join(
@@ -163,10 +164,10 @@ def migrate(cr, version):
                     AND t.id=d.res_id
             )
             """
-            if filter_modules
+            if filter_modules and model
             else "",
         )
-        query = cr.mogrify(query, {"u1id": u1id, "u2id": u2id, "model": util.model_of_table(cr, table)}).decode()
+        query = cr.mogrify(query, {"u1id": u1id, "u2id": u2id, "model": model}).decode()
         if sequential or not util.column_exists(cr, table, "id"):
             return [query]
         return util.explode_query_range(cr, query, table, alias="t")
