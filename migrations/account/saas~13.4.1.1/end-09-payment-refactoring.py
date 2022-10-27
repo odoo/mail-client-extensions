@@ -255,7 +255,8 @@ def migrate(cr, version):
             "linked to any journal entry: %s" % payment_ids,
             "Accounting",
         )
-        util.iter_browse(env["account.payment"], payment_ids).unlink()
+        _logger.info("Removing %s posted payments that are not linked to any journal entry.", len(payment_ids))
+        util.iter_browse(env["account.payment"], payment_ids, strategy="commit").unlink()
 
     # Change the liquidity account of payments that are not yet reconciled with a statement line.
     # This should be done because the payment is no longer impacting directly the bank/cash account like the
