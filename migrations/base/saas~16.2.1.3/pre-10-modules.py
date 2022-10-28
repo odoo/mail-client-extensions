@@ -15,3 +15,9 @@ def migrate(cr, version):
         util.remove_module(cr, "barcodes_mobile")
         util.remove_module(cr, "project_timesheet_synchro")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
+
+    force_installs = set()
+    if util.modules_installed(cr, "l10n_be_hr_payroll"):
+        force_installs |= {"l10n_be_hr_payroll_sd_worx"}
+
+    util.modules_auto_discovery(cr, force_installs=force_installs)
