@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+		<record id="test_fix_views_view_1" model="ir.ui.view">
+			<field name="name">test.fix.views.view.1</field>
+			<field name="model">res.groups</field>
+			<field name="arch" type="xml">
+				<form>
+					<field name="name"/>
+					<field name="comment"/>
+					<field name="users"/>
+				</form>
+			</field>
+		</record>
+		<record id="test_fix_views_view_2" model="ir.ui.view">
+			<field name="name">test.fix.views.view.2</field>
+			<field name="model">res.groups</field>
+			<field name="mode">primary</field>
+			<field name="inherit_id">test_upg.test_fix_views_view_1</field>
+			<field name="arch" type="xml">
+				<xpath expr="//field[@name='comment']" position="replace"><div>Remove field</div></xpath>
+			</field>
+		</record>
+		<record id="test_fix_views_parent" model="ir.ui.view">
+			<field name="name">test.fix.views.parent</field>
+			<field name="model">res.groups</field>
+			<field name="mode">primary</field>
+			<field name="arch" type="xml">
+				<form>
+					<field name="name"/>
+					<field name="comment"/>
+					<field name="users"/>
+				</form>
+			</field>
+		</record>
+	</data>
+</odoo>

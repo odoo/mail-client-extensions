@@ -443,7 +443,11 @@ class IrUiView(models.Model):
 
                     return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
 
-                arch_fs_fullpath = get_resource_path(*view.arch_fs.split("/"))
+                arch_fs_fullpath = (
+                    get_resource_path(*view.arch_fs.split("/"))
+                    if md.module != "test_upg"
+                    else os.path.dirname(os.path.abspath(__file__)) + "/{}".format(view.arch_fs)
+                )
                 if not arch_fs_fullpath:
                     _logger.warning(
                         "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
@@ -471,7 +475,10 @@ class IrUiView(models.Model):
                 info["copy_id"] = view_copy.id
 
                 util.add_to_migration_reports(info, "Overridden views")
-                _logger.warning(
+
+                level = logging.INFO if md.module == "test_upg" else logging.WARNING
+                _logger.log(
+                    level,
                     "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
                     "Resetting its arch and noupdate flag for the migration ...\n",
                     md.module,
@@ -510,7 +517,7 @@ class IrUiView(models.Model):
             for child in children:
                 child.active = False
 
-            md = self.env["ir.model.data"].search([("model", "=", "ir.ui.view"), ("res_id", "=", self.id)], limit=1)
+            md = self.model_data_id
             e = check()
             if e is not None:
                 # Try to fix this view:
@@ -571,6 +578,23 @@ class IrUiView(models.Model):
                 if md and md.noupdate and md.module and self.arch_fs:
                     md.noupdate = False
                     restore_from_file(self, md)
+
+            # If a view is mode="primary" but inherits from a standard view, it may
+            # be that the standard parent (or a farther ancestor) is broken
+            # and needs to be restored. We don't check whether the view or its parent
+            # is standard, as custom cases should already be handled before.
+            if check() is not None and self.mode == "primary":
+                parent = self.inherit_id
+                while parent:
+                    md_parent = parent.model_data_id
+                    if md_parent and md_parent.noupdate and md_parent.module in get_standard_modules(self):
+                        md_parent.noupdate = False
+                        restore_from_file(parent, md_parent)
+                        if check() is None:
+                            break
+                    # If parent was still in updateable or the
+                    # view still fails we continue to the ancestors
+                    parent = parent.inherit_id
 
             # Final check, even if has_error
             return check() is None

@@ -37,7 +37,20 @@ def migrate(cr, version):
                 E.xpath(E.div("Position after"), expr="//field[@name='comment']", position="after"),
             ),
         ),
+        (
+            "test_upg.test_fix_views_child",
+            ts(
+                E.xpath(E.div("Remove field"), expr="//field[@name='users']", position="replace"),
+            ),
+        ),
+        (
+            "test_upg.test_fix_views_view_3",
+            ts(
+                E.xpath(E.div("Remove field"), expr="//field[@name='name']", position="replace"),
+            ),
+        ),
     ]
+
     IrUiView = util.env(cr)["ir.ui.view"]
     for xmlid, arch in data:
         view = IrUiView.browse(util.ref(cr, xmlid))
