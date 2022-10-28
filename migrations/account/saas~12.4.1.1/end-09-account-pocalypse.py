@@ -2281,6 +2281,37 @@ def migrate_invoice_lines(cr):
             ),
         )
 
+    # clean duplicated membership lines that were created when creating invoices/lines for
+    # draft/cancelled/custom invoices, we need to copy the column value that would otherwise
+    # be copied on account/saas~12.4.1.1/end-15-change-fk.py
+    if util.module_installed(cr, "membership"):
+        q = """
+        WITH info AS (
+            SELECT ml1.id AS orig_id,
+                   ml2.id AS dup_id,
+                   ml2.account_invoice_line AS l_id
+              FROM membership_membership_line ml1
+              JOIN invl_aml_mapping m
+                ON ml1.account_invoice_line_mig_s124 = m.invl_id
+              JOIN membership_membership_line ml2
+                ON ml2.account_invoice_line = m.aml_id
+             WHERE ml1.account_invoice_line IS NULL
+               AND ml2.account_invoice_line IS NOT NULL
+               AND {parallel_filter}
+        ), dummy AS (
+            DELETE FROM membership_membership_line dup USING info
+                  WHERE dup.id = info.dup_id
+        ) UPDATE membership_membership_line ml
+             SET account_invoice_line = info.l_id,
+                 account_invoice_line_mig_s124 = NULL
+            FROM info
+           WHERE ml.id = info.orig_id
+        """
+        util.parallel_execute(
+            cr,
+            util.explode_query_range(cr, q, table="membership_membership_line", alias="ml1"),
+        )
+
 
 def update_invoice_partner_display_name(cr):
     cr.execute(
