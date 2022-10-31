@@ -39,7 +39,7 @@ def migrate(cr, version):
         cr.execute("UPDATE res_partner_bank SET active = true WHERE id IN %s AND active IS NOT true", [tuple(actives)])
 
     # Remove the current constraint before recomputing the company id
-    util.remove_constraint(cr, "res_partner_bank", "unique_number")
+    util.remove_constraint(cr, "res_partner_bank", "res_partner_bank_unique_number")
 
     # recompute the `company_id`.
     cr.execute(
