@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: T201
 import subprocess
 import sys
 from pathlib import PurePath
@@ -13,10 +14,6 @@ py2_files = []
 py3_only_patterns = [
     "tools/*.py",
     # tests are only run from version 12. python2 compatibility is not needed.
-    "migrations/testing.py",
-    "migrations/util/jinja_to_qweb.py",
-    "migrations/util/snippets.py",
-    "migrations/util/convert_bootstrap.py",
     "migrations/*/tests/*.py",
     "migrations/*/10.saas~1[45678].*/*.py",  # upgrade from 10 to 11 is done using python3
     "migrations/*/1[123456789].0.*/*.py",
