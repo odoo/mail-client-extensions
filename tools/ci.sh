@@ -13,7 +13,7 @@ MATTDIR="$DATADIR/upgrade_ci/matt"
 mkdir -p "$MATTDIR"
 
 pushd "$MATTDIR" >/dev/null
-for repo in odoo enterprise design-themes; do
+for repo in odoo enterprise design-themes upgrade-util; do
     if test ! -d "$MATTDIR/$repo"; then
         git clone --bare -q "git@github.com:odoo/${repo}.git" "$repo"
         pushd "$MATTDIR/$repo" >/dev/null

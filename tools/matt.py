@@ -93,6 +93,7 @@ REPOSITORIES = [
     Repo("design-themes", Path(".")),
 ]
 UPGRADE_REPO = Repo("upgrade")
+UPGRADE_UTIL_REPO = Repo("upgrade-util")
 
 
 # Version = namedtuple("Version", [r.ident for r in REPOSITORIES])
@@ -258,6 +259,8 @@ def init_repos(options: Namespace) -> bool:
     repos = list(REPOSITORIES)
     if options.upgrade_branch != ".":
         repos.append(UPGRADE_REPO)
+    if options.upgrade_util_branch != ".":
+        repos.append(UPGRADE_UTIL_REPO)
     for repo in repos:
         p = options.cache_path / repo.name
         if not p.exists():
@@ -413,6 +416,9 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         if options.run_tests:
             cmd += ["--http-port", str(free_port())]
 
+        if version in options.upgrade_path:
+            cmd += ["--upgrade-path", options.upgrade_path[version]]
+
         step = "upgrading" if "-u" in cmd else "testing" if "--test-tags" in cmd else "installing"
         logger.debug("%s module %s at version %s", step, module, version)
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, check=False)
@@ -522,6 +528,9 @@ def matt(options: Namespace) -> int:
         if options.upgrade_branch != ".":  # noqa: SIM102
             if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options, stack):
                 return 3
+        if options.upgrade_util_branch != ".":  # noqa: SIM102
+            if not checkout(UPGRADE_UTIL_REPO, options.upgrade_util_branch, workdir, options, stack):
+                return 3
 
         pkgdir = {}
         for loc in ["source", "target"]:
@@ -608,14 +617,57 @@ def matt(options: Namespace) -> int:
         if options.upgrade_branch == ".":
             upgrade_path = Path(__file__).resolve().parent.parent
         else:
-            upgrade_path = workdir / "upgrade" / options.upgrade_branch
+            upgrade_path = workdir / UPGRADE_REPO.name / options.upgrade_branch
+
+        if options.upgrade_util_branch == ".":
+            upgrade_util_path = Path.cwd()
+        else:
+            upgrade_util_path = workdir / UPGRADE_UTIL_REPO.name / options.upgrade_util_branch
+
+        src_dir = upgrade_util_path / "src"
+        mig_dir = upgrade_path / "migrations"
+        embedded_util = (mig_dir / "util" / "__init__.py").exists() or (mig_dir / "util.py").exists()
+
+        # __import__('pudb').set_trace()
         # We need to create the symlink in both versions (source and target) to allow upgrade tests discovery
+        options.upgrade_path = {}
         for loc in ["source", "target"]:
             version = getattr(options, loc)
-            maintenance = workdir / "odoo" / version.odoo / pkgdir[loc] / "addons" / "base" / "maintenance"
-            if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
-                maintenance.unlink()
-            maintenance.symlink_to(upgrade_path)
+
+            support_upgrade_path = subprocess.run(
+                ["git", "grep", "-q", "upgrade-path", "--", "odoo/tools/config.py"],
+                cwd=(workdir / "odoo" / version.odoo),
+                check=False,
+            )
+            if support_upgrade_path.returncode == 0 and not embedded_util:
+                options.upgrade_path[version] = f"{src_dir},{mig_dir}"
+            else:
+                # For old versions, we should do symlinks
+                if loc == "source" and not embedded_util:
+                    for f in src_dir.rglob("*"):
+                        if not f.is_file():
+                            continue
+                        r = f.relative_to(src_dir)
+                        td = mig_dir / r.parent
+                        td.mkdir(parents=True, exist_ok=True)
+                        sl = td / r.name
+                        if sl.is_symlink():
+                            sl.unlink()
+                        if not sl.exists():
+                            sl.symlink_to(f)
+                            if options.upgrade_branch == ".":
+                                # do not polute the local directory.
+                                stack.callback(sl.unlink)
+
+                    # Now that we have done the symlinks, we cannot use `--upgrade-path` for the target version,
+                    # else it we will ends with duplicated upgrade scripts. Consider util has being embedded.
+                    # This is only problematic for saas-12.3 -> 13.0 upgrades.
+                    embedded_util = True
+
+                maintenance = workdir / "odoo" / version.odoo / pkgdir[loc] / "addons" / "base" / "maintenance"
+                if maintenance.is_symlink():  # NOTE: .exists() returns False for broken symlinks
+                    maintenance.unlink()
+                maintenance.symlink_to(upgrade_path)
 
         # We should also search modules in the $pkgdir/addons of the source
         base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
@@ -718,7 +770,16 @@ It allows to test upgrades against development branches.
         "--upgrade-branch",
         type=str,
         default="master",
-        help="Upgrade branch to use. Pull-Requests are via the `pr/` prefix (i.e. `pr/971`). "
+        help="`upgrade` branch to use. Pull-Requests are via the `pr/` prefix (i.e. `pr/971`). "
+        "To use the current working directory (with the local patches), use `.` as upgrade branch. "
+        "(default: %(default)s)",
+    )
+    parser.add_argument(
+        "-u",
+        "--upgrade-util-branch",
+        type=str,
+        default="master",
+        help="`upgrade-util` branch to use. Pull-requests are via the `pr/` prefix (i.e. `pr/971`). "
         "To use the current working directory (with the local patches), use `.` as upgrade branch. "
         "(default: %(default)s)",
     )
