@@ -64,3 +64,25 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *eb("payment.payment_{icon,method}_all"))
     util.rename_xmlid(cr, *eb("payment.payment_{icon,method}_system"))
+
+    # Setting default name for already existing payment methodss without name
+    cr.execute(
+        """
+        UPDATE payment_method
+           SET name = 'Payment Method Name'
+         WHERE name IS NULL
+        """
+    )
+
+    # Removes payment methods that did not have image
+    cr.execute(
+        """
+        DELETE FROM payment_method pm
+        WHERE NOT EXISTS (SELECT *
+                            FROM ir_attachment ia
+                           WHERE pm.id = ia.res_id
+                             AND ia.res_model = 'payment.method'
+                             AND ia.res_field = 'image'
+        )
+        """
+    )
