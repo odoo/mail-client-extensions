@@ -86,3 +86,6 @@ def migrate(cr, version):
         )
         """
     )
+
+    util.remove_field(cr, "payment.provider.onboarding.wizard", "paypal_seller_account")
+    util.remove_field(cr, "payment.provider.onboarding.wizard", "paypal_user_type")
