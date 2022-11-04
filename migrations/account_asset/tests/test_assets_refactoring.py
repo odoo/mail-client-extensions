@@ -18,16 +18,16 @@ class AssetsRevampingCase(UpgradeCase):
                     {
                         "name": "_UPG_ fixed assets",
                         "user_type_id": self.env.ref("account.data_account_type_current_assets").id,
-                        "code": "241000",
+                        "code": "999241000",
                     },
                     {
                         "name": "_UPG_ assets depreciation",
-                        "code": "241009",
+                        "code": "999241009",
                         "user_type_id": self.env.ref("account.data_account_type_expenses").id,
                     },
                     {
                         "name": "_UPG_ assets depreciation expense",
-                        "code": "630200",
+                        "code": "999630200",
                         "user_type_id": self.env.ref("account.data_account_type_current_assets").id,
                     },
                 ]
