@@ -28,13 +28,16 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("{sale_coupon.view_sale,coupon.view}_coupon_program_kanban"))
     util.rename_xmlid(cr, *eb("{sale_coupon.sale_,coupon.}coupon_program_action_coupon_program"))
     util.rename_xmlid(
-        cr, *eb("{sale_coupon.sale_,coupon.}coupon_program_view_promo_program_form"),
+        cr,
+        *eb("{sale_coupon.sale_,coupon.}coupon_program_view_promo_program_form"),
     )
     util.rename_xmlid(
-        cr, *eb("{sale_coupon.sale_,coupon.}coupon_program_view_promo_program_tree"),
+        cr,
+        *eb("{sale_coupon.sale_,coupon.}coupon_program_view_promo_program_tree"),
     )
     util.rename_xmlid(
-        cr, *eb("{sale_coupon.sale_coupon,coupon.coupon}_program_view_promo_program_search"),
+        cr,
+        *eb("{sale_coupon.sale_coupon,coupon.coupon}_program_view_promo_program_search"),
     )
     util.rename_xmlid(cr, *eb("{sale_coupon.sale_,coupon.}coupon_program_action_promo_program"))
     util.rename_xmlid(cr, *eb("{sale_coupon.sale_,coupon.}coupon_view_tree"))
@@ -51,3 +54,20 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "coupon.coupon", "order_id", "coupon", "sale_coupon")
     util.move_field_to_module(cr, "coupon.coupon", "sale_order_id", "coupon", "sale_coupon")
     util.move_field_to_module(cr, "coupon.program", "order_count", "coupon", "sale_coupon")
+
+    # separate 'coupon' module is created from 'sale_coupon' module so need to change the name of
+    # relational table of 'dicsount_specific_product_ids' m2m  field and also need to change
+    # the column name
+    cr.execute(
+        """
+        ALTER TABLE product_product_sale_coupon_reward_rel
+        RENAME TO coupon_reward_product_product_rel
+        """
+    )
+
+    cr.execute(
+        """
+        ALTER TABLE coupon_reward_product_product_rel
+        RENAME COLUMN sale_coupon_reward_id TO coupon_reward_id
+        """
+    )
