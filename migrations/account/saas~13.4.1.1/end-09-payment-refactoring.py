@@ -337,8 +337,9 @@ def migrate(cr, version):
         # ===== Draft/cancelled account.payment =====
         env["account.payment"].flush()
         created_move_ids = set()
-
-        cr.execute(
+        chunk_size = 48
+        ncr = util.named_cursor(cr)
+        ncr.execute(
             """
             SELECT
                 pay_backup.journal_id,
@@ -353,15 +354,8 @@ def migrate(cr, version):
             AND pay.move_id IS NULL
             """
         )
-        _logger.info("Creating %d moves for draft/cancelled payments", cr.rowcount)
-
-        chunk_size = 48
-        size = (cr.rowcount + chunk_size - 1) / chunk_size
-        for data in util.log_progress(
-            util.chunks(cr.dictfetchall(), size=48, fmt=list),
-            _logger,
-            qualifier=f"account.move {chunk_size}-bucket",
-            size=size,
+        for data in util.log_chunks(
+            ncr.iterdict(), _logger, chunk_size=chunk_size, qualifier=f"account.move {chunk_size}-bucket"
         ):
             moves = env["account.move"].with_context(**ctx).create(data)
 
@@ -427,6 +421,7 @@ def migrate(cr, version):
             env["base"].with_context(**ctx).flush()
             env.cr.commit()
 
+        ncr.close()
         # ===== Synchronize account.payment <=> account.move =====
 
         util.parallel_execute(
