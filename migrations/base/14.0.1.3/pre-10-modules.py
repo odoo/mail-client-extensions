@@ -41,6 +41,9 @@ def migrate(cr, version):
     # https://github.com/odoo/odoo/pull/70302
     util.new_module(cr, "l10n_es_edi_sii", deps={"l10n_es", "account_edi_extended"})
 
+    # https://github.com/odoo/odoo/pull/104891
+    util.new_module(cr, "sale_mrp_margin", deps={"sale_mrp", "sale_stock_margin"}, auto_install=True)
+
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
 
