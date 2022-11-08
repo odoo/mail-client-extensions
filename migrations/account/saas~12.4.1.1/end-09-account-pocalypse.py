@@ -1591,16 +1591,24 @@ def migrate_invoice_lines(cr):
         )
         [property_fields_ids] = cr.fetchone()
         cr.execute(
-            """
-               DELETE FROM ir_property p
-                USING account_account a
-                WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
-                  AND p.fields_id IN %s
-                  AND p.res_id IS NOT NULL
-                  AND replace(p.res_id, 'res.partner,', '')::integer IN %s
-                  AND p.company_id != a.company_id
-                  AND p.company_id IS NOT NULL
-            RETURNING replace(p.res_id, 'res.partner,', '')
+            r"""
+            WITH replaced_ir_property AS (
+                SELECT id,
+                       replace(value_reference, 'account.account,', '')::integer AS value_reference,
+                       replace(res_id, 'res.partner,', '')::integer AS res_id
+                  FROM ir_property
+                 WHERE value_reference ~ '^account\.account,(\d+)$'
+                   AND res_id ~ '^res\.partner,(\d+)$'
+                   AND fields_id IN %s
+            )
+                   DELETE FROM ir_property p
+                    USING account_account a,
+                          replaced_ir_property r
+                    WHERE a.id = r.value_reference
+                      AND r.id = p.id
+                      AND r.res_id IN %s
+                      AND p.company_id != a.company_id
+                RETURNING r.res_id
             """,
             [tuple(property_fields_ids), tuple(inv["partner_id"] for inv in invoices.values())],
         )
@@ -1630,16 +1638,23 @@ def migrate_invoice_lines(cr):
         )
         [property_fields_ids] = cr.fetchone()
         cr.execute(
-            """
-               DELETE FROM ir_property p
-                USING account_account a, ir_model_fields f
-                WHERE a.id = replace(p.value_reference, 'account.account,', '')::integer
-                  AND p.fields_id IN %s
-                  AND p.res_id IS NOT NULL
-                  AND p.value_reference LIKE 'account.account,%%'
-                  AND p.company_id != a.company_id
-                  AND p.company_id IS NOT NULL
-            RETURNING replace(p.res_id, 'product.template,', '')
+            r"""
+            WITH replaced_ir_property AS (
+                SELECT id,
+                       replace(value_reference, 'account.account,', '')::integer AS value_reference,
+                       replace(res_id, 'product.template,', '')::integer AS res_id
+                  FROM ir_property
+                 WHERE value_reference ~ '^account\.account,(\d+)$'
+                   AND res_id ~ '^product\.template,(\d+)$'
+                   AND fields_id IN %s
+            )
+                   DELETE FROM ir_property p
+                    USING account_account a,
+                          replaced_ir_property r
+                    WHERE a.id = r.value_reference
+                      AND r.id = p.id
+                      AND p.company_id != a.company_id
+                RETURNING r.res_id
             """,
             [tuple(property_fields_ids)],
         )
