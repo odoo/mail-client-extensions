@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo.tools import image
 
 from odoo.addons.base.maintenance.migrations import util
+
+_logger = logging.getLogger(__name__)
 
 
 def rename_mixin_fields(cr, model, skip_inherit=()):
@@ -41,7 +45,14 @@ def single_image(cr, model):
 
 def migrate(cr, version):
     util.ENVIRON["s125_image_mixin_recompute"] = {"all": [], "512": []}
-    cr.execute("REINDEX TABLE res_partner")
+    tables = set()
+    for tbl, _, _, _ in util.get_fk(cr, "ir_attachment"):
+        cr.execute(f"SELECT count(*) > %s FROM {tbl}", [util.BIG_TABLE_THRESHOLD // 10])
+        if cr.fetchone()[0]:
+            tables.add(tbl)
+    if tables:
+        _logger.info("Reindexing %s tables", len(tables))
+        util.parallel_execute(cr, ["REINDEX TABLE {}".format(t) for t in tables])
     new_inherit_mixin(cr, "res.partner")
     new_inherit_mixin(cr, "res.users")  # due to inheritS
 
