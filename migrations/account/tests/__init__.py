@@ -9,6 +9,7 @@ from . import (
     test_15_5_optional_bank_statements,
     test_15_5_reportalypse,
     test_16_2_payment_term,
+    test_16_4_onboarding,
     test_account,
     test_account_group,
     test_account_pocalypse,
