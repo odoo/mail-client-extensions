@@ -34,3 +34,5 @@ def migrate(cr, version):
     for model, ren in renames.items():
         for f, t in ren.items():
             util.rename_field(cr, model, f, t)
+    util.remove_field(cr, "res.company", "prevent_old_timesheets_encoding")
+    util.remove_field(cr, "res.config.settings", "prevent_old_timesheets_encoding")
