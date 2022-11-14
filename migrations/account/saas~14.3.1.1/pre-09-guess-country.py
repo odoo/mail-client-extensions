@@ -244,7 +244,7 @@ def get_name_country_ids(cr, company_id):
         """
           SELECT res_country.id, res_country.name
             FROM res_country,res_company
-           WHERE res_company.name ~* ANY(ARRAY[res_country.name])
+           WHERE POSITION(LOWER(res_country.name) IN LOWER(res_company.name)) != 0
              AND res_company.id=%s
         ORDER BY LENGTH(res_country.name) DESC;
         """,
