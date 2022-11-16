@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from psycopg2.extras import execute_values
+from psycopg2.extras import Json, execute_values
 
 from odoo.upgrade import util
 
@@ -192,9 +192,9 @@ def _migrate_pos_gift_card(cr):
                 active, company_id, currency_id, sequence,
                 portal_visible, portal_point_name, limit_usage
             )
-            SELECT 'Gift Cards', 'gift_card', 'future', 'auto',
+            SELECT '{{"en_US": "Gift Cards"}}'::jsonb{0}, 'gift_card', 'future', 'auto',
                    TRUE, config.company_id, company.currency_id, 100,
-                   FALSE, currency.symbol, FALSE
+                   FALSE, jsonb_build_object('en_US', currency.symbol){0}, FALSE
               FROM pos_config config
               JOIN res_company company
                 ON company.id = config.company_id
@@ -202,7 +202,9 @@ def _migrate_pos_gift_card(cr):
                 ON currency.id = company.currency_id
              WHERE config.id in %s
          RETURNING id, company_id
-            """,
+            """.format(
+                "" if util.version_gte("16.0") else "->>'en_US'"
+            ),
             (invalid_config_ids,),
         )
         gift_card_programs = cr.dictfetchall()
@@ -258,7 +260,7 @@ def _migrate_pos_gift_card(cr):
                 True,
                 program["id"],
                 program["company_id"],
-                "Pay With Gift Card",
+                Json({"en_US": "Pay With Gift Card"}) if util.version_gte("16.0") else "Pay With Gift Card",
                 gift_card_payment_product,
                 False,
             )
