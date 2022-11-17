@@ -1,7 +1,23 @@
 # -*- coding: utf-8 -*-
 import re
+import sys
+import uuid
+from pathlib import Path
 
 import odoo.upgrade.util.snippets as snip
+from odoo.upgrade import util
+
+
+def convert_device(el):
+    el_class_attr = el.get("class", False)
+    classes = re.split(r"\s+", el_class_attr)
+    if any(class_name.startswith("d-md-") for class_name in classes):
+        el.set("class", f"{el_class_attr} o_snippet_mobile_invisible")
+        el.set("data-invisible", "1")
+        return True
+
+    return False
+
 
 ANIMATE_OLD_TO_NEW_CLASSES = {
     "o_anim_bounce_in_down": ("o_anim_bounce_in", "o_anim_from_top"),
@@ -43,8 +59,26 @@ def convert_animate(el):
 
 
 def migrate(cr, version):
+
+    f = Path(__file__)
+    f.relative_to(f.parent.parent.parent)
+
+    # NOTE
+    # `ProcessPoolExecutor.map` arguments needs to be pickleable
+    # Functions can only be pickle if they are importable.
+    # However, the current file is not importable due to the dash in the filename.
+    # We should then put the executed function in its own importable file.
+    name = f"_upgrade_{uuid.uuid4().hex}"
+    mod = sys.modules[name] = util.import_script(str(f), name=name)
+
     snip.convert_html_content(
         cr,
-        snip.html_selector_converter(convert_animate, selector="//*[hasclass('o_animate')]"),
+        snip.html_selector_converter(mod.convert_device, selector="//*[hasclass('d-none')]"),
+        where_column=r"~ '\yd-md-'",
+    )
+
+    snip.convert_html_content(
+        cr,
+        snip.html_selector_converter(mod.convert_animate, selector="//*[hasclass('o_animate')]"),
         where_column=r"~ '\yo_animate\y'",
     )

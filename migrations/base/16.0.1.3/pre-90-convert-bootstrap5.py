@@ -6,7 +6,7 @@ from odoo import modules
 
 from odoo.upgrade import util
 from odoo.upgrade.util import snippets
-from odoo.upgrade.util.convert_bootstrap import BootstrapConverter, convert_arch, convert_tree
+from odoo.upgrade.util.convert_bootstrap import BootstrapConverter, BootstrapHTMLConverter, convert_tree
 
 _logger = logging.getLogger(__name__)
 
@@ -32,27 +32,27 @@ def convert_views_bootstrap(cr, src_version, dst_version, views_ids):
     cr.execute("UPDATE ir_ui_view SET arch_updated = True WHERE id IN %s", [tuple(views_ids)])
 
 
-def bootstrap_html_converter(src_version, dst_version):
-    """
-    Creates a function that converts HTML Bootstrap code from ``src_version`` to ``dst_version``.
+# def bootstrap_html_converter(src_version, dst_version):
+#     """
+#     Creates a function that converts HTML Bootstrap code from ``src_version`` to ``dst_version``.
 
-    The returned function accepts a single argument, the html content to convert,
-    and returns a tuple of (has_changed, converted_html), suitable for usage with
-    ``util.snippets.convert_html_content``.
+#     The returned function accepts a single argument, the html content to convert,
+#     and returns a tuple of (has_changed, converted_html), suitable for usage with
+#     ``util.snippets.convert_html_content``.
 
-    :param str src_version: the Bootstrap version to convert from.
-    :param str dst_version: the Bootstrap version to convert to.
-    :rtype: callable[[str], tuple[bool, str]]
-    """
+#     :param str src_version: the Bootstrap version to convert from.
+#     :param str dst_version: the Bootstrap version to convert to.
+#     :rtype: callable[[str], tuple[bool, str]]
+#     """
 
-    @lru_cache(maxsize=128)  # does avg 20~30% hits
-    def convert(content):
-        if not content:
-            return False, content
-        converted_content = convert_arch(content, src_version, dst_version, is_html=True, is_qweb=True)
-        return content != converted_content, converted_content
+#     @lru_cache(maxsize=128)  # does avg 20~30% hits
+#     def convert(content):
+#         if not content:
+#             return False, content
+#         converted_content = convert_arch(content, src_version, dst_version, is_html=True, is_qweb=True)
+#         return content != converted_content, converted_content
 
-    return convert
+#     return convert
 
 
 def convert_website_views(cr):
@@ -130,24 +130,26 @@ def get_bs5_where_clause(cr, column):
 
 def convert_html_fields(cr):
     _logger.info("Converting html fields data Bootstrap code from 4.0 to 5.0")
-    converter_fn = bootstrap_html_converter("4.0", "5.0")
+    # converter_fn = bootstrap_html_converter("4.0", "5.0")
+    converter_fn = BootstrapHTMLConverter("4.0", "5.0")
 
-    html_fields = list(snippets.get_html_fields(cr))
-    for table, column in util.log_progress(html_fields, _logger, "columns", log_hundred_percent=True):
-        extra_where = "AND " + get_bs5_where_clause(cr, column)
-        snippets.convert_html_column(cr, table, column, converter_fn, extra_where=extra_where)
+    html_fields = list(snippets.html_fields(cr))
+    for table, columns in util.log_progress(html_fields, _logger, "tables", log_hundred_percent=True):
+        if table not in ("mail_message", "mail_activity"):
+            extra_where = " OR ".join(f"({get_bs5_where_clause(cr, column)})" for column in columns)
+            snippets.convert_html_columns(cr, table, columns, converter_fn, extra_where=extra_where)
 
-    convert_cache_info = converter_fn.cache_info()
-    processed_count = convert_cache_info.hits + convert_cache_info.misses
-    if processed_count:
-        _logger.info(
-            f"Processed {processed_count} html fields values"
-            f" ({convert_cache_info.hits / processed_count:.2%} cache hits)"
-        )
-    else:
-        _logger.info("No html fields values to process found")
+    # convert_cache_info = converter_fn.cache_info()
+    # processed_count = convert_cache_info.hits + convert_cache_info.misses
+    # if processed_count:
+    #     _logger.info(
+    #         f"Processed {processed_count} html fields values"
+    #         f" ({convert_cache_info.hits / processed_count:.2%} cache hits)"
+    #     )
+    # else:
+    #     _logger.info("No html fields values to process found")
 
-    converter_fn.cache_clear()
+    # converter_fn.cache_clear()
 
 
 def migrate(cr, version):
