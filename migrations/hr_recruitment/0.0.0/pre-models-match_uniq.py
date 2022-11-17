@@ -1,6 +1,10 @@
 from odoo import models
 
-from odoo.addons.hr_recruitment.models import hr_recruitment  # noqa
+try:
+    from odoo.addons.hr_recruitment.models import hr_applicant_category  # noqa
+except ImportError:
+    # < saas~16.1
+    from odoo.addons.hr_recruitment.models import hr_recruitment  # noqa
 
 
 def migrate(cr, version):
