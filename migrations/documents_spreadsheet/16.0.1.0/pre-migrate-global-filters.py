@@ -5,10 +5,10 @@ import json
 
 def migrate(cr, version):
     cr.execute(
-        """
+        r"""
         SELECT id, commands
           FROM spreadsheet_revision
-         WHERE commands LIKE '%_GLOBAL_FILTER%'
+         WHERE commands LIKE '%\_GLOBAL\_FILTER%'
         """
     )
 
@@ -20,6 +20,9 @@ def migrate(cr, version):
 
         changed = False
         for command in commands:
+            if "_GLOBAL_FILTER" not in command["type"] or "filter" not in command:
+                continue
+
             if command["filter"]["type"] == "date" and "year" in command["filter"]["defaultValue"]:
                 default = command["filter"]["defaultValue"]
                 if default["year"] == "this_year":
