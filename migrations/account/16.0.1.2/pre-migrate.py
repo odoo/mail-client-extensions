@@ -62,21 +62,33 @@ def migrate(cr, version):
     #     - Removing every other special characters.
     #     - Making sure we don't have multiple dots at once. (Using [.]+ as using {2,} wouldn't work with format.
     #     - Finally removing trailing dots that could have been there by result of the transformation.
+
+    # Catch possible duplicates before the replacement and update them to avoid constraint errors.
     unaccent = get_unaccent_wrapper(cr)
     cr.execute(
-        r"""
-        UPDATE account_account
-           SET code = BTRIM(
-               REGEXP_REPLACE(
-                   REGEXP_REPLACE(
-                       REGEXP_REPLACE({code}, '[,|; \-_/\~٬]', '.', 'g'),
-                       '[^A-Za-z0-9.]', '', 'g'),
-                   '[.]+', '.', 'g'),
-               '.')
-         WHERE code !~ '^[A-Za-z0-9.]+$'
-         RETURNING name, code;
-    """.format(
-            code=unaccent("code"),
+        r"""WITH replacement AS (
+                SELECT array_agg(id) ids,
+                       BTRIM(
+                        REGEXP_REPLACE(
+                            REGEXP_REPLACE(
+                                REGEXP_REPLACE({code}, '[,|; \-_/\~٬]', '.', 'g'),
+                                '[^A-Za-z0-9.]', '', 'g'),
+                            '[.]+', '.', 'g'),
+                        '.') as new_code
+                  FROM account_account
+                 GROUP BY company_id, new_code
+            )
+               UPDATE account_account
+                  SET code = r.new_code ||
+                             CASE
+                                WHEN array_position(r.ids, id) > 1 THEN '.dup' || array_position(r.ids, id) - 1
+                                ELSE ''
+                             END
+                 FROM replacement r
+                WHERE id = ANY(r.ids)
+            RETURNING name, code
+         """.format(
+            code=unaccent("code")
         )
     )
 
@@ -85,6 +97,7 @@ def migrate(cr, version):
         <details>
         <summary>
             The following accounts were using invalid account codes which were modified during the migration.
+            If there were duplicated codes after cleanup they will have `.dupN` suffix.
             Please review the changes and correct them if needed.
             The account codes should now only contain alphanumeric characters and dots.
         </summary>
