@@ -31,6 +31,7 @@ def migrate(cr, version):
                 ON ad.model = 'ir.actions.server'
                AND ad.res_id = c.ir_actions_server_id
              WHERE ad.id IS NULL
+       ON CONFLICT DO NOTHING
             """,
         )
 
