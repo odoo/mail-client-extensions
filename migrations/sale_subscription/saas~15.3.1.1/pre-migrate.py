@@ -245,8 +245,8 @@ def migrate(cr, version):
     select_add = ""
     # Add the necessary columns and necessary values
     if util.module_installed(cr, "sale_stock"):
-        env = util.env(cr)
-        default_warehouse_id = env["stock.warehouse"].search([], limit=1).id
+        cr.execute("SELECT id FROM stock_warehouse WHERE active ORDER BY sequence, id LIMIT 1")
+        default_warehouse_id = cr.fetchone()[0]  # let it fail if None
         # subscription is only usable for service product
         insert_add += ",picking_policy,warehouse_id"
         select_add += f",'direct',{default_warehouse_id}"
