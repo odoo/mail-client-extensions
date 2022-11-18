@@ -691,6 +691,7 @@ def migrate(cr, version):
     cr.execute("create index sale_order_origin_order_id_idx on sale_order using btree(origin_order_id)")
     # cr.execute("create index sale_order_upsell_order_id_idx on sale_order using btree(upsell_order_id)")
     cr.execute("create index sale_order_line_parent_line_id_idx on sale_order_line using btree(parent_line_id)")
+    util.remove_model(cr, "sale.subscription.template", drop_table=False)
 
 
 def _handle_recurring_renting_products(cr):

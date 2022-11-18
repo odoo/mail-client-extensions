@@ -17,8 +17,7 @@ def migrate(cr, version):
             """
         )
 
-    util.remove_model(cr, "sale.subscription.template")
-
+    cr.execute("DROP TABLE sale_subscription_template")
     util.remove_column(cr, "sale_order_line", "old_subscription_line_id")
     util.remove_column(cr, "sale_order_line", "old_subscription_id")
     util.remove_column(cr, "sale_order_template", "old_template_id")
