@@ -92,9 +92,21 @@ class TestSpreadsheetGlobalFilters(UpgradeCase):
             },
         }
 
+        remove_command = {
+            "type": "REMOVE_GLOBAL_FILTER",
+            "id": "27",
+        }
+
         revision_commands = {
             "type": "REMOTE_REVISION",
-            "commands": [relation_command, text_command, year_command, quarter_command, month_command],
+            "commands": [
+                relation_command,
+                text_command,
+                year_command,
+                quarter_command,
+                month_command,
+                remove_command,
+            ],
         }
 
         revisions_insert = self.env["spreadsheet.revision"].create(
@@ -115,11 +127,16 @@ class TestSpreadsheetGlobalFilters(UpgradeCase):
             return
         revision = self.env["spreadsheet.revision"].browse(revision_id)
 
+        def _get_filter(command):
+            if command["type"] == "REMOVE_GLOBAL_FILTER" or "_GLOBAL_FILTER" not in command["type"]:
+                return None
+            return command.get("filter", {})
+
         def _get_filter_default(command):
-            return command.get("filter", {}).get("defaultValue", None)
+            return _get_filter(command).get("defaultValue", None)
 
         commands = json.loads(revision.commands)["commands"]
-        self.assertEqual(len(commands), 5, "There should be 5 commands in the revision")
+        self.assertEqual(len(commands), 6, "There should be 6 commands in the revision")
 
         self.assertEqual(
             _get_filter_default(commands[0]),
@@ -131,7 +148,10 @@ class TestSpreadsheetGlobalFilters(UpgradeCase):
             "tabouret",
         )
 
-        self.assertEqual(_get_filter_default(commands[2]), {"yearOffset": -1})
+        self.assertEqual(
+            _get_filter_default(commands[2]),
+            {"yearOffset": -1},
+        )
 
         self.assertEqual(
             _get_filter_default(commands[3]),
@@ -141,4 +161,9 @@ class TestSpreadsheetGlobalFilters(UpgradeCase):
         self.assertEqual(
             _get_filter_default(commands[4]),
             {"yearOffset": -2, "period": "may"},
+        )
+
+        self.assertEqual(
+            _get_filter(commands[5]),
+            None,
         )
