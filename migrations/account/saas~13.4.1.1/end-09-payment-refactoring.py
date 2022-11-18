@@ -639,6 +639,26 @@ def migrate(cr, version):
         ids = [row[0] for row in cr.fetchall()]
         util.iter_browse(env["account.move"].with_context(**ctx), ids, chunk_size=1024).action_post()
 
+        if ids:
+            cr.execute("SELECT move.id, move.name FROM account_move move WHERE move.id in %s", [tuple(ids)])
+            posted_moves = [(row[0], row[1]) for row in cr.fetchall()]
+            move_links = "".join(
+                "<li>{}</li>".format(util.get_anchor_link_to_record("account.move", move_id, move_name))
+                for move_id, move_name in posted_moves
+            )
+            msg = (
+                "<details>"
+                "<summary>"
+                "Reconciling with journal items from journal entries in a draft state is no longer allowed. To ensure your "
+                "database remains consistent, the following journal entries have been posted. If you wish to prevent this from "
+                "happening, you will need to either ensure the affected entries are posted before the upgrade, or unreconcile "
+                "their journal items."
+                "</summary>"
+                f"<ul>{move_links}</ul>"
+                "</details>"
+            )
+            util.add_to_migration_reports(msg, "Accounting", format="html")
+
     # ===== Don't alter accounting data prior to the lock date =====
 
     if created_move_ids:
