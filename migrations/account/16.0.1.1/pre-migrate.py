@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 import re
 
 from odoo.osv.expression import normalize_leaf
 from odoo.tools import flatten
 
 from odoo.upgrade import util
+
+_logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
@@ -116,7 +119,13 @@ def migrate(cr, version):
             return internal_type_adapter(
                 (re.sub(r"\buser_type_id\.type\b", "account_type", left), operator, right), is_or, negated
             )
-        right = [types_mapping[t] for t in right] if isinstance(right, (tuple, list)) else types_mapping[right]
+        if not (set(right if isinstance(right, (tuple, list)) else [right]) <= types_mapping.keys()):
+            _logger.warning("Invalid domain leaf: %s", leaf)
+        right = (
+            [types_mapping.get(t, t) for t in right]
+            if isinstance(right, (tuple, list))
+            else types_mapping.get(right, right)
+        )
         return [(left, operator, right)]
 
     def account_account_adapter(leaf, is_or, negated):
