@@ -7,6 +7,25 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.report.manager", "financial_report_id")
 
+    # Remove generated menus and actions
+    # https://github.com/odoo/enterprise/blob/43a04342b9cdb2c2950d6bf512fa108d995a07cd/account_reports/models/account_financial_report.py#L847
+    cr.execute(
+        """
+        WITH info AS (
+        SELECT generated_menu_id menu_id,
+               REPLACE(action, 'ir.actions.client,', '')::int action_id
+          FROM account_financial_html_report r
+          JOIN ir_ui_menu m
+            ON r.generated_menu_id = m.id
+         WHERE m.action LIKE 'ir.actions.client,%'
+        )
+        UPDATE ir_model_data d
+           SET noupdate=False
+          FROM info
+         WHERE (d.model, d.res_id) IN (('ir.ui.menu', info.menu_id), ('ir.actions.client', info.action_id))
+        """
+    )
+
     for model in (
         "account.financial.html.report.line",
         "account.financial.html.report",
