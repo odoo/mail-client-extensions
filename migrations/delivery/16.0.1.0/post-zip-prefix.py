@@ -92,10 +92,10 @@ def migrate(cr, version):
     carrier_to_prefixes = defaultdict(list)
     for carrier_id, name, orig_zip_from, orig_zip_to in cr.fetchall():
 
-        def add_failure(name, reason):
+        def add_failure(name, reason, orig_zip_from=orig_zip_from, orig_zip_to=orig_zip_to):
             failed_conversions.append((name, orig_zip_from, orig_zip_to, reason))
 
-        zip_from, zip_to = orig_zip_from.strip(), orig_zip_to.strip()
+        zip_from, zip_to = (orig_zip_from or "").strip(), (orig_zip_to or "").strip()
         if not zip_from or not zip_to:
             reason = "Missing zip from or to value."
             add_failure(name, reason)
