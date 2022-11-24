@@ -301,3 +301,27 @@ def migrate(cr, version):
     util.create_column(cr, "res_partner_bank", "has_money_transfer_warning", "boolean")
 
     util.rename_field(cr, "account.tax", "description", "invoice_label")
+
+    # De-duplicate the name so that the constraint UNIQUE UNDEX account_move_unique_name can
+    # be added by the ORM
+    query = """
+        WITH to_update AS (
+            SELECT move.id,
+                   move.name,
+                   row_number() OVER(ordered_move) AS row_seq
+              FROM account_move move
+              JOIN account_journal journal
+                ON move.journal_id = journal.id
+             WHERE move.state = 'posted'
+               AND move.name != '/'
+               AND {parallel_filter}
+            WINDOW ordered_move AS (PARTITION BY move.name, move.journal_id
+                                        ORDER BY move.name, move.journal_id, move.date)
+        )
+        UPDATE account_move
+           SET name = to_update.name || ' (' || (row_seq-1)::text || ')'
+          FROM to_update
+         WHERE account_move.id = to_update.id
+           AND row_seq > 1
+    """
+    util.explode_execute(cr, query, table="account_journal", alias="journal", bucket_size=1)
