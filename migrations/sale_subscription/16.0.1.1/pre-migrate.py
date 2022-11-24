@@ -42,7 +42,7 @@ def migrate(cr, version):
         query = cr.mogrify(query, [invoiced_cron_tag]).decode()
         util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_order", alias="so"))
 
-    util.remove_field(cr, "sale.order", "account_tag_ids")
+    util.remove_field(cr, "sale.order", "account_tag_ids", drop_column=False)
     util.remove_field(cr, "sale.order.alert", "tag_id")
     cr.execute("DELETE FROM sale_order_alert WHERE action = 'set_tag'")
-    util.remove_field(cr, "sale.order.template", "tag_ids")
+    util.remove_field(cr, "sale.order.template", "tag_ids", drop_column=False)
