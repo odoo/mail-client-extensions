@@ -1,0 +1,8 @@
+# -*- coding: utf-8 -*-
+
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.adapt_domains(cr, "product.pricelist.item", "active", "pricelist_id.active")
+    util.remove_field(cr, "product.pricelist.item", "active")
