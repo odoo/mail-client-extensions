@@ -3,7 +3,6 @@ import collections
 import logging
 
 from odoo.modules.db import has_trigram, has_unaccent
-from odoo.tools.sql import convert_column_translatable
 from odoo.tools.translate import _get_translation_upgrade_queries
 
 from odoo.upgrade import util
@@ -37,25 +36,7 @@ def migrate_custom_fields(cr, done, skip_models):
             if util.on_CI():
                 _logger.error("Attempting to modify translations for the standard field %s.%s", model_name, field)
                 continue
-            cr.execute(
-                f"""
-                ALTER TABLE "{table}" RENAME COLUMN "{field}" TO "{field}_upg";
-                ALTER TABLE "{table}" ADD COLUMN "{field}" jsonb
-                """
-            )
-            util.parallel_execute(
-                cr,
-                util.explode_query_range(
-                    cr,
-                    f"""
-                    UPDATE "{table}"
-                       SET "{field}" = jsonb_build_object('en_US', "{field}_upg")
-                     WHERE "{field}" IS NOT NULL
-                    """,
-                    table=table,
-                ),
-            )
-            cr.execute(f'ALTER TABLE "{table}" DROP COLUMN "{field}_upg" CASCADE')
+            util.convert_field_to_translatable(cr, model_name, field)
 
     msg = """
     <details>
@@ -127,7 +108,7 @@ def migrate(cr, version):
                 if field.store and field.translate:
                     done.append((Model._name, field.name))
                     if field.manual:
-                        convert_column_translatable(cr, Model._table, field.name, "jsonb")
+                        util.convert_field_to_translatable(cr, Model._name, field)
                     migrate, cleanup = _get_translation_upgrade_queries(cr, field)
                     # don't parallelize data migration queries from different
                     # fields, as it may cause serialization errors
