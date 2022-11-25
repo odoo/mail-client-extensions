@@ -29,7 +29,7 @@ def migrate(cr, version):
                 cr, f"payment.payment_acquirer_{provider}", f"payment_{provider}.payment_provider_{provider}"
             )
         else:
-            util.remove_record(cr, f"payment.payment_acquirer_{provider}")
+            util.delete_unused(cr, f"payment.payment_acquirer_{provider}")
 
     util.rename_model(cr, "payment.acquirer", "payment.provider")
     util.rename_model(cr, "payment.acquirer.onboarding.wizard", "payment.provider.onboarding.wizard")
