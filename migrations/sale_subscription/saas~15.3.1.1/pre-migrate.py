@@ -218,7 +218,7 @@ def migrate(cr, version):
                                 kpi_3months_mrr_percentage,percentage_satisfaction,health,stage_category,to_renew,recurring_live,
                                 state,is_subscription,currency_id,create_date,create_uid,write_date,write_uid,recurrence_id,
                                 start_date,next_invoice_date %s)
-             SELECT ss.id,'mig '||ss.name||'-'||ss.id,ss.campaign_id,ss.source_id,ss.medium_id,ss.code,
+             SELECT ss.id, ss.name||'-'||ss.id,ss.campaign_id,ss.source_id,ss.medium_id,ss.code,
                     ss.rating_last_value,ss.message_main_attachment_id,ss.stage_id,ss.analytic_account_id,
                     ss.company_id,COALESCE(ss.partner_id, 2),COALESCE(ss.partner_invoice_id, ss.partner_id, 2),
                     COALESCE(ss.partner_shipping_id, ss.partner_id, 2),ss.recurring_monthly,
