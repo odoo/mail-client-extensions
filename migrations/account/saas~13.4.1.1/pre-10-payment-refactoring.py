@@ -453,7 +453,6 @@ def migrate(cr, version):
                 commercial_partner_id = st_line_backup.partner_id,
                 partner_bank_id = st_line_backup.bank_account_id,
                 journal_id = st_line_backup.journal_id,
-                ref = st_line_backup.ref,
                 narration = st_line_backup.note,
                 company_id = st_line_backup.company_id
             FROM account_bank_statement_line_pre_backup st_line_backup
