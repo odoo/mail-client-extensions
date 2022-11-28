@@ -57,3 +57,4 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "sale.order.line", "product_type", "sale_stock", "sale")
 
     util.remove_field(cr, "res.config.settings", "confirmation_mail_template_id")
+    util.remove_menus(cr, [util.ref(cr, "sale.menu_report_product_all")])
