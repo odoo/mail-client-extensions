@@ -108,7 +108,7 @@ def migrate(cr, version):
                 if field.store and field.translate:
                     done.append((Model._name, field.name))
                     if field.manual:
-                        util.convert_field_to_translatable(cr, Model._name, field)
+                        util.convert_field_to_translatable(cr, Model._name, field.name)
                     migrate, cleanup = _get_translation_upgrade_queries(cr, field)
                     # don't parallelize data migration queries from different
                     # fields, as it may cause serialization errors
