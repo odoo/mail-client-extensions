@@ -30,25 +30,34 @@ class GroupedAssetsCase(UpgradeCase):
             "account_depreciation_id": account_depreciation.id,
             "account_depreciation_expense_id": account_depreciation_expense.id,
         }
-
         categories = self.env["account.asset.category"].create(
             [
                 {**category_common_vals, "name": "Computers", "group_entries": True},
                 {**category_common_vals, "name": "Cars", "group_entries": True},
                 {**category_common_vals, "name": "Misc", "group_entries": False, "open_asset": True},
+                {
+                    **category_common_vals,
+                    "name": "Misc_1",
+                    "group_entries": False,
+                    "open_asset": False,
+                    "method_period": 1,
+                },
             ]
         )
-        category_1, category_2, category_3 = categories
-
+        category_1, category_2, category_3, category_4 = categories
         assets = self.env["account.asset.asset"].create(
             [
                 {"name": "Laptop 1", "category_id": category_1.id, "value": 1000.33, "salvage_value": 100},
+                {"name": "Rounding check 1", "category_id": category_4.id, "value": 26482.86, "method_number": 75},
+                {"name": "Rounding check 2", "category_id": category_4.id, "value": 424944.95, "method_number": 75},
+                {"name": "Rounding check 3", "category_id": category_4.id, "value": 6825, "method_number": 60},
                 {"name": "Laptop 2", "category_id": category_1.id, "value": 800.34, "salvage_value": 50},
                 {"name": "Laptop 3", "category_id": category_1.id, "value": 500.67, "salvage_value": 20},
                 {"name": "Car 1", "category_id": category_2.id, "value": 16543.97, "salvage_value": 980},
                 {"name": "Car 2", "category_id": category_2.id, "value": 35004.34, "salvage_value": 2040},
                 {"name": "Misc 1", "category_id": category_3.id, "value": 450},
                 {"name": "Misc 2", "category_id": category_3.id, "value": 666},
+                {"name": "Rounding check 4", "category_id": category_4.id, "value": 11528.51, "method_number": 108},
             ]
         )
         assets.validate()
@@ -56,7 +65,7 @@ class GroupedAssetsCase(UpgradeCase):
         with no_fiscal_lock(self.env.cr):
             self.env["account.asset.asset"].compute_generated_entries(datetime.today())
             moves = assets.mapped("depreciation_line_ids.move_id")
-            self.assertEquals(len(moves), 4)  # 2 categories, 2 moves for grouped + 2 moves for 1 ungrouped category
+            self.assertEquals(len(moves), 8)  # 2 categories, 2 moves for grouped + 4 moves for 1 ungrouped category
 
             # Modify the first asset move on purpose, to handle a difference between the assets amount and the move amount
             # Leave the second asset untouched to check it doesn't create a remaining move
@@ -67,6 +76,99 @@ class GroupedAssetsCase(UpgradeCase):
             credit_line = move_group_1.line_ids.filtered(lambda l: l.credit)
             move_group_1.write({"line_ids": [(1, debit_line.id, {"debit": 480}), (1, credit_line.id, {"credit": 480})]})
             move_group_1.action_post()
+
+            depreciation_line_2 = assets[1].mapped("depreciation_line_ids")
+            count = 0
+            depr_value = 0
+            gross_value_to_write = 26482.86
+            for line in depreciation_line_2:
+                gross_value_to_write -= 259.6358823529408
+                line.write(
+                    {
+                        "depreciated_value": depr_value,
+                        "remaining_value": gross_value_to_write,
+                        "amount": 259.6358823529408,
+                    }
+                )
+                depr_value += 259.6358823529408
+            depreciation_line_2[-1].write({"depreciated_value": 26482.86, "remaining_value": 0.0, "amount": 7269.8})
+            for line in depreciation_line_2[1:]:
+                line.create_move()
+            move_group_2 = assets[1].mapped("depreciation_line_ids.move_id")
+            for move in move_group_2:
+                move.journal_id.update_posted = True
+                move.button_cancel()
+            move_group_2.action_post()
+
+            depreciation_line_3 = assets[2].mapped("depreciation_line_ids")
+            count = 0
+            depr_value = 0
+            gross_value_to_write = 424944.95
+            for line in depreciation_line_3:
+                gross_value_to_write -= 4166.12696078431
+                line.write(
+                    {
+                        "depreciated_value": depr_value,
+                        "remaining_value": gross_value_to_write,
+                        "amount": 4166.12696078431,
+                    }
+                )
+                depr_value += 4166.12696078431
+            depreciation_line_3[-1].write({"depreciated_value": 424944.95, "remaining_value": 0.0, "amount": 116651.55})
+            for line in depreciation_line_3[1:]:
+                line.create_move()
+            move_group_3 = assets[2].mapped("depreciation_line_ids.move_id")
+            for move in move_group_3:
+                move.journal_id.update_posted = True
+                move.button_cancel()
+            move_group_3.action_post()
+
+            depreciation_line_4 = assets[3].mapped("depreciation_line_ids")
+            count = 0
+            depr_value = 0
+            gross_value_to_write = 6825
+            for line in depreciation_line_4:
+                gross_value_to_write -= 56.875
+                line.write({"depreciated_value": depr_value, "remaining_value": gross_value_to_write, "amount": 56.875})
+                depr_value += 56.875
+            depreciation_line_4[-1].write({"depreciated_value": 6825, "remaining_value": 0.0, "amount": 3469.375})
+            for line in depreciation_line_4[1:]:
+                line.create_move()
+            move_group_4 = assets[3].mapped("depreciation_line_ids.move_id")
+            for move in move_group_4:
+                move.journal_id.update_posted = True
+                move.button_cancel()
+            move_group_4.action_post()
+
+            depreciation_line_5 = assets[-1].mapped("depreciation_line_ids")
+            count = 0
+            depr_value = 0
+            gross_value_to_write = 11528.51
+            for line in depreciation_line_5:
+                if count % 2 == 0:
+                    gross_value_to_write -= 106.75
+                    line.write(
+                        {"depreciated_value": depr_value, "remaining_value": gross_value_to_write, "amount": 106.7500}
+                    )
+                    depr_value += 106.75
+                if count % 2 == 1:
+                    gross_value_to_write -= 106.745462962963
+                    line.write(
+                        {
+                            "depreciated_value": depr_value,
+                            "remaining_value": gross_value_to_write,
+                            "amount": 106.745462962963,
+                        }
+                    )
+                    depr_value += 106.745462962963
+                count += 1
+            for line in depreciation_line_5[1:]:
+                line.create_move()
+            move_group_5 = assets[-1].mapped("depreciation_line_ids.move_id")
+            for move in move_group_5:
+                move.journal_id.update_posted = True
+                move.button_cancel()
+            move_group_5.action_post()
 
         return (
             assets.ids,
@@ -95,10 +197,10 @@ class GroupedAssetsCase(UpgradeCase):
         mig_moves = self.env["account.move"].search([("journal_id", "=", mig_journal.id)])
         # 2 grouped depreciations + the 5 details of it + the manual change
         # Unmodified/ungrouped moves are not in this journal
-        self.assertEquals(len(mig_moves), 8)
+        self.assertEquals(len(mig_moves), 622)
         # balance is 0 per account
         balance_per_account = defaultdict(float)
         for line in mig_moves.mapped("line_ids"):
-            balance_per_account[line.account_id] += line.balance
+            balance_per_account[line.account_id] += round(line.balance, 2)
         for balance in balance_per_account.values():
             self.assertAlmostEquals(balance, 0)

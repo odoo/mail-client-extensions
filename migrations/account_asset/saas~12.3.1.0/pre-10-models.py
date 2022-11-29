@@ -227,26 +227,26 @@ def migrate(cr, version):
                             END,
                             CASE
                                  WHEN asset.currency_id = company.currency_id THEN NULL
-                                 ELSE -line.amount
+                                 ELSE ROUND(-line.amount, currency.decimal_places)
                             END,
-                            CASE
-                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, -line.amount)
-                                 ELSE GREATEST(0, ROUND(
-                                                  -line.amount * (1 / COALESCE(rate.rate, 1)),
-                                                  currency.decimal_places)
-                                                  )
-                            END,
-                            CASE
-                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, line.amount)
-                                 ELSE GREATEST(0, ROUND(
-                                                  line.amount * (1 / COALESCE(rate.rate, 1)),
-                                                  currency.decimal_places)
-                                                  )
-                            END,
-                            CASE
-                                 WHEN asset.currency_id = company.currency_id THEN -line.amount
-                                 ELSE ROUND(-line.amount * (1 / COALESCE(rate.rate, 1)), currency.decimal_places)
-                            END
+                            GREATEST(0, ROUND(
+                                CASE
+                                    WHEN asset.currency_id = company.currency_id THEN -line.amount
+                                    ELSE -line.amount * (1 / COALESCE(rate.rate, 1))
+                                END, company_currency.decimal_places
+                            )),
+                            GREATEST(0, ROUND(
+                                CASE
+                                    WHEN asset.currency_id = company.currency_id THEN line.amount
+                                    ELSE line.amount * (1 / COALESCE(rate.rate, 1))
+                                END, company_currency.decimal_places
+                            )),
+                            ROUND(
+                                CASE
+                                    WHEN asset.currency_id = company.currency_id THEN -line.amount
+                                    ELSE -line.amount * (1 / COALESCE(rate.rate, 1))
+                                END, company_currency.decimal_places
+                            )
                        FROM account_asset_depreciation_line line
                        JOIN account_asset asset ON line.asset_id = asset.id
                        JOIN account_asset_category category ON asset.category_id = category.id
@@ -255,6 +255,7 @@ def migrate(cr, version):
                        JOIN res_company company ON company.id = journal.company_id
                        JOIN account_account account ON account.id = category.account_depreciation_id
                   LEFT JOIN res_currency currency ON currency.id = asset.currency_id
+                  LEFT JOIN res_currency company_currency ON company_currency.id = company.currency_id
                   LEFT JOIN LATERAL {rate_subquery} rate ON true
 
                       UNION ALL
@@ -268,26 +269,26 @@ def migrate(cr, version):
                             END,
                             CASE
                                  WHEN asset.currency_id = company.currency_id
-                                 THEN NULL ELSE line.amount
+                                 THEN NULL ELSE ROUND(line.amount, currency.decimal_places)
                             END,
-                            CASE
-                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, line.amount)
-                                 ELSE GREATEST(0, ROUND(
-                                                  line.amount * (1 / COALESCE(rate.rate, 1)),
-                                                  currency.decimal_places)
-                                                  )
-                            END,
-                            CASE
-                                 WHEN asset.currency_id = company.currency_id THEN GREATEST(0, -line.amount)
-                                 ELSE GREATEST(0, ROUND(
-                                                  -line.amount * (1 / COALESCE(rate.rate, 1)),
-                                                  currency.decimal_places)
-                                                  )
-                            END,
-                            CASE
-                                 WHEN asset.currency_id = company.currency_id THEN line.amount
-                                 ELSE ROUND(line.amount * (1 / COALESCE(rate.rate, 1)), currency.decimal_places)
-                            END
+                            GREATEST(0, ROUND(
+                                CASE
+                                    WHEN asset.currency_id = company.currency_id THEN line.amount
+                                    ELSE line.amount * (1 / COALESCE(rate.rate, 1))
+                                END, company_currency.decimal_places
+                            )),
+                            GREATEST(0, ROUND(
+                                CASE
+                                    WHEN asset.currency_id = company.currency_id THEN -line.amount
+                                    ELSE -line.amount * (1 / COALESCE(rate.rate, 1))
+                                END, company_currency.decimal_places
+                            )),
+                            ROUND(
+                                 CASE
+                                     WHEN asset.currency_id = company.currency_id THEN line.amount
+                                     ELSE line.amount * (1 / COALESCE(rate.rate, 1))
+                                 END, company_currency.decimal_places
+                            )
                        FROM account_asset_depreciation_line line
                        JOIN account_asset asset ON line.asset_id = asset.id
                        JOIN account_asset_category category ON asset.category_id = category.id
@@ -296,6 +297,7 @@ def migrate(cr, version):
                        JOIN res_company company ON company.id = journal.company_id
                        JOIN account_account account ON account.id = category.account_depreciation_expense_id
                   LEFT JOIN res_currency currency ON currency.id = asset.currency_id
+                  LEFT JOIN res_currency company_currency ON company_currency.id = company.currency_id
                   LEFT JOIN LATERAL {rate_subquery} rate ON true
     """
     )
