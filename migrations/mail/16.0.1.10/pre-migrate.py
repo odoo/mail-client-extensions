@@ -61,13 +61,7 @@ def migrate(cr, version):
         $$ LANGUAGE plpgsql IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE;
     """
     cr.execute(char_to_dt)
-    cr.execute(
-        """
-        ALTER TABLE mail_mail
-       ALTER COLUMN scheduled_date TYPE timestamp
-              USING char_to_dt(scheduled_date)
-    """
-    )
+    util.alter_column_type(cr, "mail_mail", "scheduled_date", "timestamp", using="char_to_dt({0})")
     cr.execute("DROP FUNCTION char_to_dt(text)")
 
     query = """
