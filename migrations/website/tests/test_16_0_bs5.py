@@ -617,6 +617,8 @@ class TestBS4ToBS5(UpgradeCase):
 </form>
                 """,
             ],
+            ["""<input type="file" class="form-control-file"/>""", """<input type="file" class="form-control"/>"""],
+            ["""<input type="range" class="form-control-range"/>""", """<input type="range" class="form-range"/>"""],
         ]
         all_chunks = []
         for chunk_versions in chunks:
