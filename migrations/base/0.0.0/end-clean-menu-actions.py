@@ -27,6 +27,12 @@ def migrate(cr, version):
              AND v.type = 'dashboard'
            WHERE w.view_mode LIKE '%dashboard%'
              AND v.id IS NULL
+           ),
+              removed_view_modes AS (
+          DELETE FROM ir_act_window_view awv
+           USING actions a
+           WHERE a.id = awv.act_window_id
+             AND awv.view_mode = 'dashboard'
            )
        UPDATE ir_act_window w
           SET view_mode = ARRAY_TO_STRING(ARRAY_REMOVE(STRING_TO_ARRAY(w.view_mode, ','), 'dashboard'), ',')
