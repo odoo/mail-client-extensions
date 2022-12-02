@@ -29,7 +29,7 @@ def migrate(cr, version):
              sip_ignore_incoming,
              sip_password,
              sip_login,
-             mobile_call_method
+             COALESCE(mobile_call_method, 'ask')
         FROM res_users
        WHERE NULLIF(TRIM(sip_login), '') IS NOT NULL
  ON CONFLICT (user_id) DO UPDATE
