@@ -14,29 +14,3 @@ def migrate(cr, version):
          )
     """
     )
-
-    # remove dashboard view_mode from action windows
-    # if no views of the same type remains
-    cr.execute(
-        """
-         WITH actions AS (
-          SELECT w.id
-            FROM ir_act_window w
-       LEFT JOIN ir_ui_view v
-              ON v.model = w.res_model
-             AND v.type = 'dashboard'
-           WHERE w.view_mode LIKE '%dashboard%'
-             AND v.id IS NULL
-           ),
-              removed_view_modes AS (
-          DELETE FROM ir_act_window_view awv
-           USING actions a
-           WHERE a.id = awv.act_window_id
-             AND awv.view_mode = 'dashboard'
-           )
-       UPDATE ir_act_window w
-          SET view_mode = ARRAY_TO_STRING(ARRAY_REMOVE(STRING_TO_ARRAY(w.view_mode, ','), 'dashboard'), ',')
-         FROM actions a
-        WHERE a.id = w.id
-    """
-    )
