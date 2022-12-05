@@ -18,3 +18,5 @@ def migrate(cr, version):
           AND l.code = 'GROSS'
     """
     )
+
+    util.remove_menus(cr, [util.ref(cr, "hr_payroll.menu_hr_payroll_root")])
