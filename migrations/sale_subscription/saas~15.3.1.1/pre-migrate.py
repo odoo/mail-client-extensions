@@ -477,16 +477,25 @@ def migrate(cr, version):
                         ),
                     )
                 else:
+                    # {table} is an m2m, recreate it with the right data
+                    (column2,) = util.get_columns(cr, table, ignore=(column,))  # will fail if not m2m
+                    table2 = util.target_of(cr, table, column2)[0]
+                    cr.execute(f'ALTER TABLE "{table}" RENAME TO "{table}_upg"')
+                    util.create_m2m(
+                        cr, table, main_table.replace("subscription", "order"), table2, col1=column, col2=column2
+                    )
                     # Do not exec in // or face the issue where a record is updated/converted multiple times
+                    # We cannot just update the m2m table because there may be conflicts
                     cr.execute(
                         f"""
-                        UPDATE "{table}" t
-                        SET "{column}"=m.{map_field}
-                        FROM "{main_table}" m
-                        WHERE t."{column}"=m.id
-                    """
+                        INSERT INTO "{table}" ("{column2}", {column})
+                             SELECT orig_t."{column2}", m.{map_field}
+                               FROM "{table}_upg" orig_t
+                               JOIN "{main_table}" m
+                                 ON orig_t."{column}"=m.id
+                        """
                     )
-                    # ORM will set the new constraint
+                    cr.execute(f'DROP TABLE "{table}_upg"')
 
     # Update sale_order_line_invoice_rel to match the new sale orders
     cr.execute(
