@@ -7,8 +7,8 @@ def migrate(cr, version):
 
     cr.execute(
         """
- INSERT INTO res_users_settings(user_id, onsip_auth_username)
-      SELECT id, onsip_auth_user
+ INSERT INTO res_users_settings(user_id, onsip_auth_username, how_to_call_on_mobile)
+      SELECT id, onsip_auth_user, 'ask'
         FROM res_users
        WHERE NULLIF(TRIM(onsip_auth_user), '') IS NOT NULL
  ON CONFLICT (user_id) DO UPDATE
