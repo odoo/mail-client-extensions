@@ -448,11 +448,12 @@ class IrUiView(models.Model):
                     if md.module != "test_upg"
                     else os.path.dirname(os.path.abspath(__file__)) + "/{}".format(view.arch_fs)
                 )
-                if not arch_fs_fullpath:
+                arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
+                if not arch_fs_fullpath or not arch_db:
                     _logger.warning(
                         "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
-                        "It's original denition couldn't be recovered from the file system. Maybe it was moved or "
-                        " does not exist anymore.",
+                        "Its original definition couldn't be recovered from the file system. Maybe it "
+                        "was moved or does not exist anymore.",
                         md.module,
                         md.name,
                     )
@@ -461,7 +462,6 @@ class IrUiView(models.Model):
                 view_copy = view.with_context(_upgrade_fix_views=True).copy(
                     {"active": False, "name": "%s (Copy created during upgrade)" % view.name}
                 )
-                arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
                 view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
 
                 # Mark the view as it was loaded with its XML data file.
@@ -525,12 +525,15 @@ class IrUiView(models.Model):
                 #  * If not standard:
                 #    a. Try some heuristics based on the exception
                 #    b. If still failing, disable the view
-                if md and md.noupdate and md.module and self.arch_fs:
-                    md.noupdate = False
-                    restore_from_file(self, md)
+                if md and md.module in get_standard_modules(self):
+                    # Standard view
+                    if md.noupdate and self.arch_fs:
+                        md.noupdate = False
+                        restore_from_file(self, md)
                     # Note: even if restoring from fs, a standard view could still fail due to a custom sibling
                     # removing an anchor field. We'll attempt to fix that when validating the custom sibling
-                if not md or md.module not in get_standard_modules(self):
+                else:
+                    # Custom view
                     if not ODOO_MIG_TRY_FIX_VIEWS:
                         disable(self, md)
                         return True
