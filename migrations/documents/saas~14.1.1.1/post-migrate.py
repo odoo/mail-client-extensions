@@ -16,7 +16,9 @@ def migrate(cr, version):
     # bypass noupdate workflow_data
     if all(util.ref(cr, f"documents.documents_internal_status_{s}") for s in {"inbox", "validated"}):
         util.if_unchanged(cr, "documents.documents_rule_internal_legal", util.update_record_from_xml)
-    if all(util.ref(cr, f"documents.documents_internal_status_{s}") for s in {"inbox", "tc"}):
+    if all(util.ref(cr, f"documents.documents_internal_status_{s}") for s in {"inbox", "tc"}) and util.ref(
+        cr, "documents.documents_finance_folder"
+    ):
         util.if_unchanged(cr, "documents.documents_rule_internal_mark", util.update_record_from_xml)
 
     # bypass noupdate files_data
