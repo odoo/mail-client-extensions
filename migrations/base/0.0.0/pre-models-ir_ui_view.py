@@ -72,6 +72,24 @@ def migrate(cr, version):
     cr.execute("SELECT id,model,arch_db{} INTO UNLOGGED ir_ui_view_data_backup FROM ir_ui_view".format(cast))
     cr.execute("ALTER TABLE ir_ui_view_data_backup ADD PRIMARY KEY(id)")
 
+    # The ORM always use views set via search_view_id column or ir_act_window_view table.
+    # Thus we activate them here in order to check them later on.
+    # In case one of the views fail and cannot be fixed:
+    # * for standard views, the view will remain active but will be restored from FS
+    # * custom views will be disabled but also the link action->view will be removed
+    # both cases will potentially fix issues with the views that otherwise may just fail.
+    cr.execute(
+        """
+        UPDATE ir_ui_view v
+           SET active = true
+          FROM ir_act_window a
+          JOIN ir_act_window_view av
+            ON av.act_window_id = a.id
+         WHERE v.active IS DISTINCT FROM true
+           AND v.id IN (a.search_view_id, a.view_id, av.view_id)
+        """
+    )
+
 
 #########################
 # view backup utilities #
