@@ -26,6 +26,6 @@ def migrate(cr, version):
     size = cr.rowcount
     abacus = count()
     for (vid,) in util.log_progress(cr.fetchall(), util._logger, qualifier="search views", size=size):
-        with util.edit_view(cr, view_id=vid) as view:
+        with util.edit_view(cr, view_id=vid, active=None) as view:
             for node in view.xpath("//filter[not(@name)][not(@position)]"):
                 node.attrib["name"] = "s%d" % next(abacus)

@@ -61,7 +61,7 @@ def migrate(cr, version):
     )
 
     for (view_id,) in cr.fetchall():
-        with util.skippable_cm(), util.edit_view(cr, view_id=view_id) as arch:
+        with util.skippable_cm(), util.edit_view(cr, view_id=view_id, active=None) as arch:
             node = arch.find('.//a[@t-if="website.social_googleplus"]')
             if node is not None:
                 node.getparent().remove(node)

@@ -14,7 +14,7 @@ def migrate(cr, version):
         """
     )
     for (view,) in cr.fetchall():
-        with util.edit_view(cr, view_id=view) as arch:
+        with util.edit_view(cr, view_id=view, active=None) as arch:
             div, div2 = util.lxml.etree.Element("div"), util.lxml.etree.Element("div")
             div.attrib.update({"id": "add_to_cart_wrap", "class": "d-inline"})
             div.extend(arch.xpath("//div[@class='js_product js_main_product']/a[@id='add_to_cart']"))
@@ -35,6 +35,6 @@ def migrate(cr, version):
         """
     )
     for (view,) in cr.fetchall():
-        with util.edit_view(cr, view_id=view) as arch:
+        with util.edit_view(cr, view_id=view, active=None) as arch:
             for node in arch.xpath("//div[@id='o-carousel-product']/div[hasclass('carousel-outer')]"):
                 node.attrib["class"] = "o_carousel_product_outer carousel-outer position-relative flex-grow-1"

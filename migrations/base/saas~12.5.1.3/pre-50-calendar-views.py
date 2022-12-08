@@ -12,6 +12,6 @@ def migrate(cr, version):
         """
     )
     for (view_id,) in cr.fetchall():
-        with util.edit_view(cr, view_id=view_id) as view:
+        with util.edit_view(cr, view_id=view_id, active=None) as view:
             for node in view.xpath("//calendar[@readonly_form_view_id]"):
                 del node.attrib["readonly_form_view_id"]

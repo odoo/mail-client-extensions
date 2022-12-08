@@ -16,7 +16,7 @@ def migrate(cr, version):
         """
     )
     for (view,) in cr.fetchall():
-        with util.edit_view(cr, view_id=view) as arch:
+        with util.edit_view(cr, view_id=view, active=None) as arch:
             div_1 = util.lxml.etree.Element(
                 "div", {"id": "o_wsale_cta_wrapper", "class": "d-inline-flex align-items-center mb-2 mr-auto"}
             )

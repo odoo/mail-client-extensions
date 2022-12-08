@@ -19,7 +19,7 @@ def migrate(cr, version):
         [re.escape('expr="%s"' % bad_pattern)],
     )
     for (vid,) in cr.fetchall():
-        with util.edit_view(cr, view_id=vid) as arch:
+        with util.edit_view(cr, view_id=vid, active=None) as arch:
             for node in arch.xpath('//xpath[@expr="%s"]' % bad_pattern):
                 if node.attrib.get("position") == "attributes":
                     node.getparent().remove(node)

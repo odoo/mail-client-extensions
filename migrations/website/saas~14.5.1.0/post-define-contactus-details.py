@@ -72,7 +72,7 @@ def migrate(cr, version):
             if not view_id:
                 continue
 
-            with util.edit_view(cr, view_id=view_id) as arch:
+            with util.edit_view(cr, view_id=view_id, active=None) as arch:
                 res = arch.xpath(
                     "//div/section/div/div/div/ul[count(li)=4]/li[1][text()='My Company']/"
                     "following-sibling::li/span[text()='3575 Fake Buena Vista Avenue']/../"

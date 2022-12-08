@@ -23,7 +23,7 @@ def convert_views_bootstrap(cr, src_version, dst_version, views_ids):
     _logger.info(f"Converting {len(views_ids)} views/templates Bootstrap code from {src_version} to {dst_version}")
 
     for view_id in views_ids:
-        with util.edit_view(cr, view_id=view_id, skip_if_not_noupdate=False) as arch:
+        with util.edit_view(cr, view_id=view_id, active=None) as arch:
             convert_tree(arch, src_version, dst_version, is_qweb=True)
         # TODO abt: maybe notify in the log or report that custom views with noupdate=False were converted?
 

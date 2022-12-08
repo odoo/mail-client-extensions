@@ -18,7 +18,7 @@ def migrate(cr, version):
     )
     view_ids = cr.fetchall()
     for view in view_ids:
-        with util.edit_view(cr, view_id=view) as arch:
+        with util.edit_view(cr, view_id=view, active=None) as arch:
             for tcall in arch.xpath('//t[@t-call-assets="website.assets_editor"]'):
                 parent = tcall.getparent()
                 if len(parent.getchildren()) == 1:
