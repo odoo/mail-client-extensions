@@ -46,11 +46,12 @@ def migrate(cr, version):
                     SET active='f'
                   FROM qweb_views qv
                  WHERE qv.id=v.id
-               """, ["website.option_font_%(opt)s_0%(cnt)s_variables" % {"opt": opt, "cnt": cnt}]
+               """,
+                ["website.option_font_%(opt)s_0%(cnt)s_variables" % {"opt": opt, "cnt": cnt}],
             )
 
-    #social_gooleplus is removed from the standard, but its reference is still there in views,
-    #removed reference from views
+    # social_gooleplus is removed from the standard, but its reference is still there in views,
+    # removed reference from views
     cr.execute(
         """
         SELECT id
@@ -59,7 +60,7 @@ def migrate(cr, version):
         """
     )
 
-    for view_id, in cr.fetchall():
+    for (view_id,) in cr.fetchall():
         with util.skippable_cm(), util.edit_view(cr, view_id=view_id) as arch:
             node = arch.find('.//a[@t-if="website.social_googleplus"]')
             if node is not None:
