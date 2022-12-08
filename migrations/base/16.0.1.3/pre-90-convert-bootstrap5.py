@@ -59,12 +59,16 @@ def convert_website_views(cr):
     """Convert website views / COWed templates to Bootstrap 5."""
     # views to convert must have `website_id` set and not come from standard modules
     standard_modules = set(modules.get_modules()) - {"studio_customization", "__export__", "__cloc_exclude__"}
+
+    is_bs = get_bs5_where_clause(cr, "v.arch_db")
+
     cr.execute(
-        """
+        f"""
         SELECT v.id
           FROM ir_ui_view v
          WHERE v.website_id IS NOT NULL
            AND v.type = 'qweb'
+           AND ({is_bs})
            AND NOT EXISTS (SELECT 1
                              FROM ir_model_data imd
                             WHERE imd.model = 'ir.ui.view'
@@ -74,7 +78,8 @@ def convert_website_views(cr):
         [tuple(standard_modules)],
     )
     views_ids = [view_id for view_id, in cr.fetchall()]
-    convert_views_bootstrap(cr, "4.0", "5.0", views_ids)
+    if views_ids:
+        convert_views_bootstrap(cr, "4.0", "5.0", views_ids)
 
 
 @lru_cache(maxsize=1)
