@@ -66,8 +66,10 @@ def migrate(cr, version):
     # Catch possible duplicates before the replacement and update them to avoid constraint errors.
     unaccent = get_unaccent_wrapper(cr)
     cr.execute(
-        r"""WITH replacement AS (
-                SELECT array_agg(id) ids,
+        r"""WITH data AS (
+                SELECT id,
+                       company_id,
+                       code,
                        BTRIM(
                         REGEXP_REPLACE(
                             REGEXP_REPLACE(
@@ -76,7 +78,12 @@ def migrate(cr, version):
                             '[.]+', '.', 'g'),
                         '.') as new_code
                   FROM account_account
-                 GROUP BY company_id, new_code
+            ),
+            replacement AS (
+                SELECT array_agg(id ORDER BY code=new_code desc, id) ids,
+                       new_code
+                  FROM data
+              GROUP BY company_id, new_code
             )
                UPDATE account_account
                   SET code = r.new_code ||
