@@ -4,7 +4,7 @@ import logging
 from datetime import date, timedelta
 
 from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
+from odoo.addons.base.maintenance.migrations.util.accounting import no_deprecated_accounts, no_fiscal_lock
 
 _logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
 
@@ -602,8 +602,9 @@ def migrate(cr, version):
 
         domain = [("is_valid_balance_start", "=", True), ("difference", "=", 0.0), ("state", "=", "open")]
         bs_ids = env["account.bank.statement"].search(domain).ids
-        for bs in util.iter_browse(env["account.bank.statement"].with_context(**ctx), bs_ids):
-            bs.button_post()
+        with no_deprecated_accounts(cr):
+            for bs in util.iter_browse(env["account.bank.statement"].with_context(**ctx), bs_ids):
+                bs.button_post()
 
         _logger.info("Post newly created journal entries still in draft")
         # Since the 'post_at' field is gone, post the journal entries still in draft.
@@ -636,7 +637,8 @@ def migrate(cr, version):
         )
 
         ids = [row[0] for row in cr.fetchall()]
-        util.iter_browse(env["account.move"].with_context(**ctx), ids, chunk_size=1024).action_post()
+        with no_deprecated_accounts(cr):
+            util.iter_browse(env["account.move"].with_context(**ctx), ids, chunk_size=1024).action_post()
 
         if ids:
             cr.execute("SELECT move.id, move.name FROM account_move move WHERE move.id in %s", [tuple(ids)])
