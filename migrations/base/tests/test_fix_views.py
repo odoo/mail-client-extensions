@@ -10,9 +10,15 @@ def ts(e):
 
 class TestFixViews(UpgradeCase):
     def prepare(self):
-        view_ids = []
+        info = []
 
-        def create_view(_vals, standard_view=False, arch_fs=None, noupdate=False):
+        def create_view(
+            _vals,
+            standard_view=False,
+            arch_fs=None,
+            noupdate=False,
+            disabled_post_upgrade=False,
+        ):
 
             # default values
             vals = {
@@ -25,7 +31,7 @@ class TestFixViews(UpgradeCase):
             }
             vals.update(_vals)
             view = self.env["ir.ui.view"].create(vals)
-            view_ids.append(view.id)
+            info.append((view.id, disabled_post_upgrade))
 
             if standard_view:
                 self.env["ir.model.data"].create(
@@ -40,7 +46,7 @@ class TestFixViews(UpgradeCase):
 
             return view.id
 
-        base_id = create_view(
+        base_id1 = base_id = create_view(
             {
                 "name": "test_fix_views_standard_base_view",
                 "arch_db": ts(
@@ -49,6 +55,7 @@ class TestFixViews(UpgradeCase):
                         E.field(name="comment"),
                         E.field(name="users"),
                         E.field(name="share"),
+                        E.div("This will be gone during the upgrade", id="gone"),
                     ),
                 ),
             },
@@ -264,12 +271,40 @@ class TestFixViews(UpgradeCase):
             standard_view=True,
         )
 
-        return view_ids
+        # A custom view that fails should have its children re-activated
+        custom_base_id = create_view(
+            {
+                "name": "test_fix_views_custom_base_view",
+                "mode": "extension",
+                "inherit_id": base_id1,
+                "arch_db": ts(E.xpath(E.div(id="Remove div"), expr="//div[@id='gone']", position="replace")),
+            },
+            disabled_post_upgrade=True,
+        )
 
-    def check(self, view_ids):
-        views = self.env["ir.ui.view"].browse(view_ids)
-        for view in views:
-            self.assertTrue(view.active, "The view {} was disabled during the migration".format(view.name))
+        create_view(
+            {
+                "name": "test_fix_views_custom_extension_view",
+                "mode": "extension",
+                "inherit_id": custom_base_id,
+                "arch_db": ts(
+                    E.xpath(E.div("This is OK"), expr="//field[@name='comment']", position="after"),
+                ),
+            },
+        )
+
+        return info
+
+    def check(self, info):
+        views = self.env["ir.ui.view"].browse([x[0] for x in info])
+        for (view, (vid, disabled)) in zip(views, info):
+            assert view.id == vid
+            self.assertTrue(
+                view.active == (not disabled),
+                "The view {} was {}disabled during the migration".format(view.name, "not " if disabled else ""),
+            )
+            if disabled:
+                continue  # we don't check disabled views
             try:
                 view._check_xml()
             except Exception as e:

@@ -494,24 +494,30 @@ class IrUiView(models.Model):
 
                 util.add_to_migration_reports(info, "Overridden views")
 
-                level = logging.INFO if md.module == "test_upg" else logging.WARNING
                 _logger.log(
-                    level,
+                    # info on CI since this is due to test data
+                    logging.INFO if md.module == "test_upg" else logging.WARNING,
                     "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
                     "Resetting its arch and noupdate flag for the migration ...\n",
                     md.module,
                     md.name,
                 )
 
-            def disable(view, md):
+            def disable(view, md, reactivate_children):
                 view.active = False
                 act_window = self.env["ir.actions.act_window"]
                 act_window.search([("view_id", "=", view.id)]).write({"view_id": False})
                 act_window.search([("search_view_id", "=", view.id)]).write({"search_view_id": False})
                 self.env["ir.actions.act_window.view"].search([("view_id", "=", view.id)]).unlink()
 
+                # reactivate any disabled inheriting view
+                for child in reactivate_children:
+                    child.active = True
+
                 util.add_to_migration_reports(view_data(view, md), "Disabled views")
-                _logger.warning(
+                _logger.log(
+                    # info on CI since this is due to test data
+                    logging.INFO if util.on_CI() else logging.WARNING,
                     "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
                     "Disabling it for the migration ...\n",
                     view.name,
@@ -553,18 +559,19 @@ class IrUiView(models.Model):
                 else:
                     # Custom view
                     if not ODOO_MIG_TRY_FIX_VIEWS:
-                        disable(self, md)
+                        disable(self, md, children)
                         return True
                     arch_orig = self.arch
                     if not heuristic_fixes(self._cr, self, check, e):
                         # arch may have been changed by heuristic_fixes, restore it
                         self.arch = arch_orig
-                        disable(self, md)
+                        disable(self, md, children)
                         return True
-                    elif not util.on_CI():
+                    else:
                         # Only log a warning for non-CI upgrades as this situation occurs due to test data.
                         # This is expected and should not mark the build as failed.
-                        _logger.warning(
+                        _logger.log(
+                            logging.INFO if util.on_CI() else logging.WARNING,
                             "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
                             "It was automatically adapted from:\n%sto:\n%s",
                             self.name,
@@ -691,13 +698,15 @@ class IrUiView(models.Model):
 
             with util.custom_module_field_as_manual(self.env):
                 views_to_check = self.search([("id", "in", tuple(all_ids)), ("inherit_id", "=", False)])
-                while views_to_check:
-                    for view in views_to_check:
-                        if view.id in standard_ids:
-                            validate_view(view, False)  # standard validators
-                        if custom_view_in_tree(view):
-                            validate_view(view, True)  # dummy validators
-                    views_to_check = views_to_check.mapped("inherit_children_ids")
+                children = views_to_check.mapped("inherit_children_ids")
+                while children:
+                    views_to_check |= children
+                    children = children.mapped("inherit_children_ids")
+                for view in views_to_check:
+                    if view.id in standard_ids:
+                        validate_view(view, False)  # standard validators
+                    if custom_view_in_tree(view):
+                        validate_view(view, True)  # dummy validators
 
             _validators.update(origin_validators)
 
