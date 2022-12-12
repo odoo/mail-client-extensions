@@ -28,9 +28,9 @@ def migrate(cr, version):
         [
             util.ref(cr, "stock.stock_move_menu"),
             util.ref(cr, "stock.menu_forecast_inventory"),
-            util.ref(cr, "stock.stock_move_action"),
         ],
     )
+    util.remove_record(cr, "stock.stock_move_action")
     util.remove_record(cr, "stock.report_stock_quantity_action")
     util.remove_record(cr, "stock.report_stock_quantity_action_product")
 
