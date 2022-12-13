@@ -12,13 +12,14 @@ def migrate(cr, version):
         ]:
             cr.execute(
                 """
-                UPDATE ir_model_data
-                   SET res_id = (
-                        SELECT id
-                          FROM account_financial_html_report_line
-                         WHERE code in %s
-                        )
-                 WHERE module = 'l10n_es_reports' AND name = %s
+                    UPDATE ir_model_data
+                       SET noupdate = false,
+                           res_id = (
+                            SELECT id
+                              FROM account_financial_html_report_line
+                             WHERE code in %s
+                            )
+                     WHERE module = 'l10n_es_reports' AND name = %s
                 """,
                 (codes, xmlid),
             )
