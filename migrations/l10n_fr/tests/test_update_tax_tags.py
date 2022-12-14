@@ -21,7 +21,8 @@ class CheckUpgradeTaxTags(UpgradeCase):
 
         # case 2
         # (it should not be linked to any aml, otherwise, the unlink will fail)
-        xmlid_2 = f"l10n_fr.{company.id}_tva_intermediaire_ttc"
+        xid = "tva_acq_super_reduite"
+        xmlid_2 = f"l10n_fr.{company.id}_{xid}"
         tax = self.env.ref(xmlid_2)
         old_tax_id = tax.id
         tax.invoice_repartition_line_ids[1].unlink()
@@ -47,7 +48,7 @@ class CheckUpgradeTaxTags(UpgradeCase):
             },
             "case_2": {
                 "xmlid": xmlid_2,
-                "template_xmlid": "l10n_fr.tva_intermediaire_ttc",
+                "template_xmlid": f"l10n_fr.{xid}",
                 "old_tax_id": old_tax_id,
             },
             "case_3": {
