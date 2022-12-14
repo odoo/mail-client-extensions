@@ -18,6 +18,7 @@ def migrate(cr, version):
     util.remove_view(cr, "sale_timesheet.project_profitability_timesheet_panel")
     util.remove_view(cr, "sale_timesheet.progressbar")
     util.remove_view(cr, "sale_timesheet.timesheet_plan")
+    util.remove_act_window_view_mode(cr, "project.project", "qweb")
     util.remove_record(cr, "sale_timesheet.project_timesheet_action_client_timesheet_plan")
     util.remove_record(cr, "sale_timesheet.project_profitability_report_action")
     util.remove_menus(cr, [util.ref(cr, "sale_timesheet.menu_project_profitability_analysis")])
