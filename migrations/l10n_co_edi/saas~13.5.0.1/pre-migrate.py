@@ -21,7 +21,13 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.move", "l10n_co_edi_debit_origin_id")
 
-    util.remove_field(cr, "account.tax", "l10n_co_edi_country_code")
+    # Actually not all removed in saas~13.5. Fields on move and journal has been added in 13.0 way after the release.
+    # See https://github.com/odoo/enterprise/pull/30022
+    models = ("account.tax", "account.move", "account.journal")
+    util.update_field_references(cr, "l10n_co_edi_country_code", "country_code", only_models=models)
+    for model in models:
+        util.remove_field(cr, model, "l10n_co_edi_country_code")
+
     util.create_column(cr, "account_tax_template", "l10n_co_edi_type", "int4")
 
     util.create_column(cr, "account_journal", "l10n_co_edi_dian_authorization_end_date", "date")
