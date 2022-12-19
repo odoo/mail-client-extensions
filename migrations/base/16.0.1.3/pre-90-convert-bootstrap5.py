@@ -55,7 +55,7 @@ def convert_views_bootstrap(cr, src_version, dst_version, views_ids):
 #     return convert
 
 
-def convert_website_views(cr):
+def convert_views(cr):
     """Convert website views / COWed templates to Bootstrap 5."""
     # views to convert must have `website_id` set and not come from standard modules
     standard_modules = set(modules.get_modules()) - {"studio_customization", "__export__", "__cloc_exclude__"}
@@ -66,9 +66,8 @@ def convert_website_views(cr):
         f"""
         SELECT v.id
           FROM ir_ui_view v
-         WHERE v.website_id IS NOT NULL
+         WHERE ({is_bs})
            AND v.type = 'qweb'
-           AND ({is_bs})
            AND NOT EXISTS (SELECT 1
                              FROM ir_model_data imd
                             WHERE imd.model = 'ir.ui.view'
@@ -161,7 +160,5 @@ def migrate(cr, version):
     if not util.module_installed(cr, "web"):
         return
 
-    if util.module_installed(cr, "website") and util.column_exists(cr, "ir_ui_view", "website_id"):
-        convert_website_views(cr)
-
+    convert_views(cr)
     convert_html_fields(cr)
