@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import contextlib
 import inspect
 import logging
 import math
@@ -276,16 +277,30 @@ class TestCrawler(IntegrityCase):
                 action["views"][0] = (view_id[0] if isinstance(view_id, (list, tuple)) else view_id, view_modes[0])
 
         Action = env.registry["ir.actions.actions"]
-        origin_read = Action.read
-        action_fields = self.action_type_fields["ir.actions.actions"]
-        # To specify the list of fields to read on actions,
-        # because `get_bindings` calls read without passing the list fields,
-        # and it therefore reads alls the fields, and some custom fields might be broken.
-        with patch.object(
-            Action,
-            "read",
-            lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
-        ):
+        with contextlib.ExitStack() as stack:
+            origin_read = Action.read
+            action_fields = self.action_type_fields["ir.actions.actions"]
+            stack.enter_context(
+                patch.object(
+                    # To specify the list of fields to read on actions,
+                    # because `get_bindings` calls read without passing the list fields,
+                    # and it therefore reads alls the fields, and some custom fields might be broken.
+                    Action,
+                    "read",
+                    lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
+                )
+            )
+            if hasattr(Action, "flush"):
+                origin_flush = getattr(Action, "flush", None)
+                stack.enter_context(
+                    patch.object(
+                        # To avoid the call to self.flush() in ir.actions that will try to recompute
+                        # all fields, some fields may have a failed compute from previous actions
+                        Action,
+                        "flush",
+                        lambda self, *args, **kwargs: (self or args or kwargs) and origin_flush(self, *args, **kwargs),
+                    )
+                )
             get_views = getattr(model, "get_views", None) or model.load_views
             views = get_views(
                 action["views"], options={"action_id": action.get("id"), "toolbar": True, "load_filters": True}
