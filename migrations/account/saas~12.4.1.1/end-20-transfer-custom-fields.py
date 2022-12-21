@@ -20,31 +20,33 @@ def _get_model_id(cr, model):
 def migrate(cr, version):
     cr.execute(
         """
-        SELECT name, src_model, dst_model, transfer
-          FROM mig_s124_accountfieldstotransfer
-         WHERE ttype='custom' or state='manual'
+        SELECT src_model,
+               dst_model,
+               array_agg(name) as fields
+          FROM mig_s124_customaccountfieldstotransfer
+         WHERE store
+      GROUP BY src_model, dst_model
         """
     )
-    for field, src_model, dst_model, transfer in cr.fetchall():
+    for src_model, dst_model, fields in cr.fetchall():
+        _logger.info("Transfer custom fields' columns from %r to %r: %s", src_model, dst_model, fields)
         src_table = util.table_of_model(cr, src_model)
         dst_table = util.table_of_model(cr, dst_model)
-        if transfer:
-            _logger.info("Transfer %s.%s", dst_table, field)
-            util.parallel_execute(
-                cr,
-                util.explode_query(
-                    cr,
-                    """
-                    UPDATE "%(dst_table)s" am
-                       SET "%(field)s"=inv."%(field)s"
-                      FROM "%(src_table)s" inv
-                      %(link)s
-                    """
-                    % {"dst_table": dst_table, "src_table": src_table, "field": field, "link": _get_linking(src_table)},
-                    alias="am",
-                ),
-            )
-    cr.execute("DROP TABLE mig_s124_accountfieldstotransfer")
+        set_cols = ", ".join(f'"{field}"=inv."{field}"' for field in fields)
+
+        util.explode_execute(
+            cr,
+            f"""
+                UPDATE "{dst_table}" am
+                   SET {set_cols}
+                  FROM "{src_table}" inv
+                    {_get_linking(src_table)}
+            """,
+            alias="am",
+            table=dst_table,
+        )
+
+    cr.execute("DROP TABLE mig_s124_customaccountfieldstotransfer")
 
     # the invoice `number` is the move `name`, fix domains still using `number`
     util.update_field_usage(cr, "account.move", "number", "name")
