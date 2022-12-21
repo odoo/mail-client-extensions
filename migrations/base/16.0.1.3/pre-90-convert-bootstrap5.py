@@ -73,7 +73,8 @@ def convert_views(cr):
                              FROM ir_model_data imd
                             WHERE imd.model = 'ir.ui.view'
                               AND imd.module IN %s
-                              AND imd.res_id = v.id)
+                              AND imd.res_id = v.id
+                              AND imd.noupdate = False)
         """,
         [tuple(standard_modules)],
     )
