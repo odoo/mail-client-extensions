@@ -22,7 +22,6 @@ def migrate(cr, version):
     # Therefore, we need to patch any migration if the source version is <= 14.0
     # and if the target version is >= 11.0
     if pv(version) < pv("saas~14.1") and util.version_gte("11.0"):
-
         env = util.env(cr)
         # base.user_admin exists only since 12.0
         user_admin = env.ref("base.user_admin", False) or env.ref("base.user_root")
