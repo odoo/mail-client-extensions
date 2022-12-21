@@ -702,7 +702,7 @@ class IrUiView(models.Model):
                 except Exception:
                     _logger.exception("Invalid custom view %s for model %s", view.xml_id or view.id, view.model)
 
-            with util.custom_module_field_as_manual(self.env):
+            with util.custom_module_field_as_manual(self.env, do_flush=True):
                 views_to_check = self.search([("id", "in", tuple(all_ids)), ("inherit_id", "=", False)])
                 children = views_to_check.mapped("inherit_children_ids")
                 while children:
