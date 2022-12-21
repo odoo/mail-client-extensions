@@ -453,11 +453,17 @@ class IrUiView(models.Model):
 
             def restore_from_file(view, md):
                 def resolve_external_ids(arch_fs, module):
+                    xmlid_to_res_id = (
+                        self.env["ir.model.data"]._xmlid_to_res_id
+                        if hasattr(self.env["ir.model.data"], "_xmlid_to_res_id")
+                        else self.env["ir.model.data"].xmlid_to_res_id
+                    )
+
                     def replacer(m):
                         xmlid = m.group("xmlid")
                         if "." not in xmlid:
                             xmlid = "%s.%s" % (module, xmlid)
-                        return m.group("prefix") + str(self.env["ir.model.data"].xmlid_to_res_id(xmlid))
+                        return m.group("prefix") + str(xmlid_to_res_id(xmlid))
 
                     return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
 
