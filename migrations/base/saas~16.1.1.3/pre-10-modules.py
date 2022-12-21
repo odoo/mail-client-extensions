@@ -12,3 +12,6 @@ def migrate(cr, version):
         util.remove_module(cr, "project_timesheet_forecast_contract")
         util.remove_module(cr, "event_sale_dashboard")
         util.merge_module(cr, "sale_enterprise", "sale")
+
+    util.rename_module(cr, "l10n_hr", "l10n_hr_kuna")
+    util.rename_module(cr, "l10n_hr_euro", "l10n_hr")
