@@ -20,6 +20,8 @@ def convert_views_bootstrap(cr, src_version, dst_version, views_ids):
     :param str dst_version: the Bootstrap version to convert to.
     :param typing.Collection[int] views_ids: the ids of the views to convert.
     """
+    if not views_ids:
+        return
     _logger.info(f"Converting {len(views_ids)} views/templates Bootstrap code from {src_version} to {dst_version}")
 
     for view_id in views_ids:
