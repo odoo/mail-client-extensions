@@ -8,6 +8,10 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.search_count_box")
     util.remove_view(cr, "website_sale.user_navbar_inherit_website_sale")
     util.remove_view(cr, "website_sale.recommended_products")
+    util.remove_view(cr, "website_sale.sort")
+    util.remove_view(cr, "website_sale.add_grid_or_list_option")
+    util.remove_view(cr, "website_sale.products_categories")
+    util.remove_view(cr, "website_sale.filter_products_price")
 
     util.rename_xmlid(cr, "website_sale.product_picture_magnify_auto", "website_sale.product_picture_magnify_hover")
     util.rename_xmlid(cr, "website_sale.product_picture_magnify", "website_sale.product_picture_magnify_click")
