@@ -20,7 +20,7 @@ def migrate(cr, version):
     class Substitue:
         def __init__(self, placeholder, match, group):
             self.placeholder = f"%({placeholder})s"
-            self.regex = rf"(?P<{group}>({match})?)" if group else match
+            self.regex = rf"(?P<{group}>({match})?)" if group else rf"(?:{match})?"
             self.deprecated = not group
 
         @classmethod
