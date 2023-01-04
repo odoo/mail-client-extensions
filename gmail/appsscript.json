@@ -6,7 +6,7 @@
     "https://www.googleapis.com/auth/script.external_request"
   ],
   "gmail": {
-    "name": "Odoo",
+    "name": "Odoo camptocamp",
     "logoUrl": "https://raw.githubusercontent.com/odoo/mail-client-extensions/master/outlook/assets/odoo.png",
     "contextualTriggers": [
       {
