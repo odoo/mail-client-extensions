@@ -32,3 +32,12 @@ def migrate(cr, version):
         queries.append(f"ALTER INDEX {old_index_name} RENAME TO {new_index_name}")
 
     util.parallel_execute(cr, queries)
+
+    util.remove_menus(
+        cr,
+        [
+            util.ref(cr, "base.menu_board_root"),
+            util.ref(cr, "base.menu_reporting_dashboard"),
+            util.ref(cr, "base.menu_reporting_config"),
+        ],
+    )
