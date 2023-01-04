@@ -20,10 +20,16 @@ def migrate(cr, version):
         )
         + util.explode_query_range(
             cr,
-            """UPDATE mail_message
+            """
+            UPDATE mail_message m
                   SET email_layout_xmlid = 'mail.mail_notification_layout_with_responsible_signature'
-                WHERE email_layout_xmlid = 'mail.mail_notification_paynow'""",
+                 FROM mail_mail a
+                WHERE a.mail_message_id = m.id
+                  AND a.state IN ('outgoing', 'exception')
+                  AND m.email_layout_xmlid = 'mail.mail_notification_paynow'
+            """,
             table="mail_message",
+            alias="m",
         ),
     )
     util.remove_view(cr, "mail.mail_notification_paynow")
