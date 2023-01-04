@@ -272,19 +272,23 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "account_bank_statement", "first_line_index", "varchar")
-    cr.execute('ALTER TABLE account_bank_statement ALTER COLUMN "date" DROP NOT NULL')
+    util.remove_column(cr, "account_bank_statement", "date")
+    util.create_column(cr, "account_bank_statement", "date", "date")
+
     util.parallel_execute(
         cr,
-        util.explode_query_range(cr, 'UPDATE account_bank_statement SET "date" = NULL', table="account_bank_statement"),
-    )
-    cr.execute(
-        """
+        util.explode_query_range(
+            cr,
+            """
         WITH min_max_statement_index AS (
             SELECT st_line.statement_id,
                    MIN(st_line.internal_index) AS min_internal_index,
                    MAX(st_line.internal_index) AS max_internal_index
               FROM account_bank_statement_line st_line
+              JOIN account_bank_statement b
+                ON b.id = st_line.statement_id
              WHERE st_line.statement_id IS NOT NULL
+               AND {parallel_filter}
           GROUP BY st_line.statement_id
         )
         UPDATE account_bank_statement
@@ -296,7 +300,10 @@ def migrate(cr, version):
           JOIN account_move move
             ON move.statement_line_id = st_line.id
          WHERE account_bank_statement.id = min_max_statement_index.statement_id
-        """
+        """,
+            table="account_bank_statement",
+            alias="b",
+        ),
     )
 
     util.create_column(cr, "account_bank_statement", "is_complete", "bool")
