@@ -18,23 +18,6 @@ def migrate(cr, version):
         ],
     )
 
-    # Views (account_invoice)
-    util.remove_view(cr, "account.view_invoice_line_calendar")
-    util.remove_view(cr, "account.view_invoice_pivot")
-    util.remove_view(cr, "account.view_invoice_graph")
-    util.remove_view(cr, "account.account_invoice_view_activity")
-    util.remove_view(cr, "account.view_invoice_line_tree")
-    util.remove_view(cr, "account.view_invoice_line_form")
-    util.remove_view(cr, "account.view_invoice_tax_tree")
-    util.remove_view(cr, "account.view_invoice_tax_form")
-    util.remove_view(cr, "account.invoice_tree")
-    util.remove_view(cr, "account.invoice_tree_with_onboarding")
-    util.remove_view(cr, "account.invoice_kanban")
-    util.remove_view(cr, "account.invoice_supplier_tree")
-    util.remove_view(cr, "account.invoice_supplier_form")
-    util.remove_view(cr, "account.invoice_form")
-    util.remove_view(cr, "account.view_account_invoice_filter")
-
     # Views (account_voucher)
     if util.ENVIRON["account_voucher_installed"]:
         util.remove_view(cr, "account.view_voucher_tree")
