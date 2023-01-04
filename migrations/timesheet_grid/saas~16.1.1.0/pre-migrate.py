@@ -36,3 +36,6 @@ def migrate(cr, version):
             util.rename_field(cr, model, f, t)
     util.remove_field(cr, "res.company", "prevent_old_timesheets_encoding")
     util.remove_field(cr, "res.config.settings", "prevent_old_timesheets_encoding")
+    util.remove_view(cr, "timesheet_grid.timesheet_view_grid_by_project_readonly")
+    util.remove_view(cr, "timesheet_grid.timesheet_view_grid_by_project_no_section")
+    util.remove_view(cr, "timesheet_grid.timesheet_view_grid_by_task_readonly")
