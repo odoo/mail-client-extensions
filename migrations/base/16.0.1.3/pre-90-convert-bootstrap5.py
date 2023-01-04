@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 from functools import lru_cache
 
@@ -161,4 +162,6 @@ def migrate(cr, version):
         return
 
     convert_views(cr)
-    convert_html_fields(cr)
+
+    if util.str2bool(os.getenv("UPG_BS5_CONVERT_HTML_FIELDS", "1")):
+        convert_html_fields(cr)
