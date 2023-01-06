@@ -67,6 +67,7 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
                 ],
             }
         )
+
         (valid_statement + incomplete_statement + invalid_statement).button_post()
         return [(valid_statement + incomplete_statement + valid_statement_not_posted + invalid_statement).ids]
 
@@ -116,6 +117,49 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
             ],
         )
 
+    def _prepare_test_statement_lines_null_sequence(self):
+        """Test the migration of a statement having some lines with a NULL sequence."""
+        statement = self.env["account.bank.statement"].create(
+            {
+                "journal_id": self.bank_journal.id,
+                "date": "2021-01-01",
+                "line_ids": [
+                    fields.Command.create(
+                        {"payment_ref": str(index), "amount": 100.0, "date": "2020-01-01", "sequence": sequence}
+                    )
+                    for index, sequence in enumerate(range(-2, 3))
+                ],
+            }
+        )
+
+        self.env.cr.execute(
+            """
+                UPDATE account_bank_statement_line
+                SET sequence = NULL
+                WHERE sequence IN (-1, 1)
+                AND statement_id = %s
+            """,
+            [statement.id],
+        )
+
+        return statement.ids
+
+    def _check_test_statement_lines_null_sequence(self, config, statement_id):
+        statement = self.env["account.bank.statement"].browse(statement_id)
+        for line in statement.line_ids:
+            self.assertTrue(line.internal_index)
+
+        self.assertRecordValues(
+            statement.line_ids.sorted(),
+            [
+                {"payment_ref": "3"},
+                {"payment_ref": "1"},
+                {"payment_ref": "0"},
+                {"payment_ref": "2"},
+                {"payment_ref": "4"},
+            ],
+        )
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -130,4 +174,7 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
         )
         res["config"]["bank_journal_id"] = self.bank_journal.id
         res["tests"].append(("_check_test_statements", self._prepare_test_statements()))
+        res["tests"].append(
+            ("_check_test_statement_lines_null_sequence", self._prepare_test_statement_lines_null_sequence())
+        )
         return res

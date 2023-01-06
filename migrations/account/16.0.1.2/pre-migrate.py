@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from xmlrpc.client import MAXINT
+from xmlrpc.client import MAXINT, MININT
 
 from odoo.osv.expression import get_unaccent_wrapper
 from odoo.tools import html_escape
@@ -252,7 +252,7 @@ def migrate(cr, version):
         """
             UPDATE account_bank_statement_line
                SET internal_index = REPLACE(account_move.date::text, '-', '')
-                                    || TO_CHAR(%s - account_bank_statement_line.sequence, 'fm0000000000')
+                                    || TO_CHAR(%s::int8 - COALESCE(account_bank_statement_line.sequence, %s), 'fm0000000000')
                                     || TO_CHAR(account_bank_statement_line.id, 'fm0000000000'),
                    currency_id = COALESCE(account_journal.currency_id, res_company.currency_id)
               FROM account_move
@@ -262,7 +262,7 @@ def migrate(cr, version):
                 ON res_company.id = account_move.company_id
              WHERE account_move.statement_line_id = account_bank_statement_line.id
         """,
-        [MAXINT],
+        [MAXINT, MININT],
     ).decode()
 
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_bank_statement_line"))
