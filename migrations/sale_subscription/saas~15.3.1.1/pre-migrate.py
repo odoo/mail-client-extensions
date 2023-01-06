@@ -543,46 +543,73 @@ def migrate(cr, version):
     # Pricing will be updated and salesmen will need to check them.
     # We must not modify further confirmed renew quotation because they already updated the parent subscription that was converted
     # above. In all cases, these quotations must be reviewed. Setting is_subscription allows to keep the record and his history.
-    draft_stage_id = util.ref(cr, "sale_subscription.sale_subscription_stage_draft")
-    closed_stage_id = util.ref(cr, "sale_subscription.sale_subscription_stage_closed")
+    stages = {}
+    for st, vals in [
+        ("draft", ["Quotation", 10, "draft", False]),
+        ("closed", ["Closed", 40, "closed", True]),
+    ]:
+        # Ensure that both the reference and the record exist, take into account the rename sale.{subscription->order}.stage
+        stages[st] = util.ref(cr, f"sale_subscription.sale_subscription_stage_{st}")
+        if stages[st] is None:
+            cr.execute(
+                """
+                WITH new_rec AS (
+                    INSERT INTO sale_order_stage (name, sequence, category, fold)
+                         VALUES (%s, %s, %s, %s)
+                      RETURNING id
+                )
+                INSERT INTO ir_model_data (module, name, model, res_id, noupdate)
+                     SELECT 'sale_subscription', 'sale_subscription_stage_'||%s, 'sale.order.stage', new_rec.id, True
+                       FROM new_rec
+                ON CONFLICT (module, name)
+                  DO UPDATE SET res_id = EXCLUDED.res_id
+                """,
+                vals + [st],
+            )
+            stages[st] = util.ref(cr, f"sale_subscription.sale_subscription_stage_{st}")
+
+    query = cr.mogrify(
+        """
+        WITH parent_sub AS (
+        SELECT id,recurrence_id,state
+          FROM sale_order sub
+        )
+        UPDATE sale_order so
+           SET is_subscription= CASE
+               WHEN so.state='draft' OR so.state='sent' THEN true
+               ELSE false
+           END,
+           subscription_management= CASE
+               WHEN so.state = 'sale' OR so.state = 'done' THEN 'renewal_so'
+               ELSE so.subscription_management
+           END,
+           recurrence_id=parent_sub.recurrence_id,
+           next_invoice_date=
+           CASE
+               WHEN so.state='sale' OR so.state = 'done'  THEN current_date
+               ELSE NULL
+           END,
+           stage_category=
+           CASE
+               WHEN so.state='draft' OR so.state='sent' THEN 'draft'
+               WHEN so.state='sale' OR so.state='done' THEN 'closed'
+           END,
+           stage_id=
+           CASE
+               WHEN so.state='draft' OR so.state='sent' THEN %(draft)s
+               WHEN so.state='sale' OR so.state='done' THEN %(closed)s
+           END
+          FROM parent_sub
+         WHERE parent_sub.id=so.subscription_id
+           AND so.subscription_management='renew'
+        """,
+        stages,
+    ).decode()
     util.parallel_execute(
         cr,
         util.explode_query_range(
             cr,
-            f"""
-            WITH parent_sub AS (
-            SELECT id,recurrence_id,state
-              FROM sale_order sub
-            )
-            UPDATE sale_order so
-               SET is_subscription= CASE
-                   WHEN so.state='draft' OR so.state='sent' THEN true
-                   ELSE false
-               END,
-               subscription_management= CASE
-                   WHEN so.state = 'sale' OR so.state = 'done' THEN 'renewal_so'
-                   ELSE so.subscription_management
-               END,
-               recurrence_id=parent_sub.recurrence_id,
-               next_invoice_date=
-               CASE
-                   WHEN so.state='sale' OR so.state = 'done'  THEN current_date
-                   ELSE NULL
-               END,
-               stage_category=
-               CASE
-                   WHEN so.state='draft' OR so.state='sent' THEN 'draft'
-                   WHEN so.state='sale' OR so.state='done' THEN 'closed'
-               END,
-               stage_id=
-               CASE
-                   WHEN so.state='draft' OR so.state='sent' THEN {draft_stage_id}
-                   WHEN so.state='sale' OR so.state='done' THEN {closed_stage_id}
-               END
-              FROM parent_sub
-             WHERE parent_sub.id=so.subscription_id
-               AND so.subscription_management='renew'
-            """,
+            query,
             table="sale_order",
             alias="so",
         ),
