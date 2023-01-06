@@ -68,8 +68,7 @@ def migrate(cr, version):
           SELECT DISTINCT tax.id
             FROM account_tax AS tax
             JOIN account_tax_repartition_line AS rep_line
-              ON rep_line.invoice_tax_id = tax.id
-              OR rep_line.refund_tax_id = tax.id
+              ON rep_line.tax_id = tax.id
             JOIN account_account_tag_account_tax_repartition_line_rel AS rep_line_rel
               ON rep_line_rel.account_tax_repartition_line_id = rep_line.id
             JOIN ir_model_data imd

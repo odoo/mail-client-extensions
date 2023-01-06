@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.account.models.chart_template import update_taxes_from_templates
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    env = util.env(cr)
     # Remove DIOT menuitems as it now is a variant of the tax report.
     util.remove_record(cr, "l10n_mx_reports.action_account_report_diot")
     util.remove_menus(
@@ -16,7 +15,8 @@ def migrate(cr, version):
     )
 
     # Make sure all taxes/tags are updated.
-    update_taxes_from_templates(cr, "l10n_mx.mx_coa")
+    for company in env['res.company'].search([('chart_template', '=', 'mx')]):
+        env['account.chart.template'].try_loading('mx', company=company, install_demo=False)
 
     tags_to_migrate = [
         ("tag_diot_16", "+DIOT: 16%"),

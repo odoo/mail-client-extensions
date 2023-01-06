@@ -4,7 +4,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.merge_module(cr, "l10n_generic_coa", "account")
+    util.merge_module(cr, "l10n_multilang", "account")
+
     if util.has_enterprise():
+        util.remove_module(cr, "l10n_generic_auto_transfer_demo")
         util.remove_module(cr, "event_barcode_mobile")
         util.remove_module(cr, "hr_attendance_mobile")
         util.remove_module(cr, "barcodes_mobile")

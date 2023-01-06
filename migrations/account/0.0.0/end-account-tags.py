@@ -10,6 +10,8 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
+    if util.version_gte("saas~16.2"):
+        return
 
     pre_config = util.ENVIRON["account_tags_pre_config"]
 
