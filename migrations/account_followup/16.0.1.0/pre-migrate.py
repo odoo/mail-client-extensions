@@ -53,7 +53,7 @@ def migrate(cr, version):
         qweb_items += [(old, f'<t t-out="{new}"/>')]
 
     replace_string_1 = util.pg_replace("sms_description", inline_items)
-    replace_string_2 = util.pg_replace("email_subject", qweb_items)
+    replace_string_2 = util.pg_replace("email_subject", inline_items)
     replace_string_3 = util.pg_replace(util.pg_text2html("description"), qweb_items)
     cr.execute(
         f"""
@@ -69,11 +69,12 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH template_inserted AS (
-            INSERT INTO mail_template(name, model_id, subject, body_html,
+            INSERT INTO mail_template(name, model_id, model, subject, body_html,
                                       create_uid, create_date, write_uid, write_date,
                                       _tmp_followup_line_id)
             SELECT jsonb_build_object('en_US', followup_line.name),
                    model.id,
+                   model.model,
                    jsonb_build_object('en_US', followup_line.email_subject),
                    jsonb_build_object('en_US', followup_line.description),
                    followup_line.create_uid,
