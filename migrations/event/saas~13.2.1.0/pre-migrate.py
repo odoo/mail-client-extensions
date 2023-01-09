@@ -24,7 +24,9 @@ def migrate(cr, version):
                 description text,
                 event_type_id integer,
                 seats_availability varchar,
-                seats_max integer
+                seats_max integer,
+                product_id integer,
+                price numeric
             )
         """
         )
@@ -33,10 +35,12 @@ def migrate(cr, version):
             """
             INSERT INTO event_type_ticket(
                 id, create_uid, create_date, write_uid, write_date,
-                name, event_type_id, seats_availability, seats_max
+                name, event_type_id, seats_availability, seats_max,
+                product_id, price
             )
             SELECT id, create_uid, create_date, write_uid, write_date,
-                   name, event_type_id, seats_availability, seats_max
+                   name, event_type_id, seats_availability, seats_max,
+                   product_id, COALESCE(price, 0)
               FROM event_event_ticket
              WHERE event_type_id IS NOT NULL
         """
@@ -105,12 +109,14 @@ def migrate(cr, version):
     # Some people link `event.mail` records to templates bound to this wizard.
     # Break the `ondelete=restrict` by explictly removing these `event.mail` record
     # XXX should this be done by `util.remove_model`?
-    cr.execute("""
+    cr.execute(
+        """
         SELECT id
           FROM event_mail
          WHERE template_id IN (SELECT id FROM mail_template WHERE model = 'event.confirm')
-    """)
-    for em_id, in cr.fetchall():
+    """
+    )
+    for (em_id,) in cr.fetchall():
         util.remove_record(cr, ("event.mail", em_id))
 
     util.remove_model(cr, "event.confirm")
