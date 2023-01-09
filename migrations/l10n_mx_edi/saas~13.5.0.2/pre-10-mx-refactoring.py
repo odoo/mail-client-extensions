@@ -15,7 +15,6 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_move", "l10n_mx_edi_cfdi_request", "varchar")
     util.create_column(cr, "account_move", "l10n_mx_edi_post_time", "timestamp without time zone")
-    util.create_column(cr, "account_move", "l10n_mx_edi_cfdi_request", "varchar")
 
     updates = [
         """
