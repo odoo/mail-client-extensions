@@ -12,3 +12,6 @@ def migrate(cr, version):
     )
     util.update_field_references(cr, "is_close", "fold", only_models=("helpdesk.stage",))
     util.remove_field(cr, "helpdesk.stage", "is_close")
+
+    util.create_column(cr, "helpdesk_team", "ticket_properties", "jsonb")
+    util.create_column(cr, "helpdesk_ticket", "properties", "jsonb")

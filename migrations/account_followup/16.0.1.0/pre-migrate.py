@@ -128,3 +128,4 @@ def migrate(cr, version):
     util.remove_field(cr, "account_followup.followup.line", "sms_description")
     util.remove_field(cr, "account_followup.followup.line", "description")
     util.remove_field(cr, "account_followup.followup.line", "email_subject")
+    util.create_column(cr, "res_partner", "followup_reminder_type", "varchar", default="automatic")

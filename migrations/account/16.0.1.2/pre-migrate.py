@@ -126,29 +126,34 @@ def migrate(cr, version):
     util.rename_field(cr, "account.payment.term.line", "day_of_the_month", "days_after")
     util.create_column(cr, "account_payment_term_line", "months", "integer", default=0)
     util.create_column(cr, "account_payment_term_line", "end_month", "boolean", default=False)
-    cr.execute(
-        """
-        UPDATE account_payment_term_line
-           SET months = 0,
-               days = 0,
-               end_month = True,
-               days_after = days
-         WHERE option IN ('day_current_month', 'after_invoice_month');
-
-        UPDATE account_payment_term_line
-           SET months = 0,
-               days = days,
-               end_month = (days_after != 0),
-               days_after = CASE WHEN days_after >= 30 THEN 0 ELSE days_after END
-         WHERE option = 'day_after_invoice_date';
-
-        UPDATE account_payment_term_line
-           SET months = (days >= 30)::int,
-               days = 0,
-               end_month = True,
-               days_after = CASE WHEN days < 30 THEN days ELSE 0 END
-         WHERE option = 'day_following_month';
-        """
+    util.parallel_execute(
+        cr,
+        [
+            """
+            UPDATE account_payment_term_line
+               SET months = 0,
+                   days = 0,
+                   end_month = True,
+                   days_after = days
+             WHERE option IN ('day_current_month', 'after_invoice_month');
+            """,
+            """
+            UPDATE account_payment_term_line
+               SET months = 0,
+                   days = days,
+                   end_month = (days_after != 0),
+                   days_after = CASE WHEN days_after >= 30 THEN 0 ELSE days_after END
+             WHERE option = 'day_after_invoice_date';
+            """,
+            """
+            UPDATE account_payment_term_line
+               SET months = (days >= 30)::int,
+                   days = 0,
+                   end_month = True,
+                   days_after = CASE WHEN days < 30 THEN days ELSE 0 END
+             WHERE option = 'day_following_month';
+            """,
+        ],
     )
     util.remove_field(cr, "account.payment.term.line", "option")
     util.remove_field(cr, "account.payment.term.line", "sequence")
@@ -272,19 +277,23 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "account_bank_statement", "first_line_index", "varchar")
-    cr.execute('ALTER TABLE account_bank_statement ALTER COLUMN "date" DROP NOT NULL')
+    util.remove_column(cr, "account_bank_statement", "date")
+    util.create_column(cr, "account_bank_statement", "date", "date")
+
     util.parallel_execute(
         cr,
-        util.explode_query_range(cr, 'UPDATE account_bank_statement SET "date" = NULL', table="account_bank_statement"),
-    )
-    cr.execute(
-        """
+        util.explode_query_range(
+            cr,
+            """
         WITH min_max_statement_index AS (
             SELECT st_line.statement_id,
                    MIN(st_line.internal_index) AS min_internal_index,
                    MAX(st_line.internal_index) AS max_internal_index
               FROM account_bank_statement_line st_line
+              JOIN account_bank_statement b
+                ON b.id = st_line.statement_id
              WHERE st_line.statement_id IS NOT NULL
+               AND {parallel_filter}
           GROUP BY st_line.statement_id
         )
         UPDATE account_bank_statement
@@ -296,23 +305,32 @@ def migrate(cr, version):
           JOIN account_move move
             ON move.statement_line_id = st_line.id
          WHERE account_bank_statement.id = min_max_statement_index.statement_id
-        """
+        """,
+            table="account_bank_statement",
+            alias="b",
+        ),
     )
 
     util.create_column(cr, "account_bank_statement", "is_complete", "bool")
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
         WITH st_line_amount_per_st AS (
             SELECT st_line.statement_id,
                    COALESCE(journal.currency_id, company.currency_id) AS currency_id,
                    SUM(st_line.amount) AS amount
               FROM account_bank_statement_line st_line
+              JOIN account_bank_statement b
+                ON b.id = st_line.statement_id
               JOIN account_move move
                 ON move.statement_line_id = st_line.id
               JOIN account_journal journal
                 ON journal.id = move.journal_id
               JOIN res_company company
                 ON company.id = journal.company_id
+             WHERE {parallel_filter}
           GROUP BY st_line.statement_id, journal.currency_id, company.currency_id
         )
         UPDATE account_bank_statement
@@ -324,5 +342,8 @@ def migrate(cr, version):
           JOIN res_currency
             ON res_currency.id = st_line_amount_per_st.currency_id
          WHERE st_line_amount_per_st.statement_id = account_bank_statement.id
-        """
+        """,
+            table="account_bank_statement",
+            alias="b",
+        ),
     )

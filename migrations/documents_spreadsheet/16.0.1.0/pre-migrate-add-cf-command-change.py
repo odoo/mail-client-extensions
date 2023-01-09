@@ -18,6 +18,7 @@ def migrate(cr, version):
         if not commands:
             continue
 
+        changed = False
         for command in commands:
             if command["type"] != "ADD_CONDITIONAL_FORMAT":
                 continue
@@ -25,6 +26,10 @@ def migrate(cr, version):
             sheet_id = command["sheetId"]
             command["ranges"] = [{"_sheetId": sheet_id, "_zone": zone} for zone in command["target"]]
             del command["target"]
+            changed = True
+
+        if not changed:
+            continue
 
         data["commands"] = commands
         cr.execute(

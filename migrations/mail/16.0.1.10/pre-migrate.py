@@ -20,10 +20,16 @@ def migrate(cr, version):
         )
         + util.explode_query_range(
             cr,
-            """UPDATE mail_message
+            """
+            UPDATE mail_message m
                   SET email_layout_xmlid = 'mail.mail_notification_layout_with_responsible_signature'
-                WHERE email_layout_xmlid = 'mail.mail_notification_paynow'""",
+                 FROM mail_mail a
+                WHERE a.mail_message_id = m.id
+                  AND a.state IN ('outgoing', 'exception')
+                  AND m.email_layout_xmlid = 'mail.mail_notification_paynow'
+            """,
             table="mail_message",
+            alias="m",
         ),
     )
     util.remove_view(cr, "mail.mail_notification_paynow")
@@ -61,18 +67,12 @@ def migrate(cr, version):
         $$ LANGUAGE plpgsql IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE;
     """
     cr.execute(char_to_dt)
-    cr.execute(
-        """
-        ALTER TABLE mail_mail
-       ALTER COLUMN scheduled_date TYPE timestamp
-              USING char_to_dt(scheduled_date)
-    """
-    )
+    util.alter_column_type(cr, "mail_mail", "scheduled_date", "timestamp", using="char_to_dt({0})")
     cr.execute("DROP FUNCTION char_to_dt(text)")
 
     query = """
         UPDATE mail_channel
-           SET channel_type = 'group'
+           SET channel_type = 'group', group_public_id = NULL
          WHERE channel_type = 'channel'
            AND public = 'private'
     """

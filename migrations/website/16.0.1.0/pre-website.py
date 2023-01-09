@@ -66,3 +66,11 @@ def migrate(cr, version):
     util.remove_field(cr, "website", "country_group_ids")
     cr.execute("DROP TABLE IF EXISTS website_country_group_rel")
     util.remove_field(cr, "res.config.settings", "website_country_group_ids")
+
+    # convert mixin fields to jsonb
+    fields = ["website_meta_title", "website_meta_description", "website_meta_keywords", "seo_name"]
+    for inh in util.for_each_inherit(cr, "website.seo.metadata"):
+        table = util.table_of_model(cr, inh.model)
+        for field in fields:
+            if util.column_exists(cr, table, field):
+                util.convert_field_to_translatable(cr, inh.model, field)

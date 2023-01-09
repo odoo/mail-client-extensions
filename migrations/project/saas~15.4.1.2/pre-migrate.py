@@ -70,3 +70,20 @@ def migrate(cr, version):
            WHERE B.id = T.id
         """
     )
+
+    util.create_column(cr, "project_task", "is_analytic_account_id_changed", "boolean", default=False)
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            """
+            UPDATE project_task t
+               SET is_analytic_account_id_changed = true
+              FROM project_project p
+             WHERE p.id = t.project_id
+               AND p.analytic_account_id != t.analytic_account_id
+            """,
+            table="project_task",
+            alias="t",
+        ),
+    )
