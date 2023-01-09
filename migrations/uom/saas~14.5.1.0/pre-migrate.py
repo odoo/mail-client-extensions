@@ -17,5 +17,10 @@ def migrate(cr, version):
                      WHERE u.category_id = c.id
                        AND u.uom_type = 'reference'
                    )
+           AND EXISTS (
+                    SELECT 1
+                      FROM uom_uom AS u
+                     WHERE u.category_id = c.id
+                   )
         """
     )
