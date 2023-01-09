@@ -83,3 +83,15 @@ def migrate(cr, version):
         util.remove_module(cr, "purchase_stock_enterprise")
         util.remove_module(cr, "website_slides_enterprise")
         util.remove_module(cr, "web_dashboard")
+
+    # Rename OCA module 'knowledge' to 'document_knowledge'
+    cr.execute(
+        """
+        SELECT 1
+          FROM ir_module_module
+         WHERE name = 'knowledge'
+           AND author ILIKE '%Odoo Community Association (OCA)%'
+        """
+    )
+    if cr.rowcount:
+        util.rename_module(cr, "knowledge", "document_knowledge")
