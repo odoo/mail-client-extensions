@@ -41,3 +41,8 @@ def migrate(cr, version):
             util.ref(cr, "base.menu_reporting_config"),
         ],
     )
+
+    util.remove_view(cr, "base.view_module_category_tree")
+
+    util.remove_field(cr, "ir.ui.view", "field_parent")
+    util.remove_field(cr, "ir.module.category", "module_nr")
