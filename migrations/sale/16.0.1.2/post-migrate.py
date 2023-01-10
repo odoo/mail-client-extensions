@@ -6,6 +6,7 @@ def migrate(cr, version):
     changes = [
         ("acquirer_id", "provider_id"),
         ("tx.provider", "tx.provider_code"),
+        ("token_id.name", "token_id.display_name"),
     ]
     for old, new in changes:
         re_old = rf"\y{re.escape(old)}\y"
