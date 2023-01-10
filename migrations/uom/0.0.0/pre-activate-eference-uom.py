@@ -1,0 +1,37 @@
+# -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
+
+
+def migrate(cr, version):
+    cr.execute(
+        """
+        WITH cats_single_ref AS (
+            SELECT category_id as id
+              FROM uom_uom
+             WHERE uom_type = 'reference'
+          GROUP BY category_id
+            HAVING COUNT(category_id) = 1
+        )
+        UPDATE uom_uom u
+           SET active = True
+          FROM cats_single_ref ref
+          JOIN uom_category c
+            ON c.id = ref.id
+         WHERE c.id = u.category_id
+           AND u.uom_type = 'reference'
+           AND active = False
+     RETURNING u.{}, c.{}
+    """.format(
+            util.get_value_or_en_translation(cr, "uom_uom", "name"),
+            util.get_value_or_en_translation(cr, "uom_category", "name"),
+        )
+    )
+    activated_uoms = cr.fetchall()
+    if activated_uoms:
+        util.add_to_migration_reports(
+            message="UoM Categories must have a reference unit. The following reference units "
+            "were reactivated: {}".format(
+                ", ".join("{} from category {}".format(unit, cat) for unit, cat in activated_uoms)
+            ),
+            category="Units of Measure",
+        )
