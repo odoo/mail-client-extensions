@@ -159,8 +159,8 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO product_pricing (price,recurrence_id,product_template_id,currency_id,pricelist_id,_mig_sub_line_id)
-        SELECT DISTINCT pt.list_price AS price,str.id,
-               pp.product_tmpl_id AS product_template_id,ssl.currency_id,
+        SELECT DISTINCT pt.list_price,str.id,
+               pp.product_tmpl_id,ssl.currency_id,
                ss.pricelist_id,array_agg(ssl.id)
           FROM sale_subscription_line ssl
           JOIN product_product pp ON ssl.product_id=pp.id
@@ -168,7 +168,7 @@ def migrate(cr, version):
           JOIN sale_subscription ss ON ss.id=ssl.analytic_account_id
           JOIN sale_subscription_template sst ON ss.template_id=sst.id
           JOIN sale_temporal_recurrence str ON sst.id = ANY (str._mig_sst_id)
-          GROUP BY price,str.id, product_template_id,currency_id,pricelist_id,recurring_rule_type
+          GROUP BY pt.list_price,str.id,pp.product_tmpl_id,ssl.currency_id,ss.pricelist_id,sst.recurring_rule_type
         """
     )
 
