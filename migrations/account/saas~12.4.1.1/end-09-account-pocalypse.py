@@ -463,11 +463,11 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             WITH invoices0 AS (
                 SELECT il.invoice_id as id,
                     CASE
-                    WHEN count(*)<=2 THEN 500
-                    WHEN count(*)<=5 THEN 100
-                    WHEN count(*)<=10 THEN 50
-                    WHEN count(*)<=20 THEN 25
-                    ELSE 2
+                    WHEN count(*)<=2 THEN 5000
+                    WHEN count(*)<=5 THEN 1000
+                    WHEN count(*)<=10 THEN 500
+                    WHEN count(*)<=20 THEN 250
+                    ELSE 20
                     END as inv_group
                         FROM account_invoice_line il
                 LEFT JOIN invl_aml_mapping mp ON il.id = mp.invl_id
