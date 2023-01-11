@@ -143,7 +143,10 @@ def convert_html_fields(cr):
     html_fields = list(snippets.html_fields(cr))
     for table, columns in util.log_progress(html_fields, _logger, "tables", log_hundred_percent=True):
         if table not in ("mail_message", "mail_activity"):
-            extra_where = " OR ".join(f"({get_bs5_where_clause(cr, column)})" for column in columns)
+            extra_where = " OR ".join(
+                f"({get_bs5_where_clause(cr, util.get_value_or_en_translation(cr, table, column))})"
+                for column in columns
+            )
             snippets.convert_html_columns(cr, table, columns, converter_fn, extra_where=extra_where)
 
     # convert_cache_info = converter_fn.cache_info()
