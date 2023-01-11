@@ -41,11 +41,13 @@ def migrate(cr, version):
         standard_modules = modules.get_modules()
         cr.execute(
             """
-                   SELECT tag.id, tag.name, md.module || '.' || md.name
+                   SELECT tag.id, tag.{}, md.module || '.' || md.name
                      FROM account_account_tag tag
                 LEFT JOIN ir_model_data md ON (md.model = 'account.account.tag' AND md.res_id = tag.id)
                     WHERE tag.id in %s
-            """,
+            """.format(
+                util.get_value_or_en_translation(cr, "account_account_tag", "name")
+            ),
             (tuple(t[0] for t in tags_charts),),
         )
 
