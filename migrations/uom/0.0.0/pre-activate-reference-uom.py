@@ -3,27 +3,33 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    uom_table, category_table = (
+        ("uom_uom", "uom_category") if util.table_exists(cr, "uom_uom") else ("product_uom", "product_uom_categ")
+    )
+
     cr.execute(
         """
         WITH cats_single_ref AS (
             SELECT category_id as id
-              FROM uom_uom
+              FROM {uom_table}
              WHERE uom_type = 'reference'
           GROUP BY category_id
             HAVING COUNT(category_id) = 1
         )
-        UPDATE uom_uom u
+        UPDATE {uom_table} u
            SET active = True
           FROM cats_single_ref ref
-          JOIN uom_category c
+          JOIN {category_table} c
             ON c.id = ref.id
          WHERE c.id = u.category_id
            AND u.uom_type = 'reference'
            AND active = False
-     RETURNING u.{}, c.{}
+     RETURNING u.{uom_col}, c.{categ_col}
     """.format(
-            util.get_value_or_en_translation(cr, "uom_uom", "name"),
-            util.get_value_or_en_translation(cr, "uom_category", "name"),
+            uom_table=uom_table,
+            category_table=category_table,
+            uom_col=util.get_value_or_en_translation(cr, uom_table, "name"),
+            categ_col=util.get_value_or_en_translation(cr, category_table, "name"),
         )
     )
     activated_uoms = cr.fetchall()
