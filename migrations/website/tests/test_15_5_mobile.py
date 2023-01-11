@@ -12,7 +12,6 @@ utf8_parser = html.HTMLParser(encoding="utf-8")
 @change_version("16.0")
 class TestHiddenOnMobile(UpgradeCase):
     def prepare(self):
-
         arch = """
 <t name="Used Assets Test" t-name="website.hidden_on_mobile_test">
   <t t-call="website.layout">
@@ -26,6 +25,11 @@ class TestHiddenOnMobile(UpgradeCase):
       <section class="s_text_block pt40 pb40 d-none d-md-block">
           <div class="container s_allow_columns">
               <p>Hidden on mobile</p>
+          </div>
+      </section>
+      <section class="s_text_block pt40 pb40 d-none d-lg-block">
+          <div class="container s_allow_columns">
+              <p>Hidden on mobile (with lg threshold).</p>
           </div>
       </section>
     </div>
@@ -56,3 +60,7 @@ class TestHiddenOnMobile(UpgradeCase):
         classes = re.split(r"\s+", sections[1].get("class"))
         self.assertIn("o_snippet_mobile_invisible", classes, "Should be invisible on mobile")
         self.assertEqual(sections[1].get("data-invisible"), "1", "Should be considered invisible")
+
+        classes = re.split(r"\s+", sections[2].get("class"))
+        self.assertIn("o_snippet_mobile_invisible", classes, "Should be invisible on mobile")
+        self.assertEqual(sections[2].get("data-invisible"), "1", "Should be considered invisible")

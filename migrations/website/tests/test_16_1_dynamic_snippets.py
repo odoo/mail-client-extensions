@@ -33,6 +33,14 @@ class TestDynamicEmpty(UpgradeCase):
                 class="s_dynamic_snippet s_dynamic pt32 pb32 o_dynamic_empty d-none d-md-block">
             Hidden after fix.
         </section>
+        <section data-snippet="s_dynamic_snippet" data-name="Dynamic Snippet"
+                class="s_dynamic_snippet s_dynamic pt32 pb32 d-none d-lg-block">
+            Broken "Hidden" before fix (with lg threshold).
+        </section>
+        <section data-snippet="s_dynamic_snippet" data-name="Dynamic Snippet"
+                class="s_dynamic_snippet s_dynamic pt32 pb32 o_dynamic_empty d-none d-lg-block">
+            Hidden after fix (with lg threshold).
+        </section>
     </div>
   </t>
 </t>
@@ -70,3 +78,13 @@ class TestDynamicEmpty(UpgradeCase):
         self.assertIn("o_dynamic_empty", classes, "Should be dynamic empty")
         self.assertIn("d-none", classes, "Should be hidden on mobile with d-none")
         self.assertIn("d-md-block", classes, "Should be visible on desktop with d-md-block")
+        # Hidden and from before fix (with lg threshold).
+        classes = re.split(r"\s+", sections[4].get("class"))
+        self.assertIn("o_dynamic_empty", classes, "Should be dynamic empty")
+        self.assertIn("d-none", classes, "Should be hidden on mobile with d-none")
+        self.assertIn("d-lg-block", classes, "Should be visible on desktop with d-lg-block")
+        # Hidden and from after fix (with lg threshold).
+        classes = re.split(r"\s+", sections[5].get("class"))
+        self.assertIn("o_dynamic_empty", classes, "Should be dynamic empty")
+        self.assertIn("d-none", classes, "Should be hidden on mobile with d-none")
+        self.assertIn("d-lg-block", classes, "Should be visible on desktop with d-lg-block")
