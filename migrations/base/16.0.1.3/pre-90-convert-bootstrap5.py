@@ -123,6 +123,7 @@ def get_bs5_where_clause(cr, column):
         keyword = re.sub(r"(?<=\w)$", r"\\M", keyword)
         return keyword
 
+    column = ".".join(f'"{part}"' for part in column.split("."))
     classes, other_kwds = get_keyword_list()
     clause = cr.mogrify(
         rf"(({column} ~ '\mclass\M\s*=' AND {column} ~ %(classes)s) OR {column} ~ %(others)s)",
