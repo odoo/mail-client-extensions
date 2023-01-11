@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
+import datetime
+
 from freezegun import freeze_time
 
-from odoo import fields
-
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+
+REF_DATE = "2020-10-06"
 
 
 @change_version("16.0")
 class AssetsRevampingCase(UpgradeCase):
     def prepare(self):
-        with freeze_time("2020-10-06"):
+        with freeze_time(REF_DATE):
             account_asset, account_asset_depreciation_expense, account_depreciation = self.env[
                 "account.account"
             ].create(
@@ -79,12 +81,19 @@ class AssetsRevampingCase(UpgradeCase):
         }
 
     def check(self, init):
+        ref = datetime.date.fromisoformat(REF_DATE)
+        d = datetime.date(
+            year=ref.year,
+            month=int(self.env.company.fiscalyear_last_month),
+            day=self.env.company.fiscalyear_last_day,
+        )
+        if d >= ref:
+            d = d.replace(year=d.year - 1)
+        d += datetime.timedelta(days=1)
         for asset in self.env["account.asset"].browse(init["assets"]):
             moves = asset.depreciation_move_ids.sorted(lambda m: m.id)
             for i, depreciation_move in enumerate(moves):
                 with self.subTest(depreciation_move=depreciation_move, i=i):
-                    self.assertEqual(
-                        depreciation_move.asset_depreciation_beginning_date, fields.Date.from_string(f"202{i}-01-01")
-                    )
+                    self.assertEqual(depreciation_move.asset_depreciation_beginning_date, d.replace(year=d.year + i))
                     self.assertEqual(depreciation_move.asset_number_days, 360)
                     self.assertEqual(depreciation_move.depreciation_value, 2000)

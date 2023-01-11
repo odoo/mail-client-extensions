@@ -26,13 +26,26 @@ def migrate(cr, version):
     """
     fiscal_year_query = """
         UPDATE account_asset AS asset
-           SET prorata_date = (TO_DATE(date_part('year', asset.acquisition_date)
-                                                    || to_char(company.fiscalyear_last_month::int, '00')
-                                                    || to_char(company.fiscalyear_last_day, '00'),
-                                                 'YYYYMMDD') + INTERVAL '1 day' - INTERVAL '1 year')::DATE
+           SET prorata_date = CASE
+               WHEN make_date(
+                        extract(YEAR FROM asset.acquisition_date)::int,
+                        company.fiscalyear_last_month::int,
+                        company.fiscalyear_last_day
+                    ) < asset.acquisition_date
+               THEN make_date(
+                        extract(YEAR FROM asset.acquisition_date)::int,
+                        company.fiscalyear_last_month::int,
+                        company.fiscalyear_last_day
+                    )
+               ELSE make_date(
+                        extract(YEAR FROM asset.acquisition_date)::int - 1,
+                        company.fiscalyear_last_month::int,
+                        company.fiscalyear_last_day
+                    )
+               END + INTERVAL '1 day'
           FROM res_company AS company
          WHERE asset.company_id = company.id
-               AND asset.prorata IS NOT TRUE
+           AND asset.prorata IS NOT TRUE
     """
     constant_period_queries = util.explode_query_range(cr, constant_period_query, "account_asset")
     fiscal_year_queries = util.explode_query_range(cr, fiscal_year_query, "account_asset", alias="asset")
