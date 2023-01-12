@@ -87,7 +87,7 @@ def migrate(cr, version):
                WHERE sl.id=v.id
             """,
             table="sale_order_line",
-            prefix="sl.",
+            alias="sl",
         ),
     )
     # collect the sale order lines not updated above

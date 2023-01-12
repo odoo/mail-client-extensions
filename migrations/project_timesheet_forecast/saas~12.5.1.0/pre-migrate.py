@@ -11,7 +11,6 @@ def migrate(cr, version):
            SET percentage_hours = CASE WHEN allocated_hours!=0 THEN effective_hours / allocated_hours ELSE 0 END
     """)
 
-
     util.parallel_execute(
         cr,
         util.explode_query(
@@ -34,7 +33,7 @@ def migrate(cr, version):
                     ) as timesheet ON TRUE) as timesheets
                 WHERE timesheets.id=planning_slot.id
             """,
-            prefix="planning_slot.",
+            alias="planning_slot",
         ),
     )
 

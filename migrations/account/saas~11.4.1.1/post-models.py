@@ -14,6 +14,6 @@ def migrate(cr, version):
                 WHERE p.id=a.partner_id
             """,
             table="account_invoice",
-            prefix="a.",
+            alias="a",
         ),
     )

@@ -102,7 +102,7 @@ def migrate(cr, version):
                  GROUP BY sml1.id, sml2.id
                 """,
                 num_buckets=num_buckets,
-                prefix="mp.",
+                alias="mp",
             ),
         )
 

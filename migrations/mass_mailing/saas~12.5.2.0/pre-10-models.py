@@ -94,7 +94,7 @@ def migrate(cr, version):
                        AND mt.campaign_id IS NULL
                        AND {parallel_filter}
                 """,
-                prefix="mt.",
+                alias="mt",
             ),
         )
 

@@ -48,7 +48,7 @@ def migrate(cr, version):
      LEFT JOIN res_country c ON c.id=l.country_id
          WHERE phone_state IS NULL
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead", prefix="l."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead", alias="l"))
 
     lead_ids = [(res[0], res[1], res[2]) for res in cr.fetchall()]
     _logger.info("Computing phone_valid")

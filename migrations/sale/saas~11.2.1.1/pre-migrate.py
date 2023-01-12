@@ -56,7 +56,7 @@ def migrate(cr, version):
           JOIN product_template t ON (t.id = p.product_tmpl_id)
          WHERE p.id = l.product_id
             """.format(**locals()),     # poor man's PEP498
-            prefix="l."
+            alias="l"
         )
     )
     # odoo/odoo@faf6165e037bcb1afee8a4881f3a166c86fdee59

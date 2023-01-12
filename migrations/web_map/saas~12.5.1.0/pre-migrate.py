@@ -22,6 +22,6 @@ def migrate(cr, version):
                   FROM _p
                  WHERE _p.id = p.id
             """,
-            prefix="p.",
+            alias="p",
         ),
     )

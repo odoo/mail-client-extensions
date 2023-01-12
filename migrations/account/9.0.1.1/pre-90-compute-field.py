@@ -43,7 +43,7 @@ def migrate(cr, version):
            AND aml.account_id = acc.id
            AND aml.journal_id = j.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
 
     # update aml that are from invoice that have been fully paid, meaning the aml are already reconciled
     query = """
@@ -59,7 +59,7 @@ def migrate(cr, version):
            AND inv.state != 'open'
            AND aml.reconcile_id IS NOT NULL
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
 
     util.create_column(cr, 'account_invoice', 'residual_company_signed', 'numeric')
     util.create_column(cr, 'account_invoice', 'residual_signed', 'numeric')

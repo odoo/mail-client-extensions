@@ -75,7 +75,7 @@ def migrate(cr, version):
                WHERE r.id = m.rule_id
             """,
             table="stock_move",
-            prefix="m.",
+            alias="m",
         ),
     )
 

@@ -113,7 +113,7 @@ def migrate(cr, version):
                 amount_return = COALESCE(payments.returned, 0)
             FROM payments
             WHERE o.id=payments.pos_statement_id
-        """, table="pos_order", prefix="o."))
+        """, table="pos_order", alias="o"))
         util.parallel_execute(cr, util.explode_query_range(cr, """
             WITH amount as (
                 SELECT l.order_id, sum(l.price_subtotal_incl) as incl, sum(coalesce(l.price_subtotal_incl,0)-coalesce(l.price_subtotal,0)) as taxes
@@ -127,7 +127,7 @@ def migrate(cr, version):
                 amount_total=amount.incl
             FROM amount
             WHERE o.id=amount.order_id
-        """, table="pos_order", prefix="o."))
+        """, table="pos_order", alias="o"))
         # Clean up, ensure value since this is a required field
         util.parallel_execute(cr, util.explode_query_range(cr, """
             UPDATE pos_order

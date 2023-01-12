@@ -20,7 +20,7 @@ def migrate(cr, version):
            AND l.is_delivery = TRUE
             """,
             table="sale_order",
-            prefix="s.",
+            alias="s",
         ),
     )
     cr.execute("UPDATE sale_order SET recompute_delivery_price = FALSE WHERE recompute_delivery_price IS NULL")

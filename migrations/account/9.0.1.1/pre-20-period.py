@@ -15,7 +15,7 @@ def migrate(cr, version):
          WHERE p.id = a.period_id
            AND ((a.date NOT BETWEEN p.date_start AND p.date_stop) OR a.date IS NULL)
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move", prefix="a."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move", alias="a"))
 
     # Set the related date on account_move_line
     query = """
@@ -24,7 +24,7 @@ def migrate(cr, version):
           FROM account_move am
          WHERE aml.move_id = am.id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="aml."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
 
     # and again on account_bank_statement
     query = """
@@ -34,7 +34,7 @@ def migrate(cr, version):
          WHERE p.id = a.period_id
            AND ((a.date NOT BETWEEN p.date_start AND p.date_stop) OR a.date IS NULL)
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_bank_statement", prefix="a."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_bank_statement", alias="a"))
 
     # and again on account_invoice
     util.create_column(cr, "account_invoice", "date", "date")
@@ -45,7 +45,7 @@ def migrate(cr, version):
          WHERE p.id = a.period_id
            AND ((a.date_invoice NOT BETWEEN p.date_start AND p.date_stop) OR a.date_invoice IS NULL)
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_invoice", prefix="a."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_invoice", alias="a"))
 
     # Set the date on account_invoice related 'date_invoice' is not null
     query = """

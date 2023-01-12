@@ -28,7 +28,7 @@ def migrate(cr, version):
            AND t.id = m.picking_type_id
         """,
             table="stock_move",
-            prefix="m.",
+            alias="m",
         ),
     )
     util.parallel_execute(
@@ -48,6 +48,6 @@ def migrate(cr, version):
            AND t.id = k.picking_type_id
         """,
             table="stock_move_line",
-            prefix="l.",
+            alias="l",
         ),
     )

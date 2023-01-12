@@ -17,6 +17,6 @@ def migrate(cr, version):
                AND ml.price_taxcloud != il.price_taxcloud
             """,
             "account_move_line",
-            prefix="ml.",
+            alias="ml",
         ),
     )

@@ -13,4 +13,4 @@ def migrate(cr, version):
              WHERE t.id = aal.sheet_id
                 AND t.state = 'done'
         """
-        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", prefix="aal."))
+        util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="aal"))

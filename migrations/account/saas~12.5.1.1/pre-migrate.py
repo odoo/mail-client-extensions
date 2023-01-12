@@ -101,7 +101,7 @@ def migrate(cr, version):
               FROM account_account a
              WHERE a.id = l.account_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="l."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="l"))
 
     query = """
             UPDATE account_move_line l
@@ -109,7 +109,7 @@ def migrate(cr, version):
              FROM account_tax t
             WHERE t.id = l.tax_line_id
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", prefix="l."))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="l"))
 
     for suffix in {"", "_template"}:
         table = "account_reconcile_model" + suffix

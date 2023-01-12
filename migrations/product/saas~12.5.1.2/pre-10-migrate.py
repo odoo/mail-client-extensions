@@ -77,7 +77,7 @@ def migrate(cr, version):
              WHERE pv.id = tv.product_attribute_value_id
     """
     util.parallel_execute(
-        cr, util.explode_query_range(cr, query, table="product_template_attribute_value", prefix="tv.")
+        cr, util.explode_query_range(cr, query, table="product_template_attribute_value", alias="tv")
     )
 
     query = """
@@ -88,7 +88,7 @@ def migrate(cr, version):
                AND l.attribute_id = v.attribute_id
     """
     util.parallel_execute(
-        cr, util.explode_query_range(cr, query, table="product_template_attribute_value", prefix="v.")
+        cr, util.explode_query_range(cr, query, table="product_template_attribute_value", alias="v")
     )
 
     util.create_column(cr, "product_pricelist_item", "active", "boolean")

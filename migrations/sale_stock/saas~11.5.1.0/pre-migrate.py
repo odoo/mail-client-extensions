@@ -30,6 +30,6 @@ def migrate(cr, version):
                   group by sale_id) as p
             WHERE sale_order.id=p.sale_id
                 """,
-                prefix="sale_order.",
+                alias="sale_order",
             ),
         )
