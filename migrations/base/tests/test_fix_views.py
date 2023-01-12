@@ -299,8 +299,9 @@ class TestFixViews(UpgradeCase):
 
     def check(self, data):
         version, info = data
-        if version == release.version_info[:2]:
-            # upgrade from master to master
+        if tuple(version) == release.version_info[:2]:
+            # To allow running test_prepare/check without running the upgrade scripts
+            # Practial use case: upgrade from master to master in runbot
             return
         views = self.env["ir.ui.view"].browse([x[0] for x in info])
         for (view, (vid, disabled)) in zip(views, info):
