@@ -29,6 +29,8 @@ class TestMigrateIsBlocked(UpgradeCase):
             D    E    F
         """
 
+        self.env = self.env["base"].with_context(pad_no_create=True).env
+
         def create_task(**values):
             return self.env["project.task"].create(values)
 
