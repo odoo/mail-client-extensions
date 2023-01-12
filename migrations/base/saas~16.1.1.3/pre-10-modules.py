@@ -18,3 +18,5 @@ def migrate(cr, version):
 
     util.rename_module(cr, "l10n_hr", "l10n_hr_kuna")
     util.rename_module(cr, "l10n_hr_euro", "l10n_hr")
+
+    util.force_upgrade_of_fresh_module(cr, "sale_service", init=False)
