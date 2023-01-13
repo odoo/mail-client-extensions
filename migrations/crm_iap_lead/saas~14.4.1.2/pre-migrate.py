@@ -34,12 +34,15 @@ def migrate(cr, version):
     def ref(num):
         return util.ref(cr, f"{module}.crm_iap_lead_industry_{num}")
 
-    util.replace_record_references_batch(
-        cr,
-        {ref(old_id): ref(new_id) for old_id, new_id in industry_ids_to_merge.items()},
-        "crm.iap.lead.industry",
-        replace_xmlid=False,
-    )
+    mapping = {ref(old_id): ref(new_id) for old_id, new_id in industry_ids_to_merge.items()}
+    mapping.pop(None, None)
+    if mapping:
+        util.replace_record_references_batch(
+            cr,
+            mapping,
+            "crm.iap.lead.industry",
+            replace_xmlid=False,
+        )
 
     # 2. remove unused industries & merged ones
     industry_ids_to_remove = ["146", "151", "154", "155", "156", "157", "159", "164"]
