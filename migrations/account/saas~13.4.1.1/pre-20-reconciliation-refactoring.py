@@ -41,7 +41,7 @@ def migrate(cr, version):
             UPDATE account_partial_reconcile part
             SET
                 debit_currency_id = line.currency_id,
-                debit_amount_currency = ROUND(part.amount * line.amount_currency / NULLIF(line.balance, 0.0), curr.decimal_places)
+                debit_amount_currency = COALESCE(ROUND(part.amount * line.amount_currency / NULLIF(line.balance, 0.0), curr.decimal_places), 0.0)
             FROM account_move_line line
             JOIN res_currency curr ON curr.id = line.currency_id
             WHERE part.currency_id IS NULL
@@ -75,7 +75,7 @@ def migrate(cr, version):
             UPDATE account_partial_reconcile part
             SET
                 credit_currency_id = line.currency_id,
-                credit_amount_currency = ROUND(part.amount * line.amount_currency / NULLIF(line.balance, 0.0), curr.decimal_places)
+                credit_amount_currency = COALESCE(ROUND(part.amount * line.amount_currency / NULLIF(line.balance, 0.0), curr.decimal_places), 0.0)
             FROM account_move_line line
             JOIN res_currency curr ON curr.id = line.currency_id
             WHERE part.currency_id IS NULL
