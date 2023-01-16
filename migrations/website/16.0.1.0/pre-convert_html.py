@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-import sys
-import uuid
-from pathlib import Path
 
 import odoo.upgrade.util.snippets as snip
-from odoo.upgrade import util
 
 
 def convert_device(el):
@@ -60,25 +56,14 @@ def convert_animate(el):
 
 def migrate(cr, version):
 
-    f = Path(__file__)
-    f.relative_to(f.parent.parent.parent)
-
-    # NOTE
-    # `ProcessPoolExecutor.map` arguments needs to be pickleable
-    # Functions can only be pickle if they are importable.
-    # However, the current file is not importable due to the dash in the filename.
-    # We should then put the executed function in its own importable file.
-    name = f"_upgrade_{uuid.uuid4().hex}"
-    mod = sys.modules[name] = util.import_script(str(f), name=name)
-
     snip.convert_html_content(
         cr,
-        snip.html_selector_converter(mod.convert_device, selector="//*[hasclass('d-none')]"),
+        snip.html_converter(convert_device, selector="//*[hasclass('d-none')]"),
         where_column=r"~ '\yd-md-'",
     )
 
     snip.convert_html_content(
         cr,
-        snip.html_selector_converter(mod.convert_animate, selector="//*[hasclass('o_animate')]"),
+        snip.html_converter(convert_animate, selector="//*[hasclass('o_animate')]"),
         where_column=r"~ '\yo_animate\y'",
     )
