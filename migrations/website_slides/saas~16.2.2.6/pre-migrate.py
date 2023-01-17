@@ -11,3 +11,5 @@ def migrate(cr, version):
          WHERE visibility = 'members'
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="slide_channel"))
+
+    util.remove_field(cr, "slide.channel", "karma_gen_slide_vote")
