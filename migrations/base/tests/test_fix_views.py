@@ -1,8 +1,6 @@
 from lxml.builder import E
 from lxml.etree import tostring
 
-from odoo import release
-
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 
 
@@ -11,6 +9,10 @@ def ts(e):
 
 
 class TestFixViews(UpgradeCase):
+    def _get_base_version(self):
+        self.env.cr.execute("SELECT latest_version FROM ir_module_module WHERE name='base'")
+        return self.env.cr.fetchone()[0]
+
     def prepare(self):
         info = []
 
@@ -295,11 +297,11 @@ class TestFixViews(UpgradeCase):
             },
         )
 
-        return [release.version_info[:2], info]
+        return [self._get_base_version(), info]
 
     def check(self, data):
         version, info = data
-        if tuple(version) == release.version_info[:2]:
+        if version == self._get_base_version():
             # To allow running test_prepare/check without running the upgrade scripts
             # Practial use case: upgrade from master to master in runbot
             return
