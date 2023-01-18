@@ -24,25 +24,39 @@ def migrate(cr, version):
         SET prorata_computation_type = 'constant_periods'
         WHERE prorata IS TRUE
     """
+    cr.execute(
+        """
+        CREATE FUNCTION is_leap(y integer) RETURNS boolean
+            AS 'SELECT (y % 400 = 0) OR (y % 4 = 0) AND (y % 100 != 0)'
+            LANGUAGE SQL
+            IMMUTABLE
+            RETURNS NULL ON NULL INPUT;
+
+        -- handles leap year date: 29th Feb, it sets 28th when non-leap
+        CREATE FUNCTION make_date_leap(y integer,m integer,d integer) RETURNS date
+            AS 'SELECT make_date(y,m,CASE WHEN NOT is_leap(y) AND m=2 AND d=29 THEN 28 ELSE d END)'
+            LANGUAGE SQL
+            IMMUTABLE
+            RETURNS NULL ON NULL INPUT;
+        """
+    )
     fiscal_year_query = """
         UPDATE account_asset AS asset
-           SET prorata_date = CASE
-               WHEN make_date(
-                        extract(YEAR FROM asset.acquisition_date)::int,
-                        company.fiscalyear_last_month::int,
-                        company.fiscalyear_last_day
-                    ) < asset.acquisition_date
-               THEN make_date(
-                        extract(YEAR FROM asset.acquisition_date)::int,
-                        company.fiscalyear_last_month::int,
-                        company.fiscalyear_last_day
-                    )
-               ELSE make_date(
-                        extract(YEAR FROM asset.acquisition_date)::int - 1,
-                        company.fiscalyear_last_month::int,
-                        company.fiscalyear_last_day
-                    )
-               END + INTERVAL '1 day'
+           -- make_date_leap is a function created before on this script
+           SET prorata_date = make_date_leap(
+                   extract(YEAR FROM asset.acquisition_date)::int -
+                   CASE
+                       WHEN make_date_leap(
+                                extract(YEAR FROM asset.acquisition_date)::int,
+                                company.fiscalyear_last_month::int,
+                                company.fiscalyear_last_day
+                            ) < asset.acquisition_date
+                       THEN 0 -- if fiscal last date before asset date, use same year (N)
+                       ELSE 1 -- else use previous year (N - 1)
+                   END,
+                   company.fiscalyear_last_month::int,
+                   company.fiscalyear_last_day
+                ) + INTERVAL '1 day'
           FROM res_company AS company
          WHERE asset.company_id = company.id
            AND asset.prorata IS NOT TRUE
@@ -50,6 +64,12 @@ def migrate(cr, version):
     constant_period_queries = util.explode_query_range(cr, constant_period_query, "account_asset")
     fiscal_year_queries = util.explode_query_range(cr, fiscal_year_query, "account_asset", alias="asset")
     util.parallel_execute(cr, [*constant_period_queries, *fiscal_year_queries])
+    cr.execute(
+        """
+        DROP FUNCTION make_date_leap;
+        DROP FUNCTION is_leap;
+        """
+    )
 
     util.create_column(cr, "account_move", "asset_depreciation_beginning_date", "date")
     util.create_column(cr, "account_move", "asset_number_days", "int")
