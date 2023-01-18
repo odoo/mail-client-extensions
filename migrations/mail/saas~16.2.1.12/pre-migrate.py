@@ -4,6 +4,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # move model_is_thread from mass mailing to mail; otherwise as it is not
+    # stored do nothing
+    if util.module_installed(cr, "mass_mailing"):
+        util.move_field_to_module(cr, "mail.compose.message", "model_is_thread", "mass_mailing", "mail")
+
     # move from res_id (+ active_ids context) to either res_ids, either res_domain (with user for search)
     util.create_column(cr, "mail_compose_message", "auto_delete_keep_log", "boolean")
     util.create_column(cr, "mail_compose_message", "force_send", "boolean", default=True)
