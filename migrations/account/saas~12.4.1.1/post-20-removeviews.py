@@ -11,7 +11,6 @@ def migrate(cr, version):
         (util.ref(cr, "account.invoice_tree"), util.ref(cr, "account.view_move_tree")),
         (util.ref(cr, "account.invoice_kanban"), util.ref(cr, "account.view_account_move_kanban")),
         (util.ref(cr, "account.invoice_form"), util.ref(cr, "account.view_move_form")),
-        (util.ref(cr, "account.view_account_invoice_filter"), util.ref(cr, "account.view_account_move_filter")),
         (util.ref(cr, "account.invoice_tree_with_onboarding"), util.ref(cr, "account.view_invoice_tree")),
     )
     query = """
@@ -43,4 +42,3 @@ def migrate(cr, version):
     util.remove_view(cr, "account.invoice_supplier_tree")
     util.remove_view(cr, "account.invoice_supplier_form")
     util.remove_view(cr, "account.invoice_form")
-    util.remove_view(cr, "account.view_account_invoice_filter")
