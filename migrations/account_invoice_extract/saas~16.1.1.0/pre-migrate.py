@@ -13,3 +13,20 @@ def migrate(cr, version):
     util.remove_field_metadata(cr, "account.move", "extract_remote_id")
     util.remove_field_metadata(cr, "account.move", "extract_state")
     util.remove_field_metadata(cr, "account.move", "extract_status_code")
+
+    # compute new fields
+    util.create_column(cr, "account_move", "extract_state_processed", "boolean", default=False)
+    query = """
+        UPDATE account_move
+           SET extract_state_processed = true
+         WHERE extract_state IN ('waiting_extraction', 'waiting_upload')
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move"))
+
+    util.create_column(cr, "account_move", "is_in_extractable_state", "boolean", default=False)
+    query = """
+        UPDATE account_move
+           SET is_in_extractable_state = true
+         WHERE state = 'draft'
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move"))

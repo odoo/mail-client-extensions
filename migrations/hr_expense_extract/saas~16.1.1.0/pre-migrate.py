@@ -16,3 +16,13 @@ def migrate(cr, version):
     util.remove_field_metadata(cr, "hr.expense", "extract_remote_id")
     util.remove_field_metadata(cr, "hr.expense", "extract_state")
     util.remove_field_metadata(cr, "hr.expense", "extract_status_code")
+    util.remove_field_metadata(cr, "hr.expense", "extract_state_processed")
+
+    # compute new fields
+    util.create_column(cr, "hr_expense", "is_in_extractable_state", "boolean", default=False)
+    query = """
+        UPDATE hr_expense
+           SET is_in_extractable_state = true
+         WHERE state = 'draft'
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="hr_expense"))
