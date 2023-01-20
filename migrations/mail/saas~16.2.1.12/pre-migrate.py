@@ -64,3 +64,23 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.template", "report_template")
     util.remove_field(cr, "mail.template", "report_name")
     util.remove_field(cr, "mail.mail", "to_delete")
+
+    # Remove message_main_attachment_id field from mail.thread models except the ones inheriting from mail.thread.main.attachment
+    util.remove_field(
+        cr,
+        "mail.thread",
+        "message_main_attachment_id",
+        skip_inherit=(
+            "account.move",
+            "account.payment",
+            "approval.request",
+            "extract.mixin",
+            "hr.applicant",
+            "hr.employee",
+            "hr.expense",
+            "hr.expense.sheet",
+            "hr.leave",
+            "hr.payslip",
+            "sdd.mandate",
+        ),
+    )
