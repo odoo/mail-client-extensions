@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.upgrade import util
+from odoo.upgrade.util import inconsistencies
 
 
 def migrate(cr, version):
@@ -72,4 +73,4 @@ def migrate(cr, version):
 
     for model_name, field_names in fields_to_check.items():
         for field_name in field_names:
-            util.check_company_consistency(cr, model_name, field_name)
+            inconsistencies.verify_companies(cr, model_name, field_name)
