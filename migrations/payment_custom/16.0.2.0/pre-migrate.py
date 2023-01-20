@@ -9,8 +9,9 @@ def migrate(cr, version):
     cr.execute(
         """
             UPDATE payment_provider
-               SET code = 'custom',
-                   custom_mode = 'transfer'
+               SET custom_mode = 'wire_transfer'
              WHERE code = 'transfer'
         """
     )
+
+    util.change_field_selection_values(cr, "payment.provider", "code", {"transfer": "custom"})
