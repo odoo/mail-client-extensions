@@ -763,8 +763,16 @@ class IrUiView(models.Model):
             def _load_records(self, data_list, update=False):
                 xml_ids = [data["xml_id"] for data in data_list if data.get("xml_id")]
                 force_check_views = self.env["ir.ui.view"]
-                for row in self.env["ir.model.data"]._lookup_xmlids(xml_ids, self):
+                for xml_id, row in zip(xml_ids, self.env["ir.model.data"]._lookup_xmlids(xml_ids, self)):
                     d_id, d_module, d_name, d_model, d_res_id, d_noupdate, r_id = row
+                    if d_model == "theme.ir.ui.view":
+                        # Since odoo/odoo#104094 (odoo/odoo@b89b70cc) we do not allow updating a model while loading records
+                        # Given github.com/odoo/odoo/blob/d335052223e6b2a8cb6b3ae98c996f6874a2d5e5/odoo/tools/convert.py#L598-L601
+                        # some custom themes (**wrongly** using an external standard xmlid) override the model of a standard
+                        # template from ir.ui.view to theme.ir.ui.view, this causes issues when loading the standard view.
+                        util.remove_record(self.env.cr, xml_id)
+                        continue
+
                     if d_noupdate:
                         filename = self.env.context["install_filename"]
                         xml_file = get_resource_from_path(filename)
@@ -772,6 +780,7 @@ class IrUiView(models.Model):
                             view = self.browse(d_res_id)
                             view.arch_fs = "/".join(xml_file[0:2])
                             force_check_views |= view
+
                 res = super(IrUiView, self)._load_records(data_list, update=update)
                 # Standard View set to noupdate in database are no validated. Force the validation.
                 # See https://github.com/odoo/odoo/pull/40207
