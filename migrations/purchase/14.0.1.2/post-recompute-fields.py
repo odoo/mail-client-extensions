@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.upgrade import util
+from odoo.upgrade.util import inconsistencies
 
 
 def migrate(cr, version):
@@ -18,4 +19,14 @@ def migrate(cr, version):
         """
     )
     line_ids = [id[0] for id in cr.fetchall()]
+
+    inconsistencies.verify_uoms(cr, "purchase.order.line", uom_field="product_uom", ids=line_ids)
+    inconsistencies.verify_products(
+        cr,
+        "purchase.order.line",
+        "account.move.line",
+        foreign_model_reference_field="purchase_line_id",
+        ids=line_ids,
+    )
+
     util.recompute_fields(cr, "purchase.order.line", ["qty_to_invoice"], ids=line_ids)

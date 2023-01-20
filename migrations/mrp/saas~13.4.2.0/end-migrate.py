@@ -3,6 +3,7 @@ import logging
 from collections import defaultdict
 
 from odoo.upgrade import util
+from odoo.upgrade.util import inconsistencies
 
 _logger = logging.getLogger("odoo.upgrade.mrp.134" + __name__)
 
@@ -356,7 +357,11 @@ def migrate(cr, version):
             {"ids": tuple(ids_mo)},
         )
         ids_move = [move_id for move_id, in cr.fetchall()]
+
+        inconsistencies.verify_uoms(cr, "mrp.production", uom_field="product_uom_id", ids=ids_mo)
         util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids_mo)
+
+        inconsistencies.verify_uoms(cr, "stock.move", uom_field="product_uom", ids=ids_move)
         util.recompute_fields(cr, "stock.move", ["product_qty"], ids=ids_move)
 
     # Before workorders were created with plan button, now it is done with the bom onchange, then simulate it when needed.
