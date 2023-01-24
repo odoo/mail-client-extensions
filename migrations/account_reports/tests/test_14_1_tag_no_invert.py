@@ -128,29 +128,57 @@ class TestTagNoInvert(UpgradeCase):
             return rslt
 
         with no_fiscal_lock(self.env.cr):
-            # Ensure the lock dates allow what we are doing
-            self.env.company.fiscalyear_lock_date = None
-            self.env.company.tax_lock_date = None
-            self.env.company.period_lock_date = None
-
-            # Create a tax report for a brand new country
+            test_name = "TestTagNoInvert"
             country = self.env["res.country"].create(
                 {
                     "name": "Wakanda",
                     "code": "WA",
                 }
             )
+            self.company = self.env["res.company"].create(
+                {
+                    "name": "TestCompany1",
+                    "country_id": country.id,
+                    "account_tax_fiscal_country_id": country.id,
+                    "user_ids": [(4, self.env.ref("base.user_admin").id)],
+                }
+            )
+            user = (
+                self.env["res.users"]
+                .with_context(no_reset_password=True)
+                .create(
+                    {
+                        "name": "user %s" % test_name,
+                        "login": test_name,
+                        "groups_id": [
+                            (6, 0, self.env.user.groups_id.ids),
+                            (4, self.env.ref("account.group_account_user").id),
+                        ],
+                        "company_ids": [(6, 0, self.company.ids)],
+                        "company_id": self.company.id,
+                    }
+                )
+            )
+            user.partner_id.email = "%s@odoo.test" % test_name
+
+            self.env = self.env(user=user)
+            self.cr = self.env.cr
+
+            chart_template = self.env.ref("l10n_generic_coa.configurable_chart_template", raise_if_not_found=False)
+            if not chart_template:
+                self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
+
+            chart_template.try_loading(company=self.company)
+
             tax_report = self.env["account.tax.report"].create(
                 {
                     "name": "Test",
                     "country_id": country.id,
                 }
             )
-            self.env.company.account_tax_fiscal_country_id = country
-            self.env.company.country_id = country
 
             if module_installed(self.env.cr, "l10n_latam_invoice_document"):
-                domain = [("company_id", "=", self.env.company.id), ("l10n_latam_use_documents", "=", True)]
+                domain = [("company_id", "=", self.company.id), ("l10n_latam_use_documents", "=", True)]
                 self.env["account.journal"].search(domain).write({"l10n_latam_use_documents": False})
 
             # Populate the tax report
@@ -383,7 +411,7 @@ class TestTagNoInvert(UpgradeCase):
                 "model": "account.tax.template",
             }
         )
-        tax_id = tax_template._generate_tax(self.env.user.company_id)["tax_template_to_tax"][tax_template.id]
+        tax_id = tax_template._generate_tax(self.company)["tax_template_to_tax"][tax_template.id]
         return self.env["account.tax"].browse(tax_id)
 
     def _get_report_lines(self, today):
