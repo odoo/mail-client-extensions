@@ -16,3 +16,7 @@ def migrate(cr, version):
     util.rename_model(
         cr, "report.stock.report_product_template_replenishment", "stock.forecasted_product_template", False
     )
+
+    # `product_id` is required on packagings, deletes the ones without this
+    # field as they shouldn't exist at the first place.
+    cr.execute("DELETE FROM product_packaging WHERE product_id IS NULL")
