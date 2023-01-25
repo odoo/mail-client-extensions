@@ -35,7 +35,7 @@ def migrate(cr, version):
             if not same_product and l_uom.category_id != p_uom.category_id:
                 bad_lines.append(l_id)
                 continue
-            qty = float_round(l_uom._compute_quantity(l_qty, p_uom) / p_qty, p_uom.rounding)
+            qty = float_round(l_uom._compute_quantity(l_qty, p_uom) / p_qty, precision_rounding=p_uom.rounding)
             values.append((l_id, qty))
 
         if bad_lines:
