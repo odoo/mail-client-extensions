@@ -6,6 +6,7 @@ def migrate(cr, version):
     util.remove_view(cr, "stock.report_product_template_replenishment")
     util.remove_view(cr, "stock.report_product_product_replenishment")
     util.remove_view(cr, "stock.report_replenishment_header")
+    util.remove_record(cr, "stock.all_picking")
     util.remove_record(cr, "stock.stock_replenishment_report_product_product_action")
     util.remove_record(cr, "stock.stock_replenishment_report_product_template_action")
     util.remove_record(cr, "stock.stock_replenishment_product_product_action")
