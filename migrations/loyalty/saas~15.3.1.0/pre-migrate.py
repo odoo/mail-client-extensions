@@ -342,6 +342,10 @@ def _gift_card_migrate(cr):
         for program in gift_card_programs
     ]
     gift_card_product = util.ref(cr, "loyalty.gift_card_product_50")
+    if gift_card_product is None:
+        util.update_record_from_xml(cr, "loyalty.gift_card_product_50", force_create=True)
+        gift_card_product = util.ref(cr, "loyalty.gift_card_product_50")
+
     execute_values(
         cr._obj,
         """
