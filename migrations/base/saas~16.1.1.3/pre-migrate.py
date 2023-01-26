@@ -46,3 +46,12 @@ def migrate(cr, version):
 
     util.remove_field(cr, "ir.ui.view", "field_parent")
     util.remove_field(cr, "ir.module.category", "module_nr")
+
+    # The `Warning` exception is no more available in server actions
+    cr.execute(
+        r"""
+            UPDATE ir_act_server
+               SET code = regexp_replace(code, '\yWarning *\(', 'UserError(', 'g')
+             WHERE code ~ '\yWarning *\('
+        """
+    )
