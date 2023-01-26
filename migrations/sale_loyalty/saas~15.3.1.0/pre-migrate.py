@@ -206,7 +206,9 @@ def _migrate_sale_gift_card(cr):
             ON gc.id = c._upg_gift_card_id
           JOIN sale_order_line line
             ON line.id = gc.buy_line_id
-         WHERE c.order_id IS NOT NULL AND c._upg_gift_card_id IS NOT NULL
+         WHERE c.order_id IS NOT NULL
+           AND c._upg_gift_card_id IS NOT NULL
+           AND line.product_uom_qty > 0
         """
     )
 
