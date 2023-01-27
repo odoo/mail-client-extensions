@@ -42,7 +42,7 @@ def migrate(cr, version):
                                     JOIN account_move move ON move.id = aml.move_id
                                    WHERE move.state = 'posted'
                                      AND move.is_move_sent IS FALSE
-                                     AND subtml.payment_mode = 'success_payment')
+                                     AND subtml.payment_mode IN ('validate_send', 'validate_send_payment', 'success_payment'))
         """
     )
     # Rename rule type of template to ease the migration
