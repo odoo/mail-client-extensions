@@ -55,8 +55,6 @@ def migrate(cr, version):
 
     util.remove_module(cr, "website_utm")
 
-    util.remove_module(cr, "transifex")
-
     if util.has_enterprise():
         util.force_migration_of_fresh_module(cr, "spreadsheet_edition")
         util.remove_module(cr, "project_account_accountant")
