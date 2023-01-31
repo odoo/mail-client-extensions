@@ -6,6 +6,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.merge_module(cr, "l10n_generic_coa", "account")
     util.merge_module(cr, "l10n_multilang", "account")
+    util.merge_module(cr, "l10n_in_tcs_tds", "l10n_in")
 
     if util.has_enterprise():
         util.remove_module(cr, "l10n_generic_auto_transfer_demo")
