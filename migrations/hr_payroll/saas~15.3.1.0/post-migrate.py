@@ -21,6 +21,7 @@ def migrate(cr, version):
                    JOIN res_users ru ON ru.id = rc.user_id
                    JOIN res_groups_users_rel rg ON rg.uid = ru.id
                   WHERE rg.gid = %s
+            ON CONFLICT DO NOTHING
         """,
         [util.ref(cr, "hr_payroll.payroll_note_tag"), util.ref(cr, "hr_payroll.group_hr_payroll_user")],
     )
