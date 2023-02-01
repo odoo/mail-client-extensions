@@ -197,6 +197,9 @@ def migrate(cr, version):
 
     # (3.) Update the MO source and create backorder related too
     _logger.info("Create the backorder MO + update source MO")
+    cr.execute("""SELECT max(id) FROM mrp_production""")
+    max_id = cr.fetchall()[0]
+
     cr.execute(
         """
         WITH insert_backorder_production AS (
@@ -370,7 +373,7 @@ def migrate(cr, version):
     util.recompute_fields(cr, "stock.move", ["unit_factor", "reference"], ids=ids_recompute_stock_move)
 
     # Recompute store fields of mrp.production where the compute method changed
-    cr.execute("SELECT id FROM mrp_production WHERE state != 'cancel'")
+    cr.execute("SELECT id FROM mrp_production WHERE state != 'cancel' AND id <= %s", [max_id])
     recompute_state_ids = [id for id, in cr.fetchall()]
     util.recompute_fields(cr, "mrp.production", ["state"], ids=recompute_state_ids, strategy="commit")
     util.recompute_fields(cr, "mrp.production", ["production_location_id"], strategy="commit")
