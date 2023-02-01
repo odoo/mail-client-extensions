@@ -122,7 +122,6 @@ class TestCrawler(IntegrityCase):
 
     @patch("odoo.addons.base.models.ir_model.Unknown.__getattr__", get_id, create=True)
     def invariant(self):
-
         now = time.time()
 
         self.action_type_fields = {
@@ -401,7 +400,6 @@ class TestCrawler(IntegrityCase):
                 fname = node.get("name")
                 field = model._fields[fname]
                 if field.comodel_name:
-
                     domain = []
                     if node.get("domain"):
                         domain = [("id", "=", processed_data[fname])] if processed_data[fname] else []
@@ -419,8 +417,19 @@ class TestCrawler(IntegrityCase):
                     self.env[field.comodel_name].browse([value["id"] for value in values]).name_get()
 
             for node in view.xpath("//field[@widget='selection']"):
+                sel_model = model
+                if node.get("name") not in model._fields:
+                    fields_path = []
+                    parent = node.getparent()
+                    while parent is not None:
+                        if parent.tag == "field":
+                            fields_path.append(parent.get("name"))
+                        parent = parent.getparent()
+                    while fields_path:
+                        fname = fields_path.pop()
+                        sel_model = self.env[sel_model._fields[fname].comodel_name]
                 fname = node.get("name")
-                field = model._fields[fname]
+                field = sel_model._fields[fname]
                 if field.comodel_name:
                     domain = []
                     if node.get("domain"):
