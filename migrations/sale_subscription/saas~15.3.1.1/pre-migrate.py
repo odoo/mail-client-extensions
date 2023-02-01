@@ -7,7 +7,7 @@ from odoo.addons.sale_subscription.models import sale_order_stage as _ignore  # 
 
 from odoo.upgrade import util
 
-NS = "openerp.addons.base.maintenance.migrations.sale_sbscription.saas-15.3."
+NS = "openerp.addons.base.maintenance.migrations.sale_subscription.saas-15.3."
 _logger = logging.getLogger(NS + __name__)
 
 
@@ -208,6 +208,85 @@ def migrate(cr, version):
         ),
     )
 
+    # change model of custom fields to sale.order to prevent removal
+    model_ids = [
+        (
+            util.ref(cr, "sale.model_sale_order"),
+            util.ref(cr, "sale_subscription.model_sale_subscription"),
+            "sale.order",
+        ),
+        (
+            util.ref(cr, "sale.model_sale_order_line"),
+            util.ref(cr, "sale_subscription.model_sale_subscription_line"),
+            "sale.order.line",
+        ),
+        (
+            util.ref(cr, "sale_management.model_sale_order_template"),
+            util.ref(cr, "sale_subscription.model_sale_subscription_template"),
+            "sale.order.template",
+        ),
+    ]
+    manual_field_cols = []
+    for so_id, ss_id, model in model_ids:
+        table = util.table_of_model(cr, model)
+        table_sub = table.replace("order", "subscription")
+        cr.execute(
+            """
+            WITH info AS (
+               -- get stored fields from subscription table that are not in order table
+               SELECT f.id,
+                      f.name,
+                      c.udt_name
+                 FROM ir_model_fields f
+            LEFT JOIN information_schema.columns c
+                   ON f.name = c.column_name
+                  AND c.table_name = %(table_sub)s
+            LEFT JOIN ir_model_fields forder
+                   ON forder.name = f.name
+                  AND forder.model_id = %(so_id)s
+                  AND forder.model = %(model)s
+                WHERE f.state = 'manual'
+                  AND f.model_id = %(ss_id)s
+                  AND f.model = %(sub_model)s
+                  AND forder.id IS NULL
+                  AND (  f.ttype IN ('many2many', 'one2many') -- x2m fields do not have a column
+                      OR c.column_name IS NOT NULL
+                      )
+                )
+                -- update the subscription fields that we can move
+                UPDATE ir_model_fields f
+                   SET model_id = %(so_id)s,
+                       model = %(model)s
+                  FROM info
+                 WHERE f.id = info.id
+                 -- return new column name and type
+             RETURNING quote_ident(f.name),
+                       info.udt_name
+            """,
+            {
+                "so_id": so_id,
+                "model": model,
+                "ss_id": ss_id,
+                "sub_model": model.replace("sale.order", "sale.subscription"),
+                "table_sub": table_sub,
+            },
+        )
+        info = [r for r in cr.fetchall() if r[1]]  # filter out m2m fields that do not have a column
+        if info:
+            _logger.info(
+                "Create custom field columns in table %s from table %s: %s",
+                table,
+                table_sub,
+                ",".join(r[0] for r in info),
+            )
+            cr.execute(
+                "ALTER TABLE {}\n{}".format(
+                    table, ",\n".join(f"ADD COLUMN {col_name} {col_type}" for col_name, col_type in info)
+                )
+            )
+            if table == "sale_order":
+                manual_field_cols = [r[0] for r in info]
+
     query = """
         INSERT INTO sale_order (old_subscription_id, name, campaign_id, source_id, medium_id, client_order_ref,
                                 rating_last_value, message_main_attachment_id, stage_id, analytic_account_id,
@@ -254,6 +333,9 @@ def migrate(cr, version):
     """
     insert_add = ""
     select_add = ""
+    if manual_field_cols:
+        insert_add += "," + ",".join(manual_field_cols)
+        select_add += "," + ",".join(f"ss.{col}" for col in manual_field_cols)
     # Add the necessary columns and necessary values
     if util.module_installed(cr, "sale_stock"):
         cr.execute("SELECT id FROM stock_warehouse WHERE active ORDER BY sequence, id LIMIT 1")
@@ -265,6 +347,7 @@ def migrate(cr, version):
         util.create_column(cr, "sale_order", "commission_plan_frozen", "boolean")
         insert_add += ",referrer_id,commission_plan_frozen,commission_plan_id"
         select_add += ",referrer_id,commission_plan_frozen,commission_plan_id"
+
     # SO creation
     query = query % (insert_add, select_add)
     cr.execute(query)
