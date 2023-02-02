@@ -151,6 +151,8 @@ def migrate(cr, version):
     util.remove_field(cr, "account.account.template", "user_type_id")
 
     util.remove_field(cr, "account.journal", "type_control_ids")
+    # Initialize the column manually so that everything is False and not computed
+    util.create_column(cr, "account_journal", "payment_sequence", "bool")
 
     util.remove_field(cr, "account.move.line", "account_internal_type")
     util.remove_model(cr, "account.account.type")
