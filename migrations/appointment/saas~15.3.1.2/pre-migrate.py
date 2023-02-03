@@ -6,6 +6,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     eb = util.expand_braces
 
+    env = util.env(cr)
     util.create_column(cr, "calendar_appointment_type", "is_published", "boolean", default=True)
     util.move_field_to_module(cr, "calendar.appointment.type", "is_published", "website_appointment", "appointment")
 
@@ -112,19 +113,24 @@ def migrate(cr, version):
     # --- into the current appointment type `location` field.
     cr.execute(
         """
-        WITH new_partners AS (
-                INSERT INTO res_partner(name, display_name, active, type)
-            SELECT DISTINCT t.location, t.location, true, 'contact'
-                       FROM appointment_type t
-                      WHERE t.location IS NOT NULL
-                        AND t.location != ''
-                  RETURNING id, name
-        )
-        UPDATE appointment_type t
-           SET location_id = p.id
-          FROM new_partners p
-         WHERE p.name = t.location
-    """
+        SELECT DISTINCT t.location
+                   FROM appointment_type t
+                  WHERE t.location IS NOT NULL
+                    AND t.location != ''
+        """
     )
+    if cr.rowcount:
+        pids = env["res.partner"].create([{"name": location, "type": "contact"} for location, in cr.fetchall()]).ids
+
+        cr.execute(
+            """
+            UPDATE appointment_type t
+               SET location_id = p.id
+              FROM res_partner p
+             WHERE p.id IN %s
+               AND p.name = t.location
+            """,
+            [tuple(pids)],
+        )
 
     util.remove_field(cr, "appointment.type", "location")
