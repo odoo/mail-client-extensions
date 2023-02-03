@@ -50,6 +50,7 @@ def migrate(cr, version):
     join_conditions = [
         f"src.target = target.{path_column}",
         "src.bundle = target.bundle",
+        "src.id != target.id",
     ]
     more_fields = []
 
