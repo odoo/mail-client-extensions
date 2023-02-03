@@ -226,7 +226,7 @@ class TestTagNoInvert(UpgradeCase):
                     line_id = report_line["id"]
                 report_balances[str(line_id)] = report_line["columns"][0]["balance"]
 
-            return str(today), report_balances
+            return str(today), report_balances, user.id
 
     def _instantiate_test_data(
         self, tax_report, label, today, invoice_generator=None, on_invoice_created=None, on_all_invoices_created=None
@@ -264,7 +264,6 @@ class TestTagNoInvert(UpgradeCase):
         }
         for tax_exigibility in ("on_invoice", "on_payment"):
             for type_tax_use in ("sale", "purchase"):
-
                 tax = self._instantiate_test_tax(
                     tax_report, "%s-%s-%s" % (label, type_tax_use, tax_exigibility), type_tax_use, tax_exigibility
                 )
@@ -431,7 +430,11 @@ class TestTagNoInvert(UpgradeCase):
         return report.with_context(new_context)._get_lines(report_opt)
 
     def check(self, init):
-        today, report_balances = init
+        today, report_balances, user_id = init
+
+        user = self.env["res.users"].browse(user_id)
+        self.env = self.env(user=user)
+        self.cr = self.env.cr
 
         # Check the tax report is unchanged
         for report_line in self._get_report_lines(today):
