@@ -20,6 +20,6 @@ def migrate(cr, version):
     standard_view = util.ref(cr, "website.layout")
     with util.edit_view(cr, view_id=standard_view, active=None) as std_arch:
         page_options = std_arch.xpath("//xpath[.//*[contains(@class,'o_frontend_to_backend_buttons')]]")[0]
-        for view in view_ids:
-            with util.edit_view(cr, view_id=view, active=None) as arch:
-                arch.append(page_options)
+    for view in view_ids:
+        with util.edit_view(cr, view_id=view, active=None) as arch:
+            arch.append(page_options)
