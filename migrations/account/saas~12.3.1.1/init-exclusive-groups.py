@@ -46,7 +46,7 @@ def prepare_migration(cr):
         cr.execute(
             """
             INSERT
-              INTO ir_config_param (key, value)
+              INTO ir_config_parameter (key, value)
             VALUES ('account.show_line_subtotals_tax_selection', %s)
        ON CONFLICT (key)
          DO UPDATE SET value = %s
