@@ -75,6 +75,8 @@ def migrate(cr, version):
     #     sol_ids = [sol_id[0] for sol_id in results]
     #     util.recompute_fields(cr, "sale.order.line", ["pricing_id"], ids=sol_ids)
 
+    cr.execute("SELECT id FROM sale_order WHERE currency_rate IS NULL")
+    util.recompute_fields(cr, "sale.order", ["currency_rate"], ids=[id_ for id_, in cr.fetchall()])
     cr.execute(
         """
         SELECT sol.id
