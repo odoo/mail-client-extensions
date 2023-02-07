@@ -293,3 +293,6 @@ def migrate(cr, version):
         )
     else:
         util.remove_field(cr, "res.config.settings", "show_line_subtotals_tax_selection")
+
+    # Wizard account.invoice.send replaced by account.move.send
+    util.remove_model(cr, "account.invoice.send")
