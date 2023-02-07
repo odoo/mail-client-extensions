@@ -63,6 +63,8 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "mail.template", "report_template")
     util.remove_field(cr, "mail.template", "report_name")
+    util.create_column(cr, "mail_template", "email_layout_xmlid", "varchar")
+
     util.remove_field(cr, "mail.mail", "to_delete")
 
     # Remove message_main_attachment_id field from mail.thread models except the ones inheriting from mail.thread.main.attachment
