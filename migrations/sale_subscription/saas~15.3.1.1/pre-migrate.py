@@ -697,14 +697,14 @@ product_product_id)
             SELECT id,
                 subscription_id,
                 product_id,
-                row_number() OVER (PARTITION BY subscription_id, product_id) as nr
+                row_number() OVER (PARTITION BY subscription_id, product_id, move_id ORDER BY move_id, id) as nr
             FROM account_move_line
         ),
         sols AS (
             SELECT id,
                 order_id,
                 product_id,
-                row_number() OVER (PARTITION BY order_id, product_id) as nr
+                row_number() OVER (PARTITION BY order_id, product_id ORDER BY id) as nr
             FROM sale_order_line
         )
         INSERT INTO sale_order_line_invoice_rel(invoice_line_id,order_line_id)
