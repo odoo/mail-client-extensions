@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_view(cr, "stock_enterprise.stock_report_view_grid")
+    util.remove_act_window_view_mode(cr, "report.stock.quantity", "grid")
     util.remove_view(cr, "stock_enterprise.stock_report_dashboard_view")
 
     util.rename_xmlid(
