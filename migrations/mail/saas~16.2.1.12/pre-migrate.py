@@ -63,3 +63,4 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "mail.template", "report_template")
     util.remove_field(cr, "mail.template", "report_name")
+    util.remove_field(cr, "mail.mail", "to_delete")
