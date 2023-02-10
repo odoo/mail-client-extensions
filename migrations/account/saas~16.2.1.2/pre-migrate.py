@@ -169,3 +169,6 @@ def migrate(cr, version):
                     AND f.model = 'account.tax.group'
                     AND f.name = %s
         """, [fname])
+
+    util.move_field_to_module(cr, "account.move", "amount_total_words", "l10n_dz", "account")
+    util.move_field_to_module(cr, "account.move", "amount_total_words", "l10n_in", "account")
