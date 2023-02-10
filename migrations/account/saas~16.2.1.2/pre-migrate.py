@@ -172,3 +172,97 @@ def migrate(cr, version):
 
     util.move_field_to_module(cr, "account.move", "amount_total_words", "l10n_dz", "account")
     util.move_field_to_module(cr, "account.move", "amount_total_words", "l10n_in", "account")
+
+    util.create_column(cr, "account_payment_term_line", "delay_type", "varchar")
+    util.rename_field(cr, "account.payment.term.line", "days", "nb_days")
+    cr.execute(
+        """
+        UPDATE account_payment_term_line
+           SET delay_type = CASE
+                   WHEN months = 0 THEN 'days_after'
+                   WHEN months = 1 THEN 'days_after_end_of_month'
+                   ELSE 'days_after_end_of_next_month'
+               END
+         WHERE months >= 0
+        """
+    )
+
+    cr.execute(
+        """
+        WITH pt AS (
+           SELECT t.id, SUM(l.value_amount) AS percentage
+             FROM account_payment_term t
+        LEFT JOIN account_payment_term_line l
+               ON l.payment_id = t.id AND l.value = 'percent'
+         GROUP BY t.id
+        )
+        UPDATE account_payment_term_line ptl
+           SET value_amount = 100 - COALESCE(pt.percentage, 0.0)
+          FROM pt
+         WHERE pt.id = ptl.payment_id
+           AND ptl.value = 'balance'
+        """
+    )
+    cr.execute(
+        """
+        DELETE FROM account_payment_term_line
+        WHERE value_amount = 0
+        AND value = 'balance'
+        """
+    )
+    cr.execute("UPDATE account_payment_term_line SET value = 'percent' WHERE value = 'balance'")
+    util.remove_field(cr, "account.payment.term.line", "months")
+    util.remove_field(cr, "account.payment.term.line", "day_of_the_month")
+    util.delete_unused(cr, "account.account_payment_term_2months")
+
+    util.create_column(cr, "account_payment_term", "early_pay_discount_computation", "varchar")
+    util.create_column(cr, "account_payment_term", "discount_percentage", "numeric")
+    util.create_column(cr, "account_payment_term", "discount_days", "int4")
+    util.create_column(cr, "account_payment_term", "early_discount", "boolean")
+
+    cr.execute(
+        """
+        WITH pay_term_line AS (
+           SELECT payment_id
+           FROM   account_payment_term_line
+         WHERE discount_percentage > 0
+         GROUP BY payment_id
+        )
+        UPDATE account_payment_term t
+            SET early_discount = true
+           FROM pay_term_line l
+          WHERE l.payment_id = t.id
+        """
+    )
+    cr.execute(
+        """
+        UPDATE account_payment_term t
+           SET early_pay_discount_computation = c.early_pay_discount_computation
+           FROM res_company c
+         WHERE c.id = t.company_id
+        """
+    )
+    cr.execute(
+        """
+        WITH ptl AS (
+           SELECT payment_id,
+                  MAX(discount_percentage) as discount_percentage,
+                  MAX(discount_days) as discount_days
+             FROM account_payment_term_line
+         GROUP BY payment_id
+        )
+        UPDATE account_payment_term t
+           SET discount_percentage = ptl.discount_percentage,
+               discount_days = ptl.discount_days
+           FROM ptl
+         WHERE ptl.payment_id = t.id
+        """
+    )
+
+    util.remove_field(cr, "res.company", "early_pay_discount_computation")
+    util.remove_field(cr, "res.config.settings", "early_pay_discount_computation")
+    util.remove_field(cr, "account.payment.term.line", "discount_percentage")
+    util.remove_field(cr, "account.payment.term.line", "days_after")
+    util.remove_field(cr, "account.payment.term.line", "end_month")
+    util.remove_field(cr, "account.move.line", "discount_percentage")
+    util.remove_field(cr, "account.payment.term.line", "discount_days")
