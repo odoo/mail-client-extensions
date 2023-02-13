@@ -13,4 +13,5 @@ def migrate(cr, version):
         util.remove_module(cr, "event_barcode_mobile")
         util.remove_module(cr, "hr_attendance_mobile")
         util.remove_module(cr, "barcodes_mobile")
+        util.remove_module(cr, "project_timesheet_synchro")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
