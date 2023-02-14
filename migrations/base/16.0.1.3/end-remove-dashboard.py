@@ -41,7 +41,7 @@ def migrate(cr, version):
         cr.execute(
             """
             UPDATE ir_act_window
-               SET 'tree,form'
+               SET view_mode = 'tree,form'
              WHERE view_mode = ''
                AND id IN %s
             """,
