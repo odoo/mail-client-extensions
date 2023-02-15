@@ -276,6 +276,54 @@ def migrate(cr, version):
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="line"))
 
+    # Create analytic distribution to be able to transmit it to the new account_analytic_distribution_model
+    upgrade_analytic_distribution(
+        cr,
+        model="account.analytic.default",
+        tag_table="account_analytic_default_account_analytic_tag_rel",
+        account_field="analytic_id",
+    )
+
+    util.create_column(cr, "account_analytic_distribution_model", "account_prefix", "varchar")
+    util.create_column(cr, "account_analytic_distribution_model", "product_id", "integer")
+
+    # Insert into the distribution models all analytic defaults where the company of the analytic accounts
+    # are compatible with the company of the distribution model
+    cr.execute(
+        """
+        INSERT INTO account_analytic_distribution_model(
+               analytic_distribution,
+               partner_id,
+               account_prefix,
+               product_id,
+               create_date,
+               company_id
+        )
+        SELECT aa_default.analytic_distribution,
+               aa_default.partner_id,
+               account_account.code,
+               aa_default.product_id,
+               aa_default.create_date,
+               CASE
+                    WHEN aa_default.company_id IS NULL THEN min(DISTINCT analytic_acc.company_id)
+                    ELSE aa_default.company_id
+               END AS company_id
+          FROM account_analytic_default aa_default
+     LEFT JOIN account_account
+            ON aa_default.account_id = account_account.id
+          JOIN account_analytic_account analytic_acc
+            ON aa_default.analytic_distribution ? (analytic_acc.id::text)
+         WHERE (aa_default.date_stop IS NULL OR aa_default.date_stop >= CURRENT_DATE)
+           AND (aa_default.date_start IS NULL OR aa_default.date_start <= CURRENT_DATE)
+      GROUP BY aa_default.id,
+               account_account.code
+            -- max one company
+        HAVING COUNT(DISTINCT analytic_acc.company_id) <= 1
+            -- the company matches the default one if set
+           AND bool_and(COALESCE(analytic_acc.company_id = aa_default.company_id, true))
+    """
+    )
+
     util.remove_model(cr, "account.analytic.default")
     util.remove_field(cr, "account.invoice.report", "analytic_account_id")
     util.remove_field(cr, "res.config.settings", "group_analytic_tags")
