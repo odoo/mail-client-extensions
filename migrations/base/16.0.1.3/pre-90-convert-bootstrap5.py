@@ -61,18 +61,47 @@ def convert_views(cr):
 
     is_bs = get_bs5_where_clause(cr, "v.arch_db")
 
+    # Search for custom/cow'ed views (they have no external ID)... but also
+    # search for views with external ID that have a related COW'ed view. Indeed,
+    # when updating a generic view after this script, the archs are compared to
+    # know if the related COW'ed views must be updated too or not: if we only
+    # convert COW'ed views to Bootstrap 5, they won't get the generic view
+    # update as they will be judged different from them (user customization)
+    # because of the BS5 changes that were made.
+    # E.g.
+    # - In 15.0, install website_sale
+    # - Enable eCommerce categories: a COW'ed view is created to enable the
+    #   feature (it leaves the generic disabled and creates an exact copy but
+    #   enabled)
+    # - Migrate to 16.0: you expect your enabled COW'ed view to get the new 16.0
+    #   version of eCommerce categories... but if the COW'ed view was migrated
+    #   to BS5 while the generic was not, they won't be considered the same
+    #   anymore and only the generic view will get the 16.0 update.
     cr.execute(
         f"""
-        SELECT v.id
-          FROM ir_ui_view v
-         WHERE ({is_bs})
-           AND v.type = 'qweb'
-           AND NOT EXISTS (SELECT 1
-                             FROM ir_model_data imd
-                            WHERE imd.model = 'ir.ui.view'
-                              AND imd.module IN %s
-                              AND imd.res_id = v.id
-                              AND imd.noupdate = False)
+        WITH keys AS (
+              SELECT key
+                FROM ir_ui_view
+            GROUP BY key
+              HAVING COUNT(*) > 1
+        )
+           SELECT v.id
+             FROM ir_ui_view v
+        LEFT JOIN ir_model_data imd
+               ON imd.model = 'ir.ui.view'
+              AND imd.module IN %s
+              AND imd.res_id = v.id
+        LEFT JOIN keys
+               ON v.key = keys.key
+            WHERE v.type = 'qweb'
+              AND ({is_bs})
+              AND (
+                  imd.id IS NULL
+                  OR (
+                      keys.key IS NOT NULL
+                      AND imd.noupdate = FALSE
+                  )
+              )
         """,
         [tuple(standard_modules)],
     )

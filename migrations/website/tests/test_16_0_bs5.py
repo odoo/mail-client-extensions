@@ -629,6 +629,8 @@ class TestBS4ToBS5(UpgradeCase):
         return all_chunks
 
     def prepare(self):
+        View = self.env["ir.ui.view"]
+
         bs_debug_15_3_arch = """
 <t name="Debug for test" t-name="website.bs_debug_page_view_for_test">
     <t t-call="website.layout">
@@ -859,7 +861,7 @@ muted</span> and <em>italic</em> texts</p>
     </t>
 </t>
         """
-        debug_view = self.env["ir.ui.view"].create(
+        debug_view = View.create(
             {
                 "name": "BS Debug Test",
                 "type": "qweb",
@@ -893,7 +895,7 @@ muted</span> and <em>italic</em> texts</p>
             ]
         )
 
-        test_view = self.env["ir.ui.view"].create(
+        test_view = View.create(
             {
                 "name": "BS4 to BS5 Test",
                 "type": "qweb",
@@ -901,7 +903,44 @@ muted</span> and <em>italic</em> texts</p>
                 "website_id": 1,
             }
         )
-        return {"debug_view_id": debug_view.id, "test_view_id": test_view.id}
+
+        # Testing that forking a view and modifying it makes it converted to
+        # bootstrap 5 but forking a view and not modifying it makes it updated
+        # to the 16.0 version.
+        Website = self.env["website"]
+        website_a = Website.create({"name": "Website A"})
+        website_b = Website.create({"name": "Website B"})
+        # Note: this test is true with any view but to test properly, we need
+        # one who had non-bootstrap changes between 15.X and 16.0. Here, one
+        # unlikely to change in stable on its "oe_structure" element was chosen.
+        generic_view = self.env.ref("website.show_website_info")
+        generic_view.with_context(website_id=website_a.id).write(
+            {
+                "arch": generic_view.arch.replace(
+                    '<div class="oe_structure">', '<div class="oe_structure text-left">', 1
+                ),
+            }
+        )
+        generic_view.with_context(website_id=website_b.id).write(
+            {
+                "active": not generic_view.active,
+            }
+        )
+        specific_views = View.with_context(active_test=False).search(
+            [
+                ("key", "=", "website.show_website_info"),
+                ("website_id", "!=", False),
+            ]
+        )
+
+        return {
+            "debug_view_id": debug_view.id,
+            "test_view_id": test_view.id,
+            "generic_view_id": generic_view.id,
+            "old_generic_view_arch": generic_view.arch,
+            "touched_specific_view_id": specific_views.filtered(lambda v: v.website_id.id == website_a.id).id,
+            "untouched_specific_view_id": specific_views.filtered(lambda v: v.website_id.id == website_b.id).id,
+        }
 
     def _reformat(self, arch, is_html=False):
         parser = etree.HTMLParser(remove_blank_text=True) if is_html else etree.XMLParser(remove_blank_text=True)
@@ -1177,3 +1216,27 @@ muted</span> and <em>italic</em> texts</p>
                 mismatch_count += 1
         self.assertEqual(mismatch_count, 0, "All chunks should match")
         self.maxDiff = old_max_diff
+
+        # Check the untouched forked view has been updated to the 16.0 and check
+        # that the touched forked view has been converted to BS5.
+        generic_view = self.env["ir.ui.view"].browse(init["generic_view_id"])
+        touched_specific_view = self.env["ir.ui.view"].browse(init["touched_specific_view_id"])
+        untouched_specific_view = self.env["ir.ui.view"].browse(init["untouched_specific_view_id"])
+        old_version_dom_part = 'http-equiv="refresh"'
+        self.assertTrue(
+            old_version_dom_part in init["old_generic_view_arch"],
+            "Old arch should contain something that we can trust to be gone in 16.0",
+        )
+        self.assertFalse(
+            old_version_dom_part in generic_view.arch, "The generic view should have been updated to the 16.0 version"
+        )
+        self.assertTrue(
+            old_version_dom_part in touched_specific_view.arch
+            and '<div class="oe_structure text-start">' in touched_specific_view.arch,
+            "The touched specific view should just have been converted to bootstrap 5",
+        )
+        self.assertEqual(
+            generic_view.arch,
+            untouched_specific_view.arch,
+            "The untouched specific view should have been updated to the 16.0 version",
+        )
