@@ -30,8 +30,6 @@ def convert_views_bootstrap(cr, src_version, dst_version, views_ids):
             convert_tree(arch, src_version, dst_version, is_qweb=True)
         # TODO abt: maybe notify in the log or report that custom views with noupdate=False were converted?
 
-    cr.execute("UPDATE ir_ui_view SET arch_updated = True WHERE id IN %s", [tuple(views_ids)])
-
 
 # def bootstrap_html_converter(src_version, dst_version):
 #     """
