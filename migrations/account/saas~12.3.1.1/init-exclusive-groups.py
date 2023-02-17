@@ -75,6 +75,7 @@ def prepare_migration(cr):
         SELECT %s, r.uid
           FROM res_groups_users_rel r
          WHERE r.gid IN (%s, %s, %s)
+            ON CONFLICT DO NOTHING
     """,
         [hid, usr, ptl, pub],
     )
