@@ -16,4 +16,4 @@ def migrate(cr, version):
          WHERE t.id = l.task_id
            AND t.parent_id IS NOT NULL
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="project_task", alias="l"))
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="l"))
