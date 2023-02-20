@@ -94,13 +94,20 @@ def migrate(cr, version):
                              END
                  FROM replacement r
                 WHERE id = ANY(r.ids)
-            RETURNING name, code
+            RETURNING id, name, code
          """.format(
             code=unaccent("code")
         )
     )
 
-    if cr.rowcount:
+    updated_accounts = cr.fetchall()
+    if updated_accounts:
+        # Update root_id to reflect new code
+        cr.execute(
+            "UPDATE account_account SET root_id=ASCII(code) * 1000 + ASCII(SUBSTRING(code,2,1)) WHERE id=ANY(%s)",
+            ([account[0] for account in updated_accounts],),
+        )
+
         message = """
         <details>
         <summary>
@@ -116,7 +123,7 @@ def migrate(cr, version):
         """.format(
             "\n".join(
                 f"<li>'{html_escape(name)}' had its code changed to: '{html_escape(code)}' "
-                for name, code in cr.fetchall()
+                for _, name, code in updated_accounts
             )
         )
         util.add_to_migration_reports(category="Accounting", format="html", message=message)
