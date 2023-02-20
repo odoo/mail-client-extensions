@@ -27,8 +27,12 @@ def _redate_moves_to_dec_31(cr, move_ids_to_redate):
 
 
 def migrate(cr, version):
-    """If the environment variable ODOO_MIG_L10N_MX_REDATE_MONTH_13_CLOSING_MOVES is set to 1,
-    then the script will re-date any wrongly-dated Month 13 closing entries to December 31st of their fiscal year.
+    """By default, unmark any Month 13 closing entries that are not dated December 31st,
+    then apply the constraint that closing entries must be dated December 31st.
+
+    If the environment variable ODOO_MIG_L10N_MX_REDATE_MONTH_13_CLOSING_MOVES is set to 1,
+    instead re-date any wrongly-dated Month 13 closing entries to December 31st of their fiscal year,
+    then apply the constraint that closing entries must be dated December 31st.
     """
     util.remove_model(cr, "l10n_mx.trial.closing.report")
 
@@ -46,9 +50,14 @@ def migrate(cr, version):
     closing_moves_not_on_dec_31 = cr.fetchall()
 
     if closing_moves_not_on_dec_31:
+        closing_moves_not_on_dec_31_ids = tuple(closing_move[0] for closing_move in closing_moves_not_on_dec_31)
         if util.str2bool(os.getenv("ODOO_MIG_L10N_MX_REDATE_MONTH_13_CLOSING_MOVES", "false")):
-            _redate_moves_to_dec_31(
-                cr, move_ids_to_redate=[closing_move[0] for closing_move in closing_moves_not_on_dec_31]
+            # Redate these moves to December 31 of their fiscal year.
+            _redate_moves_to_dec_31(cr, move_ids_to_redate=closing_moves_not_on_dec_31_ids)
+
+            _logger.info(
+                "Re-dated the following Month 13 closing entries to December 31st of their fiscal year: account.move%s",
+                closing_moves_not_on_dec_31_ids,
             )
 
             message = """
@@ -77,27 +86,45 @@ def migrate(cr, version):
             util.add_to_migration_reports(message=message, category="Accounting", format="html")
 
         else:
-            message = """
-                The Month 13 Trial Balance report now requires all Month 13 closing entries to be dated December 31st.
-                To continue the upgrade, you can either:
-                - manually edit the conflicting entries to no longer be Month 13 closing entries,
-                OR
-                - manually re-date the conflicting entries to December 31st of their fiscal year
-                  (below the details of the affected journal entries),
-                OR
-                - let this script automatically re-date them for you by setting the environment variable
-                  ODOO_MIG_L10N_MX_REDATE_MONTH_13_CLOSING_MOVES to 1.
+            # Un-mark these moves as closing moves.
+            cr.execute(
+                """ UPDATE account_move
+                    SET l10n_mx_closing_move = FALSE
+                    WHERE id in %(move_ids_to_unmark)s
+                """,
+                {"move_ids_to_unmark": closing_moves_not_on_dec_31_ids},
+            )
 
-                Here is a list of the conflicting journal entries (id, name):
+            _logger.info(
+                "Unmarked the following Month 13 closing entries: account.move%s",
+                closing_moves_not_on_dec_31_ids,
+            )
+
+            message = """
+            <details>
+            <summary>
+                The Month 13 Trial Balance report now requires all Month 13 closing entries to be dated December 31st.
+                Each Month 13 closing entries that was not dated December 31st has been un-marked as a closing entry.
+
+                If, instead of un-marking those entries, you would prefer to have this script automatically re-date them
+                to December 31 for you, you can set the environment variable
+                  ODOO_MIG_L10N_MX_REDATE_MONTH_13_CLOSING_MOVES to 1.
+            </summary>
+            List of un-marked Journal Entries:
+            <ul>
                 {}
+            </ul>
+            </details>
             """.format(
                 "\n".join(
-                    f"    * account.move({id}, {name!r}) dated {fields.Date.to_string(date)}"
+                    f"""<li>
+                            {util.get_anchor_link_to_record("account.move", id, name)}
+                            dated {fields.Date.to_string(date)}
+                        </li>"""
                     for id, name, date, company_id in closing_moves_not_on_dec_31
                 )
             )
-            _logger.error(message)
-            raise util.MigrationError("Could not add constraint that Month 13 closing entries are dated December 31.")
+            util.add_to_migration_reports(message=message, category="Accounting", format="html")
 
     # Add constraint that Month 13 closing entries are dated December 31.
     cr.execute(
