@@ -299,3 +299,5 @@ def migrate(cr, version):
 
     util.create_column(cr, "res_partner_bank", "has_iban_warning", "boolean")
     util.create_column(cr, "res_partner_bank", "has_money_transfer_warning", "boolean")
+
+    util.rename_field(cr, "account.tax", "description", "invoice_label")
