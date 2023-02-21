@@ -22,8 +22,16 @@ def migrate(cr, version):
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
     util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
 
-    force_installs = set()
+    force_installs, force_upgrades = set(), set()
     if util.modules_installed(cr, "l10n_be_hr_payroll"):
         force_installs |= {"l10n_be_hr_payroll_sd_worx"}
+    if util.modules_installed(cr, "delivery"):
+        force_installs |= {"stock_delivery"}
 
-    util.modules_auto_discovery(cr, force_installs=force_installs)
+        cr.execute("SELECT demo FROM ir_module_module WHERE name='delivery'")
+        if cr.fetchone()[0]:
+            # even if there is no upgrade script for this module,
+            # we should install it in init=False to avoid updating the noupdate demo data
+            force_upgrades |= {"stock_delivery"}
+
+    util.modules_auto_discovery(cr, force_installs=force_installs, force_upgrades=force_upgrades)
