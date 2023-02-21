@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging
-
 from odoo.upgrade import util
-
-_logger = logging.getLogger("odoo.addons.base.maintenance.migrations.analytic.16.0." + __name__)
 
 
 def migrate(cr, version):
@@ -64,40 +60,5 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_account", alias="account"))
 
     util.remove_field(cr, "account.analytic.line", "tag_ids")
-
-    # Get all fks from table res_groups
-    fks = util.get_fk(cr, "res_groups")
-
-    # Remove records referencing the group_analytic_tags from the referencing tables
-    group_analytic_tags = util.ref(cr, "analytic.group_analytic_tags")
-    standard_tables = ["ir_model_access", "rule_group_rel"]
-    custom_tables = []
-    for foreign_table, foreign_column, _, on_delete_action in fks:
-        if on_delete_action == "r":
-            if foreign_table not in standard_tables:
-                cr.execute(
-                    f'SELECT COUNT(*) FROM "{foreign_table}" WHERE "{foreign_column}" = %s',  # noqa:B907
-                    (group_analytic_tags,),
-                )
-                count = cr.fetchone()[0]
-                if count:
-                    custom_tables.append((foreign_table, foreign_column, count))
-                continue
-
-            query = f'DELETE FROM "{foreign_table}" WHERE "{foreign_column}" = %s'  # noqa:B907
-            query = cr.mogrify(query, (group_analytic_tags,)).decode()
-
-            if util.column_exists(cr, foreign_table, "id"):
-                util.parallel_execute(cr, util.explode_query_range(cr, query, table=foreign_table))
-            else:
-                cr.execute(query)
-
-    if custom_tables:
-        raise util.MigrationError(
-            "The following 'table (column) - records count' are referencing the group 'analytic.group_analytic_tags'\n"
-            "and cannot be removed automatically:\n"
-            + "\n".join(f" - {table} ({column}) - {count} records" for table, column, count in custom_tables)
-            + "\n Please remove them manually or remove the foreign key constraints set as RESTRICT."
-        )
 
     util.remove_record(cr, "analytic.group_analytic_tags")
