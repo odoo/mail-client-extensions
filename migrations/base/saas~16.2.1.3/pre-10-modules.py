@@ -8,6 +8,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_generic_coa", "account")
     util.merge_module(cr, "l10n_multilang", "account")
     util.merge_module(cr, "l10n_in_tcs_tds", "l10n_in")
+    util.merge_module(cr, "pos_daily_sales_reports", "point_of_sale")
 
     if util.has_enterprise():
         util.remove_module(cr, "l10n_generic_auto_transfer_demo")
