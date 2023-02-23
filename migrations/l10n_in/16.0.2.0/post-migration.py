@@ -19,41 +19,69 @@ def migrate(cr, version):
     }
 
     for tax_report_line, new_tax_tag in tag_map.items():
-        # Add new tags in account.tax.repartition.line
+        # Add new tags in account.tax.repartition.line and remove old tag
         cr.execute(
-            f"""
+            """
                 INSERT INTO account_account_tag_account_tax_repartition_line_rel
-                    (account_tax_repartition_line_id, account_account_tag_id)
+                            (account_tax_repartition_line_id, account_account_tag_id)
                      SELECT rep_line_tag_rel.account_tax_repartition_line_id,
                             new_ir.res_id
-                       FROM ir_model_data old_ir
+                       FROM account_tax_report_line atrl
                        JOIN account_tax_report_line_tags_rel_backup report_tag_rel
-                            ON report_tag_rel.account_tax_report_line_id = old_ir.res_id
+                            ON report_tag_rel.account_tax_report_line_id = atrl.id
                        JOIN account_account_tag_account_tax_repartition_line_rel rep_line_tag_rel
                             ON rep_line_tag_rel.account_account_tag_id = report_tag_rel.account_account_tag_id
                        JOIN ir_model_data new_ir
-                            ON new_ir.name = '{new_tax_tag}' AND new_ir.model = 'account.account.tag'
-                      WHERE old_ir.name = '{tax_report_line}' AND old_ir.model = 'account.tax.report.line'
+                            ON new_ir.name = %s AND new_ir.model = 'account.account.tag'
+                      WHERE atrl._upg_xmlid = %s
+                        AND atrl._upg_module = 'l10n_in'
                     ON CONFLICT DO NOTHING
+            """,
+            (new_tax_tag, tax_report_line),
+        )
+        cr.execute(
             """
+            DELETE FROM account_account_tag_account_tax_repartition_line_rel rep_line_tag_rel
+                  USING account_tax_report_line atrl
+                   JOIN account_tax_report_line_tags_rel_backup report_tag_rel
+                        ON report_tag_rel.account_tax_report_line_id = atrl.id
+                  WHERE atrl._upg_xmlid = %s
+                    AND atrl._upg_module = 'l10n_in'
+                    AND rep_line_tag_rel.account_account_tag_id = report_tag_rel.account_account_tag_id
+            """,
+            (tax_report_line,),
         )
 
-        # Add new tags in account.move.line
+        # Add new tags in account.move.line and remove old tag
         cr.execute(
-            f"""
+            """
                 INSERT INTO account_account_tag_account_move_line_rel
-                    (account_move_line_id, account_account_tag_id)
+                            (account_move_line_id, account_account_tag_id)
                      SELECT move_tag_rel.account_move_line_id,
                             new_ir.res_id
-                       FROM ir_model_data old_ir
+                       FROM account_tax_report_line atrl
                        JOIN account_tax_report_line_tags_rel_backup report_tag_rel
-                            ON report_tag_rel.account_tax_report_line_id = old_ir.res_id
+                            ON report_tag_rel.account_tax_report_line_id = atrl.id
                        JOIN account_account_tag_account_move_line_rel move_tag_rel
                             ON move_tag_rel.account_account_tag_id = report_tag_rel.account_account_tag_id
                        JOIN ir_model_data new_ir
-                            ON new_ir.name = '{new_tax_tag}' AND new_ir.model = 'account.account.tag'
-                      WHERE old_ir.name = '{tax_report_line}' AND old_ir.model = 'account.tax.report.line'
+                            ON new_ir.name = %s AND new_ir.model = 'account.account.tag'
+                      WHERE atrl._upg_xmlid = %s
+                        AND atrl._upg_module = 'l10n_in'
+            """,
+            (new_tax_tag, tax_report_line),
+        )
+        cr.execute(
             """
+                DELETE FROM account_account_tag_account_move_line_rel move_tag_rel
+                      USING account_tax_report_line atrl
+                       JOIN account_tax_report_line_tags_rel_backup report_tag_rel
+                            ON report_tag_rel.account_tax_report_line_id = atrl.id
+                      WHERE atrl._upg_xmlid = %s
+                        AND atrl._upg_module = 'l10n_in'
+                        AND move_tag_rel.account_account_tag_id = report_tag_rel.account_account_tag_id
+            """,
+            (tax_report_line,),
         )
 
     # Add base tags into account.tax.repartition.line
@@ -79,7 +107,7 @@ def migrate(cr, version):
 
     for tax_tag, base_tax_tag in tax_base_map.items():
         cr.execute(
-            f"""
+            """
                 INSERT INTO account_account_tag_account_tax_repartition_line_rel
                     (account_tax_repartition_line_id, account_account_tag_id)
                      SELECT COALESCE(invoice_rep_line_base.id, refund_rep_line_base.id),
@@ -88,7 +116,7 @@ def migrate(cr, version):
                        JOIN ir_model_data tag_ref
                             ON tag_ref.res_id = repl_tag_rel.account_account_tag_id
                             AND tag_ref.model = 'account.account.tag'
-                            AND tag_ref.name = '{tax_tag}'
+                            AND tag_ref.name = %s
                        JOIN account_tax_repartition_line rep_line
                             ON rep_line.id = repl_tag_rel.account_tax_repartition_line_id
                   LEFT JOIN account_tax_repartition_line invoice_rep_line_base
@@ -98,12 +126,13 @@ def migrate(cr, version):
                             ON refund_rep_line_base.refund_tax_id = rep_line.refund_tax_id
                             AND refund_rep_line_base.repartition_type = 'base'
                        JOIN ir_model_data ref_base_tag
-                            ON ref_base_tag.name = '{base_tax_tag}'
+                            ON ref_base_tag.name = %s
                             AND ref_base_tag.model = 'account.account.tag'
                        JOIN account_account_tag base_tag
                             ON base_tag.id = ref_base_tag.res_id
                       WHERE invoice_rep_line_base.id IS NOT NULL OR refund_rep_line_base.id IS NOT NULL
-            """
+            """,
+            (tax_tag, base_tax_tag),
         )
 
     # Add base tags into account.move.line

@@ -42,6 +42,21 @@ def migrate(cr, version):
     cr.execute(
         "ALTER TABLE account_tax_report_line_tags_rel_backup ADD PRIMARY KEY(account_tax_report_line_id, account_account_tag_id)"
     )
+    # Backup xmlid in table before it's gone
+    # Need to match old report tag to new one
+    # Table is deleted in end so no need to remove this column
+    util.create_column(cr, "account_tax_report_line", "_upg_xmlid", "varchar")
+    util.create_column(cr, "account_tax_report_line", "_upg_module", "varchar")
+    cr.execute(
+        """
+         UPDATE account_tax_report_line report_line
+            SET _upg_xmlid = ir_model_data.name,
+                _upg_module = ir_model_data.module
+           FROM ir_model_data
+          WHERE ir_model_data.model='account.tax.report.line'
+            AND ir_model_data.res_id = report_line.id
+    """
+    )
 
     for model in ("account.tax.carryover.line", "account.tax.report.line", "account.tax.report"):
         util.remove_model(cr, model, drop_table=False)
