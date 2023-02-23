@@ -62,7 +62,7 @@ def migrate(cr, version):
     # adapt mail template due to the renamed of `payment.acquirer` to `payment.provider`
     if util.is_changed(cr, "sale.mail_template_sale_confirmation"):
         tid = util.ref(cr, "sale.mail_template_sale_confirmation")
-        extra_filter = cr.mogify("t.id = %s", [tid]).decode()
+        extra_filter = cr.mogrify("t.id = %s", [tid]).decode()
         util.replace_in_all_jsonb_values(
             cr, "mail_template", "body_html", "acquirer_id", "provider_id", extra_filter=extra_filter
         )
