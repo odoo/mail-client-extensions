@@ -34,6 +34,22 @@ def migrate(cr, version):
 
     currency_mapping = {**curmap("QTQ", "GTQ"), **curmap("UAG", "UAH")}
     if currency_mapping:
+        if util.module_installed(cr, "account"):
+            # adjust amount_currency when currency_id and company_currency_id point to different definitions of the same currency
+            # and the outdated one is going to be replaced by the newer one (resulting in currency_id = company_currency_id)
+            for k, v in currency_mapping.items():
+                query = cr.mogrify(
+                    """
+                    UPDATE account_move_line
+                       SET amount_currency = balance
+                     WHERE amount_currency != balance
+                       AND currency_id IN %s
+                       AND company_currency_id IN %s
+                       AND currency_id != company_currency_id
+                    """,
+                    [(k, v), (k, v)],
+                ).decode()
+                util.explode_execute(cr, query, table="account_move_line")
         util.replace_record_references_batch(cr, currency_mapping, "res.currency", replace_xmlid=False)
 
     # Remove the currency
