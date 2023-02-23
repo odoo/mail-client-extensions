@@ -58,3 +58,13 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.config.settings", "confirmation_mail_template_id")
     util.remove_menus(cr, [util.ref(cr, "sale.menu_report_product_all")])
+
+    # adapt mail template due to the renamed of `payment.acquirer` to `payment.provider`
+    if util.is_changed(cr, "sale.mail_template_sale_confirmation"):
+        tid = util.ref(cr, "sale.mail_template_sale_confirmation")
+        extra_filter = cr.mogify("t.id = %s", [tid]).decode()
+        util.replace_in_all_jsonb_values(
+            cr, "mail_template", "body_html", "acquirer_id", "provider_id", extra_filter=extra_filter
+        )
+    else:
+        util.update_record_from_xml(cr, "sale.mail_template_sale_confirmation")
