@@ -83,6 +83,7 @@ def migrate(cr, version):
                 SELECT array_agg(id ORDER BY code=new_code desc, id) ids,
                        new_code
                   FROM data
+                 WHERE new_code != code
               GROUP BY company_id, new_code
             )
                UPDATE account_account
