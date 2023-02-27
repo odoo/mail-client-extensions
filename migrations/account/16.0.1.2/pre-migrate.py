@@ -81,9 +81,9 @@ def migrate(cr, version):
             ),
             replacement AS (
                 SELECT array_agg(id ORDER BY code=new_code desc, id) ids,
-                       new_code
+                       new_code,
+                       bool_or(code!=new_code) any_update
                   FROM data
-                 WHERE new_code != code
               GROUP BY company_id, new_code
             )
                UPDATE account_account
@@ -94,6 +94,7 @@ def migrate(cr, version):
                              END
                  FROM replacement r
                 WHERE id = ANY(r.ids)
+                AND r.any_update
             RETURNING id, name, code
          """.format(
             code=unaccent("code")
@@ -111,8 +112,8 @@ def migrate(cr, version):
         message = """
         <details>
         <summary>
-            The following accounts were using invalid account codes which were modified during the migration.
-            If there were duplicated codes after cleanup they will have `.dupN` suffix.
+            The following accounts were either using invalid account codes which were modified during the migration or had the same
+            value as the modified accounts. If there were duplicated codes after cleanup they will have `.dupN` suffix.
             Please review the changes and correct them if needed.
             The account codes should now only contain alphanumeric characters and dots.
         </summary>
