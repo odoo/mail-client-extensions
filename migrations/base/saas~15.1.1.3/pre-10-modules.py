@@ -15,4 +15,6 @@ def migrate(cr, version):
     util.remove_module(cr, "pad")
     util.remove_module(cr, "project_account")
 
+    util.uninstall_module(cr, "saas_pad")
+
     util.force_upgrade_of_fresh_module(cr, "l10n_din5008")
