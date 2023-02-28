@@ -151,6 +151,8 @@ UPDATE sale_order so
     util.remove_field(cr, "sale.subscription.report", "stage_id")
     util.remove_field(cr, "sale.subscription.report", "stage_category")
     util.remove_field(cr, "sale.subscription.report", "to_renew")
+    util.remove_field(cr, "sale.subscription.report", "quantity")
+    util.remove_field(cr, "sale.subscription.report", "date_order")
 
     util.remove_record(cr, "sale_subscription.sale_subscription_action_res_partner")
     util.remove_record(cr, "sale_subscription.menu_sale_subscription_stage")
