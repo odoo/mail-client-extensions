@@ -275,6 +275,18 @@ class TestCrawler(IntegrityCase):
             if view_id:
                 action["views"][0] = (view_id[0] if isinstance(view_id, (list, tuple)) else view_id, view_modes[0])
 
+        if not (action.get("target") == "new" and action["views"] and action["views"][0][1] == "form"):
+            # Ask for the search view, except if the menu simply loads a form dialog
+            # e.g. a menu opening a dialog with a form the user have to set to display a report with given parameters
+            # e.g. Point of Sale / Reporting / Sales Details
+            # This mimics the behavior of the web client:
+            # 10.0: https://github.com/odoo/odoo/blob/28c3f51c4878fbcd79b2e819948465fcf2160ebc/addons/web/static/src/js/action_manager.js#L666 # noqa
+            # 16.0: https://github.com/odoo/odoo/blob/f87b81ca9477cb499fd7cd2f402b64e3b40fddcf/addons/web/static/src/webclient/actions/action_service.js#L230-L234 # noqa
+            search_view_id = action.get("search_view_id")
+            if isinstance(search_view_id, (list, tuple)):
+                search_view_id = search_view_id[0]
+            action["views"].append((search_view_id, "search"))
+
         Action = env.registry["ir.actions.actions"]
         with contextlib.ExitStack() as stack:
             origin_read = Action.read
@@ -304,12 +316,13 @@ class TestCrawler(IntegrityCase):
             views = get_views(
                 action["views"], options={"action_id": action.get("id"), "toolbar": True, "load_filters": True}
             )
+            views = views.get("fields_views") or views.get("views")
         env["ir.filters"].get_filters(model._name, action_id=action.get("id"))
 
         domain, group_by = [], []
-        if "search_view" in action:
-            view = etree.fromstring(literal_eval(action["search_view"])["arch"])
-            domain, group_by = self.mock_view_search(model, view, action["domain"])
+        if views.get("search"):
+            view = etree.fromstring(views["search"]["arch"])
+            domain, group_by = self.mock_view_search(model, view, action.get("domain"))
 
         kind_of_table = table_kind(self.env.cr, model._table)
         is_view = kind_of_table in {"v", "m"}
@@ -343,7 +356,7 @@ class TestCrawler(IntegrityCase):
                 model._name,
             )
         else:
-            for view_type, data in (views.get("fields_views") or views.get("views")).items():
+            for view_type, data in views.items():
                 if view_type == "search":
                     # Ignore, the searh view is already mocked before.
                     # Otherwise we get an error in the number of args below when we call it.
