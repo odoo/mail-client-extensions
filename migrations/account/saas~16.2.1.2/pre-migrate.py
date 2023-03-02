@@ -281,3 +281,15 @@ def migrate(cr, version):
     util.remove_field(cr, "account.payment.term.line", "end_month")
     util.remove_field(cr, "account.move.line", "discount_percentage")
     util.remove_field(cr, "account.payment.term.line", "discount_days")
+
+    util.remove_field(cr, "res.config.settings", "group_show_line_subtotals_tax_excluded")
+    util.remove_field(cr, "res.config.settings", "group_show_line_subtotals_tax_included")
+    util.remove_record(cr, "account.group_show_line_subtotals_tax_excluded")
+    util.remove_record(cr, "account.group_show_line_subtotals_tax_included")
+
+    if util.module_installed(cr, "website_sale"):
+        util.move_field_to_module(
+            cr, "res.config.settings", "show_line_subtotals_tax_selection", "account", "website_sale"
+        )
+    else:
+        util.remove_field(cr, "res.config.settings", "show_line_subtotals_tax_selection")
