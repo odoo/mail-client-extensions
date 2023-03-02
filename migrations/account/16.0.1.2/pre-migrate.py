@@ -105,7 +105,13 @@ def migrate(cr, version):
     if updated_accounts:
         # Update root_id to reflect new code
         cr.execute(
-            "UPDATE account_account SET root_id=ASCII(code) * 1000 + ASCII(SUBSTRING(code,2,1)) WHERE id=ANY(%s)",
+            """UPDATE account_account
+                  SET root_id = CASE
+                                    WHEN code != '' THEN ASCII(code) * 1000 + ASCII(SUBSTRING(code,2,1))
+                                    ELSE NULL
+                                END
+                WHERE id=ANY(%s)
+            """,
             ([account[0] for account in updated_accounts],),
         )
 
