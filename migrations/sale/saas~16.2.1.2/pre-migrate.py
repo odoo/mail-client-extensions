@@ -27,3 +27,4 @@ def migrate(cr, version):
         WHERE key in ('sale.use_quotation_validity_days', 'sale.default_deposit_product_id')
         """
     )
+    util.rename_xmlid(cr, "sale.view_order_tree", "sale.sale_order_tree")

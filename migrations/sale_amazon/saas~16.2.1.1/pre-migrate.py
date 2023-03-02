@@ -15,3 +15,5 @@ def migrate(cr, version):
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_picking"))
     util.remove_field(cr, "stock.picking", "amazon_sync_pending")
+    util.remove_view(cr, "sale_amazon.view_quotation_tree")
+    util.rename_xmlid(cr, "sale_amazon.view_order_tree", "sale_amazon.sale_order_tree")
