@@ -296,3 +296,6 @@ def migrate(cr, version):
 
     # Wizard account.invoice.send replaced by account.move.send
     util.remove_model(cr, "account.invoice.send")
+
+    util.create_column(cr, "res_partner_bank", "has_iban_warning", "boolean")
+    util.create_column(cr, "res_partner_bank", "has_money_transfer_warning", "boolean")
