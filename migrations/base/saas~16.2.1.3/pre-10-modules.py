@@ -19,6 +19,7 @@ def migrate(cr, version):
         util.remove_module(cr, "barcodes_mobile")
         util.remove_module(cr, "project_timesheet_synchro")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
+    util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
 
     force_installs = set()
     if util.modules_installed(cr, "l10n_be_hr_payroll"):
