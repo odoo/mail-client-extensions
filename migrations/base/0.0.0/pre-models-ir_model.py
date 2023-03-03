@@ -108,7 +108,6 @@ class Field(models.Model):
                         Since this is not a stored field,
                         we let it be deleted, it will be created back by the ORM on the first
                         `-u` on the according module if needed, hopefully marked with the correct module this time
-                        "
                     """,
                     field.model,
                     field.name,
