@@ -209,37 +209,48 @@ def migrate(cr, version):
     )
 
     query = """
-        INSERT INTO sale_order (old_subscription_id,name,campaign_id,source_id,medium_id,client_order_ref,
-                                rating_last_value,message_main_attachment_id,stage_id,analytic_account_id,
-                                company_id,partner_id,partner_invoice_id,partner_shipping_id,recurring_monthly,
-                                date_order,end_date,pricelist_id,close_reason_id,sale_order_template_id,payment_term_id,
-                                note,user_id,team_id,country_id,industry_id,
-                                access_token,payment_token_id,kpi_1month_mrr_delta,kpi_1month_mrr_percentage,kpi_3months_mrr_delta,
-                                kpi_3months_mrr_percentage,percentage_satisfaction,health,stage_category,to_renew,recurring_live,
-                                state,is_subscription,currency_id,create_date,create_uid,write_date,write_uid,recurrence_id,
-                                start_date,next_invoice_date %s)
-             SELECT ss.id, ss.name||'-'||ss.id,ss.campaign_id,ss.source_id,ss.medium_id,ss.code,
-                    ss.rating_last_value,ss.message_main_attachment_id,ss.stage_id,ss.analytic_account_id,
-                    ss.company_id,COALESCE(ss.partner_id, 2),COALESCE(ss.partner_invoice_id, ss.partner_id, 2),
-                    COALESCE(ss.partner_shipping_id, ss.partner_id, 2),ss.recurring_monthly,
-                    COALESCE(ss.date_start, now() at time zone 'UTC'),ss.date,ss.pricelist_id,ss.close_reason_id,sot.id,ss.payment_term_id,
-                    ss.description,ss.user_id,ss.team_id,ss.country_id,ss.industry_id,
-                    ss.access_token,ss.payment_token_id,ss.kpi_1month_mrr_delta,ss.kpi_1month_mrr_percentage,ss.kpi_3months_mrr_delta,
-                    ss.kpi_3months_mrr_percentage,ss.percentage_satisfaction,ss.health,ss.stage_category,ss.to_renew,
+        INSERT INTO sale_order (old_subscription_id, name, campaign_id, source_id, medium_id, client_order_ref,
+                                rating_last_value, message_main_attachment_id, stage_id, analytic_account_id,
+                                company_id, partner_id, partner_invoice_id,
+
+                                partner_shipping_id, recurring_monthly,
+                                date_order, end_date, pricelist_id, close_reason_id, sale_order_template_id,
+                                payment_term_id, note, user_id, team_id, country_id, industry_id,
+
+                                access_token, payment_token_id, kpi_1month_mrr_delta, kpi_1month_mrr_percentage,
+                                kpi_3months_mrr_delta, kpi_3months_mrr_percentage, percentage_satisfaction, health,
+                                stage_category, to_renew, recurring_live,
+
+                                state,
+                                is_subscription, currency_id, create_date, create_uid, write_date, write_uid, recurrence_id,
+                                start_date, next_invoice_date
+                                %s)
+             SELECT ss.id, ss.name || '-' || ss.id, ss.campaign_id, ss.source_id, ss.medium_id, ss.code,
+                    ss.rating_last_value, ss.message_main_attachment_id, ss.stage_id, ss.analytic_account_id,
+                    ss.company_id, COALESCE(ss.partner_id, 2), COALESCE(ss.partner_invoice_id, ss.partner_id, 2),
+
+                    COALESCE(ss.partner_shipping_id, ss.partner_id, 2), ss.recurring_monthly,
+                    COALESCE(ss.date_start, now() at time zone 'UTC'), ss.date, ss.pricelist_id, ss.close_reason_id, sot.id,
+                    ss.payment_term_id, ss.description, ss.user_id, ss.team_id, ss.country_id, ss.industry_id,
+
+                    ss.access_token, ss.payment_token_id, ss.kpi_1month_mrr_delta, ss.kpi_1month_mrr_percentage,
+                    ss.kpi_3months_mrr_delta, ss.kpi_3months_mrr_percentage, ss.percentage_satisfaction, ss.health,
+                    ss.stage_category, ss.to_renew, (ss.stage_category='progress'),
+
                     CASE
-                        WHEN ss.stage_category='progress' THEN TRUE
-                        ELSE FALSE
-                    END,
-                    CASE
-                        WHEN ss.stage_category='draft'  THEN 'sent'
+                        WHEN ss.stage_category='draft' THEN 'sent'
                         ELSE 'sale'
                     END,
-                    TRUE,pl.currency_id,ss.create_date,ss.create_uid,ss.write_date,ss.write_uid,str.id,
-                    ss.date_start,ss.recurring_next_date %s
+                    TRUE, pl.currency_id, ss.create_date, ss.create_uid, ss.write_date, ss.write_uid, str.id,
+                    ss.date_start, ss.recurring_next_date
+                    %s
                FROM sale_subscription ss
-               JOIN sale_order_template sot ON sot.old_template_id=ss.template_id
-               JOIN product_pricelist pl ON pl.id=ss.pricelist_id
-               JOIN sale_temporal_recurrence str ON ss.template_id = ANY(str._mig_sst_id)
+               JOIN sale_order_template sot
+                 ON sot.old_template_id = ss.template_id
+               JOIN product_pricelist pl
+                 ON pl.id = ss.pricelist_id
+               JOIN sale_temporal_recurrence str
+                 ON ss.template_id = ANY(str._mig_sst_id)
     """
     insert_add = ""
     select_add = ""
