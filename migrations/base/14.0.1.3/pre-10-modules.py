@@ -12,6 +12,8 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_ar_website_sale", deps={"l10n_ar", "website_sale"}, auto_install=True)
     # deps chamged by odoo/odoo@59d16513a019d52dd090e09c09be4675aa868baf (odoo/odoo#62730)
     util.module_deps_diff(cr, "l10n_be_edi", plus={"account_edi_ubl"}, minus={"account_edi"})
+    # https://github.com/odoo/odoo/pull/107084
+    util.module_deps_diff(cr, "l10n_dz", plus={"l10n_multilang"})
     # https://github.com/odoo/odoo/commit/e4f95688fe8786ae898c7180b263a4176a0537b4
     util.new_module(cr, "l10n_cz", deps={"account", "base_iban", "base_vat"})
     # https://github.com/odoo/odoo/commit/234fd4c1a4c6d11ecc329552f9e828bd6047f674
