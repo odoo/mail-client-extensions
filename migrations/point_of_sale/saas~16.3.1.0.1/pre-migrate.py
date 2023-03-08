@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.upgrade import util
+from odoo.upgrade.util import expand_braces as eb
 
 
 def migrate(cr, version):
@@ -16,3 +17,13 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "pos_limited_partners_loading")
     util.remove_field(cr, "res.config.settings", "pos_limited_partners_amount")
     util.remove_field(cr, "res.config.settings", "pos_partner_load_background")
+
+    if util.module_installed(cr, "pos_restaurant"):
+        util.delete_unused(cr, "pos_restaurant.kitchen_printer")
+        util.move_field_to_module(cr, "pos.config", "printer_ids", "pos_restaurant", "point_of_sale")
+        util.move_field_to_module(cr, "pos.config", "is_order_printer", "pos_restaurant", "point_of_sale")
+        util.move_model(cr, "restaurant.printer", "pos_restaurant", "point_of_sale", move_data=True)
+        util.rename_model(cr, "restaurant.printer", "pos.printer")
+        util.rename_xmlid(cr, *eb("point_of_sale.view_{restaurant,pos}_printer_form"))
+        util.rename_xmlid(cr, *eb("point_of_sale.action_{restaurant,pos}_printer_form"))
+        util.rename_xmlid(cr, *eb("point_of_sale.view_{restaurant,pos}_printer"))
