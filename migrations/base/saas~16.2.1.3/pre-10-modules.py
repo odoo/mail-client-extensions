@@ -13,6 +13,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_latam_account_sequence", "l10n_latam_invoice_document")
     util.merge_module(cr, "website_sale_loyalty_delivery", "website_sale_loyalty")
     util.merge_module(cr, "website_sale_delivery", "website_sale")
+    util.merge_module(cr, "website_sale_taxcloud_delivery", "website_sale_account_taxcloud")
     util.rename_module(cr, "website_sale_delivery_mondialrelay", "website_sale_mondialrelay")
 
     if util.has_enterprise():
