@@ -11,8 +11,8 @@ def migrate(cr, version):
     util.merge_module(cr, "pos_daily_sales_reports", "point_of_sale")
     util.merge_module(cr, "account_sequence", "account")
     util.merge_module(cr, "l10n_latam_account_sequence", "l10n_latam_invoice_document")
-    util.merge_module(cr, "website_sale_loyalty_delivery", "website_sale_loyalty", update_dependers=True)
-    util.merge_module(cr, "website_sale_delivery", "website_sale", update_dependers=True)
+    util.merge_module(cr, "website_sale_loyalty_delivery", "website_sale_loyalty")
+    util.merge_module(cr, "website_sale_delivery", "website_sale")
     util.rename_module(cr, "website_sale_delivery_mondialrelay", "website_sale_mondialrelay")
 
     if util.has_enterprise():
@@ -22,6 +22,7 @@ def migrate(cr, version):
         util.remove_module(cr, "barcodes_mobile")
         util.remove_module(cr, "project_timesheet_synchro")
         util.remove_module(cr, "test_web_grid")
+        util.rename_module(cr, "website_delivery_fedex", "website_sale_fedex")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
     util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
 
