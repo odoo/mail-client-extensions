@@ -64,3 +64,28 @@ def migrate(cr, version):
         "delivery.sale_order_portal_content_inherit_sale_stock_inherit_website_sale_delivery",
         "stock_delivery.sale_order_portal_content_inherit_sale_stock_inherit_website_sale",
     )
+
+    cr.execute(
+        """
+        UPDATE delivery_carrier
+           SET margin = margin / 100;
+        """
+    )
+    cr.execute(
+        """
+        UPDATE delivery_carrier
+           SET fixed_price = fixed_price + margin,
+               margin = 0
+         WHERE delivery_type = 'fixed';
+        """
+    )
+    cr.execute(
+        """
+            INSERT INTO delivery_carrier_country_rel
+        SELECT DISTINCT carrier_state.carrier_id,state.country_id
+                   FROM delivery_carrier_state_rel carrier_state
+                   JOIN res_country_state state
+                     ON state.id = carrier_state.state_id
+            ON CONFLICT DO NOTHING
+        """
+    )
