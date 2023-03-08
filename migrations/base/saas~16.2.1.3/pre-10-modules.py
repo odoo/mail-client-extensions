@@ -23,6 +23,7 @@ def migrate(cr, version):
         util.remove_module(cr, "project_timesheet_synchro")
         util.remove_module(cr, "test_web_grid")
         util.rename_module(cr, "website_delivery_fedex", "website_sale_fedex")
+        util.rename_module(cr, "website_delivery_ups", "website_sale_ups")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
     util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
 
