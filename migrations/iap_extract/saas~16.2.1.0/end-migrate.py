@@ -5,6 +5,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_field(cr, "extract.mixin", "extract_status_code")
+    util.remove_field(cr, "extract.mixin", "extract_remote_id")
 
 
 def migrate_status_code(cr, model_name):
@@ -52,3 +53,18 @@ def migrate_status_code(cr, model_name):
     util.parallel_execute(cr, queries)
 
     util.remove_field(cr, model_name, "extract_status_code")
+
+
+def migrate_document_uuid(cr, model_name):
+    table = util.table_of_model(cr, model_name)
+
+    util.parallel_execute(
+        cr,
+        util.explode_query_range(
+            cr,
+            f"UPDATE {table} SET extract_remote_id = NULL WHERE extract_remote_id = -1",
+            table=table,
+        ),
+    )
+    util.rename_field(cr, model_name, "extract_remote_id", "extract_document_uuid")
+    cr.execute(f"ALTER TABLE {table} ALTER COLUMN extract_document_uuid TYPE varchar")
