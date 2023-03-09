@@ -7,7 +7,9 @@ def migrate(cr, version):
     account = util.env(cr)["account.account"]
 
     for company in util.env(cr)["res.company"].search([]):
-        account = self = account.with_context(lang=company.partner_id.lang).with_company(company)  # noqa F841
+        account = self = account.with_context(  # noqa F841
+            lang=company.partner_id.lang, _upg_ignore_earning_accounts_check=True
+        ).with_company(company)
         account_type_current_assets = util.ref(cr, "account.data_account_type_current_assets")
         chart_template = company.chart_template_id
         if not chart_template:

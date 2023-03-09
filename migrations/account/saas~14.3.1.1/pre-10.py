@@ -1,9 +1,23 @@
 # -*- coding: utf-8 -*-
+from odoo import api, models
+
 from odoo.upgrade import util
 
 
-def migrate(cr, version):
+class AccountAccount(models.Model):
+    _inherit = "account.account"
+    _module = "account"
 
+    @api.constrains("user_type_id")
+    def _check_user_type_id_unique_current_year_earning(self):
+        # In case there are multiple "Current Year Earnings" accounts we do not
+        # want to deal with that and just avoid the check during the upgrade
+        if self.env.context.get("_upg_ignore_earning_accounts_check"):
+            return
+        return super()._check_user_type_id_unique_current_year_earning()
+
+
+def migrate(cr, version):
     util.create_column(cr, "account_tax", "is_base_affected", "boolean", default=True)
     util.create_column(cr, "account_tax_template", "is_base_affected", "boolean", default=True)
 
