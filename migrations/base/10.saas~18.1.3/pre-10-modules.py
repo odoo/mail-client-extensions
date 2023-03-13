@@ -58,6 +58,10 @@ def migrate(cr, version):
     # Then let oneAppFree remains oneAppFree
     util.module_deps_diff(cr, "sale", minus={"procurement"})
     if util.module_installed(cr, "procurement"):
+        # Explicitly remove the cron, else the deletion of the server action, which occur first
+        # because its xmlid has just been created in `base/10.saas~14.1.3/pre-30-cron.py`, will
+        # fail due to the ondelete=restrict PK.
+        util.remove_record(cr, "procurement.ir_cron_scheduler_action")
         if str2bool(os.environ.get("ODOO_MIG_FORCE_PROCUREMENT_UNINSTALL_11", "0")):
             util.uninstall_module(cr, "procurement")
         else:

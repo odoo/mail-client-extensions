@@ -228,9 +228,8 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_mx_tax_cash_basis", "l10n_mx_edi")
 
         eb = util.expand_braces
-        util.move_model(cr, "project.task.create.sale.order", *eb("sale_{project_,}timesheet_enterprise"))
-        util.rename_xmlid(cr, *eb("sale_{project_,}timesheet_enterprise.project_task_create_sale_order_view_form"))
-        util.rename_xmlid(cr, *eb("sale_{project_,}timesheet_enterprise.project_task_action_multi_create_sale_order"))
+        if util.modules_installed(cr, *eb("sale_{project_,}timesheet_enterprise")):
+            util.move_model(cr, "project.task.create.sale.order", *eb("sale_{project_,}timesheet_enterprise"))
         util.remove_module(cr, "sale_project_timesheet_enterprise")
 
     util.remove_module(cr, "account_cancel")

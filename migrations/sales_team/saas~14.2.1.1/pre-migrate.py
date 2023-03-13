@@ -28,11 +28,11 @@ def migrate(cr, version):
         sales_team.crm_team_salesteams_view_kanban      sales_team.crm_team_view_kanban_dashboard
 
         # crm.team.member
-        crm.team_user_view_search       sales_team.crm_team_member_view_search
-        crm.view_crm_team_user_tree     sales_team.crm_team_member_view_tree
-        crm.view_crm_team_user_form     sales_team.crm_team_member_view_form
-        crm.team_user_kanban            sales_team.crm_team_member_view_kanban
-        crm.team_user_action            sales_team.crm_team_member_action
+        sales_team.team_user_view_search       sales_team.crm_team_member_view_search
+        sales_team.view_crm_team_user_tree     sales_team.crm_team_member_view_tree
+        sales_team.view_crm_team_user_form     sales_team.crm_team_member_view_form
+        sales_team.team_user_kanban            sales_team.crm_team_member_view_kanban
+        sales_team.team_user_action            sales_team.crm_team_member_action
     """
     for change in util.splitlines(renames):
         util.rename_xmlid(cr, *change.split())

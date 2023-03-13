@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    eb = util.expand_braces
     # Rename <mail.moderation> to <mail.group.moderation> and update reference field
     util.rename_model(cr, "mail.moderation", "mail.group.moderation")
     cr.execute("ALTER TABLE mail_group_moderation DROP CONSTRAINT IF EXISTS mail_group_moderation_channel_id_fkey")
@@ -16,4 +17,4 @@ def migrate(cr, version):
     # Update <mail.group.moderation>: make mail_group owner of model
     util.move_model(cr, "mail.group.moderation", "mail", "mail_group")
     for xml_part in "action menu view_tree view_search".split():
-        util.rename_xmlid(cr, f"mail.mail_moderation_{xml_part}", f"mail_group.mail_group_moderation_{xml_part}")
+        util.rename_xmlid(cr, *eb("mail_group.mail_{,group_}moderation_" + xml_part))

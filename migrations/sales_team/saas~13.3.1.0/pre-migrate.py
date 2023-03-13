@@ -18,4 +18,4 @@ def migrate(cr, version):
     """
     for rename in util.splitlines(renames):
         old, new = util.expand_braces(rename)
-        util.rename_xmlid(cr, f"crm.{old}", f"sales_team.{new}")
+        util.rename_xmlid(cr, f"sales_team.{old}", f"sales_team.{new}")

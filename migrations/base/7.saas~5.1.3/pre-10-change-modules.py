@@ -32,13 +32,20 @@ def migrate(cr, version):
     util.remove_module_deps(cr, 'procurement', ('stock',))
     util.new_module_dep(cr, 'stock', 'procurement')
 
-    util.move_model(cr, 'stock.move.consume', 'stock', 'mrp')
     # Delete 'mrp.model_mrp_property_group' and 'mrp.model_mrp_property' from DBs <= v6.0 or migrated till v7.0
     cr.execute("""delete from ir_model_data
                 where module = 'mrp' and model = 'ir.model'
                 and name in ('model_mrp_property_group','model_mrp_property')""")
-    util.move_model(cr, 'mrp.property', 'procurement', 'mrp', move_data=True)
-    util.move_model(cr, 'mrp.property.group', 'procurement', 'mrp', move_data=True)
+    if util.modules_installed(cr, "stock", "mrp"):
+        util.move_model(cr, "stock.move.consume", "stock", "mrp")
+    else:
+        util.remove_model(cr, "stock.move.consume")
+    if util.modules_installed(cr, "procurement", "mrp"):
+        util.move_model(cr, "mrp.property", "procurement", "mrp", move_data=True)
+        util.move_model(cr, "mrp.property.group", "procurement", "mrp", move_data=True)
+    else:
+        util.remove_model(cr, "mrp.property.group")
+        util.remove_model(cr, "mpr.property")
 
     util.new_module_dep(cr, 'stock', 'web_kanban_gauge')
     util.new_module_dep(cr, 'stock', 'web_kanban_sparkline')
@@ -57,7 +64,8 @@ def migrate(cr, version):
     util.new_module_dep(cr, 'sale', 'sales_team')
     util.new_module_dep(cr, 'sale', 'procurement')
 
-    util.move_model(cr, 'crm.case.section', 'crm', 'sales_team', move_data=True)
+    if util.modules_installed(cr, "crm", "sales_team"):
+        util.move_model(cr, "crm.case.section", "crm", "sales_team", move_data=True)
     util.move_field_to_module(cr, 'res.partner', 'section_id', 'crm', 'sales_team')
     util.move_field_to_module(cr, 'res.users', 'default_section_id', 'sale_crm', 'sales_team')
 

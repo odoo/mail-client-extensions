@@ -75,7 +75,7 @@ def migrate(cr, version):
         "event.registration": [("event_ticket_id", None, "integer")],
     }
     for model, changes in move_fields.items():
-        for (field_name, renamed_from, column_type) in changes:
+        for field_name, renamed_from, column_type in changes:
             if renamed_from:
                 util.rename_field(cr, model, renamed_from, field_name)
             if column_type:
@@ -95,14 +95,13 @@ def migrate(cr, version):
     moved_xmlids = """
         event_type_data_{sale,ticket}
         {,event_}event_ticket_form_view
-        access_event_event_ticket_user
         access_event_event_ticket_{admin,manager}
 
         # TODO rename demo data
     """
     for xid in util.splitlines(moved_xmlids):
-        source, target = util.expand_braces(xid) if "{" in xid else (xid, xid)
-        util.rename_xmlid(cr, f"event_sale.{source}", f"event.{target}")
+        source, target = util.expand_braces(xid)
+        util.rename_xmlid(cr, f"event.{source}", f"event.{target}")
 
     # remove wizard
     # Some people link `event.mail` records to templates bound to this wizard.

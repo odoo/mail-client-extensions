@@ -20,16 +20,10 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "hr.work.entry.type", "is_leave", "hr_work_entry", "hr_payroll")
     util.move_field_to_module(cr, "hr.work.entry.type", "leave_type_ids", "hr_work_entry", "hr_payroll")
 
-    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.hr_user_work_entry_employee"))
-    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.hr_work_entry_action"))
-    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.hr_work_entry_action_conflict"))
-    util.rename_xmlid(cr, *eb("hr_{payroll.hr_work_entry_tree,work_entry.hr_work_entry_view_tree}"))
-    util.rename_xmlid(cr, *eb("hr_{payroll.view_hr_work_entry_filter,work_entry.hr_work_entry_view_search}"))
-    util.rename_xmlid(cr, *eb("hr_{payroll.hr_work_entry_form,work_entry.hr_work_entry_view_form}"))
-    util.rename_xmlid(cr, *eb("hr_{payroll.hr_work_entry_type_tree,work_entry.hr_work_entry_type_view_tree}"))
-    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.hr_work_entry_type_view_form"))
-    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.hr_work_entry_type_view_kanban"))
-    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.work_entry_type_attendance"))
+    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_{,view_}tree}"))
+    util.rename_xmlid(cr, *eb("hr_work_entry.{view_hr_work_entry_filter,hr_work_entry_view_search}"))
+    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_{,view_}form}"))
+    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_type_{,view_}tree"))
 
     if util.table_exists(cr, "hr_work_entry"):
         util.create_column(cr, "hr_work_entry", "conflict", "boolean")  # Always false, state 'conflict' is new

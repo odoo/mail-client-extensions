@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util import expand_braces as eb
 
 
 def _(x):
@@ -21,13 +22,10 @@ def _rename_model(cr, suffix):
         [_(f), _(t), t],
     )
 
-    util.rename_xmlid(
-        cr, "crm_iap_lead_website.access_crm_reveal_" + suffix, "crm_iap_lead.access_crm_iap_lead_" + suffix
-    )
+    util.rename_xmlid(cr, *eb("crm_iap_lead.access_crm_{reveal,iap_lead}_" + suffix))
 
 
 def migrate(cr, version):
-    eb = util.expand_braces
     util.rename_xmlid(cr, *eb("crm_iap_lead{_website,}.lead_message_template"))
     util.rename_xmlid(cr, "crm_iap_lead_website.reveal_no_credits", "crm_iap_lead.lead_generation_no_credits")
 

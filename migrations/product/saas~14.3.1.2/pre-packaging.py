@@ -9,7 +9,14 @@ def migrate(cr, version):
 
         util.rename_model(cr, "product.packaging", "stock.package.type")
         # This model is actually defined in the `stock` module (hence the name). It works because `delivery` depends on `stock`.
-        util.move_model(cr, "stock.package.type", "product", "stock")
+        util.move_model(
+            cr,
+            "stock.package.type",
+            "product",
+            "stock",
+            keep={"product_packaging_form_view2", "product_packaging_tree_view2"},
+        )
+
         cr.execute(
             """
                 CREATE TABLE product_packaging AS

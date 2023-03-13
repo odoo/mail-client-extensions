@@ -31,26 +31,8 @@ def migrate(cr, version):
     util.move_model(cr, 'hr_timesheet_sheet.sheet.day',
                     'hr_timesheet_sheet', 'hr_timesheet_attendance')
 
-    xids_moved = util.splitlines("""
-        access_hr_timesheet_sheet_sheet_day
-        act_hr_timesheet_sheet_sheet_2_hr_attendance
-        act_hr_timesheet_sheet_sheet_2_hr_analytic_timesheet
-
-        view_hr_attendance_filter   hr_attendance_view_filter
-        view_attendance_form        hr_attendance_view_form
-        view_attendance_tree
-
-        act_hr_timesheet_sheet_sheet_by_account
-        act_hr_timesheet_sheet_sheet_by_day
-        hr_timesheet_day_tree
-
-    """)
-    for x in xids_moved:
-        if ' ' in x:
-            f, t = x.split()
-        else:
-            f = t = x
-        util.rename_xmlid(cr, 'hr_timesheet_sheet.' + f, 'hr_timesheet_attendance.' + t)
+    util.rename_xmlid(cr, "hr_timesheet_attendance.view_hr_attendance_filter", "hr_timesheet_attendance.hr_attendance_view_filter")
+    util.rename_xmlid(cr, "hr_timesheet_attendance.view_attendance_form", "hr_timesheet_attendance.hr_attendance_view_form")
 
     util.remove_view(cr, 'hr_timesheet_sheet.hr_timesheet_sheet_company')
     util.remove_view(cr, 'hr_timesheet_sheet.view_attendance_tree_who')

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     cr.execute("UPDATE ir_cron SET interval_type='days' WHERE interval_type='work_days'")
 
@@ -40,6 +41,13 @@ def migrate(cr, version):
           FROM ir_cron c
          WHERE s.id = c.ir_actions_server_id
     """)
+    cr.execute(
+        """
+            ALTER TABLE ir_cron 
+        ADD FOREIGN KEY (ir_actions_server_id)
+             REFERENCES ir_act_server(id) ON DELETE RESTRICT
+        """
+    )
 
     # remove cron from unknow models (wont never run)
     cr.execute("DELETE FROM ir_cron WHERE ir_actions_server_id IS NULL")

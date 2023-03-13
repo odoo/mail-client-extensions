@@ -18,8 +18,7 @@ def migrate(cr, version):
     if util.module_installed(cr, "stock"):
         util.move_model(cr, "stock.incoterms", "stock", "account", move_data=True)
         util.rename_model(cr, "stock.incoterms", "account.incoterms")
-        util.rename_xmlid(cr, "stock.view_incoterms_tree", "account.view_incoterms_tree")
-        util.rename_xmlid(cr, "stock.stock_incoterms_form", "account.account_incoterms_form")
+        util.rename_xmlid(cr, "account.stock_incoterms_form", "account.account_incoterms_form")
 
     util.remove_model(cr, "wizard.multi.charts.accounts")
     util.remove_model(cr, "account.bank.accounts.wizard")
