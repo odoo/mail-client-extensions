@@ -292,7 +292,7 @@ def migrate(cr, version):
                 ON account_journal.id = account_move.journal_id
               JOIN res_company
                 ON res_company.id = account_move.company_id
-             WHERE account_move.statement_line_id = account_bank_statement_line.id
+             WHERE account_move.id = account_bank_statement_line.move_id
         """,
         [MAXINT, MININT],
     ).decode()

@@ -186,6 +186,29 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
         statement = self.env["account.bank.statement"].browse(statement_id)
         self.assertRecordValues(statement, [{"attachment_ids": [attachment_id]}])
 
+    def _prepare_test_statement_lines_linked_to_one_move(self):
+        """Test the migration of statement lines that are linked to the same move."""
+        statement_1 = self.env["account.bank.statement"].create(
+            {
+                "journal_id": self.bank_journal.id,
+                "date": "2021-01-01",
+                "line_ids": [fields.Command.create({"payment_ref": "line1", "amount": 122.0, "date": "2020-01-01"})],
+            }
+        )
+        statement_2 = self.env["account.bank.statement"].create(
+            {
+                "journal_id": self.bank_journal.id,
+                "date": "2021-01-02",
+                "line_ids": [fields.Command.create({"payment_ref": "line2", "amount": 123.0, "date": "2020-01-02"})],
+            }
+        )
+        statement_1.line_ids[0].move_id = statement_2.line_ids[0].move_id.id
+        return [(statement_1.line_ids + statement_2.line_ids).ids]
+
+    def _check_test_statement_lines_linked_to_one_move(self, config, statement_line_ids):
+        for line in self.env["account.bank.statement.line"].browse(statement_line_ids):
+            self.assertTrue(line.internal_index)
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -208,5 +231,8 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
                 "_check_test_statement_with_attachment_in_chatter",
                 self._prepare_test_statement_with_attachment_in_chatter(),
             )
+        )
+        res["tests"].append(
+            ("_check_test_statement_lines_linked_to_one_move", self._prepare_test_statement_lines_linked_to_one_move()),
         )
         return res
