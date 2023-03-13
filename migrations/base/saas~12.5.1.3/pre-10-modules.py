@@ -136,6 +136,7 @@ def migrate(cr, version):
         util.new_module(cr, "documents_hr_recruitment", deps={"documents_hr", "hr_recruitment"}, auto_install=True)
         util.new_module(cr, "helpdesk_fsm", deps={"helpdesk", "industry_fsm"}, auto_install=True)
         util.new_module(cr, "hr_contract_sign", deps={"hr_contract", "sign"}, auto_install=True)
+        util.force_migration_of_fresh_module(cr, "hr_contract_sign")
         util.new_module(cr, "hr_payroll_account_sepa", deps={"hr_payroll_account", "account_sepa"})
         util.new_module(cr, "hr_payroll_expense", deps={"hr_payroll", "hr_expense"})
         util.new_module(

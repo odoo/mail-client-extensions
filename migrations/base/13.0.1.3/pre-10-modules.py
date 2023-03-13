@@ -89,7 +89,6 @@ def migrate(cr, version):
 
         # https://github.com/odoo/enterprise/pull/6764
         util.module_deps_diff(cr, "hr_contract_salary", plus={"hr_contract_sign"}, minus={"hr"})
-        util.force_migration_of_fresh_module(cr, "hr_contract_sign")  # fresh from saas~12.5...
 
         # https://github.com/odoo/enterprise/pull/20506
         util.new_module(cr, "l10n_it_reports", deps={"l10n_it", "account_reports"}, auto_install=True)
