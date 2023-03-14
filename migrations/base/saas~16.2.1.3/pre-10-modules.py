@@ -11,6 +11,10 @@ def migrate(cr, version):
     util.merge_module(cr, "pos_daily_sales_reports", "point_of_sale")
     util.merge_module(cr, "account_sequence", "account")
     util.merge_module(cr, "l10n_latam_account_sequence", "l10n_latam_invoice_document")
+    util.merge_module(cr, "website_sale_loyalty_delivery", "website_sale_loyalty")
+    util.merge_module(cr, "website_sale_delivery", "website_sale")
+    util.merge_module(cr, "website_sale_taxcloud_delivery", "website_sale_account_taxcloud")
+    util.rename_module(cr, "website_sale_delivery_mondialrelay", "website_sale_mondialrelay")
 
     if util.has_enterprise():
         util.remove_module(cr, "l10n_generic_auto_transfer_demo")
@@ -19,11 +23,21 @@ def migrate(cr, version):
         util.remove_module(cr, "barcodes_mobile")
         util.remove_module(cr, "project_timesheet_synchro")
         util.remove_module(cr, "test_web_grid")
+        util.rename_module(cr, "website_delivery_fedex", "website_sale_fedex")
+        util.rename_module(cr, "website_delivery_ups", "website_sale_ups")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
     util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
 
-    force_installs = set()
+    force_installs, force_upgrades = set(), set()
     if util.modules_installed(cr, "l10n_be_hr_payroll"):
         force_installs |= {"l10n_be_hr_payroll_sd_worx"}
+    if util.modules_installed(cr, "delivery"):
+        force_installs |= {"stock_delivery"}
 
-    util.modules_auto_discovery(cr, force_installs=force_installs)
+        cr.execute("SELECT demo FROM ir_module_module WHERE name='delivery'")
+        if cr.fetchone()[0]:
+            # even if there is no upgrade script for this module,
+            # we should install it in init=False to avoid updating the noupdate demo data
+            force_upgrades |= {"stock_delivery"}
+
+    util.modules_auto_discovery(cr, force_installs=force_installs, force_upgrades=force_upgrades)

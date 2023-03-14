@@ -19,7 +19,7 @@ def migrate(cr, version):
 
     util.remove_view(
         cr,
-        "website_delivery_fedex.payment_delivery_methods_inherit_website_sale_delivery",
+        "website_sale_fedex.payment_delivery_methods_inherit_website_sale_delivery",
     )
-    util.remove_record(cr, "website_delivery_fedex.selection__delivery_carrier__fedex_locations_radius_unit__km")
-    util.remove_record(cr, "website_delivery_fedex.selection__delivery_carrier__fedex_locations_radius_unit__mi")
+    util.remove_record(cr, "website_sale_fedex.selection__delivery_carrier__fedex_locations_radius_unit__km")
+    util.remove_record(cr, "website_sale_fedex.selection__delivery_carrier__fedex_locations_radius_unit__mi")

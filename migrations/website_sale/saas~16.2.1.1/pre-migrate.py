@@ -8,3 +8,5 @@ def migrate(cr, version):
     util.rename_xmlid(cr, "website_sale.menu_ecommerce_payment_icons", "website_sale.menu_ecommerce_payment_methods")
     util.remove_view(cr, "website_sale.view_quotation_tree")
     util.rename_xmlid(cr, "website_sale.view_order_tree", "website_sale.sale_order_tree")
+    util.remove_field(cr, "res.config.settings", "sale_delivery_settings")
+    util.remove_field(cr, "res.config.settings", "module_website_sale_delivery")
