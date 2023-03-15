@@ -244,6 +244,18 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.move", "statement_id", skip_inherit=("account.bank.statement.line",))
 
+    # Link the chatter attachments to the bank statements to not lose them.
+    util.create_m2m(cr, "account_bank_statement_ir_attachment_rel", "account_bank_statement", "ir_attachment")
+    cr.execute(
+        """
+        INSERT INTO account_bank_statement_ir_attachment_rel(account_bank_statement_id, ir_attachment_id)
+        SELECT res_id, id
+          FROM ir_attachment
+         WHERE res_model = 'account.bank.statement'
+           AND res_id IS NOT NULL
+        """
+    )
+
     util.remove_inherit_from_model(cr, "account.bank.statement", "mail.thread")
     util.remove_inherit_from_model(cr, "account.bank.statement", "sequence.mixin")
     for field in (

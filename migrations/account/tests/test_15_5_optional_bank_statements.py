@@ -7,7 +7,6 @@ from odoo.addons.base.maintenance.migrations.testing import change_version
 
 @change_version("16.0")
 class TestOptionalBankStatements(TestAccountingSetupCommon):
-
     # -------------------------------------------------------------------------
     # TESTS
     # -------------------------------------------------------------------------
@@ -160,6 +159,33 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
             ],
         )
 
+    def _prepare_test_statement_with_attachment_in_chatter(self):
+        """Test the migration of a statement having some lines with a NULL sequence."""
+        statement = self.env["account.bank.statement"].create(
+            {
+                "journal_id": self.bank_journal.id,
+                "date": "2021-01-01",
+                "line_ids": [
+                    fields.Command.create({"payment_ref": "turlututu", "amount": 100.0, "date": "2020-01-01"})
+                ],
+            }
+        )
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "tsoin tsoin",
+                "raw": b"blahblahblah",
+                "res_model": statement._name,
+                "res_id": statement.id,
+            }
+        )
+        statement.message_post(attachment_ids=attachment.ids)
+
+        return [statement.id, attachment.id]
+
+    def _check_test_statement_with_attachment_in_chatter(self, config, statement_id, attachment_id):
+        statement = self.env["account.bank.statement"].browse(statement_id)
+        self.assertRecordValues(statement, [{"attachment_ids": [attachment_id]}])
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -176,5 +202,11 @@ class TestOptionalBankStatements(TestAccountingSetupCommon):
         res["tests"].append(("_check_test_statements", self._prepare_test_statements()))
         res["tests"].append(
             ("_check_test_statement_lines_null_sequence", self._prepare_test_statement_lines_null_sequence())
+        )
+        res["tests"].append(
+            (
+                "_check_test_statement_with_attachment_in_chatter",
+                self._prepare_test_statement_with_attachment_in_chatter(),
+            )
         )
         return res
