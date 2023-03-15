@@ -32,7 +32,6 @@ def migrate(cr, version):
             elems = arch.xpath("//button[@class='btn btn-primary button_immediate_install' and not(@name)]")
             if elems:
                 elems[0].attrib["name"] = "button_immediate_install"
-                elems[0].attrib["type"] = "object"
 
         with util.skippable_cm(), util.edit_view(
             cr, "saas_trial.paid_apps_module_form", skip_if_not_noupdate=False
