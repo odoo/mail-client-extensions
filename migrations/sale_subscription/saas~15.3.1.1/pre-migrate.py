@@ -492,20 +492,32 @@ def migrate(cr, version):
                     (column2,) = util.get_columns(cr, table, ignore=(column,))  # will fail if not m2m
                     table2 = util.target_of(cr, table, column2)[0]
                     cr.execute(f'ALTER TABLE "{table}" RENAME TO "{table}_upg"')
-                    util.create_m2m(
-                        cr, table, main_table.replace("subscription", "order"), table2, col1=column, col2=column2
-                    )
-                    # Do not exec in // or face the issue where a record is updated/converted multiple times
-                    # We cannot just update the m2m table because there may be conflicts
-                    cr.execute(
-                        f"""
+                    new_table = main_table.replace("subscription", "order")
+                    if table2 == main_table:
+                        # m2m to itself from the model of main_table
+                        util.create_m2m(cr, table, new_table, new_table, col1=column, col2=column2)
+                        query = f"""
+                        INSERT INTO "{table}" ("{column2}", {column})
+                             SELECT m2.{map_field}, m.{map_field}
+                               FROM "{table}_upg" orig_t
+                               JOIN "{main_table}" m
+                                 ON orig_t."{column}"=m.id
+                               JOIN "{main_table}" m2
+                                 ON orig_t."{column2}"=m2.id
+                        """
+                        already_processed_fk.append((table, column2))
+                    else:
+                        util.create_m2m(cr, table, new_table, table2, col1=column, col2=column2)
+                        query = f"""
                         INSERT INTO "{table}" ("{column2}", {column})
                              SELECT orig_t."{column2}", m.{map_field}
                                FROM "{table}_upg" orig_t
                                JOIN "{main_table}" m
                                  ON orig_t."{column}"=m.id
                         """
-                    )
+                    # Do not exec in // or face the issue where a record is updated/converted multiple times
+                    # We cannot just update the m2m table because there may be conflicts
+                    cr.execute(query)
                     cr.execute(f'DROP TABLE "{table}_upg"')
 
     # Update sale_order_line_invoice_rel to match the new sale orders
