@@ -3,6 +3,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if util.version_gte("saas~16.2"):
+        return
     # `account.account` tags
     cr.execute(
         """
