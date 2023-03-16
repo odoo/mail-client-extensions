@@ -11,3 +11,9 @@ def migrate(cr, version):
 
     util.adapt_domains(cr, "project.task", "project_color", "project_id.color")
     util.remove_field(cr, "project.task", "project_color")
+
+    util.adapt_domains(cr, "project.task", "display_project_id", "project_id")
+
+    util.remove_field(cr, "project.task", "display_project_id")
+    util.remove_field(cr, "project.project", "task_count_with_subtasks")
+    util.remove_field(cr, "project.task.burndown.chart.report", "display_project_id")
