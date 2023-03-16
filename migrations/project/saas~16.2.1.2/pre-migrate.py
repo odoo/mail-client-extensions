@@ -102,6 +102,8 @@ def migrate(cr, version):
     util.adapt_domains(cr, "project.task", "kanban_state", "state", adapter=state_adapter)
     util.adapt_domains(cr, "project.task", "is_blocked", "is_closed", adapter=is_blocked_adapter)
 
+    util.update_record_from_xml(cr, "project.project_manager_all_project_tasks_rule")
+
     recurrence_fields = [
         "sun",
         "sat",
