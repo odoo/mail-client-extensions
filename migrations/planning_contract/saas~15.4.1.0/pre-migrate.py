@@ -5,6 +5,8 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     # Explicit removal of demo records to avoid contract conflicts
-    util.remove_record(cr, "planning_contract.hr_contract_ngh")
+    if not util.module_installed(cr, "hr_work_entry_contract_planning"):
+        util.delete_unused(cr, "planning_contract.hr_contract_ngh")
+
     if not util.module_installed(cr, "hr_work_entry_contract_attendance"):
-        util.remove_record(cr, "planning_contract.hr_contract_hne")
+        util.delete_unused(cr, "planning_contract.hr_contract_hne")

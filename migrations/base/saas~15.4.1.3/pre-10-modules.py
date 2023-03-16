@@ -4,7 +4,9 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.modules_auto_discovery(cr, force_upgrades={"appointment_sms", "hr_work_entry_contract_attendance"})
+    util.modules_auto_discovery(
+        cr, force_upgrades={"appointment_sms", "hr_work_entry_contract_attendance", "hr_work_entry_contract_planning"}
+    )
 
     if util.has_enterprise():
         util.merge_module(cr, "documents_spreadsheet_bundle", "documents_spreadsheet")
