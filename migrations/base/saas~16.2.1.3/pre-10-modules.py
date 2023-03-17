@@ -28,6 +28,7 @@ def migrate(cr, version):
         util.remove_module(cr, "sale_subscription_dashboard")
     util.merge_module(cr, "purchase_price_diff", "purchase_stock")
     util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
+    util.merge_module(cr, "l10n_lu_peppol_id", "account_edi_ubl_cii")
 
     force_installs, force_upgrades = set(), set()
     if util.modules_installed(cr, "l10n_be_hr_payroll"):
