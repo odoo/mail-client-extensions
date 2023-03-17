@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -18,3 +17,20 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_pe_edi_stock_20", "l10n_pe_edi_stock")
     util.merge_module(cr, "website_event_questions", "website_event")
     util.merge_module(cr, "website_event_crm_questions", "website_event_crm")
+
+    if util.table_exists(cr, "note_note"):
+        # uninstall the "note" module if it appears unused
+        cr.execute(
+            """
+            SELECT 1
+              FROM note_note n
+             WHERE NOT EXISTS (SELECT 1
+                                 FROM ir_model_data
+                                WHERE model = 'note.note'
+                                  AND module IN ('note', 'hr_payroll')
+                                  AND res_id = n.id)
+             LIMIT 1            """
+        )
+        if not cr.rowcount:
+            util.uninstall_module(cr, "note")
+    util.rename_module(cr, "note", "project_todo")

@@ -18,7 +18,3 @@ def migrate(cr, version):
     """,
         [note_tag],
     )
-
-    cr.execute("DELETE FROM note_note n USING note_tags_rel nt WHERE nt.note_id = n.id AND nt.tag_id = %s", [note_tag])
-
-    util.remove_record(cr, "hr_payroll.payroll_note_tag")
