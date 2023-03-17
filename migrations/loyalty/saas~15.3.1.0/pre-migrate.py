@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from psycopg2.extras import execute_values
 
+from odoo import modules
+
 from odoo.upgrade import util
 
 has_loyalty_models = False
 has_loyalty_card = False
+has_custom_loyalty_fields = False
 
 
 def migrate(cr, version):
@@ -33,15 +36,159 @@ def migrate(cr, version):
     _create_loyalty_tables(cr)
 
     if has_coupon:
+        _change_model_on_manual_fields(cr, "coupon.program", "loyalty.program")
+        _change_model_on_manual_fields(cr, "coupon.rule", "loyalty.rule")
+        _change_model_on_manual_fields(cr, "coupon.reward", "loyalty.reward")
         _coupon_migrate(cr)
+        _move_manual_fields(cr, "coupon_program", "loyalty.program", "_upg_coupon_program_id")
+        _move_manual_fields(
+            cr, "coupon_rule", "loyalty.rule", "program_id", join=["loyalty_program", "_upg_coupon_rule_id", "id"]
+        )
+        _move_manual_fields(
+            cr, "coupon_reward", "loyalty.reward", "program_id", join=["loyalty_program", "_upg_coupon_reward_id", "id"]
+        )
+        _move_manual_fields(cr, "coupon_coupon", "loyalty.card", "_upg_coupon_coupon_id")
     if has_gift_card:
+        _change_model_on_manual_fields(cr, "gift.card", "loyalty.card")
         _gift_card_migrate(cr)
+        _move_manual_fields(cr, "gift_card", "loyalty.card", "_upg_gift_card_id")
     if has_pos_loyalty:
         _pos_loyalty_migrate(cr)
+        _move_manual_fields(cr, "pos_loyalty_program", "loyalty.program", "_upg_pos_program_id")
+        _move_manual_fields(
+            cr,
+            "pos_loyalty_rule",
+            "loyalty.rule",
+            "program_id",
+            join=["loyalty_program", "_upg_pos_program_id", "loyalty_program_id"],
+        )
+        _move_manual_fields(cr, "pos_loyalty_reward", "loyalty.reward", "_upg_pos_loyalty_reward_id")
+
+    if has_custom_loyalty_fields:
+        # The standard views of most renamed/merged models are removed
+        # and the studio views that inherit them are deleted as well
+        # The custom fields and their data are preserved but the view is gone
+        util.add_to_migration_reports(
+            category="Loyalty, Coupons, and Gift Cards",
+            message="Due to a redesign of multiple modules related to "
+            "loyalty, coupons, and gift cards in Odoo 16, many views were "
+            "replaced, resulting in the possible loss of custom fields in "
+            "views. Please verify the new loyalty views and add your custom "
+            "fields back if necessary.",
+        )
 
 
 def _check_mapping(mapping):
     return any(k != v for k, v in mapping.items())
+
+
+def _change_model_on_manual_fields(cr, from_model, to_model):
+    global has_custom_loyalty_fields
+    cr.execute(
+        """
+        WITH fields AS (
+          SELECT f.id
+            FROM ir_model_fields f
+            JOIN ir_model_data d
+              ON d.model = 'ir.model.fields'
+             AND d.res_id = f.id
+           WHERE f.state = 'base'
+             AND f.model = %s
+        GROUP BY f.id
+          HAVING NOT array_agg(d.module::text) && %s
+
+           UNION
+
+          SELECT id
+            FROM ir_model_fields
+           WHERE state = 'manual'
+             AND model = %s
+        )
+
+        UPDATE ir_model_fields f
+           SET model_id = m.id,
+               model = m.model
+          FROM ir_model m,
+               fields
+         WHERE fields.id = f.id
+           AND m.model = %s
+    """,
+        [
+            from_model,
+            list(modules.get_modules()),
+            from_model,
+            to_model,
+        ],
+    )
+    if cr.rowcount:
+        has_custom_loyalty_fields = True
+
+
+def _move_manual_fields(cr, from_table, to_model, link_col, join=None):
+    to_table = util.table_of_model(cr, to_model)
+    # the target table was just created so we cannot have the
+    # same manual fields in the target table, but we could have
+    # created them in a previous call to this function
+
+    cr.execute(
+        """
+        WITH fields AS (
+          SELECT f.id
+            FROM ir_model_fields f
+            JOIN ir_model_data d
+              ON d.model = 'ir.model.fields'
+             AND d.res_id = f.id
+           WHERE f.state = 'base'
+             AND f.store
+             AND f.ttype NOT IN ('one2many', 'many2many')
+             AND f.model = %s
+        GROUP BY f.id
+          HAVING NOT array_agg(d.module::text) && %s
+
+           UNION
+
+          SELECT id
+            FROM ir_model_fields
+           WHERE state = 'manual'
+             AND store
+             AND ttype NOT IN ('one2many', 'many2many')
+             AND model = %s
+        )
+
+        SELECT quote_ident(f.name), c.udt_name
+          FROM ir_model_fields f
+          JOIN information_schema.columns c
+            ON quote_ident(f.name) = c.column_name
+           AND c.table_name = %s
+          JOIN fields
+            ON fields.id = f.id
+    """,
+        [
+            to_model,
+            list(modules.get_modules()),
+            to_model,
+            from_table,
+        ],
+    )
+    custom_cols = cr.fetchall()
+    if custom_cols:
+        for col_name, col_type in custom_cols:
+            util.create_column(cr, to_table, col_name, col_type)
+        fill_columns = """
+            UPDATE {to_table} t
+               SET {columns}
+              FROM {from_table} f
+            {join}
+             WHERE t.{key} = {condition_table2}.id
+        """.format(
+            to_table=to_table,
+            from_table=from_table,
+            join="JOIN %s j ON j.%s = f.%s" % tuple(join) if join else "",
+            key=link_col,
+            condition_table2="j" if join else "f",
+            columns=",".join("%s = f.%s" % (col[0], col[0]) for col in custom_cols),
+        )
+        util.explode_execute(cr, fill_columns, table=to_table, alias="t")
 
 
 def _coupon_migrate(cr):
