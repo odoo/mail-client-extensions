@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
 from openerp.addons.base.maintenance.migrations import util
 
+COUNT = 0
+_logger = logging.getLogger(__name__)
 
 def merge_moves(cr, first_one, to_delete, total_qty, total_uom_qty):
+    global COUNT
     # This method is used to merge stock moves, but at the same time preserve the information on the old models,
     # so we can use them later for e.g. splitting the stock_pack_operation_lot into stock_move_line
     cr.execute("""UPDATE stock_move SET product_qty = %s, product_uom_qty = %s WHERE id = %s""", (total_qty, total_uom_qty, first_one)) # Needs to calculate product_qty and state too
@@ -19,6 +23,13 @@ def merge_moves(cr, first_one, to_delete, total_qty, total_uom_qty):
                      AND NOT EXISTS (SELECT move_dest_id FROM stock_move_move_rel r2 WHERE r2.move_dest_id = %s AND r2.move_orig_id = mr.move_orig_id)
                     GROUP BY mr.move_orig_id
     """, (first_one, tuple(to_delete), first_one))
+
+    COUNT += 1
+    BATCH_SIZE = 100000
+    if COUNT % BATCH_SIZE == 0:
+        _logger.info("Commit changes after %s lines updated, batch #%s", BATCH_SIZE, int(COUNT / BATCH_SIZE))
+        cr.execute("REINDEX TABLE stock_move_line")
+        cr.commit()
 
     cr.execute("""UPDATE stock_move_line SET move_id = %s WHERE move_id IN %s""", (first_one, tuple(to_delete)))
     cr.execute("""UPDATE stock_move_operation_link SET move_id = %s WHERE move_id IN %s""",
@@ -153,11 +164,15 @@ def migrate(cr, version):
         ("stock_move_operation_link_move_id", "stock_move_operation_link", ("move_id",)),
         ("stock_quant_negative_move_id", "stock_quant", ("negative_move_id",)),
         ("stock_scrap_move_id", "stock_scrap", ("move_id",)),
-        ("stock_move_line_move_id", "stock_move_line", ("move_id",)),
         ("stock_move_lots_move_id", "stock_move_lots", ("move_id",)),
         ("stock_valuation_adjustment_lines_move_id", "stock_valuation_adjustment_lines", ("move_id",)),
     ]:
         util.create_index(cr, name, table, *columns)
+    # Use a hash index because they behave better for updates, in merge_moves we run many queries like
+    # UPDATE stock_move_line SET move_id = %s WHERE move_id IN %s
+    # which are extremely slow since they use and modify the index
+    cr.execute("CREATE INDEX stock_move_line_move_id_upg_idx ON stock_move_line USING hash(move_id)")
+    cr.execute("ANALYZE stock_move_line")
 
     util.fixup_m2m(cr, "stock_quant_move_rel", "stock_move", "stock_quant", "move_id", "quant_id")
 
@@ -369,3 +384,8 @@ def migrate(cr, version):
         FROM stock_move m
         WHERE ml.move_id = m.id
     """)
+
+    # remove hash index
+    cr.execute("DROP INDEX stock_move_line_move_id_upg_idx")
+    util.create_index("stock_move_line_move_id", "stock_move_line", "move_id")
+    cr.commit()
