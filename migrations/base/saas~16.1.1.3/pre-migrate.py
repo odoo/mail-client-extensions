@@ -29,7 +29,7 @@ def migrate(cr, version):
     for table_name, column_name in cr.fetchall():
         old_index_name = f"{table_name}_{column_name}_index"
         new_index_name = sql.make_index_name(table_name, column_name)
-        queries.append(f"ALTER INDEX {old_index_name} RENAME TO {new_index_name}")
+        queries.append(f'ALTER INDEX "{old_index_name}" RENAME TO "{new_index_name}"')
 
     util.parallel_execute(cr, queries)
 
