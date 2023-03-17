@@ -26,7 +26,7 @@ def migrate(cr, version):
                     CASE
                         WHEN amount_signed >= 0 THEN 0
                         ELSE amount_signed
-                    END
+                    END,
                   event_type = CASE event_type
                     WHEN '1_change' THEN
                       CASE WHEN amount_signed < 0 THEN '15_contraction' ELSE '1_expansion' END
