@@ -199,16 +199,22 @@ def save_arch(view, arch):
     return old_arch
 
 
-def heuristic_fixes(cr, view, check, e):
+def heuristic_fixes(cr, view, check, e, tried_anchors=None):
     """
     Try to fix a failing view on xpath element not found following some heuristics (see the code for details).
     On each heuristic we check if the original exception {e} is not present anymore, if so then we recursively check
     the new exception if any.
 
+    {tried_anchor} holds the pairs of old/new expr tried already, to avoid infinite recursion due to re-trying what
+    was done already.
+
     Returns whether we could fix the view or not, always return True if {e} is None
     """
     if e is None:
         return True
+
+    if tried_anchors is None:
+        tried_anchors = set()
 
     def update_anchor(view, arch, xelem, orig_arch):
         """
@@ -243,6 +249,10 @@ def heuristic_fixes(cr, view, check, e):
                 for new_expr in get_expr(anchor, orig_arch):
                     if not validate_expr(orig_arch, anchor, new_expr):
                         continue
+                    pair = (xelem.attrib["expr"], new_expr)
+                    if pair in tried_anchors:
+                        continue
+                    tried_anchors.add(pair)
                     xelem.set("expr", new_expr)
                     xelem.set("position", position)
                     save_arch(view, arch)
@@ -257,7 +267,7 @@ def heuristic_fixes(cr, view, check, e):
                     # it seems that we fixed this issue, but still have another, lets continue...
                     # WARNING: the call below could cause infinite recursion but is needed in order to fix
                     #          views that have more than one issue...
-                    return heuristic_fixes(cr, view, check, new_e)
+                    return heuristic_fixes(cr, view, check, new_e, tried_anchors)
 
         return False
 
