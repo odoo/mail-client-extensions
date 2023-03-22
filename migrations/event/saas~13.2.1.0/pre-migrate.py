@@ -3,8 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
-    util.move_model(cr, "event.event.ticket", "event_sale", "sale")
+    util.move_model(cr, "event.event.ticket", "event_sale", "event")
 
     if (
         util.module_installed(cr, "event_sale")
