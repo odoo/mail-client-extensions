@@ -67,4 +67,4 @@ def migrate(cr, version):
             cr, "mail_template", "body_html", "acquirer_id", "provider_id", extra_filter=extra_filter
         )
     else:
-        util.update_record_from_xml(cr, "sale.mail_template_sale_confirmation")
+        util.update_record_from_xml(cr, "sale.mail_template_sale_confirmation", ensure_references=True)
