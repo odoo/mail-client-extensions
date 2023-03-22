@@ -137,7 +137,10 @@ def migrate(cr, version):
                     WHERE state = 'draft'
                 """)
 
-    # Delete some view(s) that are not used anymore
+    # Delete some views and records that are not used anymore
+    util.remove_view(cr, "account.view_account_configuration_installer")
+    util.remove_record(cr, "account.action_account_configuration_installer")
+    util.remove_record(cr, "account.account_configuration_installer_todo")
     util.remove_view(cr, xml_id="account.view_account_journal_1")
     util.remove_view(cr, xml_id="account.partner_view_button_journal_item_count")
     util.remove_view(cr, xml_id="account.view_bank_statement_form2")
