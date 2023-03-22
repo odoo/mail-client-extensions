@@ -196,7 +196,8 @@ def _update_lines(cr):
         cr.execute("UPDATE sale_order_line SET qty_delivered=0")
         all_moves_done = "false"
 
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE sale_order_line l
            SET qty_to_invoice = CASE
@@ -224,7 +225,9 @@ def _update_lines(cr):
                 END
           FROM product_uom uom
          WHERE uom.id = l.product_uom
-    """
+        """,
+        table="sale_order_line",
+        alias="l",
     )
 
     # compute invoice_status field: https://git.io/v2MWu
