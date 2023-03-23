@@ -13,12 +13,8 @@ def migrate(cr, version):
     """
     )
 
-    # flabgastingly slow and useless - disabled
-    # cr.execute("SELECT id, line_id FROM hr_analytic_timesheet")
-    # for tid, lid in cr.fetchall():
-    #    util.replace_record_references(cr,
-    #                                   ('hr.analytic.timesheet', tid),
-    #                                   ('account.analytic.line', lid))
+    cr.execute("SELECT id, line_id FROM hr_analytic_timesheet")
+    util.replace_record_references_batch(cr, dict(cr.fetchall()), "hr.analytic.timesheet", "account.analytic.line")
 
     for model, res_model, res_id in util.res_model_res_id(cr):
         if (res_id and model != "ir.values") or model.startswith("ir.model"):
@@ -43,7 +39,7 @@ def migrate(cr, version):
 
     # can't delete it here - project_timesheet and project_issue_sheet both require the data
     # during migration
-    # util.delete_model(cr, 'hr.analytic.timesheet')
+    util.delete_model(cr, "hr.analytic.timesheet", drop_table=False)
 
     util.delete_model(cr, "hr.sign.out.project")
     util.delete_model(cr, "hr.sign.in.project")
