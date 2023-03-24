@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from odoo import models
-from odoo.addons.helpdesk.models import helpdesk  # noqa
+
+try:
+    from odoo.addons.helpdesk.models import helpdesk_ticket_type  # noqa
+except ImportError:
+    from odoo.addons.helpdesk.models import helpdesk  # noqa
 
 
 def migrate(cr, version):
@@ -8,6 +12,6 @@ def migrate(cr, version):
 
 
 class TicketType(models.Model):
-    _inherit = 'helpdesk.ticket.type'
+    _inherit = "helpdesk.ticket.type"
     _module = "helpdesk"
     _match_uniq = True
