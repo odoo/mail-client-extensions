@@ -16,9 +16,15 @@ def migrate(cr, version):
     util.adapt_domains(cr, "project.task", "display_project_id", "project_id")
 
     util.remove_field(cr, "project.task", "display_project_id")
+    util.remove_field(cr, "project.task", "child_text")
+    util.remove_field(cr, "project.task", "allow_subtasks")
+    util.remove_field(cr, "project.task", "stage_display")
     util.remove_field(cr, "project.project", "task_count_with_subtasks")
+    util.remove_field(cr, "project.project", "allow_subtasks")
     util.remove_field(cr, "project.task.burndown.chart.report", "display_project_id")
     util.remove_field(cr, "project.task.burndown.chart.report", "has_late_and_unreached_milestone")
+    util.remove_field(cr, "res.config.settings", "group_subtask_project")
+    util.remove_record(cr, "project.group_subtask_project")
 
     if not util.module_installed(cr, "industry_fsm"):
         util.remove_field(cr, "project.task", "partner_phone")
