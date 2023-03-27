@@ -1,6 +1,9 @@
 from odoo import models
 
-from odoo.addons.documents.models import tags  # noqa
+try:
+    from odoo.addons.documents.models import tags  # noqa
+except ImportError:
+    from odoo.addons.documents.models import documents_tag  # noqa
 
 
 def migrate(cr, version):
