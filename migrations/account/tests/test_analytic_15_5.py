@@ -26,6 +26,12 @@ class TestAnalyticApocalypse(TestAccountingSetupCommon):
                 "active_analytic_distribution": True,
             }
         )
+        analytic_tag_without_distribution = self.env["account.analytic.tag"].create(
+            {
+                "name": "Tag Without Distribution",
+                "active_analytic_distribution": False,
+            }
+        )
         self.env["account.analytic.distribution"].create(
             {
                 "account_id": analytic_account.id,
@@ -86,6 +92,27 @@ class TestAnalyticApocalypse(TestAccountingSetupCommon):
                             "account_id": self.account_income.id,
                         },
                     ),
+                    (
+                        0,
+                        0,
+                        {
+                            "name": "line5",
+                            "quantity": 1.0,
+                            "price_unit": 100.0,
+                            "analytic_tag_ids": [(6, 0, analytic_tag_without_distribution.ids)],
+                        },
+                    ),
+                    (
+                        0,
+                        0,
+                        {
+                            "name": "line6",
+                            "quantity": 1.0,
+                            "price_unit": 100.0,
+                            "analytic_account_id": analytic_account.id,
+                            "analytic_tag_ids": [(6, 0, analytic_tag_without_distribution.ids)],
+                        },
+                    ),
                 ],
             }
         )
@@ -93,11 +120,19 @@ class TestAnalyticApocalypse(TestAccountingSetupCommon):
 
     def _check_analytic_test(self, config, invoice_id, analytic_account_id):
         invoice = self.env["account.move"].browse(invoice_id)
+        analytic_account_from_tag = self.env["account.analytic.account"].search(
+            [("name", "=", "Tag Without Distribution")]
+        )
 
         self.assertEqual(invoice.invoice_line_ids[0].analytic_distribution, {str(analytic_account_id): 100.0})
         self.assertEqual(invoice.invoice_line_ids[1].analytic_distribution, {str(analytic_account_id): 150.0})
         self.assertEqual(invoice.invoice_line_ids[2].analytic_distribution, {str(analytic_account_id): 50.0})
         self.assertEqual(invoice.invoice_line_ids[3].analytic_distribution, False)
+        self.assertEqual(invoice.invoice_line_ids[4].analytic_distribution, {str(analytic_account_from_tag.id): 100.0})
+        self.assertEqual(
+            invoice.invoice_line_ids[5].analytic_distribution,
+            {str(analytic_account_id): 100.0, str(analytic_account_from_tag.id): 100.0},
+        )
 
     def prepare(self):
         res = super().prepare()

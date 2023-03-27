@@ -59,6 +59,73 @@ def migrate(cr, version):
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_account", alias="account"))
 
+    cr.execute(
+        """
+        SELECT 1
+          FROM account_analytic_tag tag
+     LEFT JOIN account_analytic_distribution distribution
+            ON distribution.tag_id = tag.id
+         WHERE distribution.id IS NULL
+         LIMIT 1
+    """
+    )
+
+    if cr.rowcount:
+        cr.execute(
+            """INSERT INTO account_analytic_plan(name, complete_name, parent_path)
+                           VALUES ('Former Tag', 'Former Tag', currval('account_analytic_plan_id_seq') || '/')
+                 RETURNING id
+            """
+        )
+        util.ENVIRON["analytic_plan_former_tag"] = former_tag_plan_id = cr.fetchone()[0]
+
+        util.create_column(cr, "account_analytic_account", "_tag", "int4")
+        cr.execute(
+            """
+            WITH new_accounts AS (
+                INSERT INTO account_analytic_account(_tag, name, company_id, plan_id, root_plan_id, active)
+                SELECT tag.id, tag.name, tag.company_id, %s, %s, tag.active
+                  FROM account_analytic_tag tag
+             LEFT JOIN account_analytic_distribution distribution
+                    ON distribution.tag_id = tag.id
+                 WHERE distribution.id IS NULL
+             RETURNING id, name, _tag
+            ),
+            _new_distribution AS (
+                INSERT INTO account_analytic_distribution(account_id, tag_id, percentage)
+                SELECT id, _tag, 100
+                  FROM new_accounts
+            )
+            SELECT id, name
+              FROM new_accounts
+          ORDER BY name
+         """,
+            [former_tag_plan_id, former_tag_plan_id],
+        )
+
+        accounts = cr.dictfetchall()
+
+        util.remove_column(cr, "account_analytic_account", "_tag")
+
+        message = """
+        <details>
+        <summary>
+            The analytic tags have been removed.
+            Those without distribution have been transformed into analytic accounts to keep the information.
+            They belong to a new plan named 'Former Tag'.
+            If they were linked with Journal Items, analytic items for the new accounts have been created.
+            It concerns the following accounts:
+        </summary>
+        <ul>{}</ul>
+        </details>
+        """.format(
+            "\n".join(
+                f"<li>{util.get_anchor_link_to_record('account.analytic.account', account['id'], account['name'])}</li>"
+                for account in accounts
+            )
+        )
+        util.add_to_migration_reports(category="Accounting", format="html", message=message)
+
     util.remove_field(cr, "account.analytic.line", "tag_ids")
 
     util.remove_record(cr, "analytic.group_analytic_tags")

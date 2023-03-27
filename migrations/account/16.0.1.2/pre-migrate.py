@@ -219,6 +219,42 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "account.move", "attachment_ids", "account_accountant", "account")
 
     # Analytic
+    analytic_plan_former_tag = util.ENVIRON.get("analytic_plan_former_tag")
+    if analytic_plan_former_tag:
+        query = cr.mogrify(
+            """
+            INSERT INTO account_analytic_line(
+                      name, date, account_id, plan_id,
+                      unit_amount, product_id, product_uom_id,
+                      amount,
+                      general_account_id, ref, move_id,
+                      user_id, partner_id,
+                      company_id,
+                      currency_id,
+                      category)
+            SELECT aml.name, aml.date, account.id, account.plan_id,
+                   aml.quantity, aml.product_id, aml.product_uom_id,
+                   COALESCE(aml.credit, 0.0) - COALESCE(aml.debit, 0.0),
+                   aml.account_id, aml.ref, aml.id,
+                   move.invoice_user_id, aml.partner_id,
+                   COALESCE(account.company_id, move.company_id),
+                   company.currency_id,
+                   CASE WHEN move.move_type IN ('out_invoice', 'out_refund', 'out_receipt') THEN 'invoice'
+                        WHEN move.move_type IN ('in_invoice', 'in_refund', 'in_receipt') THEN 'vendor_bill'
+                   END AS category
+              FROM account_move_line aml
+              JOIN account_move move ON aml.move_id = move.id
+              JOIN account_analytic_tag_account_move_line_rel aat_aml_rel ON aat_aml_rel.account_move_line_id = aml.id
+              JOIN account_analytic_tag tag ON tag.id = aat_aml_rel.account_analytic_tag_id
+              JOIN account_analytic_distribution distrib ON distrib.tag_id = tag.id
+              JOIN account_analytic_account account ON distrib.account_id = account.id
+              JOIN res_company company ON COALESCE(account.company_id, move.company_id) = company.id
+             WHERE account.plan_id = %s
+        """,
+            [analytic_plan_former_tag],
+        ).decode()
+        util.explode_execute(cr, query, table="account_move_line", alias="aml")
+
     upgrade_analytic_distribution(cr, model="account.move.line")
     upgrade_analytic_distribution(
         cr,
