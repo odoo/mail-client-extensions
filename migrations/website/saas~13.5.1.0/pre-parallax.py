@@ -7,19 +7,19 @@ from lxml import etree, html
 import odoo.upgrade.util.snippets as snip
 from odoo.upgrade import util
 
-utf8_parser = html.HTMLParser(encoding="utf-8")
+html_utf8_parser = html.HTMLParser(encoding="utf-8")
 
 
 def migrate(cr, version):
     # Parallax feature
     # -> For the views
-    migrate_parallax(cr, "ir_ui_view", "arch_db")
+    migrate_parallax(cr, "ir_ui_view", "arch_db", is_html=False)
     # -> For the HTML fields
     for table, column in snip.get_html_fields(cr):
-        migrate_parallax(cr, table, column)
+        migrate_parallax(cr, table, column, is_html=True)
 
 
-def migrate_parallax(cr, table, column):
+def migrate_parallax(cr, table, column, is_html=False):
     bg_image_regex = r"background-image\s*:\s*(url\(.+\))\s*(?:;|$)"
     bg_color_regex = r"background-color\s*:\s*([^;]+)\s*(?:;|$)"
     bg_color_class_regex = r"\b(bg-(?:black|white)-\d{2})\b"
@@ -27,19 +27,19 @@ def migrate_parallax(cr, table, column):
     FIXED_CLASS = "s_parallax_is_fixed"
 
     def get_info():
-        query = r"""
+        query_t = r"""
             SELECT id, {column}
               FROM {table}
              WHERE {column} ~ '\yparallax\y'
         """.format(
             table=table, column=column
         )
-        for query in util.explode_query_range(cr, query, table=table):
+        for query in util.explode_query_range(cr, query_t, table=table):
             cr.execute(query)
             yield cr.fetchall()
 
     for res_id, body in itertools.chain.from_iterable(get_info()):
-        body = html.fromstring(body, parser=utf8_parser)
+        body = etree.fromstring(body, parser=html_utf8_parser if is_html else None)
         changed = False
         parallax_els = body.xpath("//*[hasclass('parallax')][not(comment())]")
         for el in parallax_els:
@@ -103,5 +103,5 @@ def migrate_parallax(cr, table, column):
                 el.insert(el.index(bg_el) + 1, filter_el)
                 changed = True
         if changed:
-            body = etree.tostring(body, encoding="unicode")
+            body = etree.tostring(body, encoding="unicode", method="html" if is_html else None)
             cr.execute(f"UPDATE {table} SET {column} = %s WHERE id = %s", [body, res_id])
