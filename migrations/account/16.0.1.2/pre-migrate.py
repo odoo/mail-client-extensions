@@ -249,10 +249,10 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO account_bank_statement_ir_attachment_rel(account_bank_statement_id, ir_attachment_id)
-        SELECT res_id, id
-          FROM ir_attachment
-         WHERE res_model = 'account.bank.statement'
-           AND res_id IS NOT NULL
+             SELECT ia.res_id, ia.id
+               FROM ir_attachment ia
+               JOIN account_bank_statement abs ON abs.id = ia.res_id
+              WHERE ia.res_model = 'account.bank.statement'
         """
     )
 
