@@ -83,6 +83,8 @@ def migrate(cr, version):
         util.remove_module(cr, "website_slides_enterprise")
         util.remove_module(cr, "web_dashboard")
 
+    util.force_upgrade_of_fresh_module(cr, "l10n_mx_edi")
+
     # Rename OCA module 'knowledge' to 'document_knowledge'
     cr.execute(
         """
