@@ -377,3 +377,6 @@ def _migrate_pos_gift_card(cr):
     # Old data
     util.remove_view(cr, "pos_loyalty.res_config_view_form_inherit_pos_coupon")
     util.remove_view(cr, "pos_loyalty.pos_gift_card_config_view_form")
+    util.remove_view(cr, "pos_loyalty.gift_card_template")
+    # Remove Report
+    util.remove_record(cr, "pos_loyalty.gift_card_report_pdf")
