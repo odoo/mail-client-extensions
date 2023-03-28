@@ -17,3 +17,4 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "display_project_id")
     util.remove_field(cr, "project.project", "task_count_with_subtasks")
     util.remove_field(cr, "project.task.burndown.chart.report", "display_project_id")
+    util.remove_field(cr, "project.task.burndown.chart.report", "has_late_and_unreached_milestone")
