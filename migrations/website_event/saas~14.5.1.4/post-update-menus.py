@@ -8,11 +8,11 @@ def migrate(cr, version):
         WITH wmenus AS (
             SELECT event.id as ev_id,
                    wmenu.id as wm_id,
-                   CASE WHEN SPLIT_PART(url, '/', 4) = 'register' THEN 'register'
-                        WHEN SPLIT_PART(SPLIT_PART(url, '/', 5), '-', 1) = 'introduction' THEN 'introduction'
-                        WHEN SPLIT_PART(SPLIT_PART(url, '/', 5), '-', 1) = 'location' THEN 'location'
+                   CASE WHEN SPLIT_PART(wmenu.url, '/', 4) = 'register' THEN 'register'
+                        WHEN SPLIT_PART(SPLIT_PART(wmenu.url, '/', 5), '-', 1) = 'introduction' THEN 'introduction'
+                        WHEN SPLIT_PART(SPLIT_PART(wmenu.url, '/', 5), '-', 1) = 'location' THEN 'location'
                    END wm_type,
-                   SPLIT_PART(url, '/', 5) as wm_view_name
+                   SPLIT_PART(wmenu.url, '/', 5) as wm_view_name
               FROM event_event event
               JOIN website_menu wmenu ON (wmenu.parent_id = event.menu_id)
              WHERE event.website_menu is true
