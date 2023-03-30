@@ -175,6 +175,7 @@ def _update_lines(cr):
                        AND sl.usage='customer'
                        AND sl.scrap_location=false
                        AND su.category_id = mu.category_id
+                       AND {parallel_filter}
                   GROUP BY l.id
                   ) AS query,
                    product_uom uom
