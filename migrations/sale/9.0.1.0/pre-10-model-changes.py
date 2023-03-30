@@ -156,7 +156,8 @@ def _update_lines(cr):
         ]:
             util.create_index(cr, "%s_%s_index" % (table, column), table, column)
 
-        cr.execute(
+        util.explode_execute(
+            cr,
             """
             UPDATE sale_order_line l
                SET qty_delivered =
@@ -179,7 +180,9 @@ def _update_lines(cr):
                    product_uom uom
              WHERE query.id = l.id
                AND uom.id = l.product_uom
-            """
+            """,
+            table="sale_order_line",
+            alias="l",
         )
         all_moves_done = """
             NOT EXISTS(SELECT 1
@@ -231,7 +234,8 @@ def _update_lines(cr):
     )
 
     # compute invoice_status field: https://git.io/v2MWu
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE sale_order_line l
            SET invoice_status = CASE
@@ -259,9 +263,12 @@ def _update_lines(cr):
                 WHEN qty_invoiced >= product_uom_qty THEN 'invoiced'
                 ELSE 'no'
                 END
+         WHERE {{parallel_filter}}
         """.format(
             all_moves_done=all_moves_done
-        )
+        ),
+        table="sale_order_line",
+        alias="l",
     )
 
     # in 8.0, there use to be a m2m sale.order <=> account.invoice
@@ -316,8 +323,7 @@ def _update_lines(cr):
                  WHERE id = ANY(s.invoices)
                    AND state IN ('open', 'paid')
                    AND currency_id != s.currency_id)
-
-    """
+        """
     )
     invoiced = []
     env = util.env(cr)
@@ -361,7 +367,7 @@ def _update_lines(cr):
                                  FROM sale_order_line_invoice_rel
                                 WHERE order_line_id = ol.id)
                 AND ol.invoiced = true
-    """
+        """
     )
 
     # compute `invoice_status` of `sale_order`
@@ -376,7 +382,7 @@ def _update_lines(cr):
                         ELSE 'no'
                    END AS state
               FROM sale_order so
-               LEFT JOIN sale_order_line line ON (so.id = line.order_id)
+              LEFT JOIN sale_order_line line ON (so.id = line.order_id)
           GROUP BY so.id
         )
         UPDATE sale_order so
