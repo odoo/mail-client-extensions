@@ -28,3 +28,5 @@ def migrate(cr, version):
         """
     )
     util.rename_xmlid(cr, "sale.view_order_tree", "sale.sale_order_tree")
+
+    util.create_column(cr, "sale_order", "amount_to_invoice", "numeric")  # computed in `post-` script

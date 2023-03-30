@@ -67,7 +67,7 @@ UPDATE sale_order so
     # Set subscription_state for sale.order.log
     log_state_query = """
  UPDATE sale_order_log log
-    SET subscription_state = CASE log.state_category
+    SET subscription_state = CASE log.category
         WHEN 'draft'    THEN '1_draft'
         WHEN 'progress' THEN '3_progress'
         WHEN 'paused'   THEN '4_paused'
@@ -88,6 +88,9 @@ UPDATE sale_order so
     def adapter_stage_category(leaf, is_or, negated):
         _, op, right = leaf
         new_right = []
+
+        if not right:
+            right = []
 
         if "draft" in right:
             new_right += ["1_draft", "2_renewal"]
@@ -116,6 +119,9 @@ UPDATE sale_order so
     def adapter_management(leaf, is_or, negated):
         _, op, right = leaf
         new_right = []
+
+        if not right:
+            right = []
 
         if "upsell" in right:
             new_right += ["7_upsell"]

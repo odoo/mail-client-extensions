@@ -30,7 +30,9 @@ def migrate(cr, version):
     util.merge_module(cr, "account_payment_invoice_online_payment_patch", "account_payment")
     util.merge_module(cr, "l10n_lu_peppol_id", "account_edi_ubl_cii")
 
-    force_installs, force_upgrades = set(), set()
+    force_installs = set()
+    force_upgrades = {"l10n_mx_edi_sale", "l10n_mx_edi_website_sale"}
+
     if util.modules_installed(cr, "l10n_be_hr_payroll"):
         force_installs |= {"l10n_be_hr_payroll_sd_worx"}
     if util.modules_installed(cr, "delivery"):

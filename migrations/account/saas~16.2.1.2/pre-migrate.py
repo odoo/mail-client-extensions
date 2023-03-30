@@ -99,27 +99,47 @@ def migrate(cr, version):
     columns = util.get_columns(cr, "account_tax_group", ignore=["id"])
     util.create_column(cr, "account_tax_group", "company_id", "int")
     util.create_column(cr, "account_tax_group", "_tmp_orig_id", "int")
+
+    # determine for which companies we should duplicate the tax groups
+    company_fk = {table: column for table, column, _, _ in util.get_fk(cr, "res_company")}
+    tax_group_fks = [
+        (table, column) for table, column, _, _ in util.get_fk(cr, "account_tax_group") if table in company_fk
+    ]
+
+    cte = " UNION ".join(
+        f"""
+            SELECT {company_fk[table]} AS id
+              FROM {table}
+             WHERE {company_fk[table]} IS NOT NULL
+               AND {column} IS NOT NULL
+        """
+        for table, column in tax_group_fks
+    )
+
     cr.execute(
         f"""
+        WITH company AS (
+            {cte}
+        )
         INSERT INTO account_tax_group ({', '.join(columns)}, company_id, _tmp_orig_id)
              SELECT {', '.join('tg.%s' % f for f in columns)}, company.id, tg.id
-               FROM account_tax_group tg,
-                    res_company company
-              WHERE company.chart_template IS NOT NULL
+               FROM account_tax_group tg, company
     """
     )
-    company_fk = {table: column for table, column, _, _ in util.get_fk(cr, "res_company")}
-    for table, column, _, _ in util.get_fk(cr, "account_tax_group"):
-        if table in company_fk:
-            cr.execute(
-                f"""
-                UPDATE {table} relation
-                   SET {column} = new.id
-                  FROM account_tax_group new
-                 WHERE relation.{column} = new._tmp_orig_id
-                   AND relation.{company_fk[table]} = new.company_id
-            """
-            )
+    for table, column in tax_group_fks:
+        util.explode_execute(
+            cr,
+            f"""
+            UPDATE {table} relation
+               SET {column} = new.id
+              FROM account_tax_group new
+             WHERE relation.{column} = new._tmp_orig_id
+               AND relation.{company_fk[table]} = new.company_id
+            """,
+            table=table,
+            alias="relation",
+        )
+
     cr.execute("""DELETE FROM account_tax_group WHERE company_id IS NULL""")
     cr.execute(
         """
