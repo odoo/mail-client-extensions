@@ -419,3 +419,7 @@ def migrate(cr, version):
         col1="account_analytic_tag_id",
         col2="account_invoice_line_id",
     )
+
+    # Remove deprecated constraints
+    cr.execute("ALTER TABLE account_move_line DROP CONSTRAINT IF EXISTS account_move_line_credit_debit1")
+    cr.execute("ALTER TABLE account_move_line DROP CONSTRAINT IF EXISTS account_move_line_credit_debit2")
