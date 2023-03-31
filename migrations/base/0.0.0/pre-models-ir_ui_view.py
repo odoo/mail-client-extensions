@@ -720,21 +720,18 @@ class IrUiView(models.Model):
             def custom_view_in_tree(view):
                 # Starting from the first primary ancestor, check the views' tree for custom views
                 # Return true if at least one view is custom
-                if view.mode == "primary" and view.id not in standard_ids:
-                    return True
-                while view.mode != "primary" and view.inherit_id:
-                    view = view.inherit_id
+                views_path = [view]
+                while views_path[-1].inherit_id:
+                    views_path.append(views_path[-1].inherit_id)
                 q = """
                     WITH RECURSIVE view_tree AS (
-                            -- init with first level children
+                            -- init with ancestors
                             SELECT id
                               FROM ir_ui_view
-                             WHERE inherit_id = %s
-                               AND mode = 'extension'
-                               AND active
+                             WHERE id IN %s
 
                              UNION
-                            -- add descendants
+                            -- add all descendants
                             SELECT v.id
                               FROM ir_ui_view v
                               JOIN view_tree vt
@@ -744,7 +741,7 @@ class IrUiView(models.Model):
                            )
                     SELECT id FROM view_tree
                     """
-                self._cr.execute(q, [view.id])
+                self._cr.execute(q, [tuple(v.id for v in views_path)])
                 ids = {r[0] for r in self._cr.fetchall()}
                 return not (ids <= standard_ids)
 

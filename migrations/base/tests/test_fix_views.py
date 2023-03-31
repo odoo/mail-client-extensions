@@ -300,6 +300,41 @@ class TestFixViews(UpgradeCase):
             },
         )
 
+        # Test check for primary views with a custom extension in one of its primary parents
+        p1_id = create_view(
+            {
+                "name": "test_fix_views_p1",
+                "mode": "primary",
+                "arch_db": ts(
+                    E.form(
+                        E.field(name="name"),
+                    ),
+                ),
+            },
+            standard_view=True,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_p2",
+                "mode": "primary",
+                "inherit_id": p1_id,
+                "arch_db": ts(
+                    E.xpath("<div>bad</div>", expr="//field[@name='name']", position="after"),
+                ),
+            },
+            standard_view=True,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_e1",
+                "mode": "extension",
+                "inherit_id": p1_id,
+                "arch_db": ts(
+                    E.xpath(expr="//field[@name='name']", position="replace"),
+                ),
+            },
+        )
+
         return [self._get_base_version(), info]
 
     def check(self, data):
