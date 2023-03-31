@@ -10,5 +10,6 @@ def migrate(cr, version):
 
     if util.module_installed(cr, "account"):
         util.move_field_to_module(cr, "res.partner", "credit_limit", "base", "account")
+        util.make_field_company_dependent(cr, "res.partner", "credit_limit", "float")
     else:
         util.remove_field(cr, "res.partner", "credit_limit")
