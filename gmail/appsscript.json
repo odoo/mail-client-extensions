@@ -16,39 +16,50 @@
     ],
     "primaryColor": "#875A7B",
     "secondaryColor": "#00A09D",
-    "openLinkUrlPrefixes": ["*"]
+    "openLinkUrlPrefixes": [
+      "*"
+    ]
   },
   "urlFetchWhitelist": [
-    "https://*.odoo.com/mail_plugin/get_translations",
-    "https://*.odoo.com/mail_plugin/partner/get",
-    "https://*.odoo.com/mail_plugin/log_mail_content",
-    "https://*.odoo.com/mail_plugin/partner/search",
-    "https://*.odoo.com/mail_plugin/partner/create",
-    "https://*.odoo.com/mail_plugin/partner/enrich_and_create_company",
-    "https://*.odoo.com/mail_plugin/partner/enrich_and_update_company",
-    "https://*.odoo.com/mail_plugin/lead/create",
-    "https://*.odoo.com/mail_plugin/ticket/create",
-    "https://*.odoo.com/mail_plugin/project/search",
-    "https://*.odoo.com/mail_plugin/project/create",
-    "https://*.odoo.com/mail_plugin/task/create",
-    "https://*.odoo.com/web/login",
-    "https://*.odoo.com/mail_plugin/auth",
-    "https://*.odoo.com/mail_plugin/auth/access_token",
-    "https://odoo.com/mail_plugin/get_translations",
-    "https://odoo.com/mail_plugin/partner/get",
-    "https://odoo.com/mail_plugin/log_mail_content",
-    "https://odoo.com/mail_plugin/partner/search",
-    "https://odoo.com/mail_plugin/partner/create",
-    "https://odoo.com/mail_plugin/partner/enrich_and_create_company",
-    "https://odoo.com/mail_plugin/partner/enrich_and_update_company",
-    "https://odoo.com/mail_plugin/lead/create",
-    "https://odoo.com/mail_plugin/ticket/create",
-    "https://odoo.com/mail_plugin/project/search",
-    "https://odoo.com/mail_plugin/project/create",
-    "https://odoo.com/mail_plugin/task/create",
-    "https://odoo.com/web/login",
-    "https://odoo.com/mail_plugin/auth",
-    "https://odoo.com/mail_plugin/auth/access_token",
-    "https://iap-services.odoo.com/iap/mail_extension/enrich"
-  ]
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/get_translations",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/partner/get",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/log_mail_content",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/partner/search",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/partner/create",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/partner/enrich_and_create_company",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/partner/enrich_and_update_company",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/lead/create",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/ticket/create",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/project/search",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/project/create",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/task/create",
+    "https://*.dectris.odoo.camptocamp.ch/web/login",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/auth",
+    "https://*.dectris.odoo.camptocamp.ch/mail_plugin/auth/access_token",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/get_translations",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/partner/get",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/log_mail_content",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/partner/search",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/partner/create",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/partner/enrich_and_create_company",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/partner/enrich_and_update_company",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/lead/create",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/ticket/create",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/project/search",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/project/create",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/task/create",
+    "https://dectris.odoo.camptocamp.ch/web/login",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/auth",
+    "https://dectris.odoo.camptocamp.ch/mail_plugin/auth/access_token",
+    "https://iap-services.dectris.odoo.camptocamp.ch/iap/mail_extension/enrich"
+  ],
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Gmail",
+        "serviceId": "gmail",
+        "version": "v1"
+      }
+    ]
+  }
 }
