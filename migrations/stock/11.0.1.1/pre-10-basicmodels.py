@@ -13,16 +13,16 @@ def merge_moves(cr, first_one, to_delete, total_qty, total_uom_qty):
     cr.execute("""INSERT INTO stock_move_move_rel (move_orig_id, move_dest_id)
                     SELECT %s, mr.move_dest_id FROM stock_move_move_rel mr
                     WHERE mr.move_orig_id IN %s
-                     AND NOT EXISTS (SELECT move_orig_id FROM stock_move_move_rel r2 WHERE r2.move_orig_id = %s AND r2.move_dest_id = mr.move_dest_id)
                     GROUP BY mr.move_dest_id
-    """, (first_one, tuple(to_delete), first_one))
+                    ON CONFLICT DO NOTHING
+    """, (first_one, tuple(to_delete)))
 
     cr.execute("""INSERT INTO stock_move_move_rel (move_orig_id, move_dest_id)
                     SELECT mr.move_orig_id, %s FROM stock_move_move_rel mr
                     WHERE mr.move_dest_id IN %s
-                     AND NOT EXISTS (SELECT move_dest_id FROM stock_move_move_rel r2 WHERE r2.move_dest_id = %s AND r2.move_orig_id = mr.move_orig_id)
                     GROUP BY mr.move_orig_id
-    """, (first_one, tuple(to_delete), first_one))
+                    ON CONFLICT DO NOTHING
+    """, (first_one, tuple(to_delete)))
 
     COUNT += 1
     BATCH_SIZE = 100000
@@ -298,16 +298,44 @@ def migrate(cr, version):
             first_one = re[1]
         count -= 1
 
+    # create temp table to allow // execute
+    cr.execute(
+        """
+        SELECT picking_id,
+               product_id,
+               max(id) AS id
+          INTO UNLOGGED _upg_pick_product
+          FROM stock_move
+         WHERE picking_id IS NOT NULL
+         GROUP BY picking_id, product_id
+        HAVING COUNT(*) = 1
+        """
+    )
+    cr.execute("CREATE UNIQUE INDEX _upg_pick_product_pk_idx ON _upg_pick_product (id)")
+    cr.execute("CREATE INDEX ON _upg_pick_product (picking_id, product_id)")
+    cr.execute(
+        """
+           ALTER TABLE _upg_pick_product
+        ADD CONSTRAINT _upg_pick_product_pkey
+           PRIMARY KEY
+           USING INDEX _upg_pick_product_pk_idx
+        """
+    )
+
     # Link stock.move and stock.move.line when there is only one move in the picking (easy case)
-    cr.execute("""UPDATE stock_move_line
-                SET move_id = pick_product.theid
-                    FROM (SELECT picking_id, product_id, max(id) as theid
-                        FROM stock_move
-                        WHERE picking_id IS NOT NULL
-                        GROUP BY picking_id, product_id
-                        HAVING COUNT(*) = 1) pick_product
-                    WHERE stock_move_line.product_id = pick_product.product_id AND stock_move_line.picking_id = pick_product.picking_id
-    """)
+    util.explode_execute(
+        cr,
+        """
+          UPDATE stock_move_line
+             SET move_id = pick_product.id
+            FROM _upg_pick_product AS pick_product
+           WHERE stock_move_line.product_id = pick_product.product_id
+             AND stock_move_line.picking_id = pick_product.picking_id
+        """,
+        table="stock_move_line",
+    )
+    # drop temp table
+    cr.execute("DROP TABLE _upg_pick_product")
 
     # Scrapped needs move lines too
     cr.execute("""INSERT INTO stock_move_line
@@ -342,16 +370,14 @@ def migrate(cr, version):
 
     # min_date/max_date on test_picking -> faster in sql than in migration
     util.create_column(cr, 'stock_picking', 'scheduled_date', 'timestamp without time zone')
-    cr.execute("""
+    util.explode_execute(
+        cr,
+        """
         UPDATE stock_picking
-        SET scheduled_date = min_date
-        WHERE move_type = 'direct'
-    """)
-    cr.execute("""
-        UPDATE stock_picking
-        SET scheduled_date = max_date
-        WHERE move_type != 'direct'
-    """)
+           SET scheduled_date = CASE WHEN move_type = 'direct' THEN min_date ELSE max_date END
+        """,
+        table="stock_picking",
+    )
     oldfields = util.splitlines("""
         min_date
         max_date
@@ -367,23 +393,39 @@ def migrate(cr, version):
         util.remove_field(cr, 'stock.picking', f)
 
     util.create_column(cr, 'stock_move', 'reference', 'varchar')
-    cr.execute("""
+    util.explode_execute(
+        cr,
+        """
         UPDATE stock_move m SET reference = p.name
             FROM stock_picking p
             WHERE m.picking_id = p.id
-    """)
-    cr.execute("""
+        """,
+        table="stock_move",
+        alias="m",
+    )
+    util.explode_execute(
+        cr,
+        """
         UPDATE stock_move m SET reference = m.name
         WHERE m.picking_id IS NULL
-    """)
+        """,
+        table="stock_move",
+        alias="m",
+    )
 
     util.create_column(cr, 'stock_move_line', 'reference', 'varchar')
     util.create_column(cr, 'stock_move_line', 'state', 'varchar')
-    cr.execute("""UPDATE stock_move_line ml
+    util.explode_execute(
+        cr,
+        """
+        UPDATE stock_move_line ml
         SET state = m.state, reference = m.reference
         FROM stock_move m
         WHERE ml.move_id = m.id
-    """)
+        """,
+        table="stock_move_line",
+        alias="ml",
+    )
 
     # remove hash index
     cr.execute("DROP INDEX stock_move_line_move_id_upg_idx")
