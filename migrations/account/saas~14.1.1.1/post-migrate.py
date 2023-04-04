@@ -151,6 +151,13 @@ def migrate(cr, version):
            AND SUBSTRING(inverse_tag.name, 2) = SUBSTRING(tag.name, 2)
            AND inverse_tag.country_id = tag.country_id
            AND inverse_tag.tax_negate = NOT tag.tax_negate
+           AND NOT EXISTS (
+                 SELECT 1
+                   FROM account_account_tag_account_move_line_rel rel2
+                  WHERE rel2.account_move_line_id = rel.account_move_line_id
+                    AND rel2.account_account_tag_id = inverse_tag.id
+                  LIMIT 1
+           )
     """
     # TODO explode query?
     cr.execute(query)
