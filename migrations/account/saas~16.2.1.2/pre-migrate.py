@@ -16,6 +16,8 @@ def chart_mapper(xml_id):
         "l10n_se.l10nse_chart_template_K3": "se_K3",
         "l10n_ua.l10n_ua_ias_chart_template": "ua_ias",
         "l10n_ua.l10n_ua_psbo_chart_template": "ua_psbo",
+        "l10n_de.l10n_de_chart_template": "de_skr03",
+        "l10n_de.l10n_chart_de_skr04": "de_skr04",
     }.get(xml_id, xml_id.split(".")[0][5:])
 
 
