@@ -3,7 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     util.remove_constraint(cr, "calendar_attendee", "calendar_attendee_google_id_uniq")
 
     # partner is now required on attendees
@@ -132,8 +131,8 @@ def migrate(cr, version):
             format="html",
         )
 
-    util.update_field_references(cr, "start_datetime", "start", only_models=("calendar.event",))
-    util.update_field_references(cr, "stop_datetime", "stop", only_models=("calendar.event",))
+    util.update_field_usage(cr, "calendar.event", "start_datetime", "start")
+    util.update_field_usage(cr, "calendar.event", "stop_datetime", "stop")
 
     for field in "start_datetime stop_datetime display_start state is_attendee recurrent_id recurrent_id_date".split():
         util.remove_field(cr, "calendar.event", field)

@@ -3,7 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.update_field_references(cr, "email", "partner_email", only_models=("helpdesk.ticket",))
+    util.update_field_usage(cr, "helpdesk.ticket", "email", "partner_email")
     util.remove_field(cr, "helpdesk.ticket", "email")
 
     util.ensure_xmlid_match_record(

@@ -3,7 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
     # for all fields that have been copied from an old model to a new one
     # we have to update the ir_server_object_lines table with new field ids.
     for suffix in ["", ".line"]:
@@ -48,9 +47,9 @@ def migrate(cr, version):
         cr, src_model="account.invoice.line", dst_model="account.move.line", fields_mapping=invoice_move_line_field_map
     )
     for old, new in invoice_move_line_field_map:
-        util.update_field_references(cr, old, new, ("account.move.line",))
+        util.update_field_usage(cr, "account.move.line", old, new)
     for old, new in field_name_mapping:
-        util.update_field_references(cr, old, new, ("account.move",))
+        util.update_field_usage(cr, "account.move", old, new)
 
     # for all fields from 'account.invoice' that have no equivalent in 'account.move'
     # we remove all the corresponding rows in ir_server_object_lines.

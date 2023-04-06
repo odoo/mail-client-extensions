@@ -12,4 +12,4 @@ def migrate(cr, version):
         'title_action': 'activity_summary',
     }
     for old, new in fields_refs.items():
-        util.update_field_references(cr, old, new, only_models=['crm.lead'])
+        util.update_field_usage(cr, "crm.lead", old, new)

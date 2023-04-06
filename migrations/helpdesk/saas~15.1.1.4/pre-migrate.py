@@ -3,7 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     util.create_column(cr, "helpdesk_team", "privacy_visibility", "character varying", default="internal")
     cr.execute(
         """
@@ -49,7 +48,7 @@ def migrate(cr, version):
                     WHERE ticket_type_id IS NOT NULL
         """
     )
-    util.update_field_references(cr, "ticket_type_id", "ticket_type_ids", only_models=("helpdesk.sla",))
+    util.update_field_usage(cr, "helpdesk.sla", "ticket_type_id", "ticket_type_ids")
     util.remove_field(cr, "helpdesk.sla", "ticket_type_id")
 
     util.create_column(cr, "helpdesk_ticket", "ticket_ref", "varchar")

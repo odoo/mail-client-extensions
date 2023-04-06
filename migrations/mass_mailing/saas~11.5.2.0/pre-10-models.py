@@ -35,6 +35,5 @@ def migrate(cr, version):
     # ICP = util.env(cr)["ir.config_parameter"]
     # ICP.set_param("mass_mailing.show_blacklist_buttons", False)
 
-    util.update_field_references(cr, "opt_out", "is_blacklisted")
     # odoo/odoo@4b3766e8eb05fe4a9f1f083da6f4facf56b4f688
     util.remove_field(cr, "mail.mail.statistics", "recipient")

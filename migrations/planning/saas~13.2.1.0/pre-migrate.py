@@ -12,7 +12,7 @@ def migrate(cr, version):
               WHERE planning_role_id IS NOT NULL
     """
     )
-    util.update_field_references(cr, "planning_role_id", "planning_role_ids", only_models=("hr.employee",))
+    util.update_field_usage(cr, "hr.employee", "planning_role_id", "planning_role_ids")
     util.remove_field(cr, "hr.employee", "planning_role_id")
 
     util.create_column(cr, "planning_slot", "department_id", "integer")

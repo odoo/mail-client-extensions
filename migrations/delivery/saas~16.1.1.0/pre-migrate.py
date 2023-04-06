@@ -11,7 +11,7 @@ def migrate(cr, version):
          WHERE sml.picking_id = sp.id
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move_line", alias="sml"))
-    util.update_field_references(cr, "carrier_name", "carrier_id", ("stock.move.line",))
+    util.update_field_usage(cr, "stock.move.line", "carrier_name", "carrier_id")
 
     util.remove_field(cr, "stock.move.line", "carrier_name")
 

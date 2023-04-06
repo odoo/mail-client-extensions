@@ -68,5 +68,5 @@ def migrate(cr, version):
         operator = ">" if operator == thruthy_op else "="
         return [(left, operator, 0)]
 
-    util.update_field_references(cr, "customer", "customer_rank", only_models=("res.partner",), domain_adapter=adapter)
-    util.update_field_references(cr, "supplier", "supplier_rank", only_models=("res.partner",), domain_adapter=adapter)
+    util.update_field_usage(cr, "res.partner", "customer", "customer_rank", domain_adapter=adapter)
+    util.update_field_usage(cr, "res.partner", "supplier", "supplier_rank", domain_adapter=adapter)

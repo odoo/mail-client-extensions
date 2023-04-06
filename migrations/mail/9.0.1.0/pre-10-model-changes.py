@@ -50,7 +50,9 @@ def migrate(cr, version):
     cr.execute("UPDATE mail_message SET type='email' WHERE type IS NULL AND message_id IS NOT NULL")
     cr.execute("UPDATE mail_message SET type='comment' WHERE type IS NULL")
 
-    util.update_field_references(cr, 'message_follower_ids', 'message_partner_ids')
+    # The field `message_follower_ids` now point to new model `mail.follower`
+    # Replace references to point to the new `message_partner_ids` (for domains)
+    util.update_field_usage(cr, "mail.thread", "message_follower_ids", "message_partner_ids")
 
     util.rename_model(cr, 'mail.group', 'mail.channel')
     cr.execute(

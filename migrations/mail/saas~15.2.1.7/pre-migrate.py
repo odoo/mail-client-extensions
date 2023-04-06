@@ -6,7 +6,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.rename_field(cr, "mail.message", "add_sign", "email_add_signature")
     util.rename_field(cr, "mail.compose.message", "add_sign", "email_add_signature")
-    util.update_field_references(cr, "layout", "email_layout_xmlid", only_models=("mail.compose.message",))
+    util.update_field_usage(cr, "mail.compose.message", "layout", "email_layout_xmlid")
     util.remove_field(cr, "mail.compose.message", "layout")
 
     # Deduplicate notifications

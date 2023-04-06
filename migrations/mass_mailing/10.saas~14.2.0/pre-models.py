@@ -11,8 +11,7 @@ def migrate(cr, version):
              SELECT id, list_id FROM mail_mass_mailing_contact
     """)
 
-    util.update_field_references(cr, 'list_id', 'list_ids',
-                                 only_models=('mail.mass_mailing.contact',))
+    util.update_field_usage(cr, 'mail.mass_mailing.contact', 'list_id', 'list_ids')
     util.remove_field(cr, 'mail.mass_mailing.contact', 'list_id')
 
     util.create_column(cr, 'mail_mass_mailing', 'color', 'int4')

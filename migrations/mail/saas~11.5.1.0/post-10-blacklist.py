@@ -13,5 +13,5 @@ def migrate(cr, version):
         ON CONFLICT DO NOTHING
     """
     )
+    util.update_field_usage(cr, "res.partner", "opt_out", "is_blacklisted")
     util.remove_field(cr, "res.partner", "opt_out")
-    util.remove_field(cr, "res.users", "opt_out", drop_column=False)

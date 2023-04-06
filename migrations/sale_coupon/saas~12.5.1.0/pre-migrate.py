@@ -15,11 +15,11 @@ def migrate(cr, version):
     """
     )
     # NOTE: sale.coupon.program inheritS from sale.coupon.reward
-    util.update_field_references(
+    util.update_field_usage(
         cr,
+        "sale.coupon.reward",
         "discount_specific_product_id",
         "discount_specific_product_ids",
-        only_models=("sale.coupon.reward", "sale.coupon.program"),
     )
     util.remove_field(cr, "sale.coupon.reward", "discount_specific_product_id")
 

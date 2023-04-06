@@ -14,7 +14,7 @@ def migrate(cr, version):
         operator = "=" if bool(right) else "!="
         return [(left, operator, "published")]
 
-    util.update_field_references(cr, "is_published", "state", only_models=("planning.slot",), domain_adapter=adapter)
+    util.update_field_usage(cr, "planning.slot", "is_published", "state", domain_adapter=adapter)
     util.remove_field(cr, "planning.slot", "is_published")
 
     util.drop_depending_views(cr, "planning_slot", "working_days_count")

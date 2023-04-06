@@ -23,5 +23,5 @@ def migrate(cr, version):
         """
     )
 
-    util.update_field_references(cr, "departure_reason", "departure_reason_id", only_models=("hr.employee",))
+    util.update_field_usage(cr, "hr.employee", "departure_reason", "departure_reason_id")
     util.remove_field(cr, "hr.employee", "departure_reason")

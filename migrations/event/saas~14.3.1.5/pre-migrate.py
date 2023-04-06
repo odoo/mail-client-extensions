@@ -57,7 +57,7 @@ def migrate(cr, version):
 
     # rename done to mail_done and redirect old mail_sent on it to have a single "done" field
     util.rename_field(cr, "event.mail", "done", "mail_done")
-    util.update_field_references(cr, "mail_sent", "mail_done", only_models=("event.mail",))
+    util.update_field_usage(cr, "event.mail", "mail_sent", "mail_done")
     util.remove_field(cr, "event.mail", "mail_sent")
 
     # change event start_sale_date and end_sale_date type to datetime

@@ -13,4 +13,5 @@ def migrate(cr, version):
         ON CONFLICT DO NOTHING
     """
     )
+    util.update_field_usage(cr, "crm.lead", "opt_out", "is_blacklisted")
     util.remove_field(cr, "crm.lead", "opt_out")

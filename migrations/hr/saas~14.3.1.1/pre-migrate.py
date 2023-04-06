@@ -45,12 +45,8 @@ def migrate(cr, version):
         """
     )
 
-    util.update_field_references(
-        cr,
-        "work_location",
-        "work_location_id",
-        only_models=("res.users", "hr.employee.base"),
-    )
+    util.update_field_usage(cr, "res.users", "work_location", "work_location_id")
+    util.update_field_usage(cr, "hr.employee.base", "work_location", "work_location_id")
     util.remove_field(cr, "res.users", "work_location")
     util.remove_field(cr, "hr.employee.base", "work_location")
 

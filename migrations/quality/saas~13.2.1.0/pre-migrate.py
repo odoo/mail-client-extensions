@@ -26,8 +26,8 @@ def migrate(cr, version):
     """
     )
 
-    util.update_field_references(cr, "product_id", "product_ids", only_models=("quality.point",))
-    util.update_field_references(cr, "picking_type_id", "picking_type_ids", only_models=("quality.point",))
+    util.update_field_usage(cr, "quality.point", "product_id", "product_ids")
+    util.update_field_usage(cr, "quality.point", "picking_type_id", "picking_type_ids")
 
     util.remove_field(cr, "quality.point", "product_id")
     util.remove_field(cr, "quality.point", "product_tmpl_id")

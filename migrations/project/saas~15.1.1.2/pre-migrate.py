@@ -13,5 +13,5 @@ def migrate(cr, version):
            AND fold=false
     """
     )
-    util.update_field_references(cr, "is_closed", "fold", only_models=("project.task.type",))
+    util.update_field_usage(cr, "project.task.type", "is_closed", "fold")
     util.remove_field(cr, "project.task.type", "is_closed")

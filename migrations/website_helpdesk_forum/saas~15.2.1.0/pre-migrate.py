@@ -28,5 +28,5 @@ def migrate(cr, version):
         """
     )
 
-    util.update_field_references(cr, "forum_post_id", "forum_post_ids", only_models=("helpdesk.ticket",))
+    util.update_field_usage(cr, "helpdesk.ticket", "forum_post_id", "forum_post_ids")
     util.remove_field(cr, "helpdesk.ticket", "forum_post_id")

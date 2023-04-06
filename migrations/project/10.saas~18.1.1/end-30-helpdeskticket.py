@@ -292,7 +292,7 @@ def migrate(cr, version):
             """
             )
 
-        util.update_field_references(cr, "date_action_last", "write_date", only_models=["helpdesk.ticket"])
+        util.update_field_usage(cr, "helpdesk.ticket", "date_action_last", "write_date")
 
         cr.execute("UPDATE ir_filters SET model_id='helpdesk.ticket' WHERE model_id='project.issue'")
         cr.execute(

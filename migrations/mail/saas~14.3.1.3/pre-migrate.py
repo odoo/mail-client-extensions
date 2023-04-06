@@ -23,7 +23,7 @@ def migrate(cr, version):
     )
 
     # duplicate field removal
-    util.update_field_references(cr, "is_subscribed", "is_member", only_models=("mail.channel",))
+    util.update_field_usage(cr, "mail.message", "is_subscribed", "is_member")
     util.remove_field(cr, "mail.channel", "is_subscribed")
 
     # remove followers being channels, not supported anymore -> simply remove

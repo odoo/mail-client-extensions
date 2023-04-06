@@ -9,8 +9,8 @@ _logger = logging.getLogger(__name__)
 
 
 def rename_mixin_fields(cr, model, skip_inherit=()):
-    util.update_field_references(cr, "image", "image_1920", only_models=(model,), skip_inherit=skip_inherit)
-    util.update_field_references(cr, "image_small", "image_128", only_models=(model,), skip_inherit=skip_inherit)
+    util.update_field_usage(cr, model, "image", "image_1920", skip_inherit=skip_inherit)
+    util.update_field_usage(cr, model, "image_small", "image_128", skip_inherit=skip_inherit)
 
     util.rename_field(cr, model, "image_original", "image_1920", skip_inherit=skip_inherit)
     util.rename_field(cr, model, "image_big", "image_1024", skip_inherit=skip_inherit)
@@ -24,7 +24,7 @@ def rename_mixin_fields(cr, model, skip_inherit=()):
 
 
 def new_inherit_mixin(cr, model):
-    util.update_field_references(cr, "image_small", "image_128", only_models=(model,))
+    util.update_field_usage(cr, model, "image_small", "image_128")
 
     util.rename_field(cr, model, "image", "image_1920")
     util.rename_field(cr, model, "image_medium", "image_128")
@@ -35,8 +35,8 @@ def new_inherit_mixin(cr, model):
 
 def single_image(cr, model):
     # special case, only an `image_128 field`
-    util.update_field_references(cr, "image", "image_128", only_models=(model,))
-    util.update_field_references(cr, "image_small", "image_128", only_models=(model,))
+    util.update_field_usage(cr, model, "image", "image_128")
+    util.update_field_usage(cr, model, "image_small", "image_128")
 
     util.rename_field(cr, model, "image_medium", "image_128")
     util.remove_field(cr, model, "image")

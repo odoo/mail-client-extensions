@@ -17,7 +17,7 @@ def migrate(cr, version):
         [util.ref(cr, "hr_recruitment.menu_crm_case_categ0_act_job")],
     )
 
-    util.update_field_references(cr, "job_id", "job_ids", only_models=("hr.recruitment.stage",))
+    util.update_field_usage(cr, "hr.recruitment.stage", "job_id", "job_ids")
     util.remove_field(cr, "hr.recruitment.stage", "job_id")
 
     util.remove_field(cr, "hr.applicant", "reference")

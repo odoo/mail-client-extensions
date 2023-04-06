@@ -122,8 +122,8 @@ def migrate(cr, version):
         operator = "=" if bool(right) else "!="
         return [(left, operator, "sms")]
 
-    util.update_field_references(
-        cr, "sms_authentification", "auth_method", only_models=("sign.item.role",), domain_adapter=auth_method_adapter
+    util.update_field_usage(
+        cr, "sign.item.role", "sms_authentification", "auth_method", domain_adapter=auth_method_adapter
     )
 
     util.remove_field(cr, "sign.item.role", "sms_authentification")

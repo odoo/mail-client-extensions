@@ -301,7 +301,7 @@ def migrate(cr, version):
                                      AND name='date_action_last')
         """
         )
-    util.update_field_references(cr, "date_action_last", "write_date", only_models=["project.task"])
+    util.update_field_usage(cr, "project.task", "date_action_last", "write_date")
 
     # avoid conflict with index ir_filters_name_model_uid_unique_action_index
     # on update query right after

@@ -140,12 +140,11 @@ def migrate(cr, version):
     for model in ("account.account.template", "account.asset"):
         util.adapt_domains(cr, model, "user_type_id", "account_type", adapter=type_adapter, force_adapt=True)
 
-    util.update_field_references(
-        cr, "user_type_id", "account_type", only_models=("account.account", "account.account.template", "account.asset")
-    )
-    util.update_field_references(
-        cr, "internal_type", "account_type", only_models=("account.account",), domain_adapter=internal_type_adapter
-    )
+    util.update_field_usage(cr, "account.account", "user_type_id", "account_type")
+    util.update_field_usage(cr, "account.account.template", "user_type_id", "account_type")
+    util.update_field_usage(cr, "account.asset", "user_type_id", "account_type")
+    util.update_field_usage(cr, "account.account", "internal_type", "account_type")
+
     util.remove_field(cr, "account.account", "user_type_id")
     util.remove_field(cr, "account.account", "internal_type")
     util.remove_field(cr, "account.account.template", "user_type_id")

@@ -19,19 +19,18 @@ def migrate(cr, version):
     util.remove_field(cr, "ir.actions.act_window", "view_type")
     util.remove_column(cr, "ir_attachment", "res_name")  # non-stored computed field
 
+    util.update_field_usage(cr, "ir.model.constraint", "date_update", "write_date")
+    util.update_field_usage(cr, "ir.model.relation", "date_update", "write_date")
     util.remove_field(cr, "ir.model.constraint", "date_update")
     util.remove_field(cr, "ir.model.relation", "date_update")
-    util.update_field_references(
-        cr, "date_update", "write_date", only_models=("ir.model.constraint", "ir.model.relation")
-    )
+
+    util.update_field_usage(cr, "ir.model.constraint", "date_init", "create_date")
+    util.update_field_usage(cr, "ir.model.relation", "date_init", "create_date")
     util.remove_field(cr, "ir.model.constraint", "date_init")
     util.remove_field(cr, "ir.model.relation", "date_init")
-    util.update_field_references(
-        cr, "date_init", "create_date", only_models=("ir.model.constraint", "ir.model.relation")
-    )
 
+    util.update_field_usage(cr, "ir.translation", "source", "src")
     util.remove_field(cr, "ir.translation", "source")
-    util.update_field_references(cr, "source", "src", only_models=("ir.translation",))
 
     # since font was on 10.0 and not properly removed since 11.0 we need to
     # be sure its type is correct in case it exists

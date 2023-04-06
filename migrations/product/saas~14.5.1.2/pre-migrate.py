@@ -13,7 +13,7 @@ def migrate(cr, version):
     util.remove_view(cr, "product.report_producttemplatebarcode")
 
     util.remove_field(cr, "product.attribute", "is_used_on_products")
-    util.update_field_references(cr, "lst_price", "list_price", only_models=("product.template",))
+    util.update_field_usage(cr, "product.template", "lst_price", "list_price")
     util.remove_field(cr, "product.template", "lst_price")
     util.remove_record(cr, "product.product_attribute_value_action")
 

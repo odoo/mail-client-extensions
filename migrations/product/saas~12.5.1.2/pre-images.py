@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.update_field_references(cr, "image_raw_small", "image_variant_128", only_models=("product.product",))
+    util.update_field_usage(cr, "product.product", "image_raw_small", "image_variant_128")
     util.rename_field(cr, "product.product", "image_raw_original", "image_variant_1920")
     util.rename_field(cr, "product.product", "image_raw_big", "image_variant_1024")
     util.rename_field(cr, "product.product", "image_raw_large", "image_variant_256")

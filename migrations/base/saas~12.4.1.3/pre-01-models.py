@@ -26,7 +26,7 @@ def migrate(cr, version):
         """
     )
     cr.execute("UPDATE ir_actions SET binding_view_types = 'list,form' WHERE binding_view_types IS NULL")
-    util.update_field_references(cr, "src_model", "binding_model_id.model", only_models=("ir.actions.act_window",))
+    util.update_field_usage(cr, "ir.actions.act_window", "src_model", "binding_model_id.model")
     util.remove_field(cr, "ir.actions.act_window", "src_model")
     util.remove_field(cr, "ir.actions.act_window", "auto_search")
     util.remove_field(cr, "ir.actions.act_window", "multi")
@@ -43,7 +43,7 @@ def migrate(cr, version):
            AND name NOT ILIKE 'xsd__cached__%'
     """
     )
-    util.update_field_references(cr, "datas_fname", "name")  # For all models; should be safe.
+    util.update_field_usage(cr, "ir.attachment", "datas_fname", "name")
     util.remove_field(cr, "ir.attachment", "datas_fname")
 
     # steal fields from `base_geolocalize` module

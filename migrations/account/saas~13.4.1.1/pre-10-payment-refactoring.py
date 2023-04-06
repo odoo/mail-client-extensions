@@ -226,7 +226,7 @@ def migrate(cr, version):
     for field_name in ("company_id", "name", "state", "journal_id"):
         util.remove_column(cr, "account_payment", field_name)
     util.rename_field(cr, "account.payment", "partner_bank_account_id", "partner_bank_id")
-    util.update_field_references(cr, "payment_date", "date", only_models=("account.payment",))
+    util.update_field_usage(cr, "account.payment", "payment_date", "date")
     for field_name in (
         "move_name",
         "payment_date",

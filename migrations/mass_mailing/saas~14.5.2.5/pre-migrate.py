@@ -13,8 +13,8 @@ def migrate(cr, version):
     util.rename_field(cr, "mailing.trace", "replied", "reply_datetime")
     util.rename_field(cr, "mailing.trace", "sent", "sent_datetime")
     util.rename_field(cr, "mailing.trace", "state", "trace_status")
-    util.update_field_references(cr, "scheduled", "create_date", only_models=("mailing.trace",))
-    util.update_field_references(cr, "state_update", "write_date", only_models=("mailing.trace",))
+    util.update_field_usage(cr, "mailing.trace", "scheduled", "create_date")
+    util.update_field_usage(cr, "mailing.trace", "state_update", "write_date")
 
     util.change_field_selection_values(
         cr,
