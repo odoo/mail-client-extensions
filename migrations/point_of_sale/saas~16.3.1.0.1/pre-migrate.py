@@ -30,3 +30,5 @@ def migrate(cr, version):
 
     util.remove_view(cr, "point_of_sale.qunit_suite_assets")
     util.remove_view(cr, "point_of_sale.assets_common")
+
+    util.remove_model(cr, "pos.session.check_product_wizard")
