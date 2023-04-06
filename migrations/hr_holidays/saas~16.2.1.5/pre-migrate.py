@@ -13,7 +13,7 @@ def migrate(cr, version):
               WHERE responsible_id is NOT NULL
     """
     )
-    util.adapt_domains(cr, "hr.leave.type", "responsible_id", "responsible_ids")
+    util.update_field_usage(cr, "hr.leave.type", "responsible_id", "responsible_ids")
     util.remove_field(cr, "hr.leave.type", "responsible_id")
     util.delete_unused(cr, "hr_holidays.mail_act_leave_allocation_second_approval")
 

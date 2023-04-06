@@ -731,8 +731,8 @@ def migrate(cr, version):
     util.merge_model(cr, "sale.subscription", "sale.order", drop_table=False)
     _logger.info("Merged model sale.subscription into sale.order")
 
-    util.adapt_domains(cr, "sale.order", "template_id", "sale_order_template_id")
-    util.adapt_domains(cr, "sale.order", "recurring_invoice_line_ids", "order_line")
+    util.update_field_usage(cr, "sale.order", "template_id", "sale_order_template_id")
+    util.update_field_usage(cr, "sale.order", "recurring_invoice_line_ids", "order_line")
 
     util.remove_view(cr, "sale_subscription.view_sale_subscription_order_line")
     util.remove_view(cr, "sale_subscription.wizard_form_view")

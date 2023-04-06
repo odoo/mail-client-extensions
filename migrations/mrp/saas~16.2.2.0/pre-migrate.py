@@ -28,8 +28,8 @@ def migrate(cr, version):
         table="mrp_production",
     )
 
-    util.adapt_domains(cr, "mrp.production", "date_planned_start", "date_start")
-    util.adapt_domains(cr, "mrp.production", "date_planned_finished", "date_finished")
+    util.update_field_usage(cr, "mrp.production", "date_planned_start", "date_start")
+    util.update_field_usage(cr, "mrp.production", "date_planned_finished", "date_finished")
 
     util.remove_field(cr, "mrp.production", "date_planned_start")
     util.remove_field(cr, "mrp.production", "date_planned_finished")
@@ -48,8 +48,8 @@ def migrate(cr, version):
         table="mrp_workorder",
     )
 
-    util.adapt_domains(cr, "mrp.workorder", "date_planned_start", "date_start")
-    util.adapt_domains(cr, "mrp.workorder", "date_planned_finished", "date_finished")
+    util.update_field_usage(cr, "mrp.workorder", "date_planned_start", "date_start")
+    util.update_field_usage(cr, "mrp.workorder", "date_planned_finished", "date_finished")
 
     util.remove_field(cr, "mrp.workorder", "date_planned_start")
     util.remove_field(cr, "mrp.workorder", "date_planned_finished")

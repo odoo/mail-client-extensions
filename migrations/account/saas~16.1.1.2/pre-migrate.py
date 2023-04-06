@@ -17,7 +17,7 @@ def migrate(cr, version):
             right = "off_balance"
         return [("account_type", operator, right)]
 
-    util.adapt_domains(
-        cr, "account.account", "is_off_balance", "account_type", adapter=is_off_balance_adapter, force_adapt=True
+    util.update_field_usage(
+        cr, "account.account", "is_off_balance", "account_type", domain_adapter=is_off_balance_adapter
     )
     util.remove_field(cr, "account.account", "is_off_balance")

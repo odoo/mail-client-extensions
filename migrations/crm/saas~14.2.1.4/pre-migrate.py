@@ -50,7 +50,7 @@ def migrate(cr, version):
 
         """
     )
-    # TODO util.adapt_domains(cr, "crm.lead", "score", "probability", adapter=lamdba op, val: op, val * 0.15)
+    # TODO util.update_field_usage(cr, "crm.lead", "score", "probability", domain_adapter=lamdba op, val: op, val * 0.15)
 
     util.remove_field(cr, "crm.lead", "score")
     util.remove_field(cr, "crm.lead", "score_ids")

@@ -18,7 +18,7 @@ def migrate(cr, version):
             op = TERM_OPERATORS_NEGATION.get(op, op)
         return [(left, op, "progress")]
 
-    util.adapt_domains(cr, "sale.subscription", "in_progress", "stage_category", adapter=in_progress)
+    util.update_field_usage(cr, "sale.subscription", "in_progress", "stage_category", domain_adapter=in_progress)
 
     util.remove_field(cr, "sale.subscription", "in_progress")
 

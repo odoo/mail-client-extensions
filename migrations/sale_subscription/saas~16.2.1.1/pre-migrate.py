@@ -114,7 +114,9 @@ UPDATE sale_order so
         new_right = new_right[0] if len(new_right) == 1 else new_right
         return [("subscription_state", new_op, new_right)]
 
-    util.adapt_domains(cr, "sale.order", "stage_category", "subscription_state", adapter=adapter_stage_category)
+    util.update_field_usage(
+        cr, "sale.order", "stage_category", "subscription_state", domain_adapter=adapter_stage_category
+    )
 
     def adapter_management(leaf, is_or, negated):
         _, op, right = leaf
@@ -141,7 +143,9 @@ UPDATE sale_order so
         new_right = new_right[0] if len(new_right) == 1 else new_right
         return [("subscription_state", new_op, new_right)]
 
-    util.adapt_domains(cr, "sale.order", "subscription_management", "subscription_state", adapter=adapter_management)
+    util.update_field_usage(
+        cr, "sale.order", "subscription_management", "subscription_state", domain_adapter=adapter_management
+    )
 
     util.remove_field(cr, "sale.order", "renew_state")
     util.remove_field(cr, "sale.order", "recurring_live")

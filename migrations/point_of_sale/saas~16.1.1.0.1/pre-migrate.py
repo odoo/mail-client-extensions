@@ -22,5 +22,5 @@ def migrate(cr, version):
         new_op = "!=" if right else "="
         return [("shipping_date", new_op, False)]
 
-    util.adapt_domains(cr, "pos.order", "to_ship", "shipping_date", adapter=adapter)
+    util.update_field_usage(cr, "pos.order", "to_ship", "shipping_date", domain_adapter=adapter)
     util.remove_field(cr, "pos.order", "to_ship")

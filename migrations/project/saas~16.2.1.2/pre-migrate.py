@@ -112,8 +112,8 @@ def migrate(cr, version):
         new_op = "!=" if bool(right) else "="
         return [("is_closed", new_op, right)]
 
-    util.adapt_domains(cr, "project.task", "kanban_state", "state", adapter=state_adapter)
-    util.adapt_domains(cr, "project.task", "is_blocked", "is_closed", adapter=is_blocked_adapter)
+    util.update_field_usage(cr, "project.task", "kanban_state", "state", domain_adapter=state_adapter)
+    util.update_field_usage(cr, "project.task", "is_blocked", "is_closed", domain_adapter=is_blocked_adapter)
 
     util.update_record_from_xml(cr, "project.project_manager_all_project_tasks_rule")
 

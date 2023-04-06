@@ -21,5 +21,5 @@ def migrate(cr, version):
               WHERE created_purchase_line_id IS NOT NULL
     """
     )
-    util.adapt_domains(cr, "stock.move", "created_purchase_line_id", "created_purchase_line_ids")
+    util.update_field_usage(cr, "stock.move", "created_purchase_line_id", "created_purchase_line_ids")
     util.remove_field(cr, "stock.move", "created_purchase_line_id")
