@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     util.create_column(cr, 'ir_model_constraint', 'definition', 'varchar')
     util.delete_model(cr, 'ir.sequence.type')
@@ -22,5 +23,4 @@ def migrate(cr, version):
            AND v."type" = 'qweb'
     """)
 
-    # will also works for product.product
-    util.update_field_references(cr, 'ean13', 'barcode')
+    util.rename_field(cr, 'res.partner', 'ean13', 'barcode')

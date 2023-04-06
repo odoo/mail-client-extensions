@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import re
 from uuid import uuid4
+
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
+    util.remove_field(cr, "res.users", "ean13")
 
     # force product barcode in `barcode` field
-    cr.execute("""UPDATE product_product p
+    cr.execute(r"""UPDATE product_product p
                      SET barcode=p.default_code
                     FROM product_template t
                    WHERE t.id = p.product_tmpl_id
