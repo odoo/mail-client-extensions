@@ -15,3 +15,4 @@ def migrate(cr, version):
     util.explode_execute(cr, query, table="stock_move", alias="sm")
     util.remove_field(cr, "stock.move", "scrap_ids")
     util.remove_field(cr, "stock.scrap", "move_id")
+    util.remove_field(cr, "stock.warehouse", "return_type_id")
