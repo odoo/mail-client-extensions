@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import re
 from uuid import uuid4
 
 from odoo.upgrade import util
@@ -14,6 +15,7 @@ def migrate(cr, version):
         SELECT id, commands
           FROM spreadsheet_revision
          WHERE commands LIKE '%ADD_PIVOT%'
+            OR commands LIKE '%UPDATE_CELL%'
         """
     )
 
@@ -22,6 +24,18 @@ def migrate(cr, version):
         commands = data.get("commands", [])
         if not commands:
             continue
+        pivot_update_cell = [cmd for cmd in commands if (cmd.get("type") == "UPDATE_CELL" and cmd.get("content"))]
+        for cmd in pivot_update_cell:
+            cmd["content"] = re.sub(r"=PIVOT(\(|\.HEADER)", r"=ODOO.PIVOT\1", cmd["content"], flags=re.I)
+        if pivot_update_cell:
+            cr.execute(
+                """
+                UPDATE spreadsheet_revision
+                   SET commands=%s
+                 WHERE id=%s
+                """,
+                [json.dumps(data), revision_id],
+            )
         is_pivot_insertion = commands[0]["type"] == "ADD_PIVOT"
         pivot = commands[0].get("pivot")
         if not pivot and is_pivot_insertion:

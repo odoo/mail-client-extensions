@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import re
 from uuid import uuid4
 
 from odoo.upgrade import util
@@ -14,6 +15,7 @@ def migrate(cr, version):
         SELECT id, commands
           FROM spreadsheet_revision
          WHERE commands LIKE '%ADD_ODOO_LIST%'
+            OR commands LIKE '%UPDATE_CELL%'
         """
     )
 
@@ -22,6 +24,18 @@ def migrate(cr, version):
         commands = data.get("commands", [])
         if not commands:
             continue
+        list_update_cell = [cmd for cmd in commands if (cmd.get("type") == "UPDATE_CELL" and cmd.get("content"))]
+        for cmd in list_update_cell:
+            cmd["content"] = re.sub(r"=LIST(\(|\.HEADER)", r"=ODOO.LIST\1", cmd["content"], flags=re.I)
+        if list_update_cell:
+            cr.execute(
+                """
+                UPDATE spreadsheet_revision
+                   SET commands=%s
+                 WHERE id=%s
+                """,
+                [json.dumps(data), revision_id],
+            )
         is_list_insertion = commands[0]["type"] == "ADD_ODOO_LIST"
         list = commands[0].get("list")
         if not list and is_list_insertion:
