@@ -55,6 +55,7 @@ def migrate(cr, version):
     query = """
         UPDATE project_task
            SET state = CASE
+          WHEN is_blocked IS TRUE then '04_waiting_normal'
           WHEN kanban_state = 'normal' THEN '01_in_progress'
           WHEN kanban_state = 'blocked' THEN '02_changes_requested'
           WHEN kanban_state = 'done' THEN '03_approved'
