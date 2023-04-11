@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 
 from odoo.upgrade import util
 
@@ -60,6 +61,15 @@ def migrate(cr, version):
     # remove invalid entries as m2m channel/partner table now has partner_id and channel_id required
     cr.execute("DELETE FROM mail_channel_partner WHERE partner_id IS NULL OR channel_id IS NULL")
 
+    if util.table_exists(cr, "mail_notification"):
+        upg_source = os.getenv("ODOO_UPG_DB_SOURCE_VERSION")
+        cr.execute("SELECT 1 FROM mail_notification LIMIT 1")
+        if cr.rowcount and upg_source and util.parse_version(upg_source) < util.parse_version("9.0"):
+            cr.execute("ALTER TABLE mail_notification RENAME TO mail_notification_upg")
+        else:
+            cr.execute("DROP TABLE mail_notification")
+        cr.execute("DROP SEQUENCE IF EXISTS mail_notification_id_seq CASCADE")
+
     # rename mail_message_res_partner_needaction_rel table to mail_notification
     cr.execute(
         """
@@ -73,3 +83,13 @@ def migrate(cr, version):
              RENAME TO mail_notification_id_seq
     """
     )
+
+    if util.table_exists(cr, "mail_notification_upg"):
+        cr.execute(
+            """
+            INSERT INTO mail_notification (res_partner_id, mail_message_id, is_read, notification_type)
+                 SELECT partner_id, message_id, is_read, 'inbox' FROM mail_notification_upg
+            ON CONFLICT DO NOTHING
+            """
+        )
+        cr.execute("DROP TABLE mail_notification_upg")
