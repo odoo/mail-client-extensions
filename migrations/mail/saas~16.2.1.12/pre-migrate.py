@@ -86,3 +86,9 @@ def migrate(cr, version):
             "sdd.mandate",
         ),
     )
+    # Remove message_main_attachment_id field from mail.thread *manual* models
+    cr.execute("SELECT model FROM ir_model WHERE is_mail_thread AND state = 'manual'")
+    manual_models = [r[0] for r in cr.fetchall()]
+    util._logger.info("Remove message_main_attachment_id from manual models: %s", manual_models)
+    for model in manual_models:
+        util.remove_field(cr, model, "message_main_attachment_id")
