@@ -32,3 +32,6 @@ def migrate(cr, version):
     else:
         util.move_field_to_module(cr, "project.task", "partner_phone", "project", "industry_fsm")
         util.move_field_to_module(cr, "project.task", "partner_city", "project", "industry_fsm")
+
+    util.remove_view(cr, "project.report_project_task_user_view_tree")
+    util.remove_field(cr, "report.project.task.user", "rating_last_text")
