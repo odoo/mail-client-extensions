@@ -617,13 +617,6 @@ class IrUiView(models.Model):
     _inherit = "ir.ui.view"
     _module = "base"
 
-    if util.version_gte("12.0"):
-
-        def _load_records_write(self, values):
-            # https://github.com/odoo/odoo/blob/c53081f10befd4f1c98e46a450ed3bc71a6246ed/odoo/fields.py#L507
-            values.setdefault("priority", self._fields["priority"].default(self))
-            return super()._load_records_write(values)
-
     if util.version_gte("10.0"):
 
         def _check_xml(self):
@@ -768,38 +761,6 @@ class IrUiView(models.Model):
                     format="html",
                 )
 
-        if util.version_gte("saas~11.5"):
-            # Force the update of arch_fs and the view validation even if the view has been set to noupdate.
-            # From saas-11.5, `_update` of ir.model.data is deprecated and replaced by _load_records on each models
-            def _load_records(self, data_list, update=False):
-                xml_ids = [data["xml_id"] for data in data_list if data.get("xml_id")]
-                force_check_views = self.env["ir.ui.view"]
-                for xml_id, row in zip(xml_ids, self.env["ir.model.data"]._lookup_xmlids(xml_ids, self)):
-                    d_id, d_module, d_name, d_model, d_res_id, d_noupdate, r_id = row
-                    if d_model == "theme.ir.ui.view":
-                        # Since odoo/odoo#104094 (odoo/odoo@b89b70cc) we do not allow updating a model while loading records
-                        # Given github.com/odoo/odoo/blob/d335052223e6b2a8cb6b3ae98c996f6874a2d5e5/odoo/tools/convert.py#L598-L601
-                        # some custom themes (**wrongly** using an external standard xmlid) override the model of a standard
-                        # template from ir.ui.view to theme.ir.ui.view, this causes issues when loading the standard view.
-                        util.remove_record(self.env.cr, xml_id)
-                        continue
-
-                    if d_noupdate:
-                        filename = self.env.context["install_filename"]
-                        xml_file = get_resource_from_path(filename)
-                        if xml_file:
-                            view = self.browse(d_res_id)
-                            view.arch_fs = "/".join(xml_file[0:2])
-                            force_check_views |= view
-
-                res = super(IrUiView, self)._load_records(data_list, update=update)
-                # Standard View set to noupdate in database are no validated. Force the validation.
-                # See https://github.com/odoo/odoo/pull/40207
-                # Otherwise, if there is a validation issue, the upgrade won't block
-                # but the user won't be able to open the view.
-                force_check_views._check_xml()
-                return res
-
         if not util.on_CI():
 
             @api.constrains("type", "groups_id", "inherit_id")
@@ -816,6 +777,45 @@ class IrUiView(models.Model):
                         util.ENVIRON.setdefault("IGNORED_IR_UI_VIEW_CHECK_GROUPS", []).append(
                             (view.id, view.name, view.xml_id)
                         )
+
+    if util.version_gte("saas~11.5"):
+        # Force the update of arch_fs and the view validation even if the view has been set to noupdate.
+        # From saas-11.5, `_update` of ir.model.data is deprecated and replaced by _load_records on each models
+        def _load_records(self, data_list, update=False):
+            xml_ids = [data["xml_id"] for data in data_list if data.get("xml_id")]
+            force_check_views = self.env["ir.ui.view"]
+            for xml_id, row in zip(xml_ids, self.env["ir.model.data"]._lookup_xmlids(xml_ids, self)):
+                d_id, d_module, d_name, d_model, d_res_id, d_noupdate, r_id = row
+                if d_model == "theme.ir.ui.view":
+                    # Since odoo/odoo#104094 (odoo/odoo@b89b70cc) we do not allow updating a model while loading records
+                    # Given github.com/odoo/odoo/blob/d335052223e6b2a8cb6b3ae98c996f6874a2d5e5/odoo/tools/convert.py#L598-L601
+                    # some custom themes (**wrongly** using an external standard xmlid) override the model of a standard
+                    # template from ir.ui.view to theme.ir.ui.view, this causes issues when loading the standard view.
+                    util.remove_record(self.env.cr, xml_id)
+                    continue
+
+                if d_noupdate:
+                    filename = self.env.context["install_filename"]
+                    xml_file = get_resource_from_path(filename)
+                    if xml_file:
+                        view = self.browse(d_res_id)
+                        view.arch_fs = "/".join(xml_file[0:2])
+                        force_check_views |= view
+
+            res = super(IrUiView, self)._load_records(data_list, update=update)
+            # Standard View set to noupdate in database are no validated. Force the validation.
+            # See https://github.com/odoo/odoo/pull/40207
+            # Otherwise, if there is a validation issue, the upgrade won't block
+            # but the user won't be able to open the view.
+            force_check_views._check_xml()
+            return res
+
+    if util.version_gte("12.0"):
+
+        def _load_records_write(self, values):
+            # https://github.com/odoo/odoo/blob/c53081f10befd4f1c98e46a450ed3bc71a6246ed/odoo/fields.py#L507
+            values.setdefault("priority", self._fields["priority"].default(self))
+            return super()._load_records_write(values)
 
     if util.version_gte("saas~13.1"):
 
