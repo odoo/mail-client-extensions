@@ -407,6 +407,212 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
     return False
 
 
+def _upgrade_fix_views(fix_view, root_view):
+    """
+    Try to fix this view. First, disable all its children and check if it still fails:
+    * If the view fails, restore its arch from fs for standard views, else try to fix the custom view by
+    following some heuristics (only if ODOO_MIG_TRY_FIX_VIEWS is true).
+    * If the view succeeds with all children disabled, then enable the children one by one. Once a child makes
+    the view fail, try to fix the child recursively.
+
+    If a custom view cannot be fixed, then disable it.
+    """
+
+    def view_data(view, md):
+        data = {
+            "id": view.id,
+            "name": view.name,
+            "model": view.model,
+            "inherit_id": view.inherit_id,
+            "arch_fs": view.arch_fs,
+        }
+        if md:
+            data.update({"module": md.module, "xml_id": "{}.{}".format(md.module, md.name)})
+        return data
+
+    def restore_from_file(view, md):
+        def resolve_external_ids(arch_fs, module):
+            xmlid_to_res_id = (
+                fix_view.env["ir.model.data"]._xmlid_to_res_id
+                if hasattr(fix_view.env["ir.model.data"], "_xmlid_to_res_id")
+                else fix_view.env["ir.model.data"].xmlid_to_res_id
+            )
+
+            def replacer(m):
+                xmlid = m.group("xmlid")
+                if "." not in xmlid:
+                    xmlid = "%s.%s" % (module, xmlid)
+                return m.group("prefix") + str(xmlid_to_res_id(xmlid))
+
+            return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
+
+        arch_fs_fullpath = (
+            get_resource_path(*view.arch_fs.split("/"))
+            if md.module != "test_upg"
+            else os.path.dirname(os.path.abspath(__file__)) + "/{}".format(view.arch_fs)
+        )
+        arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
+        if not arch_fs_fullpath or not arch_db:
+            _logger.warning(
+                "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
+                "Its original definition couldn't be recovered from the file system. Maybe it "
+                "was moved or does not exist anymore.",
+                md.module,
+                md.name,
+            )
+            return
+
+        view_copy = view.with_context(_upgrade_fix_views=True).copy(
+            {"active": False, "name": "%s (Copy created during upgrade)" % view.name}
+        )
+        view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
+
+        # Mark the view as it was loaded with its XML data file.
+        # Otherwise it will be deleted in _process_end
+        if util.version_gte("saas~11.5"):
+            fix_view.pool.loaded_xmlids.add("%s.%s" % (md.module, md.name))
+        else:
+            fix_view.pool.model_data_reference_ids[(md.module, md.name)] = (view._name, view.id)
+
+        info = view_data(view, md)
+        info["copy_id"] = view_copy.id
+
+        util.add_to_migration_reports(info, "Overridden views")
+
+        _logger.log(
+            # info on CI since this is due to test data
+            logging.INFO if md.module == "test_upg" else logging.WARNING,
+            "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
+            "Resetting its arch and noupdate flag for the migration ...\n",
+            md.module,
+            md.name,
+        )
+
+    def disable(view, md, reactivate_children):
+        view.active = False
+        act_window = fix_view.env["ir.actions.act_window"]
+        act_window.search([("view_id", "=", view.id)]).write({"view_id": False})
+        act_window.search([("search_view_id", "=", view.id)]).write({"search_view_id": False})
+        fix_view.env["ir.actions.act_window.view"].search([("view_id", "=", view.id)]).unlink()
+
+        # reactivate any disabled inheriting view
+        for child in reactivate_children:
+            child.active = True
+
+        util.add_to_migration_reports(view_data(view, md), "Disabled views")
+        _logger.log(
+            # info on CI since this is due to test data
+            logging.INFO if util.on_CI() else logging.WARNING,
+            "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
+            "Disabling it for the migration ...\n",
+            view.name,
+            view.id,
+            view.inherit_id.id,
+            view.model,
+        )
+
+    def check():
+        # Check from root view and return the exception representation
+        e = None
+        with mute_logger("odoo.addons.base.ir.ir_ui_view", "odoo.addons.base.models.ir_ui_view"):
+            try:
+                super(IrUiView, root_view.with_context(lang="en_US"))._check_xml()
+            except Exception as _e:
+                e = str(_e)
+        return e
+
+    # 1. Disable all children
+    children = fix_view.inherit_children_ids
+    for child in children:
+        child.active = False
+
+    md = fix_view.model_data_id
+    e = check()
+    if e is not None:
+        # Try to fix this view:
+        #  * If standard restore from fs
+        #  * If not standard:
+        #    a. Try some heuristics based on the exception
+        #    b. If still failing, disable the view
+        if md and md.module in get_standard_modules(fix_view):
+            # Standard view
+            if md.noupdate and fix_view.arch_fs:
+                md.noupdate = False
+                restore_from_file(fix_view, md)
+            # Note: even if restoring from fs, a standard view could still fail due to a custom sibling
+            # removing an anchor field. We'll attempt to fix that when validating the custom sibling
+        else:
+            # Custom view
+            if not ODOO_MIG_TRY_FIX_VIEWS:
+                disable(fix_view, md, children)
+                return True
+            arch_orig = fix_view.arch
+            if not heuristic_fixes(fix_view._cr, fix_view, check, e):
+                # arch may have been changed by heuristic_fixes, restore it
+                fix_view.arch = arch_orig
+                disable(fix_view, md, children)
+                return True
+            else:
+                # Only log a warning for non-CI upgrades as this situation occurs due to test data.
+                # This is expected and should not mark the build as failed.
+                _logger.log(
+                    logging.INFO if util.on_CI() else logging.WARNING,
+                    "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
+                    "It was automatically adapted from:\n%sto:\n%s",
+                    fix_view.name,
+                    fix_view.id,
+                    fix_view.inherit_id.id,
+                    fix_view.model,
+                    pp_xml_str(arch_orig),
+                    pp_xml_str(fix_view.arch),
+                )
+
+    # Let's try to activate children one by one
+    # If a child fails we then recursively fix it
+    standard_children = filter(is_standard_view, children)
+    custom_children = filterfalse(is_standard_view, children)
+    has_error = []
+    for child in itertools.chain(standard_children, custom_children):
+        child.active = True
+        if check() is not None:
+            if not _upgrade_fix_views(child, root_view):
+                # This view will fail since a failing child can't be fixed
+                # we continue to the rest of the children to check them more
+                has_error.append(child)
+                child.active = False
+
+    # We need to ensure that all children get activated again
+    for child in has_error:
+        child.active = True
+
+    if check() is not None:
+        # We still need to try restoring this standard view since it's in error
+        # and we already tried to fix all its children
+        if md and md.noupdate and md.module and fix_view.arch_fs:
+            md.noupdate = False
+            restore_from_file(fix_view, md)
+
+    # If a view is mode="primary" but inherits from a standard view, it may
+    # be that the standard parent (or a farther ancestor) is broken
+    # and needs to be restored. We don't check whether the view or its parent
+    # is standard, as custom cases should already be handled before.
+    if check() is not None and fix_view.mode == "primary":
+        parent = fix_view.inherit_id
+        while parent:
+            md_parent = parent.model_data_id
+            if md_parent and md_parent.noupdate and md_parent.module in get_standard_modules(fix_view):
+                md_parent.noupdate = False
+                restore_from_file(parent, md_parent)
+                if check() is None:
+                    break
+            # If parent was still in updateable or the
+            # view still fails we continue to the ancestors
+            parent = parent.inherit_id
+
+    # Final check, even if has_error
+    return check() is None
+
+
 class IrUiView(models.Model):
     _inherit = "ir.ui.view"
     _module = "base"
@@ -428,7 +634,7 @@ class IrUiView(models.Model):
                 try:
                     super(IrUiView, record)._check_xml()
                 except Exception:
-                    if not record._upgrade_fix_views(record):
+                    if not _upgrade_fix_views(record, record):
                         raise
             return True
 
@@ -437,211 +643,6 @@ class IrUiView(models.Model):
             if old.env.context.get("_upgrade_fix_views"):
                 return
             return super(IrUiView, old).copy_translations(new, *args, **kwargs)
-
-        def _upgrade_fix_views(self, root_view):
-            """
-            Try to fix this view. First, disable all its children and check if it still fails:
-            * If the view fails, restore its arch from fs for standard views, else try to fix the custom view by
-            following some heuristics (only if ODOO_MIG_TRY_FIX_VIEWS is true).
-            * If the view succeeds with all children disabled, then enable the children one by one. Once a child makes
-            the view fail, try to fix the child recursively.
-
-            If a custom view cannot be fixed, then disable it.
-            """
-
-            def view_data(view, md):
-                data = {
-                    "id": view.id,
-                    "name": view.name,
-                    "model": view.model,
-                    "inherit_id": view.inherit_id,
-                    "arch_fs": view.arch_fs,
-                }
-                if md:
-                    data.update({"module": md.module, "xml_id": "{}.{}".format(md.module, md.name)})
-                return data
-
-            def restore_from_file(view, md):
-                def resolve_external_ids(arch_fs, module):
-                    xmlid_to_res_id = (
-                        self.env["ir.model.data"]._xmlid_to_res_id
-                        if hasattr(self.env["ir.model.data"], "_xmlid_to_res_id")
-                        else self.env["ir.model.data"].xmlid_to_res_id
-                    )
-
-                    def replacer(m):
-                        xmlid = m.group("xmlid")
-                        if "." not in xmlid:
-                            xmlid = "%s.%s" % (module, xmlid)
-                        return m.group("prefix") + str(xmlid_to_res_id(xmlid))
-
-                    return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
-
-                arch_fs_fullpath = (
-                    get_resource_path(*view.arch_fs.split("/"))
-                    if md.module != "test_upg"
-                    else os.path.dirname(os.path.abspath(__file__)) + "/{}".format(view.arch_fs)
-                )
-                arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
-                if not arch_fs_fullpath or not arch_db:
-                    _logger.warning(
-                        "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
-                        "Its original definition couldn't be recovered from the file system. Maybe it "
-                        "was moved or does not exist anymore.",
-                        md.module,
-                        md.name,
-                    )
-                    return
-
-                view_copy = view.with_context(_upgrade_fix_views=True).copy(
-                    {"active": False, "name": "%s (Copy created during upgrade)" % view.name}
-                )
-                view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
-
-                # Mark the view as it was loaded with its XML data file.
-                # Otherwise it will be deleted in _process_end
-                if util.version_gte("saas~11.5"):
-                    self.pool.loaded_xmlids.add("%s.%s" % (md.module, md.name))
-                else:
-                    self.pool.model_data_reference_ids[(md.module, md.name)] = (view._name, view.id)
-
-                info = view_data(view, md)
-                info["copy_id"] = view_copy.id
-
-                util.add_to_migration_reports(info, "Overridden views")
-
-                _logger.log(
-                    # info on CI since this is due to test data
-                    logging.INFO if md.module == "test_upg" else logging.WARNING,
-                    "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
-                    "Resetting its arch and noupdate flag for the migration ...\n",
-                    md.module,
-                    md.name,
-                )
-
-            def disable(view, md, reactivate_children):
-                view.active = False
-                act_window = self.env["ir.actions.act_window"]
-                act_window.search([("view_id", "=", view.id)]).write({"view_id": False})
-                act_window.search([("search_view_id", "=", view.id)]).write({"search_view_id": False})
-                self.env["ir.actions.act_window.view"].search([("view_id", "=", view.id)]).unlink()
-
-                # reactivate any disabled inheriting view
-                for child in reactivate_children:
-                    child.active = True
-
-                util.add_to_migration_reports(view_data(view, md), "Disabled views")
-                _logger.log(
-                    # info on CI since this is due to test data
-                    logging.INFO if util.on_CI() else logging.WARNING,
-                    "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
-                    "Disabling it for the migration ...\n",
-                    view.name,
-                    view.id,
-                    view.inherit_id.id,
-                    view.model,
-                )
-
-            def check():
-                # Check from root view and return the exception representation
-                e = None
-                with mute_logger("odoo.addons.base.ir.ir_ui_view", "odoo.addons.base.models.ir_ui_view"):
-                    try:
-                        super(IrUiView, root_view.with_context(lang="en_US"))._check_xml()
-                    except Exception as _e:
-                        e = str(_e)
-                return e
-
-            # 1. Disable all children
-            children = self.inherit_children_ids
-            for child in children:
-                child.active = False
-
-            md = self.model_data_id
-            e = check()
-            if e is not None:
-                # Try to fix this view:
-                #  * If standard restore from fs
-                #  * If not standard:
-                #    a. Try some heuristics based on the exception
-                #    b. If still failing, disable the view
-                if md and md.module in get_standard_modules(self):
-                    # Standard view
-                    if md.noupdate and self.arch_fs:
-                        md.noupdate = False
-                        restore_from_file(self, md)
-                    # Note: even if restoring from fs, a standard view could still fail due to a custom sibling
-                    # removing an anchor field. We'll attempt to fix that when validating the custom sibling
-                else:
-                    # Custom view
-                    if not ODOO_MIG_TRY_FIX_VIEWS:
-                        disable(self, md, children)
-                        return True
-                    arch_orig = self.arch
-                    if not heuristic_fixes(self._cr, self, check, e):
-                        # arch may have been changed by heuristic_fixes, restore it
-                        self.arch = arch_orig
-                        disable(self, md, children)
-                        return True
-                    else:
-                        # Only log a warning for non-CI upgrades as this situation occurs due to test data.
-                        # This is expected and should not mark the build as failed.
-                        _logger.log(
-                            logging.INFO if util.on_CI() else logging.WARNING,
-                            "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
-                            "It was automatically adapted from:\n%sto:\n%s",
-                            self.name,
-                            self.id,
-                            self.inherit_id.id,
-                            self.model,
-                            pp_xml_str(arch_orig),
-                            pp_xml_str(self.arch),
-                        )
-
-            # Let's try to activate children one by one
-            # If a child fails we then recursively fix it
-            standard_children = filter(is_standard_view, children)
-            custom_children = filterfalse(is_standard_view, children)
-            has_error = []
-            for child in itertools.chain(standard_children, custom_children):
-                child.active = True
-                if check() is not None:
-                    if not child._upgrade_fix_views(root_view):
-                        # This view will fail since a failing child can't be fixed
-                        # we continue to the rest of the children to check them more
-                        has_error.append(child)
-                        child.active = False
-
-            # We need to ensure that all children get activated again
-            for child in has_error:
-                child.active = True
-
-            if check() is not None:
-                # We still need to try restoring this standard view since it's in error
-                # and we already tried to fix all its children
-                if md and md.noupdate and md.module and self.arch_fs:
-                    md.noupdate = False
-                    restore_from_file(self, md)
-
-            # If a view is mode="primary" but inherits from a standard view, it may
-            # be that the standard parent (or a farther ancestor) is broken
-            # and needs to be restored. We don't check whether the view or its parent
-            # is standard, as custom cases should already be handled before.
-            if check() is not None and self.mode == "primary":
-                parent = self.inherit_id
-                while parent:
-                    md_parent = parent.model_data_id
-                    if md_parent and md_parent.noupdate and md_parent.module in get_standard_modules(self):
-                        md_parent.noupdate = False
-                        restore_from_file(parent, md_parent)
-                        if check() is None:
-                            break
-                    # If parent was still in updateable or the
-                    # view still fails we continue to the ancestors
-                    parent = parent.inherit_id
-
-            # Final check, even if has_error
-            return check() is None
 
         @api.model
         def _register_hook(self):
