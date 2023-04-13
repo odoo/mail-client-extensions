@@ -22,7 +22,7 @@ try:
 except AttributeError:
     filterfalse = itertools.ifilterfalse
 
-from lxml import etree
+from lxml import builder, etree
 
 from odoo import api, models
 from odoo.modules.module import get_modules
@@ -267,6 +267,66 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
         return False
 
     arch = etree.fromstring(view.arch_db)
+
+    if util.version_gte("16.0"):
+        # Handle missing groups
+        pattern_info = {
+            r"Field '(\w+)' used in domain of field '(\w+)' .+ is restricted to the group": lambda m: (
+                "name",
+                m.group(2),
+                "//field[@name='{}']".format(m.group(2)),
+            ),
+            r"Field '(\w+)' used in ([\w-]+)=(.+) is restricted to the group": lambda m: (
+                m.group(2),
+                m.group(3),
+                "//*[@{}]".format(m.group(2)),
+            ),
+            r"Field '(\w+)' used in (attrs|context) \((.+)\) is restricted to the group": lambda m: (
+                m.group(2),
+                m.group(3),
+                "//*[@{}]".format(m.group(2)),
+            ),
+        }
+        m = next(filter(None, (re.search(pattern, e) for pattern in pattern_info)), None)
+        if m:
+            used_field = m.group(1)
+            node_attr, node_expr, xpath_expr = pattern_info[m.re.pattern](m)
+            done = set()  # avoid adding an invisible field multiple times
+
+            def add_field(eparent, efield):
+                if eparent in done:
+                    return
+                done.add(eparent)
+                eparent.append(efield)
+
+            for elem in arch.xpath(xpath_expr):
+                if elem.get(node_attr) != node_expr:
+                    continue
+                invisible_field = builder.E.field(name=used_field, invisible="1")
+                parent = elem.getparent()
+                if elem.tag == "attribute" and parent.tag in ("field", "xpath"):
+                    # <xpath|field ... position="attributes">
+                    #   <attribute ...\> --> invalid elem
+                    xelem = elem.getparent()
+                    if xelem.tag == "field":
+                        new_expr = "//field[@name='{}']".format(xelem.attr["name"])
+                    else:
+                        new_expr = xelem.attr["expr"]
+                    parent = xelem.getparent()
+                    parent.insert(
+                        parent.index(xelem),
+                        builder.E.xpath(invisible_field, expr=new_expr, position="before"),
+                    )
+                elif elem.tag == "field":
+                    add_field(parent, invisible_field)
+                elif elem.tag in ("tree", "form", "kanban"):
+                    add_field(elem, invisible_field)
+            save_arch(view, arch)
+            new_e = check()
+            if new_e and re.search("Field '{}' used in ".format(used_field), new_e):
+                # It seems we didn't fix the issue...
+                return False
+            return heuristic_fixes(cr, view, check, new_e)
 
     # Handle removed field that is being re-added or modified via xpath
     m = re.search("Field `(.+)` does not exist", e)
