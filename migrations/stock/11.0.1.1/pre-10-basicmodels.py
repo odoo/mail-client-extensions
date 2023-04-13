@@ -429,5 +429,5 @@ def migrate(cr, version):
 
     # remove hash index
     cr.execute("DROP INDEX stock_move_line_move_id_upg_idx")
-    util.create_index("stock_move_line_move_id", "stock_move_line", "move_id")
+    util.create_index(cr, "stock_move_line_move_id", "stock_move_line", "move_id")
     cr.commit()
