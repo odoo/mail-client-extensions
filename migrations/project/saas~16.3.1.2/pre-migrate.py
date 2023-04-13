@@ -35,3 +35,6 @@ def migrate(cr, version):
 
     util.remove_view(cr, "project.report_project_task_user_view_tree")
     util.remove_field(cr, "report.project.task.user", "rating_last_text")
+
+    util.remove_record(cr, "project.mt_task_dependency_change")
+    util.remove_record(cr, "project.mt_project_task_dependency_change")
