@@ -7,7 +7,6 @@ _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saa
 
 
 def migrate(cr, version):
-
     msg = """
         <p><strong>IMPORTANT NOTICE</strong></p>
         <p>
@@ -547,7 +546,7 @@ def migrate(cr, version):
     """
     )
 
-    util.create_index("account_move_payment_id_index", "account_move", "payment_id")
+    util.create_index(cr, "account_move_payment_id_index", "account_move", "payment_id")
     util.parallel_execute(
         cr,
         util.explode_query_range(
