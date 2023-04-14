@@ -3,6 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.update_record_from_xml(cr, "helpdesk.helpdesk_ticket_user_rule")
     util.remove_field(cr, "helpdesk.sla.report.analysis", "successful_sla_rate")
     util.remove_field(cr, "helpdesk.sla.report.analysis", "failed_sla_rate")
     util.remove_field(cr, "helpdesk.sla.report.analysis", "ongoing_sla_rate")
