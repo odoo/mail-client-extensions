@@ -8,4 +8,5 @@ from . import (
     test_res_partner_bank,
     test_translate,
     test_util,
+    test_versions,
 )
