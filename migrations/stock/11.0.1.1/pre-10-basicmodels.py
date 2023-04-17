@@ -96,10 +96,13 @@ def migrate(cr, version):
 
     # Create column lot_id/lot_name on stock_pack_operation, product_qty is renamed to product_uom_qty to be consistent with stock.move
     util.create_column(cr, 'stock_pack_operation', 'lot_id', 'int4')
+    util.create_fk(cr, "stock_pack_operation", "lot_id", "stock_production_lot", on_delete_action="SET NULL")
     util.create_column(cr, 'stock_pack_operation', 'lot_name', 'varchar')
     util.rename_field(cr, 'stock.pack.operation', 'product_qty', 'product_uom_qty')
     # Add move_id column as every move_line/pack op will only have one move
     util.create_column(cr, 'stock_pack_operation', 'move_id', 'int4')
+    util.create_fk(cr, "stock_pack_operation", "move_id", "stock_move", on_delete_action="SET NULL")
+    util.create_index(cr, "stock_pack_operation_move_id_index", "stock_pack_operation", "move_id")
 
     # For the pack operations that moved an entire pack in done pickings, we need to explode them and link to the foreseen move
     cr.execute("""
@@ -170,10 +173,6 @@ def migrate(cr, version):
         ("stock_valuation_adjustment_lines_move_id", "stock_valuation_adjustment_lines", ("move_id",)),
     ]:
         util.create_index(cr, name, table, *columns)
-    # Use a hash index because they behave better for updates, in merge_moves we run many queries like
-    # UPDATE stock_move_line SET move_id = %s WHERE move_id IN %s
-    # which are extremely slow since they use and modify the index
-    cr.execute("CREATE INDEX stock_move_line_move_id_upg_idx ON stock_move_line USING hash(move_id)")
     cr.execute("ANALYZE stock_move_line")
 
     util.fixup_m2m(cr, "stock_quant_move_rel", "stock_move", "stock_quant", "move_id", "quant_id")
@@ -429,7 +428,4 @@ def migrate(cr, version):
         alias="ml",
     )
 
-    # remove hash index
-    cr.execute("DROP INDEX stock_move_line_move_id_upg_idx")
-    util.create_index(cr, "stock_move_line_move_id", "stock_move_line", "move_id")
     cr.commit()
