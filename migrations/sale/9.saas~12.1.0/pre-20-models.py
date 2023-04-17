@@ -34,7 +34,7 @@ def migrate(cr, version):
     cr.execute("UPDATE product_template SET expense_policy = 'no' WHERE expense_policy IS NULL")
 
     # sale order line
-    cr.execute("ALTER TABLE sale_order_line RENAME COLUMN price_reduce TO price_reduce_taxecl")
+    cr.execute("ALTER TABLE sale_order_line RENAME COLUMN price_reduce TO price_reduce_taxexcl")
     util.create_column(cr, 'sale_order_line', 'price_reduce', 'numeric')
     util.create_column(cr, 'sale_order_line', 'price_reduce_taxinc', 'numeric')
     cr.execute("""
