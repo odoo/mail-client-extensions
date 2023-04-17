@@ -14,12 +14,13 @@ logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 _logger = logging.getLogger(__name__)
 
 
-class Odoo:  # TODO: manage upgrade_path after 13
-    def __init__(self, database, logfile=None, log_level=None, dry_run=False):
+class Odoo:
+    def __init__(self, database, logfile=None, log_level=None, dry_run=False, upgrade_path=None):
         self.logfile = logfile
         self.database = database
         self.dry_run = dry_run
         self.log_level = log_level
+        self.upgrade_path = upgrade_path
 
     def db_exists(self):
         try:
@@ -50,6 +51,8 @@ class Odoo:  # TODO: manage upgrade_path after 13
             cmd += ["--logfile", self.logfile]
         if self.log_level:
             cmd += ["--log-level", self.log_level]
+        if self.upgrade_path:
+            cmd += ["--upgrade-path", self.upgrade_path]
         if not self.dry_run:
             _logger.info(" ".join(cmd))
         self._exec(cmd, ["An error occured, exiting"])
@@ -155,6 +158,12 @@ def run():
         "--dry-run", default=False, action="store_true", help="Only log commands without executing anything"
     )
 
+    parser.add_argument(
+        "--upgrade-path",
+        default=None,
+        help="Path to give as upgrade path, usefull if simlink are not present",
+    )
+
     checkout_group = parser.add_argument_group("Checkout", "Checkout mode to switch version")
     checkout_group.add_argument(
         "-c",
@@ -254,6 +263,7 @@ def run():
     )
 
     args = parser.parse_args()
+
     if args.logfile:
         dirname = os.path.dirname(args.logfile)
         if dirname and not os.path.isdir(dirname):
@@ -273,7 +283,7 @@ def run():
             """
 You must at least define one of:
 --checkout (-c) to automaticaly checkout version Ex: -c 12.0,12.0-my-dev-tri 13.0 (from_odoo,from_enterprise )
---multiverse from:to to give a replace patern to navigate in you multiverse (Ex: -m 12.0:13.0
+`--multiverse from to`: to give a replace pattern to navigate in your multiverse (Ex: `-m 12.0 13.0`)
 --target-addons-path and --target-exec-path to define paths where to find odoo-bin and addons path in target version
 """
         )
@@ -313,7 +323,6 @@ You must at least define one of:
         target_exec_path = normalize_path(args.target_exec_path)
     if args.target_addons_path:
         target_addons_path = [normalize_path(path) for path in args.target_addons_path.split(",")]
-
     checkout = False
     if args.checkout:
         checkout = True
@@ -332,7 +341,7 @@ You must at least define one of:
     if "." in args.test_tags:
         die("Defining test-tags method (.method) makes no sense for this script.")
 
-    odoo = Odoo(args.database, args.logfile, args.log_level, args.dry_run)
+    odoo = Odoo(args.database, args.logfile, args.log_level, args.dry_run, args.upgrade_path)
 
     need_install = True
     if odoo.db_exists():
