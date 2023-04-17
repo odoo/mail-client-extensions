@@ -240,11 +240,6 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
             yield "//" + anchor.tag
 
         for elem in orig_arch.xpath(xelem.attrib["expr"]):
-            if elem.tag not in ("field", "filter"):
-                # We only care about fields/filters, other changes would be too
-                # complex/specific for automatic fixes
-                continue
-
             for anchor, position in get_closest_elements(elem):
                 for new_expr in get_expr(anchor, orig_arch):
                     if not validate_expr(orig_arch, anchor, new_expr):
