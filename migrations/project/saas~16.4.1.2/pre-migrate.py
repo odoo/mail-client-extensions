@@ -14,3 +14,5 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "is_closed", drop_column=False)
     util.remove_field(cr, "project.task.burndown.chart.report", "is_closed")
     util.remove_field(cr, "report.project.task.user", "is_closed")
+    util.remove_field(cr, "project.task", "allow_recurring_tasks")
+    util.remove_field(cr, "project.project", "allow_recurring_tasks")
