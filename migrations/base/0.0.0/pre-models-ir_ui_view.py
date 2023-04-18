@@ -454,10 +454,13 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
                     return False
                 return heuristic_fixes(cr, view, check, check())
 
-        # Locate missing anchor on parent's backup archs
-        for parent_arch_bk in get_parent_arch_bks(cr, view):
-            if update_anchor(view, arch, xpath_elem, parent_arch_bk):
-                return True
+        # We will try to find a new anchor for the xpath, this doesn't make sense for position
+        # 'inside' or 'attributes' otherwise we will be applying the xpath to the wrong target.
+        if xpath_elem.attrib["position"] in ("before", "after"):
+            # Locate missing anchor on parent's backup archs
+            for parent_arch_bk in get_parent_arch_bks(cr, view):
+                if update_anchor(view, arch, xpath_elem, parent_arch_bk):
+                    return True
 
     return False
 
