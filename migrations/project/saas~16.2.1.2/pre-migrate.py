@@ -52,18 +52,30 @@ def migrate(cr, version):
     # Replace kanban_state field with state field
     util.create_column(cr, "project_task", "state", "character varying")
 
+    # NOTE: use a CTE because of the LEFT JOIN
     query = """
-        UPDATE project_task
+        WITH task_stage AS (
+            SELECT t.id as task_id, s.name->>'en_US' as name
+              FROM project_task t
+         LEFT JOIN project_task_type s
+                ON s.id = t.stage_id
+             WHERE {parallel_filter}
+        )
+        UPDATE project_task t
            SET state = CASE
-          WHEN is_blocked IS TRUE then '04_waiting_normal'
-          WHEN kanban_state = 'normal' THEN '01_in_progress'
-          WHEN kanban_state = 'blocked' THEN '02_changes_requested'
-          WHEN kanban_state = 'done' THEN '03_approved'
-          ELSE '01_in_progress'
-           END
+                 WHEN t.is_closed AND s.name ILIKE '%cancel%'  THEN '1_canceled'
+                 WHEN t.is_closed                              THEN '1_done'
+                 WHEN t.is_blocked IS TRUE                     THEN '04_waiting_normal'
+                 WHEN t.kanban_state = 'normal'                THEN '01_in_progress'
+                 WHEN t.kanban_state = 'blocked'               THEN '02_changes_requested'
+                 WHEN t.kanban_state = 'done'                  THEN '03_approved'
+                 ELSE                                               '01_in_progress'
+               END
+          FROM task_stage s
+         WHERE s.task_id = t.id
     """
 
-    util.explode_execute(cr, query, table="project_task")
+    util.explode_execute(cr, query, table="project_task", alias="t")
 
     # rename auto_validation_kanban_state
     util.rename_field(cr, "project.task.type", "auto_validation_kanban_state", "auto_validation_state")
