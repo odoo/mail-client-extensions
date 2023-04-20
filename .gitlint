@@ -8,6 +8,7 @@
 # used in here for clarity.
 #
 [general]
+regex-style-search = true
 # Ignore certain rules, this example uses both full name and id
 # ignore=title-trailing-punctuation, T3
 
@@ -61,7 +62,7 @@ extra-path=tools/gitlint_rules.py
 regex=^\[(IMP|FIX|ADD|chore)\] [^ ]
 
 [title-match-regex:scope]
-regex=(util[./]|tools/|[^/]+/((saas~)?\d.+|tests\b|\*:)|gitlint:|\[chore\] |] \*:)
+regex=^\[\w+\] (util[./]|tools/|[^/]+/((saas~)?\d.+|tests\b|\*:)|gitlint(: |$)|pre-commit(: |$)|\*:)
 
 # [body-max-line-length]
 # line-length=72
@@ -97,7 +98,7 @@ regex=[^@]+@odoo.com
 regex=^\[chore\]
 # Ignore certain rules, you can reference them by their id or by their full name
 # Use 'all' to ignore all rules
-ignore=body-is-missing
+ignore=body-is-missing,title-match-regex:scope
 
 # [ignore-by-body]
 # Ignore certain rules for commits of which the body has a line that matches a regex
