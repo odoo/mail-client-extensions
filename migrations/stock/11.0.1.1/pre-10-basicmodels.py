@@ -78,6 +78,8 @@ def create_idx(cr):
 def migrate(cr, version):
     create_idx(cr)
 
+    util.create_column(cr, "stock_picking", "is_locked", "bool", default=True)
+
     # Remove ir cron scheduler action as it will be on procurement group instead of procurement order
     util.remove_record(cr, 'stock.ir_cron_scheduler_action')
 
