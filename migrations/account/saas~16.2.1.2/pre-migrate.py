@@ -212,13 +212,26 @@ def migrate(cr, version):
     util.rename_field(cr, "account.payment.term.line", "days", "nb_days")
     cr.execute(
         """
+        WITH all_totals AS (
+            SELECT id,
+                (months * 30) + nb_days AS total_days,
+                CASE
+                    WHEN (months * 30) + nb_days >= 30 AND end_month THEN 'days_after_end_of_next_month'
+                    WHEN (months * 30) + nb_days < 30 AND end_month THEN 'days_after_end_of_month'
+                    ELSE 'days_after'
+                END AS delay_type
+            FROM account_payment_term_line
+        )
         UPDATE account_payment_term_line
-           SET delay_type = CASE
-                   WHEN months = 0 THEN 'days_after'
-                   WHEN months = 1 THEN 'days_after_end_of_month'
-                   ELSE 'days_after_end_of_next_month'
-               END
-         WHERE months >= 0
+        SET
+            nb_days = CASE
+                WHEN all_totals.delay_type = 'days_after' THEN all_totals.total_days
+                WHEN days_after IS NOT NULL AND days_after > 0 THEN days_after
+                ELSE nb_days
+            END,
+            delay_type = all_totals.delay_type
+        FROM all_totals
+        WHERE account_payment_term_line.id = all_totals.id;
         """
     )
 
