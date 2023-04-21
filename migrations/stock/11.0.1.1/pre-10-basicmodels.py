@@ -138,24 +138,38 @@ def migrate(cr, version):
     # Rename pack operation to stock move line (could have done so earlier)
     util.rename_model(cr, 'stock.pack.operation', 'stock.move.line')
     util.create_column(cr, 'stock_move_line', 'product_qty', 'numeric')
-    cr.execute ("""UPDATE stock_move_line ml SET product_qty = 0, product_uom_qty = 0
-                   FROM stock_move m, stock_location l, product_template pt, product_product p
-                   WHERE ml.picking_id IS NULL
-                   AND p.product_tmpl_id = pt.id
-                   AND m.product_id = p.id
-                   AND ml.move_id = m.id
-                   AND m.location_id = l.id
-                   AND NOT (pt.type = 'consu' AND m.state = 'assigned')
-                   AND NOT (l.usage IN ('supplier', 'production', 'inventory') AND m.state = 'assigned')""")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE stock_move_line ml SET product_qty = 0, product_uom_qty = 0
+        FROM stock_move m, stock_location l, product_template pt, product_product p
+        WHERE ml.picking_id IS NULL
+        AND p.product_tmpl_id = pt.id
+        AND m.product_id = p.id
+        AND ml.move_id = m.id
+        AND m.location_id = l.id
+        AND NOT (pt.type = 'consu' AND m.state = 'assigned')
+        AND NOT (l.usage IN ('supplier', 'production', 'inventory') AND m.state = 'assigned')
+        """,
+        table="stock_move_line",
+        alias="ml",
+    )
 
-    cr.execute("""UPDATE stock_move_line ml SET product_qty = 0, product_uom_qty = 0
-                  FROM stock_picking p, stock_location l, product_template pt, product_product pr
-                  WHERE ml.picking_id = p.id
-                  AND pr.product_tmpl_id = pt.id
-                  AND ml.product_id = pr.id
-                  AND p.location_id = l.id
-                  AND NOT (pt.type = 'consu' AND p.state = 'assigned')
-                  AND NOT (l.usage IN ('supplier', 'production', 'inventory') AND p.state = 'assigned')""")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE stock_move_line ml SET product_qty = 0, product_uom_qty = 0
+        FROM stock_picking p, stock_location l, product_template pt, product_product pr
+        WHERE ml.picking_id = p.id
+        AND pr.product_tmpl_id = pt.id
+        AND ml.product_id = pr.id
+        AND p.location_id = l.id
+        AND NOT (pt.type = 'consu' AND p.state = 'assigned')
+        AND NOT (l.usage IN ('supplier', 'production', 'inventory') AND p.state = 'assigned')
+        """,
+        table="stock_move_line",
+        alias="ml"
+    )
 
     # Pack operations will appear for every (done) move, so this won't always be in a picking
     cr.execute("""ALTER TABLE stock_move_line ALTER COLUMN picking_id DROP NOT NULL""")
