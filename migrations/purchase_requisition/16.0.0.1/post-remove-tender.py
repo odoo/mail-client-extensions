@@ -28,7 +28,25 @@ def migrate(cr, version):
         env["purchase.order.group"].create(
             [{"order_ids": [(6, 0, po_ids)]} for po_ids in reqs_to_pos.values() if len(po_ids) > 1]
         )
-        util.remove_records(cr, "purchase.requisition", reqs_to_pos.keys())
+
+    util.add_to_migration_reports(
+        """
+            <p><strong>IMPORTANT NOTICE</strong></p>
+            <p>
+                The "Call for Tender" workflow changed in Odoo 16.
+                Old Purchase agreements of type "Call for Tender" will be preserved
+                for archival purposes but are DEPRECATED.
+                Please do not use the old workflow and consult the
+                documentation concerning the use of the "alternative" tab in Purchase Orders.
+                Future changes of the purchase requisition model might lead to records
+                being deleted or archived.
+                See the <a href="https://www.odoo.com/event/odoo-experience-2022-2190/track/call-for-tenders-purchase-agreement-a-new-approach-in-odoo-16-4858"/>
+                presentation made at Odoo Experience 2022</a> for more info.
+            </p>
+        """,
+        category="Purchase Requisitions",
+        format="html",
+    )
 
     cr.execute("UPDATE purchase_requisition_type SET active='f' WHERE id = %s", [tender_id])
     util.force_noupdate(cr, "purchase_requisition.type_multi", True)
