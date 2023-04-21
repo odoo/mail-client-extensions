@@ -49,9 +49,34 @@ def migrate(cr, version):
         """
     )
 
-    # Replace kanban_state field with state field
-    util.create_column(cr, "project_task", "state", "character varying")
+    cr.execute(
+        """
+            UPDATE mail_tracking_value v
+               SET field = (select id from ir_model_fields where model='project.task' and name='kanban_state')
+             WHERE v.field = (select id from ir_model_fields where model='project.task' and name='kanban_state_label')
+        """
+    )
 
+    def adapter(leaf, _is_or, _negated):
+        left, operator, value = leaf
+
+        mapping = {
+            "normal": "01_in_progress",
+            "blocked": "02_changes_requested",
+            "done": "03_approved",
+        }
+
+        if isinstance(value, (list, tuple)):  # noqa: SIM
+            value = [mapping.get(e, e) for e in value]
+        else:
+            value = mapping.get(value, value)
+
+        return [(left, operator, value)]
+
+    # rename field to keep the tracking values
+    util.rename_field(cr, "project.task", "kanban_state", "state", domain_adapter=adapter)
+
+    # Replace kanban_state field values with state field values
     # NOTE: use a CTE because of the LEFT JOIN
     query = """
         WITH task_stage AS (
@@ -66,9 +91,9 @@ def migrate(cr, version):
                  WHEN t.is_closed AND s.name ILIKE '%cancel%'  THEN '1_canceled'
                  WHEN t.is_closed                              THEN '1_done'
                  WHEN t.is_blocked IS TRUE                     THEN '04_waiting_normal'
-                 WHEN t.kanban_state = 'normal'                THEN '01_in_progress'
-                 WHEN t.kanban_state = 'blocked'               THEN '02_changes_requested'
-                 WHEN t.kanban_state = 'done'                  THEN '03_approved'
+                 WHEN t.state = 'normal'                       THEN '01_in_progress'
+                 WHEN t.state = 'blocked'                      THEN '02_changes_requested'
+                 WHEN t.state = 'done'                         THEN '03_approved'
                  ELSE                                               '01_in_progress'
                END
           FROM task_stage s
