@@ -67,6 +67,8 @@ def migrate(cr, version):
     util.create_column(cr, 'mail_channel', 'email_send', 'boolean')
     cr.execute("UPDATE mail_channel SET email_send=true")
 
+    # Remove FK with ON DELETE CASCASE since we want to keep the mail.channel records
+    cr.execute("ALTER TABLE mail_channel DROP CONSTRAINT mail_channel_menu_id_fkey")
     cr.execute("DELETE FROM ir_ui_menu WHERE id IN (SELECT menu_id FROM mail_channel)")
     cr.execute("ALTER TABLE mail_channel DROP COLUMN menu_id")
 
