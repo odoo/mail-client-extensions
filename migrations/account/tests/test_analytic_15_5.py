@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .common import TestAccountingSetupCommon
+from .test_common import TestAccountingSetupCommon
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import change_version
 

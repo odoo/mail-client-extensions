@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from .common import TestAccountingSetupCommon
+from .test_common import TestAccountingSetupCommon
 from odoo.addons.base.maintenance.migrations.testing import change_version
 
 
 @change_version("16.0")
 class TestReportalypse(TestAccountingSetupCommon):
-
     # -------------------------------------------------------------------------
     # TESTS
     # -------------------------------------------------------------------------

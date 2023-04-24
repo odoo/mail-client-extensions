@@ -16,6 +16,7 @@ from . import (
     test_amounts,
     test_analytic_15_5,
     test_bank_statement,
+    test_common,
     test_lockdate,
     test_payment_pocalypse,
     test_payments_13_4,

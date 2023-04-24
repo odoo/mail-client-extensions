@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
+from odoo.addons.base.maintenance.migrations.util import version_gte
 
 
 class TestAccountingSetupCommon(UpgradeCase, abstract=True):
@@ -11,6 +12,12 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
         :return:        An account.tax record
         """
         return self.env.ref(f"{module}.{self.env.company.id}_{xml_id}")
+
+    def _get_account(self, domain):
+        return self.env["account.account"].search(
+            ["&", ("company_id", "=", self.company.id)] + domain,
+            limit=1,
+        )
 
     def prepare(self, chart_template_ref="l10n_generic_coa.configurable_chart_template"):
         test_name = f"{self.__class__.__module__}.{self.__class__.__qualname__}"
@@ -50,19 +57,19 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
 
         chart_template.sudo().try_loading(company=self.company)
 
-        revenue = self.env.ref("account.data_account_type_revenue").id
-        self.account_income = self.env["account.account"].search(
-            [("company_id", "=", self.company.id), ("user_type_id", "=", revenue)],
-            limit=1,
-        )
-        self.account_receivable = self.env["account.account"].search(
-            [("company_id", "=", self.company.id), ("user_type_id.type", "=", "receivable")],
-            limit=1,
-        )
-        self.account_payable = self.env["account.account"].search(
-            [("company_id", "=", self.company.id), ("user_type_id.type", "=", "payable")],
-            limit=1,
-        )
+        if version_gte("16.0"):
+            income_domain = [("account_type", "=", "income")]
+            receivable_domain = [("account_type", "=", "asset_receivable")]
+            payable_domain = [("account_type", "=", "liability_payable")]
+        else:
+            revenue = self.env.ref("account.data_account_type_revenue").id
+            income_domain = [("user_type_id", "=", revenue)]
+            receivable_domain = [("user_type_id.type", "=", "receivable")]
+            payable_domain = [("user_type_id.type", "=", "payable")]
+
+        self.account_income = self._get_account(income_domain)
+        self.account_receivable = self._get_account(receivable_domain)
+        self.account_payable = self._get_account(payable_domain)
 
         self.partner = self.env["res.partner"].create(
             {

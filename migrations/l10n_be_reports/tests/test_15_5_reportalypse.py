@@ -2,15 +2,12 @@
 from odoo import fields
 from odoo.tools import date_utils
 
-from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.account.tests import test_common
 from odoo.addons.base.maintenance.migrations.testing import change_version
-
-common = util.import_script("account/tests/common.py")
 
 
 @change_version("16.0")
-class TestReportalypseL10nBeReports(common.TestAccountingSetupCommon):
-
+class TestReportalypseL10nBeReports(test_common.TestAccountingSetupCommon):
     # -------------------------------------------------------------------------
     # TESTS
     # -------------------------------------------------------------------------
