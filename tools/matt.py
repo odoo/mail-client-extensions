@@ -445,7 +445,7 @@ def matt(options: Namespace) -> int:
                 return 3
             if not checkout(repo, getattr(options.target, repo.ident), workdir, options, stack):
                 return 3
-        if options.upgrade_branch != ".":
+        if options.upgrade_branch != ".":  # noqa: SIM102
             if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options, stack):
                 return 3
 
@@ -540,6 +540,8 @@ def matt(options: Namespace) -> int:
             )
             if repo.addons_dir
             if all(not m.parent.relative_to(wd).match(mod_ign) for mod_ign in options.module_ignores or [])
+            # Don't match test modules via wilcards, unless explicitly asked for.
+            if "test" not in m.parent.name or "test" in mod_glob
         }
         if not modules:
             logger.error("No module found")
@@ -597,7 +599,6 @@ class VersionAction(Action):
 
 
 def main() -> int:
-
     parser = ArgumentParser(
         description="matt :: Migrate All The Things",
         epilog="""\
