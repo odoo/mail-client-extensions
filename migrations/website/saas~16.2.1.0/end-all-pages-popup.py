@@ -100,7 +100,7 @@ def remove_and_get_popup(cr):
             popups_html_localized = ""
             for popup in arch_db_localized.xpath('.//div[@id="footer"]//div[@data-snippet="s_popup"]'):
                 popups_html_localized += etree.tostring(popup, encoding="unicode")
-            if view_active:
+            if view_active and popups_html_localized:
                 popups_html[lang] = popups_html_localized
 
         with util.edit_view(cr, view_id=view_id, active=None) as arch:
