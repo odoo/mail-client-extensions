@@ -8,6 +8,7 @@ from . import (
     test_14_5_aml_tax_details,
     test_15_5_optional_bank_statements,
     test_15_5_reportalypse,
+    test_16_2_payment_term,
     test_account,
     test_account_group,
     test_account_pocalypse,

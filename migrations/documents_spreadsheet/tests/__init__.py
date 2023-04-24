@@ -5,4 +5,5 @@ from . import (
     test_filter_command_rename,
     test_global_filters,
     test_move_sheet_command_change,
+    test_revision_model,
 )

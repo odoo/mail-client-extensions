@@ -5,6 +5,7 @@ from . import (
     test_mock_crawl,
     test_module_state,
     test_read_group_refactor,
+    test_res_partner_bank,
     test_translate,
     test_util,
 )
