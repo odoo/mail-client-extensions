@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import ast
 import re
 import sys
 from fnmatch import fnmatch
+from pathlib import Path
+
+ROOT = Path(__file__).parent.parent
 
 rc = 0
 for name in sys.argv[1:]:
@@ -23,11 +27,32 @@ for name in sys.argv[1:]:
         rc = 1
         continue
 
-    version = name.split("/")[2]
-    # visual representation of the regex: https://www.debuggex.com/r/u5mwGOGTowdfY4tO
-    if not re.match(
-        r"(?:tests|0\.0\.0|(?:[1-9][0-9]*\.(?:0|saas~[1-9][0-9]*)|saas~[1-9][0-9]+\.[1-9])(?:\.[0-9]+)+)", version
+    path = Path(name)
+    version = path.parts[2]
+
+    if version == "tests":
+        # verify that tests are imported
+        if path.name == "__init__.py":
+            continue
+
+        if not fnmatch(path.name, "test_*.py"):
+            print(f"❌ Invalid test filename {name!r}. Test files should start with `test_`.")
+            rc = 1
+            continue
+
+        init = ROOT / path.parent / "__init__.py"
+        for node in ast.walk(ast.parse(init.read_text())):
+            if isinstance(node, ast.alias) and node.name == path.stem:
+                break
+        else:
+            print(f"❌ The test file {name!r} is not imported in the `__init__.py` file.")
+            rc = 1
+            continue
+
+    elif not re.match(
+        r"(?:0\.0\.0|(?:[1-9][0-9]*\.(?:0|saas~[1-9][0-9]*)|saas~[1-9][0-9]+\.[1-9])(?:\.[0-9]+)+)", version
     ):
+        # visual representation of the regex: https://www.debuggex.com/r/u5mwGOGTowdfY4tO (minus the `tests` part)
         print(
             f"❌ Invalid filename {name!r}. The version does match the expected pattern. "
             "See wiki: https://github.com/odoo/upgrade/wiki/How-To#where-to-write-upgrade-scripts"
