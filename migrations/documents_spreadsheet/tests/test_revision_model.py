@@ -3,10 +3,11 @@
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
-@change_version("15.5")
+@change_version("saas~15.5")
 class TestSpreadsheetRevisionModel(UpgradeCase):
     def prepare(self):
-        document = self.env["documents.document"].create()
+        folder = self.env["documents.folder"].create({"name": "folder"})
+        document = self.env["documents.document"].create({"folder_id": folder.id})
         revision = self.env["spreadsheet.revision"].create(
             [
                 {
