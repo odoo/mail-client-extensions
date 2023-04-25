@@ -6,16 +6,27 @@ _logger = logging.getLogger(__name__)
 
 def migrate(cr, version):
     # Search for cases where we have multiple moves for the same product in a picking
-    cr.execute("""SELECT m.picking_id, m.product_id,
-                            CASE WHEN EXISTS(SELECT l.id FROM stock_pack_operation_lot l, stock_move_line op
-                                    WHERE l.operation_id = op.id AND op.picking_id = p.id AND op.product_id = m.product_id LIMIT 1)
-                             THEN 't'
-                             ELSE 'f' END
-                    FROM stock_move m, stock_picking p 
-                    WHERE m.picking_id = p.id AND NOT m.scrapped
-                    GROUP BY m.picking_id, m.product_id, p.id
-                    HAVING COUNT(*) > 1
-                    """)
+
+    cr.execute(
+        """
+        SELECT m.picking_id,
+               m.product_id,
+               bool_or(l.id IS NOT NULL)
+          FROM stock_move m
+          JOIN stock_picking p
+            ON m.picking_id = p.id
+
+     LEFT JOIN stock_move_line op
+            ON op.product_id = m.product_id
+           AND op.picking_id = p.id
+     LEFT JOIN stock_pack_operation_lot l
+            ON l.operation_id = op.id
+
+         WHERE NOT m.scrapped
+         GROUP BY m.picking_id, m.product_id, p.id
+        HAVING COUNT(*) > 1
+        """
+    )
     res = cr.fetchall()
     for re in res:
         # Check moves / move lines related to the same product in the picking
@@ -23,7 +34,7 @@ def migrate(cr, version):
         moves = picking.move_lines.filtered(lambda x: x.product_id.id == re[1] and not x.scrapped)
         move_lots = {}
         # If we track the product by lot, we need to check the quants moved for every move to see which lots were moved for dividing the stock.pack.operation.lot
-        if re[2] == 't':
+        if re[2]:
             # Get minimum rounding or 0.00001 if no rounding
             cr.execute("SELECT COALESCE(-log(min(rounding)),5) FROM product_uom");
             rounding = cr.fetchone()[0]
@@ -116,18 +127,39 @@ def migrate(cr, version):
 
 
     # Convert the (adapted) stock_pack_operation_lots into stock_move_line and delete their original stock_move_line
-    cr.execute("""
-        INSERT INTO stock_move_line (move_id, product_id, location_id, location_dest_id, product_uom_qty, qty_done, product_uom_id, 
-        fresh_record, package_id, result_package_id, owner_id, picking_id, ordered_qty, date, lot_id, lot_name, state) 
-             (SELECT p.move_id, p.product_id,  p.location_id, p.location_dest_id, l.qty, l.qty, p.product_uom_id, 
-                        p.fresh_record, p.package_id, p.result_package_id, p.owner_id, p.picking_id, p.ordered_qty, coalesce(pp.date, p.date), l.lot_id, l.lot_name, m.state
-                    FROM stock_move_line p, stock_pack_operation_lot l, stock_picking pp, stock_move m 
-                    WHERE p.id = l.operation_id AND pp.id = p.picking_id AND m.id = p.move_id)
-    """)
+    util.explode_execute(
+        cr,
+        """
+        INSERT INTO stock_move_line
+                    (move_id, product_id, location_id, location_dest_id, product_uom_qty, qty_done, product_uom_id, 
+                    fresh_record, package_id, result_package_id, owner_id, picking_id, ordered_qty, date, lot_id, 
+                    lot_name, state) 
+             SELECT p.move_id, p.product_id,  p.location_id, p.location_dest_id, l.qty, l.qty, p.product_uom_id,
+                    p.fresh_record, p.package_id, p.result_package_id, p.owner_id, p.picking_id, p.ordered_qty, coalesce(pp.date, p.date), l.lot_id,
+                    l.lot_name, m.state
+               FROM stock_move_line p
+               JOIN stock_pack_operation_lot l
+                 ON p.id = l.operation_id
+               JOIN stock_picking pp
+                 ON pp.id = p.picking_id
+               JOIN stock_move m 
+                 ON m.id = p.move_id
+        """,
+        table="stock_move_line",
+        alias="p",
+    )
     
-    cr.execute("""
-        DELETE FROM stock_move_line WHERE id in (SELECT operation_id FROM stock_pack_operation_lot GROUP BY operation_id)
-    """)
+    cr.execute(
+        """
+        WITH info AS (
+            SELECT operation_id
+              FROM stock_pack_operation_lot
+          GROUP BY operation_id
+        ) DELETE FROM stock_move_line l
+                USING info
+                WHERE l.id=info.operation_id
+        """
+    )
 
     # Check if there are still procurement exceptions without move related
     cr.execute("""
