@@ -3,9 +3,9 @@ from openerp.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # Columns needed on stock_move to support FIFO
-    util.create_column(cr, 'stock_move', 'value', 'numeric')
-    util.create_column(cr, 'stock_move', 'remaining_value', 'numeric')
-    util.create_column(cr, 'stock_move', 'remaining_qty', 'numeric')
+    util.create_column(cr, 'stock_move', 'value', 'double precision')
+    util.create_column(cr, 'stock_move', 'remaining_value', 'double precision')
+    util.create_column(cr, 'stock_move', 'remaining_qty', 'double precision')
     
     
     # In order to support FIFO instead of real price,  
@@ -96,12 +96,11 @@ def migrate(cr, version):
 
     #create index to speedup the matching below
     cr.execute("""create index account_move_line_name_mig_only on account_move_line using hash (name)""")
-    cr.execute("""create index stock_move_name_mig_only on stock_move using hash (name)""")
-    cr.execute("""create index stock_picking_mig_only on stock_picking using hash (name)""")
+    # cr.execute("""create index stock_move_name_mig_only on stock_move using hash (name)""")  # already present
+    # cr.execute("""create index stock_picking_mig_only on stock_picking using hash (name)""")  # already present as unique with company_id
     cr.execute("""create index account_move_name_mig_only on account_move using hash (name)""")
-    cr.execute("""create index account_move_line_ref_mig_only on account_move_line using hash (ref)""")
+    # cr.execute("""create index account_move_line_ref_mig_only on account_move_line using hash (ref)""")  # already present
     cr.execute("""create index account_move_ref_mig_only on account_move using hash (ref)""")
-
 
     # Create link between account move and stock move (based on reference/name matching)
     util.create_column(cr, 'account_move', 'stock_move_id', 'int4')
@@ -133,15 +132,19 @@ def migrate(cr, version):
 
     #drop index to speedup the matching
     cr.execute("""drop index account_move_line_name_mig_only """)
-    cr.execute("""drop index stock_move_name_mig_only """)
-    cr.execute("""drop index stock_picking_mig_only """)
+    #cr.execute("""drop index stock_move_name_mig_only """)
+    # cr.execute("""drop index stock_picking_mig_only """)
     cr.execute("""drop index account_move_name_mig_only """)
-    cr.execute("""drop index account_move_line_ref_mig_only """)
+    # cr.execute("""drop index account_move_line_ref_mig_only """)
     cr.execute("""drop index account_move_ref_mig_only """)
 
 
     # update quantity for account_move_line (only used during inventory valuation with a specified date)
-        # The quantity on the account_move_line sould have the same sign as the balance.
-        # If the valuation for the line is +10$ make sure the quantity is positive (add money = add quantity)
-        # Shortly, quantity should have the same sign as the balance
-    cr.execute("""update account_move_line set quantity = abs(quantity)*sign(balance) where quantity is not null and balance <> 0""")
+    # The quantity on the account_move_line sould have the same sign as the balance.
+    # If the valuation for the line is +10$ make sure the quantity is positive (add money = add quantity)
+    # Shortly, quantity should have the same sign as the balance
+    util.explode_execute(
+        cr,
+        "update account_move_line set quantity = abs(quantity)*sign(balance) where quantity is not null and balance <> 0",
+        table="account_move_line"
+    )
