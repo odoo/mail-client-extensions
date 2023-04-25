@@ -37,23 +37,36 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE sale_order_line RENAME COLUMN price_reduce TO price_reduce_taxexcl")
     util.create_column(cr, 'sale_order_line', 'price_reduce', 'numeric')
     util.create_column(cr, 'sale_order_line', 'price_reduce_taxinc', 'numeric')
-    cr.execute("""
+    util.explode_execute(
+        cr,
+        """
         UPDATE sale_order_line
            SET price_reduce = COALESCE(price_unit, 0) * (1.0 - COALESCE(discount, 0) / 100.0),
                price_reduce_taxinc = CASE WHEN COALESCE(product_uom_qty, 0) = 0 THEN 0
                                           ELSE price_total / product_uom_qty
                                       END
-    """)
+        """,
+        table="sale_order_line",
+    )
 
     # account invoice
     util.create_column(cr, 'account_invoice', 'comment', 'text')
     util.create_column(cr, 'account_invoice', 'partner_shipping_id', 'int4')
-    cr.execute("""
+    util.explode_execute(
+        cr,
+        """
         UPDATE account_invoice i
            SET "comment" = c.sale_note
           FROM res_company c
          WHERE c.id = i.company_id
            AND i.comment is null
            AND i.type = 'out_invoice'
-    """)
-    cr.execute("UPDATE account_invoice SET partner_shipping_id = partner_id")
+        """,
+        table="account_invoice",
+        alias="i",
+    )
+    util.explode_execute(
+        cr,
+        "UPDATE account_invoice SET partner_shipping_id = partner_id",
+        table="account_invoice"
+    )
