@@ -21,7 +21,8 @@ def migrate(cr, version):
           FROM res_country c
          WHERE c.id = p.country_id AND c.code = 'NL'
     """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="res_partner", alias="p"))
+    if util.column_exists(cr, "res_partner", "peppol_endpoint"):
+        util.explode_execute(cr, query, table="res_partner", alias="p")
 
     util.remove_field(cr, "res.partner", "l10n_nl_kvk")
     util.remove_field(cr, "res.company", "l10n_nl_kvk")
