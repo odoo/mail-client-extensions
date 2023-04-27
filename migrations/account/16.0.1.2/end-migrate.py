@@ -2,6 +2,16 @@
 
 
 def migrate(cr, version):
+    cr.execute(
+        """
+        INSERT INTO account_payment_term_line(payment_id, value, value_amount, days, months, end_month)
+             SELECT t.id, 'balance', 0.0, 0, 0, false
+               FROM account_payment_term t
+          LEFT JOIN account_payment_term_line l
+                 ON l.payment_id = t.id
+              WHERE l.id IS NULL
+        """
+    )
     # Migrate the carryover lines.
     cr.execute(
         """
