@@ -58,7 +58,6 @@ except ImportError:
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
 ODOO_MIG_TRY_FIX_VIEWS = str2bool(os.environ.get("ODOO_MIG_TRY_FIX_VIEWS", "0"))
-STANDARD_IDS = set()
 
 
 def migrate(cr, version):
@@ -187,10 +186,6 @@ def get_standard_modules(self):
         )
         util.ENVIRON["standard_modules"] = [module["name"] for module in modules]
     return util.ENVIRON["standard_modules"] + ["test_upg"]  # for testing purposes
-
-
-def is_standard_view(view):
-    return view.id in STANDARD_IDS
 
 
 def save_arch(view, arch):
@@ -465,6 +460,52 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
     return False
 
 
+def views_in_tree(view):
+    # Starting from the root get all view ids involved in current view arch
+    ids = [view.id]
+    parent = view.inherit_id
+    while parent:
+        ids.append(parent.id)
+        parent = parent.inherit_id
+    q = """
+        WITH RECURSIVE view_tree AS (
+                -- ancestors path up to root
+                SELECT id
+                  FROM ir_ui_view
+                 WHERE id IN %s
+                   AND active
+
+                 UNION
+                -- add descendants
+                SELECT v.id
+                  FROM ir_ui_view v
+                  JOIN view_tree vt
+                    ON v.inherit_id = vt.id
+                 WHERE v.active
+               )
+        SELECT id FROM view_tree
+        """
+    view._cr.execute(q, [tuple(ids)])
+    return [r[0] for r in view._cr.fetchall()]
+
+
+def get_standard_ids(view):
+    res = getattr(get_standard_ids, "res", None)
+    if not res:
+        q = """
+               SELECT v.id,
+                      COALESCE(md.module IN %s, False)
+                 FROM ir_ui_view v
+            LEFT JOIN ir_model_data md
+                   ON md.model = 'ir.ui.view'
+                  AND md.res_id = v.id
+                WHERE v.active
+            """
+        view._cr.execute(q, [tuple(get_standard_modules(view))])
+        get_standard_ids.res = res = {r[0] for r in view._cr.fetchall() if r[1]}
+    return res
+
+
 def _upgrade_fix_views(fix_view, root_view):
     """
     Try to fix this view. First, disable all its children and check if it still fails:
@@ -579,8 +620,18 @@ def _upgrade_fix_views(fix_view, root_view):
                 e = str(_e)
         return e
 
-    # 1. Disable all children
-    children = fix_view.inherit_children_ids
+    # 1. Disable children
+    children = fix_view.inherit_children_ids.filtered(lambda v: v.mode == "extension")
+    if fix_view.mode == "primary" and fix_view.inherit_id:
+        root_path = []
+        parent = fix_view.inherit_id
+        while parent:
+            root_path.append(parent.id)
+            parent = parent.inherit_id
+        # Get all extension children not in the path to root, see blame for details
+        children |= fix_view.search(
+            [("inherit_id", "in", root_path), ("id", "not in", root_path), ("mode", "=", "extension")]
+        )
     for child in children:
         child.active = False
 
@@ -625,12 +676,12 @@ def _upgrade_fix_views(fix_view, root_view):
                     pp_xml_str(fix_view.arch),
                 )
 
-    # Let's try to activate children one by one
-    # If a child fails we then recursively fix it
-    standard_children = filter(is_standard_view, children)
-    custom_children = filterfalse(is_standard_view, children)
+    # The view doesn't fail with children disabled.
+    # Let's try to activate children one by one, if a child fails we recursively fix it.
+    standard_ids = get_standard_ids(fix_view)
     has_error = []
-    for child in itertools.chain(standard_children, custom_children):
+    # Prioritize standard children for re-activation
+    for child in sorted(children, key=lambda v: v.id not in standard_ids):
         child.active = True
         if check() is not None and not _upgrade_fix_views(child, root_view):
             # This view will fail since a failing child can't be fixed
@@ -702,48 +753,6 @@ class IrUiView(models.Model):
             super(IrUiView, self)._register_hook()
             origin_validators = dict(_validators)
             dummy_validators = dict.fromkeys(_validators, [lambda *args, **kwargs: True])
-            query = """
-                       SELECT v.id,
-                              COALESCE(md.module IN %s, False)
-                         FROM ir_ui_view v
-                    LEFT JOIN ir_model_data md
-                           ON md.model = 'ir.ui.view'
-                          AND md.res_id = v.id
-                        WHERE v.active
-                    """
-            self._cr.execute(query, [tuple(get_standard_modules(self))])
-            res = self._cr.fetchall()
-            standard_ids = {r[0] for r in res if r[1]}
-            STANDARD_IDS.update(standard_ids)
-            all_ids = {r[0] for r in res}
-
-            def custom_view_in_tree(view):
-                # Starting from the first primary ancestor, check the views' tree for custom views
-                # Return true if at least one view is custom
-                views_path = [view]
-                while views_path[-1].inherit_id:
-                    views_path.append(views_path[-1].inherit_id)
-                q = """
-                    WITH RECURSIVE view_tree AS (
-                            -- init with ancestors
-                            SELECT id
-                              FROM ir_ui_view
-                             WHERE id IN %s
-
-                             UNION
-                            -- add all descendants
-                            SELECT v.id
-                              FROM ir_ui_view v
-                              JOIN view_tree vt
-                                ON v.inherit_id = vt.id
-                             WHERE v.mode = 'extension'
-                               AND v.active
-                           )
-                    SELECT id FROM view_tree
-                    """
-                self._cr.execute(q, [tuple(v.id for v in views_path)])
-                ids = {r[0] for r in self._cr.fetchall()}
-                return not (ids <= standard_ids)
 
             def validate_view(view, is_custom_module):
                 _validators.update(dummy_validators if is_custom_module else origin_validators)
@@ -759,6 +768,9 @@ class IrUiView(models.Model):
                 except Exception:
                     _logger.exception("Invalid custom view %s for model %s", view.xml_id or view.id, view.model)
 
+            standard_ids = get_standard_ids(self)
+            self._cr.execute("SELECT id FROM ir_ui_view WHERE active")
+            all_ids = {r[0] for r in self._cr.fetchall()}
             with util.custom_module_field_as_manual(self.env, do_flush=True):
                 views_to_check = self.search([("id", "in", tuple(all_ids)), ("inherit_id", "=", False)])
                 children = views_to_check.mapped("inherit_children_ids")
@@ -767,9 +779,11 @@ class IrUiView(models.Model):
                     children = children.mapped("inherit_children_ids")
                 for view in views_to_check:
                     if view.id in standard_ids:
-                        validate_view(view, False)  # standard validators
-                    if custom_view_in_tree(view):
-                        validate_view(view, True)  # dummy validators
+                        validate_view(view, False)
+                    if not (set(views_in_tree(view)) <= standard_ids):
+                        # there is at least one custom view in the tree
+                        # load all views when validating
+                        validate_view(view, True)
 
             _validators.update(origin_validators)
 
