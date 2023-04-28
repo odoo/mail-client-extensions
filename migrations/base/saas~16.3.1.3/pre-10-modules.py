@@ -8,3 +8,4 @@ def migrate(cr, version):
     util.merge_module(cr, "pos_epson_printer_restaurant", "pos_epson_printer")
     if util.has_enterprise():
         util.merge_module(cr, "pos_restaurant_iot", "pos_iot")
+        util.merge_module(cr, "l10n_hk_hr_payroll_hsbc_autopay", "l10n_hk_hr_payroll")
