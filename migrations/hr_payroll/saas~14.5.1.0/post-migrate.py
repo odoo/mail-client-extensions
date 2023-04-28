@@ -42,6 +42,7 @@ def migrate(cr, version):
            JOIN hr_contract c ON s.contract_id=c.id
           WHERE s.date_from IS NOT NULL
             AND s.contract_id IS NOT NULL
+            AND c.employee_id IS NOT NULL
             AND s.amount > 0.0
             """
         )
