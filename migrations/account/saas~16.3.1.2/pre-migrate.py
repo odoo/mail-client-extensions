@@ -7,3 +7,4 @@ def migrate(cr, version):
 
     util.rename_field(cr, "res.config.settings", "invoice_is_print", "invoice_is_download")
     util.rename_field(cr, "res.company", "invoice_is_print", "invoice_is_download")
+    util.remove_record(cr, "account.action_automatic_entry")
