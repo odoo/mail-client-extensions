@@ -14,7 +14,8 @@ def migrate(cr, version):
     )
 
     cr.execute("SELECT id, line_id FROM hr_analytic_timesheet")
-    util.replace_record_references_batch(cr, dict(cr.fetchall()), "hr.analytic.timesheet", "account.analytic.line")
+    if cr.rowcount:
+        util.replace_record_references_batch(cr, dict(cr.fetchall()), "hr.analytic.timesheet", "account.analytic.line")
 
     for model, res_model, res_id in util.res_model_res_id(cr):
         if (res_id and model != "ir.values") or model.startswith("ir.model"):
