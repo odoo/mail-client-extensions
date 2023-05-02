@@ -316,6 +316,13 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         query = f"CREATE EXTENSION IF NOT EXISTS {ext}"
         subprocess.run(["psql", "--no-psqlrc", "--quiet", "-d", dbname, "-c", query], check=False)  # may fail
 
+    env = dict(
+        os.environ,
+        MATT="1",
+        ODOO_UPG_DB_SOURCE_VERSION=options.source.name,
+        ODOO_UPG_DB_TARGET_VERSION=options.target.name,
+    )
+
     def odoo(cmd: List[str], *, version: Version, module: str = module) -> bool:
         cwd = workdir / "odoo" / version.odoo
         ad_path = ",".join(
@@ -343,7 +350,6 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
         step = "upgrading" if "-u" in cmd else "testing" if "--test-tags" in cmd else "installing"
         logger.debug("%s module %s at version %s", step, module, version)
-        env = dict(os.environ, MATT="1")
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         stdout = p.stdout.decode()
         if p.returncode:
