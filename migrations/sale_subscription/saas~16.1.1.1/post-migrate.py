@@ -10,7 +10,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     cr.execute(
         """
-        SELECT id,name,bad_health_domain,good_health_domain
+        SELECT id,name,company_id,bad_health_domain,good_health_domain
           FROM sale_order_template
         WHERE bad_health_domain != '[]'
            OR good_health_domain != '[]'
@@ -18,11 +18,12 @@ def migrate(cr, version):
     )
     env = util.env(cr)
     alert_create_vals = []
-    for template_id, name, bad_domain, good_domain in cr.fetchall():
+    for template_id, name, company_id, bad_domain, good_domain in cr.fetchall():
         if bad_domain != "[]":
             alert_create_vals.append(
                 {
                     "name": "Bad health upgraded domain for template %s %s" % (name, template_id),
+                    "company_id": company_id,
                     "subscription_template_ids": [(6, 0, [template_id])],
                     "trigger_condition": "on_create_or_write",
                     "action": "set_health_value",
@@ -36,6 +37,7 @@ def migrate(cr, version):
             alert_create_vals.append(
                 {
                     "name": "Good health upgraded domain for template %s %s" % (name, template_id),
+                    "company_id": company_id,
                     "subscription_template_ids": [(6, 0, [template_id])],
                     "trigger_condition": "on_create_or_write",
                     "action": "set_health_value",
