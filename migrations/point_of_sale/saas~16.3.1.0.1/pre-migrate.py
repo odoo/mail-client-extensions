@@ -27,3 +27,6 @@ def migrate(cr, version):
         util.rename_xmlid(cr, *eb("point_of_sale.view_{restaurant,pos}_printer_form"))
         util.rename_xmlid(cr, *eb("point_of_sale.action_{restaurant,pos}_printer_form"))
         util.rename_xmlid(cr, *eb("point_of_sale.view_{restaurant,pos}_printer"))
+
+    util.remove_view(cr, "point_of_sale.qunit_suite_assets")
+    util.remove_view(cr, "point_of_sale.assets_common")
