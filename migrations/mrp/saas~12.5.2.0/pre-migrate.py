@@ -6,13 +6,16 @@ def migrate(cr, version):
     util.force_noupdate(cr, "mrp.sequence_mrp_unbuild", True)
 
     util.create_column(cr, "mrp_bom_line", "company_id", "int4")
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE mrp_bom_line l
            SET company_id = b.company_id
           FROM mrp_bom b
          WHERE b.id = l.bom_id
-    """
+        """,
+        table="mrp_bom_line",
+        alias="l",
     )
 
     util.rename_field(cr, "mrp.bom.line", "attribute_value_ids", "bom_product_template_attribute_value_ids")
