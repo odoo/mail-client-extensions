@@ -121,6 +121,74 @@ def migrate(cr, version):
     """
     )
 
+    replace_tr_src_inline = util.pg_replace("t.src", inline_items)
+    replace_tr_value_inline = util.pg_replace("t.value", inline_items)
+    replace_tr_src_qweb = util.pg_replace(util.pg_text2html("t.src"), qweb_items)
+    replace_tr_value_qweb = util.pg_replace(util.pg_text2html("t.value"), qweb_items)
+
+    inline_query = f"""
+        WITH mapping AS (
+        SELECT 'account_followup.followup.line,email_subject' AS old_name,
+               'mail.template,subject' AS new_name,
+               _tmp_followup_line_id AS old_id,
+               id AS new_id
+          FROM mail_template
+         WHERE _tmp_followup_line_id IS NOT NULL
+         UNION ALL
+        SELECT 'account_followup.followup.line,sms_description' AS old_name,
+               'sms.template,body' AS new_name,
+               _tmp_followup_line_id AS old_id,
+               id AS new_id
+          FROM sms_template
+         WHERE _tmp_followup_line_id IS NOT NULL
+        )
+        UPDATE ir_translation t
+           SET name = m.new_name,
+               res_id = m.new_id,
+               type = 'model',
+               src = {replace_tr_src_inline},
+               value = {replace_tr_value_inline}
+          FROM mapping m
+         WHERE t.name = m.old_name
+           AND t.res_id = m.old_id
+    """
+    qweb_query = f"""
+        UPDATE ir_translation t
+           SET name = 'mail.template,body_html',
+               res_id = m.id,
+               type = 'model',
+               src = {replace_tr_src_qweb},
+               value = {replace_tr_value_qweb}
+          FROM mail_template m
+         WHERE t.name = 'account_followup.followup.line,description'
+           AND t.res_id = m._tmp_followup_line_id
+    """
+
+    # Update translation references
+    util.parallel_execute(cr, [inline_query, qweb_query])
+
+    # copy name translations to mail_template and sms_template
+    columns = util.get_columns(cr, "ir_translation", ("id", "name", "res_id"))
+    t_columns = ["t." + c for c in columns]
+    for model in ["mail.template", "sms.template"]:
+        cr.execute(
+            """
+               INSERT INTO ir_translation(name, res_id, {columns})
+               SELECT %s,
+                      m.id,
+                      {t_columns}
+                 FROM ir_translation t
+                 JOIN {model_table} m
+                   ON t.res_id = m._tmp_followup_line_id
+                WHERE t.name = 'account_followup.followup.line,name'
+        """.format(
+                columns=", ".join(columns),
+                t_columns=", ".join(t_columns),
+                model_table=util.table_of_model(cr, model),
+            ),
+            [model + ",name"],
+        )
+
     # - Remove temporary column
     util.remove_column(cr, "mail_template", "_tmp_followup_line_id")
     util.remove_column(cr, "sms_template", "_tmp_followup_line_id")
