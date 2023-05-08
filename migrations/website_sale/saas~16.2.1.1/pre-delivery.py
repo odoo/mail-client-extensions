@@ -33,4 +33,6 @@ def migrate(cr, version):
         "website_sale.view_delivery_carrier_tree_inherit_website_sale_delivery",
         "website_sale.view_delivery_carrier_tree",
     )
+    if util.version_gte("saas~16.3"):
+        return
     util.create_column(cr, "sale_order", "amount_delivery", "numeric", default=0)
