@@ -25,6 +25,10 @@ def migrate(cr, version):
     cr.execute(
         "ALTER TABLE appointment_type_res_users_rel RENAME COLUMN calendar_appointment_type_id TO appointment_type_id"
     )
+    cr.execute("ALTER TABLE calendar_alarm_calendar_appointment_type_rel RENAME TO appointment_type_calendar_alarm_rel")
+    cr.execute(
+        "ALTER TABLE appointment_type_calendar_alarm_rel RENAME COLUMN calendar_appointment_type_id TO appointment_type_id"
+    )
 
     # Rename of xmlid
     renames = [
