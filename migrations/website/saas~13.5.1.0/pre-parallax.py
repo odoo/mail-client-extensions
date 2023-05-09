@@ -39,7 +39,16 @@ def migrate_parallax(cr, table, column, is_html=False):
             yield cr.fetchall()
 
     for res_id, body in itertools.chain.from_iterable(get_info()):
-        body = etree.fromstring(body, parser=html_utf8_parser if is_html else None)
+        try:
+            body = etree.fromstring(body, parser=html_utf8_parser if is_html else None)
+        except etree.XMLSyntaxError:
+            if is_html:
+                raise
+            # try xml parser removing the common error where the html parser doesn't fail on
+            # note: mixing the parsers is to be avoided, thus we fix a common issue here
+            #       instead of switching the parser to html
+            body = etree.fromstring(body.replace("&#13;\n", "\n"))
+
         changed = False
         parallax_els = body.xpath("//*[hasclass('parallax')][not(comment())]")
         for el in parallax_els:
