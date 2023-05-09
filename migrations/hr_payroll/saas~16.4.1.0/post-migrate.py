@@ -23,3 +23,5 @@ def migrate(cr, version):
     ).decode()
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="hr_salary_attachment", alias="a"))
     util.remove_column(cr, "hr_salary_attachment", "deduction_type")
+
+    util.update_record_from_xml(cr, "hr_payroll.mail_template_new_payslip")
