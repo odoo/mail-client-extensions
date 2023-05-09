@@ -6,8 +6,9 @@ def migrate(cr, version):
     cr.execute(
         """
             UPDATE helpdesk_stage
-                SET fold=true
-              WHERE is_close=true AND fold=false
+               SET fold = true
+             WHERE is_close = true
+               AND fold IS NOT TRUE
         """
     )
     util.update_field_usage(cr, "helpdesk.stage", "is_close", "fold")
