@@ -257,9 +257,9 @@ def init_repos(options: Namespace) -> bool:
 
     # TODO parallalize?
     repos = list(REPOSITORIES)
-    if options.upgrade_branch != ".":
+    if options.upgrade_branch[0] not in "/.":
         repos.append(UPGRADE_REPO)
-    if options.upgrade_util_branch != ".":
+    if options.upgrade_util_branch[0] not in "/.":
         repos.append(UPGRADE_UTIL_REPO)
     for repo in repos:
         p = options.cache_path / repo.name
@@ -525,10 +525,10 @@ def matt(options: Namespace) -> int:
                 return 3
             if not checkout(repo, getattr(options.target, repo.ident), workdir, options, stack):
                 return 3
-        if options.upgrade_branch != ".":  # noqa: SIM102
+        if options.upgrade_branch[0] not in "/.":  # noqa: SIM102
             if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options, stack):
                 return 3
-        if options.upgrade_util_branch != ".":  # noqa: SIM102
+        if options.upgrade_util_branch[0] not in "/.":  # noqa: SIM102
             if not checkout(UPGRADE_UTIL_REPO, options.upgrade_util_branch, workdir, options, stack):
                 return 3
 
@@ -614,13 +614,19 @@ def matt(options: Namespace) -> int:
                 logger.warning("Deactivate tests running as version %r doesn't support them", options.source.odoo)
 
         # create "maintenance" symlinks
-        if options.upgrade_branch == ".":
-            upgrade_path = Path(__file__).resolve().parent.parent
+        if options.upgrade_branch[0] in "/.":
+            upgrade_path = (
+                Path(__file__).resolve().parent.parent
+                if options.upgrade_branch == "."
+                else Path(options.upgrade_branch).resolve()
+            )
         else:
             upgrade_path = workdir / UPGRADE_REPO.name / options.upgrade_branch
 
-        if options.upgrade_util_branch == ".":
-            upgrade_util_path = Path.cwd()
+        if options.upgrade_util_branch[0] in "/.":
+            upgrade_util_path = (
+                Path.cwd() if options.upgrade_util_branch == "." else Path(options.upgrade_util_branch).resolve()
+            )
         else:
             upgrade_util_path = workdir / UPGRADE_UTIL_REPO.name / options.upgrade_util_branch
 
@@ -655,7 +661,7 @@ def matt(options: Namespace) -> int:
                             sl.unlink()
                         if not sl.exists():
                             sl.symlink_to(f)
-                            if options.upgrade_branch == ".":
+                            if options.upgrade_branch[0] in "/.":
                                 # do not polute the local directory.
                                 stack.callback(sl.unlink)
 
@@ -771,7 +777,7 @@ It allows to test upgrades against development branches.
         type=str,
         default="master",
         help="`upgrade` branch to use. Pull-Requests are via the `pr/` prefix (i.e. `pr/971`). "
-        "To use the current working directory (with the local patches), use `.` as upgrade branch. "
+        "You can also use a path (starting with `/` or `.`) to test local patches."
         "(default: %(default)s)",
     )
     parser.add_argument(
@@ -780,7 +786,7 @@ It allows to test upgrades against development branches.
         type=str,
         default="master",
         help="`upgrade-util` branch to use. Pull-requests are via the `pr/` prefix (i.e. `pr/971`). "
-        "To use the current working directory (with the local patches), use `.` as upgrade branch. "
+        "You can also use a path (starting with `/` or `.`) to test local patches."
         "(default: %(default)s)",
     )
     parser.add_argument(
