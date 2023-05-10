@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import socket
 import subprocess
 import sys
@@ -421,6 +422,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
         step = "upgrading" if "-u" in cmd else "testing" if "--test-tags" in cmd else "installing"
         logger.debug("%s module %s at version %s", step, module, version)
+        logger.debug("[+] %s", " ".join(shlex.quote(arg) for arg in cmd))
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, check=False)
         stdout = p.stdout.decode()
         if p.returncode:
