@@ -252,6 +252,12 @@ index 59ce3c1936ca..cb7fa90e1b12 100644
 """
 
 
+def config_logger(options: Namespace) -> None:
+    level = logging.INFO + (10 * options.quiet) - (10 * options.verbose)
+    level = max(logging.DEBUG, min(level, logging.CRITICAL))
+    logging.basicConfig(level=level, filename=options.log_file, format="%(asctime)s %(levelname)s %(message)s")
+
+
 def init_repos(options: Namespace) -> bool:
     logger.info("Cache location: %s", options.cache_path)
     options.cache_path.mkdir(parents=True, exist_ok=True)
@@ -364,6 +370,7 @@ def extract_warnings(dbname, log):
 
 @result
 def process_module(module: str, workdir: Path, options: Namespace) -> None:
+    config_logger(options)
     setproctitle(f"matt :: {options.source} -> {options.target} // {module}")
     dbname = f"matt-{module}"
 
@@ -860,11 +867,7 @@ It allows to test upgrades against development branches.
 
     options = parser.parse_args()
 
-    level = logging.INFO + (10 * options.quiet) - (10 * options.verbose)
-    level = max(logging.DEBUG, min(level, logging.CRITICAL))
-
-    logging.basicConfig(level=level, filename=options.log_file, format="%(asctime)s %(levelname)s %(message)s")
-
+    config_logger(options)
     setproctitle(f"matt :: {options.source} -> {options.target}")
 
     if not init_repos(options):
