@@ -181,7 +181,7 @@ def field_new_name(view, name):
 
 def get_standard_modules(self):
     if not util.ENVIRON.get("standard_modules"):
-        standard_modules = get_modules()
+        standard_modules = list(get_modules())
         modules = self.env["ir.module.module"].search_read(
             [("name", "in", standard_modules), ("state", "in", ["installed", "to upgrade", "to install"])], ["name"]
         )

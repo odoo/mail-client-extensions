@@ -40,7 +40,7 @@ def migrate(cr, version):
 
     tags_charts = list(add_tags.keys()) + list(remove_tags.keys())
     if tags_charts:
-        standard_modules = modules.get_modules()
+        standard_modules = list(modules.get_modules())
         cr.execute(
             """
                    SELECT tag.id, tag.{}, md.module || '.' || md.name
