@@ -125,9 +125,7 @@ def migrate(cr, version):
     query = """
         WITH depreciation_moves AS (
             SELECT move.id,
-                   CASE
-                       WHEN asset.asset_type = 'sale' THEN -sum(line.balance) ELSE sum(line.balance)
-                   END AS computed_depreciation_value
+                   sum(line.balance) AS computed_depreciation_value
               FROM account_asset AS asset
               JOIN account_move AS move ON move.asset_id = asset.id
               JOIN account_move_line AS line
@@ -173,6 +171,15 @@ def migrate(cr, version):
          WHERE disposal_moves.move_id = am.id
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, "account_move", alias="move"))
+
+    cr.execute(
+        """
+        UPDATE account_asset asset
+           SET account_depreciation_id = account_depreciation_expense_id,
+               account_depreciation_expense_id = account_depreciation_id
+         WHERE asset_type = 'sale'
+    """
+    )
 
     util.remove_field(cr, "account.asset", "prorata")
     util.remove_field(cr, "account.asset", "first_depreciation_date")
