@@ -140,6 +140,10 @@ def migrate(cr, version):
     util.update_field_usage(cr, "project.task", "kanban_state", "state", domain_adapter=state_adapter)
     util.update_field_usage(cr, "project.task", "is_blocked", "is_closed", domain_adapter=is_blocked_adapter)
 
+    # field is unused anymore. adapt users' filters
+    # See https://github.com/odoo/odoo/pull/115546
+    util.update_field_usage(cr, "project.task", "display_project_id", "project_id")
+
     util.update_record_from_xml(cr, "project.project_manager_all_project_tasks_rule")
 
     recurrence_fields = [
