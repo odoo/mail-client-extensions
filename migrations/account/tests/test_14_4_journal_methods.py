@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
 @change_version("saas~14.4")
@@ -234,21 +235,25 @@ class TestJournalMethods(UpgradeCase):
         self.assertEqual(payment.payment_method_line_id, journal_line)
 
     def prepare(self):
-        acquirer_journal = self.env["account.journal"].create({"name": "Test journal 3", "code": "tj3", "type": "bank"})
-        self.env["account.payment.method"].create(
-            {"name": "Acquirer method", "code": "none", "payment_type": "inbound"}
-        )
+        with no_fiscal_lock(self.env.cr):
+            acquirer_journal = self.env["account.journal"].create(
+                {"name": "Test journal 3", "code": "tj3", "type": "bank"}
+            )
+            self.env["account.payment.method"].create(
+                {"name": "Acquirer method", "code": "none", "payment_type": "inbound"}
+            )
+            data = {
+                "14.4-test-journal-methods": [
+                    self._prepare_test_migrate_common_payment_methods(),
+                    self._prepare_test_migrate_journal_accounts(),
+                    self._prepare_test_migrate_payment_acquirer(acquirer_journal),
+                    self._prepare_test_migrate_account_payment(),
+                    self._prepare_test_migrate_account_payment_acquirer(acquirer_journal),
+                    self._prepare_test_migrate_account_payment_electronic(),
+                ]
+            }
 
-        return {
-            "14.4-test-journal-methods": [
-                self._prepare_test_migrate_common_payment_methods(),
-                self._prepare_test_migrate_journal_accounts(),
-                self._prepare_test_migrate_payment_acquirer(acquirer_journal),
-                self._prepare_test_migrate_account_payment(),
-                self._prepare_test_migrate_account_payment_acquirer(acquirer_journal),
-                self._prepare_test_migrate_account_payment_electronic(),
-            ]
-        }
+        return data
 
     def check(self, init):
         self._check_test_migrate_common_payment_methods(init["14.4-test-journal-methods"][0])
