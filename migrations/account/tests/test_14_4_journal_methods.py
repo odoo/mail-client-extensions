@@ -95,6 +95,14 @@ class TestJournalMethods(UpgradeCase):
         During the migration, payments change from storing the payment method to the payment method line.
         Test this too to ensure that it is working as expected.
         """
+        self.env["account.account"].create(
+            {
+                "name": "__UPG__ test receivable account",
+                "code": "878645",
+                "user_type_id": self.env.ref("account.data_account_type_receivable").id,
+                "reconcile": True,
+            }
+        )
         inbound_payment_method = self.env["account.payment.method"].create(
             {"name": "Inbound method 4", "code": "im4", "payment_type": "inbound"}
         )
