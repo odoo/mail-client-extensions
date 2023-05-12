@@ -48,6 +48,11 @@ class JinjaToQweb_Data(UpgradeCase):
         if not self._is_demo():
             # runbot also test the upgrade without demo data
             return
+
+        # ensure there are translations...
+        self.env["res.lang"]._activate_lang("fr_FR")
+        self.env["ir.module.module"].search([("name", "=", "sms")])._update_translations(["fr_FR"])
+
         sms_id = self.env.ref("sms.sms_template_demo_0").id
         self.env.cr.execute(
             """
