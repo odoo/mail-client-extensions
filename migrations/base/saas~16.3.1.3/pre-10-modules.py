@@ -15,5 +15,6 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_mx_edi_stock_40", "l10n_mx_edi_stock")
     util.merge_module(cr, "l10n_mx_edi_extended_40", "l10n_mx_edi_extended")
     util.merge_module(cr, "l10n_mx_edi_40", "l10n_mx_edi")
+    util.merge_module(cr, "l10n_pe_edi_stock_20", "l10n_pe_edi_stock")
     util.merge_module(cr, "website_event_questions", "website_event")
     util.merge_module(cr, "website_event_crm_questions", "website_event_crm")
