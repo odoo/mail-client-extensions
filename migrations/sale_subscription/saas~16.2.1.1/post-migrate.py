@@ -29,3 +29,14 @@ def migrate(cr, version):
         )
     env["sale.order.alert"].create(alert_create_vals)
     cr.execute("DROP TABLE sale_order_stage CASCADE")
+
+    action_id = util.ref(cr, "sale_subscription.account_analytic_cron_ir_actions_server")
+    if action_id:
+        cr.execute(
+            """
+            UPDATE ir_act_server
+               SET code = 'model._cron_subscription_expiration()'
+             WHERE id = %s
+        """,
+            [action_id],
+        )
