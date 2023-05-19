@@ -1,4 +1,4 @@
-const URLS: Record<string, string> = {
+export const URLS: Record<string, string> = {
     GET_TRANSLATIONS: "/mail_plugin/get_translations",
     LOG_EMAIL: "/mail_plugin/log_mail_content",
     // Partner
@@ -19,7 +19,7 @@ const URLS: Record<string, string> = {
     IAP_COMPANY_ENRICHMENT: "https://iap-services.odoo.com/iap/mail_extension/enrich",
 };
 
-const ODOO_AUTH_URLS: Record<string, string> = {
+export const ODOO_AUTH_URLS: Record<string, string> = {
     LOGIN: "/web/login",
     AUTH_CODE: "/mail_plugin/auth",
     CODE_VALIDATION: "/mail_plugin/auth/access_token",

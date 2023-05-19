@@ -2,7 +2,7 @@ import { buildView } from "./views/index";
 import { Email } from "./models/email";
 import { State } from "./models/state";
 import { Partner } from "./models/partner";
-import { _t } from "../services/translation";
+import { _t } from "./services/translation";
 
 /**
  * Entry point of the application, executed when an email is open.
@@ -19,7 +19,7 @@ function onGmailMessageOpen(event) {
 
     const [partner, odooUserCompanies, canCreatePartner, canCreateProject, error] = Partner.enrichPartner(
         currentEmail.contactEmail,
-        currentEmail.contactName,
+        currentEmail.contactName
     );
 
     if (!partner) {
@@ -35,7 +35,7 @@ function onGmailMessageOpen(event) {
         null,
         null,
         canCreateProject,
-        error,
+        error
     );
 
     return [buildView(state)];

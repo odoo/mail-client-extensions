@@ -38,7 +38,7 @@ export function createKeyValueWidget(
     action: any = null,
     wrap: boolean = true,
     iconLabel: string = null,
-    iconCropStyle: CardService.ImageCropType = CardService.ImageCropType.SQUARE,
+    iconCropStyle: GoogleAppsScript.Card_Service.ImageCropType = CardService.ImageCropType.SQUARE,
 ) {
     const widget = CardService.newDecoratedText().setText(content).setWrapText(true);
     if (label && label.length) {
