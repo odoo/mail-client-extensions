@@ -7,6 +7,22 @@ def migrate(cr, version):
     eb = util.expand_braces
     # Remove old discuss public view
     util.remove_view(cr, "mail.discuss_public_layout")
+
+    util.explode_execute(
+        cr,
+        "UPDATE mail_message SET model='discuss.channel' WHERE model='mail.channel'",
+        table="mail_message",
+    )
+    util.parallel_execute(
+        cr,
+        [
+            "UPDATE ir_attachment SET res_model='discuss.channel' WHERE res_model='mail.channel'",
+            # create a temporary partial index to speed up the update done by `rename_model`.
+            # (this update being a no-op as we just updates `mail_message` above)
+            "CREATE INDEX _tmp_upg_mm_mc ON mail_message(id) WHERE model='mail.channel'",
+        ],
+    ),
+
     # Rename mail.channel to discuss.channel
     model_names = """
         {mail,discuss}.channel.member
@@ -57,3 +73,5 @@ def migrate(cr, version):
     """
     for rename in util.splitlines(index_names):
         cr.execute("ALTER INDEX IF EXISTS {0} RENAME TO {1}".format(*eb(rename)))
+
+    cr.execute("DROP INDEX _tmp_upg_mm_mc")
