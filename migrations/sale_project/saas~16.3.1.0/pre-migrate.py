@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.upgrade import util
 
 from odoo.upgrade import util
 
@@ -8,6 +9,11 @@ def migrate(cr, version):
     if util.column_exists(cr, "project_project", "is_fsm"):
         # then does not take into account the fsm projects in the both queries above
         additional_where_cond = "AND pp.is_fsm IS FALSE"
+    timesheet_cond = ""
+    if util.module_installed(cr, "industry_fsm_sale"):
+        # match the `project_project_timesheet_product_required_if_billable_and_time` constraint
+        timesheet_cond = "AND (pp.timesheet_product_id IS NOT NULL OR pp.allow_timesheets=FALSE)"
+
     cr.execute(
         f"""
       UPDATE project_project pp
@@ -15,6 +21,7 @@ def migrate(cr, version):
        WHERE pp.partner_id IS NOT NULL
          AND pp.allow_billable IS FALSE
          {additional_where_cond}
+         {timesheet_cond}
       """
     )
 
@@ -33,5 +40,6 @@ def migrate(cr, version):
          WHERE pt.project_id = pp.id
            AND pp.allow_billable IS FALSE
            {additional_where_cond}
+           {timesheet_cond}
         """
     )
