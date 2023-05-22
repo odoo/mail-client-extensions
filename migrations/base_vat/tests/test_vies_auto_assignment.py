@@ -120,18 +120,37 @@ class TestPartnerDefaultVIES(UpgradeCase):
     # PREPARE
     # -------------------------------------------------------------------------
     def prepare(self):
+        if util.version_gte("saas~16.2"):
+            coa = "generic_coa"
+            country = "be"
+        else:
+            # Find an installed CoA
+            self.env.cr.execute(
+                """
+                    SELECT module, name
+                      FROM ir_model_data
+                     WHERE model = 'account.chart.template'
+                     FETCH FIRST ROW ONLY
+                """
+            )
+            if self.env.cr.rowcount:
+                module, name = self.env.cr.fetchone()
+                coa = f"{module}.{name}"
+                _, country, *_ = name.split("_")
+                if country != "generic" and country not in self.env.ref("base.europe").country_ids.mapped("code"):
+                    self.skipTest("No european CoA found")
+            else:
+                self.skipTest("No CoA found")
+
         primary_company = self.env["res.company"].create({"name": "primary company for TestPartnerDefaultVIES"})
         secondary_company = self.env["res.company"].create({"name": "secondary company for TestPartnerDefualtVIES"})
         for company in (primary_company, secondary_company):
             if util.version_gte("saas~16.2"):
-                self.env["account.chart.template"].try_loading("generic_coa", company=company, install_demo=False)
-            elif util.version_gte("16.0"):
-                self.env.ref("l10n_generic_coa.configurable_chart_template").try_loading(
-                    company=company, install_demo=False
-                )
+                self.env["account.chart.template"].try_loading(coa, company=company, install_demo=False)
             else:
-                self.env.ref("l10n_generic_coa.chart_template").try_loading(company=company, install_demo=False)
-            primary_company.account_fiscal_country_id = self.env.ref("base.be")
+                self.env.ref(coa).try_loading(company=company, install_demo=False)
+
+        primary_company.account_fiscal_country_id = self.env.ref(f"base.{country}")
 
         return {
             "partner_ids": (
