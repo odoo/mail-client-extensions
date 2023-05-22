@@ -345,16 +345,21 @@ def migrate(cr, version):
                         partner_id, analytic_account_id, date, date_maturity,
                         journal_id, user_type_id, tax_exigible,
                         company_currency_id, currency_id, amount_currency,
-                        debit, credit, balance
+                        debit,
+                        credit,
+                        balance
                     )
              SELECT new.id, original.name, original.company_id, original.account_id,
                     original.partner_id, original.analytic_account_id, original.date, original.date_maturity,
                     new.journal_id, original.user_type_id, original.tax_exigible,
                     original.company_currency_id, original.currency_id, -original.amount_currency,
-                    original.credit, original.debit, -original.balance
+                    ROUND(original.credit, company_currency.decimal_places),
+                    ROUND(original.debit, company_currency.decimal_places),
+                    ROUND(-original.balance, company_currency.decimal_places)
                FROM account_move original_move
                JOIN account_move new ON original_move.id = new._upg_original_move
                JOIN account_move_line original ON original.move_id = original_move.id
+               JOIN res_currency company_currency ON company_currency.id = original.company_currency_id
     """
     )
 
