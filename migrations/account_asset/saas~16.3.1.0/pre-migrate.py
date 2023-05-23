@@ -33,15 +33,20 @@ def migrate(cr, version):
             ON CONFLICT DO NOTHING
         """
     )
-    cr.execute(
-        """
+    util.parallel_execute(
+        cr,
+        [
+            """
             UPDATE account_move
                SET asset_id = NULL
               FROM account_asset
              WHERE asset_id IS NOT NULL
                AND asset_id = account_asset.id
-               AND asset_type in ('sale', 'expense');
-        """
+               AND asset_type in ('sale', 'expense')
+            """,
+            "CREATE INDEX IF NOT EXISTS account_account_asset_model_idx ON account_account(asset_model)",
+            "CREATE INDEX IF NOT EXISTS account_asset_model_id_idx ON account_asset(model_id)",
+        ],
     )
     cr.execute(
         """
