@@ -21,3 +21,10 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "hr.employee", "has_bicycle")
     util.rename_xmlid(cr, *eb("l10n_be_hr_payroll.hr_leave_{stress,mandatory}_day_be"))
+
+    util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_pfi")
+    util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_cdi")
+    util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_cdd")
+    util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_cip")
+    util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_replacement")
+    util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_clearly_defined_work")
