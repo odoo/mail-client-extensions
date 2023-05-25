@@ -35,12 +35,12 @@ def migrate(cr, version):
 
     if util.modules_installed(cr, "l10n_be_hr_payroll"):
         force_installs |= {"l10n_be_hr_payroll_sd_worx"}
-    if util.modules_installed(cr, "delivery") or util.module_installed(cr, "website_sale"):
-        # website_sale has stock_delivery as new dep see
-        # https://github.com/odoo/odoo/commit/74a17c1b2664cab2860306b84d542741a33953f9
+    if util.modules_installed(cr, "delivery"):
         force_installs |= {"stock_delivery"}
-
-        cr.execute("SELECT demo FROM ir_module_module WHERE name='delivery'")
+    if util.modules_installed(cr, "delivery") or util.modules_installed(cr, "website_sale", "stock"):
+        # `website_sale` now depends on `delivery`. Due to the auto_install flag,
+        # `stock_delivery` will be installed. However, we don't want its demo data to be updated.
+        cr.execute("SELECT demo FROM ir_module_module WHERE name='stock'")
         if cr.fetchone()[0]:
             # even if there is no upgrade script for this module,
             # we should install it in init=False to avoid updating the noupdate demo data
