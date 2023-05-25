@@ -232,7 +232,8 @@ def migrate(cr, version):
                       company_id,
                       currency_id,
                       category)
-            SELECT aml.name, aml.date, account.id, account.plan_id,
+            SELECT COALESCE(aml.name, COALESCE(aml.ref, '/') || ' -- ' || COALESCE(partner.name, '/')) AS name,
+                   aml.date, account.id, account.plan_id,
                    aml.quantity, aml.product_id, aml.product_uom_id,
                    COALESCE(aml.credit, 0.0) - COALESCE(aml.debit, 0.0),
                    aml.account_id, aml.ref, aml.id,
@@ -249,6 +250,7 @@ def migrate(cr, version):
               JOIN account_analytic_distribution distrib ON distrib.tag_id = tag.id
               JOIN account_analytic_account account ON distrib.account_id = account.id
               JOIN res_company company ON COALESCE(account.company_id, move.company_id) = company.id
+              LEFT JOIN res_partner partner ON aml.partner_id = partner.id
              WHERE account.plan_id = %s
         """,
             [analytic_plan_former_tag],
