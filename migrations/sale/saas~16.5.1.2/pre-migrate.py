@@ -29,3 +29,5 @@ def migrate(cr, version):
         )
 
         util.remove_field(cr, "ir.attachment", "product_downloadable")
+
+    util.remove_field(cr, "product.template", "visible_qty_configurator")
