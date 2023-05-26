@@ -252,6 +252,7 @@ def migrate(cr, version):
               JOIN res_company company ON COALESCE(account.company_id, move.company_id) = company.id
               LEFT JOIN res_partner partner ON aml.partner_id = partner.id
              WHERE account.plan_id = %s
+               AND move.state = 'posted'
         """,
             [analytic_plan_former_tag],
         ).decode()
