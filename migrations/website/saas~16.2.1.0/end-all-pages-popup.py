@@ -139,11 +139,15 @@ def migrate(cr, version):
             new_arch = new_arch.strip()[6:-7]
             shared_blocks_new_arch_db.extend([lang, new_arch])
 
-        placeholder = ", ".join("%s" for _ in shared_blocks_new_arch_db)
+        json_object = " || ".join(
+            "jsonb_build_object(" + ", ".join("%s" for _ in chunk) + ")"
+            for chunk in util.chunks(shared_blocks_new_arch_db, size=100, fmt=list)
+        )
+
         cr.execute(
             f"""
                 UPDATE ir_ui_view
-                   SET arch_db = jsonb_build_object({placeholder})
+                   SET arch_db = {json_object}
                  WHERE id = %s
             """,
             (*shared_blocks_new_arch_db, shared_blocks_view_id),
