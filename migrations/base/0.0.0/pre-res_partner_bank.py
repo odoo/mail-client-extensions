@@ -46,4 +46,4 @@ def migrate(cr, version):
             """,
             [tuple(_id for _id, in cr.fetchall())],
         )
-    cr.execute("DROP FUNCTION _upg_not_null_partner")
+    cr.execute("DROP FUNCTION _upg_not_null_partner()")
