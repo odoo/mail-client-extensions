@@ -632,23 +632,21 @@ def _upgrade_fix_views(fix_view, root_view):
     has_error = []
     for child in itertools.chain(standard_children, custom_children):
         child.active = True
-        if check() is not None:
-            if not _upgrade_fix_views(child, root_view):
-                # This view will fail since a failing child can't be fixed
-                # we continue to the rest of the children to check them more
-                has_error.append(child)
-                child.active = False
+        if check() is not None and not _upgrade_fix_views(child, root_view):
+            # This view will fail since a failing child can't be fixed
+            # we continue to the rest of the children to check them more
+            has_error.append(child)
+            child.active = False
 
     # We need to ensure that all children get activated again
     for child in has_error:
         child.active = True
 
-    if check() is not None:
+    if check() is not None and md and md.noupdate and md.module and fix_view.arch_fs:
         # We still need to try restoring this standard view since it's in error
         # and we already tried to fix all its children
-        if md and md.noupdate and md.module and fix_view.arch_fs:
-            md.noupdate = False
-            restore_from_file(fix_view, md)
+        md.noupdate = False
+        restore_from_file(fix_view, md)
 
     # If a view is mode="primary" but inherits from a standard view, it may
     # be that the standard parent (or a farther ancestor) is broken
@@ -880,7 +878,9 @@ class IrUiView(models.Model):
         def unlink(self):
             for view in self:
                 if view.xml_id:
-                    if "view:%s" % (view.xml_id) in os.environ.get("suppress_upgrade_warnings", "").split(","):
+                    if "view:%s" % (view.xml_id) in os.environ.get(
+                        "suppress_upgrade_warnings", ""  # noqa: SIM112
+                    ).split(","):
                         _logger.log(25, "View unlink %s explicitly ignored", (view.xml_id))
                     else:
                         _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)

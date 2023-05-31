@@ -23,7 +23,6 @@ class TestFixViews(UpgradeCase):
             noupdate=False,
             disabled_post_upgrade=False,
         ):
-
             # default values
             vals = {
                 "active": True,
@@ -310,7 +309,7 @@ class TestFixViews(UpgradeCase):
             # Practial use case: upgrade from master to master in runbot
             return
         views = self.env["ir.ui.view"].browse([x[0] for x in info])
-        for (view, (vid, disabled)) in zip(views, info):
+        for view, (vid, disabled) in zip(views, info):
             assert view.id == vid
             self.assertTrue(
                 view.active == (not disabled),
