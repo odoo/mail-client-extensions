@@ -37,3 +37,7 @@ def migrate(cr, version):
     ]
     for table in tables_to_drop:
         cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (table,))
+    cr.execute("SELECT id FROM loyalty_reward WHERE discount_line_product_id IS NULL")
+    env = util.env(cr)
+    reward_ids = [row[0] for row in cr.fetchall()]
+    util.iter_browse(env["loyalty.reward"], reward_ids)._create_missing_discount_line_products()
