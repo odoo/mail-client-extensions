@@ -2,7 +2,6 @@
   "compilerOptions": {
     "outDir": "./build",
     "baseUrl": ".",
-    "sourceMap": true,
     "strictNullChecks": false,
     "noImplicitThis": true,
     "noEmitOnError": true,

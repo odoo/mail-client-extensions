@@ -1,8 +1,11 @@
 {
-  "dependencies": {
-    "@types/google-apps-script": "^1.0.31"
-  },
   "devDependencies": {
-    "prettier": "^2.2.1"
-  }
+    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-typescript": "^11.1.1",
+    "@types/google-apps-script": "^1.0.64",
+    "prettier": "^2.2.1",
+    "rollup": "^3.22.0",
+    "tslib": "^2.5.3"
+  },
+  "type": "module"
 }
