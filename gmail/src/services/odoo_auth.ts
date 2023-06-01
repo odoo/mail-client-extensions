@@ -93,7 +93,7 @@ export function getOdooAuthUrl() {
         throw new Error("Can not retrieve the script ID.");
     }
 
-    const stateToken = ScriptApp.newStateToken().withMethod("odooAuthCallback").withTimeout(3600).createToken();
+    const stateToken = ScriptApp.newStateToken().withMethod(odooAuthCallback.name).withTimeout(3600).createToken();
 
     const redirectToAddon = `https://script.google.com/macros/d/${scriptId}/usercallback`;
     const scope = ODOO_AUTH_URLS.SCOPE;

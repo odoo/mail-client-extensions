@@ -4,6 +4,7 @@ import { updateCard } from "./helpers";
 import { UI_ICONS } from "./icons";
 import { createKeyValueWidget, actionCall, notify } from "./helpers";
 import { URLS } from "../const";
+import { getOdooServerUrl } from "src/services/app_properties";
 import { State } from "../models/state";
 import { logEmail } from "../services/log_email";
 import { _t } from "../services/translation";
@@ -31,7 +32,7 @@ function onEmailAlreradyLoggedOnTask() {
 }
 
 export function buildTasksView(state: State, card: Card) {
-    const odooServerUrl = State.odooServerUrl;
+    const odooServerUrl = getOdooServerUrl();
     const partner = state.partner;
     const tasks = partner.tasks;
 
@@ -45,7 +46,7 @@ export function buildTasksView(state: State, card: Card) {
 
     if (state.partner.id) {
         tasksSection.addWidget(
-            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, "onCreateTask")),
+            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, onCreateTask.name)),
         );
 
         for (let task of tasks) {
@@ -54,13 +55,13 @@ export function buildTasksView(state: State, card: Card) {
                 taskButton = CardService.newImageButton()
                     .setAltText(_t("Email already logged on the task"))
                     .setIconUrl(UI_ICONS.email_logged)
-                    .setOnClickAction(actionCall(state, "onEmailAlreradyLoggedOnTask"));
+                    .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnTask.name));
             } else {
                 taskButton = CardService.newImageButton()
                     .setAltText(_t("Log the email on the task"))
                     .setIconUrl(UI_ICONS.email_in_odoo)
                     .setOnClickAction(
-                        actionCall(state, "onLogEmailOnTask", {
+                        actionCall(state, onLogEmailOnTask.name, {
                             taskId: task.id,
                         }),
                     );

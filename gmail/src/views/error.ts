@@ -4,6 +4,7 @@ import { buildView } from "./index";
 import { updateCard } from "./helpers";
 import { UI_ICONS } from "./icons";
 import { _t } from "../services/translation";
+import { buildLoginMainView } from "./login";
 
 function onCloseError(state: State) {
     state.error.code = null;
@@ -22,7 +23,7 @@ function _addError(message: string, state: State, icon: string = null): CardSect
             CardService.newImageButton()
                 .setAltText(_t("Close"))
                 .setIconUrl(UI_ICONS.close)
-                .setOnClickAction(actionCall(state, "onCloseError")),
+                .setOnClickAction(actionCall(state, onCloseError.name)),
         ),
     );
     return errorSection;
@@ -41,7 +42,7 @@ export function buildErrorView(state: State, card: Card) {
         errorSection.addWidget(
             CardService.newTextButton()
                 .setText(_t("Login"))
-                .setOnClickAction(CardService.newAction().setFunctionName("buildLoginMainView")),
+                .setOnClickAction(CardService.newAction().setFunctionName(buildLoginMainView.name)),
         );
         card.addSection(errorSection);
     } else if (error.code === "insufficient_credit") {

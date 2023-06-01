@@ -97,7 +97,7 @@ function _handleActionCall(event) {
  */
 export function actionCall(state: State, functionName: string, parameters: any = {}) {
     return CardService.newAction()
-        .setFunctionName("_handleActionCall")
+        .setFunctionName(_handleActionCall.name)
         .setParameters({
             functionName: functionName,
             state: state.toJson(),

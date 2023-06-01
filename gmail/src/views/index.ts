@@ -26,7 +26,7 @@ export function buildView(state: State) {
                 CardService.newTextButton()
                     .setText(_t("Login"))
                     .setBackgroundColor("#00A09D")
-                    .setOnClickAction(actionCall(state, "buildLoginMainView")),
+                    .setOnClickAction(actionCall(state, buildLoginMainView.name)),
             ),
         );
     }

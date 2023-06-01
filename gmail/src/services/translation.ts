@@ -1,6 +1,7 @@
 import { postJsonRpc } from "../utils/http";
-import { State } from "../models/state";
 import { URLS } from "../const";
+import { getAccessToken } from "./odoo_auth";
+import { getOdooServerUrl } from "./app_properties";
 
 /**
  * Object which fetchs the translations on the Odoo database, puts them in cache.
@@ -17,15 +18,17 @@ export class Translate {
 
         const translationsStr = cache.get(cacheKey);
 
+        const odooServerUrl = getOdooServerUrl();
+        const odooAccessToken = getAccessToken();
         if (translationsStr) {
             this.translations = JSON.parse(translationsStr);
-        } else if (State.odooServerUrl && State.accessToken) {
+        } else if (odooServerUrl && odooAccessToken) {
             Logger.log("Download translations...");
 
             this.translations = postJsonRpc(
-                State.odooServerUrl + URLS.GET_TRANSLATIONS,
+                odooServerUrl + URLS.GET_TRANSLATIONS,
                 {},
-                { Authorization: "Bearer " + State.accessToken },
+                { Authorization: "Bearer " + odooAccessToken },
             );
 
             if (this.translations) {

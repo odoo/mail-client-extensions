@@ -3,6 +3,7 @@ import { updateCard, pushCard, pushToRoot } from "./helpers";
 import { UI_ICONS } from "./icons";
 import { createKeyValueWidget, actionCall, notify } from "./helpers";
 import { URLS } from "../const";
+import { getOdooServerUrl } from "src/services/app_properties";
 import { ErrorMessage } from "../models/error_message";
 import { Project } from "../models/project";
 import { State } from "../models/state";
@@ -52,7 +53,7 @@ function onSelectProject(state: State, parameters: any) {
     state.partner.tasks.push(task);
 
     const taskUrl =
-        State.odooServerUrl +
+        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
         `/web#id=${task.id}&action=project_mail_plugin.project_task_action_form_edit&model=project.task&view_type=form`;
 
     // Open the URL to the Odoo task and update the card
@@ -70,7 +71,7 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
         noProject = !state.searchedProjects.length;
     }
 
-    const odooServerUrl = State.odooServerUrl;
+    const odooServerUrl = getOdooServerUrl();
     const partner = state.partner;
     const tasks = partner.tasks;
     const projects = state.searchedProjects;
@@ -88,7 +89,9 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
                 .setTitle(_t("Search a Project"))
                 .setValue(query || "")
                 .setOnChangeAction(
-                    actionCall(state, "onSearchProjectClick", { hideCreateProjectSection: hideCreateProjectSection }),
+                    actionCall(state, onSearchProjectClick.name, {
+                        hideCreateProjectSection: hideCreateProjectSection,
+                    }),
                 ),
         );
 
@@ -96,7 +99,9 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
             CardService.newTextButton()
                 .setText(_t("Search"))
                 .setOnClickAction(
-                    actionCall(state, "onSearchProjectClick", { hideCreateProjectSection: hideCreateProjectSection }),
+                    actionCall(state, onSearchProjectClick.name, {
+                        hideCreateProjectSection: hideCreateProjectSection,
+                    }),
                 ),
         );
 
@@ -110,7 +115,7 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
                 null,
                 project.partnerName,
                 null,
-                actionCall(state, "onSelectProject", { project: project }),
+                actionCall(state, onSelectProject.name, { project: project }),
             );
 
             projectSection.addWidget(projectCard);
@@ -130,7 +135,7 @@ export function buildCreateTaskView(state: State, query: string = "", hideCreate
         createProjectSection.addWidget(
             CardService.newTextButton()
                 .setText(_t("Create Project & Task"))
-                .setOnClickAction(actionCall(state, "onCreateProjectClick")),
+                .setOnClickAction(actionCall(state, onCreateProjectClick.name)),
         );
         card.addSection(createProjectSection);
     } else if (noProject) {

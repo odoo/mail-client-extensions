@@ -1,7 +1,7 @@
 import { postJsonRpc } from "../utils/http";
 import { isTrue } from "../utils/format";
 import { URLS } from "../const";
-import { State } from "../models/state";
+import { getAccessToken } from "src/services/odoo_auth";
 
 /**
  * Represent a "crm.lead" record.
@@ -19,8 +19,8 @@ export class Lead {
      * and return the ID of the newly created record.
      */
     static createLead(partnerId: number, emailBody: string, emailSubject: string): number {
-        const url = State.odooServerUrl + URLS.CREATE_LEAD;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.CREATE_LEAD;
+        const accessToken = getAccessToken();
 
         const response = postJsonRpc(
             url,

@@ -1,6 +1,6 @@
 import { postJsonRpc } from "../utils/http";
 import { URLS } from "../const";
-import { State } from "../models/state";
+import { getAccessToken } from "src/services/odoo_auth";
 
 /**
  * Represent a "project.task" record.
@@ -37,13 +37,13 @@ export class Task {
      * and return the ID of the newly created record.
      */
     static createTask(partnerId: number, projectId: number, emailBody: string, emailSubject: string): Task {
-        const url = State.odooServerUrl + URLS.CREATE_TASK;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.CREATE_TASK;
+        const odooAccessToken = getAccessToken();
 
         const response = postJsonRpc(
             url,
             { email_subject: emailSubject, email_body: emailBody, project_id: projectId, partner_id: partnerId },
-            { Authorization: "Bearer " + accessToken },
+            { Authorization: "Bearer " + odooAccessToken },
         );
 
         const taskId = response ? response.task_id || null : null;

@@ -1,7 +1,7 @@
 import { postJsonRpc } from "../utils/http";
 import { URLS } from "../const";
 import { ErrorMessage } from "../models/error_message";
-import { State } from "../models/state";
+import { getAccessToken } from "src/services/odoo_auth";
 
 /**
  * Represent a "project.project" record.
@@ -37,10 +37,10 @@ export class Project {
      * Make a RPC call to the Odoo database to search a project.
      */
     static searchProject(query: string): [Project[], ErrorMessage] {
-        const url = State.odooServerUrl + URLS.SEARCH_PROJECT;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.SEARCH_PROJECT;
+        const odooAccessToken = getAccessToken();
 
-        const response = postJsonRpc(url, { search_term: query }, { Authorization: "Bearer " + accessToken });
+        const response = postJsonRpc(url, { search_term: query }, { Authorization: "Bearer " + odooAccessToken });
 
         if (!response) {
             return [[], new ErrorMessage("http_error_odoo")];
@@ -54,10 +54,10 @@ export class Project {
      * and return the newly created record.
      */
     static createProject(name: string): Project {
-        const url = State.odooServerUrl + URLS.CREATE_PROJECT;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.CREATE_PROJECT;
+        const odooAccessToken = getAccessToken();
 
-        const response = postJsonRpc(url, { name: name }, { Authorization: "Bearer " + accessToken });
+        const response = postJsonRpc(url, { name: name }, { Authorization: "Bearer " + odooAccessToken });
 
         const projectId = response ? response.project_id || null : null;
         if (!projectId) {

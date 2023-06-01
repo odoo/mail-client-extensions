@@ -1,3 +1,4 @@
+import { buildDebugView } from "./debug";
 import { buildView } from "../views/index";
 import { State } from "../models/state";
 import { Partner } from "../models/partner";
@@ -32,11 +33,11 @@ export function buildCardActionsView(state: State, card: Card) {
 
     if (State.isLogged) {
         card.addCardAction(
-            CardService.newCardAction().setText(_t("Logout")).setOnClickAction(actionCall(state, "onLogout")),
+            CardService.newCardAction().setText(_t("Logout")).setOnClickAction(actionCall(state, onLogout.name)),
         );
     }
 
     card.addCardAction(
-        CardService.newCardAction().setText(_t("Debug")).setOnClickAction(actionCall(state, "buildDebugView")),
+        CardService.newCardAction().setText(_t("Debug")).setOnClickAction(actionCall(state, buildDebugView.name)),
     );
 }

@@ -6,6 +6,7 @@ import { createKeyValueWidget, actionCall, pushCard, updateCard, notify } from "
 import { buildView } from "./index";
 import { State } from "../models/state";
 import { SOCIAL_MEDIA_ICONS, UI_ICONS } from "./icons";
+import { onEmailAlreadyLogged } from "./partner";
 
 function onSearchPartnerClick(state: State, parameters: any, inputs: any) {
     const inputQuery = inputs.search_partner_query;
@@ -72,18 +73,20 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
             .setFieldName("search_partner_query")
             .setTitle(_t("Search contact"))
             .setValue(searchValue)
-            .setOnChangeAction(actionCall(state, "onSearchPartnerClick")),
+            .setOnChangeAction(actionCall(state, onSearchPartnerClick.name)),
     );
 
     searchSection.addWidget(
-        CardService.newTextButton().setText(_t("Search")).setOnClickAction(actionCall(state, "onSearchPartnerClick")),
+        CardService.newTextButton()
+            .setText(_t("Search"))
+            .setOnClickAction(actionCall(state, onSearchPartnerClick.name)),
     );
 
     for (let partner of partners) {
         const partnerCard = CardService.newDecoratedText()
             .setText(partner.name)
             .setWrapText(true)
-            .setOnClickAction(actionCall(state, "onOpenPartner", { partner: partner }))
+            .setOnClickAction(actionCall(state, onOpenPartner.name, { partner: partner }))
             .setStartIcon(
                 CardService.newIconImage()
                     .setIconUrl(partner.image || (partner.isCompany ? UI_ICONS.no_company : UI_ICONS.person))
@@ -97,7 +100,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
                           .setAltText(_t("Log email"))
                           .setIconUrl(UI_ICONS.email_in_odoo)
                           .setOnClickAction(
-                              actionCall(state, "onLogEmailPartner", {
+                              actionCall(state, onLogEmailPartner.name, {
                                   partnerId: partner.id,
                                   query: query,
                               }),
@@ -105,7 +108,7 @@ export function buildSearchPartnerView(state: State, query: string, initialSearc
                     : CardService.newImageButton()
                           .setAltText(_t("Email already logged on the contact"))
                           .setIconUrl(UI_ICONS.email_logged)
-                          .setOnClickAction(actionCall(state, "onEmailAlreadyLogged")),
+                          .setOnClickAction(actionCall(state, onEmailAlreadyLogged.name)),
             );
         }
 

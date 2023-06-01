@@ -1,6 +1,7 @@
 import { buildView } from "../views/index";
 import { pushCard, updateCard, createKeyValueWidget, actionCall, notify, openUrl } from "./helpers";
 import { URLS } from "../const";
+import { getOdooServerUrl } from "src/services/app_properties";
 import { UI_ICONS } from "./icons";
 import { logEmail } from "../services/log_email";
 import { _t } from "../services/translation";
@@ -32,14 +33,14 @@ function onCreateLead(state: State) {
     }
     const cids = state.odooCompaniesParameter;
     const leadUrl =
-        State.odooServerUrl +
+        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
         `/web#id=${leadId}&action=crm_mail_plugin.crm_lead_action_form_edit&model=crm.lead&view_type=form${cids}`;
 
     return openUrl(leadUrl);
 }
 
 export function buildLeadsView(state: State, card: Card) {
-    const odooServerUrl = State.odooServerUrl;
+    const odooServerUrl = getOdooServerUrl();
     const partner = state.partner;
     const leads = partner.leads;
 
@@ -58,7 +59,7 @@ export function buildLeadsView(state: State, card: Card) {
 
     if (state.partner.id) {
         leadsSection.addWidget(
-            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, "onCreateLead")),
+            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, onCreateLead.name)),
         );
 
         for (let lead of leads) {
@@ -85,13 +86,13 @@ export function buildLeadsView(state: State, card: Card) {
                 leadButton = CardService.newImageButton()
                     .setAltText(_t("Email already logged on the lead"))
                     .setIconUrl(UI_ICONS.email_logged)
-                    .setOnClickAction(actionCall(state, "onEmailAlreradyLoggedOnLead"));
+                    .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnLead.name));
             } else {
                 leadButton = CardService.newImageButton()
                     .setAltText(_t("Log the email on the lead"))
                     .setIconUrl(UI_ICONS.email_in_odoo)
                     .setOnClickAction(
-                        actionCall(state, "onLogEmailOnLead", {
+                        actionCall(state, onLogEmailOnLead.name, {
                             leadId: lead.id,
                         }),
                     );

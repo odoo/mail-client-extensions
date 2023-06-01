@@ -4,6 +4,7 @@ import { State } from "../models/state";
 import { IMAGES_LOGIN } from "./icons";
 import { isOdooDatabaseReachable } from "../services/odoo_auth";
 import { _t, clearTranslationCache } from "../services/translation";
+import { setOdooServerUrl } from "src/services/app_properties";
 
 function onNextLogin(event) {
     const validatedUrl = formatUrl(event.formInput.odooServerUrl);
@@ -18,7 +19,7 @@ function onNextLogin(event) {
 
     clearTranslationCache();
 
-    State.odooServerUrl = validatedUrl;
+    setOdooServerUrl(validatedUrl);
 
     if (!isOdooDatabaseReachable(validatedUrl)) {
         return notify(
@@ -54,14 +55,14 @@ export function buildLoginMainView() {
                     .setFieldName("odooServerUrl")
                     .setTitle("Database URL")
                     .setHint("e.g. company.odoo.com")
-                    .setValue(State.odooServerUrl || ""),
+                    .setValue(PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") || ""),
             )
             .addWidget(
                 CardService.newTextButton()
                     .setText(repeat(invisibleChar, 12) + "Login" + repeat(invisibleChar, 12))
                     .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
                     .setBackgroundColor("#00A09D")
-                    .setOnClickAction(CardService.newAction().setFunctionName("onNextLogin")),
+                    .setOnClickAction(CardService.newAction().setFunctionName(onNextLogin.name)),
             )
             .addWidget(CardService.newTextParagraph().setText(repeat(invisibleChar, 13) + "<b>OR</b>"))
             .addWidget(

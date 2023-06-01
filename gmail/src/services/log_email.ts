@@ -2,9 +2,9 @@ import { postJsonRpc } from "../utils/http";
 import { escapeHtml } from "../utils/html";
 import { URLS } from "../const";
 import { Email } from "../models/email";
-import { State } from "../models/state";
 import { ErrorMessage } from "../models/error_message";
 import { _t } from "../services/translation";
+import { getAccessToken } from "./odoo_auth";
 
 /**
  * Format the email body before sending it to Odoo.
@@ -37,15 +37,15 @@ function _formatEmailBody(email: Email, error: ErrorMessage): string {
  * Log the given email body in the chatter of the given record.
  */
 export function logEmail(recordId: number, recordModel: string, email: Email): ErrorMessage {
-    const accessToken = State.accessToken;
+    const odooAccessToken = getAccessToken();
     const [attachments, error] = email.getAttachments();
     const body = _formatEmailBody(email, error);
-    const url = State.odooServerUrl + URLS.LOG_EMAIL;
+    const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.LOG_EMAIL;
 
     const response = postJsonRpc(
         url,
         { message: body, res_id: recordId, model: recordModel, attachments: attachments },
-        { Authorization: "Bearer " + accessToken },
+        { Authorization: "Bearer " + odooAccessToken },
     );
 
     if (!response) {

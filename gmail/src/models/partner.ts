@@ -4,8 +4,9 @@ import { Task } from "./task";
 import { Ticket } from "./ticket";
 import { postJsonRpc, postJsonRpcCached } from "../utils/http";
 import { URLS } from "../const";
-import { State } from "../models/state";
 import { ErrorMessage } from "../models/error_message";
+import { getAccessToken } from "src/services/odoo_auth";
+import { getOdooServerUrl } from "src/services/app_properties";
 
 /**
  * Represent the current partner and all the information about him.
@@ -88,8 +89,8 @@ export class Partner {
      * See `getPartner`
      */
     static enrichPartner(email: string, name: string): [Partner, number[], boolean, boolean, ErrorMessage] {
-        const odooServerUrl = State.odooServerUrl;
-        const odooAccessToken = State.accessToken;
+        const odooServerUrl = getOdooServerUrl();
+        const odooAccessToken = getAccessToken();
 
         if (odooServerUrl && odooAccessToken) {
             return this.getPartner(email, name);
@@ -104,7 +105,7 @@ export class Partner {
      * to find information about the company.
      */
     static _enrichFromIap(email: string, name: string): [Partner, ErrorMessage] {
-        const odooSharedSecret = State.odooSharedSecret;
+        const odooSharedSecret = PropertiesService.getScriptProperties().getProperty("ODOO_SHARED_SECRET");
         const userEmail = Session.getEffectiveUser().getEmail();
 
         const senderDomain = email.split("@").pop();
@@ -137,11 +138,11 @@ export class Partner {
      * Create a "res.partner" with the given values in the Odoo database.
      */
     static savePartner(partnerValues: any): number {
-        const url = State.odooServerUrl + URLS.PARTNER_CREATE;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.PARTNER_CREATE;
+        const odooAccessToken = getAccessToken();
 
         const response = postJsonRpc(url, partnerValues, {
-            Authorization: "Bearer " + accessToken,
+            Authorization: "Bearer " + odooAccessToken,
         });
 
         return response && response.id;
@@ -162,13 +163,13 @@ export class Partner {
         name: string,
         partnerId: number = null,
     ): [Partner, number[], boolean, boolean, ErrorMessage] {
-        const url = State.odooServerUrl + URLS.GET_PARTNER;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.GET_PARTNER;
+        const odooAccessToken = getAccessToken();
 
         const response = postJsonRpc(
             url,
             { email: email, name: name, partner_id: partnerId },
-            { Authorization: "Bearer " + accessToken },
+            { Authorization: "Bearer " + odooAccessToken },
         );
 
         if (!response || !response.partner) {
@@ -214,10 +215,10 @@ export class Partner {
      * Perform a search on the Odoo database and return the list of matched partners.
      */
     static searchPartner(query: string): [Partner[], ErrorMessage] {
-        const url = State.odooServerUrl + URLS.SEARCH_PARTNER;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.SEARCH_PARTNER;
+        const odooAccessToken = getAccessToken();
 
-        const response = postJsonRpc(url, { search_term: query }, { Authorization: "Bearer " + accessToken });
+        const response = postJsonRpc(url, { search_term: query }, { Authorization: "Bearer " + odooAccessToken });
 
         if (!response || !response.partners) {
             return [[], new ErrorMessage("http_error_odoo")];
@@ -241,10 +242,10 @@ export class Partner {
     }
 
     static _enrichOrCreateCompany(partnerId: number, endpoint: string): [Company, ErrorMessage] {
-        const url = State.odooServerUrl + endpoint;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + endpoint;
+        const odooAccessToken = getAccessToken();
 
-        const response = postJsonRpc(url, { partner_id: partnerId }, { Authorization: "Bearer " + accessToken });
+        const response = postJsonRpc(url, { partner_id: partnerId }, { Authorization: "Bearer " + odooAccessToken });
 
         if (!response) {
             return [null, new ErrorMessage("http_error_odoo")];

@@ -3,6 +3,7 @@ import { updateCard } from "./helpers";
 import { UI_ICONS } from "./icons";
 import { createKeyValueWidget, actionCall, notify, openUrl } from "./helpers";
 import { URLS } from "../const";
+import { getOdooServerUrl } from "src/services/app_properties";
 import { State } from "../models/state";
 import { Ticket } from "../models/ticket";
 import { logEmail } from "../services/log_email";
@@ -18,7 +19,7 @@ function onCreateTicket(state: State) {
     const cids = state.odooCompaniesParameter;
 
     const ticketUrl =
-        State.odooServerUrl +
+        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
         `/web#id=${ticketId}&action=helpdesk_mail_plugin.helpdesk_ticket_action_form_edit&model=helpdesk.ticket&view_type=form${cids}`;
 
     return openUrl(ticketUrl);
@@ -42,7 +43,7 @@ function onEmailAlreradyLoggedOnTicket() {
 }
 
 export function buildTicketsView(state: State, card: Card) {
-    const odooServerUrl = State.odooServerUrl;
+    const odooServerUrl = getOdooServerUrl();
     const partner = state.partner;
     const tickets = partner.tickets;
 
@@ -56,7 +57,7 @@ export function buildTicketsView(state: State, card: Card) {
 
     if (state.partner.id) {
         ticketsSection.addWidget(
-            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, "onCreateTicket")),
+            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, onCreateTicket.name)),
         );
 
         const cids = state.odooCompaniesParameter;
@@ -67,7 +68,7 @@ export function buildTicketsView(state: State, card: Card) {
                 ticketButton = CardService.newImageButton()
                     .setAltText(_t("Email already logged on the ticket"))
                     .setIconUrl(UI_ICONS.email_logged)
-                    .setOnClickAction(actionCall(state, "onEmailAlreradyLoggedOnTicket"));
+                    .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnTicket.name));
             } else {
                 ticketButton = CardService.newImageButton()
                     .setAltText(_t("Log the email on the ticket"))

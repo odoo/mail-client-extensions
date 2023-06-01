@@ -2,6 +2,7 @@ import { buildView } from "./index";
 import { actionCall, createKeyValueWidget, notify, updateCard } from "./helpers";
 import { SOCIAL_MEDIA_ICONS, UI_ICONS } from "./icons";
 import { URLS } from "../const";
+import { getOdooServerUrl } from "src/services/app_properties";
 import { ErrorMessage } from "../models/error_message";
 import { State } from "../models/state";
 import { Company } from "../models/company";
@@ -45,7 +46,7 @@ function onUnfoldCompanyDescription(state: State) {
 
 export function buildCompanyView(state: State, card: Card) {
     if (state.partner.company) {
-        const odooServerUrl = State.odooServerUrl;
+        const odooServerUrl = getOdooServerUrl();
         const cids = state.odooCompaniesParameter;
         const company = state.partner.company;
 
@@ -90,7 +91,7 @@ export function buildCompanyView(state: State, card: Card) {
                         null,
                         null,
                         null,
-                        actionCall(state, "onUnfoldCompanyDescription"),
+                        actionCall(state, onUnfoldCompanyDescription.name),
                     ),
                 );
             }
@@ -158,7 +159,7 @@ export function buildCompanyView(state: State, card: Card) {
                 enrichSection.addWidget(
                     CardService.newTextButton()
                         .setText(_t("Enrich Company"))
-                        .setOnClickAction(actionCall(state, "onEnrichCompany")),
+                        .setOnClickAction(actionCall(state, onEnrichCompany.name)),
                 );
             }
             card.addSection(enrichSection);
@@ -171,7 +172,7 @@ export function buildCompanyView(state: State, card: Card) {
             companySection.addWidget(
                 CardService.newTextButton()
                     .setText(_t("Create a company"))
-                    .setOnClickAction(actionCall(state, "onCreateCompany")),
+                    .setOnClickAction(actionCall(state, onCreateCompany.name)),
             );
         }
         card.addSection(companySection);

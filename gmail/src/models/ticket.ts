@@ -1,6 +1,6 @@
 import { postJsonRpc } from "../utils/http";
 import { URLS } from "../const";
-import { State } from "../models/state";
+import { getAccessToken } from "src/services/odoo_auth";
 
 /**
  * Represent a "helpdesk.ticket" record.
@@ -14,13 +14,13 @@ export class Ticket {
      * and return the ID of the newly created record.
      */
     static createTicket(partnerId: number, emailBody: string, emailSubject: string): number {
-        const url = State.odooServerUrl + URLS.CREATE_TICKET;
-        const accessToken = State.accessToken;
+        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.CREATE_TICKET;
+        const odooAccessToken = getAccessToken();
 
         const response = postJsonRpc(
             url,
             { email_body: emailBody, email_subject: emailSubject, partner_id: partnerId },
-            { Authorization: "Bearer " + accessToken },
+            { Authorization: "Bearer " + odooAccessToken },
         );
 
         return response ? response.ticket_id || null : null;

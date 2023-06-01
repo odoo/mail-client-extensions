@@ -5,6 +5,7 @@ import { Project } from "./project";
 import { Lead } from "./lead";
 import { ErrorMessage } from "./error_message";
 import { getAccessToken, getOdooAuthUrl } from "../services/odoo_auth";
+import { getOdooServerUrl } from "src/services/app_properties";
 
 /**
  * Object which contains all data for the application.
@@ -136,24 +137,6 @@ export class State {
         const loginUrl = getOdooAuthUrl();
         return isTrue(loginUrl);
     }
-
-    /**
-     * Return the base URL of the Odoo database.
-     */
-    static get odooServerUrl(): string {
-        const userProperties = PropertiesService.getUserProperties();
-        const serverUrl = userProperties.getProperty("ODOO_SERVER_URL");
-        return isTrue(serverUrl);
-    }
-
-    /**
-     * Change the base URL of the Odoo database.
-     */
-    static set odooServerUrl(value: string) {
-        const userProperties = PropertiesService.getUserProperties();
-        userProperties.setProperty("ODOO_SERVER_URL", value);
-    }
-
     /**
      * Return the shared secret between the add-on and IAP
      * (which is used to authenticate the add-on to IAP).
@@ -179,7 +162,7 @@ export class State {
      */
     static getLoggingState(messageId: string) {
         const cache = CacheService.getUserCache();
-        const loggingStateStr = cache.get("ODOO_LOGGING_STATE_" + this.odooServerUrl + "_" + messageId);
+        const loggingStateStr = cache.get("ODOO_LOGGING_STATE_" + getOdooServerUrl() + "_" + messageId);
 
         const defaultValues: Record<string, number[]> = {
             partners: [],
@@ -208,7 +191,7 @@ export class State {
             const cache = CacheService.getUserCache();
 
             // The cache key depend on the current email open and on the Odoo database
-            const cacheKey = "ODOO_LOGGING_STATE_" + this.odooServerUrl + "_" + messageId;
+            const cacheKey = "ODOO_LOGGING_STATE_" + getOdooServerUrl() + "_" + messageId;
 
             cache.put(
                 cacheKey,
