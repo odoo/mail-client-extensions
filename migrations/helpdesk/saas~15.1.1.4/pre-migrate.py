@@ -16,16 +16,6 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO mail_followers(res_model, res_id, partner_id)
-        SELECT 'helpdesk.team', v.helpdesk_team_id, u.partner_id
-          FROM helpdesk_visibility_team v
-          JOIN res_users u ON u.id = v.res_users_id
-        ON CONFLICT DO NOTHING
-        """
-    )
-
-    cr.execute(
-        """
-        INSERT INTO mail_followers(res_model, res_id, partner_id)
         SELECT 'helpdesk.ticket', t.id, u.partner_id
           FROM helpdesk_ticket t
           JOIN helpdesk_visibility_team v ON t.team_id = v.helpdesk_team_id
