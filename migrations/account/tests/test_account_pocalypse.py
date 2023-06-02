@@ -6,7 +6,6 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 
 @change_version("12.4")
 class TestAccountPocalypse(UpgradeCase):
-
     # -------------------------------------------------------------------------
     # HELPERS
     # -------------------------------------------------------------------------
@@ -247,7 +246,6 @@ class TestAccountPocalypse(UpgradeCase):
         move = invoice.move_id
         creditor_line = move.line_ids.filtered(lambda l: l.account_id == self.account_receivable)
         self.cr.execute("UPDATE account_move SET state='draft' WHERE id IN %s", (tuple(move.ids),))
-        print(move.line_ids.read())
         move.write(
             {
                 "line_ids": [
@@ -292,7 +290,19 @@ class TestAccountPocalypse(UpgradeCase):
 
         env_user = user.sudo(user).env
 
-        chart_template = env_user.ref("l10n_generic_coa.configurable_chart_template", raise_if_not_found=False)
+        self.cr.execute(
+            """
+            SELECT module || '.' || name
+              FROM ir_model_data
+             WHERE model='account.chart.template'
+             ORDER BY id DESC
+             LIMIT 1
+            """
+        )
+        coa_xmlid = (
+            self.env.cr.fetchone()[0] if self.env.cr.rowcount else "l10n_generic_coa.configurable_chart_template"
+        )
+        chart_template = env_user.ref(coa_xmlid, raise_if_not_found=False)
         if not chart_template:
             self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
 
