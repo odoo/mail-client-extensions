@@ -4,6 +4,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # Initialise new private information columns
     util.create_column(cr, "hr_employee", "private_street", "varchar")
     util.create_column(cr, "hr_employee", "private_street2", "varchar")
     util.create_column(cr, "hr_employee", "private_city", "varchar")
@@ -14,6 +15,7 @@ def migrate(cr, version):
     util.create_column(cr, "hr_employee", "private_email", "varchar")
     util.create_column(cr, "hr_employee", "lang", "varchar")
 
+    # Copy private information from private addresses to employee forms
     util.explode_execute(
         cr,
         """
@@ -35,16 +37,40 @@ def migrate(cr, version):
         alias="e",
     )
 
+    # Archive private addresses + make public + empty private information / empty chatter
     util.explode_execute(
         cr,
         """
             UPDATE res_partner p
-               SET active = false
+               SET
+                   active = false,
+                   type = 'contact',
+                   street = NULL,
+                   street2 = NULL,
+                   city = NULL,
+                   state_id = NULL,
+                   zip = NULL,
+                   country_id = NULL,
+                   phone = NULL,
+                   email = NULL
               FROM hr_employee e
              WHERE p.id = e.address_home_id
         """,
         table="res_partner",
         alias="p",
+    )
+    util.explode_execute(
+        cr,
+        """
+            DELETE FROM mail_message m
+                  USING res_partner p
+                   JOIN hr_employee e
+                     ON e.address_home_id = p.id
+                  WHERE m.model = 'res.partner'
+                    AND m.res_id = p.id
+        """,
+        table="mail_message",
+        alias="m",
     )
 
     util.remove_field(cr, "hr.employee", "address_home_id", drop_column=False)
@@ -67,6 +93,7 @@ def migrate(cr, version):
 
     util.remove_view(cr, "hr.view_employee_form_smartbutton")
 
+    # Set user's partner as work contact (if any)
     util.explode_execute(
         cr,
         """
@@ -83,6 +110,7 @@ def migrate(cr, version):
         alias="e",
     )
 
+    # Force work contact creation is not linked to user (if work email)
     Partner = util.env(cr)["res.partner"]
     cr.execute(
         """
@@ -95,6 +123,8 @@ def migrate(cr, version):
                AND work_email IS NOT NULL
         """
     )
-    for work_email, employee_name, employee_id in cr.fetchall():
+    for work_email, employee_name, employee_id in util.log_progress(
+        cr.fetchall(), util._logger, qualifier="employees", size=cr.rowcount
+    ):
         partner = Partner.find_or_create(f"{employee_name} <{work_email}>", assert_valid_email=False)
         cr.execute("UPDATE hr_employee SET work_contact_id = %s WHERE id = %s", [partner.id, employee_id])
