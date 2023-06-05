@@ -6,6 +6,7 @@ from . import (
     test_manual_fields_start_with_x_,
     test_mock_crawl,
     test_module_state,
+    test_moved0,
     test_read_group_refactor,
     test_res_partner_bank,
     test_translate,
