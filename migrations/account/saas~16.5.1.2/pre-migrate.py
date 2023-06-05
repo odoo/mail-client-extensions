@@ -18,3 +18,5 @@ def migrate(cr, version):
                WHERE (reconciled IS NULL OR reconciled = false OR reconciled IS NOT true) AND parent_state = 'posted'
     """
     )
+
+    util.convert_field_to_translatable(cr, "account.reconcile.model.line", "label")
