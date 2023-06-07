@@ -50,6 +50,17 @@ def get_id(rec, name):
     return getattr(rec, name)
 
 
+if util.version_gte("saas~16.4"):
+
+    def read_display_name(recordset):
+        recordset.mapped("display_name")
+
+else:
+
+    def read_display_name(recordset):
+        recordset.name_get()
+
+
 class TestCrawler(IntegrityCase):
     view_tracebacks = {}
 
@@ -401,7 +412,7 @@ class TestCrawler(IntegrityCase):
             record = records[i]
             [data] = record.read(fields_list)
             for fname in relation_fields_to_read:
-                model.env[model._fields[fname].comodel_name].browse(data[fname]).sudo().name_get()
+                read_display_name(model.env[model._fields[fname].comodel_name].browse(data[fname]).sudo())
 
             processed_data = {}
             for fname, value in data.items():
@@ -427,7 +438,7 @@ class TestCrawler(IntegrityCase):
                             fields_to_read.append(options["fold_field"])
 
                     values = self.env[field.comodel_name].search_read(domain, fields_to_read)
-                    self.env[field.comodel_name].browse([value["id"] for value in values]).name_get()
+                    read_display_name(self.env[field.comodel_name].browse([value["id"] for value in values]))
 
             for node in view.xpath("//field[@widget='selection']"):
                 sel_model = model
@@ -536,7 +547,7 @@ class TestCrawler(IntegrityCase):
             for fname, values in relation_fields_to_read.items():
                 values.update(d for r in data for d in r[fname])
         for fname, values in relation_fields_to_read.items():
-            model.env[model._fields[fname].comodel_name].browse(values).sudo().name_get()
+            read_display_name(model.env[model._fields[fname].comodel_name].browse(values).sudo())
 
     def mock_web_read_group(self, model, view, domain, group_by, fields_list, limit=80, limit_group=None):
         _logger.info("read_group, %s, %s, %s", model, domain, group_by)
@@ -557,7 +568,7 @@ class TestCrawler(IntegrityCase):
         field = model._fields[fname]
         if field.comodel_name:
             groups = [group[group_by][0] for group in data if group[group_by]]
-            model.env[field.comodel_name].browse(groups).sudo().name_get()
+            read_display_name(model.env[field.comodel_name].browse(groups).sudo())
 
         # Get the data in each group
         for group in data:
