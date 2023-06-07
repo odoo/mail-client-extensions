@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
@@ -55,8 +57,11 @@ class TestMigrateKanbanStateTrackingValues(UpgradeCase):
         self.assertTrue(trackings.exists())
 
         blocked_tracking, done_tracking = trackings
+        tracking_fname = "field_id" if util.column_exists(self.cr, "mail_tracking_value", "field_id") else "field"
         self.assertEqual(
-            blocked_tracking.field, state_field, "The field linked to the tracking should now be the state field"
+            blocked_tracking[tracking_fname],
+            state_field,
+            "The field linked to the tracking should now be the state field",
         )
         self.assertEqual(
             blocked_tracking.old_value_char,
@@ -70,7 +75,7 @@ class TestMigrateKanbanStateTrackingValues(UpgradeCase):
         )
 
         self.assertEqual(
-            done_tracking.field, state_field, "The field linked to the tracking should now be the state field"
+            done_tracking[tracking_fname], state_field, "The field linked to the tracking should now be the state field"
         )
         self.assertEqual(
             done_tracking.old_value_char,

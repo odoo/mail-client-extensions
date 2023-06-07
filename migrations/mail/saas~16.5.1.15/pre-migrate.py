@@ -4,6 +4,26 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "mail_tracking_value", "fields_info", "text")
+
+    # move *_monetary values into *_float, as they are the same type in DB
+    util.explode_execute(
+        cr,
+        """
+            UPDATE mail_tracking_value
+               SET old_value_float = old_value_monetary,
+                   new_value_float = new_value_monetary
+             WHERE field_type = 'monetary'
+        """,
+        table="mail_tracking_value",
+    )
+    util.rename_field(cr, "mail.tracking.value", "field", "field_id")
+    util.remove_field(cr, "mail.tracking.value", "field_desc")
+    util.remove_field(cr, "mail.tracking.value", "field_type")
+    util.remove_field(cr, "mail.tracking.value", "old_value_monetary")
+    util.remove_field(cr, "mail.tracking.value", "new_value_monetary")
+    util.remove_field(cr, "mail.tracking.value", "tracking_sequence")
+
     # alias views renaming
     for pre, post in [
         ("view_mail_alias_form", "mail_alias_view_form"),

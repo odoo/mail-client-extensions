@@ -48,7 +48,8 @@ def migrate(cr, version):
     # Last way to find a helpdesk team for the remaining helpdesk stage without any helpdesk
     # team linked is the search in the tracking values of stage_id in helpdesk ticket to find a
     # ticket whom was in that stage.
-    query = """
+    tracking_fname = "field_id" if util.column_exists(cr, "mail_tracking_value", "field_id") else "field"
+    query = f"""
         WITH stage_without_team AS (
                SELECT s.id
                  FROM helpdesk_stage s
@@ -67,7 +68,7 @@ def migrate(cr, version):
               JOIN mail_tracking_value mtv
                 ON mm.id = mtv.mail_message_id
               JOIN ir_model_fields imf
-                ON mtv.field = imf.id
+                ON mtv.{tracking_fname} = imf.id
                AND imf.name = 'stage_id'
                AND imf.model = 'helpdesk.ticket'
              WHERE t.team_id IS NOT NULL
