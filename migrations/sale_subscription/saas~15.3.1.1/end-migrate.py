@@ -133,7 +133,7 @@ def migrate(cr, version):
     )
     sol_ids = [sol_id[0] for sol_id in cr.fetchall()]
 
-    util.recompute_fields(cr, "sale.order.line", ["tax_id", "price_tax", "price_total"], ids=sol_ids)
+    util.recompute_fields(cr, "sale.order.line", ["tax_id", "price_tax", "price_total"], ids=sol_ids, strategy="commit")
 
     cr.execute("SELECT id FROM sale_order WHERE is_subscription=true AND old_subscription_id IS NOT NULL")
     so_ids = [so_id[0] for so_id in cr.fetchall()]
