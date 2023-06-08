@@ -123,6 +123,9 @@ def migrate(cr, version):
     """
     popups_to_move = remove_and_get_popup(cr)
     for website_id, popups in popups_to_move.items():
+        if not popups:
+            continue
+
         shared_blocks_view_id, shared_blocks_view_arch = get_or_create_cow_shared_blocks_view(cr, website_id)
         shared_blocks_new_arch_db = []
         for lang, popups_html_localized in popups.items():
