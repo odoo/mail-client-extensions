@@ -33,3 +33,5 @@ def migrate(cr, version):
     util.remove_field(cr, "bank.rec.widget", "next_action_todo")
     util.remove_field(cr, "bank.rec.widget", "reco_models_widget")
     util.rename_field(cr, "bank.rec.widget", "to_check", "st_line_to_check")
+    util.remove_record(cr, "account_accountant.action_move_line_posted_unreconciled")
+    util.remove_menus(cr, [util.ref(cr, "account_accountant.menu_action_move_line_posted_unreconciled")])
