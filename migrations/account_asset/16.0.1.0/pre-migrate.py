@@ -181,6 +181,22 @@ def migrate(cr, version):
     """
     )
 
+    # Imported amount has changed from being an amount to just not depreciate, to now an amount that impacts if the first
+    # depreciation should appear
+    query = """
+        UPDATE account_asset
+           SET prorata_date = prorata_date -
+                              INTERVAL '1 month' *  (
+                                                     method_number
+                                                     * ((original_value - COALESCE(salvage_value, 0)) / already_depreciated_amount_import - 1)
+                                                    )::integer
+                                                 * method_period::integer,
+               method_number = (method_number * (original_value - COALESCE(salvage_value, 0)) / already_depreciated_amount_import)::integer
+         WHERE {parallel_filter} AND already_depreciated_amount_import != 0
+    """
+
+    util.explode_execute(cr, query, "account_asset")
+
     util.remove_field(cr, "account.asset", "prorata")
     util.remove_field(cr, "account.asset", "first_depreciation_date")
     util.remove_field(cr, "account.asset", "display_model_choice")
