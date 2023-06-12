@@ -28,7 +28,6 @@ def search_new_account_code(cr, company_id, digits, prefix):
 
 
 def migrate(cr, version):
-
     util.recompute_fields(cr, "account.bank.statement.line", ["amount_residual", "is_reconciled"])
 
     env = util.env(cr)
@@ -333,7 +332,6 @@ def migrate(cr, version):
         )
 
     with no_fiscal_lock(cr):
-
         # ===== Draft/cancelled account.payment =====
         env["account.payment"].flush()
         created_move_ids = set()
@@ -456,7 +454,22 @@ def migrate(cr, version):
         # ===== Draft account.bank.statement.line =====
 
         # Create account.move for 'draft' statement line.
+        cr.commit()
         cr.execute(
+            # use same joins as below to get **exactly** the same number of records
+            """
+            SELECT count(*)
+            FROM account_bank_statement_line_pre_backup st_line_backup
+            JOIN account_bank_statement_line st_line ON st_line.id = st_line_backup.id
+            JOIN account_journal journal ON journal.id = st_line.journal_id
+            JOIN res_company company ON company.id = journal.company_id
+            WHERE st_line.move_id IS NULL
+            """
+        )
+        stl_total = cr.fetchone()[0]
+
+        ncr = util.named_cursor(cr)
+        ncr.execute(
             """
             SELECT
                 st_line_backup.ref,
@@ -475,9 +488,18 @@ def migrate(cr, version):
             """
         )
 
-        _logger.info("Creating %d moves for draft statement lines", cr.rowcount)
+        chunk_size = 1000
+        nbr_chunks = (stl_total - 1) // chunk_size + 1
 
-        for data in util.chunks(cr.dictfetchall(), size=48, fmt=list):
+        def chunks():
+            info = ncr.dictfetchmany(chunk_size)
+            while info:
+                yield info
+                info = ncr.dictfetchmany(chunk_size)
+
+        _logger.info("Creating %d moves for draft statement lines", stl_total)
+
+        for data in util.log_progress(chunks(), util._logger, size=nbr_chunks, qualifier="chunks"):
             moves = env["account.move"].with_context(**ctx).create(data)
 
             query = """
@@ -524,6 +546,8 @@ def migrate(cr, version):
             env["account.move.line"].with_context(**ctx).create(move_lines_to_create)
 
             env["account.move.line"].flush()
+
+        ncr.close()
 
         # ===== Synchronize account.bank.statement.line <=> account.move =====
 
