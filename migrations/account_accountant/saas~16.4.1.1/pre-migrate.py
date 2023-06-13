@@ -1,0 +1,35 @@
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.remove_view(cr, "account_accountant.view_bank_rec_widget_form")
+
+    util.remove_inherit_from_model(cr, "bank.rec.widget", "analytic.mixin")
+
+    util.remove_field(cr, "bank.rec.widget", "amls_widget")
+    util.remove_field(cr, "bank.rec.widget", "form_account_id")
+    util.remove_field(cr, "bank.rec.widget", "form_amount_currency")
+    util.remove_field(cr, "bank.rec.widget", "form_balance")
+    util.remove_field(cr, "bank.rec.widget", "form_currency_id")
+    util.remove_field(cr, "bank.rec.widget", "form_date")
+    util.remove_field(cr, "bank.rec.widget", "form_extra_text")
+    util.remove_field(cr, "bank.rec.widget", "form_flag")
+    util.remove_field(cr, "bank.rec.widget", "form_force_negative_sign")
+    util.remove_field(cr, "bank.rec.widget", "form_name")
+    util.remove_field(cr, "bank.rec.widget", "form_notes")
+    util.remove_field(cr, "bank.rec.widget", "form_partner_currency_id")
+    util.remove_field(cr, "bank.rec.widget", "form_partner_id")
+    util.remove_field(cr, "bank.rec.widget", "form_partner_payable_account_id")
+    util.remove_field(cr, "bank.rec.widget", "form_partner_payable_amount")
+    util.remove_field(cr, "bank.rec.widget", "form_partner_receivable_account_id")
+    util.remove_field(cr, "bank.rec.widget", "form_partner_receivable_amount")
+    util.remove_field(cr, "bank.rec.widget", "form_ref")
+    util.remove_field(cr, "bank.rec.widget", "form_single_currency_mode")
+    util.remove_field(cr, "bank.rec.widget", "form_suggest_amount_currency")
+    util.remove_field(cr, "bank.rec.widget", "form_suggest_balance")
+    util.remove_field(cr, "bank.rec.widget", "form_tax_ids")
+    util.remove_field(cr, "bank.rec.widget", "form_transaction_details")
+    util.remove_field(cr, "bank.rec.widget", "lines_widget")
+    util.remove_field(cr, "bank.rec.widget", "next_action_todo")
+    util.remove_field(cr, "bank.rec.widget", "reco_models_widget")
+    util.rename_field(cr, "bank.rec.widget", "to_check", "st_line_to_check")
