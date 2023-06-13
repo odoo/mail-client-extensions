@@ -172,14 +172,13 @@ def migrate(cr, version):
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, "account_move", alias="move"))
 
-    cr.execute(
-        """
+    query = """
         UPDATE account_asset asset
            SET account_depreciation_id = account_depreciation_expense_id,
                account_depreciation_expense_id = account_depreciation_id
          WHERE asset_type = 'sale'
     """
-    )
+    util.explode_execute(cr, query, "account_asset", alias="asset")
 
     # Imported amount has changed from being an amount to just not depreciate, to now an amount that impacts if the first
     # depreciation should appear
