@@ -7,7 +7,6 @@ from odoo.upgrade.util.accounting import upgrade_analytic_distribution
 
 
 def migrate(cr, version):
-
     upgrade_analytic_distribution(
         cr,
         model="account.asset",
@@ -19,11 +18,6 @@ def migrate(cr, version):
     assert isinstance(DAYS_PER_MONTH, int)
     assert isinstance(DAYS_PER_YEAR, int)
     util.create_column(cr, "account_asset", "prorata_computation_type", "varchar", default="none")
-    constant_period_query = """
-        UPDATE account_asset
-        SET prorata_computation_type = 'constant_periods'
-        WHERE prorata IS TRUE
-    """
     cr.execute(
         """
         CREATE FUNCTION is_leap(y integer) RETURNS boolean
@@ -43,27 +37,31 @@ def migrate(cr, version):
     fiscal_year_query = """
         UPDATE account_asset AS asset
            -- make_date_leap is a function created before on this script
-           SET prorata_date = make_date_leap(
-                   extract(YEAR FROM asset.acquisition_date)::int -
-                   CASE
-                       WHEN make_date_leap(
-                                extract(YEAR FROM asset.acquisition_date)::int,
-                                company.fiscalyear_last_month::int,
-                                company.fiscalyear_last_day
-                            ) < asset.acquisition_date
-                       THEN 0 -- if fiscal last date before asset date, use same year (N)
-                       ELSE 1 -- else use previous year (N - 1)
-                   END,
-                   company.fiscalyear_last_month::int,
-                   company.fiscalyear_last_day
-                ) + INTERVAL '1 day'
+           SET prorata_date =
+           CASE
+               WHEN method_period = '12'
+               THEN make_date_leap(
+                       extract(YEAR FROM asset.first_depreciation_date)::int -
+                       CASE
+                           WHEN make_date_leap(
+                                    extract(YEAR FROM asset.first_depreciation_date)::int,
+                                    company.fiscalyear_last_month::int,
+                                    company.fiscalyear_last_day
+                                ) < asset.first_depreciation_date
+                           THEN 0 -- if fiscal last date before asset date, use same year (N)
+                           ELSE 1 -- else use previous year (N - 1)
+                       END,
+                       company.fiscalyear_last_month::int,
+                       company.fiscalyear_last_day
+                    ) + INTERVAL '1 day'
+                ELSE DATE(DATE_TRUNC('month', asset.first_depreciation_date))
+           END
           FROM res_company AS company
          WHERE asset.company_id = company.id
            AND asset.prorata IS NOT TRUE
     """
-    constant_period_queries = util.explode_query_range(cr, constant_period_query, "account_asset")
-    fiscal_year_queries = util.explode_query_range(cr, fiscal_year_query, "account_asset", alias="asset")
-    util.parallel_execute(cr, [*constant_period_queries, *fiscal_year_queries])
+    util.explode_execute(cr, fiscal_year_query, "account_asset", alias="asset")
+
     cr.execute(
         """
         DROP FUNCTION make_date_leap;
@@ -84,8 +82,7 @@ def migrate(cr, version):
                    COALESCE(LAG(move.date) OVER (
                         PARTITION BY move.asset_id
                         ORDER BY move.date
-                    ) + INTERVAL '1 day', asset.prorata_date)::DATE AS computed_beginning_date,
-                    asset.prorata_computation_type
+                    ) + INTERVAL '1 day', asset.prorata_date)::DATE AS computed_beginning_date
               FROM account_asset AS asset
               JOIN account_move AS move ON asset.id = move.asset_id
               WHERE {{parallel_filter}}
@@ -195,6 +192,13 @@ def migrate(cr, version):
     """
 
     util.explode_execute(cr, query, "account_asset")
+
+    constant_period_query = """
+        UPDATE account_asset
+           SET prorata_computation_type = 'constant_periods'
+         WHERE (prorata IS TRUE OR prorata_date != acquisition_date)
+    """
+    util.explode_execute(cr, constant_period_query, "account_asset")
 
     util.remove_field(cr, "account.asset", "prorata")
     util.remove_field(cr, "account.asset", "first_depreciation_date")
