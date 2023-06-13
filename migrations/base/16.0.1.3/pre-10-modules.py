@@ -64,7 +64,6 @@ def migrate(cr, version):
 
     util.remove_module(cr, "l10n_nl_report_intrastat")
     util.remove_module(cr, "l10n_es_reports_2021")
-    util.remove_module(cr, "l10n_es_reports_2023")
 
     util.rename_module(cr, "payment_test", "payment_demo")
     util.rename_module(cr, "payment_transfer", "payment_custom")

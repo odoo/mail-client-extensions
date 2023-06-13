@@ -66,3 +66,7 @@ def migrate(cr, version):
         util.remove_module(cr, "delivery_barcode")
         util.remove_module(cr, "sale_subscription_timesheet")
         util.force_upgrade_of_fresh_module(cr, "sale_temporal")
+
+    if util.has_enterprise():
+        util.remove_module(cr, "l10n_es_reports_2023")
+        util.remove_module(cr, "l10n_es_reports_2023_2")
