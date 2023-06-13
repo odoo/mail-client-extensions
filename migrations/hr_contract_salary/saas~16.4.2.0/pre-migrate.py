@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -20,3 +21,8 @@ def migrate(cr, version):
                AND i.name ~ '^employee_id\.(street|street2|city|zip|state_id|country_id|email|phone)\y'
             """
     )
+
+    util.remove_field(cr, "hr.applicant", "access_token")
+    util.remove_field(cr, "hr.applicant", "access_token_end_date")
+    util.remove_field(cr, "hr.employee", "salary_simulator_link_end_validity")
+    util.remove_field(cr, "generate.simulation.link", "url")
