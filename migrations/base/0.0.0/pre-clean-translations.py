@@ -12,5 +12,6 @@ def migrate(cr, version):
          WHERE lang IS NULL
             OR COALESCE(value, '') = ''
             OR (value = src AND type IS DISTINCT FROM 'model')
+            OR (src IS NULL AND type = 'model_terms')
         """
     )
