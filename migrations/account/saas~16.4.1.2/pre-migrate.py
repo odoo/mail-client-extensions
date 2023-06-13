@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from odoo.upgrade import util
 
 
@@ -16,6 +17,7 @@ def migrate(cr, version):
     util.remove_view(cr, "account.onboarding_sale_tax_step")
 
     util.remove_record(cr, "account.action_open_account_onboarding_create_invoice")
+    util.create_column(cr, "account_move", "incoterm_location", "varchar")
 
     if util.module_installed(cr, "l10n_sa"):
         util.move_field_to_module(cr, "account.move", "l10n_sa_delivery_date", "l10n_sa", "account")
