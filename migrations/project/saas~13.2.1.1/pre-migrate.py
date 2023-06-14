@@ -58,6 +58,7 @@ def migrate(cr, version):
              SELECT t.id, r.res_users_id
                FROM project_allowed_portal_users_rel r
                JOIN project_task t ON t.project_id = r.project_project_id
+        ON CONFLICT DO NOTHING
     """
     )
 
