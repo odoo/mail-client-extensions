@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 from odoo.addons.base.maintenance.migrations.util import module_installed
 
 
-@change_version("14.3")
+@change_version("saas~14.3")
 class TestHRExpenseSheetPaymentStatus(UpgradeCase):
     def prepare(self):
         company = self.env["res.company"].create({"name": "company for TestHRExpenseSheetPaymentStatus"})
@@ -135,7 +135,7 @@ class TestHRExpenseSheetPaymentStatus(UpgradeCase):
         in_payment_state = "in_payment" if module_installed(self.env.cr, "account_accountant") else "paid"
         self.assertEqual(next(data_ids).payment_state, "not_paid")
         self.assertEqual(next(data_ids).payment_state, "not_paid")
-        self.assertEqual(next(data_ids).payment_state, "partial")
-        self.assertEqual(next(data_ids).payment_state, "partial")
+        self.assertEqual(next(data_ids).payment_state, in_payment_state)
+        self.assertEqual(next(data_ids).payment_state, in_payment_state)
         self.assertEqual(next(data_ids).payment_state, in_payment_state)
         self.assertEqual(next(data_ids).payment_state, "paid")
