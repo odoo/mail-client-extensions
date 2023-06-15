@@ -12,3 +12,4 @@ def migrate(cr, version):
     util.update_record_from_xml(cr, "hr_contract_salary.hr_contract_salary_personal_info_country")
     util.update_record_from_xml(cr, "hr_contract_salary.hr_contract_salary_personal_info_email")
     util.update_record_from_xml(cr, "hr_contract_salary.hr_contract_salary_personal_info_phone")
+    util.update_record_from_xml(cr, "hr_contract_salary.hr_contract_salary_personal_info_image_1920")
