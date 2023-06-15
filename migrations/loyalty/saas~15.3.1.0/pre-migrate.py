@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+
 from psycopg2.extras import execute_values
 
 from odoo import modules
@@ -15,12 +17,16 @@ def migrate(cr, version):
     has_coupon = has_gift_card = has_pos_loyalty = False
     if util.table_exists(cr, "coupon_program"):
         has_coupon = True
+        # Renamed coupon_program translations to ensure their preservation during the merging of models, which occurs prior to the migration of translations.
+        cr.execute("UPDATE ir_translation SET name = 'temp_coupon_name' WHERE name = 'coupon.program,name'")
     if util.table_exists(cr, "gift_card"):
         has_gift_card = True
     if util.table_exists(cr, "loyalty_program"):
         has_pos_loyalty = True
         global has_loyalty_models
         has_loyalty_models = True
+        # In order to safeguard loyalty_program translations from being lost during the merging of models, we opt to rename them prior to the migration process.
+        cr.execute("UPDATE ir_translation SET name = 'temp_loyalty_name' WHERE name = 'loyalty.program,name'")
         # Since the old pos_loyalty and loyalty's models share some common name
         #  rename the old tables for the migration
         util.rename_model(cr, "loyalty.program", "pos.loyalty.program")
@@ -254,6 +260,7 @@ def _coupon_migrate(cr):
     )
     mapping = dict(cr.fetchall())
     if mapping and _check_mapping(mapping):
+        _remap_translation(cr, old_name="temp_coupon_name", mapping=mapping, new_name="loyalty.program,name")
         util.replace_record_references_batch(cr, mapping, "loyalty.program")
     # loyalty.rule
     cr.execute(
@@ -627,6 +634,7 @@ def _pos_loyalty_migrate(cr):
     )
     mapping = dict(cr.fetchall())
     if mapping and _check_mapping(mapping):
+        _remap_translation(cr, old_name="temp_loyalty_name", mapping=mapping, new_name="loyalty.program,name")
         util.replace_record_references_batch(cr, mapping, model_src="pos.loyalty.program", model_dst="loyalty.program")
     # loyalty.rule
     # Since rules could previously give points for both units paid and money spent at the same time
@@ -892,3 +900,31 @@ def _create_loyalty_tables(cr):
         )
         """
     )
+
+
+def _remap_translation(cr, old_name, mapping, new_name):
+    # During remapping, unordered records can cause unique constraint failures. To avoid this, the temp_res_id field is used.
+    util.create_column(cr, "ir_translation", "temp_res_id", "int4")
+    util.explode_execute(
+        cr,
+        cr.mogrify(
+            "UPDATE ir_translation SET temp_res_id = res_id, res_id = NULL WHERE name = %s",
+            [old_name],
+        ).decode(),
+        table="ir_translation",
+    )
+    queries = [
+        cr.mogrify(
+            """
+        UPDATE ir_translation
+           SET res_id = (%s::jsonb->>temp_res_id::text)::int,
+               name = %s
+         WHERE temp_res_id IN %s
+           AND name = %s
+        """,
+            [json.dumps(chunk_dict), new_name, tuple(chunk_dict), old_name],
+        ).decode()
+        for chunk_dict in util.chunks(mapping.items(), 5000, dict)
+    ]
+    util.parallel_execute(cr, queries)
+    util.remove_column(cr, "ir_translation", "temp_res_id")
