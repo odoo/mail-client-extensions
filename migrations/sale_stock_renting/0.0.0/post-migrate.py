@@ -6,7 +6,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # Force the post_init_hook configuration
-    if util.version_gte("saas~16.1"):
+    if util.version_gte("saas~16.2"):
         env = util.env(cr)
         _ensure_rental_stock_moves_consistency(env)
 
