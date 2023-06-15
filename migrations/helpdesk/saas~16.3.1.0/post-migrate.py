@@ -12,5 +12,5 @@ def migrate(cr, version):
         """
     )
     if cr.rowcount:
-        helpdesk_user_group = util.ref(cr, "helpdesk.group_helpdesk_user")
+        helpdesk_user_group = util.env(cr)["res.groups"].browse(util.ref(cr, "helpdesk.group_helpdesk_user"))
         helpdesk_user_group.write({"implied_ids": [(4, util.ref(cr, "helpdesk.group_auto_assignment"))]})
