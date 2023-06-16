@@ -15,6 +15,7 @@ def migrate(cr, version):
           JOIN note_tags_rel nt
             ON nt.note_id = n.id
          WHERE nt.tag_id = %s
+           AND n.memo IS NOT NULL
     """,
         [note_tag],
     )
