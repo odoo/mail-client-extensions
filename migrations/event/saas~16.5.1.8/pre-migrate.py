@@ -75,3 +75,10 @@ def migrate(cr, version):
 
             cr.execute(upd_query, [psycopg2.extras.Json(data), tuple(data)])
             cr.execute(dup_query)
+
+    util.remove_field(cr, "event.event", "auto_confirm")
+    util.remove_field(cr, "event.type", "auto_confirm")
+    util.remove_field(cr, "event.event", "seats_unconfirmed")
+    util.remove_field(cr, "event.type.ticket", "seats_unconfirmed")
+    util.rename_field(cr, "event.event", "seats_expected", "seats_taken")
+    util.rename_field(cr, "event.type.ticket", "seats_expected", "seats_taken")

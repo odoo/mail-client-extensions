@@ -25,27 +25,32 @@ class TestPhoneMobileMerge(UpgradeCase):
                     "event_id": event.id,
                     "name": "Phone only",
                     "phone": "+32456000000",
+                    "state": "open",
                 },
                 {
                     "event_id": event.id,
                     "name": "Mobile only",
                     "mobile": "+32456000011",
+                    "state": "open",
                 },
                 {
                     "event_id": event.id,
                     "name": "Both (same)",
                     "mobile": "+32456000022",
                     "phone": "+32456000022",
+                    "state": "open",
                 },
                 {
                     "event_id": event.id,
                     "name": "Both (different)",  # only expected log
                     "mobile": "+32456000033",
                     "phone": "+32456000044",
+                    "state": "open",
                 },
                 {
                     "event_id": event.id,
                     "name": "None",
+                    "state": "open",
                 },
             ]
         )
@@ -55,7 +60,7 @@ class TestPhoneMobileMerge(UpgradeCase):
         registrations = self.env["event.registration"].browse(init["registrations_ids"])
 
         expected_phone_all = ["+32456000000", "+32456000011", "+32456000022", "+32456000044", False]
-        expected_msg_len_all = [1, 1, 1, 2, 1]  # creation message + 1 with log
+        expected_msg_len_all = [2, 2, 2, 3, 2]  # creation message and event ticket + 1 with log
         for registration, expected_phone, expected_msg_len in zip(
             registrations, expected_phone_all, expected_msg_len_all
         ):
@@ -64,8 +69,10 @@ class TestPhoneMobileMerge(UpgradeCase):
                 self.assertEqual(registration.phone, expected_phone)
                 self.assertEqual(len(registration.message_ids), expected_msg_len, f"Log error: {debug_info}")
                 # both different -> log message
-                if expected_msg_len == 2:
-                    self.assertIn(
-                        "Mobile number +32456000033 removed in favor of phone number",
-                        registration.message_ids[0].body,
+                if expected_msg_len == 3:
+                    self.assertTrue(
+                        any(
+                            "Mobile number +32456000033 removed in favor of phone number" in message.body
+                            for message in registration.message_ids
+                        )
                     )
