@@ -131,6 +131,7 @@ def migrate(cr, version):
                        JOIN account_account_tag base_tag
                             ON base_tag.id = ref_base_tag.res_id
                       WHERE invoice_rep_line_base.id IS NOT NULL OR refund_rep_line_base.id IS NOT NULL
+                         ON CONFLICT DO NOTHING
             """,
             (tax_tag, base_tax_tag),
         )
