@@ -135,7 +135,7 @@ class TestHRExpenseSheetPaymentStatus(UpgradeCase):
         in_payment_state = "in_payment" if module_installed(self.env.cr, "account_accountant") else "paid"
         self.assertEqual(next(data_ids).payment_state, "not_paid")
         self.assertEqual(next(data_ids).payment_state, "not_paid")
-        self.assertEqual(next(data_ids).payment_state, in_payment_state)
-        self.assertEqual(next(data_ids).payment_state, in_payment_state)
+        self.assertEqual(next(data_ids).payment_state, "partial")
+        self.assertEqual(next(data_ids).payment_state, "partial")
         self.assertEqual(next(data_ids).payment_state, in_payment_state)
         self.assertEqual(next(data_ids).payment_state, "paid")

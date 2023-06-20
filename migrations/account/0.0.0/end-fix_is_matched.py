@@ -14,17 +14,24 @@ def migrate(cr, version):
 
     cr.execute(
         """
-               SELECT array_agg(ap.id)
-                 FROM account_payment ap
-                 JOIN account_move am ON am.payment_id = ap.id
-                 JOIN account_journal aj ON aj.id = am.journal_id
-                 {}
-                WHERE ap.is_matched IS FALSE
-                  AND aj.type IN ('bank', 'cash')
-                  {}
-               """.format(
+        SELECT ap.payment_type,
+               array_agg(ap.id)
+          FROM account_payment ap
+          JOIN account_move am ON am.payment_id = ap.id
+          JOIN account_journal aj ON aj.id = am.journal_id
+          {}
+         WHERE ap.is_matched IS False
+           AND aj.type IN ('bank', 'cash')
+           AND am.state = 'posted'
+           AND ap.is_reconciled IS False
+           {}
+         GROUP BY ap.payment_type
+        """.format(
             extra_join, extra_where
         )
     )
-    payment_ids = cr.fetchone()[0] or []
-    util.iter_browse(env["account.payment"], payment_ids)._compute_reconciliation_status()
+    for payment_type, payment_ids in cr.fetchall():
+        if not payment_ids:
+            continue
+        util._logger.info("Recomputing is_matched for %s not reconciled %s payments", len(payment_ids), payment_type)
+        util.iter_browse(env["account.payment"], payment_ids, strategy="commit")._compute_reconciliation_status()
