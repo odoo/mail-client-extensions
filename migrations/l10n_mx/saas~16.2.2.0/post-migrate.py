@@ -15,8 +15,9 @@ def migrate(cr, version):
     )
 
     # Make sure all taxes/tags are updated.
-    for company in env['res.company'].search([('chart_template', '=', 'mx')]):
-        env['account.chart.template'].try_loading('mx', company=company, install_demo=False)
+    CoA = env["account.chart.template"].with_context(_upgrade_l10n_mx_optim=True)
+    for company in env["res.company"].search([("chart_template", "=", "mx")]):
+        CoA.try_loading("mx", company=company, install_demo=False)
 
     tags_to_migrate = [
         ("tag_diot_16", "+DIOT: 16%"),
@@ -95,3 +96,8 @@ def migrate(cr, version):
     # Drop temporary migration tables.
     cr.execute("DROP TABLE l10n_mx_aml_with_tags_to_replace")
     cr.execute("DROP TABLE l10n_mx_tax_id_with_tag_diot_ret")
+
+    ids = util.ENVIRON.get("upg_to_recompute", set())
+    if ids:
+        util._logger.info("Recomputing %s moves", len(ids))
+        util.recompute_fields(cr, "account.move", ["always_tax_exigible"], ids=list(ids))
