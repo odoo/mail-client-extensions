@@ -63,3 +63,5 @@ def migrate(cr, version):
         "ir_cron_web_push_notification_ir_actions_server",
     ]:
         util.rename_xmlid(cr, f"mail_enterprise.{xml_id}", f"mail.{xml_id}", on_collision="merge")
+
+    util.remove_record(cr, "auth_signup.reset_password_email")
