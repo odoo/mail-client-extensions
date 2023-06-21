@@ -6,6 +6,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # Force the post_init_hook configuration
+    cr.execute("SELECT 1 FROM ir_module_module WHERE name = 'sale_stock_renting' AND demo")
+    if not cr.rowcount:
+        return
     if util.version_gte("saas~16.2"):
         env = util.env(cr)
         _ensure_rental_stock_moves_consistency(env)
