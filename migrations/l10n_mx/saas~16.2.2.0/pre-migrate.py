@@ -79,6 +79,15 @@ def migrate(cr, version):
       """
     )
 
+    # Delete records for tags and  account_tax_repartion_lines to migrate.
+    cr.execute(
+        """
+        DELETE FROM account_account_tag_account_tax_repartition_line_rel
+              WHERE account_account_tag_id IN %s
+        """,
+        [tuple(old_tag_ids)],
+    )
+
     # Remove old tags.
     for tag in tags_to_migrate:
         util.remove_record(cr, f"l10n_mx.{tag}")
