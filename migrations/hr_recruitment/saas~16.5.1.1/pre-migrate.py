@@ -17,3 +17,4 @@ def migrate(cr, version):
     )
     util.create_column(cr, "hr_applicant", "partner_phone_sanitized", "varchar")
     util.create_column(cr, "hr_applicant", "partner_mobile_sanitized", "varchar")
+    util.remove_field(cr, "hr.job", "hr_responsible_id")
