@@ -10,3 +10,4 @@ def migrate(cr, version):
     util.change_field_selection_values(cr, "account.move", "l10n_mx_edi_usage", {"P01": "S01"})
     util.remove_view(cr, "l10n_mx_edi.account_move_form_inherit_l10n_mx_edi")
     util.remove_view(cr, "l10n_mx_edi.l10n_mx_edi_inh_40_res_partner_form")
+    util.remove_view(cr, "l10n_mx_edi.report_invoice_document_mx_40")
