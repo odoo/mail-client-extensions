@@ -60,6 +60,7 @@ def migrate(cr, version):
                         CASE WHEN repl.debit > 0 THEN %s ELSE %s END
                     FROM l10n_mx_aml_with_tags_to_replace AS repl
                     WHERE repl.xmlid = %s
+                ON CONFLICT DO NOTHING
                 """,
                 [
                     map_tags_name_to_id[tag_name],
