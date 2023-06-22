@@ -32,6 +32,16 @@ def migrate(cr, version):
              LIMIT 1            """
         )
         if not cr.rowcount:
+            cr.execute(
+                """
+                DELETE FROM ir_model_data xid
+                      USING mail_activity a
+                      WHERE xid.model = 'mail.activity.type'
+                        AND xid.module = 'note'
+                        AND xid.name = 'mail_activity_data_reminder's
+                        AND xid.res_id = a.activity_type_id
+                """
+            )
             util.uninstall_module(cr, "note")
     util.rename_module(cr, "note", "project_todo")
 
