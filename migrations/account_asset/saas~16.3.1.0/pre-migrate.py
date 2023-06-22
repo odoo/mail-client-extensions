@@ -30,6 +30,7 @@ def migrate(cr, version):
                  SELECT original.move_id, deferred.move_id
                    FROM original
                    JOIN deferred ON original.asset_id = deferred.asset_id
+            ON CONFLICT DO NOTHING
         """
     )
     cr.execute(
