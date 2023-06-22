@@ -279,3 +279,12 @@ def migrate(cr, version):
         """,
         [converted_note_tag_id],
     )
+
+    # Manually deleting unused xmlids
+    util.delete_unused(
+        cr,
+        "project_todo.note_stage_00",
+        "project_todo.note_stage_01",
+        "project_todo.note_stage_02",
+        "project_todo.note_stage_03",
+    )
