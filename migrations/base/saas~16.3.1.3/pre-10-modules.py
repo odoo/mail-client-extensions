@@ -38,7 +38,7 @@ def migrate(cr, version):
                       USING mail_activity a
                       WHERE xid.model = 'mail.activity.type'
                         AND xid.module = 'note'
-                        AND xid.name = 'mail_activity_data_reminder's
+                        AND xid.name = 'mail_activity_data_reminder'
                         AND xid.res_id = a.activity_type_id
                 """
             )
