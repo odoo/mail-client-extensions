@@ -34,7 +34,8 @@ def migrate(cr, version):
     util.merge_module(cr, "sale_gift_card", "sale_loyalty")
     # This is required in case only sale_gift_card was installed.
     util.force_upgrade_of_fresh_module(cr, "sale_loyalty")
-
+    if util.modules_installed(cr, "loyalty", "sale"):
+        util.force_install_module(cr, "sale_loyalty")
     util.rename_module(cr, "sale_coupon_delivery", "sale_loyalty_delivery")
     util.rename_module(cr, "sale_coupon_taxcloud", "sale_loyalty_taxcloud")
     util.rename_module(cr, "sale_coupon_taxcloud_delivery", "sale_loyalty_taxcloud_delivery")
