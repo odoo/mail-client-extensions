@@ -237,7 +237,7 @@ def migrate(cr, version):
 
     with no_fiscal_lock(cr):
         for move_id, vals in to_write.items():
-            env["account.move"].browse(move_id).write(vals)
+            util.iter_browse(env["account.move"], [move_id], strategy="commit").write(vals)
 
     # Again reconciled lines that unreconciled before.
     for lines in to_reconcile_line_ids:
