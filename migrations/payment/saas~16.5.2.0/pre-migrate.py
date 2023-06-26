@@ -15,6 +15,7 @@ def migrate(cr, version):
     util.remove_field(cr, "payment.link.wizard", "available_provider_ids")
     util.remove_field(cr, "payment.link.wizard", "has_multiple_providers")
     util.remove_field(cr, "payment.link.wizard", "payment_provider_selection")
+    util.remove_field(cr, "payment.link.wizard", "description")
 
     util.remove_view(cr, "payment.checkout")
     util.remove_view(cr, "payment.manage")
