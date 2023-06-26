@@ -21,6 +21,8 @@ def migrate(cr, version):
           LEFT JOIN team_stage_rel ts
                  ON ticket.stage_id = ts.helpdesk_stage_id
               WHERE ts.helpdesk_team_id IS NULL
+                AND ticket.team_id IS NOT NULL
+                AND ticket.stage_id IS NOT NULL
            GROUP BY ticket.stage_id,
                     ticket.team_id
     """
