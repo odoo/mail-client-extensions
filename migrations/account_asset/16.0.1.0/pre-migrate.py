@@ -177,20 +177,38 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, "account_asset", alias="asset")
 
-    # Imported amount has changed from being an amount to just not depreciate, to now an amount that impacts if the first
-    # depreciation should appear
+    # As of 16.0, the imported amount is considered in the depreciation computation.
+    # Until this point in the upgrade, the prorata_date has been computed to be the date at which odoo starts to
+    # depreciate the asset.
+    # We now want the prorata_date to be the date at which the asset was first depreciated INCLUDING the amount already
+    # depreciated in a previous software (already_depreciated_amount_import).
+    # In order to achieve this we shift the prorata_date by a certain number of period.
+    # This shift is determined by multiplying the number of period to be depreciated in Odoo by the following ratio:
+    # amount_already_depreciated_by_import / amount_to_depreciate_in_odoo
     query = """
         UPDATE account_asset
-           SET prorata_date = prorata_date -
-                              INTERVAL '1 month' *  (
-                                                     method_number
-                                                     * ((original_value - COALESCE(salvage_value, 0)) / already_depreciated_amount_import - 1)
-                                                    )::integer
-                                                 * method_period::integer,
-               method_number = (method_number * (original_value - COALESCE(salvage_value, 0)) / already_depreciated_amount_import)::integer
-         WHERE {parallel_filter} AND already_depreciated_amount_import != 0
+           SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * ROUND(
+                       method_number
+                       * (already_depreciated_amount_import / (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import))
+                   ),
+               method_number = ROUND(
+                       method_number *
+                       (1 + (already_depreciated_amount_import / (original_value - coalesce(salvage_value, 0) - already_depreciated_amount_import)))
+                   )
+         WHERE {parallel_filter}
+           AND already_depreciated_amount_import != 0
+           AND (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import) != 0
     """
+    util.explode_execute(cr, query, "account_asset")
 
+    # To handle assets fully depreciated in another software, as it doesnt impact any further computation,
+    # we just shift the prorata_date enough to be sure it would be fully depreciated if it should be computed.
+    # We don't modify the method number as we consider it correct
+    query = """
+        UPDATE account_asset
+           SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * method_number
+         WHERE already_depreciated_amount_import != 0 AND (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import) = 0
+    """
     util.explode_execute(cr, query, "account_asset")
 
     constant_period_query = """

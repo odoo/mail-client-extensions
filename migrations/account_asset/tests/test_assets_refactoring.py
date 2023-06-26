@@ -23,8 +23,8 @@ class AssetsRevampingCase(UpgradeCase):
                 [
                     {
                         "name": "_UPG_ fixed assets",
-                        "user_type_id": self.env.ref("account.data_account_type_current_assets").id,
                         "code": "999241000",
+                        "user_type_id": self.env.ref("account.data_account_type_current_assets").id,
                     },
                     {
                         "name": "_UPG_ assets depreciation",
@@ -104,8 +104,37 @@ class AssetsRevampingCase(UpgradeCase):
             )
             asset_imported.validate()
 
+        with freeze_time("2023-06-25"), no_fiscal_lock(self.env.cr):
+            asset_imported2 = (
+                self.env["account.asset"]
+                .with_context(asset_type="purchase")
+                .create(
+                    {
+                        "account_depreciation_id": account_depreciation.id,
+                        "account_depreciation_expense_id": account_asset_depreciation_expense.id,
+                        "account_asset_id": account_asset.id,
+                        "journal_id": journal.id,
+                        "acquisition_date": "2021-06-30",
+                        "first_depreciation_date": "2022-10-30",
+                        "method_period": "1",
+                        "method_number": 48,
+                        "name": "Asset imported to sell",
+                        "original_value": 2000.0,
+                        "already_depreciated_amount_import": 501.92,
+                        "depreciation_number_import": 12,
+                        "first_depreciation_date_import": "2021-06-30",
+                    }
+                )
+            )
+            asset_imported2.validate()
+
         return {
-            "assets": [asset.id, asset2.id, asset_imported.id],
+            "assets": [
+                asset.id,
+                asset2.id,
+                asset_imported.id,
+                asset_imported2.id,
+            ],
         }
 
     def check(self, init):
@@ -118,7 +147,9 @@ class AssetsRevampingCase(UpgradeCase):
         if d >= ref:
             d = d.replace(year=d.year - 1)
         d += datetime.timedelta(days=1)
-        (asset1, asset2, asset_imported) = self.env["account.asset"].browse(init["assets"])
+
+        (asset1, asset2, asset_imported, asset_imported2) = self.env["account.asset"].browse(init["assets"])
+
         for asset in (asset1, asset2):
             moves = asset.depreciation_move_ids.sorted(lambda m: m.id)
             for i, depreciation_move in enumerate(moves):
@@ -156,5 +187,16 @@ class AssetsRevampingCase(UpgradeCase):
                 {"date": fields.Date.from_string("2024-12-31"), "depreciation_value": 200},
                 {"date": fields.Date.from_string("2025-12-31"), "depreciation_value": 200},
                 {"date": fields.Date.from_string("2026-12-31"), "depreciation_value": 200},
+            ],
+        )
+
+        self.assertRecordValues(
+            asset_imported2,
+            [
+                {
+                    "prorata_date": fields.Date.from_string("2021-06-01"),
+                    "method_number": 64,
+                    "prorata_computation_type": "constant_periods",
+                }
             ],
         )
