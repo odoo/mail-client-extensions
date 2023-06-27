@@ -10,12 +10,15 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO hr_payroll_note(company_id, name, note, create_uid, write_uid, create_date, write_date)
-        SELECT n.company_id, n.name, n.memo, n.create_uid, n.write_uid, n.create_date, n.write_date
-          FROM note_note n
-          JOIN note_tags_rel nt
-            ON nt.note_id = n.id
-         WHERE nt.tag_id = %s
-           AND n.memo IS NOT NULL
-    """,
+             SELECT c.id, COALESCE(n.name, 'Notes'), n.memo, n.create_uid, n.write_uid, n.create_date, n.write_date
+               FROM note_note n
+               JOIN note_tags_rel nt
+                 ON nt.note_id = n.id
+               JOIN res_company c
+                 ON n.company_id = c.id  -- Notes with company_id
+                 OR n.company_id IS NULL -- Notes with null company_id are displayed by default for all companies
+              WHERE nt.tag_id = %s
+                AND n.memo IS NOT NULL
+        """,
         [note_tag],
     )
