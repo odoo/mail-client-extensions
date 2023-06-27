@@ -10,6 +10,7 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
+    cr.execute("ANALYZE")  # update statistics
     create_index_queries = []
     util.ENVIRON["__created_fk_idx"] = []
 
@@ -73,59 +74,55 @@ def migrate(cr, version):
         util.ENVIRON["__created_fk_idx"].append(index_name)
         create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
 
-    # now same for big tables
+    # Return all FK columns from BIG tables
     cr.execute(
         """
-        WITH big_tables AS(
-        -- RETRIEVE BIG TABLES
-            SELECT reltuples approximate_row_count , relname relation_name
-            FROM pg_class pg_c
-            JOIN pg_namespace pg_n ON pg_n.oid = pg_c.relnamespace
-            WHERE pg_n.nspname = current_schema
-            AND pg_c.relkind = 'r' -- only select the tables
-            AND reltuples >= %s -- arbitrary number saying this is a big table
-        )
-        -- FIND foreign KEYS
-            SELECT
-                quote_ident
-                (concat
-                    (
-                    'upgrade_fk_related_idx_',
-                    ROW_NUMBER() OVER(ORDER BY tc.constraint_name )::varchar
-                    )
-                )AS index_name,
-                quote_ident(tc.table_name),
-                quote_ident(kcu.column_name)
-            FROM
-                information_schema.table_constraints AS tc
-                JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name
-                                                               AND tc.table_schema = kcu.table_schema
-                JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name
-                                                                      AND ccu.table_schema = tc.table_schema
-                JOIN big_tables bt1 ON bt1.relation_name = tc.table_name
-            WHERE constraint_type = 'FOREIGN KEY' AND kcu.column_name NOT IN ('write_uid','create_uid')
-            AND NOT EXISTS
-            (
-                    -- FIND EXISTING INDEXES
-                    SELECT 1
-                    FROM (select *, unnest(indkey) as unnest_indkey from pg_index) x
-                    JOIN pg_class c ON c.oid = x.indrelid
-                    JOIN pg_class i ON i.oid = x.indexrelid
-                    JOIN pg_attribute a ON (a.attrelid=c.oid AND a.attnum=x.unnest_indkey)
-                    WHERE (c.relkind = ANY (ARRAY['r'::"char", 'm'::"char"]))
-                    AND i.relkind = 'i'::"char"
-                    AND c.relname = tc.table_name
-                    GROUP BY i.relname, x.indisunique, x.indisprimary
-                    HAVING array_agg(a.attname::text ) = ARRAY[kcu.column_name::text]
-            )
-            ORDER BY 2,3
+        SELECT quote_ident(cl1.relname) AS big_table,
+               quote_ident(att1.attname) AS big_table_column,
+               s.null_frac > 0.9 -- less than 10 percent is not null
+          FROM pg_constraint AS con
+          JOIN pg_class AS cl1
+            ON con.conrelid = cl1.oid
+          JOIN pg_namespace AS pg_n
+            ON pg_n.oid = cl1.relnamespace
+          JOIN pg_class AS cl2
+            ON con.confrelid = cl2.oid
+          JOIN pg_attribute AS att1
+            ON att1.attrelid = cl1.oid
+          JOIN pg_attribute AS att2
+            ON att2.attrelid = cl2.oid
+     LEFT JOIN pg_stats AS s
+            ON s.tablename = cl1.relname
+           AND s.attname = att1.attname
+           AND s.schemaname = current_schema
+     LEFT JOIN pg_index x
+            ON x.indrelid = cl1.oid
+            -- att1 is one of the KEY columns, not just a included one, included columns won't speed up searches
+           AND att1.attnum = ANY (x.indkey[1:x.indnkeyatts])
+         WHERE cl1.reltuples >= %s -- arbitrary number saying this is a big table
+           AND cl1.relkind = 'r' -- only select the tables
+           AND att1.attname NOT IN ('create_uid', 'write_uid')
+           AND x.indrelid IS NULL -- there is no index with the included column
+           AND pg_n.nspname = current_schema
+            -- the rest is to ensure this is a FK
+           AND array_lower(con.conkey, 1) = 1
+           AND con.conkey[1] = att1.attnum
+           AND att2.attname = 'id'
+           AND array_lower(con.confkey, 1) = 1
+           AND con.confkey[1] = att2.attnum
+           AND con.contype = 'f'
         """,
         [util.BIG_TABLE_THRESHOLD],
     )
-
-    for index_name, table_name, column_name in cr.fetchall():
+    for i, (big_table, big_table_column, partial) in enumerate(cr.fetchall(), start=1):
+        index_name = "upgrade_fk_related_idx_{}".format(i)
         util.ENVIRON["__created_fk_idx"].append(index_name)
-        create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
+        query = "CREATE INDEX {index_name} ON {big_table}({big_table_column})"
+        if partial:
+            query += " WHERE {big_table_column} IS NOT NULL"
+        create_index_queries.append(
+            query.format(index_name=index_name, big_table=big_table, big_table_column=big_table_column)
+        )
 
     if create_index_queries:
         _logger.info("creating %s indexes (might be slow)", len(create_index_queries))
