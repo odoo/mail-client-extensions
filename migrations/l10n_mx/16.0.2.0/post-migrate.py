@@ -28,6 +28,14 @@ def migrate(cr, version):
             """,
             [tax_credit_id, tax_debit_id],
         )
+    cr.execute(
+        """
+            DELETE FROM account_account_account_tag aaat
+                  USING account_account_tag tag
+                  WHERE aaat.account_account_tag_id = tag.id
+                    AND tag.nature IS NOT NULL
+        """
+    )
     cr.execute("DELETE FROM account_account_tag WHERE nature IS NOT NULL")
 
     util.remove_column(cr, "account_account_tag", "nature")
