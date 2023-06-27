@@ -96,7 +96,7 @@ def get_magic_query(cr, view_fields):
     more_fields = ""
     if view_fields:
         fields_to_sql = list(map(lambda x: f'v."{x}"', view_fields))
-        more_fields = ",".join([more_fields] + fields_to_sql)
+        more_fields = ",".join([more_fields, *fields_to_sql])
 
     string_is_number_re = r"^[0-9]+$"
 
@@ -276,15 +276,14 @@ def migrate(cr, version):
         message = """
         <details>
             <summary>
-            Web assets are detecetd in your custom modules. We have moved the found assets to a
-            new model 'ir.asset'. Starting this version of Odoo, asset declaration is moved to
-            manifest files.
-            The following modules include asset views that should be declared according to the new standards.
+            In Odoo 15.0 web assets from custom modules must be declared using the
+            new model 'ir.asset', done in the module's manifest.
+            The following modules include asset views that should be declared according to the new standard.
             Please make sure your assets are moved out of the views and your modules' manifests have an "assets"
             key to define the desired bundles of each asset.
             Follow <a href="{url}">this guide</a> for more details on how assets should be managed.
-            When all the assets are defined according to the standard, the records we created
-            for them in 'ir.asset' can be removed.
+            Once all assets are defined in the manifests, the 'ir.asset' records created
+            during the upgrade can be removed.
             </summary>
             <ul>{list}</ul>
         <details>
@@ -472,7 +471,7 @@ def process_views_conversion(cr, results, has_website=False, path_column="path")
         target = get_target_from_xpath(node)
         expr = node.get("expr")
 
-        if target == LAST_SYMBOL or target == FIRST_SYMBOL:
+        if target in (LAST_SYMBOL, FIRST_SYMBOL):
             # replace the indicative target with proper directive
             directive = "append" if target == LAST_SYMBOL else "prepend"
             target = None
