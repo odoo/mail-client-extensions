@@ -126,5 +126,6 @@ def migrate(cr, version):
     snip.add_snippet_names(cr, "ir_ui_view", "arch_db", snippets, select_query)
 
     # Add the snippet name on all snippets located in an html field
-    for table, column in snip.get_html_fields(cr):
-        snip.add_snippet_names_on_html_field(cr, table, column, snippets, regex)
+    for table, columns in snip.html_fields(cr):
+        for column in columns:
+            snip.add_snippet_names_on_html_field(cr, table, column, snippets, regex)
