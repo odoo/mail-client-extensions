@@ -38,3 +38,5 @@ def migrate(cr, version):
     util.remove_model(cr, "report.l10n_be_hr_payroll.report_281_10")
     util.remove_model(cr, "report.l10n_be_hr_payroll.report_281_45")
     util.remove_model(cr, "report.l10n_be_hr_payroll.report_individual_account")
+
+    util.remove_field(cr, "l10n_be.individual.account", "pdfs_generated")
