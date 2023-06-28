@@ -8,3 +8,4 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("planning.planning_view_search{,_base}"))
     util.remove_record(cr, "planning.planning_action_my_planning_view_pivot")
     util.remove_record(cr, "planning.planning_action_my_planning_view_graph")
+    util.remove_record(cr, "planning.planning_rule_user_modify")
