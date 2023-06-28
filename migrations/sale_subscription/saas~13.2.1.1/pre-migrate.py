@@ -29,19 +29,17 @@ def migrate(cr, version):
 
     cr.execute("DELETE FROM sale_subscription_line WHERE analytic_account_id IS NULL")
     util.create_column(cr, "sale_subscription_line", "currency_id", "integer")
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE sale_subscription_line l
-                   SET currency_id = p.currency_id
-                  FROM sale_subscription s
-                  JOIN product_pricelist p ON p.id = s.pricelist_id
-                 WHERE s.id = l.analytic_account_id
-            """,
-            alias="l",
-        ),
+        """
+        UPDATE sale_subscription_line l
+           SET currency_id = p.currency_id
+          FROM sale_subscription s
+          JOIN product_pricelist p ON p.id = s.pricelist_id
+         WHERE s.id = l.analytic_account_id
+        """,
+        table="sale_subscription_line",
+        alias="l",
     )
 
     util.create_column(cr, "sale_subscription_stage", "category", "varchar")

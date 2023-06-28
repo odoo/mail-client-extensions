@@ -55,7 +55,7 @@ def migrate(cr, version):
         """,
     ]
     for query in updates:
-        util.parallel_execute(cr, util.explode_query(cr, query, alias="m"))
+        util.explode_execute(cr, query, table="account_move", alias="m")
 
     # Migrate 'l10n_mx_edi_time_invoice' (char) to 'l10n_mx_edi_post_time' (datetime)
     cr.execute(

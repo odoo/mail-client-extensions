@@ -97,18 +97,16 @@ def migrate(cr, version):
     for field in util.splitlines(fields):
         util.remove_field(cr, "account.move.line", field)
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-            UPDATE account_move_line aml
-            SET account_internal_type = account.internal_type
-            FROM account_account account
-            WHERE aml.account_id = account.id
-            """,
-            alias="aml",
-        ),
+        """
+        UPDATE account_move_line aml
+        SET account_internal_type = account.internal_type
+        FROM account_account account
+        WHERE aml.account_id = account.id
+        """,
+        table="account_move_line",
+        alias="aml",
     )
 
     # ==== account_move ====

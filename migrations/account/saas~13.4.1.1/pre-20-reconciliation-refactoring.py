@@ -85,17 +85,15 @@ def migrate(cr, version):
     ]
     util.parallel_execute(cr, credit_queries)
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            '''
-                UPDATE account_move_line
-                   SET amount_residual_currency = amount_residual
-                 WHERE currency_id = company_currency_id
-                   AND amount_residual_currency != amount_residual
-            ''',
-        ),
+        '''
+        UPDATE account_move_line
+           SET amount_residual_currency = amount_residual
+         WHERE currency_id = company_currency_id
+           AND amount_residual_currency != amount_residual
+        ''',
+        table="account_move_line",
     )
 
     util.remove_field(cr, 'account.partial.reconcile', 'currency_id')

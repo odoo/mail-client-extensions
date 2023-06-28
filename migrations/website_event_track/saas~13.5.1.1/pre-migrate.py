@@ -9,11 +9,9 @@ def migrate(cr, version):
 
     for f in {"name", "email", "phone", "mobile"}:
         util.create_column(cr, "event_sponsor", f, "varchar")
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
+        """
         UPDATE event_sponsor s
            SET name = COALESCE(s.name, p.name),
                email = COALESCE(s.email, p.email),
@@ -21,9 +19,9 @@ def migrate(cr, version):
                mobile = COALESCE(s.mobile, p.mobile)
           FROM res_partner p
          WHERE p.id = s.partner_id
-    """,
-            alias="s",
-        ),
+        """,
+        table="event_sponsor",
+        alias="s",
     )
 
     util.create_column(cr, "event_track", "wishlisted_by_default", "boolean", default=False)

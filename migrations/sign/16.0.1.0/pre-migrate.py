@@ -105,16 +105,14 @@ def migrate(cr, version):
     util.create_column(cr, "sign_item_role", "auth_method", "varchar")
     util.create_column(cr, "res_config_settings", "module_sign_itsme", "boolean")
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-            UPDATE sign_item_role
-               SET auth_method = 'sms'
-             WHERE sms_authentification = true
-            """,
-        ),
+        """
+        UPDATE sign_item_role
+           SET auth_method = 'sms'
+         WHERE sms_authentification = true
+        """,
+        table="sign_item_role",
     )
 
     def auth_method_adapter(leaf, is_or, negated):

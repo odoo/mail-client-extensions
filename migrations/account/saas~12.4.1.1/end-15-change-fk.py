@@ -22,7 +22,7 @@ def fix_fk(cr, target, update_query):
             _logger.info("Fix %s FK on %s.%s", target, table, column)
 
             if util.column_exists(cr, table, "id"):
-                util.parallel_execute(cr, util.explode_query(cr, update_query.format_map(locals()), alias="t"))
+                util.explode_execute(cr, update_query.format_map(locals()), table=table, alias="t")
             else:
                 cr.execute(update_query.format_map(locals()))
 
@@ -57,7 +57,6 @@ def fix_fk(cr, target, update_query):
 
 
 def fix_indirect(cr):
-
     # Delete duplicated followers:
     cr.execute(
         """
@@ -77,29 +76,25 @@ def fix_indirect(cr):
     for ir in util.indirect_references(cr):
         _logger.info("Fix indirect %s", ir.table)
         if ir.table and ir.res_id and ir.res_model:
-            util.parallel_execute(
+            util.explode_execute(
                 cr,
-                util.explode_query(
-                    cr,
-                    """
-                UPDATE %(table)s d
-                   SET %(id_field)s=i.move_id,
-                       %(model_field)s='account.move'
-                  FROM account_invoice i
-                 WHERE i.id=d.%(id_field)s
-                   AND d.%(model_field)s='account.invoice'
-                   AND i.move_id IS NOT NULL
-                    """
-                    % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model},
-                    alias="d",
-                ),
+                """
+            UPDATE %(table)s d
+               SET %(id_field)s=i.move_id,
+                   %(model_field)s='account.move'
+              FROM account_invoice i
+             WHERE i.id=d.%(id_field)s
+               AND d.%(model_field)s='account.invoice'
+               AND i.move_id IS NOT NULL
+                """
+                % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model},
+                table=ir.table,
+                alias="d",
             )
             if util.table_exists(cr, "invl_aml_mapping"):
-                util.parallel_execute(
+                util.explode_execute(
                     cr,
-                    util.explode_query(
-                        cr,
-                        """
+                    """
                     UPDATE %(table)s d
                        SET %(id_field)s=i.aml_id,
                            %(model_field)s='account.move.line'
@@ -107,10 +102,10 @@ def fix_indirect(cr):
                      WHERE i.invl_id=d.%(id_field)s
                        AND %(model_field)s='account.invoice.line'
                        AND i.aml_id IS NOT NULL
-                        """
-                        % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model},
-                        alias="d",
-                    ),
+                    """
+                    % {"table": ir.table, "id_field": ir.res_id, "model_field": ir.res_model},
+                    table=ir.table,
+                    alias="d",
                 )
             # if is_account_voucher_installed:
             #     cr.execute(
@@ -180,38 +175,34 @@ def fix_indirect(cr):
     for model, column in cr.fetchall():
         table = util.table_of_model(cr, model)
         if util.column_updatable(cr, table, column):
-            util.parallel_execute(
+            util.explode_execute(
                 cr,
-                util.explode_query(
+                """
+                UPDATE "{table}" d
+                   SET "{column}"='account.move,' || i.move_id
+                  FROM account_invoice i
+                 WHERE d."{column}" = 'account.invoice,' || i.id
+                   AND i.move_id IS NOT NULL
+                """.format(
+                    table=table, column=column
+                ),
+                table=table,
+                alias="d",
+            )
+            if util.table_exists(cr, "invl_aml_mapping"):
+                util.explode_execute(
                     cr,
                     """
                     UPDATE "{table}" d
-                       SET "{column}"='account.move,' || i.move_id
-                      FROM account_invoice i
-                     WHERE d."{column}" = 'account.invoice,' || i.id
-                       AND i.move_id IS NOT NULL
+                       SET "{column}"='account.move.line,' || i.aml_id
+                      FROM invl_aml_mapping i
+                     WHERE d."{column}" = 'account.invoice.line,' || i.invl_id
+                       AND i.aml_id IS NOT NULL
                     """.format(
                         table=table, column=column
                     ),
+                    table=table,
                     alias="d",
-                ),
-            )
-            if util.table_exists(cr, "invl_aml_mapping"):
-                util.parallel_execute(
-                    cr,
-                    util.explode_query(
-                        cr,
-                        """
-                        UPDATE "{table}" d
-                           SET "{column}"='account.move.line,' || i.aml_id
-                          FROM invl_aml_mapping i
-                         WHERE d."{column}" = 'account.invoice.line,' || i.invl_id
-                           AND i.aml_id IS NOT NULL
-                        """.format(
-                            table=table, column=column
-                        ),
-                        alias="d",
-                    ),
                 )
 
 

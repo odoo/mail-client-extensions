@@ -353,33 +353,28 @@ def migrate(cr, version):
     cr.execute(query)
     # origin_order_id is the parent order. It points to itself when there is no ancestor (cf commercial_partner_id)
     # Historical subscription have no ancestor at this point
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            "UPDATE sale_order SET origin_order_id=id WHERE is_subscription=True AND old_subscription_id IS NOT NULL",
-            alias="sale_order",
-        ),
+        "UPDATE sale_order SET origin_order_id=id WHERE is_subscription=True AND old_subscription_id IS NOT NULL",
+        table="sale_order",
     )
 
     payment_exception_tag_id = util.ref(cr, "sale_subscription.subscription_invalid_payment")
     if payment_exception_tag_id:
-        util.parallel_execute(
+        util.explode_execute(
             cr,
-            util.explode_query(
-                cr,
-                cr.mogrify(
-                    """
+            cr.mogrify(
+                """
             UPDATE sale_order so
                SET payment_exception=true
               FROM account_analytic_tag_sale_subscription_rel rel
              WHERE so.old_subscription_id=rel.sale_subscription_id
               AND account_analytic_tag_id=%s
-                    """,
-                    [payment_exception_tag_id],
-                ).decode(),
-                alias="so",
-            ),
+                """,
+                [payment_exception_tag_id],
+            ).decode(),
+            table="sale_order",
+            alias="so",
         )
     # SO lines creation
     cr.execute(
@@ -755,11 +750,9 @@ def migrate(cr, version):
     # sale.subscription with the subscription_id field on the sale_order_line.
     # Thanks to the above FK upgrade, the sol.subscription_id is now updated to the new sale_order id value (parent subscription)
     # It is therefore correct to retrieve the sol parent subscription id by using the subscription_id value
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
+        """
         WITH sol2 AS (
             SELECT sol_sub.id,
                    sol_sub.pricing_id,
@@ -786,24 +779,22 @@ def migrate(cr, version):
            AND sol2.price_unit=sol_update.price_unit
            AND sol_update.subscription_id=sol2.order_id
            AND {parallel_filter}
-            """,
-            alias="sol_update",
-        ),
+        """,
+        table="sale_order_line",
+        alias="sol_update",
     )
     # In the old system, the client_order_ref was not copied from the subscription to the upsell/renewal
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-            UPDATE sale_order so
-               SET client_order_ref=sub.code
-              FROM sale_subscription sub
-             WHERE sub.new_sale_order_id=so.subscription_id
-               AND so.client_order_ref IS NULL
-            """,
-            alias="so",
-        ),
+        """
+        UPDATE sale_order so
+           SET client_order_ref=sub.code
+          FROM sale_subscription sub
+         WHERE sub.new_sale_order_id=so.subscription_id
+           AND so.client_order_ref IS NULL
+        """,
+        table="sale_order",
+        alias="so",
     )
 
     util.remove_field(cr, "sale.order.line", "subscription_id")

@@ -59,7 +59,7 @@ def migrate(cr, version):
     if True:
         util.parallel_execute(
             cr,
-            util.explode_query(
+            util.explode_query_range(
                 cr,
                 """
                     UPDATE mailing_trace
@@ -67,8 +67,9 @@ def migrate(cr, version):
                      WHERE state = 'exception'
                        AND failure_type IS NULL
                 """,
+                table="mailing_trace",
             )
-            + util.explode_query(
+            + util.explode_query_range(
                 cr,
                 """
                     UPDATE mailing_trace
@@ -76,26 +77,25 @@ def migrate(cr, version):
                      WHERE state = 'bounced'
                        AND failure_type IS NULL
                 """,
+                table="mailing_trace",
             ),
         )
-        util.parallel_execute(
-            cr, util.explode_query(cr, "UPDATE mailing_trace SET trace_type='mail' WHERE trace_type IS NULL")
+        util.explode_execute(
+            cr, "UPDATE mailing_trace SET trace_type='mail' WHERE trace_type IS NULL", table="mailing_trace"
         )
 
-        util.parallel_execute(
+        util.explode_execute(
             cr,
-            util.explode_query(
-                cr,
-                """
-                    UPDATE mailing_trace mt
-                       SET campaign_id = mm.campaign_id
-                      FROM mailing_mailing mm
-                     WHERE mm.id=mt.mass_mailing_id
-                       AND mt.campaign_id IS NULL
-                       AND {parallel_filter}
-                """,
-                alias="mt",
-            ),
+            """
+            UPDATE mailing_trace mt
+               SET campaign_id = mm.campaign_id
+              FROM mailing_mailing mm
+             WHERE mm.id=mt.mass_mailing_id
+               AND mt.campaign_id IS NULL
+               AND {parallel_filter}
+            """,
+            table="mailing_trace",
+            alias="mt",
         )
 
     util.remove_model(cr, "mail.mass_mailing.campaign")

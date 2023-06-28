@@ -81,29 +81,25 @@ def migrate(cr, version):
     with util.temp_index(
         cr, "stock_move", "raw_material_production_id"
     ), util.temp_index(cr, "stock_move", "production_id"):
-        cr.execute("SELECT COUNT(*) FROM mrp_production")
-        num_buckets = int(cr.fetchone()[0] / 200) + 1
-        util.parallel_execute(
+        util.explode_execute(
             cr,
-            util.explode_query(
-                cr,
-                """INSERT INTO stock_move_line_consume_rel (produce_line_id, consume_line_id)
-                   SELECT sml1.id sml1, sml2.id sml2
-                     FROM mrp_production mp
-                     JOIN stock_move sm1 ON sm1.raw_material_production_id = mp.id
-                     JOIN stock_move_line sml1 ON sm1.id = sml1.move_id
-                     JOIN stock_move sm2 ON sm2.production_id = mp.id
-                     JOIN stock_move_line sml2 ON sm2.id = sml2.move_id
-                     JOIN product_product pp ON (pp.id = sml1.product_id OR pp.id = sml2.product_id)
-                     JOIN product_template pt ON pt.id = pp.product_tmpl_id
-                    WHERE mp.state = 'done'
-                      AND pt.tracking <> 'none'
-                      AND {parallel_filter}
-                 GROUP BY sml1.id, sml2.id
-                """,
-                num_buckets=num_buckets,
-                alias="mp",
-            ),
+            """INSERT INTO stock_move_line_consume_rel (produce_line_id, consume_line_id)
+               SELECT sml1.id sml1, sml2.id sml2
+                 FROM mrp_production mp
+                 JOIN stock_move sm1 ON sm1.raw_material_production_id = mp.id
+                 JOIN stock_move_line sml1 ON sm1.id = sml1.move_id
+                 JOIN stock_move sm2 ON sm2.production_id = mp.id
+                 JOIN stock_move_line sml2 ON sm2.id = sml2.move_id
+                 JOIN product_product pp ON (pp.id = sml1.product_id OR pp.id = sml2.product_id)
+                 JOIN product_template pt ON pt.id = pp.product_tmpl_id
+                WHERE mp.state = 'done'
+                  AND pt.tracking <> 'none'
+                  AND {parallel_filter}
+             GROUP BY sml1.id, sml2.id
+            """,
+            table="mrp_production",
+            alias="mp",
+            bucket_size=200,
         )
 
     cr.execute("""

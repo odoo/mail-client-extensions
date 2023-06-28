@@ -98,12 +98,10 @@ def migrate(cr, version):
                   USING require_payment::boolean
         """
         )
-        util.parallel_execute(
+        util.explode_execute(
             cr,
-            util.explode_query(
-                cr,
-                "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false",
-            ),
+            "UPDATE sale_order SET require_signature=true WHERE COALESCE(require_payment, false) = false",
+            table="sale_order",
         )
 
     util.create_column(cr, "sale_order_line", "untaxed_amount_invoiced", "numeric")

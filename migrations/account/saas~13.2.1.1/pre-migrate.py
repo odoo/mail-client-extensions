@@ -147,15 +147,10 @@ def migrate(cr, version):
     util.create_column(cr, "account_journal", "sale_activity_note", "text")
 
     util.create_column(cr, "account_move", "posted_before", "boolean")
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_move
-                   SET posted_before = (state = 'posted' OR name != '/')
-            """,
-        ),
+        "UPDATE account_move SET posted_before = (state = 'posted' OR name != '/')",
+        table="account_move",
     )
 
     util.rename_field(cr, "account.move", "invoice_payment_state", "payment_state")
@@ -164,33 +159,29 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move", "invoice_sequence_number_next_prefix")
 
     util.create_column(cr, "account_move_line", "matching_number", "varchar")
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_move_line l
-                   SET matching_number = f.name
-                  FROM account_full_reconcile f
-                 WHERE f.id = l.full_reconcile_id
-                   AND l.matching_number IS NULL
-            """,
-            alias="l",
-        ),
+        """
+        UPDATE account_move_line l
+           SET matching_number = f.name
+          FROM account_full_reconcile f
+         WHERE f.id = l.full_reconcile_id
+           AND l.matching_number IS NULL
+        """,
+        table="account_move_line",
+        alias="l",
     )
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_move_line l
-                   SET matching_number = 'P'
-                  FROM account_partial_reconcile p
-                 WHERE (p.credit_move_id = l.id OR p.debit_move_id = l.id)
-                   AND l.matching_number IS NULL
-            """,
-            alias="l",
-        ),
+        """
+        UPDATE account_move_line l
+           SET matching_number = 'P'
+          FROM account_partial_reconcile p
+         WHERE (p.credit_move_id = l.id OR p.debit_move_id = l.id)
+           AND l.matching_number IS NULL
+        """,
+        table="account_move_line",
+        alias="l",
     )
 
     util.create_column(cr, "res_company", "account_opening_date", "date")

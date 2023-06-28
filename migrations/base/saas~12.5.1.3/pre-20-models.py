@@ -46,7 +46,7 @@ def migrate(cr, version):
     util.create_column(cr, "res_lang", "url_code", "varchar")
     cr.execute("UPDATE res_lang SET url_code = code")
 
-    util.parallel_execute(cr, util.explode_query(cr, "UPDATE ir_model_data SET noupdate=TRUE WHERE noupdate IS NULL"))
+    util.explode_execute(cr, "UPDATE ir_model_data SET noupdate=TRUE WHERE noupdate IS NULL", table="ir_model_data")
 
     if util.module_installed(cr, "test_new_api"):
         util.move_model(cr, "decimal.precision.test", "base", "test_new_api")

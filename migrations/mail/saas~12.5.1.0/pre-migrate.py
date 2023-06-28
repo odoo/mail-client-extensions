@@ -6,17 +6,14 @@ def migrate(cr, version):
     util.create_column(cr, "mail_message_res_partner_needaction_rel", "notification_type", "varchar")
     util.create_column(cr, "mail_message_res_partner_needaction_rel", "read_date", "timestamp without time zone")
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE mail_message_res_partner_needaction_rel
-                   SET notification_type = CASE WHEN is_email THEN 'email' ELSE 'inbox' END
-                 WHERE notification_type IS NULL
-                   AND {parallel_filter}
-            """,
-        ),
+        """
+        UPDATE mail_message_res_partner_needaction_rel
+           SET notification_type = CASE WHEN is_email THEN 'email' ELSE 'inbox' END
+         WHERE notification_type IS NULL
+        """,
+        table="mail_message_res_partner_needaction_rel",
     )
 
     util.remove_field(cr, "mail.notification", "is_email")

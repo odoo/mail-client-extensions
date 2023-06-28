@@ -12,7 +12,7 @@ def migrate(cr, version):
     util.create_column(cr, "account_account", "is_off_balance", "boolean")
 
     query = "UPDATE account_account SET is_off_balance = (internal_group='off_balance')"
-    util.parallel_execute(cr, util.explode_query(cr, query))
+    util.explode_execute(cr, query, table="account_account")
 
     util.create_column(cr, "validate_account_move", "force_post", "boolean")
 
@@ -60,18 +60,16 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.line", "always_set_currency_id")
     util.remove_constraint(cr, "account_move_line", "account_move_line_check_amount_currency_balance_sign")
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_move_line
-                   SET currency_id = company_currency_id,
-                       amount_currency = balance,
-                       amount_residual_currency = amount_residual
-                 WHERE currency_id IS NULL
-            """,
-        ),
+        """
+        UPDATE account_move_line
+           SET currency_id = company_currency_id,
+               amount_currency = balance,
+               amount_residual_currency = amount_residual
+         WHERE currency_id IS NULL
+        """,
+        table="account_move_line",
     )
 
     # Prevent inconsistencies in others scripts by adding the updated constraint manually (if possible)

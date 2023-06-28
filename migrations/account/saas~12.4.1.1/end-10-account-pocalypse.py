@@ -13,18 +13,16 @@ def migrate(cr, version):
 
     # If some Invoice/Bill have 0.000 value then it's not have payment entry so state is set as not_paid
     # So here we set state as paid for amount residual is 0.000
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-            UPDATE account_move
-               SET invoice_payment_state = 'paid'
-             WHERE amount_residual = 0.000
-               AND type IN ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')
-               AND state = 'posted'
-            """,
-        ),
+        """
+        UPDATE account_move
+           SET invoice_payment_state = 'paid'
+         WHERE amount_residual = 0.000
+           AND type IN ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')
+           AND state = 'posted'
+        """,
+        table="account_move",
     )
 
     # If some invoice amls still have exclude_from_invoice_tab = null and amount to 0,

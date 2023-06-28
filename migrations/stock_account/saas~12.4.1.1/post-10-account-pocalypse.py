@@ -114,7 +114,7 @@ def migrate(cr, version):
             sm.state = 'done' AND
             rtf.id is NULL
     """
-    util.parallel_execute(cr, util.explode_query(cr, q, alias="sm"))
+    util.explode_execute(cr, q, table="stock_move", alias="sm")
 
     _logger.info("Create stock valuation layers from account moves")
     # For auto valuation (real_time) and FIFO costing method, stock valuation layers (SVL)
@@ -184,7 +184,7 @@ def migrate(cr, version):
             sm.state = 'done' AND
             {parallel_filter}
     """
-    util.parallel_execute(cr, util.explode_query(cr, q, alias="sm"))
+    util.explode_execute(cr, q, table="stock_move", alias="sm")
     cr.execute("DROP TABLE _upgrade_rtime_fifo")
 
     # Migrate price history

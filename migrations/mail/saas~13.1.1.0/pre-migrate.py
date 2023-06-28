@@ -9,12 +9,10 @@ def migrate(cr, version):
         adapter = lambda leaf, _, __: [(leaf[0], leaf[1], not leaf[2])]
         if util.column_exists(cr, "mail_message", "is_internal"):
             util.update_field_usage(cr, "mail.message", "website_published", "is_internal", domain_adapter=adapter)
-            util.parallel_execute(
+            util.explode_execute(
                 cr,
-                util.explode_query(
-                    cr,
-                    "UPDATE mail_message SET is_internal = (website_published is not true) WHERE is_internal IS NULL",
-                ),
+                "UPDATE mail_message SET is_internal = (website_published is not true) WHERE is_internal IS NULL",
+                table="mail_message",
             )
             util.remove_field(cr, "mail.message", "website_published")
         else:

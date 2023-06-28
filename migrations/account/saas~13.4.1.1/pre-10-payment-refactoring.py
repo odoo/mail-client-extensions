@@ -250,20 +250,18 @@ def migrate(cr, version):
 
     # Don't replace the payment account by the outstanding account if any link to a statement line.
     # Match the same journal to manage correctly the internal transfers.
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_payment_pre_backup pay_backup
-                SET no_replace_account = TRUE
-                FROM account_move_line line
-                WHERE line.payment_id = pay_backup.id
-                AND line.statement_line_id IS NOT NULL
-                AND line.journal_id = pay_backup.journal_id
-            """,
-            alias="pay_backup",
-        ),
+        """
+        UPDATE account_payment_pre_backup pay_backup
+        SET no_replace_account = TRUE
+        FROM account_move_line line
+        WHERE line.payment_id = pay_backup.id
+        AND line.statement_line_id IS NOT NULL
+        AND line.journal_id = pay_backup.journal_id
+        """,
+        table="account_payment_pre_backup",
+        alias="pay_backup",
     )
 
     # ==== Migrate the bank statements ====
@@ -743,18 +741,16 @@ def migrate(cr, version):
 
     # Compute 'is_matched'.
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
-                UPDATE account_payment pay
-                SET is_matched = pay_backup.no_replace_account
-                FROM account_payment_pre_backup pay_backup
-                WHERE pay.id = pay_backup.id
-            """,
-            alias="pay",
-        ),
+        """
+        UPDATE account_payment pay
+        SET is_matched = pay_backup.no_replace_account
+        FROM account_payment_pre_backup pay_backup
+        WHERE pay.id = pay_backup.id
+        """,
+        table="account_payment",
+        alias="pay",
     )
 
     # We can not update fields while 'restrict_mode_hash_table' is True and 'type' in ('cash', 'bank').

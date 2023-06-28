@@ -36,11 +36,9 @@ def migrate(cr, version):
          WHERE l.id = cte.id
     """)
 
-    util.parallel_execute(
+    util.explode_execute(
         cr,
-        util.explode_query(
-            cr,
-            """
+        """
         UPDATE sale_order_line l
            SET qty_delivered_manual = CASE WHEN l.is_expense THEN 0
                          {with_sale_stock} WHEN t.type IN ('consu', 'product') THEN 0
@@ -55,9 +53,9 @@ def migrate(cr, version):
           FROM product_product p
           JOIN product_template t ON (t.id = p.product_tmpl_id)
          WHERE p.id = l.product_id
-            """.format(**locals()),     # poor man's PEP498
-            alias="l"
-        )
+        """.format(**locals()),     # poor man's PEP498
+        table="sale_order_line",
+        alias="l",
     )
     # odoo/odoo@faf6165e037bcb1afee8a4881f3a166c86fdee59
     util.rename_field(cr, 'res.config.settings', 'default_deposit_product_id', 'deposit_default_product_id')
