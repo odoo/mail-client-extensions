@@ -24,7 +24,7 @@ def migrate(cr, version):
     env = util.env(cr)
     cr.execute("SELECT id FROM mrp_production WHERE state = 'draft'")
     draft_mo_ids = [res[0] for res in cr.fetchall()]
-    for mo in util.iter_browse(env["mrp.production"], draft_mo_ids):
+    for mo in util.iter_browse(env["mrp.production"], draft_mo_ids, strategy="commit"):
         mo.with_company(mo.company_id)._onchange_move_finished_product()
 
     # The first part of the migration script is to fill the new `qty_producing` field.
