@@ -8,5 +8,15 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.remove_module(cr, "industry_fsm_forecast")
 
+        # l10n_pe_reports was renamed in 16.1 to l10n_pe_reports_book
+        # now we want to merge both
+        cr.execute("SELECT 1 FROM ir_module_module WHERE name = 'l10n_pe_reports'")
+        if cr.rowcount:
+            util.merge_module(cr, "l10n_pe_reports_book", "l10n_pe_reports")
+        else:
+            # If l10n_pe_reports doesn't exist it means we started the upgrade from 16.0
+            # so we need to rename l10n_pe_reports_book back (see base/saas~16.1.1.3/pre-10-modules.py)
+            util.rename_module(cr, "l10n_pe_reports_book", "l10n_pe_reports")
+
     util.merge_module(cr, "l10n_de_skr03", "l10n_de")
     util.merge_module(cr, "l10n_de_skr04", "l10n_de")
