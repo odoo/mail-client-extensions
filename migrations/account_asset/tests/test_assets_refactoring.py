@@ -16,6 +16,9 @@ REF_DATE_2 = "2023-03-31"
 @change_version("16.0")
 class AssetsRevampingCase(UpgradeCase):
     def prepare(self):
+        self.env.company.fiscalyear_last_month = "12"
+        self.env.company.fiscalyear_last_day = 31
+
         with freeze_time(REF_DATE):
             account_asset, account_asset_depreciation_expense, account_depreciation = self.env[
                 "account.account"
