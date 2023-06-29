@@ -98,7 +98,7 @@ def migrate(cr, version):
      LEFT JOIN pg_index x
             ON x.indrelid = cl1.oid
             -- att1 is one of the KEY columns, not just a included one, included columns won't speed up searches
-           AND att1.attnum = ANY (x.indkey[1:x.indnkeyatts])
+           AND att1.attnum = ANY (x.indkey[1:x.{}])
          WHERE cl1.reltuples >= %s -- arbitrary number saying this is a big table
            AND cl1.relkind = 'r' -- only select the tables
            AND att1.attname NOT IN ('create_uid', 'write_uid')
@@ -111,7 +111,9 @@ def migrate(cr, version):
            AND array_lower(con.confkey, 1) = 1
            AND con.confkey[1] = att2.attnum
            AND con.contype = 'f'
-        """,
+        """.format(
+            "indnkeyatts" if cr._cnx.server_version >= 110000 else "indnatts"
+        ),
         [util.BIG_TABLE_THRESHOLD],
     )
     for i, (big_table, big_table_column, partial) in enumerate(cr.fetchall(), start=1):
