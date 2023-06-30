@@ -11,6 +11,12 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("hr_holidays.menu_hr_holidays_{approvals,management}"))
     util.rename_model(cr, "hr.leave.stress.day", "hr.leave.mandatory.day")
     util.rename_field(cr, "hr.leave", "has_stress_day", "has_mandatory_day")
+    util.remove_field(cr, "hr.leave", "holiday_allocation_id")
+    util.remove_field(cr, "hr.leave.type", "closest_allocation_to_expire")
+    util.remove_field(cr, "hr.leave.type", "virtual_leaves_taken")
+    util.remove_field(cr, "hr.leave.type", "remaining_leaves")
+    util.remove_field(cr, "hr.leave.allocation", "taken_leave_ids")
+    util.remove_field(cr, "hr.leave.allocation", "can_reset")
 
     rename_records = [
         "hr_holidays.hr_leave_stress_day_view_search",
