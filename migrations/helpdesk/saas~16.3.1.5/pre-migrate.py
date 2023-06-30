@@ -38,6 +38,8 @@ def migrate(cr, version):
           LEFT JOIN team_stage_rel ts
                  ON sla.stage_id = ts.helpdesk_stage_id
               WHERE ts.helpdesk_team_id IS NULL
+                AND sla.team_id IS NOT NULL
+                AND sla.stage_id IS NOT NULL
            GROUP BY sla.stage_id,
                     sla.team_id
     """
@@ -68,6 +70,7 @@ def migrate(cr, version):
                 ON mtv.field = imf.id
                AND imf.name = 'stage_id'
                AND imf.model = 'helpdesk.ticket'
+             WHERE t.team_id IS NOT NULL
         )
         INSERT INTO team_stage_rel (helpdesk_stage_id, helpdesk_team_id)
              SELECT s.id AS helpdesk_stage_id,
