@@ -178,3 +178,8 @@ def migrate(cr, version):
             )
         ),
     )
+    util.remove_field(cr, "hr.leave.report", "active")
+    util.remove_field(cr, "hr.leave.report", "allocation_id")
+    util.remove_field(cr, "hr.leave.report", "active_employee")
+    util.remove_view(cr, "hr_holidays.hr_leave_report_view_form")
+    util.remove_record(cr, "hr_holidays.act_hr_employee_holiday_request")
