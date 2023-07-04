@@ -84,6 +84,23 @@ def migrate(cr, version):
     """
     cr.execute(query)
 
+    # IF heldesk stage has no helpdesk teams, then remove that stage reference
+    # from any heldpesk ticket too.
+    cr.execute(
+        """
+        WITH stages_without_teams AS (
+          SELECT s.id
+            FROM helpdesk_stage s
+       LEFT JOIN team_stage_rel ts
+              ON s.id = ts.helpdesk_stage_id
+           WHERE ts.helpdesk_team_id IS NULL
+        )
+        UPDATE helpdesk_ticket t
+           SET stage_id = NULL
+          FROM stages_without_teams w
+         WHERE w.id = t.stage_id
+        """
+    )
     # If helpdesk stage has no helpdesk teams even with the previous queries
     # then remove it.
     query = """
