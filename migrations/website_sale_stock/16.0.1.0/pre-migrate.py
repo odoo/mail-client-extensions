@@ -10,3 +10,6 @@ def migrate(cr, version):
     ]
     for rename in renames:
         util.rename_xmlid(cr, *rename)
+
+    # added in saas-15.2 but not forward ported
+    util.remove_view(cr, "website_sale_stock.products_add_to_cart_out_of_stock")
