@@ -94,7 +94,7 @@ def migrate(cr, version):
 
     # keeping track of old ids to update M2X relations
     util.create_column(cr, "project_task", "_upg_note_id", "int4")
-
+    main_company = util.ref(cr, "base.main_company")
     # set company_id to the default one of the user if missing (required in project)
     cr.execute(
         """
@@ -120,7 +120,7 @@ def migrate(cr, version):
         f"""
         INSERT INTO project_task (name, company_id, description, sequence, color, create_uid,
                                   write_uid, create_date, write_date, active, state, {'is_closed,' if is_closed_column_exists else ''} _upg_note_id)
-             SELECT n.name, n.company_id, n.memo, n.sequence, n.color, n.create_uid,
+             SELECT n.name, COALESCE(n.company_id, cuid.company_id, {main_company}), n.memo, n.sequence, n.color, n.create_uid,
                     n.write_uid, n.create_date, n.write_date, TRUE, (
                     CASE
                         WHEN n.open
@@ -131,6 +131,8 @@ def migrate(cr, version):
                     {'NOT(n.open),' if is_closed_column_exists else ''}
                     n.id
                FROM note_note AS n
+          LEFT JOIN res_users AS cuid
+                 ON cuid.id = n.create_uid
         """
         + extra_query
     )
