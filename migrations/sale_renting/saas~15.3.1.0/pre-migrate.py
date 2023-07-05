@@ -44,8 +44,8 @@ def migrate(cr, version):
 
     cr.execute(
         """
-        INSERT INTO product_pricing (currency_id,recurrence_id,price,product_template_id)
-             SELECT currency_id,str.id,price,product_template_id
+        INSERT INTO product_pricing (currency_id,recurrence_id,price,product_template_id,pricelist_id)
+             SELECT rp.currency_id,str.id,rp.price,rp.product_template_id,rp.pricelist_id
                FROM rental_pricing rp
                JOIN sale_temporal_recurrence str ON rp.id = ANY (str._mig_rental_pricing_id)
         """
