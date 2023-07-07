@@ -360,3 +360,18 @@ def migrate(cr, version):
            AND row_seq > 1
     """
     util.explode_execute(cr, query, table="account_journal", alias="journal", bucket_size=1)
+
+    # Send & Print refactor: new field to link to the PDF sent
+    util.explode_execute(
+        cr,
+        """
+        UPDATE ir_attachment a
+           SET res_field = 'invoice_pdf_report_file'
+          FROM account_move m
+         WHERE a.id = m.message_main_attachment_id
+           AND res_field IS NULL
+           AND mimetype = 'application/pdf'
+        """,
+        table="ir_attachment",
+        alias="a",
+    )
