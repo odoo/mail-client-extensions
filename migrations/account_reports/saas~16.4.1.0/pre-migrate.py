@@ -25,3 +25,7 @@ def migrate(cr, version):
         """,
             [f"account_reports.{report}.groupby_prefix_groups_threshold", refs],
         )
+
+    util.remove_model(cr, "account.bank.reconciliation.report.handler")
+    util.remove_record(cr, "account_reports.action_account_report_bank_reconciliation")
+    util.remove_record(cr, "account_reports.bank_reconciliation_report")
