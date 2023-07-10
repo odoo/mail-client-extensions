@@ -186,18 +186,21 @@ def migrate(cr, version):
     # This shift is determined by multiplying the number of period to be depreciated in Odoo by the following ratio:
     # amount_already_depreciated_by_import / amount_to_depreciate_in_odoo
     query = """
+        WITH periodic_payments AS (
+            SELECT id,
+                   Round((original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import)/method_number) as payment
+              FROM account_asset
+             WHERE {parallel_filter}
+               AND method_number > 1
+               AND already_depreciated_amount_import != 0
+               AND (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import) != 0
+        )
         UPDATE account_asset
-           SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * ROUND(
-                       method_number
-                       * (already_depreciated_amount_import / (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import))
-                   ),
-               method_number = ROUND(
-                       method_number *
-                       (1 + (already_depreciated_amount_import / (original_value - coalesce(salvage_value, 0) - already_depreciated_amount_import)))
-                   )
-         WHERE {parallel_filter}
-           AND already_depreciated_amount_import != 0
-           AND (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import) != 0
+           SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * ROUND(already_depreciated_amount_import/p.payment),
+               method_number = method_number + ROUND(already_depreciated_amount_import/p.payment)
+          FROM periodic_payments p
+         WHERE p.id = account_asset.id
+           AND p.payment != 0
     """
     util.explode_execute(cr, query, "account_asset")
 
@@ -207,7 +210,12 @@ def migrate(cr, version):
     query = """
         UPDATE account_asset
            SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * method_number
-         WHERE already_depreciated_amount_import != 0 AND (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import) = 0
+         WHERE already_depreciated_amount_import != 0
+           AND (
+               method_number = 1
+            OR method_number > 1
+           AND ROUND((original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import)/method_number) = 0
+               )
     """
     util.explode_execute(cr, query, "account_asset")
 

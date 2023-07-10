@@ -131,12 +131,37 @@ class AssetsRevampingCase(UpgradeCase):
             )
             asset_imported2.validate()
 
+        with freeze_time(REF_DATE_2), no_fiscal_lock(self.env.cr):
+            asset_imported3 = (
+                self.env["account.asset"]
+                .with_context(asset_type="purchase")
+                .create(
+                    {
+                        "account_depreciation_id": account_depreciation.id,
+                        "account_depreciation_expense_id": account_asset_depreciation_expense.id,
+                        "account_asset_id": account_asset.id,
+                        "journal_id": journal.id,
+                        "acquisition_date": "2021-06-30",
+                        "first_depreciation_date": "2022-10-30",
+                        "method_period": "1",
+                        "method_number": 30,
+                        "name": "Asset imported to sell",
+                        "original_value": 2000.0,
+                        "already_depreciated_amount_import": 1990,
+                        "depreciation_number_import": 12,
+                        "first_depreciation_date_import": "2021-06-30",
+                    }
+                )
+            )
+            asset_imported3.validate()
+
         return {
             "assets": [
                 asset.id,
                 asset2.id,
                 asset_imported.id,
                 asset_imported2.id,
+                asset_imported3.id,
             ],
         }
 
@@ -151,7 +176,9 @@ class AssetsRevampingCase(UpgradeCase):
             d = d.replace(year=d.year - 1)
         d += datetime.timedelta(days=1)
 
-        (asset1, asset2, asset_imported, asset_imported2) = self.env["account.asset"].browse(init["assets"])
+        (asset1, asset2, asset_imported, asset_imported2, asset_imported3) = self.env["account.asset"].browse(
+            init["assets"]
+        )
 
         for asset in (asset1, asset2):
             moves = asset.depreciation_move_ids.sorted(lambda m: m.id)
@@ -199,6 +226,17 @@ class AssetsRevampingCase(UpgradeCase):
                 {
                     "prorata_date": fields.Date.from_string("2021-06-01"),
                     "method_number": 64,
+                    "prorata_computation_type": "constant_periods",
+                }
+            ],
+        )
+
+        self.assertRecordValues(
+            asset_imported3,
+            [
+                {
+                    "prorata_date": fields.Date.from_string("2020-04-01"),
+                    "method_number": 30,
                     "prorata_computation_type": "constant_periods",
                 }
             ],
