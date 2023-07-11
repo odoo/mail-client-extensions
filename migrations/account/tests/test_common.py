@@ -19,7 +19,7 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
             limit=1,
         )
 
-    def prepare(self, chart_template_ref="l10n_generic_coa.configurable_chart_template"):
+    def prepare(self, chart_template_ref=None):
         test_name = f"{self.__class__.__module__}.{self.__class__.__qualname__}"
         self.company = self.env["res.company"].create(
             {
@@ -51,11 +51,18 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
         self.env = self.env(user=user)
         self.cr = self.env.cr
 
-        chart_template = self.env.ref(chart_template_ref, raise_if_not_found=False)
-        if not chart_template:
-            self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
-
-        chart_template.sudo().try_loading(company=self.company)
+        if version_gte("saas~16.2"):
+            chart_template_ref = chart_template_ref or "generic_coa"
+            self.env["account.chart.template"].try_loading(chart_template_ref, company=self.company)
+            if not self.company.chart_template:
+                self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
+        else:
+            chart_template_ref = chart_template_ref or "l10n_generic_coa.configurable_chart_template"
+            chart_template = self.env.ref(chart_template_ref, raise_if_not_found=False)
+            if chart_template:
+                chart_template.sudo().try_loading(company=self.company)
+            else:
+                self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
 
         if version_gte("16.0"):
             income_domain = [("account_type", "=", "income")]
