@@ -24,7 +24,7 @@ if util.version_gte("15.0"):
         def _generate_order_by_inner(self, alias, order_spec, query, reverse_direction=False, seen=None):
             res = super()._generate_order_by_inner(alias, order_spec, query, reverse_direction, seen)
             for i, item in enumerate(res):
-                field, _, direction = item.rpartition(" ")
+                field, _, direction = item.strip().rpartition(" ")
                 if field.split(".")[-1].strip("'\"") == "priority":
                     nullorder = "LAST" if direction == "DESC" else "FIRST"
                     res[i] = item + " NULLS " + nullorder
