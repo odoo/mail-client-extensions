@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -32,28 +31,4 @@ def migrate(cr, version):
             )
             """,
             (account_type,),
-        )
-
-    if util.module_installed(cr, "account_asset"):
-        # In the current module we add a new field to define the method to generate deferral entries.
-        # When `account_asset` is installed, we want to calculate its value based on (potentially) already existing
-        # deferral entries.
-        cr.execute(
-            """
-            UPDATE res_company company
-               SET generate_deferred_entries_method =
-                   CASE WHEN EXISTS (
-                                 SELECT 1
-                                   FROM account_asset asset
-                                   JOIN account_move move
-                                     ON move.asset_id = asset.id
-                                    AND move.state = 'posted'
-                                  WHERE asset.company_id = company.id
-                                    AND asset.asset_type IN ('sale', 'expense')
-                                    AND asset.state NOT IN ('draft', 'cancelled')
-                             )
-                        THEN 'on_validation'
-                        ELSE 'manual'
-                   END
-            """
         )
