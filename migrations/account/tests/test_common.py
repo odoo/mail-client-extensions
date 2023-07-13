@@ -53,7 +53,7 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
 
         if version_gte("saas~16.2"):
             chart_template_ref = chart_template_ref or "generic_coa"
-            self.env["account.chart.template"].try_loading(chart_template_ref, company=self.company)
+            self.env["account.chart.template"].try_loading(chart_template_ref, company=self.company, install_demo=False)
             if not self.company.chart_template:
                 self.skipTest("Accounting Tests skipped because the user's company has no chart of accounts.")
         else:
