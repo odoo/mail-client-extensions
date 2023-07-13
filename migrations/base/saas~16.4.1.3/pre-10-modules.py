@@ -20,3 +20,4 @@ def migrate(cr, version):
 
     util.merge_module(cr, "l10n_de_skr03", "l10n_de")
     util.merge_module(cr, "l10n_de_skr04", "l10n_de")
+    util.merge_module(cr, "mrp_workorder_hr", "mrp_workorder")
