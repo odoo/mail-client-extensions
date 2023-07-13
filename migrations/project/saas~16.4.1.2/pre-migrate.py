@@ -63,3 +63,8 @@ def migrate(cr, version):
         table="project_task",
         alias="pt",
     )
+
+    if util.module_installed(cr, "planning"):
+        util.move_field_to_module(cr, "res.config.settings", "module_project_forecast", "project", "planning")
+    else:
+        util.remove_field(cr, "res.config.settings", "module_project_forecast")
