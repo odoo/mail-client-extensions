@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo.upgrade import util
+# old-style import because this script is imported for tests
+from odoo.addons.base.maintenance.migrations import util
 
 onboarding_utils = util.import_script("onboarding/saas~16.4.1.2/pre-migrate.py")
 
