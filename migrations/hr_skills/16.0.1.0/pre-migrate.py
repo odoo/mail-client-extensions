@@ -11,5 +11,6 @@ def migrate(cr, version):
             SELECT DISTINCT employee_id, skill_id
               FROM hr_employee_skill
              WHERE employee_id IS NOT NULL
+               AND skill_id IS NOT NULL
         """
     )
