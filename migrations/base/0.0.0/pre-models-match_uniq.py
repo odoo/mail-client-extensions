@@ -40,6 +40,7 @@ class Base(models.AbstractModel):
             )
             constraint_fields_list = self.env.cr.fetchall()
 
+            vals_list = list(vals_list)
             # collect the existing and created record ids in a list, that should
             # have the same order as the corresponding vals_list
             record_ids = [False] * len(vals_list)
