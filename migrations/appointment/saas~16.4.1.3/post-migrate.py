@@ -9,3 +9,32 @@ def migrate(cr, version):
         "appointment.appointment_onboarding_configure_calendar_provider_step",
     ):
         util.if_unchanged(cr, onboarding_step_id, util.update_record_from_xml)
+
+    # Populate appointment_resource_id for all events with a single booking line
+    query = """
+        WITH single_resource_appointment AS (
+            SELECT abl.calendar_event_id,
+                   MIN(abl.appointment_resource_id) AS appointment_resource_id
+              FROM appointment_booking_line abl
+              JOIN calendar_event e -- for // execute
+                ON e.id = abl.calendar_event_id
+             WHERE {parallel_filter}
+             GROUP BY abl.calendar_event_id
+            HAVING count(*) = 1
+        ),
+        single_resource_and_type AS (
+             SELECT sra.calendar_event_id,
+                    sra.appointment_resource_id,
+                    MIN(r.appointment_type_id) AS appointment_type_id
+               FROM single_resource_appointment sra
+          LEFT JOIN appointment_type_appointment_resource_rel r
+                 ON r.appointment_resource_id = sra.appointment_resource_id
+              GROUP BY sra.calendar_event_id, sra.appointment_resource_id
+        )
+        UPDATE calendar_event e
+           SET appointment_resource_id = srt.appointment_resource_id,
+               appointment_type_id = COALESCE(e.appointment_type_id, srt.appointment_type_id)
+          FROM single_resource_and_type srt
+         WHERE e.id = srt.calendar_event_id
+    """
+    util.explode_execute(cr, query, table="calendar_event", alias="e")
