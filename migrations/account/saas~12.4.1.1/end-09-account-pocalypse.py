@@ -454,42 +454,32 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     )
 
     def generate_buckets():
-        # Try to use different chunk sizes according to the number of invoice_line by invoice
-        # To query takes a lot of time when there are invoices with many invoice lines
-        # For single invoice line process by chunk of 500, for medium size invoices(between 10 or 20 invoice lines process by 25)
-
+        # The query takes a lot of time when there are invoices with many invoice lines
+        # Create chunks by clustering together invoices of roughly the same size
+        # We keep a cap in the upper limit of the total lines per bucket
+        bucket_size = 50000
         cr.execute(
             """
-            WITH invoices0 AS (
-                SELECT il.invoice_id as id,
-                    CASE
-                    WHEN count(*)<=2 THEN 5000
-                    WHEN count(*)<=5 THEN 1000
-                    WHEN count(*)<=10 THEN 500
-                    WHEN count(*)<=20 THEN 250
-                    ELSE 20
-                    END as inv_group
-                        FROM account_invoice_line il
-                LEFT JOIN invl_aml_mapping mp ON il.id = mp.invl_id
-                GROUP BY il.invoice_id
+            WITH lines_per_invoice AS (
+                SELECT il.invoice_id AS id,
+                       count(*) AS lines
+                  FROM account_invoice_line il
+             LEFT JOIN invl_aml_mapping mp
+                    ON il.id = mp.invl_id
+              GROUP BY il.invoice_id
                 HAVING count(*) <> count(mp.invl_id)
-                ),
-                buckets_per_group AS (
-                    SELECT inv_group, (count(*) / inv_group)::integer + 1 as buckets
-                    FROM invoices0
-                    GROUP BY inv_group
-                ),
-                invoices as (
-                    SELECT i.*,
-                        NTILE(buckets) OVER(PARTITION BY i.inv_group) as chunk
-                    FROM invoices0 i
-                    JOIN buckets_per_group b ON i.inv_group = b.inv_group
-                )
-                SELECT (array_agg(id))ids
-                  FROM invoices
-              GROUP BY inv_group,
-                       chunk
-        """
+            ),
+            invoice_bucket AS (
+                SELECT id,
+                       (sum(lines) OVER (ORDER BY lines, id) / %s)::int AS bucket
+                  FROM lines_per_invoice
+            )
+            SELECT array_agg(id) ids
+              FROM invoice_bucket
+          GROUP BY bucket
+          ORDER BY count(*) DESC
+            """,
+            [bucket_size],
         )
         return [r[0] for r in cr.fetchall()]
 
