@@ -38,3 +38,28 @@ def migrate(cr, version):
         """,
         [public_group_id],
     )
+
+    # Web Push Move Enterprise -> Community
+    util.move_model(cr, "mail.partner.device", "mail_enterprise", "mail")
+    util.move_model(cr, "mail.notification.web.push", "mail_enterprise", "mail")
+
+    cr.execute(
+        """
+            UPDATE ir_config_parameter
+               SET "key" = 'mail.web_push_vapid_private_key'
+             WHERE "key" = 'mail_enterprise.web_push_vapid_private_key'
+        """
+    )
+    cr.execute(
+        """
+            UPDATE ir_config_parameter
+               SET "key" = 'mail.web_push_vapid_public_key'
+             WHERE "key" = 'mail_enterprise.web_push_vapid_public_key'
+        """
+    )
+
+    for xml_id in [
+        "ir_cron_web_push_notification",
+        "ir_cron_web_push_notification_ir_actions_server",
+    ]:
+        util.rename_xmlid(cr, f"mail_enterprise.{xml_id}", f"mail.{xml_id}", on_collision="merge")
