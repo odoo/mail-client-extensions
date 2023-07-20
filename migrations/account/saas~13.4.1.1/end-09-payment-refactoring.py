@@ -622,7 +622,9 @@ def migrate(cr, version):
         domain = [("is_valid_balance_start", "=", True), ("difference", "=", 0.0), ("state", "=", "open")]
         bs_ids = env["account.bank.statement"].search(domain).ids
         with no_deprecated_accounts(cr):
-            for bs in util.iter_browse(env["account.bank.statement"].with_context(**ctx), bs_ids):
+            for bs in util.iter_browse(
+                env["account.bank.statement"].with_context(**ctx), bs_ids, chunk_size=1024, strategy="commit"
+            ):
                 bs.button_post()
 
         _logger.info("Post newly created journal entries still in draft")
