@@ -528,9 +528,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
             """.format(
                 " AND ".join(filters[c] for c in cond)
             )
-            queries = []
-            for chunk in chunks:
-                queries.append(cr.mogrify(query, (i, chunk)))
+            queries = [cr.mogrify(query, (i, chunk)) for chunk in chunks]
             util.parallel_execute(cr, queries)
             cr.execute(
                 """
@@ -607,7 +605,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     line_ids = []
     to_process = []
     for line in util.log_chunks(ncr.iterdict(), _logger, chunk_size=10 * ncr.itersize, qualifier="zero-lines"):
-        if line["invoice_id"] in ignored_unposted_invoices.keys():
+        if line["invoice_id"] in ignored_unposted_invoices:
             continue
         line_ids.append(line["id"])
         if not line["account_id"]:
@@ -1462,7 +1460,7 @@ def guess_account(env, invoice_type, journal_id, product_id, fiscal_position_id=
             ("product_id", "!=", False),
             ("product_id", "=", False),
         ]:
-            account = env["account.move.line"].search(base_domain + [leaf], limit=1).account_id
+            account = env["account.move.line"].search([*base_domain, leaf], limit=1).account_id
             if account:
                 break
     return account
@@ -1496,7 +1494,6 @@ def migrate_invoice_lines(cr):
         )
 
         for journal_type, ids in cr.fetchall():
-
             journal = env["account.journal"].search(
                 [("type", "=", journal_type), ("company_id", "=", company.id)], limit=1
             )
@@ -1577,7 +1574,6 @@ def migrate_invoice_lines(cr):
 
     updated_invoices = {}
     if invoices:
-
         # Before creating account moves, be sure that account_receivable_id and account_payable_id
         # properties of res_partners are valid (i.e with an account_id in the same company than the
         # property itself). If it's not the case, drop them.
