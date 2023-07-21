@@ -46,3 +46,4 @@ def migrate(cr, version):
     util.remove_field(cr, "sale.order.alert", "tag_id")
     cr.execute("DELETE FROM sale_order_alert WHERE action = 'set_tag'")
     util.remove_field(cr, "sale.order.template", "tag_ids", drop_column=False)
+    util.remove_record(cr, "sale_subscription.seq_sale_subscription")
