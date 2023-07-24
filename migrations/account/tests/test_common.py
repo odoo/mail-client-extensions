@@ -15,7 +15,7 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
 
     def _get_account(self, domain):
         return self.env["account.account"].search(
-            ["&", ("company_id", "=", self.company.id)] + domain,
+            ["&", ("company_id", "=", self.company.id), *domain],
             limit=1,
         )
 

@@ -2,7 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, _version):
-    cfdi_format_id = util.ref(cr, 'l10n_mx_edi.edi_cfdi_3_3')
+    cfdi_format_id = util.ref(cr, "l10n_mx_edi.edi_cfdi_3_3")
 
     # Migrate 'account.edi.document' to 'l10n_mx_edi.document'
     query = cr.mogrify(
@@ -23,7 +23,7 @@ def migrate(cr, _version):
         """,
         [cfdi_format_id],
     ).decode()
-    util.explode_execute(cr, query, table='account_edi_document', alias='doc')
+    util.explode_execute(cr, query, table="account_edi_document", alias="doc")
 
     # Fix 'l10n_mx_edi_cfdi_state' / 'l10n_mx_edi_cfdi_sat_state'.
     query = """
@@ -35,7 +35,7 @@ def migrate(cr, _version):
         FROM l10n_mx_edi_document
         WHERE l10n_mx_edi_document.move_id = account_move.id
     """
-    util.explode_execute(cr, query, table='l10n_mx_edi_document')
+    util.explode_execute(cr, query, table="l10n_mx_edi_document")
 
     # Update 'l10n_mx_edi_invoice_document_ids_rel' for invoices.
     query = """
@@ -46,7 +46,7 @@ def migrate(cr, _version):
         FROM l10n_mx_edi_document doc
         WHERE doc.state = 'invoice_sent'
     """
-    util.explode_execute(cr, query, table='l10n_mx_edi_document', alias='doc')
+    util.explode_execute(cr, query, table="l10n_mx_edi_document", alias="doc")
 
     # Update 'l10n_mx_edi_invoice_document_ids_rel' for payments.
     query = """
@@ -68,8 +68,8 @@ def migrate(cr, _version):
             AND {parallel_filter}
         ON CONFLICT DO NOTHING
     """
-    util.explode_execute(cr, query, table='l10n_mx_edi_document', alias='pay_doc')
+    util.explode_execute(cr, query, table="l10n_mx_edi_document", alias="pay_doc")
 
     # Cleanup.
     cr.execute("DELETE FROM account_edi_document WHERE edi_format_id = %s", [cfdi_format_id])
-    util.remove_record(cr, 'l10n_mx_edi.edi_cfdi_3_3')
+    util.remove_record(cr, "l10n_mx_edi.edi_cfdi_3_3")
