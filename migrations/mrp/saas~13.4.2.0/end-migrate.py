@@ -378,9 +378,19 @@ def migrate(cr, version):
     util.iter_browse(env["mrp.production"], production_ids)._create_workorder()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
-    cr.execute("SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL")
-    ids_recompute_stock_move = [id for id, in cr.fetchall()]
-    util.recompute_fields(cr, "stock.move", ["unit_factor", "reference"], ids=ids_recompute_stock_move)
+    ncr = util.named_cursor(cr)
+    ncr.execute("SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL")
+    chunk = ncr.fetchmany(100000)  # avoid getting millions of ids
+    while chunk:
+        util.recompute_fields(
+            cr,
+            "stock.move",
+            ["unit_factor", "reference"],
+            ids=[r for r, in chunk],
+            strategy="commit",
+        )
+        chunk = ncr.fetchmany(100000)
+    ncr.close()
 
     # Recompute store fields of mrp.production where the compute method changed
     cr.execute("SELECT id FROM mrp_production WHERE state != 'cancel' AND id <= %s", [max_id])
