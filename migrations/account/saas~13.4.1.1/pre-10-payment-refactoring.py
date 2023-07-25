@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import re
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -30,7 +31,7 @@ def migrate(cr, version):
                 </li>
                 <li>
                     Make sure all accounting entries have a consistant number regarding the fiscal year they belong to.
-                    (e.g. a journal entry dated of 2019 shouldn’t have a name xx/2020/xx/xxxx)
+                    (e.g. a journal entry dated of 2019 shouldn't have a name xx/2020/xx/xxxx)
                 </li>
             </ul>
         </p>
@@ -147,6 +148,12 @@ def migrate(cr, version):
     cr.execute("CREATE TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
     cr.execute("CREATE TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)")
     util.create_column(cr, "account_payment_pre_backup", "no_replace_account", "boolean", default=False)
+
+    # cleanup `moved0` columns from backup tables
+    for table in {"account_payment_pre_backup", "account_bank_statement_line_pre_backup"}:
+        for column in util.get_columns(cr, table):
+            if re.search(r"_moved[0-9]+$", column):
+                util.remove_column(cr, table, column)
 
     # Migrate columns / fields.
 
