@@ -82,23 +82,18 @@ def migrate(cr, version):
     # (either their journal_id is removed, or they are completely deleted)
     cr.execute(
         """
-        SELECT array_agg(DISTINCT acquirer.state), array_agg(DISTINCT apml.id ORDER BY apml.id)
+        SELECT apml.id
           FROM account_payment_method_line apml
-          JOIN account_payment_method apm ON apm.id = apml.payment_method_id
-          JOIN payment_acquirer acquirer ON apm.code = acquirer.provider
-      GROUP BY apm.id, acquirer.provider
-        HAVING count(acquirer.provider) > 1
-    """
+          JOIN account_journal j
+            ON apml.journal_id = j.id
+          JOIN account_payment_method apm
+            ON apm.id = apml.payment_method_id
+          JOIN payment_acquirer acquirer
+            ON apm.code = acquirer.provider
+           AND j.company_id = acquirer.company_id
+      GROUP BY apml.id
+        HAVING bool_and(acquirer.state NOT IN ('enabled', 'test'))
+        """
     )
-
     if cr.rowcount:
-        to_unlink = []
-        for states, line_ids in cr.fetchall():
-            # All acquirers are disabled, so we can safely remove all apml
-            if all(state == "disabled" for state in states):
-                to_unlink.extend(line_ids)
-            # Not all acquirers are disabled. Then we need to keep one line for them
-            else:
-                to_unlink.extend(line_ids[1:])
-
-        env["account.payment.method.line"].search([("id", "in", to_unlink)]).unlink()
+        env["account.payment.method.line"].search([("id", "in", [lid for lid, in cr.fetchall()])]).unlink()
