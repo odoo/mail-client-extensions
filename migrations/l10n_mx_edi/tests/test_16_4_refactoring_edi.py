@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import base64
-from contextlib import contextmanager
 from unittest.mock import patch
 
 from freezegun import freeze_time
@@ -8,19 +7,19 @@ from lxml import etree
 
 from odoo.tools import misc
 
-from odoo.addons.base.maintenance.migrations.account.tests.test_common import TestAccountingSetupCommon
+from odoo.addons.base.maintenance.migrations.account.tests.test_common import (
+    TestAccountingSetupCommon,
+)
 from odoo.addons.base.maintenance.migrations.testing import change_version
 
 
 class TestRefactoringL10nMxEDI(TestAccountingSetupCommon, abstract=True):
-    @contextmanager
     def with_mocked_pac_method(self, method_name, method_replacement):
         """Helper to mock an rpc call to the PAC.
         :param method_name:         The name of the method to mock.
         :param method_replacement:  The method to be called instead.
         """
-        with patch.object(type(self.env["account.edi.format"]), method_name, method_replacement):
-            yield
+        return patch.object(type(self.env["account.edi.format"]), method_name, method_replacement)
 
     def prepare(self):
         results = super().prepare(chart_template_ref="mx")

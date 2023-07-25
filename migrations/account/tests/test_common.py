@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from unittest.mock import patch
+
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 from odoo.addons.base.maintenance.migrations.util import version_gte
 
@@ -19,7 +21,14 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
             limit=1,
         )
 
-    def prepare(self, chart_template_ref=None):
+    def prepare(self, *args, **kwargs):
+        if version_gte("saas~16.2") and "account.edi.format" in self.env:
+            # patch _get_move_applicability to skip EDI checks
+            with patch.object(type(self.env["account.edi.format"]), "_get_move_applicability", lambda _, __: None):
+                return self._prepare(*args, **kwargs)
+        return self._prepare(*args, **kwargs)
+
+    def _prepare(self, chart_template_ref=None):
         test_name = f"{self.__class__.__module__}.{self.__class__.__qualname__}"
         self.company = self.env["res.company"].create(
             {
