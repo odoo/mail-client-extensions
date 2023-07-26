@@ -97,3 +97,4 @@ def migrate(cr, version):
          WHERE p.id = d.id
     """
     )
+    cr.execute("CREATE UNIQUE INDEX ir_model_data_module_name_uniq_index ON ir_model_data(module, name)")
