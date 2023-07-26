@@ -14,8 +14,7 @@ def migrate(cr, version):
                   FROM ir_model_data
                  WHERE module = '__export__'
               GROUP BY model
-                    -- more than 1 million imd intries ಠ_ಠ
-                HAVING count(*) > 1000000
+                HAVING count(*) > 10000
             ),
             __ AS (
             DELETE FROM ir_model_data d
