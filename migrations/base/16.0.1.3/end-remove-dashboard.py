@@ -37,6 +37,7 @@ def migrate(cr, version):
             util.update_record_from_xml(cr, xmlid)
         else:
             invalid_ids.append(id_)
+    remove_custom_views(cr)
     if invalid_ids:
         cr.execute(
             """
@@ -67,3 +68,11 @@ def migrate(cr, version):
             )
         )
         util.add_to_migration_reports(msg, format="html", category="Actions")
+
+
+def remove_custom_views(cr):
+    pattern = r'\yview_mode="dashboard"'
+    _logger.info("Fixing/removing broken dashboard actions from custom views")
+    for _, act in util.helpers._dashboard_actions(cr, pattern):
+        if act.get("view_mode") == "dashboard":
+            act.getparent().remove(act)
