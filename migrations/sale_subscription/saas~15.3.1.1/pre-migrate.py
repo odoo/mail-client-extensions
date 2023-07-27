@@ -674,7 +674,7 @@ def migrate(cr, version):
                 ON CONFLICT (module, name)
                   DO UPDATE SET res_id = EXCLUDED.res_id
                 """,
-                vals + [st],
+                [*vals, st],
             )
             stages[st] = util.ref(cr, f"sale_subscription.sale_subscription_stage_{st}")
 
