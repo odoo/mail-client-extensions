@@ -244,6 +244,25 @@ class TestRepairRefactor(UpgradeCase):
         repair_orders = self.env["repair.order"].create(repair_values)
         ro = {ro.tag_ids[0].name: ro for ro in repair_orders}
 
+        # When upgrading a fresh installation without demo data,
+        # [repair_order].action_repair_invoice_create() raises
+        # an exception when it reach [account.move]._search_default_journal()
+        # as there's no default accounting journal for sale operations
+        company_id = self.env.company
+        cur_id = company_id.currency_id.id
+        domain = [("company_id", "=", company_id.id), ("type", "=", "sale")]
+        journal = self.env["account.journal"].search_count(domain, limit=1)
+        if not journal:
+            self.env["account.journal"].create(
+                {
+                    "name": "Sale Journal",
+                    "code": "INV",
+                    "type": "sale",
+                    "company_id": company_id.id,
+                    "currency_id": cur_id,
+                }
+            )
+
         # state changes
         ro["02"].action_validate()
         ro["03"].action_validate()
