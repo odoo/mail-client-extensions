@@ -564,51 +564,50 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
     _logger.info("create move line for non matching invoice lines with subtotal zero")
     env = util.env(cr)
     MoveLine = env["account.move.line"]
-
-    ncr = util.named_cursor(cr, 2000)
-    ncr.execute(
-        """
-        SELECT l.id, i.move_id, l.name, l.product_id, l.uom_id,
-               l.price_unit, l.discount, l.sequence,
-               l.account_analytic_id,
-               CASE WHEN i.company_id != account.company_id AND i.state in ('draft', 'cancel')
-                    THEN NULL
-                    ELSE l.account_id
-               END AS account_id,
-               i.id as invoice_id, i.type as invoice_type, i.journal_id, i.fiscal_position_id,
-               array_remove(array_agg(x.tax_id), NULL) as taxes,
-               array_remove(array_agg(g.account_analytic_tag_id), NULL) as tags
-          FROM account_invoice_line l
-          JOIN account_invoice i ON i.id = l.invoice_id
-     LEFT JOIN account_invoice_line_tax x ON x.invoice_line_id = l.id
-     LEFT JOIN account_analytic_tag_account_invoice_line_rel g ON g.account_invoice_line_id = l.id
-     LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
-     LEFT JOIN account_account account ON account.id = l.account_id
-         WHERE l.display_type IS NULL
-           AND m.invl_id IS NULL
-           AND l.price_subtotal = 0
-      GROUP BY l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
-               l.price_unit, l.discount, l.sequence,
-               l.account_analytic_id, i.id, account.id
-    """
-    )
     line_ids = []
-    to_process = []
-    for line in util.log_chunks(ncr.iterdict(), _logger, chunk_size=10 * ncr.itersize, qualifier="zero-lines"):
-        if line["invoice_id"] in ignored_unposted_invoices:
-            continue
-        line_ids.append(line["id"])
-        if not line["account_id"]:
-            line["account_id"] = guess_account(
-                env, line["invoice_type"], line["journal_id"], line["product_id"], line["fiscal_position_id"]
-            ).id
-            updated_invoices.setdefault(line["invoice_id"], []).append(line["name"])
-
-        to_process.append(line)
-    ncr.close()
+    from_part = """
+              FROM account_invoice_line l
+              JOIN account_invoice i ON i.id = l.invoice_id
+         LEFT JOIN account_invoice_line_tax x ON x.invoice_line_id = l.id
+         LEFT JOIN account_analytic_tag_account_invoice_line_rel g ON g.account_invoice_line_id = l.id
+         LEFT JOIN invl_aml_mapping m ON l.id=m.invl_id
+         LEFT JOIN account_account account ON account.id = l.account_id
+             WHERE l.display_type IS NULL
+               AND m.invl_id IS NULL
+               AND l.price_subtotal = 0
+          GROUP BY l.id, i.move_id, l.name, l.product_id, l.account_id, l.uom_id,
+                   l.price_unit, l.discount, l.sequence,
+                   l.account_analytic_id, i.id, account.id
+    """
+    cr.execute("SELECT 1\n" + from_part)
+    rowcount = cr.rowcount
 
     def get_mls():
-        for line in to_process:
+        ncr = util.named_cursor(cr, 2000)
+        ncr.execute(
+            """
+          SELECT l.id, i.move_id, l.name, l.product_id, l.uom_id,
+                 l.price_unit, l.discount, l.sequence,
+                 l.account_analytic_id,
+                 CASE WHEN i.company_id != account.company_id AND i.state in ('draft', 'cancel')
+                      THEN NULL
+                      ELSE l.account_id
+                 END AS account_id,
+                 i.id as invoice_id, i.type as invoice_type, i.journal_id, i.fiscal_position_id,
+                 array_remove(array_agg(x.tax_id), NULL) as taxes,
+                 array_remove(array_agg(g.account_analytic_tag_id), NULL) as tags
+          """
+            + from_part
+        )
+        for line in util.log_chunks(ncr.iterdict(), _logger, chunk_size=10 * ncr.itersize, qualifier="zero-lines"):
+            if line["invoice_id"] in ignored_unposted_invoices:
+                continue
+            line_ids.append(line["id"])
+            if not line["account_id"]:
+                line["account_id"] = guess_account(
+                    env, line["invoice_type"], line["journal_id"], line["product_id"], line["fiscal_position_id"]
+                ).id
+                updated_invoices.setdefault(line["invoice_id"], []).append(line["name"])
             yield {
                 "move_id": line["move_id"],
                 "name": line["name"],
@@ -632,10 +631,11 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                 "analytic_account_id": line["account_analytic_id"],
                 "analytic_tag_ids": [(6, 0, line["tags"])],
             }
+        ncr.close()
 
     _logger.info("invoices: creating zero-line move.line")
     chunk_size = 10000
-    size = (len(to_process) + chunk_size - 1) / chunk_size
+    size = (rowcount + chunk_size - 1) / chunk_size
     qual = "account.move.line %d-bucket" % chunk_size
     ml_ids = []
     for move_lines in util.log_progress(util.chunks(get_mls(), chunk_size, list), _logger, qualifier=qual, size=size):
