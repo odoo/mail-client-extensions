@@ -8,3 +8,5 @@ def migrate(cr, version):
     util.merge_module(cr, "loyalty_delivery", "sale_loyalty_delivery")
     if util.has_enterprise():
         util.merge_module(cr, "sale_timesheet_account_budget", "project_account_budget")
+        util.remove_module(cr, "website_sale_renting_comparison")
+        util.remove_module(cr, "website_sale_renting_wishlist")
