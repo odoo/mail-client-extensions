@@ -92,8 +92,9 @@ class TestRepairRefactor(UpgradeCase):
             ]
         )
         r_tags = {tag.name: tag.id for tag in r_tags}
-
-        day_delta = timedelta(days=2)
+        # prepare and check tests may happen on two different days :
+        today = date.today()  # ensure it remains constant
+        day_delta = timedelta(days=2)  # may break the tests with a lesser value
         repair_values = [
             {  # 01
                 "tag_ids": [
@@ -104,7 +105,7 @@ class TestRepairRefactor(UpgradeCase):
                 "lot_id": lot_id,
                 "location_id": stock_location_id,
                 "invoice_method": "none",
-                "guarantee_limit": date.today() - day_delta,
+                "guarantee_limit": today - day_delta,
                 "operations": [  # => lock_location
                     Command.create(
                         {
@@ -151,7 +152,7 @@ class TestRepairRefactor(UpgradeCase):
                 "location_id": stock_location_id,
                 "invoice_method": "b4repair",
                 "partner_id": customer.id,
-                "guarantee_limit": date.today() + day_delta,
+                "guarantee_limit": today + day_delta,
                 "operations": [
                     Command.create(
                         {
@@ -188,7 +189,7 @@ class TestRepairRefactor(UpgradeCase):
                 "location_id": stock_location_id,
                 "invoice_method": "after_repair",
                 "partner_id": customer.id,
-                "guarantee_limit": date.today(),
+                "guarantee_limit": today,
                 "operations": [
                     Command.create(
                         {
@@ -212,7 +213,7 @@ class TestRepairRefactor(UpgradeCase):
                 "product_qty": 1.0,
                 "location_id": stock_location_id,
                 "invoice_method": "none",
-                "guarantee_limit": date.today() - day_delta,
+                "guarantee_limit": today - day_delta,
                 "operations": [
                     Command.create(
                         {
@@ -280,12 +281,17 @@ class TestRepairRefactor(UpgradeCase):
         self.assertEqual(ro["05"].state, "done")
         self.assertNotEqual(len(repair_orders.operations.move_id), 0)
 
-        return {"repair_ids": repair_orders.ids, "last_move_id": max(repair_orders.operations.move_id.ids)}
+        return {
+            "repair_ids": repair_orders.ids,
+            "last_move_id": max(repair_orders.operations.move_id.ids),
+            "date": today.isoformat(),
+        }
 
     def check(self, init):
         Ro = self.env["repair.order"]
         repair_ids = init["repair_ids"]
         last_move_id = init["last_move_id"]
+        same_date = date.fromisoformat(init["date"]) == date.today()
 
         # General checks
         missing_picking = Ro.search_count([("picking_type_id", "=", False)], 1)
@@ -315,7 +321,6 @@ class TestRepairRefactor(UpgradeCase):
             ],
             "04": [
                 "s_under_repair",
-                "w_true",
                 "existing_move",
             ],
             "05": [
@@ -323,6 +328,16 @@ class TestRepairRefactor(UpgradeCase):
                 "existing_move",
             ],
         }
+
+        if same_date:
+            """
+            in old model, the field 'guarantee_limit' was a date,
+            in new model, the replacing field 'under_warranty' is a boolean.
+            if not same_date (prepare() on day D and check() on day D+1),
+            we can't know if the migration of the field occuring in-between was done on day D or D+1
+            such that we dont know if we must test w_true (day D) or w_false (day D +1)
+            """
+            test_tags["04"].append("w_true")
 
         for ro in repair_orders:
             tag_name = ro.tag_ids[0].name
