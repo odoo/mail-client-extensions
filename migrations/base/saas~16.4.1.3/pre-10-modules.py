@@ -21,3 +21,6 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_de_skr03", "l10n_de")
     util.merge_module(cr, "l10n_de_skr04", "l10n_de")
     util.merge_module(cr, "mrp_workorder_hr", "mrp_workorder")
+
+    if util.module_installed(cr, "iap_extract") and not util.module_installed(cr, "iap"):
+        util.uninstall_module(cr, "iap_extract")

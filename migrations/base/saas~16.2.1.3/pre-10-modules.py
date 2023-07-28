@@ -47,3 +47,6 @@ def migrate(cr, version):
             force_upgrades |= {"stock_delivery"}
 
     util.modules_auto_discovery(cr, force_installs=force_installs, force_upgrades=force_upgrades)
+
+    if util.module_installed(cr, "iap_extract") and not util.module_installed(cr, "iap"):
+        util.uninstall_module(cr, "iap_extract")
