@@ -45,6 +45,7 @@ def migrate(cr, version):
                SET
                    active = false,
                    type = 'contact',
+                   name = COALESCE(p.name, e.name, e.id::varchar),
                    street = NULL,
                    street2 = NULL,
                    city = NULL,
