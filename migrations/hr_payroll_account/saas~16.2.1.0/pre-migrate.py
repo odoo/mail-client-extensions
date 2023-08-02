@@ -1,3 +1,5 @@
+from odoo.addons.hr_payroll_account import _salaries_account_journal_pre_init
+
 from odoo.upgrade import util
 
 
@@ -30,3 +32,6 @@ def migrate(cr, version):
            ON CONFLICT DO NOTHING
         """
     )
+
+    env = util.env(cr)
+    _salaries_account_journal_pre_init(env)
