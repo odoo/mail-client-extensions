@@ -27,6 +27,7 @@ def migrate(cr, version):
      LEFT JOIN ir_model_data d
             ON d.res_id = upd.id
            AND d.model = 'ir.actions.act_window'
+           AND d.module != 'studio_customization'
          WHERE upd.view_mode = '' -- invalid value
     """
     )
