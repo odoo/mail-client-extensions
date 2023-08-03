@@ -32,6 +32,7 @@ def migrate(cr, version):
              LIMIT 1            """
         )
         if not cr.rowcount:
+            util.change_field_selection_values(cr, "mail.activity.type", "category", {"reminder": "default"})
             cr.execute(
                 """
                 DELETE FROM ir_model_data xid
