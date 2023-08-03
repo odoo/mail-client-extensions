@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
+import datetime
+import json
+import logging
 from openerp.addons.base.maintenance.migrations import util
 from openerp.tools import float_compare
+from psycopg2.extras import execute_values
+from openerp import SUPERUSER_ID
+
+_logger = logging.getLogger(__name__)
 
 def migrate(cr, version):
     # avoid doing anything if the table has already something in it (already migrated)
@@ -59,9 +66,10 @@ def migrate(cr, version):
             """)
     # if it's a fresh v9 database, or it has been used after the migration, we need to fill the table based on partial
     env = util.env(cr)
-    all_partial_rec_ids = env['account.partial.reconcile'].search([('full_reconcile_id', '=', False)])
+    all_partial_rec_ids = env['account.partial.reconcile'].search([('full_reconcile_id', '=', False)]).ids
     already_processed = {}
-    for partial in all_partial_rec_ids:
+    batch_create = []  # list of account.partial.reconcile ids that map into _one_ full reconcile
+    for partial in util.iter_browse(env['account.partial.reconcile'], all_partial_rec_ids, logger=_logger):
         partial_rec_set = OrderedDict.fromkeys([partial])
         aml_set = set()
         total_debit = 0
@@ -86,9 +94,44 @@ def migrate(cr, version):
             digits_rounding_precision = aml.company_id.currency_id.rounding
             if float_compare(total_debit, total_credit, precision_rounding=digits_rounding_precision) == 0:
                 # in that case, mark the reference on the partial reconciliations and the entries
-                env['account.full.reconcile'].with_context(check_move_validity=False).create({
-                    'partial_reconcile_ids': [(6, 0, partial_rec_ids)],
-                })
+                # batch_create.append({'partial_reconcile_ids': [(6, 0, partial_rec_ids)]})
+                batch_create.append(partial_rec_ids)
+
+    if batch_create:
+        _logger.info("Create account.full.reconcile records")
+        chunk_size = 1000
+        now = datetime.datetime.utcnow()
+        seq = env['ir.sequence'].search([("code", "=", "account.reconcile")])
+        size = (len(batch_create) - 1) / chunk_size + 1
+
+        for chunk in util.log_progress(
+            util.chunks(batch_create, chunk_size, fmt=list),
+            _logger,
+            size=size,
+            qualifier="chunks of {} records".format(chunk_size),
+        ):
+            cr.execute(
+                """
+                INSERT INTO account_full_reconcile(name, write_date, create_date, create_uid, write_uid)
+                     VALUES {}
+                  RETURNING id
+                """.format(
+                    ",".join(
+                        cr.mogrify("(%s,%s,%s,%s,%s)", [seq._next(), now, now, SUPERUSER_ID, SUPERUSER_ID]).decode()
+                        for _ in chunk
+                    )
+                )
+            )
+            afr_ids = [r[0] for r in cr.fetchall()]
+            new_ids = {apr_id: afr_id for apr_ids, afr_id in zip(chunk, afr_ids) for apr_id in apr_ids}
+            cr.execute(
+                """
+                UPDATE account_partial_reconcile
+                   SET full_reconcile_id = (%s::jsonb->>(id::text))::int
+                 WHERE id IN %s
+                """,
+                [json.dumps(new_ids), tuple(new_ids)]
+            )
 
     # copy values on account.move.line: rely on partial reconciliations only, as the reconcile_id column may not be
     # up-to-date, as unreconciliations/new reconciliations may have been done after migration
