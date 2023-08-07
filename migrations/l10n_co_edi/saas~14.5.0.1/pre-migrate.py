@@ -3,7 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
     util.update_record_from_xml(cr, "l10n_co_edi.edi_carvajal", force_create=True)
     co_edi_format_id = util.ref(cr, "l10n_co_edi.edi_carvajal")
 
@@ -11,10 +10,15 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO account_edi_document (edi_format_id, move_id, state)
-        SELECT %s, id, 'to_send'
-          FROM account_move
-         WHERE l10n_co_edi_invoice_status IN ('not_sent', 'processing')
-           AND state = 'posted'
+        SELECT %s, move.id, 'to_send'
+          FROM account_move move
+          JOIN res_company com
+            ON move.company_id = com.id
+          JOIN res_country cntry
+            ON com.account_fiscal_country_id = cntry.id
+         WHERE move.l10n_co_edi_invoice_status IN ('not_sent', 'processing')
+           AND move.state = 'posted'
+           AND cntry.code = 'CO'
     """,
         [co_edi_format_id],
     )
