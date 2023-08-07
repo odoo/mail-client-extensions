@@ -1,5 +1,5 @@
 from lxml.builder import E
-from lxml.etree import tostring
+from lxml.etree import Comment, tostring
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 
@@ -54,10 +54,11 @@ class TestFixViews(UpgradeCase):
                 "name": "test_fix_views_standard_base_view",
                 "arch_db": ts(
                     E.form(
-                        E.field(name="name"),
+                        E.field(name="name"),  # gone after upgrade
+                        Comment("Ensure this comment here doesn't fail the upgrade"),
                         E.field(name="comment"),
-                        E.field(name="users"),
-                        E.field(name="share"),
+                        E.field(name="users"),  # gone after upgrade
+                        E.field(name="share"),  # gone after upgrade
                         E.div("This will be gone during the upgrade", id="gone"),
                     ),
                 ),
@@ -331,6 +332,30 @@ class TestFixViews(UpgradeCase):
                 "inherit_id": p1_id,
                 "arch_db": ts(
                     E.xpath(expr="//field[@name='name']", position="replace"),
+                ),
+            },
+        )
+
+        # Ensure we do not try to search by comment tag
+        base_id2 = create_view(
+            {
+                "name": "test_fix_views_standard_base_view_comments",
+                "arch_db": ts(
+                    E.form(
+                        E.field(name="name"),  # gone after upgrade
+                        Comment("Ensure this comment here doesn't fail the upgrade"),
+                    ),
+                ),
+            },
+            standard_view=True,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_standard_base_view_comments_ext",
+                "mode": "extension",
+                "inherit_id": base_id2,
+                "arch_db": ts(
+                    E.xpath("<div>OK</div>", expr="//field[@name='name']", position="after"),
                 ),
             },
         )

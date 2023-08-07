@@ -1,5 +1,5 @@
 from lxml.builder import E
-from lxml.etree import tostring
+from lxml.etree import Comment, tostring
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -27,6 +27,7 @@ def migrate(cr, version):
             "test_upg.test_fix_views_standard_base_view",
             ts(
                 E.form(
+                    Comment("Ensure this comment here doesn't fail the upgrade"),
                     E.field(name="comment"),
                 ),
             ),
@@ -47,6 +48,16 @@ def migrate(cr, version):
             "test_upg.test_fix_views_view_3",
             ts(
                 E.xpath(E.div("Remove field"), expr="//field[@name='name']", position="replace"),
+            ),
+        ),
+        (
+            "test_upg.test_fix_views_standard_base_view_comments",
+            ts(
+                E.form(
+                    E.div(
+                        Comment("Ensure this comment here doesn't fail the upgrade"),
+                    ),
+                ),
             ),
         ),
     ]

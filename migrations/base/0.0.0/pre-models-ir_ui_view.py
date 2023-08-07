@@ -131,8 +131,11 @@ def get_closest_elements(elem):
     Iterates over all the siblings of {elem} plus its parent, alternating one sibling before,
     one after. The last visited element is the parent.
     """
-    iter_prev = zip(elem.itersiblings(preceding=True), itertools.repeat("after"))
-    iter_next = zip(elem.itersiblings(), itertools.repeat("before"))
+    # Filter by etree.Element factory to avoid getting special elements like
+    # comments or processing instructions
+    # https://lxml.de/apidoc/lxml.etree.html#lxml.etree._ProcessingInstruction.iter
+    iter_prev = zip(elem.itersiblings(tag=etree.Element, preceding=True), itertools.repeat("after"))
+    iter_next = zip(elem.itersiblings(tag=etree.Element), itertools.repeat("before"))
     for p, n in zip_longest(iter_prev, iter_next, fillvalue=(None, None)):
         if p[0] is not None:
             yield p
@@ -232,6 +235,8 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
             yield "/" + etree.ElementTree(orig_arch).getpath(anchor)
             # as last resort try matching only by tag...
             # not ideal though validate_expr will check it selects the right anchor
+            # note this fail for special elements like comments but it doesn't make
+            # sense to anchor an element after them anyway
             yield "//" + anchor.tag
 
         for elem in orig_arch.xpath(xelem.attrib["expr"]):
@@ -738,7 +743,7 @@ class IrUiView(models.Model):
                         raise
             return True
 
-        def copy_translations(old, new, *args, **kwargs):  # noqa: B902
+        def copy_translations(old, new, *args, **kwargs):
             # Do not copy translations when restoring view from fs
             if old.env.context.get("_upgrade_fix_views"):
                 return
