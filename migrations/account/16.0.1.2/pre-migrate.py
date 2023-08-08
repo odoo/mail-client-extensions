@@ -37,6 +37,22 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.line", "recompute_tax_line")
     util.rename_field(cr, "account.move", *eb("tax_totals{_json,}"))
 
+    util.explode_execute(
+        cr,
+        """
+        UPDATE account_move_line line
+           SET reconciled = TRUE
+          FROM account_account account
+         WHERE line.account_id = account.id
+           AND account.account_type = 'asset_receivable'
+           AND line.reconciled = FALSE
+           AND line.amount_residual = 0.0
+           AND line.amount_residual_currency = 0.0
+        """,
+        table="account_move_line",
+        alias="line",
+    )
+
     # Reportalypse
     cr.execute("CREATE TABLE account_tax_report_line_tags_rel_backup AS TABLE account_tax_report_line_tags_rel")
     cr.execute(
