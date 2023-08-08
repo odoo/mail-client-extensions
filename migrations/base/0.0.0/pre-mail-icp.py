@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if util.version_gte("saas~14.5"):
+    if util.version_between("saas~14.5", "saas~16.4"):
         match(cr, "base")
 
 
