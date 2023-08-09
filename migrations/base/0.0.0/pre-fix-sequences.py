@@ -12,10 +12,19 @@ def migrate(cr, version):
            SELECT SUBSTRING(pg_get_expr(d.adbin,0), 'nextval\(''([[:alpha:]][\w\$]*)''::regclass\)') as sequence_name,
                   t.relname table_name
              FROM pg_attribute a
-             JOIN pg_class t ON t.oid=a.attrelid AND t.relkind='r'
-        FULL JOIN pg_attrdef d ON d.adrelid=a.attrelid AND a.attnum=d.adnum
-             JOIN pg_index i ON a.attrelid=i.indrelid AND a.attnum=any(i.indkey)
+             JOIN pg_class t
+               ON t.oid=a.attrelid
+              AND t.relkind='r'
+        FULL JOIN pg_attrdef d
+               ON d.adrelid=a.attrelid
+              AND a.attnum=d.adnum
+             JOIN pg_index i
+               ON a.attrelid=i.indrelid
+              AND a.attnum=any(i.indkey)
+             JOIN pg_namespace n
+               ON t.relnamespace = n.oid
             WHERE a.attname='id'
+              AND n.nspname=current_schema()
         """
 
     if cr._cnx.server_version >= 100000:
