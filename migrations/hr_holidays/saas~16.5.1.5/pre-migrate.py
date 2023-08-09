@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import itertools
+
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.if_unchanged(cr, "hr_holidays.hr_leave_rule_multicompany", util.update_record_from_xml)
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("hr_holidays.menu_hr_holidays_{approvals,management}"))
     util.rename_model(cr, "hr.leave.stress.day", "hr.leave.mandatory.day")
@@ -102,3 +105,36 @@ def migrate(cr, version):
     )
 
     util.remove_field(cr, "hr.leave.accrual.level", "is_based_on_worked_time")
+
+    util.create_column(cr, "hr_leave", "company_id", "int4")
+
+    company_id_queries = [
+        """
+        UPDATE hr_leave l
+           SET company_id = employee_company_id
+         WHERE employee_company_id IS NOT NULL
+           AND holiday_type != 'department'
+        """,
+        """
+        UPDATE hr_leave l
+           SET company_id = mode_company_id
+         WHERE mode_company_id IS NOT NULL
+           AND employee_company_id IS NULL
+           AND holiday_type != 'department'
+        """,
+        """
+        UPDATE hr_leave l
+           SET company_id = d.company_id
+          FROM hr_department d
+         WHERE d.id = l.department_id
+           AND l.holiday_type = 'department'
+        """,
+    ]
+    util.parallel_execute(
+        cr,
+        list(
+            itertools.chain.from_iterable(
+                (util.explode_query_range(cr, query, table="hr_leave", alias="l") for query in company_id_queries)
+            )
+        ),
+    )
