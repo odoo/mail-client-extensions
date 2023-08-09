@@ -120,7 +120,7 @@ def migrate(cr, version):
         f"""
         INSERT INTO project_task (name, company_id, description, sequence, color, create_uid,
                                   write_uid, create_date, write_date, active, state, {'is_closed,' if is_closed_column_exists else ''} _upg_note_id)
-             SELECT n.name, COALESCE(n.company_id, cuid.company_id, {main_company}), n.memo, n.sequence, n.color, n.create_uid,
+             SELECT COALESCE(n.name, 'Note '|| n.id), COALESCE(n.company_id, cuid.company_id, {main_company}), n.memo, n.sequence, n.color, n.create_uid,
                     n.write_uid, n.create_date, n.write_date, TRUE, (
                     CASE
                         WHEN n.open
