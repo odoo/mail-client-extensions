@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    # Initialise new private information columns
+    log = logging.getLogger("odoo.upgrade.hr.164").info
+
+    log("Initialise new private information columns")
     util.create_column(cr, "hr_employee", "private_street", "varchar")
     util.create_column(cr, "hr_employee", "private_street2", "varchar")
     util.create_column(cr, "hr_employee", "private_city", "varchar")
@@ -15,7 +18,7 @@ def migrate(cr, version):
     util.create_column(cr, "hr_employee", "private_email", "varchar")
     util.create_column(cr, "hr_employee", "lang", "varchar")
 
-    # Copy private information from private addresses to employee forms
+    log("Copy private information from private addresses to employee forms")
     util.explode_execute(
         cr,
         """
@@ -37,7 +40,7 @@ def migrate(cr, version):
         alias="e",
     )
 
-    # Archive private addresses + make public + empty private information / empty chatter
+    log("Archive private addresses + make public + empty private information")
     util.explode_execute(
         cr,
         """
@@ -60,6 +63,8 @@ def migrate(cr, version):
         table="res_partner",
         alias="p",
     )
+
+    log("Empty chatter")
     util.explode_execute(
         cr,
         """
@@ -74,6 +79,7 @@ def migrate(cr, version):
         alias="m",
     )
 
+    log("remove old fields")
     util.remove_field(cr, "hr.employee", "address_home_id", drop_column=False)
     util.remove_field(cr, "res.users", "address_home_id")
 
@@ -94,7 +100,7 @@ def migrate(cr, version):
 
     util.remove_view(cr, "hr.view_employee_form_smartbutton")
 
-    # Set user's partner as work contact (if any)
+    log("Set user's partner as work contact (if any)")
     util.explode_execute(
         cr,
         """
@@ -111,7 +117,7 @@ def migrate(cr, version):
         alias="e",
     )
 
-    # Force work contact creation is not linked to user (if work email)
+    log("Force work contact creation is not linked to user (if work email)")
     Partner = util.env(cr)["res.partner"]
     cr.execute(
         """
