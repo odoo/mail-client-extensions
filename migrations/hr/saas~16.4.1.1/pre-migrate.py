@@ -77,6 +77,7 @@ def migrate(cr, version):
         """,
         table="mail_message",
         alias="m",
+        bucket_size=100_000,
     )
 
     log("remove old fields")
