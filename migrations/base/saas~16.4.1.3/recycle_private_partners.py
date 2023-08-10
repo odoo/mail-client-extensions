@@ -1,11 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from odoo.upgrade import util
-
-# END OF IMPORTS
-
-
-def recycle(env, direct=False):
+def recycle(env, execute=None):
     # IR.MODEL + IR.MODEL.FIELDS
     model_private_address = env.ref("base.model_x_res_partner_private", raise_if_not_found=False)
     if not model_private_address and "x_res_partner_private" not in env:
@@ -194,38 +187,12 @@ def recycle(env, direct=False):
                 AND pc.category_id = %s
         """
 
-    def str2bool(s):
-        s = str(s).lower()
-        y = "y yes 1 true t on".split()
-        return s in y
+    # Convert/Archive private addresses + make public + empty private information / empty chatter
+    tag_id = env.ref("base.res_partner_category_old_private_address").id
 
-    if direct:
-        # Convert/Archive private addresses + make public + empty private information / empty chatter
-        tag_id = util.ref(env.cr, "base.res_partner_category_old_private_address")
+    if execute is None:
+        execute = env.cr.execute
 
-        util.explode_execute(
-            env.cr,
-            env.cr.mogrify(insert_to_x_partner_query, [tag_id]).decode(),
-            table="res_partner",
-            alias="p",
-        )
-
-        util.explode_execute(
-            env.cr,
-            env.cr.mogrify(empty_private_info_query, [tag_id]).decode(),
-            table="res_partner",
-            alias="p",
-        )
-
-        util.explode_execute(
-            env.cr,
-            env.cr.mogrify(delete_mail_messages_query, [tag_id]).decode(),
-            table="mail_message",
-            alias="m",
-        )
-    else:
-        # Convert/Archive private addresses + make public + empty private information / empty chatter
-        tag_id = env.ref("base.res_partner_category_old_private_address").id
-        env.cr.execute(insert_to_x_partner_query, [tag_id])
-        env.cr.execute(empty_private_info_query, [tag_id])
-        env.cr.execute(delete_mail_messages_query, [tag_id])
+    execute(insert_to_x_partner_query, [tag_id])
+    execute(empty_private_info_query, [tag_id])
+    execute(delete_mail_messages_query, [tag_id])
