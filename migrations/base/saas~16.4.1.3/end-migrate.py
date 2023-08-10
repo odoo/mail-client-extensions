@@ -38,10 +38,10 @@ def migrate(cr, version):
         cr,
         """
         UPDATE res_partner
-        SET
-            active = false,
-            type = 'contact'
-        WHERE type = 'private'
+           SET name = COALESCE(name, '/'),
+               active = false,
+               type = 'contact'
+         WHERE type = 'private'
         """,
         table="res_partner",
     )
