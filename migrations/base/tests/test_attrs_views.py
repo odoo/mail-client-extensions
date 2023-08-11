@@ -5,6 +5,62 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 
 
 @change_version("saas~16.5")
+class TestAttrsViewsInherited(UpgradeCase):
+    def prepare(self):
+        parent = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_to_expression_parent",
+                "model": "res.groups",
+                "type": "form",
+                "arch": """<form>
+                    <field name="name" invisible="yes" attrs="{'invisible': [('name', '=', 'P')]}"/>
+                </form>""",
+            },
+        )
+        left = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_to_expression_left_child",
+                "model": "res.groups",
+                "type": "form",
+                "inherit_id": parent.id,
+                "mode": "primary",
+                "arch": """<data>
+                    <field name="name" position="attributes">
+                        <attribute name="invisible">no</attribute>
+                    </field>
+                </data>""",
+            },
+        )
+        right = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_to_expression_right_child",
+                "model": "res.groups",
+                "type": "form",
+                "inherit_id": parent.id,
+                "mode": "primary",
+                "arch": """<data>
+                    <field name="name" position="attributes">
+                        <attribute name="attrs">{'invisible': [('name', '=', 'R')]}</attribute>
+                    </field>
+                </data>""",
+            },
+        )
+
+        return [
+            (parent.id, "True"),
+            (left.id, "name == 'P'"),
+            (right.id, "True"),
+        ]
+
+    def check(self, info):
+        for vid, res in info:
+            view = self.env["ir.ui.view"].browse(vid)
+            arch = view._get_combined_arch()
+            field = arch.xpath("//field[@name='name']")[0]
+            self.assertEqual(field.get("invisible"), res)
+
+
+@change_version("saas~16.5")
 class TestAttrsViewsTrueFalseDomains(UpgradeCase):
     def _create(self, name, domain):
         return self.env["ir.ui.view"].create(
@@ -52,7 +108,7 @@ class TestAttrsViewsTrueFalseDomains(UpgradeCase):
         for x in ["True", "False"]:
             for view in map(self.env["ir.ui.view"].browse, info[f"{x.lower()}_dom"]):
                 arch = etree.fromstring(view.arch)
-                self.assertEqual(arch.tag, 'form', f"root changed in arch of {view.name}\n{view.arch}")
+                self.assertEqual(arch.tag, "form", f"root changed in arch of {view.name}\n{view.arch}")
                 elem = arch.find("./field")
                 self.assertTrue(elem is not None, f"field element not found in arch of {view.name}\n{view.arch}")
                 self.assertEqual(elem.get("invisible", "False"), x, f"invalid value for {view.name}\n{view.arch}")
@@ -64,7 +120,6 @@ class TestAttrsViewsToExpression(UpgradeCase):
     maxDiff = None
 
     def prepare(self):
-
         # test attributes update
         view_1 = self.env["ir.ui.view"].create(
             {
@@ -96,8 +151,11 @@ class TestAttrsViewsToExpression(UpgradeCase):
                         <field name="date" attrs="{'readonly': []}"/>
                         <field name="date" attrs="{'readonly': 0}"/> <!-- python field has not readonly=True -->
                         <field name="date" attrs="{'readonly': False}"/>
+                        <field invisible="1" name="company_id"/>
+                        <field name="date" attrs="{'readonly': [('company_id', '=', 1)] if company_id else []}"/>
+                        <field name="date" attrs="{'readonly': company_id and [('company_id', '=', 1)] or []}"/>
 
-                        <group>
+                        <group attrs="{'invisible':[('parent_name','!=',False)]}">
                             <group>
                                 <field name="function" placeholder="e.g. Sales Director"
                                     attrs="{'invisible': [('is_company','=', True)]}"/>
@@ -209,7 +267,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
                         <field name="id" attrs="{'invisible': [('id', '!=', False)]}"/>
                     </widget>
                     <widget name="web_ribbon" position="replace">
-                        <field name="tz_offset"/> 
+                        <field name="tz_offset"/>
                     </widget>
                     <field name="tz_offset" position="attributes">
                         <attribute name="readonly">not context.get('toto')</attribute>
@@ -312,16 +370,21 @@ class TestAttrsViewsToExpression(UpgradeCase):
                     </missing>
                     <kanban position="replace"/>
                 </data>"""
-        self.env.cr.execute("""
+        self.env.cr.execute(
+            """
                 UPDATE ir_ui_view
                 SET arch_db=%(arch_db)s,
                     active=%(active)s
                 WHERE id=%(id)s
-            """, {
-                'arch_db': PsycopgJson({'en_US': inherit_1_fail_template}) if is_json_translated_field else inherit_1_fail_template,
-                'active': True,
-                'id': inherit_1_fail.id,
-            })
+            """,
+            {
+                "arch_db": PsycopgJson({"en_US": inherit_1_fail_template})
+                if is_json_translated_field
+                else inherit_1_fail_template,
+                "active": True,
+                "id": inherit_1_fail.id,
+            },
+        )
 
         # test attributes combine (attrs, states, invisible)
         view_2 = self.env["ir.ui.view"].create(
@@ -443,60 +506,122 @@ class TestAttrsViewsToExpression(UpgradeCase):
                 "priority": 33,
             },
         )
+        view_5 = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_5",
+                "model": "res.partner",
+                "type": "form",
+                "arch": """<form>
+                    <field name="name"/>
+                </form>""",
+            },
+        )
+        # test upgrade deactivated view is updated
+        view_5_deac = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_5_deac",
+                "model": "res.partner",
+                "type": "form",
+                "mode": "extension",
+                "inherit_id": view_5.id,
+                "arch": """<data>
+                    <field name="name" position="replace">
+                        <field name="title" attrs="{'invisible': [('id', '=', 1)]}"/>
+                    </field>
+                </data>""",
+                "active": False,
+            },
+        )
+        # test upgrade failing view is updated
+        view_5_error = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_5_error",
+                "model": "res.partner",
+                "type": "form",
+                "mode": "extension",
+                "inherit_id": view_5.id,
+                "arch": "<data></data>",
+            },
+        )
+        wrong = """<data>
+                    <field name="title" position="replace">
+                        <field name="title" states="draft,done"/>
+                    </field>
+                </data>"""
+        self.env.cr.execute(
+            """
+                UPDATE ir_ui_view
+                SET arch_db=%(arch_db)s,
+                    active=%(active)s
+                WHERE id=%(id)s
+            """,
+            {
+                "arch_db": PsycopgJson({"en_US": wrong}) if is_json_translated_field else inherit_1_fail_template,
+                "active": True,
+                "id": view_5_error.id,
+            },
+        )
 
         return {
-            'view_1_id': view_1.id,
-            'inherit_1_1_id': inherit_1_1.id,
-            'inherit_1_2_id': inherit_1_2.id,
-            'inherit_1_fail_id': inherit_1_fail.id,
-            'view_2_id': view_2.id,
-            'inherit_3_2_id': inherit_3_2.id,
-            'inherit_4_1_id': inherit_4_1.id,
-            'view_4_primary_1_id': view_4_primary_1.id,
+            "view_1_id": view_1.id,
+            "inherit_1_1_id": inherit_1_1.id,
+            "inherit_1_2_id": inherit_1_2.id,
+            "inherit_1_fail_id": inherit_1_fail.id,
+            "view_2_id": view_2.id,
+            "inherit_3_2_id": inherit_3_2.id,
+            "inherit_4_1_id": inherit_4_1.id,
+            "view_4_primary_1_id": view_4_primary_1.id,
+            "view_5_deac_id": view_5_deac.id,
+            "view_5_error_id": view_5_error.id,
         }
 
     def check(self, data):
         def apply_etree_space(arch):
-            return etree.tostring(etree.fromstring(arch), encoding='unicode')
+            return etree.tostring(etree.fromstring(arch), method="c14n").decode()
 
-        view_1 = self.env["ir.ui.view"].browse(data['view_1_id'])
-        self.assertEqual(apply_etree_space(view_1.arch_db), apply_etree_space("""<form>
-                    <field name="is_company" invisible="1"/>
+        view_1 = self.env["ir.ui.view"].browse(data["view_1_id"])
+        self.assertEqual(
+            apply_etree_space(view_1.arch_db),
+            apply_etree_space(
+                r"""<form><field name="is_company" invisible="1"/>
                     <field name="active" invisible="1"/>
-                    <div class="alert alert-warning oe_edit_only" role="alert" invisible="not same_vat_partner_id">
+                    <div class="alert alert-warning oe_edit_only" role="alert" invisible="same_vat_partner_id == False">
                     A partner with the same <span><span class="o_vat_label">Tax ID</span></span> already exists (<field name="same_vat_partner_id"/>), are you sure to create a new one?
                     </div>
                     <sheet>
                         <div class="oe_button_box" name="button_box"/>
-                        <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                        <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active == True"/>
                         <field name="comment" invisible="1"/>
                         <field name="parent_name" readonly="0"/>
                         <field name="parent_name" readonly="1" invisible="True"/>
                         <field name="parent_name" readonly="True" invisible="True"/>
                         <field name="parent_name" readonly="0" invisible="True"/>
                         <field name="parent_name" readonly="False" invisible="True"/>
-                        <field name="parent_name" readonly="True"/>
+                        <field name="parent_name" readonly="1"/>
                         <field name="parent_name" readonly="True"/>
                         <field name="parent_name" readonly="True"/> <!-- empty domain equal True -->
-                        <field name="parent_name" readonly="False"/> <!-- python field has readonly=True -->
+                        <field name="parent_name" readonly="0"/> <!-- python field has readonly=True -->
                         <field name="parent_name" readonly="False"/>
+                        <field name="date" readonly="1"/>
                         <field name="date" readonly="True"/>
                         <field name="date" readonly="True"/>
-                        <field name="date" readonly="True"/>
-                        <field name="date"/> <!-- python field has not readonly=True -->
-                        <field name="date"/>
+                        <field name="date" readonly="0"/> <!-- python field has not readonly=True -->
+                        <field name="date" readonly="False"/>
+                        <field invisible="1" name="company_id"/>
+                        <field name="date" readonly="(company_id == 1 if company_id else True)"/>
+                        <field name="date" readonly="((company_id and company_id == 1) or True)"/>
 
-                        <group>
+                        <group invisible="parent_name != False">
                             <group>
                                 <field name="function" placeholder="e.g. Sales Director"
-                                    invisible="is_company"/>
+                                    invisible="is_company == True"/>
                                 <field name="phone" widget="phone"/>
                                 <field name="mobile" widget="phone"/>
                                 <field name="user_ids" invisible="1"/>
-                                <field name="email" widget="email" context="{'gravatar_image': True}" invisible="not user_ids" required="user_ids"/>
+                                <field name="email" widget="email" context="{'gravatar_image': True}" invisible="set(user_ids.ids).intersection([])" required="not set(user_ids.ids).intersection([])"/>
                                 <field name="website" string="Website" widget="url" placeholder="e.g. https://www.odoo.com"/>
                                 <field name="title" options='{"no_open": True}' placeholder="e.g. Mister"
-                                    invisible="is_company"/>
+                                    invisible="is_company == True"/>
                                 <field name="active_lang_count" invisible="1"/>
                                 <field name="lang" invisible="active_lang_count &lt;= 1"/>
                                 <field name="category_id" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}"
@@ -504,7 +629,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
 
                                 <field name="category_id">
                                     <tree editable="bottom">
-                                        <field name="name" readonly="context.get('stuff')" invisible="not id" required="id &lt; parent.id"/>
+                                        <field name="name" readonly="context.get('stuff')" invisible="id == False" required="id &lt; parent.id"/>
                                     </tree>
                                 </field>
                             </group>
@@ -527,26 +652,26 @@ class TestAttrsViewsToExpression(UpgradeCase):
                                                 <t t-set="color" t-value="kanban_color(record.color.raw_value)"/>
                                                 <div t-att-class="color + (record.title.raw_value == 1 ? ' oe_kanban_color_alert' : '') + ' oe_kanban_global_click'">
                                                     <div class="o_kanban_image">
-                                                        <img invisible="not comment" alt="Contact image" t-att-src="kanban_image('res.partner', 'comment', record.id.raw_value)"/>
+                                                        <img invisible="comment == False" alt="Contact image" t-att-src="kanban_image('res.partner', 'comment', record.id.raw_value)"/>
                                                     </div>
                                                     <div class="oe_kanban_details">
                                                         <div t-if="record.phone.raw_value">Phone: <t t-esc="record.phone.value"/></div>
                                                     </div>
-                                                    <field name="parent_name" readonly="False"/> <!-- python field has readonly=True -->
-                                                    <field name="date"/> <!-- python field has not readonly=True -->
+                                                    <field name="parent_name" readonly="0"/> <!-- python field has readonly=True -->
+                                                    <field name="date" readonly="0"/> <!-- python field has not readonly=True -->
                                                 </div>
                                             </t>
                                         </templates>
                                     </kanban>
                                     <tree editable="bottom">
-                                        <field name="is_company" column_invisible="True"/>
+                                        <field name="is_company" column_invisible="1"/>
                                         <field name="function" column_invisible="context.get('stuff')"/>
                                         <field name="phone"/>
                                         <field name="street"
                                             invisible="is_company == parent.is_company"
                                             column_invisible="context.get('stuff')"
-                                            readonly="'000'.lower() in (phone or &quot;&quot;).lower()"
-                                            required="is_company and '000' in (phone or &quot;&quot;)"/>
+                                            readonly="'000'.lower() in (phone or '').lower()"
+                                            required="('000' in (phone or '')) and (is_company == True)"/>
                                         <field name="street2"/>
                                         <field name="zip"/>
                                         <field name="city"/>
@@ -559,9 +684,9 @@ class TestAttrsViewsToExpression(UpgradeCase):
                                                     <field name="function" invisible="context.get('stuff')"/>
                                                     <field name="phone"/>
                                                     <field name="street"
-                                                        invisible="context.get('stuff') or is_company == parent.is_company"
-                                                        readonly="'000'.lower() in (phone or &quot;&quot;).lower()"
-                                                        required="is_company and '000' in (phone or &quot;&quot;)"/>
+                                                        invisible="(context.get('stuff')) or (is_company == parent.is_company)"
+                                                        readonly="'000'.lower() in (phone or '').lower()"
+                                                        required="('000' in (phone or '')) and (is_company == True)"/>
                                                     <field name="street2"/>
                                                     <field name="zip"/>
                                                     <field name="city"/>
@@ -573,48 +698,52 @@ class TestAttrsViewsToExpression(UpgradeCase):
                             </page>
                         </notebook>
                     </sheet>
-                </form>"""))
+                </form>"""
+            ),
+        )
         self.assertTrue(view_1.active)
 
-        inherit_1_1 = self.env["ir.ui.view"].browse(data['inherit_1_1_id'])
-        self.assertEqual(apply_etree_space(inherit_1_1.arch_db), apply_etree_space("""<data>
-                    <widget name="web_ribbon" position="after">
-                        <field name="id" invisible="id"/>
+        inherit_1_1 = self.env["ir.ui.view"].browse(data["inherit_1_1_id"])
+        self.assertEqual(
+            apply_etree_space(inherit_1_1.arch_db),
+            apply_etree_space(
+                """<data><widget name="web_ribbon" position="after">
+                        <field name="id" invisible="id != False"/>
                     </widget>
                     <widget name="web_ribbon" position="replace">
-                        <field name="tz_offset"/> 
+                        <field name="tz_offset"/>
                     </widget>
                     <field name="tz_offset" position="attributes">
-                        <attribute name="readonly">(not context.get('toto')) or (id &lt; 42)</attribute>
                         <!-- log a not found, because an xpath replaced this node in the current view -->
-                    </field>
+                    <attribute name="readonly">(not context.get('toto')) or (id &lt; 42)</attribute></field>
                     <field name="name" position="before">
-                        <field name="active" column_invisible="True"/>
+                        <field name="active" column_invisible="1"/>
                     </field>
                     <field name="name" position="attributes">
-                        <attribute name="invisible">id == 42</attribute>
-                        <attribute name="readonly">not context.get('test')</attribute>
-                        <attribute name="required" add="context.get('test')" separator=" or "/>
                         <!-- if invisible should replace the previous value -->
                         <!-- if readonly should replace the previous value -->
                         <!-- if required should be combine (' or ') with the previous value -->
-                    </field>
+                    <attribute name="invisible">id == 42</attribute><attribute name="readonly">not context.get('test')</attribute><attribute name="required">context.get('test')</attribute></field>
                     <xpath expr="//field[@name='category_id']//field[@name='name']" position="after">
                         <field name="parent_path"/>
                     </xpath>
                     <notebook position="inside">
-                        <page name="Truc" string="Truc" invisible="id">
+                        <page name="Truc" string="Truc" invisible="id != False">
                             <group>
                                 <field name="name" readonly="1"/>
                             </group>
                         </page>
                     </notebook>
-                </data>"""))
+                </data>"""
+            ),
+        )
         self.assertTrue(inherit_1_1.active)
 
-        inherit_1_2 = self.env["ir.ui.view"].browse(data['inherit_1_2_id'])
-        self.assertEqual(apply_etree_space(inherit_1_2.arch_db), apply_etree_space("""<data>
-                    <xpath expr="//field[@name='category_id']//field[@name='name']" position="replace">
+        inherit_1_2 = self.env["ir.ui.view"].browse(data["inherit_1_2_id"])
+        self.assertEqual(
+            apply_etree_space(inherit_1_2.arch_db),
+            apply_etree_space(
+                """<data><xpath expr="//field[@name='category_id']//field[@name='name']" position="replace">
                         <field name="id"/>
                     </xpath>
                     <field name="id" position="replace">
@@ -630,67 +759,112 @@ class TestAttrsViewsToExpression(UpgradeCase):
                     </notebook>
                     <page name="test_a" position="attributes">
                         <!-- if log a not found: the converted inerited view 'test_attrs_views_to_expression_inherit' is missing -->
-                        <attribute name="readonly">1</attribute>
-                    </page>
-                </data>"""))
+                        <attribute name="readonly">1</attribute></page>
+                </data>"""
+            ),
+        )
         self.assertTrue(inherit_1_2.active)
 
-        inherit_1_fail = self.env["ir.ui.view"].browse(data['inherit_1_fail_id'])
-        self.assertEqual(apply_etree_space(inherit_1_fail.arch_db), apply_etree_space("""<data>
-                    <field name="color" position="attributes">
-                        <attribute name="readonly">context.get('no_fail')</attribute>
-                    </field>
+        inherit_1_fail = self.env["ir.ui.view"].browse(data["inherit_1_fail_id"])
+        self.assertEqual(
+            apply_etree_space(inherit_1_fail.arch_db),
+            apply_etree_space(
+                """<data><field name="color" position="attributes">
+                        <attribute name="readonly">context.get('no_fail')</attribute></field>
                     <kanban position="attributes">
                         <attribute name="js_class">yolo</attribute>
                         </kanban>
                     <notebook missing_attribute="True" position="inside">
                         <!-- test -->
                         text abc ---
-                        <page string="Test_b" invisible="active">
+                        <page string="Test_b" invisible="active == True">
                             <field name="active" invisible="context.get('fail')"/>
                         </page>
                     </notebook>
                     <missing position="attributes">
-                        <attribute name="readonly">context.get('fail')</attribute>
                         <!-- test -> <- comment -->
-                    </missing>
+                    <attribute name="readonly">context.get('fail')</attribute></missing>
                     <kanban position="replace"/>
-                </data>"""))
+                </data>"""
+            ),
+        )
         self.assertFalse(inherit_1_fail.active)  # disabled by upgrade (can't repair it)
 
-        view_2 = self.env["ir.ui.view"].browse(data['view_2_id'])
-        self.assertEqual(apply_etree_space(view_2.arch_db), apply_etree_space("""<form>
-                    <field name="state" invisible="1"/>
-                    <field name="name" invisible="context.get('a-b') or (id and state != 'manual')"/>
-                </form>"""))
+        view_2 = self.env["ir.ui.view"].browse(data["view_2_id"])
+        self.assertEqual(
+            apply_etree_space(view_2.arch_db),
+            apply_etree_space(
+                """<form><field name="state" invisible="1"/>
+                    <field name="name" invisible="((context.get('a-b')) or (id != False)) or (state not in ['manual'])"/>
+                </form>"""
+            ),
+        )
         self.assertTrue(view_2.active)
 
-        inherit_3_2 = self.env["ir.ui.view"].browse(data['inherit_3_2_id'])
-        self.assertEqual(apply_etree_space(inherit_3_2.arch_db), apply_etree_space("""<data>
-                    <field name="is_company" position="after">
+        inherit_3_2 = self.env["ir.ui.view"].browse(data["inherit_3_2_id"])
+        self.assertEqual(
+            apply_etree_space(inherit_3_2.arch_db),
+            apply_etree_space(
+                """<data><field name="is_company" position="after">
                         <field name="name"/>
                     </field>
                     <field name="active" position="before">
-                        <field name="id" invisible="is_company"/>
+                        <field name="id" invisible="is_company == True"/>
                     </field>
-                </data>"""),
-                "Miss inheriting order (must use the inherited relation)")
+                </data>"""
+            ),
+            "Miss inheriting order (must use the inherited relation)",
+        )
         self.assertTrue(inherit_3_2.active)
 
-        inherit_4_1 = self.env["ir.ui.view"].browse(data['inherit_4_1_id'])
-        self.assertEqual(apply_etree_space(inherit_4_1.arch_db), apply_etree_space("""<data>
-                    <field name="is_company" position="after">
-                        <field name="name" column_invisible="True"/>
+        inherit_4_1 = self.env["ir.ui.view"].browse(data["inherit_4_1_id"])
+        self.assertEqual(
+            apply_etree_space(inherit_4_1.arch_db),
+            apply_etree_space(
+                """<data><field name="is_company" position="after">
+                        <field name="name" column_invisible="1"/>
                     </field>
-                </data>"""),
-                "Miss inheriting order (must use priority)")
+                </data>"""
+            ),
+            "Miss inheriting order (must use priority)",
+        )
         self.assertTrue(inherit_4_1.active)
 
-        view_4_primary_1 = self.env["ir.ui.view"].browse(data['view_4_primary_1_id'])
-        self.assertEqual(apply_etree_space(view_4_primary_1.arch_db), apply_etree_space("""<data>
-                    <field name="name" position="after">
-                        <field name="id" column_invisible="True"/>
+        view_4_primary_1 = self.env["ir.ui.view"].browse(data["view_4_primary_1_id"])
+        self.assertEqual(
+            apply_etree_space(view_4_primary_1.arch_db),
+            apply_etree_space(
+                """<data><field name="name" position="after">
+                        <field name="id" column_invisible="1"/>
                     </field>
-                </data>"""),
-                "Miss inheriting order (mode=primary is applied after all extend mode)")
+                </data>"""
+            ),
+            "Miss inheriting order (mode=primary is applied after all extend mode)",
+        )
         self.assertTrue(view_4_primary_1.active)
+
+        view_5_deac = self.env["ir.ui.view"].browse(data["view_5_deac_id"])
+        self.assertEqual(
+            apply_etree_space(view_5_deac.arch_db),
+            apply_etree_space(
+                """<data><field name="name" position="replace">
+                        <field name="title" invisible="id == 1"/>
+                    </field>
+                </data>"""
+            ),
+            "Inactive view unfixed",
+        )
+        self.assertFalse(view_5_deac.active)
+
+        view_5_error = self.env["ir.ui.view"].browse(data["view_5_error_id"])
+        self.assertEqual(
+            apply_etree_space(view_5_error.arch_db),
+            apply_etree_space(
+                """<data><field name="title" position="replace">
+                        <field name="title" invisible="state not in ['draft','done']"/>
+                    </field>
+                </data>"""
+            ),
+            "Error view unfixed",
+        )
+        self.assertFalse(view_5_error.active)
