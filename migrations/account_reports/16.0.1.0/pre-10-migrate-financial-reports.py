@@ -290,7 +290,7 @@ def migrate(cr, version):
 
                -- formula
                   CASE
-                       WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN arl.v15_domain
+                       WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN COALESCE(arl.v15_domain, '[]')
                        ELSE arl.v15_formulas
                   END,
 
