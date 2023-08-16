@@ -179,11 +179,9 @@ def recycle(env, execute=None):
 
     delete_mail_messages_query = """
         DELETE FROM mail_message m
-              USING res_partner p
-               JOIN res_partner_res_partner_category_rel pc
-                 ON pc.partner_id = p.id
+              USING res_partner_res_partner_category_rel pc
               WHERE m.model = 'res.partner'
-                AND m.res_id = p.id
+                AND m.res_id = pc.partner_id
                 AND pc.category_id = %s
         """
 
