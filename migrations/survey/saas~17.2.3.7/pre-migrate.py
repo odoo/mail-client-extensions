@@ -32,3 +32,21 @@ def migrate(cr, version):
                 OR (q.is_time_limited AND q.time_limit != 30))
     """
     util.explode_execute(cr, query, table="survey_question", alias="q")
+
+    # update of survey management rights: remove former rules become useless
+
+    to_remove = [
+        "survey_survey_rule_survey_user_read",
+        "survey_survey_rule_survey_user_cwu",
+        "survey_question_rule_survey_user_read",
+        "survey_question_rule_survey_user_cw",
+        "survey_question_answer_rule_survey_user_read",
+        "survey_question_answer_rule_survey_user_cw",
+        "survey_user_input_rule_survey_user_read",
+        "survey_user_input_rule_survey_user_cw",
+        "survey_user_input_line_rule_survey_user_read",
+        "survey_user_input_line_rule_survey_user_cw",
+    ]
+
+    for record_id in to_remove:
+        util.remove_record(cr, f"survey.{record_id}")
