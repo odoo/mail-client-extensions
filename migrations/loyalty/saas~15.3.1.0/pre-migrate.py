@@ -386,7 +386,7 @@ def _coupon_migrate(cr):
                c.create_uid, c.create_date, c.write_uid, c.write_date,
                c.id,
                TRUE, p.company_id,
-               CASE WHEN state in ('new', 'sent', 'reserved') THEN 1 ELSE 0 END
+               CASE WHEN c.state in ('new', 'sent', 'reserved') THEN 1 ELSE 0 END
           FROM coupon_coupon c
           JOIN loyalty_program p
             ON p._upg_coupon_program_id = c.program_id
