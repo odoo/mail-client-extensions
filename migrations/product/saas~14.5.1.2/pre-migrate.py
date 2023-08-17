@@ -19,6 +19,18 @@ def migrate(cr, version):
 
     util.rename_field(cr, "product.template", "type", "detailed_type", update_references=False)
     util.create_column(cr, "product_template", "type", "varchar")
+
+    if util.module_installed(cr, "sale_purchase"):
+        # recreate constraint since column was renamed
+        cr.execute(
+            r"""
+            ALTER TABLE product_template
+             DROP CONSTRAINT IF EXISTS product_template_service_to_purchase,
+              ADD CONSTRAINT product_template_service_to_purchase
+            CHECK (type != 'service' AND service_to_purchase != TRUE OR type = 'service')
+            """
+        )
+
     util.parallel_execute(
         cr,
         util.explode_query_range(
