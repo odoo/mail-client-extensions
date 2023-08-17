@@ -18,3 +18,5 @@ def migrate(cr, version):
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="documents_share", alias="ds"))
     util.remove_field(cr, "documents.request_wizard", "owner_id")
+    util.remove_model(cr, "documents.folder.deletion.wizard")
+    util.create_column(cr, "documents_folder", "active", "boolean", default=True)
