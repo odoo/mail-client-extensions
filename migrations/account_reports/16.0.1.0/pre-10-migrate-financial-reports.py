@@ -143,7 +143,7 @@ def migrate(cr, version):
 
     # constant regexes
     TERM_CODE_REGEX = r"\w+"
-    DOMAIN_EXPR_REGEX = r"-?sum(?:_if_(?:pos|neg))?"
+    DOMAIN_EXPR_REGEX = r"-?sum(?:_if_(?:pos|neg)(?:_groupby)?)?"
 
     # migrate custom reports' lines from account_financial_html_report_line to account_report_line
     cr.execute(

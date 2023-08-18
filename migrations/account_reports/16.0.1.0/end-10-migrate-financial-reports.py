@@ -15,7 +15,7 @@ def migrate(cr, version):
 
     # constant regexes
     TERM_CODE_REGEX = r"\w+"
-    DOMAIN_EXPR_REGEX = r"-?sum(?:_if_(?:pos|neg))?"
+    DOMAIN_EXPR_REGEX = r"-?sum(?:_if_(?:pos|neg)(?:_groupby)?)?"
 
     # There are 2 cases under which we need to migrate extra lines:
     #   1. Migrated aggregation formulas make use of lines that used to be standard in v15 and are no longer there in Odoo 16.
