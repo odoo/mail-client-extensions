@@ -22,7 +22,7 @@ def migrate(cr, version):
 
     custom_fin_reports = cr.fetchall()
 
-    if not os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS"):
+    if not os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS") and not util.on_CI():
         util.add_to_migration_reports(
             """
                 <details>
@@ -167,7 +167,7 @@ def migrate(cr, version):
         )
         SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(),
                m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
-               0, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
+               1, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
                afhrl.groupby, afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
                afhrl.green_on_positive, afhrl.special_date_changer, afhrl.id,
                REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),

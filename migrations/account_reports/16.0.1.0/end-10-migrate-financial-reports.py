@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
 import os
+from ast import literal_eval
 
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if not os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS") or not util.column_exists(
+    if (not os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS") and not util.on_CI()) or not util.column_exists(
         cr, "account_report_line", "v15_line_id"
     ):
         return
@@ -188,3 +189,69 @@ def migrate(cr, version):
            AND are.report_line_id = arl.id
         """
     )
+
+    # Given that Odoo 16 no longer supports sum_if_(pos|neg)_groupby, expressions relying on them must have their domain adapted
+    # For an example, see _prepare_test_custom_fin_report_migrated in test_16_reportalypse.py
+    cr.execute(
+        """
+        SELECT id,
+               subformula LIKE '%pos%' AS debit_flag,
+               subformula LIKE '-%' as neg_flag,
+               formula AS domain
+          FROM account_report_expression
+         WHERE subformula ~ '-?sum_if_(?:pos|neg)_groupby'
+        """
+    )
+
+    for id, debit, neg_sign, d in cr.fetchall():
+        domain = literal_eval(d)
+
+        patterns = []
+        antipatterns = []
+        target = patterns
+        for token in domain:
+            if isinstance(token, tuple):  # e.g. ('account_id.code', '=like', '40%')
+                if len(token) != 3:
+                    raise ValueError(f"Domain's element length is not 3: {token}")
+                if not token[0] == "account_id.code":
+                    raise ValueError(f"Domain contains condition on {token[0]} field instead of 'account_id.code'")
+
+                t = token[2].replace("%", "")
+                if not t.isnumeric():
+                    raise ValueError(f"Domain assumption violated: Unrecognized, non-numeric token = {token}")
+
+                if token[1] == "=like":
+                    target.append(t)
+                elif token[1] == "not like":
+                    antipatterns.append(t)
+                else:
+                    raise ValueError(f"Domain contains unknown comparator: {token[1]}")
+            elif token == "!":
+                if target is antipatterns:
+                    raise ValueError(f"Multiple '!'s found in expression with id = {id}, in domain = {domain}")
+                target = antipatterns
+            elif token != "|":
+                raise ValueError(f"Unknown token = {token}, in domain {domain}")
+
+        # new_formula defined as per Odoo 16 specifications:
+        # https://github.com/odoo/enterprise/blob/ee3fa2f85d11e529613e749d7bfe6640cc0df02d/account_reports/models/account_report.py#L2798
+        new_formula, sum_sign = ("-", " - ") if neg_sign else ("", " + ")
+        letter_code = "D" if debit else "C"
+        for pattern in patterns:
+            new_formula += pattern
+            antipattern = ",".join(filter(lambda x: x.startswith(pattern), antipatterns))
+            if antipattern:
+                new_formula += r"\(" + antipattern + ")"
+            new_formula += letter_code + sum_sign
+        new_formula = new_formula.rstrip(" +-")
+
+        cr.execute(
+            """
+            UPDATE account_report_expression
+               SET engine = 'account_codes',
+                   subformula = NULL,
+                   formula = %s
+             WHERE id = %s
+            """,
+            [new_formula, id],
+        )
