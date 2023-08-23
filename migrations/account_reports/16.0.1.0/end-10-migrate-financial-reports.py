@@ -176,6 +176,8 @@ def migrate(cr, version):
         """
     )
 
+    util.remove_column(cr, "account_report_line", "v15_domain")
+
     cr.execute(
         rf"""
         UPDATE account_report_expression are
@@ -186,5 +188,3 @@ def migrate(cr, version):
            AND are.report_line_id = arl.id
         """
     )
-
-    util.remove_column(cr, "account_report_line", "v15_domain")
