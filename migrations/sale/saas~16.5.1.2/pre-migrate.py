@@ -1,0 +1,31 @@
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.create_column(cr, "product_document", "attached_on", "varchar")
+    if util.column_exists(cr, "ir_attachment", "product_downloadable"):
+        cr.execute(
+            """
+        INSERT INTO product_document (ir_attachment_id, active, attached_on)
+             SELECT ia.id,
+                    TRUE,
+                    'sale_order'
+               FROM ir_attachment ia
+              WHERE ia.res_model = 'product.template'
+                AND ia.product_downloadable
+        """
+        )
+
+        cr.execute(
+            """
+        INSERT INTO product_document (ir_attachment_id, active, attached_on)
+             SELECT ia.id,
+                    TRUE,
+                    'sale_order'
+               FROM ir_attachment ia
+              WHERE ia.res_model = 'product.product'
+                AND ia.product_downloadable
+        """
+        )
+
+        util.remove_field(cr, "ir.attachment", "product_downloadable")

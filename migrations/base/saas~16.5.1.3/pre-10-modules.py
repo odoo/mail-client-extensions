@@ -10,3 +10,8 @@ def migrate(cr, version):
         util.merge_module(cr, "sale_timesheet_account_budget", "project_account_budget")
         util.remove_module(cr, "website_sale_renting_comparison")
         util.remove_module(cr, "website_sale_renting_wishlist")
+
+    if util.module_installed(cr, "website_sale_digital"):
+        util.move_field_to_module(cr, "ir.attachment", "product_downloadable", "website_sale_digital", "sale")
+
+    util.remove_module(cr, "website_sale_digital")
