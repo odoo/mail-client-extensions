@@ -30,9 +30,6 @@ def migrate(cr, version):
     for record in to_remove_list:
         util.remove_record(cr, "account.%s" % record)
 
-    for record in to_move_list:
-        util.rename_xmlid(cr, *eb("account{,_accountant}.%s" % record))
-
     views = """
         action_account_fiscal_year_form
         action_account_fiscal_year_search
@@ -44,8 +41,18 @@ def migrate(cr, version):
     for view in util.splitlines(views):
         util.remove_view(cr, f"account.{view}")
 
-    util.move_field_to_module(cr, "res.config.settings", "group_fiscal_year", *eb("account{,_accountant}"))
-    util.move_model(cr, "account.fiscal.year", *eb("account{,_accountant}"))
+    if util.module_installed(cr, "account_accountant"):
+        for record in to_move_list:
+            util.rename_xmlid(cr, *eb("account{,_accountant}.%s" % record))
+
+        util.move_field_to_module(cr, "res.config.settings", "group_fiscal_year", *eb("account{,_accountant}"))
+        util.move_model(cr, "account.fiscal.year", *eb("account{,_accountant}"))
+    else:
+        for record in to_move_list:
+            util.remove_record(cr, "account.%s" % record)
+
+        util.remove_field(cr, "res.config.settings", "group_fiscal_year")
+        util.remove_model(cr, "account.fiscal.year")
 
     for seq in "customer_invoice customer_refund supplier_invoice supplier_refund transfer".split():
         util.delete_unused(cr, f"account.sequence_payment_{seq}")
