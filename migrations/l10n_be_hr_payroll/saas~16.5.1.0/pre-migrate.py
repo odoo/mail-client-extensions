@@ -28,3 +28,13 @@ def migrate(cr, version):
     util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_cip")
     util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_replacement")
     util.update_record_from_xml(cr, "l10n_be_hr_payroll.l10n_be_contract_type_clearly_defined_work")
+
+    util.rename_field(cr, "l10n_be.281_10", "reference_year", "year")
+    util.rename_field(cr, "l10n_be.281_45", "reference_year", "year")
+
+    util.remove_model(cr, "l10n_be.individual.account.line", drop_table=False)
+    util.remove_model(cr, "l10n_be.281_10.line", drop_table=False)
+    util.remove_model(cr, "l10n_be.281_45.line", drop_table=False)
+    util.remove_model(cr, "report.l10n_be_hr_payroll.report_281_10")
+    util.remove_model(cr, "report.l10n_be_hr_payroll.report_281_45")
+    util.remove_model(cr, "report.l10n_be_hr_payroll.report_individual_account")
