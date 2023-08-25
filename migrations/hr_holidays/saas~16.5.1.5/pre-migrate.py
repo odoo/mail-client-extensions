@@ -138,3 +138,43 @@ def migrate(cr, version):
             )
         ),
     )
+
+    util.create_column(cr, "hr_leave", "resource_calendar_id", "int4")
+    util.create_column(cr, "hr_leave", "number_of_hours", "int4")
+
+    queries = [
+        """
+        UPDATE hr_leave l
+           SET resource_calendar_id = e.resource_calendar_id
+          FROM hr_employee e
+         WHERE e.id = l.employee_id
+           AND l.holiday_type = 'employee'
+           AND l.resource_calendar_id IS NULL
+        """,
+        """
+        UPDATE hr_leave l
+           SET resource_calendar_id = c.resource_calendar_id
+          FROM res_company c
+         WHERE c.id = l.mode_company_id
+           AND l.holiday_type = 'company'
+           AND l.resource_calendar_id IS NULL
+        """,
+        """
+        UPDATE hr_leave l
+           SET resource_calendar_id = c.resource_calendar_id
+          FROM hr_department d
+          JOIN res_company c
+            ON d.company_id = c.id
+         WHERE d.id = l.department_id
+           AND l.holiday_type = 'department'
+           AND l.resource_calendar_id IS NULL
+        """,
+    ]
+    util.parallel_execute(
+        cr,
+        list(
+            itertools.chain.from_iterable(
+                (util.explode_query_range(cr, query, table="hr_leave", alias="l") for query in queries)
+            )
+        ),
+    )
