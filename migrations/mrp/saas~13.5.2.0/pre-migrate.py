@@ -18,13 +18,16 @@ def migrate(cr, version):
         """
     )
 
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
     UPDATE stock_move AS sm
        SET priority = mp.priority
       FROM mrp_production AS mp
      WHERE sm.raw_material_production_id = mp.id
-        """
+        """,
+        table="stock_move",
+        alias="sm",
     )
 
     util.remove_field(cr, "mrp.production", "delay_alert")
