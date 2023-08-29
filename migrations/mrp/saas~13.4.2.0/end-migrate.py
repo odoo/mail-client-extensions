@@ -375,7 +375,7 @@ def migrate(cr, version):
         .search([("state", "in", ("draft", "confirmed")), ("bom_id", "!=", False), ("workorder_ids", "=", False)])
         .ids
     )
-    util.iter_browse(env["mrp.production"], production_ids)._create_workorder()
+    util.iter_browse(env["mrp.production"], production_ids, chunk_size=10000, strategy="commit")._create_workorder()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
     ncr = util.named_cursor(cr)
