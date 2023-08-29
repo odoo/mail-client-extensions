@@ -18,3 +18,7 @@ def migrate(cr, version):
                     "mailing.subscription",
                     {"contact_id": contact_id, "list_id": demo_list_id},
                 )
+
+    util.remove_column(cr, "mailing_trace", "sms_sms_id", cascade=True)
+    util.rename_field(cr, "mailing.trace", "sms_sms_id", "sms_id")
+    util.rename_field(cr, "mailing.trace", "sms_sms_id_int", "sms_id_int")
