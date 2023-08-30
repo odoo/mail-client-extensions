@@ -51,3 +51,6 @@ def migrate(cr, version):
 
     if util.module_installed(cr, "iap_extract") and not util.module_installed(cr, "iap"):
         util.uninstall_module(cr, "iap_extract")
+
+    if util.modules_installed(cr, "hr_holidays", "l10n_fr"):
+        util.force_upgrade_of_fresh_module(cr, "l10n_fr_hr_holidays")
