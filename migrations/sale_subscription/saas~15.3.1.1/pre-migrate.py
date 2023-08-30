@@ -783,6 +783,31 @@ def migrate(cr, version):
         table="sale_order_line",
         alias="sol_update",
     )
+
+    # Set stage_id for draft quotations that have recurring products, ie quotations that
+    # are yet to become subscriptions (once confirmed post-upgrade).
+    query = cr.mogrify(
+        """
+        UPDATE sale_order so
+           SET stage_id = %(draft)s
+          FROM sale_order_line sol
+          JOIN product_product pp ON pp.id = sol.product_id
+          JOIN product_template pt ON  pt.id = pp.product_tmpl_id
+         WHERE sol.order_id = so.id
+           AND pt.recurring_invoice = True
+           AND so.subscription_management = 'create'
+           AND so.state = 'draft'
+           AND so.stage_id IS NULL
+        """,
+        stages,
+    ).decode()
+    util.explode_execute(
+        cr,
+        query,
+        table="sale_order",
+        alias="so",
+    )
+
     # In the old system, the client_order_ref was not copied from the subscription to the upsell/renewal
     util.explode_execute(
         cr,
