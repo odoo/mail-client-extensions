@@ -42,6 +42,8 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
 
     @util.no_selection_cache_validation
     def invariant(self, ignore_kits=False, only_product_ids=None):
+        self.skip_if_demo()
+
         def trim_trailing_zeros(value):
             return value.rstrip("0").rstrip(".")
 
