@@ -26,3 +26,7 @@ def migrate(cr, version):
     util.merge_module(cr, "event_barcode", "event")
     util.merge_module(cr, "l10n_pl_jpk", "l10n_pl")
     util.remove_module(cr, "l10n_pl_sale_stock")
+
+    if util.has_enterprise():
+        util.merge_module(cr, "account_sepa_pain_001_001_09", "account_sepa")
+        util.merge_module(cr, "hr_payroll_account_sepa_09", "hr_payroll_account_sepa")
