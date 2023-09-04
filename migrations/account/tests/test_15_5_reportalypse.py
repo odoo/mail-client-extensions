@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from .test_common import TestAccountingSetupCommon
 from odoo.addons.base.maintenance.migrations.testing import change_version
 
@@ -67,6 +66,79 @@ class TestReportalypse(TestAccountingSetupCommon):
         tags = self.env["account.account.tag"].browse(tag_ids)
         self.assertEqual(invoice.line_ids.tax_tag_ids, tags)
 
+    def _prepare_test_custom_tax_report_migrated(self):
+        atr = self.env["account.tax.report"]
+        atrl = self.env["account.tax.report.line"]
+
+        report = atr.create(
+            {
+                "name": "Custom Tax Report Test 1",
+                "country_id": self.env["res.country"].search([("name", "=", "Belgium")]).id,
+            }
+        )
+        report_vals = {
+            "name": report.name,
+            "country_id": report.country_id.id,
+        }
+
+        line1 = atrl.create(
+            {
+                "code": "tax_line_custom_code_1",
+                "name": "Custom Tax Report Line Test 1",
+                "report_id": report.id,
+                "sequence": 10,
+                "tag_name": "543",
+            }
+        )
+        line1_vals = {
+            "code": line1.code,
+            "name": line1.name,
+            "sequence": line1.sequence,
+            "tag_name": line1.tag_name,
+        }
+
+        return report_vals, line1_vals
+
+    def _check_test_custom_tax_report_migrated(self, config, rep_vals, l1_vals):
+        ar = self.env["account.report"]
+        arc = self.env["account.report.column"]
+        arl = self.env["account.report.line"]
+        are = self.env["account.report.expression"]
+
+        report = ar.search(
+            [
+                ("name", "=", rep_vals["name"]),
+                ("country_id", "=", rep_vals["country_id"]),
+                ("availability_condition", "=", "country"),
+                ("root_report_id", "=", self.env.ref("account.generic_tax_report").id),
+            ]
+        )
+        self.assertTrue(report)
+
+        column = arc.search([("report_id", "=", report.id)])
+        self.assertTrue(column)
+
+        l1 = arl.search(
+            [
+                ("report_id", "=", report.id),
+                ("name", "=", l1_vals["name"]),
+                ("code", "=", l1_vals["code"]),
+                ("parent_id", "=", False),
+            ]
+        )
+        self.assertTrue(l1)
+
+        e1 = are.search(
+            [
+                ("report_line_id", "=", l1.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "tax_tags"),
+                ("formula", "=", l1_vals["tag_name"]),
+                ("subformula", "=", False),
+            ]
+        )
+        self.assertTrue(e1)
+
     # -------------------------------------------------------------------------
     # SETUP
     # -------------------------------------------------------------------------
@@ -74,4 +146,5 @@ class TestReportalypse(TestAccountingSetupCommon):
     def prepare(self):
         res = super().prepare()
         res["tests"].append(("_check_test_tax_tags_not_removed", self._prepare_test_tax_tags_not_removed()))
+        res["tests"].append(("_check_test_custom_tax_report_migrated", self._prepare_test_custom_tax_report_migrated()))
         return res
