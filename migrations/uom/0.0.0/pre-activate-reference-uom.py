@@ -23,7 +23,7 @@ def migrate(cr, version):
             ON c.id = ref.id
          WHERE c.id = u.category_id
            AND u.uom_type = 'reference'
-           AND active = False
+           AND u.active = False
      RETURNING u.{uom_col}, c.{categ_col}
     """.format(
             uom_table=uom_table,
