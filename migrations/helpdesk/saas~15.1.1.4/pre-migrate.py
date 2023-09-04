@@ -27,8 +27,6 @@ def migrate(cr, version):
     util.remove_field(cr, "helpdesk.team", "visibility_member_ids")
     util.remove_field(cr, "helpdesk.team", "privacy")
 
-    cr.execute("UPDATE helpdesk_ticket SET priority = '0' WHERE priority = '1'")
-    cr.execute("UPDATE helpdesk_sla SET priority = '0' WHERE priority = '1'")
     util.create_m2m(cr, "helpdesk_sla_helpdesk_ticket_type_rel", "helpdesk_sla", "helpdesk_ticket_type")
     cr.execute(
         """
