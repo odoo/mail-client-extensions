@@ -41,3 +41,5 @@ def migrate(cr, version):
     util.remove_field(cr, "sale.order.log.report", "recurring_yearly_graph")
     util.remove_field(cr, "sale.order.log.report", "recurring_monthly_graph")
     util.remove_field(cr, "sale.order.log.report", "amount_signed_graph")
+
+    util.remove_view(cr, "sale_subscription.payment_checkout_inherit")
