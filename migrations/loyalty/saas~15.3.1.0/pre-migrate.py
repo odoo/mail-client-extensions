@@ -243,7 +243,11 @@ def _coupon_migrate(cr):
         SELECT p.name, p.active, p.sequence,
                not p.maximum_use_number = 0, p.maximum_use_number,
                CASE WHEN p.program_type = 'coupon_program' THEN 'coupons' ELSE 'promotion' END,
-               CASE WHEN p.promo_code_usage = 'code_needed' THEN 'with_code' ELSE 'auto' END,
+               CASE
+                   WHEN p.promo_code_usage = 'code_needed' THEN 'with_code'
+                   WHEN p.promo_code_usage IS NULL AND p.program_type = 'coupon_program' THEN 'with_code'
+                   ELSE 'auto'
+               END,
                CASE WHEN p.promo_applicability = 'on_next_order' THEN 'future' ELSE 'current' END,
                p.company_id, c.currency_id,
                r.rule_date_to,
