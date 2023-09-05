@@ -11,19 +11,7 @@ def migrate(cr, version):
                     TRUE,
                     'sale_order'
                FROM ir_attachment ia
-              WHERE ia.res_model = 'product.template'
-                AND ia.product_downloadable
-        """
-        )
-
-        cr.execute(
-            """
-        INSERT INTO product_document (ir_attachment_id, active, attached_on)
-             SELECT ia.id,
-                    TRUE,
-                    'sale_order'
-               FROM ir_attachment ia
-              WHERE ia.res_model = 'product.product'
+              WHERE ia.res_model IN ('product.template', 'product.product')
                 AND ia.product_downloadable
         """
         )
