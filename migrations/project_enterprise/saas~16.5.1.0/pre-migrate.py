@@ -26,3 +26,5 @@ def migrate(cr, version):
     util.update_field_usage(cr, "report.project.task.user", "planned_date_end", "date_deadline")
     util.remove_field(cr, "project.task", "planned_date_end")
     util.remove_field(cr, "report.project.task.user", "planned_date_end")
+    util.remove_model(cr, "project.task.confirm.schedule.wizard")
+    util.remove_model(cr, "project.task.confirm.schedule.line.wizard")
