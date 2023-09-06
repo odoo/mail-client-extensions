@@ -4,6 +4,7 @@ import contextlib
 import re
 import logging
 import itertools
+import os
 from lxml import etree
 from psycopg2.extras import Json as PsycopgJson
 from collections import defaultdict
@@ -555,9 +556,11 @@ def convert_node_modifiers_inplace(root, env, model, view_type, ref):
             f_name = item.get('name')
 
             if f_name not in model._fields:
-                _logger.warning("Unknown field %r from %r, can not migrate 'states' python field attribute in view %s", f_name, model._name, ref)
+                level = logging.WARNING
+                if f"field:{model}.{f_name}" in os.environ.get("suppress_upgrade_warnings", "").split(","):
+                    level = util.NEARLYWARN
+                _logger.log(level, "Unknown field %r from %r, can not migrate 'states' python field attribute in view %s", f_name, model._name, ref)
                 continue
-
             field = model._fields[f_name]
 
             # get subviews
