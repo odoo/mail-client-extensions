@@ -46,3 +46,154 @@ def migrate(cr, version):
 
     util.remove_field(cr, "sale.order.log", "amount_expansion")
     util.remove_field(cr, "sale.order.log", "amount_contraction")
+
+    util.delete_unused(cr, "sale_subscription.mail_template_subscription_invoice")
+
+    # Journal
+    cr.execute(
+        r"""
+    UPDATE sale_order
+       SET journal_id = REPLACE(ip.value_reference, 'account.journal,', '')::int
+      FROM ir_property ip
+     WHERE ip.res_id = 'sale.order.template,' || sale_order.sale_order_template_id
+       AND sale_order.company_id = ip.company_id
+       AND ip.name = 'journal_id'
+       AND ip.value_reference ~ 'account\.journal,\d+'
+       AND ip.res_id LIKE 'sale.order.template,%'
+        """
+    )
+
+    # Template
+    util.create_column(cr, "sale_order_template", "is_unlimited", "boolean")
+    cr.execute(
+        """
+    UPDATE sale_order_template
+       SET is_unlimited = true
+     WHERE recurring_rule_boundary = 'unlimited'
+        """
+    )
+
+    cr.execute(
+        """
+    CREATE TABLE sale_subscription_plan (
+        id SERIAL NOT NULL PRIMARY KEY,
+        company_id int4,
+        billing_period_value int4 NOT NULL,
+        auto_close_limit int4,
+        invoice_mail_template_id int4,
+        user_closable boolean,
+        billing_period_unit varchar NOT NULL,
+        name varchar NOT NULL,
+        template_id int4,
+        recurrence_id int4,
+        active boolean
+        )
+        """
+    )
+
+    # Create new plan based on usage in SO and Template/Recurrence values
+    cr.execute(
+        """
+           WITH combination AS (
+                SELECT sale_order_template_id,
+                       recurrence_id
+                  FROM sale_order
+                 WHERE is_subscription
+                   AND recurrence_id IS NOT NULL
+              GROUP BY sale_order_template_id,
+                       recurrence_id
+                )
+    INSERT INTO sale_subscription_plan (
+                name,
+                billing_period_unit,
+                billing_period_value,
+                user_closable,
+                auto_close_limit,
+                company_id,
+                invoice_mail_template_id,
+                template_id,
+                recurrence_id,
+                active
+            )
+         SELECT COALESCE(sot.name, str.duration || ' ' || str.unit) AS name,
+                str.unit AS billing_period_unit,
+                str.duration AS billing_period_value,
+                COALESCE(sot.user_closable, false) AS user_closable,
+                COALESCE(sot.auto_close_limit, 15) AS auto_close_limit,
+                sot.company_id AS company_id,
+                COALESCE(sot.invoice_mail_template_id, %s) AS invoice_mail_template_id,
+                sot.id AS template_id,
+                str.id AS recurrence_id,
+                str.active AS active
+           FROM combination
+      LEFT JOIN sale_order_template sot ON sot.id = combination.sale_order_template_id
+           JOIN sale_temporal_recurrence str ON str.id = combination.recurrence_id;
+        """,
+        [util.ref(cr, "account.email_template_edi_invoice")],
+    )
+
+    # Update reference on Template
+    util.create_column(cr, "sale_order_template", "plan_id", "integer")
+    cr.execute(
+        """
+    UPDATE sale_order_template sot
+       SET plan_id = ssp.id
+      FROM sale_subscription_plan ssp
+     WHERE ssp.recurrence_id = sot.recurrence_id
+       AND ssp.template_id = sot.id
+        """
+    )
+
+    # Update reference on SO
+    util.create_column(cr, "sale_order", "plan_id", "integer")
+    util.explode_execute(
+        cr,
+        """
+    UPDATE sale_order so
+       SET plan_id = ssp.id
+      FROM sale_subscription_plan ssp
+     WHERE so.recurrence_id = ssp.recurrence_id
+       AND ssp.template_id IS NOT DISTINCT FROM so.sale_order_template_id
+        """,
+        table="sale_order",
+        alias="so",
+    )
+
+    # Update reference on company
+    if util.column_exists(cr, "res_company", "subscription_default_recurrence_id"):
+        util.create_column(cr, "res_company", "subscription_default_plan_id", "integer")
+        cr.execute(
+            """
+          WITH ssp AS (
+                SELECT company_id,
+                       recurrence_id,
+                       MIN(p.id) AS plan_id
+                  FROM sale_subscription_plan p
+              GROUP BY company_id,
+                       recurrence_id
+               )
+        UPDATE res_company c
+           SET subscription_default_plan_id = ssp.plan_id
+          FROM ssp
+         WHERE ssp.recurrence_id = c.subscription_default_recurrence_id
+           AND c.id = ssp.company_id
+            """
+        )
+        util.remove_field(cr, "res.company", "subscription_default_recurrence_id")
+
+    util.rename_field(cr, "sale.order.template", "recurring_rule_count", "duration_value")
+    util.rename_field(cr, "sale.order.template", "recurring_rule_type", "duration_unit")
+    util.remove_field(cr, "sale.order", "recurrence_id")
+    util.remove_field(cr, "sale.order.log.report", "recurrence_id")
+    util.remove_field(cr, "sale.order.template", "user_closable")
+    util.remove_field(cr, "sale.order.template", "auto_close_limit")
+    util.remove_field(cr, "sale.order.template", "recurrence_id")
+    util.remove_field(cr, "sale.order.template", "invoice_mail_template_id")
+    util.remove_field(cr, "sale.order.template", "recurring_rule_boundary")
+    util.remove_field(cr, "sale.order.template.line", "recurrence_id")
+    util.remove_field(cr, "sale.order.template.option", "recurrence_id")
+    util.remove_field(cr, "sale.subscription.report", "recurrence_id")
+    util.remove_field(cr, "res.config.settings", "subscription_default_recurrence_id")
+
+    util.remove_view(cr, "sale_subscription.sale_subscription_recurrence_search")
+    util.remove_record(cr, "sale_subscription.sale_subscription_recurrence_action")
