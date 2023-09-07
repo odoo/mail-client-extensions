@@ -557,7 +557,7 @@ def convert_node_modifiers_inplace(root, env, model, view_type, ref):
 
             if f_name not in model._fields:
                 level = logging.WARNING
-                if f"field:{model}.{f_name}" in os.environ.get("suppress_upgrade_warnings", "").split(","):
+                if f"field:{model._name}.{f_name}" in os.environ.get("suppress_upgrade_warnings", "").split(","):
                     level = util.NEARLYWARN
                 _logger.log(level, "Unknown field %r from %r, can not migrate 'states' python field attribute in view %s", f_name, model._name, ref)
                 continue
