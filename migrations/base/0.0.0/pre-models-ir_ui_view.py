@@ -161,12 +161,18 @@ def valid_models(view):
     )
 
 
-def field_change(view, name):
+def field_change(view, name, error_model=None):
     # checks if the field was renamed or removed
-    return any(name in util.ENVIRON["__renamed_fields"][model] for model in valid_models(view))
+    models = valid_models(view) if error_model is None else [error_model]
+    absent = object()
+    return any(
+        util.ENVIRON["__renamed_fields"][model].get(name, absent) is None  # field was removed
+        or name in util.ENVIRON["__renamed_fields"][model].values()  # field was renamed
+        for model in models
+    )
 
 
-def field_new_name(view, name):
+def field_new_name(view, name, error_model=None):
     info = getattr(field_new_name, "info", None)
     if info is None:
         # invert the relation, we want to know how an old field is named now
@@ -176,9 +182,11 @@ def field_new_name(view, name):
         }
         field_new_name.info = info
     # return field new name, if any
-    for model in valid_models(view):
+    models = valid_models(view) if error_model is None else [error_model]
+    for model in models:
         if name in info.get(model, {}):
             return info[model][name]
+    return None
 
 
 def get_standard_modules(self):
@@ -197,7 +205,7 @@ def save_arch(view, arch):
     return old_arch
 
 
-def heuristic_fixes(cr, view, check, e, tried_anchors=None):
+def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     """
     Try to fix a failing view on xpath element not found following some heuristics (see the code for details).
     On each heuristic we check if the original exception {e} is not present anymore, if so then we recursively check
@@ -206,6 +214,9 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
     {tried_anchor} holds the pairs of old/new expr tried already, to avoid infinite recursion due to re-trying what
     was done already.
 
+    {field_changes} keeps a record of renamed and removed fields within a particular view, preventing infinite
+    loops by avoiding repeated actions during an upgrade.
+
     Returns whether we could fix the view or not, always return True if {e} is None
     """
     if e is None:
@@ -213,6 +224,9 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
 
     if tried_anchors is None:
         tried_anchors = set()
+
+    if field_changes is None:
+        field_changes = set()
 
     def update_anchor(view, arch, xelem, orig_arch):
         """
@@ -262,7 +276,7 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
                     # it seems that we fixed this issue, but still have another, lets continue...
                     # WARNING: the call below could cause infinite recursion but is needed in order to fix
                     #          views that have more than one issue...
-                    return heuristic_fixes(cr, view, check, new_e, tried_anchors)
+                    return heuristic_fixes(cr, view, check, new_e, field_changes, tried_anchors)
 
         return False
 
@@ -326,19 +340,23 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
             if new_e and re.search("Field '{}' used in ".format(used_field), new_e):
                 # It seems we didn't fix the issue...
                 return False
-            return heuristic_fixes(cr, view, check, new_e)
+            return heuristic_fixes(cr, view, check, new_e, field_changes)
 
     # Handle removed field that is being re-added or modified via xpath
-    m = re.search("Field `(.+)` does not exist", e)
+    m = re.search(r"""Field ([`'"])([^`'"]+)\1 does not exist(?: in model ([`'"])([^`'"]+)\3)?""", e)
     if m:
-        field_name = m.group(1)
-        elems = arch.xpath("//xpath/field[@name='{}']".format(field_name))
+        field_name = m.group(2)
+        model_name = m.group(4) if m.lastindex == 4 else None
+        elems = arch.xpath("//field[@name='{}']".format(field_name))
         if not elems:
             return False
-        if not field_change(view, field_name):
+        if not field_change(view, field_name, error_model=model_name):
             # this field was not changed during upgrade, let this view fail
             return False
-        new_name = field_new_name(view, field_name)
+        new_name = field_new_name(view, field_name, error_model=model_name)
+        if (field_name, new_name) in field_changes:
+            return False  # already done, avoid infinite cycle
+        field_changes.add((field_name, new_name))
         for field_elem in elems:
             if new_name:
                 _logger.info("Field %r was renamed to %r", field_name, new_name)
@@ -347,14 +365,16 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
             parent = field_elem.getparent()
             parent.remove(field_elem)
             _logger.info(
-                "The field %s was removed during the upgrade, removing %r from the arch", pp_xml_elem(field_elem)
+                "The field %s was removed during the upgrade, removing %r from the arch",
+                field_name,
+                pp_xml_elem(field_elem),
             )
             if parent.tag == "xpath" and len(parent) == 0 and not parent.text.strip():
                 # remove the xpath elem if empty
                 parent.getparent().remove(parent)
                 _logger.info("Removed empty xpath element %r", pp_xml_elem(parent))
         save_arch(view, arch)
-        return heuristic_fixes(cr, view, check, check())
+        return heuristic_fixes(cr, view, check, check(), field_changes)
 
     # Element '<field name="name">' cannot be located in parent view
     m = re.search("Element '<field name=.(.+).>' cannot be located in parent view", e)
@@ -373,7 +393,7 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
         del elem.attrib["name"]
         save_arch(view, arch)
         _logger.info("Replaced %r by %r", orig_pp, pp_xml_elem(elem))
-        return heuristic_fixes(cr, view, check, check())
+        return heuristic_fixes(cr, view, check, check(), field_changes)
 
     # Handle xpaths that cannot be anchored
     m = re.search("Element '<xpath expr=.(.+).>' cannot be located in parent view", e)
@@ -403,7 +423,7 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
             _logger.info("Field %r was renamed to %r", field_name, new_name)
             xpath_elem.set("expr", new_expr)
             save_arch(view, arch)
-            return heuristic_fixes(cr, view, check, check())
+            return heuristic_fixes(cr, view, check, check(), field_changes)
 
         # If we only change attributes or remove the field from the view
         # then don't do it anymore since we cannot find the field anyway
@@ -416,7 +436,7 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
             )
             xpath_elem.getparent().remove(xpath_elem)
             save_arch(view, arch)
-            return heuristic_fixes(cr, view, check, check())
+            return heuristic_fixes(cr, view, check, check(), field_changes)
 
         # A replace xpath could be the cause of failure for children/sibling views
         # Ex: a standard view uses an anchor to a field that is removed by a custom view.
@@ -433,7 +453,7 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
                 if e == new_e:
                     # We are failing on same error, thus we assume the field is gone
                     # from the parent views. What rest to do is to find another anchor.
-                    return heuristic_fixes(cr, view, check, new_e)
+                    return heuristic_fixes(cr, view, check, new_e, field_changes)
 
                 # We don't fail anymore on the same error, but since we were replacing a field,
                 # at least we could try to hide it now
@@ -452,7 +472,7 @@ def heuristic_fixes(cr, view, check, e, tried_anchors=None):
                         "Unexpected error while hidding, instead of replacing, field %r:\n%s\n", field_name, new_e
                     )
                     return False
-                return heuristic_fixes(cr, view, check, check())
+                return heuristic_fixes(cr, view, check, check(), field_changes)
 
         # We will try to find a new anchor for the xpath, this doesn't make sense for position
         # 'inside' or 'attributes' otherwise we will be applying the xpath to the wrong target.
