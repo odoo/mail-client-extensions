@@ -22,3 +22,8 @@ def migrate(cr, version):
     )
 
     util.remove_column(cr, "hr_payroll_structure", "schedule_pay")
+
+    util.remove_field(cr, "hr.payslip", "normal_wage")
+    util.move_field_to_module(cr, "hr.employee", "currency_id", "l10n_hk_hr_payroll", "hr_payroll")
+    util.move_field_to_module(cr, "hr.payslip.worked_days", "is_credit_time", "l10n_be_hr_payroll", "hr_payroll")
+    util.move_field_to_module(cr, "hr.work.entry", "is_credit_time", "l10n_be_hr_payroll", "hr_payroll")

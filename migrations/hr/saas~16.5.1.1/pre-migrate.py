@@ -13,3 +13,5 @@ def migrate(cr, version):
         "UPDATE hr_contract_type SET code = name->>'en_US'",
         table="hr_contract_type",
     )
+
+    util.move_field_to_module(cr, "hr.departure.reason", "reason_code", "l10n_be_hr_payroll", "hr")
