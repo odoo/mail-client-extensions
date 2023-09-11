@@ -18,5 +18,5 @@ def migrate(cr, version):
             cr,
             "stock_account." + name,
             "ir.property",
-            {"name": name, "res_id": False, "company_id": env.user.company_id.id, "fields_id": fields_id},
+            {"name": name, "res_id": None, "company_id": env.user.company_id.id, "fields_id": fields_id},
         )
