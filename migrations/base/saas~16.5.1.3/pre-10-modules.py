@@ -12,6 +12,9 @@ def migrate(cr, version):
         util.remove_module(cr, "website_sale_renting_comparison")
         util.remove_module(cr, "website_sale_renting_wishlist")
         util.merge_module(cr, "l10n_pl_reports_jpk", "l10n_pl_reports")
+        util.remove_module(cr, "l10n_br_avatax_sale")
+        util.rename_module(cr, "account_avatax_sale_subscription", "sale_subscription_external_tax")
+        util.rename_module(cr, "website_sale_account_avatax", "website_sale_external_tax")
 
     if util.module_installed(cr, "website_sale_digital"):
         util.move_field_to_module(cr, "ir.attachment", "product_downloadable", "website_sale_digital", "sale")
