@@ -43,9 +43,9 @@ _logger = logging.getLogger(NS + __name__)
 def get_id(rec, name):
     if name == "id":
         return rec._ids[0] if rec._ids else False
-    elif name == "__last_update":
+    if name == "__last_update":
         return False
-    elif name == "display_name":
+    if name == "display_name":
         return "Unknown record" + " (id={})".format(rec._ids[0]) if rec._ids else ""
     return getattr(rec, name)
 
@@ -137,7 +137,7 @@ class TestCrawler(IntegrityCase):
 
         self.action_type_fields = {
             action_type: list(self.env.registry[action_type]._fields)
-            for action_type in list(self.env.registry["ir.actions.actions"]._inherit_children) + ["ir.actions.actions"]
+            for action_type in [*list(self.env.registry["ir.actions.actions"]._inherit_children), "ir.actions.actions"]
         }
 
         # Try to use an admin to crawl the menus, if not fallback on using an employee.
@@ -165,7 +165,7 @@ class TestCrawler(IntegrityCase):
             origin_reference_convert_to_cache = fields.Reference.convert_to_cache
             with patch("odoo.fields.Selection.convert_to_cache", lambda s, v, r, validate=True: v or False), patch(
                 "odoo.fields.Reference.convert_to_cache",
-                lambda s, v, r, validate=True: origin_reference_convert_to_cache(s, v, r, False),
+                lambda s, v, r, validate=True: origin_reference_convert_to_cache(s, v, r, validate=False),
             ):
                 if hasattr(self.env, "companies"):
                     company = self.env.user.company_id
@@ -250,7 +250,7 @@ class TestCrawler(IntegrityCase):
                 # e.g. in 13.0, Accounting > Configuration > Payments > Add a Bank Account
                 # triggering `setting_init_bank_account_action` of `account_online_sync/models/company.py`
                 # raising a UserError to tell the user he must create a bank journal if he has not one yet.
-                return
+                return None
             except RedirectWarning as redirect:
                 # Action can redirect to another with a message.
                 # e.g. in 14.0, the method `setting_init_bank_account_action` of `account_online_sync/models/company.py`
@@ -261,16 +261,16 @@ class TestCrawler(IntegrityCase):
 
             return self.mock_action(action)
         elif action["type"] in ("ir.actions.client", "ir.actions.act_url"):
-            return
+            return None
         elif action["type"] == "ir.actions.report":
             result = self.render_method(action["report_name"], [], data=None)
             if result:
                 data, report_format = result
                 self.assertTrue(data)
-            return
+            return None
         else:
             _logger.error("Action %r is not implemented", action["type"])
-            return
+            return None
 
         context = action.get("context") or {}
         if isinstance(context, str):
@@ -291,8 +291,8 @@ class TestCrawler(IntegrityCase):
             # e.g. a menu opening a dialog with a form the user have to set to display a report with given parameters
             # e.g. Point of Sale / Reporting / Sales Details
             # This mimics the behavior of the web client:
-            # 10.0: https://github.com/odoo/odoo/blob/28c3f51c4878fbcd79b2e819948465fcf2160ebc/addons/web/static/src/js/action_manager.js#L666 # noqa
-            # 16.0: https://github.com/odoo/odoo/blob/f87b81ca9477cb499fd7cd2f402b64e3b40fddcf/addons/web/static/src/webclient/actions/action_service.js#L230-L234 # noqa
+            # 10.0: https://github.com/odoo/odoo/blob/28c3f51c4878fbcd79b2e819948465fcf2160ebc/addons/web/static/src/js/action_manager.js#L666
+            # 16.0: https://github.com/odoo/odoo/blob/f87b81ca9477cb499fd7cd2f402b64e3b40fddcf/addons/web/static/src/webclient/actions/action_service.js#L230-L234
             search_view_id = action.get("search_view_id")
             if isinstance(search_view_id, (list, tuple)):
                 search_view_id = search_view_id[0]
@@ -339,15 +339,16 @@ class TestCrawler(IntegrityCase):
         is_view = kind_of_table in {"v", "m"}
         view_columns = set(util.get_columns(env.cr, model._table, ignore=[])) if is_view else set()
         stored_fields = (
-            set(name for name, field in model._fields.items() if field.store and not field.type.endswith("2many"))
+            {name for name, field in model._fields.items() if field.store and not field.type.endswith("2many")}
             if is_view
             else set()
         )
 
         if not kind_of_table and not getattr(model, "_table_query", None):
             # Dashboard module: a menu / action without table or view.
-            pass
-        elif is_view and not view_columns.issuperset(stored_fields):
+            return None
+
+        if is_view and not view_columns.issuperset(stored_fields):
             # Report SQL views with unkown columns.
             missing_columns = stored_fields - view_columns
             _logger.warning(
@@ -356,7 +357,9 @@ class TestCrawler(IntegrityCase):
                 model._name,
                 missing_columns,
             )
-        elif any(
+            return None
+
+        if any(
             # we need to check for None since the view is gone on test_check
             table_kind(self.env.cr, self.env[field.comodel_name]._table) != "r"
             for field in model._fields.values()
@@ -366,23 +369,23 @@ class TestCrawler(IntegrityCase):
                 "Mocking of model %s skipped because it has a manual related field with a SQL view as comodel.",
                 model._name,
             )
-        else:
-            for view_type, data in views.items():
-                if view_type == "search":
-                    # Ignore, the searh view is already mocked before.
-                    # Otherwise we get an error in the number of args below when we call it.
-                    continue
-                mock_method = getattr(self, "mock_view_%s" % view_type, None)
-                if mock_method:
-                    _logger.info("Mocking %s %s view ", model._name, view_type)
-                    view = etree.fromstring(data["arch"])
-                    fields_list = list(
-                        OrderedSet(
-                            el.get("name") for el in view.xpath("//field[not(ancestor::field|ancestor::groupby)]")
-                        )
-                    )
+            return None
 
-                    mock_method(model, view, fields_list, domain, group_by)
+        for view_type, data in views.items():
+            if view_type == "search":
+                # Ignore, the searh view is already mocked before.
+                # Otherwise we get an error in the number of args below when we call it.
+                continue
+            mock_method = getattr(self, "mock_view_%s" % view_type, None)
+            if mock_method:
+                _logger.info("Mocking %s %s view ", model._name, view_type)
+                view = etree.fromstring(data["arch"])
+                fields_list = list(
+                    OrderedSet(el.get("name") for el in view.xpath("//field[not(ancestor::field|ancestor::groupby)]"))
+                )
+
+                mock_method(model, view, fields_list, domain, group_by)
+        return None
 
     def mock_view_activity(self, model, view, fields_list, domain, group_by):
         domain = expression.AND([domain, [("activity_ids", "!=", False)]])
@@ -417,7 +420,7 @@ class TestCrawler(IntegrityCase):
             processed_data = {}
             for fname, value in data.items():
                 if fname in model._fields and model._fields[fname].type == "many2one" and value:
-                    value = value[0]
+                    value = value[0]  # noqa: PLW2901
                 processed_data[fname] = value
 
             for node in view.xpath("//field[not(ancestor::field|ancestor::groupby)][@widget='statusbar']"):
@@ -479,7 +482,7 @@ class TestCrawler(IntegrityCase):
     def mock_view_kanban(self, model, view, fields_list, domain, group_by):
         kanban_group_by = view.xpath("//kanban")[0].get("default_group_by")
         if kanban_group_by:
-            group_by = group_by + [kanban_group_by]
+            group_by = [*group_by, kanban_group_by]
 
         if group_by:
             self.mock_web_read_group(model, view, domain, group_by, fields_list, limit_group=10)
@@ -533,7 +536,7 @@ class TestCrawler(IntegrityCase):
 
         domains = [self._safe_eval(domain) for domain in domains]
         if action_domain:
-            domains = [self._safe_eval(action_domain) if isinstance(action_domain, str) else action_domain] + domains
+            domains = [self._safe_eval(action_domain) if isinstance(action_domain, str) else action_domain, *domains]
         domains = [domain for domain in domains if domain]
         return expression.AND(domains) if domains else [], group_bys
 
