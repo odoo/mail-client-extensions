@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-import logging
 import re
 
 from odoo.osv.expression import normalize_leaf
 from odoo.tools import flatten
 
 from odoo.upgrade import util
-
-_logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
@@ -105,10 +102,7 @@ def migrate(cr, version):
             "liquidity": ("asset_cash", "liability_credit_card"),
         }
         left, operator, right = normalize_leaf(leaf)
-        if isinstance(right, (tuple, list)):
-            right = flatten(mapping[r] for r in right)
-        else:
-            right = mapping[right]
+        right = flatten(mapping[r] for r in right) if isinstance(right, (tuple, list)) else mapping[right]
         if isinstance(right, (list, tuple)) and operator in ("=", "!="):
             operator = "in" if operator == "=" else "not in"
         return [(left, operator, right)]
@@ -119,8 +113,6 @@ def migrate(cr, version):
             return internal_type_adapter(
                 (re.sub(r"\buser_type_id\.type\b", "account_type", left), operator, right), is_or, negated
             )
-        if not (set(right if isinstance(right, (tuple, list)) else [right]) <= types_mapping.keys()):
-            _logger.warning("Invalid domain leaf: %s", leaf)
         right = (
             [types_mapping.get(t, t) for t in right]
             if isinstance(right, (tuple, list))
