@@ -841,16 +841,15 @@ def migrate(cr, version):
     util.create_column(cr, "sale_order_template_line", "pricing_id", "int4")
     util.create_column(cr, "sale_order_template_option", "option_pricing_id", "int4")
 
-    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_draft", True)
-    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_in_progress", True)
-    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_closed", True)
+    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_draft", noupdate=True)
+    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_in_progress", noupdate=True)
+    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_closed", noupdate=True)
     cr.commit()
 
     if util.column_exists(cr, "account_analytic_line", "order_id"):
         cr.execute("create index account_analytic_line_order_id_idx on account_analytic_line using btree(order_id)")
     cr.execute("create index sale_order_subscription_id_idx on sale_order using btree(subscription_id)")
     cr.execute("create index sale_order_origin_order_id_idx on sale_order using btree(origin_order_id)")
-    # cr.execute("create index sale_order_upsell_order_id_idx on sale_order using btree(upsell_order_id)")
     cr.execute("create index sale_order_line_parent_line_id_idx on sale_order_line using btree(parent_line_id)")
     util.remove_model(cr, "sale.subscription.template", drop_table=False)
 
