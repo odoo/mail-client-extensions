@@ -796,7 +796,7 @@ def migrate(cr, version):
          WHERE sol.order_id = so.id
            AND pt.recurring_invoice = True
            AND so.subscription_management = 'create'
-           AND so.state = 'draft'
+           AND so.state IN ('draft', 'sent')
            AND so.stage_id IS NULL
         """,
         stages,
