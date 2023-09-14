@@ -11,6 +11,7 @@ def migrate(cr, version):
         util.merge_module(cr, "sale_timesheet_account_budget", "project_account_budget")
         util.remove_module(cr, "website_sale_renting_comparison")
         util.remove_module(cr, "website_sale_renting_wishlist")
+        util.merge_module(cr, "l10n_pl_reports_jpk", "l10n_pl_reports")
 
     if util.module_installed(cr, "website_sale_digital"):
         util.move_field_to_module(cr, "ir.attachment", "product_downloadable", "website_sale_digital", "sale")
@@ -20,3 +21,5 @@ def migrate(cr, version):
 
     util.remove_module(cr, "sale_quotation_builder")
     util.merge_module(cr, "event_barcode", "event")
+    util.merge_module(cr, "l10n_pl_jpk", "l10n_pl")
+    util.remove_module(cr, "l10n_pl_sale_stock")
