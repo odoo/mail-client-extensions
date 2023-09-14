@@ -11,7 +11,7 @@ except ImportError:
     unescape = HTMLParser.HTMLParser().unescape
 
 try:
-    zip = itertools.izip
+    zip = itertools.izip  # noqa: A001
 except AttributeError:
     zip_longest = itertools.zip_longest
 else:
@@ -61,7 +61,7 @@ ODOO_MIG_TRY_FIX_VIEWS = str2bool(os.environ.get("ODOO_MIG_TRY_FIX_VIEWS", "0"))
 
 
 def migrate(cr, version):
-    global ODOO_MIG_TRY_FIX_VIEWS
+    global ODOO_MIG_TRY_FIX_VIEWS  # noqa: PLW0603
 
     if DATA_TABLE and util.table_exists(cr, DATA_TABLE):
         cr.execute("SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1".format(DATA_TABLE))
@@ -123,6 +123,7 @@ def find_xpath_elem(arch, expr):
         elem_expr = elem.attrib["expr"]
         if expr in (elem_expr, unescape(elem_expr)):
             return elem
+    return None
 
 
 def get_closest_elements(elem):
@@ -686,20 +687,20 @@ def _upgrade_fix_views(fix_view, root_view):
                 fix_view.arch = arch_orig
                 disable(fix_view, md, children)
                 return True
-            else:
-                # Only log a warning for non-CI upgrades as this situation occurs due to test data.
-                # This is expected and should not mark the build as failed.
-                _logger.log(
-                    logging.INFO if util.on_CI() else logging.WARNING,
-                    "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
-                    "It was automatically adapted from:\n%sto:\n%s",
-                    fix_view.name,
-                    fix_view.id,
-                    fix_view.inherit_id.id,
-                    fix_view.model,
-                    pp_xml_str(arch_orig),
-                    pp_xml_str(fix_view.arch),
-                )
+
+            # Only log a warning for non-CI upgrades as this situation occurs due to test data.
+            # This is expected and should not mark the build as failed.
+            _logger.log(
+                logging.INFO if util.on_CI() else logging.WARNING,
+                "The custom view `%s` (ID: %s, Inherit: %s, Model: %s) caused validation issues.\n"
+                "It was automatically adapted from:\n%sto:\n%s",
+                fix_view.name,
+                fix_view.id,
+                fix_view.inherit_id.id,
+                fix_view.model,
+                pp_xml_str(arch_orig),
+                pp_xml_str(fix_view.arch),
+            )
 
     # The view doesn't fail with children disabled.
     # Let's try to activate children one by one, if a child fails we recursively fix it.
@@ -766,7 +767,7 @@ class IrUiView(models.Model):
         def copy_translations(old, new, *args, **kwargs):
             # Do not copy translations when restoring view from fs
             if old.env.context.get("_upgrade_fix_views"):
-                return
+                return None
             return super(IrUiView, old).copy_translations(new, *args, **kwargs)
 
         @api.model
@@ -804,11 +805,11 @@ class IrUiView(models.Model):
                     children = children.mapped("inherit_children_ids")
                 for view in views_to_check:
                     if view.id in standard_ids:
-                        validate_view(view, False)
+                        validate_view(view, is_custom_module=False)
                     if not (set(views_in_tree(view)) <= standard_ids):
                         # there is at least one custom view in the tree
                         # load all views when validating
-                        validate_view(view, True)
+                        validate_view(view, is_custom_module=True)
 
             _validators.update(origin_validators)
 
@@ -925,10 +926,10 @@ class IrUiView(models.Model):
 
         def _validate_tag_button(self, *args, **kwargs):
             if self.env.context.get("_upgrade_custom_modules"):
-                return
+                return None
             return super()._validate_tag_button(*args, **kwargs)
 
         def _validate_tag_label(self, *args, **kwargs):
             if self.env.context.get("_upgrade_custom_modules"):
-                return
+                return None
             return super()._validate_tag_label(*args, **kwargs)
