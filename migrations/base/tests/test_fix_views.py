@@ -55,7 +55,7 @@ class TestFixViews(UpgradeCase):
                 "arch_db": ts(
                     E.form(
                         E.field(name="name"),  # gone after upgrade
-                        Comment("Ensure this comment here doesn't fail the upgrade"),
+                        Comment("Ensure this comment here doesn't fail the upgrade; __last_update"),
                         E.field(name="comment"),
                         E.field(name="users"),  # gone after upgrade
                         E.field(name="share"),  # gone after upgrade
