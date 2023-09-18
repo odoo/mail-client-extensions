@@ -5,6 +5,7 @@ from . import (
     test_filter_command_rename,
     test_filter_default_period,
     test_global_filters,
+    test_move_conditional_format_command_change,
     test_move_sheet_command_change,
     test_revision_model,
 )
