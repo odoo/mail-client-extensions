@@ -2,7 +2,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_gte("13.0"):
+    if not util.version_gte("15.0"):
         return
 
     # invoice_tax_id and refund_tax_id becomes tax_id in saas~16.2
