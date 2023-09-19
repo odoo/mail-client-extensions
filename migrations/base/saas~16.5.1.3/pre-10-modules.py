@@ -30,3 +30,4 @@ def migrate(cr, version):
     if util.has_enterprise():
         util.merge_module(cr, "account_sepa_pain_001_001_09", "account_sepa")
         util.merge_module(cr, "hr_payroll_account_sepa_09", "hr_payroll_account_sepa")
+        util.merge_module(cr, "l10n_lu_reports_annual_vat_2023", "l10n_lu_reports")
