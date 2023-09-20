@@ -17,3 +17,4 @@ def migrate(cr, version):
 
     util.remove_module(cr, "website_sale_digital")
     util.merge_module(cr, "l10n_it_edi_pa", "l10n_it_edi")
+    util.remove_module(cr, "sale_quotation_builder")

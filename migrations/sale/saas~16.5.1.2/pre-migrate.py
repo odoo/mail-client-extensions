@@ -25,3 +25,5 @@ def migrate(cr, version):
 
     util.remove_view(cr, "sale.payment_checkout_inherit")
     util.remove_view(cr, "sale.payment_manage_inherit")
+
+    util.rename_xmlid(cr, "sale.report_saleorder", "sale.report_saleorder_raw")
