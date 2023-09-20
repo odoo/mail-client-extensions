@@ -11,6 +11,7 @@ def migrate(cr, version):
 
     util.remove_view(cr, "l10n_it_edi.view_out_invoice_tree_inherit")
     util.remove_view(cr, "l10n_it_edi.view_in_bill_tree_inherit")
+    util.remove_view(cr, "l10n_it_edi.account_invoice_form_l10n_it_pa")
 
     query = """
          UPDATE account_move am

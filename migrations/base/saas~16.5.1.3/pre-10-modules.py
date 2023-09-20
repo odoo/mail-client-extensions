@@ -16,3 +16,4 @@ def migrate(cr, version):
         util.move_field_to_module(cr, "ir.attachment", "product_downloadable", "website_sale_digital", "sale")
 
     util.remove_module(cr, "website_sale_digital")
+    util.merge_module(cr, "l10n_it_edi_pa", "l10n_it_edi")
