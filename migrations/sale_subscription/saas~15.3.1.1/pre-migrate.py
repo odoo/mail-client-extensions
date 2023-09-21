@@ -309,9 +309,9 @@ def migrate(cr, version):
                     -- match sub display_name
                     coalesce(nullif(concat_ws('/', sst.code, nullif(concat_ws(' - ', ss.code, p.display_name), '')), ''), ss.name),
                     ss.rating_last_value, ss.message_main_attachment_id, ss.stage_id, ss.analytic_account_id,
-                    ss.company_id, COALESCE(ss.partner_id, 2), COALESCE(ss.partner_invoice_id, ss.partner_id, 2),
+                    ss.company_id, COALESCE(ss.partner_id, %%(p)s), COALESCE(ss.partner_invoice_id, ss.partner_id, %%(p)s),
 
-                    COALESCE(ss.partner_shipping_id, ss.partner_id, 2), ss.recurring_monthly,
+                    COALESCE(ss.partner_shipping_id, ss.partner_id, %%(p)s), ss.recurring_monthly,
                     COALESCE(ss.date_start, now() at time zone 'UTC'), ss.date, ss.pricelist_id, ss.close_reason_id, sot.id,
                     ss.payment_term_id, ss.description, ss.user_id, ss.team_id, ss.country_id, ss.industry_id,
 
@@ -357,7 +357,7 @@ def migrate(cr, version):
 
     # SO creation
     query = query % (insert_add, select_add)
-    cr.execute(query)
+    cr.execute(query, {"p": util.ref(cr, "base.partner_root")})
     # origin_order_id is the parent order. It points to itself when there is no ancestor (cf commercial_partner_id)
     # Historical subscription have no ancestor at this point
     util.explode_execute(
