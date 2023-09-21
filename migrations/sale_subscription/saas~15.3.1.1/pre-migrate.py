@@ -288,7 +288,8 @@ def migrate(cr, version):
                 manual_field_cols = [r[0] for r in info]
 
     query = """
-        INSERT INTO sale_order (old_subscription_id, name, campaign_id, source_id, medium_id, client_order_ref,
+        INSERT INTO sale_order (old_subscription_id, campaign_id, source_id, medium_id, client_order_ref,
+                                name,
                                 rating_last_value, message_main_attachment_id, stage_id, analytic_account_id,
                                 company_id, partner_id, partner_invoice_id,
 
@@ -304,7 +305,9 @@ def migrate(cr, version):
                                 is_subscription, currency_id, create_date, create_uid, write_date, write_uid, recurrence_id,
                                 start_date, next_invoice_date
                                 %s)
-             SELECT ss.id, ss.name, ss.campaign_id, ss.source_id, ss.medium_id, ss.code,
+             SELECT ss.id, ss.campaign_id, ss.source_id, ss.medium_id, ss.code,
+                    -- match sub display_name
+                    coalesce(nullif(concat_ws('/', sst.code, nullif(concat_ws(' - ', ss.code, p.display_name), '')), ''), ss.name),
                     ss.rating_last_value, ss.message_main_attachment_id, ss.stage_id, ss.analytic_account_id,
                     ss.company_id, COALESCE(ss.partner_id, 2), COALESCE(ss.partner_invoice_id, ss.partner_id, 2),
 
@@ -330,6 +333,10 @@ def migrate(cr, version):
                  ON pl.id = ss.pricelist_id
                JOIN sale_temporal_recurrence str
                  ON ss.template_id = ANY(str._mig_sst_id)
+               JOIN sale_subscription_template sst
+                 ON sst.id = ss.template_id
+          LEFT JOIN res_partner p
+                 ON p.id = ss.partner_id
     """
     insert_add = ""
     select_add = ""
@@ -346,7 +353,7 @@ def migrate(cr, version):
     if util.module_installed(cr, "partner_commission"):
         util.create_column(cr, "sale_order", "commission_plan_frozen", "boolean")
         insert_add += ",referrer_id,commission_plan_frozen,commission_plan_id"
-        select_add += ",referrer_id,commission_plan_frozen,commission_plan_id"
+        select_add += ",ss.referrer_id,ss.commission_plan_frozen,ss.commission_plan_id"
 
     # SO creation
     query = query % (insert_add, select_add)
