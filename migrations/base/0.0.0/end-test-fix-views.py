@@ -60,6 +60,18 @@ def migrate(cr, version):
                 ),
             ),
         ),
+        (
+            "test_upg.test_fix_views_standard_base_view_update_replace_ext2",
+            ts(
+                E.field("<div>OK</div>", name="comment", position="after"),
+            ),
+        ),
+        (
+            "test_upg.test_fix_views_standard_base_view_update_replace_without_child_ext2",
+            ts(
+                E.field("<div>OK</div>", name="comment", position="after"),
+            ),
+        ),
     ]
 
     IrUiView = util.env(cr)["ir.ui.view"]

@@ -360,6 +360,80 @@ class TestFixViews(UpgradeCase):
             },
         )
 
+        base_id3 = create_view(
+            {
+                "name": "test_fix_views_standard_base_view_update_replace",
+                "arch_db": ts(
+                    E.form(
+                        E.field(name="name"),
+                        E.field(name="comment"),
+                    ),
+                ),
+            },
+            standard_view=True,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_standard_base_view_update_replace_ext1",
+                "mode": "extension",
+                "inherit_id": base_id3,
+                "arch_db": ts(
+                    E.data(
+                        E.xpath(E.div("Child"), expr="//field[@name='comment']", position="replace"),
+                    ),
+                ),
+            },
+        )
+        create_view(
+            {
+                "name": "test_fix_views_standard_base_view_update_replace_ext2",
+                "mode": "extension",
+                "inherit_id": base_id3,
+                "arch_db": ts(
+                    # will be anchored after `comment` post-upgrade, instead of `name`
+                    E.field("<div>OK</div>", name="name", position="after"),
+                ),
+            },
+            standard_view=True,
+        )
+
+        base_id4 = create_view(
+            {
+                "name": "test_fix_views_standard_base_view_update_replace_without_child",
+                "arch_db": ts(
+                    E.form(
+                        E.field(name="name"),
+                        E.field(name="comment"),
+                    ),
+                ),
+            },
+            standard_view=True,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_standard_base_view_update_replace_without_child_ext1",
+                "mode": "extension",
+                "inherit_id": base_id4,
+                "arch_db": ts(
+                    E.data(
+                        E.xpath(expr="//field[@name='comment']", position="replace"),
+                    ),
+                ),
+            },
+        )
+        create_view(
+            {
+                "name": "test_fix_views_standard_base_view_update_replace_without_child_ext2",
+                "mode": "extension",
+                "inherit_id": base_id4,
+                "arch_db": ts(
+                    # will be anchored after `comment` post-upgrade, instead of `name`
+                    E.field("<div>OK</div>", name="name", position="after"),
+                ),
+            },
+            standard_view=True,
+        )
+
         return [self._get_base_version(), info]
 
     def check(self, data):

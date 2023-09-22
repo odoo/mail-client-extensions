@@ -389,19 +389,41 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     if m:
         name = m.group(1)
         elems = arch.xpath("//field[@name='{}']".format(name))
-        if not elems:
-            _logger.info("Couldn't find <field> with name=%r in arch", name)
-            return False
-        elem = elems[0]
-        # Transform this into an xpath element and rerun the check. This effectively defers
-        # the handling of this error to the xpath section below
-        orig_pp = pp_xml_elem(elem)
-        elem.tag = "xpath"
-        elem.attrib["expr"] = "//field[@name='{}']".format(name)
-        del elem.attrib["name"]
-        save_arch(view, arch)
-        _logger.info("Replaced %r by %r", orig_pp, pp_xml_elem(elem))
-        return heuristic_fixes(cr, view, check, check(), field_changes)
+        if elems:
+            elem = elems[0]
+            # Transform this into an xpath element and rerun the check. This effectively defers
+            # the handling of this error to the xpath section below
+            orig_pp = pp_xml_elem(elem)
+            elem.tag = "xpath"
+            elem.attrib["expr"] = "//field[@name='{}']".format(name)
+            del elem.attrib["name"]
+            save_arch(view, arch)
+            _logger.info("Replaced %r by %r", orig_pp, pp_xml_elem(elem))
+            return heuristic_fixes(cr, view, check, check(), field_changes)
+        # Check if the failing field was replaced by this view
+        elems = arch.xpath(
+            """//xpath[contains(@expr, "/field[@name='{}']")
+            and substring(@expr, string-length(@expr) - string-length("/field[@name='{}']") + 1) = "/field[@name='{}']"
+            and @position='replace']""".format(
+                name, name, name
+            )
+        )
+        if elems:
+            elem = elems[0]
+            invisible = builder.E.attribute("1", name="invisible")
+            full_element = builder.E.xpath(invisible, expr="//field[@name='{}']".format(name), position="attributes")
+            orig_pp_elem = pp_xml_elem(elem)
+            # we hide the replaced field, keeping any extra children added here
+            if len(elem) > 0:
+                elem.attrib["position"] = "after"
+                elem.addprevious(full_element)
+                _logger.info("Replaced %r by %r and %r", orig_pp_elem, pp_xml_elem(elem), pp_xml_elem(full_element))
+            else:
+                _logger.info("Replaced %r by %r", orig_pp_elem, pp_xml_elem(full_element))
+                arch.replace(elem, full_element)
+            save_arch(view, arch)
+            return heuristic_fixes(cr, view, check, check(), field_changes)
+        return False
 
     # Handle xpaths that cannot be anchored
     m = re.search("Element '<xpath expr=.(.+).>' cannot be located in parent view", e)
