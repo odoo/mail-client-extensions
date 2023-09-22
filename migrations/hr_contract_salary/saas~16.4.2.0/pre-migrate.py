@@ -15,10 +15,10 @@ def migrate(cr, version):
                   WHERE contract_update_template_id IS NOT NULL
             )
             UPDATE sign_item i
-               SET name = replace(i.name, 'employee_id.', 'employee_id.private_')
+               SET name = replace(i.name, 'employee_id.address_home_id.', 'employee_id.private_')
               FROM templates t
              WHERE t.id = i.template_id
-               AND i.name ~ '^employee_id\.(street|street2|city|zip|state_id|country_id|email|phone)\y'
+               AND i.name ~ '^employee_id\.address_home_id\.(street|street2|city|zip|state_id|country_id|email|phone)\y'
             """
     )
 
