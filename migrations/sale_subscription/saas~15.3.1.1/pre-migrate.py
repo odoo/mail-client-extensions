@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 
+from psycopg2.extras import Json
+
 from odoo import models
 
 from odoo.addons.sale_subscription.models import sale_order_stage as _ignore  # noqa
@@ -345,8 +347,16 @@ def migrate(cr, version):
         select_add += "," + ",".join(f"ss.{col}" for col in manual_field_cols)
     # Add the necessary columns and necessary values
     if util.module_installed(cr, "sale_stock"):
-        cr.execute("SELECT id FROM stock_warehouse WHERE active ORDER BY sequence, id LIMIT 1")
-        default_warehouse_id = cr.fetchone()[0]  # let it fail if None
+        cr.execute(
+            """
+            SELECT DISTINCT ON (company_id) company_id, id
+              FROM stock_warehouse
+             ORDER BY company_id, not active, sequence, id
+            """
+        )
+        default_warehouse_id = cr.mogrify(
+            "(%s::jsonb->>ss.company_id::text)::int", [Json(dict(cr.fetchall()))]
+        ).decode()
         # subscription is only usable for service product
         insert_add += ",picking_policy,warehouse_id"
         select_add += f",'direct',{default_warehouse_id}"
