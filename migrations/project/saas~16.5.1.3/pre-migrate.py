@@ -9,3 +9,4 @@ def migrate(cr, version):
     if not util.module_installed(cr, "industry_fsm"):
         cr.execute("DROP VIEW IF EXISTS report_project_task_user CASCADE")
         util.alter_column_type(cr, "project_task", "date_deadline", "timestamp without time zone")
+    util.remove_field(cr, "res.company", "analytic_plan_id")

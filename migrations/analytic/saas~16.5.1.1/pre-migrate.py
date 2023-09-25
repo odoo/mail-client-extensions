@@ -1,0 +1,125 @@
+# -*- coding: utf-8 -*-
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    cr.execute(r"""
+        SELECT ARRAY_AGG(value::int ORDER BY value::int)
+          FROM ir_config_parameter
+         WHERE key LIKE 'default\_analytic\_plan\_id\_%'
+    """)
+    [all_project_plans] = cr.fetchone() or [[]]
+    cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
+    project_plan_id = all_project_plans[0] if all_project_plans else cr.fetchone()[0]
+    cr.execute(r"""
+        DELETE FROM ir_config_parameter
+              WHERE key LIKE 'default\_analytic\_plan\_id\_%%';
+        INSERT INTO ir_config_parameter (key, value)
+             VALUES ('analytic.project_plan', %s)
+    """, [project_plan_id])
+
+    # Make analytic plans shared between companies, except for some fields
+    # First merge plans with the same name, most likely from different companies
+    cr.execute("""
+        SELECT ARRAY_AGG(id)
+          FROM account_analytic_plan
+      GROUP BY name
+        HAVING COUNT(*) > 1
+    """)
+    mapping = {}
+    project_group = set(all_project_plans or [])
+    for [group] in cr.fetchall():
+        if set(group) & project_group:
+            project_group.update(group)  # merge project plans even if they have a different name
+        else:
+            mapping.update(dict.fromkeys(group[1:], group[0]))
+    # Process the project plans last
+    mapping.update(dict.fromkeys((i for i in project_group if i != project_plan_id), project_plan_id))
+    if mapping:
+        util.replace_record_references_batch(cr, mapping, "account.analytic.plan")
+        cr.execute("DELETE FROM account_analytic_plan WHERE id = ANY(%s)", [list(mapping)])
+
+    util.remove_record(cr, "analytic.analytic_plan_comp_rule")
+    util.convert_field_to_property(
+        cr,
+        model="account.analytic.plan",
+        field="default_applicability",
+        type="selection",
+        default_value="optional",
+    )
+    columns = util.get_columns(cr, "account_analytic_applicability")
+    util.create_column(cr, "account_analytic_applicability", "company_id", "int4")
+    cr.execute(f"""
+        INSERT INTO account_analytic_applicability ({", ".join(columns)}, company_id)
+             SELECT {", ".join("aaa.%s" % column for column in columns)}, company.id
+               FROM account_analytic_applicability aaa,
+                    res_company company;
+
+        DELETE FROM account_analytic_applicability
+              WHERE company_id IS NULL;
+    """)
+
+    util.remove_field(cr, "account.analytic.plan", "company_id")
+
+    # Split account on multiple columns (one by plan)
+    # If we have an invoice line with a distribution like this (1 and 2 in the same plan, a in another plan, and i in another)
+    # | All P | Perc% |
+    # |-------|-------|
+    # |     1 |    50 |
+    # |     2 |    50 |
+    # |     a |   100 |
+    # |     i |   100 |
+    #
+    # It should become this
+    # | Plan A | Plan B | Plan C | Perc% |
+    # |--------|--------|--------|-------|
+    # |      1 |        |        |    50 |
+    # |      2 |        |        |    50 |
+    # |        |      a |        |   100 |
+    # |        |        |      i |   100 |
+    cr.execute("ALTER TABLE account_analytic_line ALTER COLUMN account_id DROP NOT NULL")
+
+    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s", [project_plan_id])
+    other_plan_ids = [r[0] for r in cr.fetchall()]
+    if other_plan_ids:
+        # First create the new fields/columns
+        plan_name = (
+            "plan.name"
+            if util.column_type(cr, "account_analytic_plan", "name") == "jsonb" else
+            "jsonb_build_object('en_US', plan.name)"
+        )
+        cr.execute(f"""
+                INSERT INTO ir_model_fields(name, model, model_id, field_description,
+                                            state, store, ttype, relation)
+                     SELECT 'x_plan' || plan.id ||'_id', 'account.analytic.line', m.id, {plan_name},
+                            'manual', true, 'many2one', 'account.analytic.account'
+                       FROM account_analytic_plan plan,
+                            ir_model m
+                      WHERE plan.id = ANY(%s)
+                        AND m.model = 'account.analytic.line'
+        """, [other_plan_ids])
+        for id_ in other_plan_ids:
+            util.create_column(cr, "account_analytic_line", f"x_plan{id_}_id", "int4")
+
+        # Then move the value from the first column to the (new) correct one
+        distributed_plans = ", ".join(
+            f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id"
+            for id_ in other_plan_ids
+        )
+        query = f"""
+            WITH updated_lines AS (
+                SELECT line.id,
+                       {distributed_plans},
+                       CASE WHEN account.plan_id = {project_plan_id} THEN account.id ELSE NULL END AS account_id
+                  FROM account_analytic_line line
+                  JOIN account_analytic_account account ON line.account_id = account.id
+                 WHERE {{parallel_filter}}
+            )
+            UPDATE account_analytic_line
+               SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
+                   account_id = updated_lines.account_id
+              FROM updated_lines
+             WHERE updated_lines.id = account_analytic_line.id
+        """
+        util.explode_execute(cr, query, "account_analytic_line", alias="line")
+    util.remove_field(cr, "account.analytic.line", "plan_id")

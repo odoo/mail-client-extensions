@@ -17,7 +17,7 @@ def migrate(cr, version):
 
     cr.execute(
         """INSERT INTO account_analytic_plan(name, complete_name, parent_path)
-                       VALUES ('Default', 'Default', currval('account_analytic_plan_id_seq') || '/')
+                       VALUES ('Default upg', 'Default upg', currval('account_analytic_plan_id_seq') || '/')
              RETURNING id
         """
     )

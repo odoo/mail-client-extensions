@@ -121,3 +121,87 @@ def migrate(cr, version):
         table="account_move_line",
         alias="line",
     )
+
+    # ANALYTIC
+    # Merge lines that can be merged when all the plans are at 100% and at most one plan is split on multiple accounts
+    cr.execute("""
+        SELECT value::int
+          FROM ir_config_parameter
+         WHERE key = 'analytic.project_plan'
+    """)
+    [project_plan_id] = cr.fetchone()
+    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s", [project_plan_id])
+    other_plan_ids = [r[0] for r in cr.fetchall()]
+    column_names = ['account_id'] + [f"x_plan{id_}_id" for id_ in other_plan_ids]
+
+    # If we have an invoice line with a distribution like this
+    # | Plan A | Plan B | Plan C | Perc% |
+    # |--------|--------|--------|-------|
+    # |      1 |        |        |    50 |
+    # |      2 |        |        |    50 |
+    # |        |      a |        |   100 |
+    # |        |        |      i |   100 |
+    #
+    # We can merge it like this
+    # | Plan A | Plan B | Plan C | Perc% |
+    # |--------|--------|--------|-------|
+    # |      1 |      a |      i |    50 |
+    # |      2 |      a |      i |    50 |
+    accounts_per_plan_compute = ",\n                    ".join(
+        f"ARRAY_AGG(al.{col}) FILTER (WHERE al.{col} IS NOT NULL) AS {col}s"
+        for col in column_names
+    )
+    where_multiple_account_per_plan = "\n                         ".join(
+        f"WHEN COUNT(DISTINCT al.{col}) > 1 THEN ARRAY_AGG(al.id) FILTER (WHERE al.{col} IS NOT NULL)"
+        for col in column_names
+    )
+    count_multiple_accounts_per_plan = " + ".join(
+        f"(COUNT(DISTINCT al.{col}) > 1)::int"
+        for col in column_names
+    )
+    unchanged_distribution = "AND ".join(
+        f"""COALESCE(SUM((ml.analytic_distribution->>al.{col}::text)::numeric) = 100, True)  -- only 100% or not used
+                AND COALESCE(SUM(al.amount) FILTER (WHERE al.{col} IS NOT NULL) = -ml.balance, True)  -- unchanged distribution or not used
+                """
+        for col in column_names
+    )
+    update_fields = ",\n                    ".join(
+        f"{col} = CASE WHEN ARRAY_LENGTH(raw.{col}s, 1) = 1 THEN raw.{col}s[1] ELSE al.{col} END"
+        for col in column_names
+    )
+    query = f"""
+        /*
+            `raw` contains all the analytic lines linked to a account move line that can be merged into a single analytic line
+            We consider that it can be merged into a single line if
+              - there is at most one plan split over multiple accounts
+              - the distribution amounts for 100% of the account move line
+              - it was not modified manually on the analytic lines
+        */
+        WITH raw AS (
+             SELECT {accounts_per_plan_compute},
+                    CASE
+                         {where_multiple_account_per_plan}
+                         ELSE ARRAY_AGG(al.id) FILTER (WHERE al.account_id IS NOT NULL)
+                    END AS to_update,  -- update the rows split on multiple accounts if any (maximum one plan split)
+                    ARRAY_AGG(al.id) AS all_lines
+               FROM account_analytic_line al
+               JOIN account_move_line ml ON ml.id = al.move_line_id
+              WHERE {{parallel_filter}}
+           GROUP BY ml.id
+                    -- there is at most one plan split on multiple accounts
+             HAVING ({count_multiple_accounts_per_plan}) <= 1
+                    -- the distribution is 100% and not modified manually
+                AND {unchanged_distribution}
+        ),
+        updating AS (
+             UPDATE account_analytic_line al
+                SET {update_fields}
+               FROM raw
+              WHERE al.id = ANY(raw.to_update)
+        )
+        DELETE FROM account_analytic_line al
+              USING raw
+              WHERE al.id = ANY(raw.all_lines)
+                AND al.id != ALL(raw.to_update)
+    """
+    util.explode_execute(cr, query, "account_move_line", alias="ml")
