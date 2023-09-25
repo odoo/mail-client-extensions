@@ -37,7 +37,14 @@ else:
     DATA_TABLE = None
 
 if util.version_gte("10.0"):
-    from odoo.modules.module import get_resource_from_path, get_resource_path
+    from odoo.modules.module import get_resource_from_path
+
+    if util.version_gte("15.0"):
+        from odoo.tools.misc import file_path
+    else:
+        from odoo.modules.module import get_resource_path
+
+        file_path = lambda path: get_resource_path(*path.split("/", 1))
     from odoo.tools.view_validation import _validators
 
     if util.version_gte("saas~11.1"):
@@ -45,7 +52,7 @@ if util.version_gte("10.0"):
     else:
         from odoo.addons.base.ir.ir_ui_view import get_view_arch_from_file
 else:
-    get_resource_path = get_resource_from_path = get_view_arch_from_file = None
+    file_path = get_resource_from_path = get_view_arch_from_file = None
     _validators = {}
 
 try:
@@ -571,8 +578,14 @@ def _upgrade_fix_views(fix_view, root_view):
 
             return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
 
+        def check_path(path):
+            try:
+                return file_path(path)
+            except FileNotFoundError:
+                return False
+
         arch_fs_fullpath = (
-            get_resource_path(*view.arch_fs.split("/"))
+            check_path(view.arch_fs)
             if md.module != "test_upg"
             else os.path.dirname(os.path.abspath(__file__)) + "/{}".format(view.arch_fs)
         )
