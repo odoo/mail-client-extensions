@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import secrets
+
+import psycopg2.extras
+
 from odoo.upgrade import util
 
 
@@ -32,3 +36,42 @@ def migrate(cr, version):
         """
     )
     util.remove_field(cr, "event.registration", "mobile")
+
+    # Remove views that inherited from parent views, since we merged those views together.
+    util.remove_field(cr, "res.config.settings", "module_event_barcode")
+    util.remove_view(cr, "event.event_report_template_full_page_ticket_inherit_barcode")
+    util.remove_view(cr, "event.event_report_template_foldable_badge_inherit_barcode")
+    util.remove_view(cr, "event.event_registration_view_form_inherit_barcode")
+    util.remove_view(cr, "event.event_event_view_form")
+
+    if not util.column_exists(cr, "event_registration", "barcode"):
+        util.create_column(cr, "event_registration", "barcode", "varchar")
+
+        ncr = util.named_cursor(cr, 1000)
+        ncr.execute(
+            """
+            SELECT event_reg.id AS id
+              FROM event_registration AS event_reg
+              JOIN event_event AS event
+                ON event.id = event_reg.event_id
+             WHERE event.date_end > NOW()
+               AND event.active
+                """
+        )
+
+        res = ncr.fetchmany(1000)
+        dup_query = "SELECT unnest((array_agg(id))[2:]) FROM event_registration WHERE barcode IS NOT NULL GROUP BY barcode HAVING COUNT(*) > 1"
+        upd_query = "UPDATE event_registration SET barcode = (%s::jsonb->id::text)::text WHERE id IN %s"
+        while res:
+            data = {r[0]: secrets.randbits(64) for r in res}
+            cr.execute(upd_query, [psycopg2.extras.Json(data), tuple(data)])
+            res = ncr.fetchmany(1000)
+        ncr.close()
+
+        # Handling duplicates
+        cr.execute(dup_query)
+        while cr.rowcount:
+            data = {r[0]: secrets.randbits(64) for r in cr.fetchall()}
+
+            cr.execute(upd_query, [psycopg2.extras.Json(data), tuple(data)])
+            cr.execute(dup_query)
