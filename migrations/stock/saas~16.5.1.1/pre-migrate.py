@@ -52,3 +52,4 @@ def migrate(cr, version):
     util.rename_field(cr, "stock.move.line", "qty_done", "quantity")
 
     util.remove_view(cr, "stock.view_stock_move_nosuggest_operations")
+    util.rename_xmlid(cr, "sale_stock.sale_product_catalog_kanban_view_inherit", "stock.product_view_kanban_catalog")
