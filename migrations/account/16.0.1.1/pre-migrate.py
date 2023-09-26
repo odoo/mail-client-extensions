@@ -102,7 +102,10 @@ def migrate(cr, version):
             "liquidity": ("asset_cash", "liability_credit_card"),
         }
         left, operator, right = normalize_leaf(leaf)
-        right = flatten(mapping[r] for r in right) if isinstance(right, (tuple, list)) else mapping[right]
+        if isinstance(right, str):
+            right = mapping.get(right, right)
+        elif isinstance(right, (list, tuple)) and all(isinstance(x, str) for x in right):
+            right = flatten(mapping.get(r, r) for r in right)
         if isinstance(right, (list, tuple)) and operator in ("=", "!="):
             operator = "in" if operator == "=" else "not in"
         return [(left, operator, right)]
