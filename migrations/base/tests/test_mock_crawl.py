@@ -36,6 +36,13 @@ except ImportError:
 
         to_patch = "datetime.datetime"
 
+try:
+    from odoo.tools.sql import TableKind
+
+    regular_types = ("r", TableKind.Regular)
+except ImportError:
+    regular_types = ("r",)
+
 NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
 
@@ -361,7 +368,7 @@ class TestCrawler(IntegrityCase):
 
         if any(
             # we need to check for None since the view is gone on test_check
-            table_kind(self.env.cr, self.env[field.comodel_name]._table) != "r"
+            table_kind(self.env.cr, self.env[field.comodel_name]._table) not in regular_types
             for field in model._fields.values()
             if field.manual and field.comodel_name
         ):
