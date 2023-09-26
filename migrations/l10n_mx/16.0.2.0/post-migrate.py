@@ -25,6 +25,7 @@ def migrate(cr, version):
                     mx_account_with_tags.account_id,
                     CASE WHEN mx_account_with_tags.tag_natures @> ARRAY[cast('A' AS varchar)] THEN %s ELSE %s END
                 FROM mx_account_with_tags
+                  ON CONFLICT DO NOTHING
             """,
             [tax_credit_id, tax_debit_id],
         )
