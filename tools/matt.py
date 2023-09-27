@@ -385,7 +385,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         ODOO_UPG_DB_TARGET_VERSION=options.target.name,
     )
 
-    def odoo(cmd: List[str], *, version: Version, module: str = module) -> bool:
+    def odoo(cmd: List[str], *, version: Version, python: Optional[Path], module: str = module) -> bool:
         cwd = workdir / "odoo" / version.odoo
         ad_path = ",".join(
             str(ad)
@@ -395,7 +395,9 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         )
 
         odoo_bin = "./odoo-bin" if (cwd / "odoo-bin").is_file() else "./openerp-server"
+        py_bin = [str(python)] if python else []
         cmd = [
+            *py_bin,
             odoo_bin,
             "-c",
             str(options.cache_path / "odoo.conf"),
@@ -426,11 +428,14 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             return False
         return True
 
+    source = {"version": options.source, "python": options.source_python_bin}
+    target = {"version": options.target, "python": options.target_python_bin}
+
     # For versions >= 9.0, the main partner needs to be in the country of the installed l10n module.
     # If we cannot determine the version name, we assume than we try to upgrade from a version >= 9.0.
     if "l10n_" in module and (not options.source.name or options.source.ints >= (9, 0)):
         # create a `base` db and modify the non-demo partners country before installing the localization
-        odoo(["-i", "base"], version=options.source, module="base")
+        odoo(["-i", "base"], **source, module="base")
         cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
 
         # 3 cases:
@@ -471,23 +476,23 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
         if l10n_module:
             # Explicitly install the localisation.
-            odoo(["-i", l10n_module], version=options.source, module=l10n_module)
+            odoo(["-i", l10n_module], **source, module=l10n_module)
 
-    odoo(["-i", module], version=options.source, module=module)
+    odoo(["-i", module], **source, module=module)
 
     # tests: preparation
     if options.run_tests:
         logger.info("prepare upgrade tests in db %s", dbname)
-        odoo(["--test-tags", "upgrade.test_prepare"], version=options.source)
+        odoo(["--test-tags", "upgrade.test_prepare"], **source)
 
     # upgrade
     logger.info("upgrade db %s in version %s", dbname, options.target)
-    success = odoo(["-u", "all"], version=options.target)
+    success = odoo(["-u", "all"], **target)
 
     # tests: validation
     if options.run_tests:
         logger.info("validate upgrade tests in db %s", dbname)
-        odoo(["--test-tags", "upgrade.test_check,upgrade_unit"], version=options.target)
+        odoo(["--test-tags", "upgrade.test_check,upgrade_unit"], **target)
 
     if success and not options.keep_dbs:
         subprocess.run(["dropdb", "--if-exists", dbname], check=True, stderr=subprocess.DEVNULL)
@@ -777,6 +782,9 @@ It allows to test upgrades against development branches.
     parser.add_argument(
         "--no-fetch", action="store_false", dest="fetch", default=True, help="Do not fetch repositories from remote"
     )
+
+    parser.add_argument("--source-python-bin", type=Path, default=None)
+    parser.add_argument("--target-python-bin", type=Path, default=None)
 
     parser.add_argument("source", action=VersionAction, type=str)
     parser.add_argument("target", action=VersionAction, type=str)
