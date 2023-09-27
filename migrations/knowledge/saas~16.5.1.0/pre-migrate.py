@@ -15,3 +15,17 @@ def migrate(cr, version):
         util.remove_view(cr, "knowledge.layout")
         util.remove_view(cr, "knowledge.articles_template")
         util.remove_view(cr, "knowledge.knowledge_article_view_frontend")
+
+    # rename view_in_kanban to view_in_cards in properties definition
+    cr.execute(
+        """
+        UPDATE knowledge_article
+           SET article_properties_definition = (
+                SELECT jsonb_agg(
+                  CASE WHEN definition ? 'view_in_kanban' THEN jsonb_set(definition - 'view_in_kanban', '{view_in_cards}', definition->'view_in_kanban', true)
+                       ELSE definition
+                   END
+            )     FROM jsonb_array_elements(article_properties_definition) AS definition
+        );
+        """
+    )
