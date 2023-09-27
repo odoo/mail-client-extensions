@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: ERA001
 
 import itertools
 import json
@@ -81,7 +82,7 @@ class Repo(NamedTuple):
     @classmethod
     def get(cls, name):
         for repo in REPOSITORIES:
-            if repo.name == name or repo.ident == name:
+            if name in {repo.name, repo.ident}:
                 return repo
         raise ValueError(name)
 
@@ -312,7 +313,9 @@ def checkout(repo: Repo, version: str, workdir: Path, options: Namespace, stack:
     wd.mkdir(exist_ok=True)
     gitdir = str(options.cache_path / repo.name)
     # verify branch exists before checkout
-    hasref = subprocess.run(["git", "show-ref", "-q", "--verify", f"refs/remotes/origin/{version}"], cwd=gitdir)
+    hasref = subprocess.run(
+        ["git", "show-ref", "-q", "--verify", f"refs/remotes/origin/{version}"], cwd=gitdir, check=False
+    )
     if hasref.returncode != 0:
         if not repo.branch_required(version):
             logger.info("unknown ref %r in repository %r: ignoring", version, repo.name)
@@ -403,13 +406,14 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             "--without-demo",
             "" if options.demo else "1",  # option not read from config file; should be on command line
             "--stop-after-init",
-        ] + cmd
+            *cmd,
+        ]
         if options.run_tests:
             cmd += ["--http-port", str(free_port())]
 
         step = "upgrading" if "-u" in cmd else "testing" if "--test-tags" in cmd else "installing"
         logger.debug("%s module %s at version %s", step, module, version)
-        p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+        p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, check=False)
         stdout = p.stdout.decode()
         if p.returncode:
             logger.error("Error (returncode=%s) while %s module %s:\n%s", p.returncode, step, module, stdout)
@@ -514,7 +518,7 @@ def matt(options: Namespace) -> int:
             if not checkout(UPGRADE_REPO, options.upgrade_branch, workdir, options, stack):
                 return 3
 
-        pkgdir = dict()
+        pkgdir = {}
         for loc in ["source", "target"]:
             version = getattr(options, loc)
             odoodir = workdir / "odoo" / version.odoo
@@ -589,6 +593,7 @@ def matt(options: Namespace) -> int:
             grep = subprocess.run(
                 ["git", "grep", "-q", "test-tags", "--", "odoo/tools/config.py"],
                 cwd=(workdir / "odoo" / options.source.odoo),
+                check=False,
             )
             options.run_tests = grep.returncode == 0
             if not options.run_tests:
@@ -612,7 +617,7 @@ def matt(options: Namespace) -> int:
 
         modules = {
             m.parent.name
-            for repo in [base_ad] + REPOSITORIES
+            for repo in [base_ad, *REPOSITORIES]
             for mod_glob in options.module_globs or ["*"]
             for wd in [workdir / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
             for m in itertools.chain(
