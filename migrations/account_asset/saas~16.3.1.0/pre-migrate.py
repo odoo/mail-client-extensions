@@ -49,13 +49,12 @@ def migrate(cr, version):
         ],
     )
 
-    # In the account_accountant module we add a new field to define the method to generate deferral entries.
+    # In the account_accountant module we add (a) new field(s) to define the method to generate deferral entries.
     # When `account_asset` is installed, we want to calculate its value based on (potentially) already existing
     # deferral entries.
-    cr.execute(
-        """
+    deferred_entries_method_query = """
         UPDATE res_company company
-           SET generate_deferred_entries_method =
+           SET {} =
                CASE WHEN EXISTS (
                              SELECT 1
                                FROM account_asset asset
@@ -63,14 +62,29 @@ def migrate(cr, version):
                                  ON move.asset_id = asset.id
                                 AND move.state = 'posted'
                               WHERE asset.company_id = company.id
-                                AND asset.asset_type IN ('sale', 'expense')
+                                AND asset.asset_type IN %s
                                 AND asset.state NOT IN ('draft', 'cancelled')
                          )
                     THEN 'on_validation'
                     ELSE 'manual'
                 END
-        """
-    )
+    """
+    if util.column_exists(cr, "res_company", "generate_deferred_entries_method"):
+        cr.execute(
+            deferred_entries_method_query.format("generate_deferred_entries_method"),
+            [("sale", "expense")],
+        )
+    elif util.column_exists(cr, "res_company", "generate_deferred_expense_entries_method") and util.column_exists(
+        cr, "res_company", "generate_deferred_revenue_entries_method"
+    ):
+        cr.execute(
+            deferred_entries_method_query.format("generate_deferred_expense_entries_method"),
+            [("expense",)],
+        )
+        cr.execute(
+            deferred_entries_method_query.format("generate_deferred_revenue_entries_method"),
+            [("sale",)],
+        )
 
     cr.execute(
         """
