@@ -10,8 +10,8 @@ def migrate(cr, version):
     renames = """
         account_{move_personal_rule,invoice_rule_see_personal}
         account_{move_line_personal_rule,invoice_line_rule_see_personal}
-        account_{move,invoice_rule}_see_all}
-        account_{move_line,invoice_line_rule}_see_all}
+        account_{move,invoice_rule}_see_all
+        account_{move_line,invoice_line_rule}_see_all
     """
     for rename in util.splitlines(renames):
         util.rename_xmlid(cr, *eb(f"sale.{rename}"))
