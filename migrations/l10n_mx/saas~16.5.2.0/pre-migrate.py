@@ -36,3 +36,26 @@ def migrate(cr, version):
         )
     ]
     util.parallel_execute(cr, queries)
+
+    # remove the old account.account.tags "IEPS", "IVA", "ISR"
+    ids = (util.ref(cr, "l10n_mx.tag_ieps"), util.ref(cr, "l10n_mx.tag_iva"), util.ref(cr, "l10n_mx.tag_isr"))
+    queries = [
+        cr.mogrify(
+            """
+            DELETE FROM account_account_tag_account_tax_repartition_line_rel
+                  WHERE account_account_tag_id IN %s
+            """,
+            [ids],
+        ),
+        cr.mogrify(
+            """
+            DELETE FROM account_account_tag_account_move_line_rel
+                  WHERE account_account_tag_id IN %s
+            """,
+            [ids],
+        ),
+    ]
+    util.parallel_execute(cr, queries)
+    util.remove_record(cr, "l10n_mx.tag_ieps")
+    util.remove_record(cr, "l10n_mx.tag_iva")
+    util.remove_record(cr, "l10n_mx.tag_isr")
