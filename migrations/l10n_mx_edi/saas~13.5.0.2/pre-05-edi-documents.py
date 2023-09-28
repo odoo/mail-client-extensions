@@ -81,6 +81,7 @@ def migrate(cr, version):
             cfdi_per_payment.attachment_id
         FROM cfdi_per_payment
         WHERE cfdi_per_payment.rank = 1
+  ON CONFLICT DO NOTHING
         """,
         [mx_edi_format_id],
     )
