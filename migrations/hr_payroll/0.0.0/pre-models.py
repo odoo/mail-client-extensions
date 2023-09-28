@@ -19,5 +19,22 @@ if util.version_gte("saas~12.5"):
         _match_uniq = True
 
 
+if util.version_gte("16.0"):
+
+    class Rule(models.Model):
+        _inherit = "hr.salary.rule"
+        _module = "hr_payroll"
+
+        def unlink(self):
+            external_ids = self.get_external_id()
+            for rule in self:
+                info = external_ids.get(rule.id) or "{} (code={})".format(rule.name, rule.code)
+                util._logger.warning(
+                    "The hr.salary.rule record `%s` should be explicitly removed using `util.hr_payroll.remove_salary_rule`",
+                    info,
+                )
+            return super().unlink()
+
+
 def migrate(cr, version):
     pass
