@@ -55,3 +55,6 @@ def migrate(cr, version):
     util.explode_execute(cr, query, table="project_task")
     util.remove_field(cr, "project.task", "comment")
     util.remove_view(cr, "industry_fsm.fsm_form_view_comment")
+    cr.execute("DROP VIEW IF EXISTS report_project_task_user CASCADE")
+    cr.execute("DROP VIEW IF EXISTS report_project_task_user_fsm CASCADE")
+    util.alter_column_type(cr, "project_task", "date_deadline", "timestamp without time zone")
