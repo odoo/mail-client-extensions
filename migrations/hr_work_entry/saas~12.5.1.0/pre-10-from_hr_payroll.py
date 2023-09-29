@@ -20,9 +20,9 @@ def migrate(cr, version):
     util.move_field_to_module(cr, "hr.work.entry.type", "is_leave", "hr_work_entry", "hr_payroll")
     util.move_field_to_module(cr, "hr.work.entry.type", "leave_type_ids", "hr_work_entry", "hr_payroll")
 
-    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_{,view_}tree}"))
+    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_{,view_}tree"))
     util.rename_xmlid(cr, *eb("hr_work_entry.{view_hr_work_entry_filter,hr_work_entry_view_search}"))
-    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_{,view_}form}"))
+    util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_{,view_}form"))
     util.rename_xmlid(cr, *eb("hr_work_entry.hr_work_entry_type_{,view_}tree"))
 
     if util.table_exists(cr, "hr_work_entry"):
