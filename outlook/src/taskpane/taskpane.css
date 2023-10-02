@@ -43,6 +43,10 @@
     border-bottom: 1px #d6d5d5 solid;
 }
 
+.warning-message {
+    padding: 20px;
+}
+
 .tile-regular-space {
     height: 30px;
 }
