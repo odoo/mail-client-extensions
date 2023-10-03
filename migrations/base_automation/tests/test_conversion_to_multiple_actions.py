@@ -10,18 +10,20 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 
 @change_version("saas~16.5")
 class Test_00_SimpleAutomation(UpgradeCase):
+    MODEL, FIELD = "mail.blacklist", "email"
+
     def prepare(self):
         automation = self.env["base.automation"].create(
             {
-                "name": "Force Archived Contacts",
+                "name": f"Force Archived {self.MODEL}",
                 "trigger": "on_create_or_write",
-                "model_id": self.env.ref("base.model_res_partner").id,
+                "model_id": self.env["ir.model"]._get(self.MODEL).id,
                 "type": "ir.actions.server",
-                "trigger_field_ids": [Command.set([self.env.ref("base.field_res_partner__name").id])],
+                "trigger_field_ids": [Command.set([self.env["ir.model.fields"]._get(self.MODEL, self.FIELD).id])],
                 "fields_lines": [
                     Command.create(
                         {
-                            "col1": self.env.ref("base.field_res_partner__active").id,
+                            "col1": self.env["ir.model.fields"]._get(self.MODEL, "active").id,
                             "evaluation_type": "equation",
                             "value": "False",
                         }
@@ -39,11 +41,11 @@ class Test_00_SimpleAutomation(UpgradeCase):
             automation,
             [
                 {
-                    "name": "Force Archived Contacts",
+                    "name": f"Force Archived {self.MODEL}",
                     "trigger": "on_create_or_write",
-                    "model_id": self.env.ref("base.model_res_partner").id,
-                    "model_name": "res.partner",
-                    "trigger_field_ids": [self.env.ref("base.field_res_partner__name").id],
+                    "model_id": self.env["ir.model"]._get(self.MODEL).id,
+                    "model_name": self.MODEL,
+                    "trigger_field_ids": [self.env["ir.model.fields"]._get(self.MODEL, self.FIELD).id],
                 }
             ],
         )
@@ -53,9 +55,9 @@ class Test_00_SimpleAutomation(UpgradeCase):
             action,
             [
                 {
-                    "name": "Force Archived Contacts",
-                    "model_id": self.env.ref("base.model_res_partner").id,
-                    "model_name": "res.partner",
+                    "name": f"Force Archived {self.MODEL}",
+                    "model_id": self.env["ir.model"]._get(self.MODEL).id,
+                    "model_name": self.MODEL,
                     "state": "code",
                     "code": """record.write({"active": False})""",
                     "evaluation_type": False,
