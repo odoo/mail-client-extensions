@@ -218,8 +218,8 @@ class TestAccountPocalypse(UpgradeCase):
         )
         for product_id, quantity, price_subtotal in expected:
             line = next(r for r in result if r["product_id"][0] == product_id)
-            self.assertEquals(quantity, line["quantity"])
-            self.assertEquals(price_subtotal, line["price_subtotal"])
+            self.assertEqual(quantity, line["quantity"])
+            self.assertEqual(price_subtotal, line["price_subtotal"])
 
     def _prepare_test_refund_with_creditors_at_debit_side(self, env_user):
         invoice = env_user["account.invoice"].create(
@@ -244,7 +244,7 @@ class TestAccountPocalypse(UpgradeCase):
         )
         invoice.action_invoice_open()
         move = invoice.move_id
-        creditor_line = move.line_ids.filtered(lambda l: l.account_id == self.account_receivable)
+        creditor_line = move.line_ids.filtered(lambda ln: ln.account_id == self.account_receivable)
         self.cr.execute("UPDATE account_move SET state='draft' WHERE id IN %s", (tuple(move.ids),))
         move.write(
             {
@@ -259,7 +259,7 @@ class TestAccountPocalypse(UpgradeCase):
 
     def _check_test_refund_with_creditors_at_debit_side(self, config, args):
         move = self.env["account.move"].browse(self._get_move_id_from_invoice_id(args))
-        self.assertEquals(move.type, "out_refund")
+        self.assertEqual(move.type, "out_refund")
 
     # -------------------------------------------------------------------------
     # SETUP

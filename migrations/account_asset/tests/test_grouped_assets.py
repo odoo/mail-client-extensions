@@ -65,15 +65,15 @@ class GroupedAssetsCase(UpgradeCase):
         with no_fiscal_lock(self.env.cr):
             self.env["account.asset.asset"].compute_generated_entries(datetime.today())
             moves = assets.mapped("depreciation_line_ids.move_id")
-            self.assertEquals(len(moves), 8)  # 2 categories, 2 moves for grouped + 4 moves for 1 ungrouped category
+            self.assertEqual(len(moves), 8)  # 2 categories, 2 moves for grouped + 4 moves for 1 ungrouped category
 
             # Modify the first asset move on purpose, to handle a difference between the assets amount and the move amount
             # Leave the second asset untouched to check it doesn't create a remaining move
             move_group_1 = assets[0].mapped("depreciation_line_ids.move_id")
             move_group_1.journal_id.update_posted = True
             move_group_1.button_cancel()
-            debit_line = move_group_1.line_ids.filtered(lambda l: l.debit)
-            credit_line = move_group_1.line_ids.filtered(lambda l: l.credit)
+            debit_line = move_group_1.line_ids.filtered(lambda ln: ln.debit)
+            credit_line = move_group_1.line_ids.filtered(lambda ln: ln.credit)
             move_group_1.write({"line_ids": [(1, debit_line.id, {"debit": 480}), (1, credit_line.id, {"credit": 480})]})
             move_group_1.action_post()
 
@@ -182,9 +182,9 @@ class GroupedAssetsCase(UpgradeCase):
 
         assets = self.env["account.asset"].browse(asset_ids)
         # The number of depreciation has not changed
-        self.assertEquals([len(asset.depreciation_move_ids) for asset in assets], line_count)
+        self.assertEqual([len(asset.depreciation_move_ids) for asset in assets], line_count)
         # The number of posted depreciation has not changed
-        self.assertEquals(assets.mapped("depreciation_entries_count"), entry_count)
+        self.assertEqual(assets.mapped("depreciation_entries_count"), entry_count)
 
         # Check content of migration journal
         mig_journal = self.env["account.journal"].search(
@@ -197,10 +197,10 @@ class GroupedAssetsCase(UpgradeCase):
         mig_moves = self.env["account.move"].search([("journal_id", "=", mig_journal.id)])
         # 2 grouped depreciations + the 5 details of it + the manual change
         # Unmodified/ungrouped moves are not in this journal
-        self.assertEquals(len(mig_moves), 622)
+        self.assertEqual(len(mig_moves), 622)
         # balance is 0 per account
         balance_per_account = defaultdict(float)
         for line in mig_moves.mapped("line_ids"):
             balance_per_account[line.account_id] += round(line.balance, 2)
         for balance in balance_per_account.values():
-            self.assertAlmostEquals(balance, 0)
+            self.assertAlmostEqual(balance, 0)

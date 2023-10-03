@@ -62,7 +62,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             picking.action_confirm()
             picking.move_ids_without_package.quantity_done = 5.0
             picking.button_validate()
-            self.assertEquals(product.qty_available, -5.0)
+            self.assertEqual(product.qty_available, -5.0)
             result.append((product.id, product.standard_price, product.qty_available))
         return result
 
@@ -70,7 +70,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
         self.env = self.env(user=self.env["res.users"].browse(config["user"]))
         for product_id, standard_price, qty_available in values:
             product = self.env["product.product"].browse(product_id)
-            self.assertEquals(product.qty_available, qty_available)
+            self.assertEqual(product.qty_available, qty_available)
             inventory_form = Form(self.env["stock.inventory"])
             inventory_form.name = "Inventory test_fifo_vacuum check"
             inventory_form.product_ids.clear()
@@ -79,9 +79,9 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             inventory.action_start()
             inventory.line_ids.product_qty = 20.0
             inventory.action_validate()
-            self.assertEquals(product.qty_available, 20.0)
-            self.assertEquals(product.standard_price, standard_price)
-            self.assertEquals(product.value_svl / product.quantity_svl, standard_price)
+            self.assertEqual(product.qty_available, 20.0)
+            self.assertEqual(product.standard_price, standard_price)
+            self.assertEqual(product.value_svl / product.quantity_svl, standard_price)
 
     def _prepare_test_price_history(self):
         with freeze_time("2020-02-01"):
@@ -95,7 +95,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             picking.action_confirm()
             picking.move_ids_without_package.quantity_done = 5.0
             picking.button_validate()
-        self.assertEquals(self.product_auto_average_price_histo.standard_price, 100)
+        self.assertEqual(self.product_auto_average_price_histo.standard_price, 100)
         with freeze_time("2020-02-02"):
             self.product_auto_average_price_histo.do_change_standard_price(200, self.account_expense.id)
             self.product_auto_average_price_histo.do_change_standard_price(250, self.account_expense.id)
@@ -108,7 +108,7 @@ class TestAccountPocalypseStockAccount(UpgradeCase):
             picking.move_ids_without_package.quantity_done = 5.0
             picking.button_validate()
 
-        self.assertEquals(self.product_auto_average_price_histo.standard_price, 250)
+        self.assertEqual(self.product_auto_average_price_histo.standard_price, 250)
         return [
             self.product_auto_average_price_histo.id,
             self.product_auto_average_price_histo.qty_available,
