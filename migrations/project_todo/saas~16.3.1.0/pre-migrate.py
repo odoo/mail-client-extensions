@@ -187,6 +187,7 @@ def migrate(cr, version):
                 AND (task.id, ru.id) NOT IN (
                         SELECT task_id, user_id
                           FROM project_task_user_rel)
+        ON CONFLICT DO NOTHING
         """
     )
     # case b: Followers have not yet put the note in a stage
