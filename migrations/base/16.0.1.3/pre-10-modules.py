@@ -95,3 +95,5 @@ def migrate(cr, version):
     )
     if cr.rowcount:
         util.rename_module(cr, "knowledge", "document_knowledge")
+
+    util.remove_module(cr, "pos_sale_gift_card")
