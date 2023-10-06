@@ -127,7 +127,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
                         <notebook colspan="4">
                             <page string="Contacts">
                                 <field name="country_id" invisible="1"/>
-                                <field name="child_ids" mode="kanban" context="{'default_parent_id': active_id, 'default_country_id': country_id, 'default_lang': lang, 'default_type': 'other'}">
+                                <field name="child_ids" mode="kanban" context="{'default_parent_id': id, 'default_country_id': country_id, 'default_lang': lang, 'default_type': 'other'}">
                                     <kanban>
                                         <field name="id" invisible="1"/>
                                         <field name="parent_name" attrs="{'readonly': 0}"/>
@@ -513,7 +513,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
                         <notebook colspan="4">
                             <page string="Contacts">
                                 <field name="country_id" invisible="1"/>
-                                <field name="child_ids" mode="kanban" context="{'default_parent_id': active_id, 'default_country_id': country_id, 'default_lang': lang, 'default_type': 'other'}">
+                                <field name="child_ids" mode="kanban" context="{'default_parent_id': id, 'default_country_id': country_id, 'default_lang': lang, 'default_type': 'other'}">
                                     <kanban>
                                         <field name="id"/>
                                         <field name="parent_name" />
