@@ -34,3 +34,5 @@ def migrate(cr, version):
 
     util.update_field_usage(cr, "slide.channel.partner", "completed", "member_status", domain_adapter=adapter)
     util.remove_field(cr, "slide.channel.partner", "completed")
+
+    util.if_unchanged(cr, "website_slides.rule_slide_slide_resource_downloadable", util.update_record_from_xml)
