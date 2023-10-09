@@ -17,6 +17,8 @@ from odoo.upgrade import util
 _logger = logging.getLogger(__name__)
 
 MODS = ["invisible", "readonly", "required", "column_invisible"]
+DEFAULT_CONTEXT_REPLACE = {"active_id": "id"}
+LIST_HEADER_CONTEXT_REPLACE = {"active_id": "context.get('active_id')"}
 
 
 class Ast2StrVisitor(ast.NodeVisitor):
@@ -49,6 +51,10 @@ class Ast2StrVisitor(ast.NodeVisitor):
         ast.Or: "or",
     }
 
+    def __init__(self, replace_names=None):
+        self._replace_names = replace_names if replace_names else DEFAULT_CONTEXT_REPLACE
+        super().__init__()
+
     @classmethod
     def aop2str(cls, op):
         return cls.AST_OP_TO_STR[type(op)]
@@ -57,13 +63,18 @@ class Ast2StrVisitor(ast.NodeVisitor):
         return repr(node.value)
 
     def visit_Name(self, node):
-        return node.id
+        return self._replace_names.get(node.id, node.id)
 
     def visit_List(self, node):
         return "[{}]".format(",".join(map(self.visit, node.elts)))
 
     def visit_Tuple(self, node):
         return "({})".format(",".join(map(self.visit, node.elts)))
+
+    def visit_Dict(self, node):
+        return "{{{}}}".format(
+            ", ".join("{}: {}".format(self.visit(k), self.visit(v)) for k, v in zip(node.keys, node.values))
+        )
 
     def visit_Attribute(self, node):
         return f"{self.visit(node.value)}.{node.attr}"
@@ -293,6 +304,15 @@ def fix_attrs(cr, model, arch, comb_arch):
     # inline all attrs combined with already inline values
     for elem in arch.xpath("//*[@attrs or @states or @invisible or @required or @readonly or @column_invisible]"):
         fix_elem(cr, model, elem, comb_arch)
+
+    # remove context elements
+    for elem in arch.xpath("//tree/header/*[contains(@context, 'active_id')]"):
+        elem.set(
+            "context",
+            Ast2StrVisitor(LIST_HEADER_CONTEXT_REPLACE).visit(ast.parse(elem.get("context"), mode="eval").body),
+        )
+    for elem in arch.xpath("//*[contains(@context, 'active_id')]"):
+        elem.set("context", Ast2StrVisitor().visit(ast.parse(elem.get("context"), mode="eval").body))
 
     # replace <attribute name=attrs> elements with individual <attribute name=mod>
     # use a fake field element to reuse the logic for Python expression conversion

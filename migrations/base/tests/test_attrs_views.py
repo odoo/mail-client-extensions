@@ -154,6 +154,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
                         <field invisible="1" name="company_id"/>
                         <field name="date" attrs="{'readonly': [('company_id', '=', 1)] if company_id else []}"/>
                         <field name="date" attrs="{'readonly': company_id and [('company_id', '=', 1)] or []}"/>
+                        <field name="date" attrs="{'readonly': [('company_id', '=', active_id)]}"/>
 
                         <group attrs="{'invisible':[('parent_name','!=',False)]}">
                             <group>
@@ -176,6 +177,9 @@ class TestAttrsViewsToExpression(UpgradeCase):
 
                                 <field name="category_id">
                                     <tree editable="bottom">
+                                        <header>
+                                            <button name="dummy" context="{'default_company_id': active_id}"/>
+                                        </header>
                                         <field name="name" readonly="context.get('stuff')" attrs="{'required': '[(&quot;id&quot;,&quot;&lt;&quot;,parent.id)]', 'invisible': [('id', '=', False)]}"/>
                                     </tree>
                                 </field>
@@ -610,6 +614,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
                         <field invisible="1" name="company_id"/>
                         <field name="date" readonly="(company_id == 1 if company_id else True)"/>
                         <field name="date" readonly="((company_id and company_id == 1) or True)"/>
+                        <field name="date" readonly="company_id == id"/>
 
                         <group invisible="parent_name != False">
                             <group>
@@ -629,6 +634,9 @@ class TestAttrsViewsToExpression(UpgradeCase):
 
                                 <field name="category_id">
                                     <tree editable="bottom">
+                                        <header>
+                                            <button name="dummy" context="{'default_company_id': context.get('active_id')}"/>
+                                        </header>
                                         <field name="name" readonly="context.get('stuff')" invisible="id == False" required="id &lt; parent.id"/>
                                     </tree>
                                 </field>
