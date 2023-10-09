@@ -293,10 +293,10 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     if util.version_gte("16.0"):
         # Handle missing groups
         pattern_info = {
-            r"Field '(\w+)' used in domain of field '(\w+)' .+ is restricted to the group": lambda m: (
+            r"""Field '(\w+)' used in domain of (?:field '(\w+)'|<field name=\"(\w+)\">) .+ is restricted to the group""": lambda m: (
                 "name",
-                m.group(2),
-                "//field[@name='{}']".format(m.group(2)),
+                m.group(2) if m.group(2) else m.group(3),
+                "//field[@name='{}']".format(m.group(2) if m.group(2) else m.group(3)),
             ),
             r"Field '(\w+)' used in ([\w-]+)=(.+) is restricted to the group": lambda m: (
                 m.group(2),
