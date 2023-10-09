@@ -5,7 +5,9 @@ repos:
     rev: v0.19.1
     hooks:
     - id: gitlint
+      name: Check commit message, guideline on https://github.com/odoo/upgrade/wiki/commit-message
     - id: gitlint-ci
+      name: Check commit message, guideline on https://github.com/odoo/upgrade/wiki/commit-message
 
   - repo: local
     hooks:
@@ -38,11 +40,13 @@ repos:
     rev: v0.0.292
     hooks:
     - id: ruff
+      name: Check code with Ruff, apply automatic fixes
       args: [ --fix, --exit-non-zero-on-fix ]
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 23.9.1
     hooks:
       - id: black
+        name: Format code with Black automatically
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
