@@ -120,6 +120,11 @@ def migrate(cr, version):
     #     sol_ids = [sol_id[0] for sol_id in results]
     #     util.recompute_fields(cr, "sale.order.line", ["pricing_id"], ids=sol_ids)
 
+    cr.execute(
+        "SELECT id FROM sale_order WHERE is_subscription=true AND old_subscription_id IS NOT NULL AND fiscal_position_id IS NULL"
+    )
+    util.recompute_fields(cr, "sale.order", ["fiscal_position_id"], ids=[so_id[0] for so_id in cr.fetchall()])
+
     cr.execute("SELECT id FROM sale_order WHERE currency_rate IS NULL")
     util.recompute_fields(cr, "sale.order", ["currency_rate"], ids=[id_ for id_, in cr.fetchall()])
     cr.execute(
@@ -137,5 +142,6 @@ def migrate(cr, version):
 
     cr.execute("SELECT id FROM sale_order WHERE is_subscription=true AND old_subscription_id IS NOT NULL")
     so_ids = [so_id[0] for so_id in cr.fetchall()]
-    util.recompute_fields(cr, "sale.order", ["amount_total", "fiscal_position_id"], ids=so_ids)
+    util.recompute_fields(cr, "sale.order", ["amount_total"], ids=so_ids)
     util.remove_column(cr, "sale_order", "old_subscription_id")
+
