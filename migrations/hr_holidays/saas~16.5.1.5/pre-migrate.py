@@ -189,3 +189,5 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.leave.report", "active_employee")
     util.remove_view(cr, "hr_holidays.hr_leave_report_view_form")
     util.remove_record(cr, "hr_holidays.act_hr_employee_holiday_request")
+
+    util.if_unchanged(cr, "hr_holidays.mail_act_leave_approval", util.update_record_from_xml)

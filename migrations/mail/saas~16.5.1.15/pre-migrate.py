@@ -92,3 +92,5 @@ def migrate(cr, version):
 
     # remove alias_user_id; will remove from inherits also (see alias mixins)
     util.remove_field(cr, "mail.alias", "alias_user_id")
+
+    util.create_column(cr, "mail_activity", "active", "boolean", default=True)
