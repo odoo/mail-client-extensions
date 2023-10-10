@@ -85,3 +85,6 @@ def migrate(cr, version):
         util.rename_xmlid(cr, f"mail_enterprise.{xml_id}", f"mail.{xml_id}", on_collision="merge")
 
     util.remove_record(cr, "auth_signup.reset_password_email")
+
+    # remove alias_user_id; will remove from inherits also (see alias mixins)
+    util.remove_field(cr, "mail.alias", "alias_user_id")
