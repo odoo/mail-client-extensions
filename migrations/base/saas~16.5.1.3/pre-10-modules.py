@@ -16,6 +16,22 @@ def migrate(cr, version):
         util.rename_module(cr, "account_avatax_sale_subscription", "sale_subscription_external_tax")
         util.rename_module(cr, "website_sale_account_avatax", "website_sale_external_tax")
 
+        if util.module_installed(cr, "sale_subscription"):
+            util.move_field_to_module(cr, "sale.order", "internal_note", "sale_temporal", "sale_subscription")
+            # sale_subscription needs this field for migrations in 16.5 as well
+            util.remove_field(cr, "sale.order", "recurrence_id", drop_column=False)
+
+        if util.module_installed(cr, "sale_renting"):
+            util.merge_module(cr, "sale_temporal", "sale_renting")
+        else:
+            if util.module_installed(cr, "sale_subscription"):
+                # sale_subscription needs these tables for migrations in 16.5 as well
+                util.remove_model(cr, "sale.temporal.recurrence", drop_table=False)
+                util.remove_model(
+                    cr, "product.pricing", drop_table=False, ignore_m2m=("product_pricing_product_product_rel",)
+                )
+            util.remove_module(cr, "sale_temporal")
+
     if util.module_installed(cr, "website_sale_digital"):
         util.move_field_to_module(cr, "ir.attachment", "product_downloadable", "website_sale_digital", "sale")
 

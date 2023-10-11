@@ -183,7 +183,11 @@ def migrate(cr, version):
 
     util.rename_field(cr, "sale.order.template", "recurring_rule_count", "duration_value")
     util.rename_field(cr, "sale.order.template", "recurring_rule_type", "duration_unit")
-    util.remove_field(cr, "sale.order", "recurrence_id")
+
+    # remove column only as field removed in base
+    util.remove_column(cr, "sale_order", "recurrence_id")
+
+    util.remove_field(cr, "sale.order.line", "temporal_type")
     util.remove_field(cr, "sale.order.log.report", "recurrence_id")
     util.remove_field(cr, "sale.order.template", "user_closable")
     util.remove_field(cr, "sale.order.template", "auto_close_limit")

@@ -61,3 +61,10 @@ def migrate(cr, version):
     util.remove_column(cr, "sale_subscription_pricing", "old_id")
 
     util.remove_field(cr, "sale.order.alert", "subscription_template_ids")
+
+    if not util.module_installed(cr, "sale_renting"):
+        # Remove tables that were kept from sale_temporal module in base
+        cr.execute("DROP TABLE IF EXISTS product_pricing_product_product_rel")
+        for model in ["sale.temporal.recurrence", "product.pricing"]:
+            table = util.table_of_model(cr, model)
+            cr.execute('DROP TABLE IF EXISTS "{0}" CASCADE'.format(table))
