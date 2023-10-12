@@ -104,6 +104,8 @@ def migrate_tags_to_tax_tags_engine(cr, module, tax_tag_changes):
         },
     )
 
+    return old_tag_ids
+
 
 def migrate(cr, version):
     """Handle the migration of the VAT report."""
