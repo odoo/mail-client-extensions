@@ -136,3 +136,34 @@ def migrate(cr, version):
     ):
         partner = Partner.find_or_create(f"{employee_name} <{work_email}>", assert_valid_email=False)
         cr.execute("UPDATE hr_employee SET work_contact_id = %s WHERE id = %s", [partner.id, employee_id])
+
+    # Move bank account from private contact to work contact
+    cr.execute(
+        """
+           WITH dups AS (
+                SELECT coalesce(hr_employee.work_contact_id, res_partner_bank.partner_id) as p_id,
+                       sanitized_acc_number,
+                       array_agg(res_partner_bank.id) as ids
+                  FROM res_partner_bank
+             LEFT JOIN hr_employee ON res_partner_bank.partner_id = hr_employee.address_home_id
+              group by 1, 2
+                having count(*)>1)
+           SELECT unnest(ids[2:]), ids[1] FROM dups
+        """
+    )
+    mapping = {bank_id[0]: bank_id[1] for bank_id in cr.fetchall() if bank_id[0] != bank_id[1]}
+
+    if mapping:
+        util.replace_record_references_batch(cr, mapping, "res.partner.bank", ignores=["mail_followers"])
+        util.remove_records(cr, "res.partner.bank", mapping.keys())
+
+    cr.execute(
+        """
+            UPDATE res_partner_bank
+               SET partner_id = hr_employee.work_contact_id
+              FROM hr_employee
+             WHERE res_partner_bank.partner_id = hr_employee.address_home_id
+               AND hr_employee.work_contact_id IS NOT NULL
+               AND res_partner_bank.partner_id != hr_employee.work_contact_id
+        """
+    )
