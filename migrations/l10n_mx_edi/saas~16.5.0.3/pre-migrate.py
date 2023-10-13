@@ -29,3 +29,22 @@ def migrate(cr, version):
 
     # drop the m2m table as we remove the m2m relationship
     cr.execute("DROP TABLE l10n_mx_edi_certificate_res_company_rel")
+
+    # Since this field is part of a compute computing multiple fields, the column has to be created manually to prevent the
+    # orm to call the compute.
+    util.create_column(cr, "account_move", "l10n_mx_edi_invoice_cancellation_reason", "varchar")
+
+    # When migrating from 16.0 to 16.4+, the table doesn't exist yet.
+    if util.table_exists(cr, "l10n_mx_edi_document"):
+        util.remove_field(cr, "l10n_mx_edi.document", "cancel_payment_button_needed")
+        util.create_column(cr, "l10n_mx_edi_document", "attachment_origin", "varchar")
+        util.create_column(cr, "l10n_mx_edi_document", "attachment_uuid", "varchar")
+        util.explode_execute(
+            cr,
+            """
+                UPDATE l10n_mx_edi_document
+                SET attachment_origin = '<TO_COMPUTE>'
+                WHERE l10n_mx_edi_document.attachment_id IS NOT NULL
+            """,
+            table="l10n_mx_edi_document",
+        )
