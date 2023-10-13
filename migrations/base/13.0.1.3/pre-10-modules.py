@@ -25,8 +25,8 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_se_ocr", deps={"l10n_se"}, auto_install=True)
 
     # odoo/odoo@24b57a377fec77178aad2b433da8f743be9db747
-    util.new_module(cr, "odoo_referral", deps={"base", "web"}, auto_install=True)
-    util.new_module(cr, "odoo_referral_portal", deps={"website", "odoo_referral"}, auto_install=True)
+    util.new_module(cr, "odoo_referral", deps={"base", "web"}, auto_install=False)
+    util.new_module(cr, "odoo_referral_portal", deps={"website", "odoo_referral"}, auto_install=False)
 
     util.new_module(cr, "pos_kitchen_printer", deps={"pos_restaurant"}, auto_install=True)
 
@@ -48,7 +48,6 @@ def migrate(cr, version):
         util.new_module(
             cr, "l10n_nl_report_intrastat", deps={"l10n_nl_reports", "account_intrastat"}, auto_install=True
         )
-        util.new_module(cr, "pos_hr_l10n_be", deps={"pos_hr", "pos_blackbox_be"}, auto_install=True)
         util.module_deps_diff(cr, "crm_enterprise", plus={"web_map"})
         util.merge_module(cr, "l10n_mx_edi_payment", "l10n_mx_edi")
         util.merge_module(cr, "account_reports_cash_flow", "account_reports")
@@ -85,7 +84,8 @@ def migrate(cr, version):
         util.module_deps_diff(
             cr, "pos_blackbox_be", plus={"pos_restaurant_iot", "pos_cash_rounding"}, minus={"pos_restaurant"}
         )
-        util.module_auto_install(cr, "module_auto_install", True)
+        util.module_auto_install(cr, "pos_blackbox_be", auto_install=True)
+        util.new_module(cr, "pos_hr_l10n_be", deps={"pos_hr", "pos_blackbox_be"}, auto_install=True)
 
         # https://github.com/odoo/enterprise/pull/6764
         util.module_deps_diff(cr, "hr_contract_salary", plus={"hr_contract_sign"}, minus={"hr"})
@@ -103,6 +103,8 @@ def migrate(cr, version):
 
         # https://github.com/odoo/enterprise/pull/24020
         util.new_module(cr, "l10n_mx_edi_stock", deps={"delivery", "l10n_mx_edi", "web_map"}, auto_install=True)
+
+        util.module_auto_install(cr, "voip_crm", auto_install=True)
 
     if util.has_design_themes():
         util.new_module(
