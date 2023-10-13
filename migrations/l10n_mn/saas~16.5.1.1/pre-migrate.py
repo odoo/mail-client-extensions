@@ -1,45 +1,31 @@
 from odoo.upgrade import util
 
 
-def migrate(cr, version):
-    # VAT report migration: remove obsolete tag vat_report_tag43 from tax repartition lines.
-    # If it is used on AMLs, remove its xmlid (so it won't be deleted), and set it to active=False.
-    vat_report_tag43_id = util.ref(cr, "l10n_mn.vat_report_tag43")
-    if vat_report_tag43_id:
+def disable_obsolete_tax_tag(cr, tag_xmlid):
+    """
+    Disable an obsolete tax tag by removing its associations and deactivating it.
+
+    This method performs two major operations:
+    1. Removes all associations between the given tax tag and tax repartition lines in the database.
+    2. Deactivates the tax tag in the database if it is still used, otherwise removes it completely.
+
+    Parameters:
+    tag_xmlid (str): XMLID of the tax tag to be disabled.
+    """
+    tag_id = util.ref(cr, tag_xmlid)
+    if tag_id:
         cr.execute(
             """
             DELETE FROM account_account_tag_account_tax_repartition_line_rel
-                WHERE account_account_tag_id = %s
+             WHERE account_account_tag_id = %s
             """,
-            [vat_report_tag43_id],
+            [tag_id],
         )
-        cr.execute(
-            """
-            SELECT tag_aml_rel.account_move_line_id
-              FROM account_account_tag_account_move_line_rel tag_aml_rel
-             WHERE tag_aml_rel.account_account_tag_id = %s
-             LIMIT 1
-            """,
-            [vat_report_tag43_id],
-        )
-        if cr.fetchall():
-            cr.execute(
-                """
-                DELETE FROM ir_model_data
-                      WHERE module = 'l10n_mn'
-                            AND model = 'account.account.tag'
-                            AND res_id = %s
-                """,
-                [vat_report_tag43_id],
-            )
-            cr.execute(
-                """
-                UPDATE account_account_tag
-                   SET active = false
-                 WHERE id = %s
-                """,
-                [vat_report_tag43_id],
-            )
+        util.delete_unused(cr, tag_xmlid, deactivate=True)
+
+
+def migrate(cr, version):
+    disable_obsolete_tax_tag(cr, "l10n_mn.vat_report_tag43")
 
     # Corporate Tax Report / Cashflow Statement: remove from accounts all account tags to be deleted
     cr.execute(
