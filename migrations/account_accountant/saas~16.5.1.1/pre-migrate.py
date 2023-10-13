@@ -22,3 +22,5 @@ def migrate(cr, version):
         )
     util.remove_field(cr, "res.config.settings", "generate_deferred_entries_method")
     util.remove_field(cr, "res.company", "generate_deferred_entries_method")
+
+    util.remove_menus(cr, [util.ref(cr, "account_accountant.menu_action_auto_reconcile")])
