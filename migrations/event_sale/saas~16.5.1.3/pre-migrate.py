@@ -25,3 +25,4 @@ def migrate(cr, version):
     util.remove_field(cr, "event.sale.report", "is_paid")
     util.rename_field(cr, "event.sale.report", "payment_status", "sale_status")
     util.change_field_selection_values(cr, "event.sale.report", "sale_status", {"paid": "sold"})
+    util.remove_field(cr, "registration.editor", "seats_available_insufficient")
