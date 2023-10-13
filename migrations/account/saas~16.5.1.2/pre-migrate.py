@@ -6,6 +6,7 @@ def migrate(cr, version):
     util.alter_column_type(
         cr, "account_report", "filter_account_type", "varchar", using="CASE WHEN {0} THEN 'both' ELSE 'disabled' END"
     )
+    util.remove_view(cr, "account.view_account_analytic_line_filter_inherit")
 
     cr.execute("DROP INDEX IF EXISTS account_move_line__unreconciled_index")
     cr.execute(
