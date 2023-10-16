@@ -97,3 +97,14 @@ def migrate(cr, version):
         util.rename_module(cr, "knowledge", "document_knowledge")
 
     util.remove_module(cr, "pos_sale_gift_card")
+
+    cr.execute(
+        """
+         SELECT 1
+           FROM ir_module_module
+          WHERE name = 'l10n_latam_check'
+            AND author = 'ADHOC SA'
+         """
+    )
+    if cr.rowcount:
+        util.rename_module(cr, "l10n_latam_check", "l10n_latam_check_adhoc")
