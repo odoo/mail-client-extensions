@@ -21,105 +21,17 @@ DEFAULT_CONTEXT_REPLACE = {"active_id": "id"}
 LIST_HEADER_CONTEXT_REPLACE = {"active_id": "context.get('active_id')"}
 
 
-class Ast2StrVisitor(ast.NodeVisitor):
+class Ast2StrVisitor(ast._Unparser):
     """
-    Visitor to convert an AST into a string.
+    Extend standard unparser to allow specific names to be replaced.
     """
-
-    AST_OP_TO_STR = {
-        ast.Eq: "==",
-        ast.NotEq: "!=",
-        ast.Lt: "<",
-        ast.LtE: "<=",
-        ast.Gt: ">",
-        ast.GtE: ">=",
-        ast.Is: "is",
-        ast.IsNot: "is not",
-        ast.In: "in",
-        ast.NotIn: "not in",
-        ast.Add: "+",
-        ast.Sub: "-",
-        ast.Mult: "*",
-        ast.Div: "/",
-        ast.FloorDiv: "//",
-        ast.Mod: "%",
-        ast.Pow: "^",
-        ast.Not: "not",
-        ast.UAdd: "+",
-        ast.USub: "-",
-        ast.And: "and",
-        ast.Or: "or",
-    }
 
     def __init__(self, replace_names=None):
         self._replace_names = replace_names if replace_names else DEFAULT_CONTEXT_REPLACE
         super().__init__()
 
-    @classmethod
-    def aop2str(cls, op):
-        return cls.AST_OP_TO_STR[type(op)]
-
-    def visit_Constant(self, node):
-        return repr(node.value)
-
     def visit_Name(self, node):
-        return self._replace_names.get(node.id, node.id)
-
-    def visit_List(self, node):
-        return "[{}]".format(",".join(map(self.visit, node.elts)))
-
-    def visit_Tuple(self, node):
-        return "({})".format(",".join(map(self.visit, node.elts)))
-
-    def visit_Dict(self, node):
-        return "{{{}}}".format(
-            ", ".join("{}: {}".format(self.visit(k), self.visit(v)) for k, v in zip(node.keys, node.values))
-        )
-
-    def visit_Attribute(self, node):
-        return f"{self.visit(node.value)}.{node.attr}"
-
-    def visit_Call(self, node):
-        args = ", ".join(map(self.visit, node.args))
-        kw = ", ".join(f"{k.arg}=({self.visit(k.value)})" for k in node.keywords if k.arg)
-        starred_kw = next((f"**{self.visit(k.value)}" for k in node.keywords if k.arg is None), "")
-        return "{}({})".format(self.visit(node.func), ", ".join(filter(None, [args, kw, starred_kw])))
-
-    def visit_Starred(self, node):
-        return f"*({self.visit(node.value)})"
-
-    def visit_Compare(self, node):
-        return "({} {})".format(
-            self.visit(node.left),
-            " ".join(f"{self.aop2str(op)} {comp}" for op, comp in zip(node.ops, map(self.visit, node.comparators))),
-        )
-
-    def visit_UnaryOp(self, node):
-        return f"{self.aop2str(node.op)}{' ' if type(node.op) == ast.Not else ''}{self.visit(node.operand)}"
-
-    def visit_BoolOp(self, node):
-        return "({})".format(f" {self.aop2str(node.op)} ".join(map(self.visit, node.values)))
-
-    def visit_BinOp(self, node):
-        return "({} {} {})".format(self.visit(node.left), self.aop2str(node.op), self.visit(node.right))
-
-    def visit_IfExp(self, node):
-        return "({} if {} else {})".format(*map(self.visit, [node.body, node.test, node.orelse]))
-
-    def visit_Subscript(self, node):
-        return "{}[{}]".format(self.visit(node.value), self.visit(node.slice))
-
-    def visit_Index(self, node):
-        return self.visit(node.value)
-
-    def visit_Slice(self, node):
-        lower = "" if node.lower is None else self.visit(node.lower)
-        upper = "" if node.upper is None else self.visit(node.upper)
-        return "{}:{}".format(lower, upper)
-
-    def generic_visit(self, node):
-        # this includes among other things: extented slices and (list/dict/set) comprehensions
-        raise SyntaxError()
+        return self.write(self._replace_names.get(node.id, node.id))
 
 
 def mod2bool_str(s):
@@ -383,7 +295,6 @@ def convert_attrs_val(cr, model, field_path, val):
     * a list representing the domain directly
     """
     ast2str = Ast2StrVisitor().visit
-    aop2str = Ast2StrVisitor.aop2str
 
     if isinstance(val, ast.IfExp):
         return "({} if {} else {})".format(
@@ -393,7 +304,9 @@ def convert_attrs_val(cr, model, field_path, val):
         )
     if isinstance(val, ast.BoolOp):
         return "({})".format(
-            f" {aop2str(val.op)} ".join(convert_attrs_val(cr, model, field_path, v) for v in val.values)
+            (" and " if type(val.op) == ast.And else " or ").join(
+                convert_attrs_val(cr, model, field_path, v) for v in val.values
+            )
         )
 
     if isinstance(val, ast.Constant):  # {'readonly': '0'} or {'invisible': 'name'}
