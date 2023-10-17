@@ -9,3 +9,6 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, "appointment.appointment_type_action_custom_and_anytime", "appointment.appointment_type_action_custom"
     )
+
+    # calendar_event_id is now required
+    cr.execute("DELETE FROM appointment_answer_input WHERE calendar_event_id IS NULL")
