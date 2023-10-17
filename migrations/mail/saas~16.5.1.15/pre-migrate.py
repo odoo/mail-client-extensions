@@ -24,6 +24,10 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.tracking.value", "new_value_monetary")
     util.remove_field(cr, "mail.tracking.value", "tracking_sequence")
 
+    # mail.message model update
+    util.remove_field(cr, "mail.message", "canned_response_ids")
+    util.remove_field(cr, "mail.shortcode", "message_ids")
+
     # alias views renaming
     for pre, post in [
         ("view_mail_alias_form", "mail_alias_view_form"),
