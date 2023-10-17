@@ -36,6 +36,6 @@ def get_node():
     with misc.file_open("website_sale/views/templates.xml") as fp:
         tree = etree.parse(fp)
         node = tree.find("//template[@id='product']//div[@id='product_detail_main']")
-        if node:
+        if node is not None:
             return node
     raise RuntimeError("Node not found")
