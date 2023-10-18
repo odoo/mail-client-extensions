@@ -62,6 +62,20 @@ def migrate(cr, version):
                 })""",
                 },
             )
+            e4 = util.lxml.etree.Element(
+                "t",
+                {
+                    "t-if": "editable or translatable",
+                    "t-set": "nothing",
+                    "t-value": """html_data.update({
+                                        'data-editable': '1' if editable else None,
+                                        'data-translatable': '1' if translatable else None,
+                                        'data-view-xmlid': xmlid,
+                                        'data-viewid': viewid,
+                                        'data-oe-company-name': res_company.name,
+                                  })""",
+                },
+            )
             element_to_replace = arch.find('.//t[@t-set="html_data"]')
             parent = element_to_replace.getparent()
             index = parent.index(element_to_replace)
@@ -70,3 +84,4 @@ def migrate(cr, version):
             parent.insert(index + 1, e1)
             parent.insert(index + 2, e2)
             parent.insert(index + 3, e3)
+            parent.insert(index + 4, e4)
