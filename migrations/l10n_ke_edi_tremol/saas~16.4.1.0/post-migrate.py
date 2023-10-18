@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from odoo.fields import Command
+
 from odoo.upgrade import util
 
 
@@ -38,7 +40,7 @@ def _get_repartition_lines(
 def migrate(cr, version):
     env = util.env(cr)
     product_query = """
-        SELECT pt.id, item_code.code, item_code.description, item_code.id, item_code.tax_rate
+        SELECT array_agg(pt.id), item_code.code, item_code.description, item_code.id, item_code.tax_rate
           FROM product_template pt
           JOIN product_product pp
             ON pp.product_tmpl_id = pt.id
@@ -46,7 +48,7 @@ def migrate(cr, version):
             ON pp.id = aml.product_id
           JOIN l10n_ke_item_code item_code
             ON pt.l10n_ke_hsn_code = item_code.code
-      GROUP BY pt.id, item_code.code, item_code.description, item_code.id, item_code.tax_rate
+      GROUP BY item_code.code, item_code.description, item_code.id, item_code.tax_rate
     """
     cr.execute(product_query)
     codes = cr.fetchall()
@@ -105,7 +107,7 @@ def migrate(cr, version):
             },
         }
         # Create a new tax for each item code
-        for product_template_id, code, description, item_code_id, tax_rate in codes:
+        for product_template_ids, code, description, item_code_id, tax_rate in codes:
             new_tax = (
                 env["account.tax"]
                 .with_company(company)
@@ -118,7 +120,7 @@ def migrate(cr, version):
                     }
                 )
             )
-            env["product.template"].browse(product_template_id).taxes_id += new_tax
+            env["product.template"].browse(product_template_ids).write({"taxes_id": [Command.link(new_tax.id)]})
 
     util.remove_field(cr, "product.product", "l10n_ke_hsn_code")
     util.remove_field(cr, "product.product", "l10n_ke_hsn_name")

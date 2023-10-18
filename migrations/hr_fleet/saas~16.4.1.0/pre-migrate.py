@@ -13,6 +13,7 @@ def migrate(cr, version):
                SET driver_id = e.work_contact_id
               FROM hr_employee e
              WHERE v.driver_id = e.address_home_id
+               AND e.work_contact_id IS NOT NULL
         """,
         table="fleet_vehicle",
         alias="v",
@@ -37,6 +38,7 @@ def migrate(cr, version):
                SET driver_id = e.work_contact_id
               FROM hr_employee e
              WHERE l.driver_id = e.address_home_id
+               AND e.work_contact_id IS NOT NULL
         """,
         table="fleet_vehicle_assignation_log",
         alias="l",

@@ -38,14 +38,22 @@ def migrate(cr, version):
         cr,
         """
         UPDATE res_partner
-        SET
-            active = false,
-            type = 'contact'
-        WHERE type = 'private'
+           SET name = COALESCE(name, '/'),
+               active = false,
+               type = 'contact'
+         WHERE type = 'private'
         """,
         table="res_partner",
     )
 
     if util.str2bool(os.getenv("UPG_RECYCLE_PRIVATE_PARTNERS", "0")):
         rpp = util.import_script("base/saas~16.4.1.3/recycle_private_partners.py")
-        rpp.recycle(util.env(cr), direct=True)
+
+        def execute(query, params):
+            # XXX if someone have a cleaner solution...
+            table = "mail_message" if "mail_message" in query else "res_partner"
+            alias = table.partition("_")[2][0]
+
+            util.explode_execute(cr, cr.mogrify(query, params).decode(), table=table, alias=alias)
+
+        rpp.recycle(util.env(cr), execute=execute)

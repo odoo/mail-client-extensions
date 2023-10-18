@@ -85,8 +85,7 @@ for administrators, by setting an 'UPG_RECYCLE_PRIVATE_PARTNERS' env variable.""
     )
 
     f = Path(__file__).parent / "recycle_private_partners.py"
-    # Avoid unsafe imports opcodes at the beginning of the file
-    recycle_code = f.read_text().partition("# END OF IMPORTS")[2].strip()
+    recycle_code = f.read_text().strip()
     code = f"""\
 {recycle_code}
 

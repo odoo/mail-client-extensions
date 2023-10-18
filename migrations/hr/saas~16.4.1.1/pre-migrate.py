@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    # Initialise new private information columns
+    log = logging.getLogger("odoo.upgrade.hr.164").info
+
+    log("Initialise new private information columns")
     util.create_column(cr, "hr_employee", "private_street", "varchar")
     util.create_column(cr, "hr_employee", "private_street2", "varchar")
     util.create_column(cr, "hr_employee", "private_city", "varchar")
@@ -15,7 +18,7 @@ def migrate(cr, version):
     util.create_column(cr, "hr_employee", "private_email", "varchar")
     util.create_column(cr, "hr_employee", "lang", "varchar")
 
-    # Copy private information from private addresses to employee forms
+    log("Copy private information from private addresses to employee forms")
     util.explode_execute(
         cr,
         """
@@ -37,7 +40,7 @@ def migrate(cr, version):
         alias="e",
     )
 
-    # Archive private addresses + make public + empty private information / empty chatter
+    log("Archive private addresses + make public + empty private information")
     util.explode_execute(
         cr,
         """
@@ -45,6 +48,7 @@ def migrate(cr, version):
                SET
                    active = false,
                    type = 'contact',
+                   name = COALESCE(p.name, e.name, e.id::varchar),
                    street = NULL,
                    street2 = NULL,
                    city = NULL,
@@ -59,6 +63,8 @@ def migrate(cr, version):
         table="res_partner",
         alias="p",
     )
+
+    log("Empty chatter")
     util.explode_execute(
         cr,
         """
@@ -71,8 +77,10 @@ def migrate(cr, version):
         """,
         table="mail_message",
         alias="m",
+        bucket_size=100_000,
     )
 
+    log("remove old fields")
     util.remove_field(cr, "hr.employee", "address_home_id", drop_column=False)
     util.remove_field(cr, "res.users", "address_home_id")
 
@@ -93,7 +101,7 @@ def migrate(cr, version):
 
     util.remove_view(cr, "hr.view_employee_form_smartbutton")
 
-    # Set user's partner as work contact (if any)
+    log("Set user's partner as work contact (if any)")
     util.explode_execute(
         cr,
         """
@@ -110,7 +118,7 @@ def migrate(cr, version):
         alias="e",
     )
 
-    # Force work contact creation is not linked to user (if work email)
+    log("Force work contact creation is not linked to user (if work email)")
     Partner = util.env(cr)["res.partner"]
     cr.execute(
         """
@@ -128,3 +136,34 @@ def migrate(cr, version):
     ):
         partner = Partner.find_or_create(f"{employee_name} <{work_email}>", assert_valid_email=False)
         cr.execute("UPDATE hr_employee SET work_contact_id = %s WHERE id = %s", [partner.id, employee_id])
+
+    # Move bank account from private contact to work contact
+    cr.execute(
+        """
+           WITH dups AS (
+                SELECT coalesce(hr_employee.work_contact_id, res_partner_bank.partner_id) as p_id,
+                       sanitized_acc_number,
+                       array_agg(res_partner_bank.id) as ids
+                  FROM res_partner_bank
+             LEFT JOIN hr_employee ON res_partner_bank.partner_id = hr_employee.address_home_id
+              group by 1, 2
+                having count(*)>1)
+           SELECT unnest(ids[2:]), ids[1] FROM dups
+        """
+    )
+    mapping = {bank_id[0]: bank_id[1] for bank_id in cr.fetchall() if bank_id[0] != bank_id[1]}
+
+    if mapping:
+        util.replace_record_references_batch(cr, mapping, "res.partner.bank", ignores=["mail_followers"])
+        util.remove_records(cr, "res.partner.bank", mapping.keys())
+
+    cr.execute(
+        """
+            UPDATE res_partner_bank
+               SET partner_id = hr_employee.work_contact_id
+              FROM hr_employee
+             WHERE res_partner_bank.partner_id = hr_employee.address_home_id
+               AND hr_employee.work_contact_id IS NOT NULL
+               AND res_partner_bank.partner_id != hr_employee.work_contact_id
+        """
+    )
