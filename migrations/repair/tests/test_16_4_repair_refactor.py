@@ -53,12 +53,12 @@ class TestRepairRefactor(UpgradeCase):
         quant.action_apply_inventory()
 
         lot_id = self.env["stock.lot"].search_read([("product_id", "=", lot_product.id)], ["id"])[0]["id"]
-        serial_ids = list(
-            map(
-                lambda x: x["id"],
-                self.env["stock.lot"].search_read([("product_id", "=", serial_product.id)], ["id"], order="id DESC"),
+        serial_ids = [
+            x["id"]
+            for x in self.env["stock.lot"].search_read(
+                [("product_id", "=", serial_product.id)], ["id"], order="id DESC"
             )
-        )
+        ]
 
         stock_location_id = self.env.ref("stock.stock_location_stock").id
         prod_location_id = (
@@ -368,7 +368,8 @@ class TestRepairRefactor(UpgradeCase):
                 for move in ro.move_ids:
                     if not move.repair_line_type or move.has_tracking == "none":
                         continue
-                    self.assertEqual(len(move.lot_ids), 1)
+                    self.assertEqual(len(move.move_line_ids), 3)
+                    self.assertEqual(len(move.move_line_ids.lot_id), 2)
                     self.assertEqual(float_compare(move.move_lines_count, move.product_uom_qty + 1, 2), 0)
 
             if tag_name == "04":

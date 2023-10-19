@@ -203,36 +203,68 @@ def migrate(cr, version):
     )
 
     # Create a move_line for repair_line that has a lot_id
-    util.explode_execute(
-        cr,
-        """
-        INSERT INTO stock_move_line
-                    (company_id, product_id, product_uom_id, location_id, location_dest_id,
-                    state, reserved_qty, reserved_uom_qty, date, move_id,
-                    qty_done,
-                    lot_id, lot_name)
-             SELECT l.company_id, l.product_id, l.product_uom, l.location_id, l.location_dest_id,
-                    m.state, 0.0 AS reserved_qty, 0.0 AS reserved_uom_qty, m.date, l.move_id,
-                    CASE
-                        WHEN t.tracking = 'serial'
-                        THEN 1.0
-                        ELSE m.quantity_done
-                    END quantity_done,
-                    l.lot_id, lot.name
-               FROM repair_line l
-               JOIN stock_lot lot
-                    ON l.lot_id = lot.id
-               JOIN stock_move m
-                    ON l.move_id = m.id
-                    AND m.state != 'done'
-               JOIN product_product p
-                    ON l.product_id = p.id
-               JOIN product_template t
-                    ON p.product_tmpl_id = t.id
-        """,
-        alias="l",
-        table="repair_line",
-    )
+    if not util.column_exists(cr, "stock_move_line", "reserved_qty"):
+        util.explode_execute(
+            cr,
+            """
+            INSERT INTO stock_move_line
+                        (company_id, product_id, product_uom_id, location_id, location_dest_id,
+                        state, date, move_id,
+                        quantity,
+                        lot_id, lot_name)
+                 SELECT l.company_id, l.product_id, l.product_uom, l.location_id, l.location_dest_id,
+                        m.state, m.date, l.move_id,
+                        CASE
+                            WHEN t.tracking = 'serial'
+                            THEN 1.0
+                            ELSE m.quantity
+                        END quantity,
+                        l.lot_id, lot.name
+                   FROM repair_line l
+                   JOIN stock_lot lot
+                        ON l.lot_id = lot.id
+                   JOIN stock_move m
+                        ON l.move_id = m.id
+                        AND m.state != 'done'
+                   JOIN product_product p
+                        ON l.product_id = p.id
+                   JOIN product_template t
+                        ON p.product_tmpl_id = t.id
+            """,
+            alias="l",
+            table="repair_line",
+        )
+    else:
+        util.explode_execute(
+            cr,
+            """
+            INSERT INTO stock_move_line
+                        (company_id, product_id, product_uom_id, location_id, location_dest_id,
+                        state, reserved_qty, reserved_uom_qty, date, move_id,
+                        qty_done,
+                        lot_id, lot_name)
+                 SELECT l.company_id, l.product_id, l.product_uom, l.location_id, l.location_dest_id,
+                        m.state, 0.0 AS reserved_qty, 0.0 AS reserved_uom_qty, m.date, l.move_id,
+                        CASE
+                            WHEN t.tracking = 'serial'
+                            THEN 1.0
+                            ELSE m.quantity_done
+                        END quantity_done,
+                        l.lot_id, lot.name
+                   FROM repair_line l
+                   JOIN stock_lot lot
+                        ON l.lot_id = lot.id
+                   JOIN stock_move m
+                        ON l.move_id = m.id
+                        AND m.state != 'done'
+                   JOIN product_product p
+                        ON l.product_id = p.id
+                   JOIN product_template t
+                        ON p.product_tmpl_id = t.id
+            """,
+            alias="l",
+            table="repair_line",
+        )
 
     # Clean refactored models
     util.remove_field(cr, "repair.order", "tax_calculation_rounding_method")
