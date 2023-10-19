@@ -72,3 +72,52 @@ def migrate(cr, version):
           DROP TABLE duplicates;
         """
     )
+
+    util.remove_field(cr, "account.full.reconcile", "name")
+    util.delete_unused(cr, "account.sequence_reconcile_seq")
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE account_move_line
+           SET matching_number = full_reconcile_id::varchar
+         WHERE full_reconcile_id IS NOT NULL
+        """,
+        table="account_move_line",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+            WITH RECURSIVE partials (line_id, current_id) AS (
+                    SELECT line.id,
+                           line.id
+                      FROM account_move_line line
+                      JOIN account_partial_reconcile partial
+                        ON line.id = partial.debit_move_id
+                        OR line.id = partial.credit_move_id
+                     WHERE line.full_reconcile_id IS NULL
+                       AND {parallel_filter}
+                                                UNION
+                    SELECT p.line_id,
+                           CASE WHEN partial.debit_move_id = p.current_id THEN partial.credit_move_id
+                                ELSE partial.debit_move_id
+                           END
+                      FROM partials p
+                      JOIN account_partial_reconcile partial ON p.current_id = partial.debit_move_id
+                                                             OR p.current_id = partial.credit_move_id
+            ), new_vals AS (
+                  SELECT line_id, 'P' || MIN(partial.id) AS matching_number
+                    FROM partials
+                    JOIN account_partial_reconcile partial ON current_id = partial.debit_move_id
+                                                           OR current_id = partial.credit_move_id
+                GROUP BY line_id
+            )
+            UPDATE account_move_line line
+               SET matching_number = new_vals.matching_number
+              FROM new_vals
+             WHERE new_vals.line_id = line.id
+        """,
+        table="account_move_line",
+        alias="line",
+    )
