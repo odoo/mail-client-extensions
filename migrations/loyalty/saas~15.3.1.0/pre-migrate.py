@@ -403,6 +403,18 @@ def _coupon_migrate(cr):
     if mapping and _check_mapping(mapping):
         util.replace_record_references_batch(cr, mapping, "loyalty.card")
 
+    cr.execute(
+        """
+        INSERT INTO loyalty_reward_product_product_rel (
+            loyalty_reward_id, product_product_id
+        )
+        SELECT lp.id, rel.product_product_id
+          FROM coupon_reward_product_product_rel rel
+          JOIN loyalty_program lp
+            ON lp._upg_coupon_reward_id = rel.coupon_reward_id
+        """
+    )
+
     util.remove_field(cr, "loyalty.program", "validity_duration")
     util.remove_field(cr, "loyalty.program", "promo_applicability")
     util.remove_field(cr, "loyalty.program", "promo_code")
