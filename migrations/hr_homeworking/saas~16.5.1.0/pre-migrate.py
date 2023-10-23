@@ -4,6 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.remove_model(cr, "calendar.popover.delete.wizard.homework")
+    util.remove_view(cr, "hr_homeworking.hr_kanban_view_employees")
     util.remove_view(cr, "hr_homeworking.hr_employee_location_view_form")
     util.remove_view(cr, "hr_homeworking.hr_employee_public_view_kanban")
     util.remove_field(cr, "hr.employee.location", "weekday")
