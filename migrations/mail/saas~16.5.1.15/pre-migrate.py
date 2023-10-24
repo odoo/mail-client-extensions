@@ -94,3 +94,31 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.alias", "alias_user_id")
 
     util.create_column(cr, "mail_activity", "active", "boolean", default=True)
+    # channel ACL simplification
+    records_to_remove = [
+        "mail.discuss_channel_rule",
+        "mail.discuss_channel_admin",
+        "mail.access_mail_message_scheduled_all",
+        "mail.ir_rule_discuss_channel_member_group_user",
+        "mail.access_mail_mail_all",
+        "mail.access_mail_mail_portal",
+        "mail.access_mail_mail_user",
+        "mail.access_mail_followers_all",
+        "mail.access_discuss_channel_admin",
+        "mail.access_discuss_channel_rtc_session_all",
+        "mail.access_mail_alias_all",
+        "mail.access_mail_message_reaction_all",
+        "mail.access_mail_tracking_value_all",
+        "mail.access_mail_tracking_value_portal",
+        "mail.access_mail_tracking_value_user",
+        "mail.access_mail_activity_all",
+        "mail.access_mail_activity_plan_all",
+        "mail.access_mail_activity_plan_template_all",
+        "mail.access_mail_activity_schedule_all",
+        "mail.access_mail_activity_type_all",
+        "mail.access_mail_guest_all",
+        "mail.access_mail_ice_server_all",
+        "mail.access_res_users_settings_volumes_all",
+    ]
+    for name in records_to_remove:
+        util.remove_record(cr, name)

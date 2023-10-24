@@ -51,3 +51,6 @@ def migrate(cr, version):
 
     # remove livechat_username from res_users
     util.remove_column(cr, "res_users", "livechat_username")
+
+    # channel ACL simplification
+    util.remove_record(cr, "im_livechat.im_livechat_rule_manager_read_all_discuss_channel")
