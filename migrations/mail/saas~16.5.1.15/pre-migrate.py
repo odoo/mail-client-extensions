@@ -119,7 +119,6 @@ def migrate(cr, version):
         )
 
     # alias domains configuration update
-    util.move_field_to_module(cr, "res.config.settings", "external_email_server_default", "base_setup", "mail")
     util.remove_field(cr, "res.config.settings", "alias_domain")
 
     # migrate aliases: set domain (if configured), set gateway check based on
