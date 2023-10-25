@@ -201,3 +201,5 @@ def migrate(cr, version):
 
     util.remove_view(cr, "sale_subscription.sale_subscription_recurrence_search")
     util.remove_record(cr, "sale_subscription.sale_subscription_recurrence_action")
+    util.remove_view(cr, "sale_subscription.subscription")
+    util.remove_view(cr, "sale_subscription.payment_portal_breadcrumb_inherit")
