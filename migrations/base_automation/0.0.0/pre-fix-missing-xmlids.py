@@ -3,8 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
-    if util.version_gte("12.0"):
+    if util.version_between("12.0", "saas~16.4"):
         # server actions associated to automated actions should have xmlids
         cr.execute(
             """
