@@ -39,7 +39,7 @@ def migrate(cr, version):
             "product.packaging",
             "sale.order.line",
             foreign_model_reference_field="product_packaging_id",
-            ids=[record[5] for record in records],
+            ids=list({record[5] for record in records}),
         )
 
         for l_id, l_qty, l_uom, p_qty, p_uom, _ in records:
