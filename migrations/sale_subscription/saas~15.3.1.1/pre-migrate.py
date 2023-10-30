@@ -399,10 +399,10 @@ def migrate(cr, version):
         INSERT INTO sale_order_line (old_subscription_line_id,old_subscription_id,product_id,product_uom_qty,product_uom,
                                     price_unit,discount,price_subtotal,currency_id,order_id,name,
                                     customer_lead,state,
-                                    pricing_id,create_date,create_uid,write_date,write_uid,company_id)
+                                    pricing_id,create_date,create_uid,write_date,write_uid,company_id,qty_delivered_method)
         SELECT ssl.id,ssl.analytic_account_id,ssl.product_id,ssl.quantity,ssl.uom_id,
                ssl.price_unit,ssl.discount,ssl.price_subtotal,ssl.currency_id,so.id,ssl.name,
-               0,so.state,ppr.id,ssl.create_date,ssl.create_uid,ssl.write_date,ssl.write_uid,so.company_id
+               0,so.state,ppr.id,ssl.create_date,ssl.create_uid,ssl.write_date,ssl.write_uid,so.company_id,'manual'
 
           FROM sale_subscription_line ssl
           JOIN sale_subscription ss ON ss.id=ssl.analytic_account_id
