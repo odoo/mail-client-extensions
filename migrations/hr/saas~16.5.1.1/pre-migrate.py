@@ -1,3 +1,4 @@
+from odoo.addons.base.maintenance.migrations.util import table_exists
 from odoo.upgrade import util
 
 
@@ -73,6 +74,27 @@ def migrate(cr, version):
         )
     util.remove_column(cr, "mail_activity_plan", "_old_id")
     util.remove_column(cr, "mail_activity_plan_template", "_old_id")
+
+    if table_exists(cr, "hr_plan_employee_activity"):  # introduced in 16.2
+        query = cr.mogrify(
+            """
+            UPDATE mail_activity AS activity
+               SET res_model = 'hr.employee',
+                   res_model_id = %s,
+                   res_id = original_record.employee_id,
+                   res_name = employee.name
+              FROM hr_plan_employee_activity AS original_record
+              JOIN hr_employee AS employee
+                ON employee.id = original_record.employee_id
+             WHERE activity.res_model_id = %s
+               AND original_record.id = activity.res_id
+            """,
+            [
+                util.ref(cr, "hr.model_hr_employee"),
+                util.ref(cr, "hr.model_hr_plan_employee_activity"),
+            ],
+        ).decode()
+        util.explode_execute(cr, query, table="hr_plan_employee_activity", alias="original_record")
 
     util.remove_model(cr, "hr.plan.activity.type")
     util.remove_model(cr, "hr.plan.employee.activity")
