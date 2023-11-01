@@ -294,26 +294,29 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     if util.version_gte("16.0"):
         # Handle missing groups
         pattern_info = {
-            r"""Field '(\w+)' used in domain of (?:field '(\w+)'|<field name=\"(\w+)\">) .+ is restricted to the group""": lambda m: (
+            r"""Field '(\w+)' used in domain of (?:field '(\w+)'|<field name=\"(\w+)\">) .+ is restricted to the group\(s\) (\S+).""": lambda m: (
                 "name",
                 m.group(2) if m.group(2) else m.group(3),
                 "//field[@name='{}']".format(m.group(2) if m.group(2) else m.group(3)),
+                m.group(4),
             ),
-            r"Field '(\w+)' used in ([\w-]+)=(.+) is restricted to the group": lambda m: (
+            r"Field '(\w+)' used in ([\w-]+)=(.+) is restricted to the group\(s\) (\S+).": lambda m: (
                 m.group(2),
                 m.group(3),
                 "//*[@{}]".format(m.group(2)),
+                m.group(4),
             ),
-            r"Field '(\w+)' used in (attrs|context) \((.+)\) is restricted to the group": lambda m: (
+            r"Field '(\w+)' used in (attrs|context) \((.+)\) is restricted to the group\(s\) (\S+).": lambda m: (
                 m.group(2),
                 m.group(3),
                 "//*[@{}]".format(m.group(2)),
+                m.group(4),
             ),
         }
         m = next(filter(None, (re.search(pattern, e) for pattern in pattern_info)), None)
         if m:
             used_field = m.group(1)
-            node_attr, node_expr, xpath_expr = pattern_info[m.re.pattern](m)
+            node_attr, node_expr, xpath_expr, group_name = pattern_info[m.re.pattern](m)
             done = set()  # avoid adding an invisible field multiple times
 
             def add_field(eparent, efield):
@@ -344,6 +347,12 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
                     add_field(parent, invisible_field)
                 elif elem.tag in ("tree", "form", "kanban"):
                     add_field(elem, invisible_field)
+            for elem in arch.xpath("//attribute[@name='groups' and text()='{}']".format(group_name)):
+                parent = elem.getparent()
+                invisible_field = builder.E.field(name=used_field, invisible="1")
+                expr = parent.attrib["expr"] if parent.tag == "xpath" else "//field[@name=%r]" % parent.attrib["name"]
+                full_element = builder.E.xpath(invisible_field, expr=expr, position="before")
+                parent.addprevious(full_element)
             save_arch(view, arch)
             new_e = check()
             if new_e and re.search("Field '{}' used in ".format(used_field), new_e):

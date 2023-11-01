@@ -1,6 +1,7 @@
 from lxml.builder import E
 from lxml.etree import Comment, tostring
 
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
 
 
@@ -433,7 +434,35 @@ class TestFixViews(UpgradeCase):
             },
             standard_view=True,
         )
-
+        if not util.version_gte("16.0"):
+            base_id5 = create_view(
+                {
+                    "name": "test_fix_views_standard_base_view_group_adding_base",
+                    "arch_db": ts(
+                        E.form(
+                            E.field(name="name", attrs="{'invisible': [['comment','=',1]]}"),
+                            E.field(name="comment"),
+                        ),
+                    ),
+                },
+                standard_view=True,
+            )
+            create_view(
+                {
+                    "name": "test_fix_views_standard_base_view_group_adding_child_ext1",
+                    "mode": "extension",
+                    "inherit_id": base_id5,
+                    "arch_db": ts(
+                        E.data(
+                            E.xpath(
+                                E.attribute("base.group_system", name="groups"),
+                                expr="//field[2]",
+                                position="attributes",
+                            ),
+                        ),
+                    ),
+                },
+            )
         return [self._get_base_version(), info]
 
     def check(self, data):
