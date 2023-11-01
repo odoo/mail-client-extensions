@@ -24,7 +24,7 @@ def migrate(cr, version):
         ),
     )
 
-    if util.table_exists(cr, "sale_order_line"):
+    if util.column_exists(cr, "sale_order_line", "procurement_id"):
         cr.execute(
             """
             ALTER TABLE sale_order_line
