@@ -24,7 +24,7 @@ def migrate(cr, version):
                                      END
                 """, (close_id, inprog_id, draft_id))
 
-    util.remove_field(cr, 'survey_survey', 'state')
+    util.remove_field(cr, "survey.survey", "state")
 
     # description are in html now
     for tbl in ['survey', 'page', 'question']:
