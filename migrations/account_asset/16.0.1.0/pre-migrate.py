@@ -117,6 +117,18 @@ def migrate(cr, version):
     # it will get the asset.prorata_date assigned which is wrong.
     util.parallel_execute(cr, util.explode_query_range(cr, query, "account_asset", alias="asset"))
 
+    # link the reversal moves of depreciation moves to the asset of the deprecation move
+    query = """
+        UPDATE account_move AS reversal_move
+           SET asset_id = depreciation_move.asset_id,
+               asset_depreciation_beginning_date = reversal_move.date,
+               asset_number_days = -depreciation_move.asset_number_days
+          FROM account_move AS depreciation_move
+         WHERE depreciation_move.asset_id IS NOT NULL
+           AND reversal_move.reversed_entry_id = depreciation_move.id
+    """
+    util.explode_execute(cr, query, table="account_move", alias="reversal_move")
+
     util.create_column(cr, "account_move", "depreciation_value", "numeric", default=0)
     # mimics 1st part of python method `account_move._compute_depreciation_value`
     query = """

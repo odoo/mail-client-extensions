@@ -155,6 +155,30 @@ class AssetsRevampingCase(UpgradeCase):
             )
             asset_imported3.validate()
 
+        with freeze_time(REF_DATE_2), no_fiscal_lock(self.env.cr):
+            asset_with_reversed_move = (
+                self.env["account.asset"]
+                .with_context(asset_type="purchase")
+                .create(
+                    {
+                        "account_depreciation_id": account_depreciation.id,
+                        "account_depreciation_expense_id": account_asset_depreciation_expense.id,
+                        "account_asset_id": account_asset.id,
+                        "journal_id": journal.id,
+                        "first_depreciation_date": "2021-12-31",
+                        "method_period": "12",
+                        "method_number": 5,
+                        "name": "Asset with a reversed depreciation move",
+                        "original_value": 2000.0,
+                    }
+                )
+            )
+
+            asset_with_reversed_move.validate()
+            asset_with_reversed_move.depreciation_move_ids.sorted("date")[0]._reverse_moves(
+                default_values_list=[{"date": fields.Date.from_string(REF_DATE_2)}]
+            )
+
         return {
             "assets": [
                 asset.id,
@@ -162,6 +186,7 @@ class AssetsRevampingCase(UpgradeCase):
                 asset_imported.id,
                 asset_imported2.id,
                 asset_imported3.id,
+                asset_with_reversed_move.id,
             ],
         }
 
@@ -176,9 +201,9 @@ class AssetsRevampingCase(UpgradeCase):
             d = d.replace(year=d.year - 1)
         d += datetime.timedelta(days=1)
 
-        (asset1, asset2, asset_imported, asset_imported2, asset_imported3) = self.env["account.asset"].browse(
-            init["assets"]
-        )
+        (asset1, asset2, asset_imported, asset_imported2, asset_imported3, asset_with_reversed_move) = self.env[
+            "account.asset"
+        ].browse(init["assets"])
 
         for asset in (asset1, asset2):
             moves = asset.depreciation_move_ids.sorted(lambda m: m.id)
@@ -239,5 +264,22 @@ class AssetsRevampingCase(UpgradeCase):
                     "method_number": 30,
                     "prorata_computation_type": "constant_periods",
                 }
+            ],
+        )
+
+        self.assertRecordValues(
+            asset_with_reversed_move.depreciation_move_ids.sorted("date"),
+            [
+                {"depreciation_value": 400, "asset_remaining_value": 1600.0},
+                {"depreciation_value": 400, "asset_remaining_value": 1200.0},
+                {
+                    "depreciation_value": -400,
+                    "asset_remaining_value": 1600.0,
+                    "asset_depreciation_beginning_date": fields.Date.from_string(REF_DATE_2),
+                    "asset_number_days": -360,
+                },
+                {"depreciation_value": 800, "asset_remaining_value": 800.0},
+                {"depreciation_value": 400, "asset_remaining_value": 400.0},
+                {"depreciation_value": 400, "asset_remaining_value": 0.0},
             ],
         )
