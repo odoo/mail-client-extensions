@@ -521,6 +521,10 @@ def migrate(cr, version):
                 # fix only custom views, or translations
                 fix_attrs(cr, v.model, arch, comb_arch)
                 new_archs[v.id] = (active, arch)
+            else:
+                # We cannot rely in the restore of the views fixer
+                # it may fail if the view comes from a noupdate block
+                util.update_record_from_xml(cr, f"{md.module}.{md.name}")
         return new_archs
 
     # Now we update all archs at once, this updates also translations
