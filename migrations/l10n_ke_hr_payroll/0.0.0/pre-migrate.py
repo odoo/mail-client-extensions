@@ -50,7 +50,6 @@ def migrate(cr, version):
     # l10n_ke_hr_payroll/data/hr_salary_rule_category_data.xml
     util.rename_xmlid(cr, *eb("l10n_ke_hr_payroll.{hr_salary_rule_category_relief,RELIEF}"))
     util.rename_xmlid(cr, *eb("l10n_ke_hr_payroll.{hr_salary_rule_category_tax_exemption,EXEMPTION}"))
-    util.remove_record(cr, "l10n_ke_hr_payroll.hr_salary_rule_category_paye")
 
     # l10n_ke_hr_payroll/views/hr_employee_views.xml
     util.remove_view(cr, "l10n_ke_hr_payroll.hr_employee_view_form")
