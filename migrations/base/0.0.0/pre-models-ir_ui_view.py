@@ -706,7 +706,7 @@ def _upgrade_fix_views(fix_view, root_view):
         #    b. If still failing, disable the view
         if md and md.module in get_standard_modules(fix_view):
             # Standard view
-            if md.noupdate and fix_view.arch_fs:
+            if fix_view.arch_fs:
                 md.noupdate = False
                 restore_from_file(fix_view, md)
             # Note: even if restoring from fs, a standard view could still fail due to a custom sibling
