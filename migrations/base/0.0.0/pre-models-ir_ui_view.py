@@ -611,7 +611,7 @@ def _upgrade_fix_views(fix_view, root_view):
             if md.module != "test_upg"
             else os.path.dirname(os.path.abspath(__file__)) + "/{}".format(view.arch_fs)
         )
-        arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id)
+        arch_db = get_view_arch_from_file(arch_fs_fullpath, view.xml_id) if arch_fs_fullpath else None
         if not arch_fs_fullpath or not arch_db:
             _logger.warning(
                 "The standard view `%s.%s` was set to `noupdate` and caused validation issues.\n"
