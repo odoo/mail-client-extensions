@@ -27,7 +27,7 @@ def migrate(cr, version):
     # Make (partner_id, slide_id) unique in slide_slide_partner. Order by
     # certificate succeeded (if possible), then complete, then update
     order = "completed DESC, write_date DESC"
-    if util.module_installed(cr, "website_slides_survey"):
+    if util.column_exists(cr, "slide_channel_partner", "survey_scoring_success"):
         order = "survey_scoring_success DESC, %s" % order
 
     cr.execute(
