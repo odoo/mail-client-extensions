@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import fields
-from odoo.tests.common import Form
+from odoo.tests import Form
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.addons.base.maintenance.migrations.util import module_installed, version_gte
@@ -458,10 +458,7 @@ class TestTagNoInvert(UpgradeCase):
         )
         all_neg_invoice_ids = neg_amount_lines.mapped("move_id.id")
 
-        if version_gte("saas~14.5"):
-            caba_origin_field = "tax_cash_basis_origin_move_id"
-        else:
-            caba_origin_field = "tax_cash_basis_move_id"
+        caba_origin_field = "tax_cash_basis_origin_move_id" if version_gte("saas~14.5") else "tax_cash_basis_move_id"
 
         neg_inv_caba_moves = self.env["account.move"].search([(caba_origin_field, "in", all_neg_invoice_ids)])
 
