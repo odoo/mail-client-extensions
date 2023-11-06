@@ -20,16 +20,3 @@ def migrate(cr, version):
 
     # delete all created exceptions
     cr.execute("DELETE from hr_employee_location")
-
-    home_office_wl = util.ref(cr, "hr.home_work_office")
-    if home_office_wl:
-        cr.execute(
-            """
-            UPDATE hr_employee
-            SET monday_location_id = %(wl)s, tuesday_location_id = %(wl)s,
-                wednesday_location_id = %(wl)s, thursday_location_id = %(wl)s,
-                friday_location_id = %(wl)s, saturday_location_id = %(wl)s,
-                sunday_location_id = %(wl)s
-        """,
-            {"wl": home_office_wl},
-        )
