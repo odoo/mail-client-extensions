@@ -346,7 +346,7 @@ def migrate(cr, version):
         insert_add += "," + ",".join(manual_field_cols)
         select_add += "," + ",".join(f"ss.{col}" for col in manual_field_cols)
     # Add the necessary columns and necessary values
-    if util.module_installed(cr, "sale_stock"):
+    if util.column_exists(cr, "sale_order", "picking_policy"):
         cr.execute(
             """
             SELECT DISTINCT ON (company_id) company_id, id
