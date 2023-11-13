@@ -8,6 +8,7 @@ from . import (
     test_module_state,
     test_read_group_refactor,
     test_res_partner_bank,
+    test_transient_model_access,
     test_translate,
     test_versions,
 )
