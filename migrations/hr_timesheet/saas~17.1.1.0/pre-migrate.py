@@ -12,3 +12,4 @@ def migrate(cr, version):
         """,
         table="project_task",
     )
+    util.update_record_from_xml(cr, "base.module_category_services_timesheets", from_module="hr_timesheet")
