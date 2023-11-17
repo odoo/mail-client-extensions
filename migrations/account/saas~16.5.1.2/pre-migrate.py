@@ -124,15 +124,17 @@ def migrate(cr, version):
 
     # ANALYTIC
     # Merge lines that can be merged when all the plans are at 100% and at most one plan is split on multiple accounts
-    cr.execute("""
+    cr.execute(
+        """
         SELECT value::int
           FROM ir_config_parameter
          WHERE key = 'analytic.project_plan'
-    """)
+    """
+    )
     [project_plan_id] = cr.fetchone()
     cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
-    column_names = ['account_id'] + [f"x_plan{id_}_id" for id_ in other_plan_ids]
+    column_names = ["account_id"] + [f"x_plan{id_}_id" for id_ in other_plan_ids]
 
     # If we have an invoice line with a distribution like this
     # | Plan A | Plan B | Plan C | Perc% |
@@ -148,17 +150,13 @@ def migrate(cr, version):
     # |      1 |      a |      i |    50 |
     # |      2 |      a |      i |    50 |
     accounts_per_plan_compute = ",\n                    ".join(
-        f"ARRAY_AGG(al.{col}) FILTER (WHERE al.{col} IS NOT NULL) AS {col}s"
-        for col in column_names
+        f"ARRAY_AGG(al.{col}) FILTER (WHERE al.{col} IS NOT NULL) AS {col}s" for col in column_names
     )
     where_multiple_account_per_plan = "\n                         ".join(
         f"WHEN COUNT(DISTINCT al.{col}) > 1 THEN ARRAY_AGG(al.id) FILTER (WHERE al.{col} IS NOT NULL)"
         for col in column_names
     )
-    count_multiple_accounts_per_plan = " + ".join(
-        f"(COUNT(DISTINCT al.{col}) > 1)::int"
-        for col in column_names
-    )
+    count_multiple_accounts_per_plan = " + ".join(f"(COUNT(DISTINCT al.{col}) > 1)::int" for col in column_names)
     unchanged_distribution = "AND ".join(
         f"""COALESCE(SUM((ml.analytic_distribution->>al.{col}::text)::numeric) = 100, True)  -- only 100% or not used
                 AND COALESCE(SUM(al.amount) FILTER (WHERE al.{col} IS NOT NULL) = -ml.balance, True)  -- unchanged distribution or not used
