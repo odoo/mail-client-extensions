@@ -76,6 +76,19 @@ def migrate(cr, version):
     util.remove_field(cr, "account.full.reconcile", "name")
     util.delete_unused(cr, "account.sequence_reconcile_seq")
 
+    util.create_column(cr, "account_move_line", "invoice_date", "date")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE account_move_line l
+           SET invoice_date = m.invoice_date
+          FROM account_move m
+         WHERE m.id = l.move_id
+        """,
+        table="account_move_line",
+        alias="l",
+    )
+
     util.explode_execute(
         cr,
         """
