@@ -62,3 +62,10 @@ def migrate(cr, version):
 
     util.create_column(cr, "hr_applicant", "partner_mobile_sanitized", "varchar")
     sanitize_fields(cr, san, "partner_mobile", "partner_mobile_sanitized")
+
+    util.create_column(cr, "hr_applicant", "phone_sanitized", "varchar")
+    util.explode_execute(
+        cr,
+        "UPDATE hr_applicant SET phone_sanitized = COALESCE(partner_mobile_sanitized, partner_phone_sanitized)",
+        table="hr_applicant",
+    )
