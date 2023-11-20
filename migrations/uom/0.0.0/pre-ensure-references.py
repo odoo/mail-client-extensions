@@ -10,7 +10,7 @@ def migrate(cr, version):
         ("uom.product_uom_categ_vol", "uom.product_uom_litre"),
     ]:
         unit_category_id = util.ref(cr, category)
-        if unit_category_id:
+        if unit_category_id and not util.ref(cr, uom):
             util.ensure_xmlid_match_record(
                 cr,
                 uom,
