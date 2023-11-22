@@ -5,8 +5,14 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     pdf_to_post = ", pdf_to_post" if util.modules_installed(cr, "documents_l10n_be_hr_payroll") else ""
+    table_to_model = {
+        "l10n_be_individual_account": "l10n_be.individual.account",
+        "l10n_be_281_10": "l10n_be.281_10",
+        "l10n_be_281_45": "l10n_be.281_45",
+    }
     for declaration_model in ["l10n_be_individual_account", "l10n_be_281_10", "l10n_be_281_45"]:
         declaration_line_model = f"{declaration_model}_line"
+        res_model = table_to_model[declaration_model]
         cr.execute(
             f"""
             INSERT INTO hr_payroll_employee_declaration (
@@ -31,7 +37,7 @@ def migrate(cr, version):
                 sheet_id,
                 employee_id,
                 dm.company_id,
-                'l10n_be.individual.account',
+                {res_model},
                 pdf_filename,
                 pdf_to_generate,
                 pdf_file
