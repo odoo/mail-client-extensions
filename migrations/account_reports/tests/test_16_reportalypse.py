@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import re
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
@@ -180,96 +178,148 @@ class TestReportalypse(UpgradeCase):
         arl = self.env["account.report.line"]
         are = self.env["account.report.expression"]
 
-        report1 = ar.search([("name", "=", rep1_vals["name"])])
+        report1 = ar.search([("name", "=", rep1_vals["name"]), ("country_id", "=", rep1_vals["country_id"])])
         self.assertTrue(report1)
-        self.assertEqual(report1.country_id.id, rep1_vals["country_id"])
 
         column1 = arc.search([("report_id", "=", report1.id)])
         self.assertTrue(column1)
 
-        l1 = arl.search([("report_id", "=", report1.id), ("name", "=", l1_vals["name"])])
+        l1 = arl.search(
+            [
+                ("report_id", "=", report1.id),
+                ("name", "=", l1_vals["name"]),
+                ("hierarchy_level", "=", l1_vals["hierarchy_level"]),
+                ("code", "=", l1_vals["code"]),
+                ("parent_id", "=", False),
+            ]
+        )
         self.assertTrue(l1)
-        self.assertEqual(l1.hierarchy_level, l1_vals["hierarchy_level"])
-        self.assertEqual(l1.code, l1_vals["code"])
-        self.assertFalse(l1.parent_id)
 
-        e1 = are.search([("report_line_id", "=", l1.id)])
+        e1 = are.search(
+            [
+                ("report_line_id", "=", l1.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "aggregation"),
+                ("formula", "=", re.sub(r"(\w+)", r"\1.balance", l1_vals["formula"])),
+                ("subformula", "=", l1_vals["subformula"]),
+            ]
+        )
         self.assertTrue(e1)
-        self.assertEqual(e1.label, "balance")
-        self.assertEqual(e1.engine, "aggregation")
-        self.assertEqual(e1.formula, re.sub(r"(\w+)", r"\1.balance", l1_vals["formula"]))
-        self.assertEqual(e1.subformula, l1_vals["subformula"])
 
-        l2 = arl.search([("report_id", "=", report1.id), ("name", "=", l2_vals["name"])])
+        l2 = arl.search(
+            [
+                ("report_id", "=", report1.id),
+                ("name", "=", l2_vals["name"]),
+                ("hierarchy_level", "=", l2_vals["hierarchy_level"]),
+                ("code", "=", l2_vals["code"]),
+            ]
+        )
         self.assertTrue(l2)
-        self.assertEqual(l2.hierarchy_level, l2_vals["hierarchy_level"])
         self.assertEqual(l2.parent_id.name, l2_vals["parent_name"])
-        self.assertEqual(l2.code, l2_vals["code"])
 
-        e2 = are.search([("report_line_id", "=", l2.id)])
+        e2 = are.search(
+            [
+                ("report_line_id", "=", l2.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "domain"),
+                # formula will contain the domain however it's hard to check as it also gets adapted during the upgrade
+                ("subformula", "=", l2_vals["subformula"]),
+            ]
+        )
         self.assertTrue(e2)
-        self.assertEqual(e2.label, "balance")
-        self.assertEqual(e2.engine, "domain")
-        # formula will contain the domain however it's hard to check as it also gets adapted during the upgrade
-        self.assertEqual(e2.subformula, l2_vals["subformula"])
 
-        l3 = arl.search([("report_id", "=", report1.id), ("name", "=", l3_vals["name"])])
+        l3 = arl.search(
+            [
+                ("report_id", "=", report1.id),
+                ("name", "=", l3_vals["name"]),
+                ("hierarchy_level", "=", l3_vals["hierarchy_level"]),
+                ("code", "=", l3_vals["code"]),
+            ]
+        )
         self.assertTrue(l3)
-        self.assertEqual(l3.hierarchy_level, l3_vals["hierarchy_level"])
         self.assertEqual(l3.parent_id.name, l3_vals["parent_name"])
-        self.assertEqual(l3.code, l3_vals["code"])
 
-        e3 = are.search([("report_line_id", "=", l3.id)])
+        e3 = are.search(
+            [
+                ("report_line_id", "=", l3.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "account_codes"),
+                ("formula", "=", l3_vals["domain_16"]),
+                ("subformula", "=", False),
+            ]
+        )
         self.assertTrue(e3)
-        self.assertEqual(e3.label, "balance")
-        self.assertEqual(e3.engine, "account_codes")
-        self.assertEqual(e3.formula, l3_vals["domain_16"])
-        self.assertFalse(e3.subformula)
 
-        l4 = arl.search([("report_id", "=", report1.id), ("name", "=", l4_vals["name"])])
+        l4 = arl.search(
+            [
+                ("report_id", "=", report1.id),
+                ("name", "=", l4_vals["name"]),
+                ("hierarchy_level", "=", l4_vals["hierarchy_level"]),
+                ("code", "=", l4_vals["code"]),
+                ("parent_id", "=", False),
+            ]
+        )
         self.assertTrue(l4)
-        self.assertEqual(l4.hierarchy_level, l4_vals["hierarchy_level"])
-        self.assertEqual(l4.code, l4_vals["code"])
-        self.assertFalse(l4.parent_id)
 
-        e4 = are.search([("report_line_id", "=", l4.id)])
+        e4 = are.search(
+            [
+                ("report_line_id", "=", l4.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "account_codes"),
+                ("formula", "=", l4_vals["domain_16"]),
+                ("subformula", "=", False),
+            ]
+        )
         self.assertTrue(e4)
-        self.assertEqual(e4.label, "balance")
-        self.assertEqual(e4.engine, "account_codes")
-        self.assertEqual(e4.formula, l4_vals["domain_16"])
-        self.assertFalse(e4.subformula)
 
-        report2 = ar.search([("name", "=", rep2_vals["name"])])
+        report2 = ar.search([("name", "=", rep2_vals["name"]), ("country_id", "=", rep2_vals["country_id"])])
         self.assertTrue(report2)
-        self.assertEqual(report2.country_id.id, rep2_vals["country_id"])
 
         column2 = arc.search([("report_id", "=", report2.id)])
         self.assertTrue(column2)
 
-        l5 = arl.search([("report_id", "=", report2.id), ("name", "=", l5_vals["name"])])
+        l5 = arl.search(
+            [
+                ("report_id", "=", report2.id),
+                ("name", "=", l5_vals["name"]),
+                ("hierarchy_level", "=", l5_vals["hierarchy_level"]),
+                ("code", "=", l5_vals["code"]),
+                ("parent_id", "=", False),
+            ]
+        )
         self.assertTrue(l5)
-        self.assertEqual(l5.hierarchy_level, l5_vals["hierarchy_level"])
-        self.assertEqual(l5.code, l5_vals["code"])
-        self.assertFalse(l5.parent_id)
 
-        e5 = are.search([("report_line_id", "=", l5.id)])
+        e5 = are.search(
+            [
+                ("report_line_id", "=", l5.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "aggregation"),
+                ("formula", "=", re.sub(r"(\w+)", r"\1.balance", l5_vals["formula"])),
+                ("subformula", "=", False),
+            ]
+        )
         self.assertTrue(e5)
-        self.assertEqual(e5.label, "balance")
-        self.assertEqual(e5.engine, "aggregation")
-        self.assertEqual(e5.formula, re.sub(r"(\w+)", r"\1.balance", l5_vals["formula"]))
-        self.assertFalse(e5.subformula)
 
-        l6 = arl.search([("report_id", "=", report2.id), ("name", "=", l6_vals["name"])])
+        l6 = arl.search(
+            [
+                ("report_id", "=", report2.id),
+                ("name", "=", l6_vals["name"]),
+                ("hierarchy_level", "=", l6_vals["hierarchy_level"]),
+                ("code", "=", l6_vals["code"]),
+            ]
+        )
         self.assertTrue(l6)
-        self.assertEqual(l6.hierarchy_level, l6_vals["hierarchy_level"])
         self.assertEqual(l6.parent_id.name, l6_vals["parent_name"])
-        self.assertEqual(l6.code, l6_vals["code"])
 
-        e6 = are.search([("report_line_id", "=", l6.id)])
+        e6 = are.search(
+            [
+                ("report_line_id", "=", l6.id),
+                ("label", "=", "balance"),
+                ("engine", "=", "domain"),
+                ("subformula", "=", l6_vals["subformula"]),
+            ]
+        )
         self.assertTrue(e6)
-        self.assertEqual(e6.label, "balance")
-        self.assertEqual(e6.engine, "domain")
-        self.assertEqual(e6.subformula, l6_vals["subformula"])
 
     # -------------------------------------------------------------------------
     # SETUP
