@@ -182,6 +182,7 @@ class TestRefactoringEDI(TestRefactoringL10nMxEDI):
             inv + pay.move_id,
             [
                 {
+                    "edi_state": False,
                     "l10n_mx_edi_is_cfdi_needed": True,
                     "l10n_mx_edi_cfdi_state": "sent",
                     "l10n_mx_edi_cfdi_sat_state": "not_found",
@@ -189,6 +190,7 @@ class TestRefactoringEDI(TestRefactoringL10nMxEDI):
                     "l10n_mx_edi_cfdi_uuid": "00000000-0000-0000-0000-000000000001",
                 },
                 {
+                    "edi_state": False,
                     "l10n_mx_edi_is_cfdi_needed": True,
                     "l10n_mx_edi_cfdi_state": "sent",
                     "l10n_mx_edi_cfdi_sat_state": "valid",

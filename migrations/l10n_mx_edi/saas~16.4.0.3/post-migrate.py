@@ -32,7 +32,8 @@ def migrate(cr, _version):
         SET
             l10n_mx_edi_cfdi_sat_state = l10n_mx_edi_document.sat_state,
             l10n_mx_edi_cfdi_attachment_id = l10n_mx_edi_document.attachment_id,
-            l10n_mx_edi_cfdi_state = 'sent'
+            l10n_mx_edi_cfdi_state = 'sent',
+            edi_state = NULL
         FROM l10n_mx_edi_document
         WHERE l10n_mx_edi_document.move_id = account_move.id
     """
