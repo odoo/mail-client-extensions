@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from psycopg2.extras import Json
+
 from odoo.upgrade import util
 
 
@@ -10,7 +12,22 @@ def migrate(cr, version):
     """)
     [all_project_plans] = cr.fetchone() or [[]]
     cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
-    project_plan_id = all_project_plans[0] if all_project_plans else cr.fetchone()[0]
+    [plan_id] = cr.fetchone() or [None]
+    project_plan_id = all_project_plans[0] if all_project_plans else plan_id
+    if not project_plan_id:
+        cr.execute(
+            """INSERT INTO account_analytic_plan(name, default_applicability)
+                           VALUES (%s, 'optional')
+                 RETURNING id
+            """,
+            [
+                Json({"en_US": "Default"})
+                if util.column_type(cr, "account_analytic_plan", "name") == "jsonb"
+                else "Default"
+            ],
+        )
+        project_plan_id = cr.fetchone()[0]
+
     cr.execute(r"""
         DELETE FROM ir_config_parameter
               WHERE key LIKE 'default\_analytic\_plan\_id\_%%';
