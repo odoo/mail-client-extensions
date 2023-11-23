@@ -37,7 +37,7 @@ def migrate(cr, version):
                 sheet_id,
                 employee_id,
                 dm.company_id,
-                {res_model},
+                %s,
                 pdf_filename,
                 pdf_to_generate,
                 pdf_file
@@ -45,7 +45,8 @@ def migrate(cr, version):
             FROM {declaration_line_model} dlm
             JOIN {declaration_model} dm
             ON dlm.sheet_id = dm.id
-            """
+            """,
+            [res_model],
         )
 
     cr.execute("DROP TABLE l10n_be_individual_account_line")
