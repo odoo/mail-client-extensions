@@ -46,3 +46,5 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_fr_fec", "l10n_fr")
 
     util.merge_module(cr, "account_payment_term", "account")
+
+    util.merge_module(cr, "account_reports_tax_reminder", "account_reports")
