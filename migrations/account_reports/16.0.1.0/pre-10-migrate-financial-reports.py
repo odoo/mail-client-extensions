@@ -291,7 +291,7 @@ def migrate(cr, version):
                -- formula
                   CASE
                        WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN COALESCE(arl.v15_domain, '[]')
-                       ELSE arl.v15_formulas
+                       ELSE COALESCE(arl.v15_formulas, 'sum_children')
                   END,
 
                -- subformula
@@ -301,7 +301,6 @@ def migrate(cr, version):
                        ELSE 'cross_report'
                   END
           FROM account_report_line arl
-         WHERE arl.v15_formulas IS NOT NULL
         """
     )
 

@@ -29,7 +29,7 @@ def migrate(cr, version):
                 REGEXP_SPLIT_TO_TABLE(
                     REGEXP_REPLACE(
                         are.formula,
-                        '(?:^-|\.balance|\(|\)|{DOMAIN_EXPR_REGEX})',
+                        '(?:^-|\.balance|\(|\)|{DOMAIN_EXPR_REGEX}|sum_children)',
                         ' ',
                         'g'
                     ),
