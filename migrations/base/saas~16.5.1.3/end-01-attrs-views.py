@@ -120,12 +120,36 @@ def is_simple_pred(expr):
 
 def fix_elem(cr, model, elem, comb_arch):
     telem, inner_view_type, field_path = target_elem_and_view_type(elem, comb_arch)
-    if elem.get("position") not in ("replace", "attributes"):
+
+    if elem.get("position") != "replace":
         telem = None  # do not take default attributes from the target element
 
-    attrs_mod = elem.attrib.pop("attrs", telem.get("attrs", "{}") if telem is not None else "{}")
-    ast_attrs = ast.parse(attrs_mod, mode="eval").body
-    attrs = {k.value: v for k, v in zip(ast_attrs.keys, ast_attrs.values)}
+    # Build the dict of attrs attributes:
+    # 1. Take the values from the target element if any
+    # 2. If current element has attrs, override the values.
+    #    All keys in target not in current element are overriden as empty value.
+    attrs = {}
+    if telem is not None and "attrs" in telem.attrib:
+        ast_attrs = ast.parse(telem.get("attrs"), mode="eval").body
+        attrs = {k.value: v for k, v in zip(ast_attrs.keys, ast_attrs.values)}
+
+    if "attrs" in elem.attrib:
+        attrs_val = elem.get("attrs")
+        ast_attrs = ast.parse(attrs_val, mode="eval").body
+        if isinstance(ast_attrs, ast.Dict):
+            elem_attrs = {k.value: v for k, v in zip(ast_attrs.keys, ast_attrs.values)}
+            attrs.update(elem_attrs)
+            for k in attrs:
+                if k not in elem_attrs:
+                    attrs[k] = ast.Constant("")  # clear previous values
+        else:
+            _logger.log(
+                util.NEARLYWARN if util.on_CI() else logging.ERROR,
+                "Removing invalid `attrs` value %r from\n%s",
+                attrs_val,
+                etree.tostring(elem).decode(),
+            )
+        elem.attrib.pop("attrs")
 
     for mod in MODS:
         if mod not in elem.attrib and mod not in attrs:
@@ -134,7 +158,10 @@ def fix_elem(cr, model, elem, comb_arch):
             # in kanban view, field outside <templates> should not have modifiers
             elem.attrib.pop(mod, None)
             continue
-        orig_mod = mod2bool_str(elem.get(mod, telem.get(mod, "") if telem is not None else "").strip())
+        # if mod is not in the blend of attrs from current element and target, then we don't
+        # need to take the default value from target element since we can assume an override
+        default_val = telem.get(mod, "") if telem is not None and mod in attrs else ""
+        orig_mod = mod2bool_str(elem.get(mod, default_val).strip())
         attr_mod = (
             mod2bool_str(_clean_bool(convert_attrs_val(cr, model, field_path, attrs.get(mod)))) if mod in attrs else ""
         )
@@ -168,7 +195,8 @@ def fix_elem(cr, model, elem, comb_arch):
         else:
             final_mod = orig_mod or attr_mod
 
-        if final_mod:
+        # set attribute if anything to set, or force empty if mod was present
+        if final_mod or mod in attrs:
             elem.set(mod, final_mod)
 
     # special case to merge into invisible
@@ -242,6 +270,8 @@ def fix_attrs(cr, model, arch, comb_arch):
             if name in ["attrs", "states", *MODS]:
                 attrs_data[name] = elem.get("value", elem.text or "").strip()
                 parent.remove(elem)
+            if name == "attrs" and not attrs_data["attrs"]:
+                attrs_data["attrs"] = "{}"
         # keep track of extra keys in `attrs` if any
         extra_mods = [
             k.value for k in ast.parse(attrs_data.get("attrs", "{}"), mode="eval").body.keys if k.value not in MODS

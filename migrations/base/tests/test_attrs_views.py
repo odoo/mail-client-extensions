@@ -4,6 +4,134 @@ from psycopg2.extras import Json as PsycopgJson
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
+def apply_etree_space(arch):
+    return etree.tostring(etree.fromstring(arch), method="c14n").decode()
+
+
+@change_version("saas~16.5")
+class TestAttrsViewsResetAttrs(UpgradeCase):
+    def prepare(self):
+        parent = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_reset_attrs_parent",
+                "model": "res.groups",
+                "type": "form",
+                "arch": """<form>
+                        <field name="name" attrs="{'readonly': [('name', '=', 'K')]}" required="1"/>
+                    </form>""",
+            },
+        )
+        child1 = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_reset_attrs_child1",
+                "model": "res.groups",
+                "type": "form",
+                "inherit_id": parent.id,
+                "mode": "extension",
+                "arch": """<data>
+                    <field name="name" position="attributes">
+                        <attribute name="attrs">{'invisible': [('name', '=', 'P')]}</attribute>
+                    </field>
+                    </data>""",
+            },
+        )
+        child2 = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_reset_attrs_child1",
+                "model": "res.groups",
+                "type": "form",
+                "inherit_id": parent.id,
+                "mode": "primary",
+                "arch": """<data>
+                    <field name="name" position="attributes">
+                        <attribute name="attrs"></attribute>
+                    </field>
+                    </data>""",
+            },
+        )
+
+        parent2 = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_reset_attrs_parent2",
+                "model": "res.partner",
+                "type": "form",
+                "mode": "primary",
+                "arch": """<form>
+                    <field name="name" attrs="{'invisible': [('id', '=', 1)]}"/>
+                </form>""",
+            },
+        )
+        child2_1 = self.env["ir.ui.view"].create(
+            {
+                "name": "ttest_attrs_views_reset_attrs_child2_1",
+                "model": "res.partner",
+                "type": "form",
+                "mode": "extension",
+                "inherit_id": parent2.id,
+                "arch": """<data>
+                    <field name="name" position="replace" attrs="{'readonly': [('id', '=', 2)]}"/>
+                </data>""",
+            },
+        )
+
+        return {
+            "parent_id": parent.id,
+            "child1_id": child1.id,
+            "child2_id": child2.id,
+            "parent2_id": parent2.id,
+            "child2_1_id": child2_1.id,
+        }
+
+    def check(self, info):
+        parent = self.env["ir.ui.view"].browse(info["parent_id"])
+        self.assertEqual(
+            apply_etree_space(parent.arch_db),
+            apply_etree_space(
+                """<form><field name="name" readonly="name == 'K'" required="1"/>
+                    </form>"""
+            ),
+        )
+        self.maxDiff = None
+        child1 = self.env["ir.ui.view"].browse(info["child1_id"])
+        self.assertEqual(
+            apply_etree_space(child1.arch_db),
+            apply_etree_space(
+                """<data><field name="name" position="attributes">
+                        <attribute name="invisible">name == 'P'</attribute><attribute name="readonly"></attribute></field>
+                    </data>"""
+            ),
+        )
+        child2 = self.env["ir.ui.view"].browse(info["child2_id"])
+        self.assertEqual(
+            apply_etree_space(child2.arch_db),
+            apply_etree_space(
+                """<data><field name="name" position="attributes">
+                        <attribute name="invisible"></attribute></field>
+                    </data>"""
+            ),
+        )
+
+        parent2 = self.env["ir.ui.view"].browse(info["parent2_id"])
+        self.assertEqual(
+            apply_etree_space(parent2.arch_db),
+            apply_etree_space(
+                """<form><field name="name" invisible="id == 1"/>
+                </form>"""
+            ),
+        )
+        self.assertTrue(parent2.active)
+
+        child2_1 = self.env["ir.ui.view"].browse(info["child2_1_id"])
+        self.assertEqual(
+            apply_etree_space(child2_1.arch_db),
+            apply_etree_space(
+                """<data><field name="name" position="replace" invisible="" readonly="id == 2"/>
+                </data>"""
+            ),
+        )
+        self.assertTrue(child2_1.active)
+
+
 @change_version("saas~16.5")
 class TestAttrsViewsInherited(UpgradeCase):
     def prepare(self):
@@ -560,12 +688,34 @@ class TestAttrsViewsToExpression(UpgradeCase):
                 WHERE id=%(id)s
             """,
             {
-                "arch_db": PsycopgJson({"en_US": wrong}) if is_json_translated_field else inherit_1_fail_template,
+                "arch_db": PsycopgJson({"en_US": wrong}),
                 "active": True,
                 "id": view_5_error.id,
             },
         )
 
+        # test upgrade of invalid attrs
+        view_6_error = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_6_error",
+                "model": "res.partner",
+                "type": "form",
+                "mode": "primary",
+                "arch": "<form></form>",
+            },
+        )
+        wrong = """<form><field name="title" attrs="name"/></form>"""
+        self.env.cr.execute(
+            """
+                UPDATE ir_ui_view
+                SET arch_db=%(arch_db)s
+                WHERE id=%(id)s
+            """,
+            {
+                "arch_db": PsycopgJson({"en_US": wrong}),
+                "id": view_6_error.id,
+            },
+        )
         return {
             "view_1_id": view_1.id,
             "inherit_1_1_id": inherit_1_1.id,
@@ -577,12 +727,10 @@ class TestAttrsViewsToExpression(UpgradeCase):
             "view_4_primary_1_id": view_4_primary_1.id,
             "view_5_deac_id": view_5_deac.id,
             "view_5_error_id": view_5_error.id,
+            "view_6_error_id": view_6_error.id,
         }
 
     def check(self, data):
-        def apply_etree_space(arch):
-            return etree.tostring(etree.fromstring(arch), method="c14n").decode()
-
         view_1 = self.env["ir.ui.view"].browse(data["view_1_id"])
         self.assertEqual(
             apply_etree_space(view_1.arch_db),
@@ -876,3 +1024,11 @@ class TestAttrsViewsToExpression(UpgradeCase):
             "Error view unfixed",
         )
         self.assertFalse(view_5_error.active)
+
+        view_6_error = self.env["ir.ui.view"].browse(data["view_6_error_id"])
+        self.assertEqual(
+            apply_etree_space(view_6_error.arch_db),
+            apply_etree_space("""<form><field name="title"/></form>"""),
+            "Error removing invalid `attrs`",
+        )
+        self.assertTrue(view_6_error.active)
