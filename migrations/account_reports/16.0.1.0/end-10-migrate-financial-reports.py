@@ -173,7 +173,7 @@ def migrate(cr, version):
           JOIN account_report_line arl
             ON arl.id = are.report_line_id
          WHERE engine = 'aggregation'
-           AND formula ~ '(?<=\s|^){DOMAIN_EXPR_REGEX}\.balance(?=\s|$)'
+           AND formula ~ '(?<=\W|^){DOMAIN_EXPR_REGEX}\.balance(?=\W|$)'
         """
     )
 
@@ -185,7 +185,7 @@ def migrate(cr, version):
            SET formula = REGEXP_REPLACE(are.formula, '{DOMAIN_EXPR_REGEX}\.balance', arl.code || '.agg')
           FROM account_report_line arl
          WHERE are.engine = 'aggregation'
-           AND are.formula ~ '(?<=\s|^){DOMAIN_EXPR_REGEX}\.balance(?=\s|$)'
+           AND are.formula ~ '(?<=\W|^){DOMAIN_EXPR_REGEX}\.balance(?=\W|$)'
            AND are.report_line_id = arl.id
         """
     )
