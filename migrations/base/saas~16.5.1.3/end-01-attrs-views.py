@@ -215,20 +215,21 @@ def fix_elem(cr, model, elem, comb_arch):
     if attrs:
         extra = [key for key in attrs if key not in elem.attrib]
         _logger.log(
-            util.NEARLYWARN if util.on_CI() else logging.ERROR,
-            "Extra values %s in `attr` attribute will be inlined for element\n%s",
+            util.NEARLYWARN if util.on_CI() else logging.WARN,
+            "Extra values %s in `attrs` attribute will be inlined for element\n%s",
             extra,
             etree.tostring(elem).decode(),
         )
         extra_invalid = [key for key in attrs if key in elem.attrib]
-        _logger.log(
-            util.NEARLYWARN if util.on_CI() else logging.ERROR,
-            "Attributes %s in `attr` cannot be inlined because the inline attributes already exists",
-            extra_invalid,
-        )
+        if extra_invalid:
+            _logger.log(
+                util.NEARLYWARN if util.on_CI() else logging.ERROR,
+                "Attributes %s in `attrs` cannot be inlined because the inline attributes already exists",
+                extra_invalid,
+            )
         for key in extra:
-            value = attrs[key]
-            _logger.info("Inlined %r=%r", key, value)
+            value = ast.unparse(attrs[key])
+            _logger.info("Inlined %s=%r", key, value)
             elem.set(key, value)
 
 

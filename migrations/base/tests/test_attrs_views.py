@@ -9,6 +9,32 @@ def apply_etree_space(arch):
 
 
 @change_version("saas~16.5")
+class TestAttrsViewsExtraAttrs(UpgradeCase):
+    def prepare(self):
+        view = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_extra_attrs",
+                "model": "res.groups",
+                "type": "form",
+                "arch": """<form>
+                        <field name="name" attrs="{'plus': [('name', '=', 'K')]}"/>
+                    </form>""",
+            },
+        )
+        return view.id
+
+    def check(self, view_id):
+        view = self.env["ir.ui.view"].browse(view_id)
+        self.assertEqual(
+            apply_etree_space(view.arch_db),
+            apply_etree_space(
+                """<form><field name="name" plus="[('name', '=', 'K')]"/>
+                    </form>"""
+            ),
+        )
+
+
+@change_version("saas~16.5")
 class TestAttrsViewsResetAttrs(UpgradeCase):
     def prepare(self):
         parent = self.env["ir.ui.view"].create(
