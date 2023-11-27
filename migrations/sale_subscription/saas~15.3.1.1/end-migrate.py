@@ -144,4 +144,33 @@ def migrate(cr, version):
     so_ids = [so_id[0] for so_id in cr.fetchall()]
     util.recompute_fields(cr, "sale.order", ["amount_total"], ids=so_ids)
     util.remove_column(cr, "sale_order", "old_subscription_id")
-
+    query = r"""
+        WITH map AS (
+            SELECT id,
+                   substring(
+                    body,
+                    ' data-oe-model="sale.subscription" data-oe-id="([0-9]+)"'
+                   )::integer AS sub_id
+              FROM mail_message m
+             WHERE body LIKE '%data-oe-model="sale.subscription"%'
+               AND {parallel_filter}
+        )
+        UPDATE mail_message m
+           SET body = regexp_replace(
+                          replace(
+                              body,
+                              -- update data info in attributes
+                              ' data-oe-model="sale.subscription" data-oe-id="' || map.sub_id || '"',
+                              ' data-oe-model="sale.order" data-oe-id="' || ss.new_sale_order_id || '"'
+                          ),
+                          -- update url in links
+                          '%3Fmodel%3Dsale\.subscription%26res_id%3D' || map.sub_id || '(?!\d)',
+                          '%3Fmodel%3Dsale.order%26res_id%3D' || ss.new_sale_order_id,
+                          'g'
+                      )
+          FROM map
+          JOIN sale_subscription ss
+            ON ss.id = map.sub_id
+         WHERE m.id = map.id
+        """
+    util.explode_execute(cr, query, table="mail_message", alias="m")
