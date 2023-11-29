@@ -214,6 +214,21 @@ def save_arch(view, arch):
     return old_arch
 
 
+def transform_replace(elem, name):
+    # Transform xpath elem with position replace to after
+    invisible = builder.E.attribute("1", name="invisible")
+    full_element = builder.E.xpath(invisible, expr="//field[@name='{}']".format(name), position="attributes")
+    orig_pp_elem = pp_xml_elem(elem)
+    # we hide the replaced field, keeping any extra children added here
+    if len(elem) > 0:
+        elem.attrib["position"] = "after"
+        elem.addprevious(full_element)
+        _logger.info("Replaced %r by %r and %r", orig_pp_elem, pp_xml_elem(elem), pp_xml_elem(full_element))
+    else:
+        _logger.info("Replaced %r by %r", orig_pp_elem, pp_xml_elem(full_element))
+        elem.getparent().replace(elem, full_element)
+
+
 def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     """
     Try to fix a failing view on xpath element not found following some heuristics (see the code for details).
@@ -353,6 +368,16 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
                 expr = parent.attrib["expr"] if parent.tag == "xpath" else "//field[@name=%r]" % parent.attrib["name"]
                 full_element = builder.E.xpath(invisible_field, expr=expr, position="before")
                 parent.addprevious(full_element)
+            elems = arch.xpath(
+                """//xpath[contains(@expr, "/field[@name='{0}']")
+                and substring(@expr, string-length(@expr) - string-length("/field[@name='{0}']") + 1) = "/field[@name='{0}']"
+                and @position='replace']""".format(
+                    used_field
+                )
+            )
+            if elems:
+                elem = elems[0]
+                transform_replace(elem, used_field)
             save_arch(view, arch)
             new_e = check()
             if new_e and re.search("Field '{}' used in ".format(used_field), new_e):
@@ -425,17 +450,7 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
         )
         if elems:
             elem = elems[0]
-            invisible = builder.E.attribute("1", name="invisible")
-            full_element = builder.E.xpath(invisible, expr="//field[@name='{}']".format(name), position="attributes")
-            orig_pp_elem = pp_xml_elem(elem)
-            # we hide the replaced field, keeping any extra children added here
-            if len(elem) > 0:
-                elem.attrib["position"] = "after"
-                elem.addprevious(full_element)
-                _logger.info("Replaced %r by %r and %r", orig_pp_elem, pp_xml_elem(elem), pp_xml_elem(full_element))
-            else:
-                _logger.info("Replaced %r by %r", orig_pp_elem, pp_xml_elem(full_element))
-                arch.replace(elem, full_element)
+            transform_replace(elem, name)
             save_arch(view, arch)
             return heuristic_fixes(cr, view, check, check(), field_changes)
         return False

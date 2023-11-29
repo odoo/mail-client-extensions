@@ -463,6 +463,56 @@ class TestFixViews(UpgradeCase):
                     ),
                 },
             )
+            base_id6 = create_view(
+                {
+                    "name": "test_fix_views_standard_base_view_remove_field_group_error",
+                    "arch_db": ts(
+                        E.form(
+                            E.field(name="name", attrs="{'invisible': [['comment','=',1]]}"),
+                            E.field(name="comment"),
+                            E.field(name="comment", groups="base.group_system"),
+                        ),
+                    ),
+                },
+                standard_view=True,
+            )
+            create_view(
+                {
+                    "name": "test_fix_views_standard_base_remove_field_group_error_ext1",
+                    "mode": "extension",
+                    "inherit_id": base_id6,
+                    "arch_db": ts(
+                        E.data(
+                            E.xpath(expr="//field[@name='comment']", position="replace"),
+                        ),
+                    ),
+                },
+            )
+            base_id7 = create_view(
+                {
+                    "name": "test_fix_views_standard_base_view_remove_field_group_error_with_child",
+                    "arch_db": ts(
+                        E.form(
+                            E.field(name="name", attrs="{'invisible': [['comment','=',1]]}"),
+                            E.field(name="comment"),
+                            E.field(name="comment", groups="base.group_system"),
+                        ),
+                    ),
+                },
+                standard_view=True,
+            )
+            create_view(
+                {
+                    "name": "test_fix_views_standard_base_remove_field_group_error_with_child_ext1",
+                    "mode": "extension",
+                    "inherit_id": base_id7,
+                    "arch_db": ts(
+                        E.data(
+                            E.xpath(E.div("Child"), expr="//field[@name='comment']", position="replace"),
+                        ),
+                    ),
+                },
+            )
         return [self._get_base_version(), info]
 
     def check(self, data):
