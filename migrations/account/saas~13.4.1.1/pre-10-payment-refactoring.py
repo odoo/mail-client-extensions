@@ -569,7 +569,8 @@ def migrate(cr, version):
 
     # Update existing account.move.
 
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE account_move move
         SET partner_id = pay_backup.partner_id,
@@ -583,7 +584,9 @@ def migrate(cr, version):
         JOIN account_journal journal ON journal.id = pay_backup.journal_id
         JOIN res_company comp ON comp.id = journal.company_id
         WHERE move.id = pay.move_id
-    """
+    """,
+        table="account_move",
+        alias="move",
     )
 
     # Fix newly added computed field: destination_account_id.
@@ -634,46 +637,57 @@ def migrate(cr, version):
         ("customer", "property_account_receivable_id"),
         ("supplier", "property_account_payable_id"),
     ]:
-        cr.execute(
-            """
-            WITH default_properties AS (
+        util.explode_execute(
+            cr,
+            cr.mogrify(
+                """
+            WITH _partners AS (
+               SELECT pay.partner_id as id
+                 FROM account_payment_pre_backup pay
+                WHERE {parallel_filter}
+             GROUP BY pay.partner_id
+            ),
+            default_properties AS (
                 SELECT
-                    res_partner.id AS partner_id,
+                    partner.id AS partner_id,
                     default_prop.company_id,
                     SPLIT_PART(default_prop.value_reference, ',', 2)::int AS account_id
-                FROM res_partner, ir_model_fields field
+                FROM _partners partner
+                JOIN ir_model_fields field ON field.name = %(property_name)s AND field.model = 'res.partner'
                 LEFT JOIN ir_property default_prop ON default_prop.fields_id = field.id
-                WHERE field.name = %(property_name)s
-                AND field.model = 'res.partner'
-                AND SPLIT_PART(default_prop.value_reference, ',', 1) = 'account.account'
+                WHERE SPLIT_PART(default_prop.value_reference, ',', 1) = 'account.account'
                 AND default_prop.res_id IS NULL
             ),
             properties AS (
                 SELECT
-                    res_partner.id AS partner_id,
+                    partner.id AS partner_id,
                     prop.company_id,
                     SPLIT_PART(prop.value_reference, ',', 2)::int AS account_id
-                FROM res_partner, ir_model_fields field
+                FROM _partners partner
+                JOIN ir_model_fields field ON field.name = %(property_name)s AND field.model = 'res.partner'
                 LEFT JOIN ir_property prop ON prop.fields_id = field.id
-                WHERE field.name = %(property_name)s
-                AND field.model = 'res.partner'
-                AND SPLIT_PART(prop.value_reference, ',', 1) = 'account.account'
-                AND prop.res_id = 'res.partner,' || res_partner.id
+                WHERE  SPLIT_PART(prop.value_reference, ',', 1) = 'account.account'
+                AND prop.res_id = 'res.partner,' || partner.id
             )
+
 
             UPDATE account_payment pay
             SET destination_account_id = COALESCE(prop.account_id, default_prop.account_id)
             FROM account_payment_pre_backup pay_backup
             JOIN account_journal journal ON journal.id = pay_backup.journal_id
             JOIN res_partner partner ON partner.id = pay_backup.partner_id
-            LEFT JOIN default_properties default_prop ON default_prop.partner_id = partner.commercial_partner_id
-            LEFT JOIN properties prop ON prop.partner_id = partner.commercial_partner_id AND prop.company_id = pay_backup.company_id
+            LEFT JOIN default_properties default_prop ON default_prop.partner_id = partner.id
+            LEFT JOIN properties prop ON prop.partner_id = partner.id AND prop.company_id = pay_backup.company_id
             WHERE pay_backup.id = pay.id
             AND pay.destination_account_id IS NULL
             AND NOT pay.is_internal_transfer
             AND pay.partner_type = %(partner_type)s
+            AND {parallel_filter}
         """,
-            {"property_name": property_name, "partner_type": partner_type},
+                {"property_name": property_name, "partner_type": partner_type},
+            ).decode(),
+            alias="pay",
+            table="account_payment",
         )
 
     # Set default accounts to 'destination_account_id'.
