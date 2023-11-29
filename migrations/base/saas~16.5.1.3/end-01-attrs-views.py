@@ -492,7 +492,18 @@ def get_ordered_views(cr):
     #         |   / \     2. Add extensions [C, D, E, F, G, J], note I and H are out,
     #         D  G   J    3. The apply order is then [R, E, F, G, J, B, C, D, A]
     vinfo = collections.namedtuple("vinfo", "mode priority id inherit_id active")
-    cr.execute("SELECT mode, priority, id, inherit_id, active FROM ir_ui_view")
+    cr.execute(
+        """
+        SELECT mode,
+               priority,
+               id,
+               inherit_id,
+               active
+          FROM ir_ui_view
+         WHERE type != 'qweb'
+      ORDER BY id
+        """
+    )
     data = {r.id: r for r in itertools.starmap(vinfo, cr.fetchall())}
     children = collections.defaultdict(list)
     for v in data.values():
@@ -529,7 +540,8 @@ def migrate(cr, version):
     info = get_ordered_views(cr)
     # We disable all views to ensure they do not contribute to the combined arch
     # they will be re-enabled according to the order computed before
-    cr.execute("UPDATE ir_ui_view SET active = False")
+    for ids in util.chunks((vid for (vid, _) in info), 1000, tuple):
+        cr.execute("UPDATE ir_ui_view SET active = False WHERE id IN %s", [ids])
     standard_modules = set(get_modules())
 
     def fix_archs(info, lang="en_US"):
@@ -554,7 +566,9 @@ def migrate(cr, version):
             v.flush_recordset()
             md = v.model_data_id
             arch = etree.fromstring(v.arch_db)
-            if not md or md.module not in standard_modules or lang != "en_US":
+            if not v.model:
+                _logger.warning("Skipping adapt of attributes for model-less view (id=%s)", v.id)
+            elif not md or md.module not in standard_modules or lang != "en_US":
                 # fix only custom views, or translations
                 fix_attrs(cr, v.model, arch, comb_arch)
                 new_archs[v.id] = (active, arch)
@@ -589,7 +603,9 @@ def migrate(cr, version):
                  FROM jsonb_each_text(arch_db) arch
                ) AS arch(id, lang, value)
             ON v.id = arch.id
-         WHERE lang != 'en_US'
+         WHERE arch.lang != 'en_US'
+           AND v.type != 'qweb'
+         ORDER BY v.id
         """
     )
     to_process = collections.defaultdict(set)
