@@ -1,14 +1,17 @@
-# -*- coding: utf-8 -*-
 import logging
 import os
 from ast import literal_eval
 
 from odoo.upgrade import util
 
+ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS = util.str2bool(
+    os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS"), ""
+)
+
 
 def migrate(cr, version):
-    if (not os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS") and not util.on_CI()) or not util.column_exists(
-        cr, "account_report_line", "v15_line_id"
+    if not (ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS or util.on_CI()) or not util.column_exists(
+        cr, "account_report_line", "v15_fin_line_id"
     ):
         return
 
@@ -39,7 +42,7 @@ def migrate(cr, version):
               FROM account_report_expression are
               JOIN account_report_line arl
                 ON arl.id = are.report_line_id
-               AND arl.v15_line_id IS NOT NULL
+               AND arl.v15_fin_line_id IS NOT NULL
              WHERE are.engine = 'aggregation'
         ),
         codes_to_migrate_by_id AS (
@@ -153,7 +156,7 @@ def migrate(cr, version):
             migrated_codes.add(code)
             codes_to_migrate.extend(r[0] for r in cr.fetchall() if r[0] not in migrated_codes)
 
-    util.remove_column(cr, "account_report_line", "v15_line_id")
+    util.remove_column(cr, "account_report_line", "v15_fin_line_id")
 
     cr.execute("DROP TABLE ___upgrade_afhrl")
 

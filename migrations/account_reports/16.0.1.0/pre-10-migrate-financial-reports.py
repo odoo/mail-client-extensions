@@ -1,28 +1,32 @@
-# -*- coding: utf-8 -*-
 import os
 
 from odoo.upgrade import util
+
+ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS = util.str2bool(
+    os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS"), ""
+)
 
 
 def migrate(cr, version):
     # get ids of custom financial reports
     cr.execute(
-        """
+        r"""
         SELECT afhr.id, afhr.name
           FROM account_financial_html_report afhr
      LEFT JOIN ir_model_data imd
             ON imd.res_id = afhr.id
            AND imd.model = 'account.financial.html.report'
+           AND imd.module NOT LIKE '\_\_%'  -- __{import,export}__
          WHERE imd IS NULL
         """
     )
 
-    if not cr.rowcount:
-        return
-
     custom_fin_reports = cr.fetchall()
 
-    if not os.getenv("ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS") and not util.on_CI():
+    if not custom_fin_reports:
+        return
+
+    if not (ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS or util.on_CI()):
         util.add_to_migration_reports(
             """
                 <details>
@@ -132,7 +136,7 @@ def migrate(cr, version):
     )
 
     # create temporary column to have mapping between the old and the new report line ids (for parent_id)
-    util.create_column(cr, "account_report_line", "v15_line_id", "integer")
+    util.create_column(cr, "account_report_line", "v15_fin_line_id", "integer")
 
     # create temporary columns for fields that are to be migrated to account_report_expression
     util.create_column(cr, "account_report_line", "v15_formulas", "varchar")
@@ -161,7 +165,7 @@ def migrate(cr, version):
             report_id, name,
             hierarchy_level, sequence, action_id, code, print_on_new_page, hide_if_zero,
             groupby, foldable, v15_domain,
-            v15_green_on_positive, v15_special_date_changer, v15_line_id,
+            v15_green_on_positive, v15_special_date_changer, v15_fin_line_id,
             v15_formulas,
             v15_figure_type
         )
@@ -194,16 +198,15 @@ def migrate(cr, version):
                        afhrl.id AS line_id
                   FROM account_financial_html_report_line afhrl
                   JOIN account_report_line arl
-                    ON arl.v15_line_id = afhrl.parent_id
-                   AND arl.v15_line_id IS NOT NULL
-                   AND NOT EXISTS (SELECT 1 FROM account_report_line WHERE v15_line_id = afhrl.id)
+                    ON arl.v15_fin_line_id = afhrl.parent_id
+                   AND NOT EXISTS (SELECT 1 FROM account_report_line WHERE v15_fin_line_id = afhrl.id)
             )
             INSERT INTO account_report_line (
                 create_uid, write_uid, create_date, write_date,
                 report_id, name,
                 parent_id, hierarchy_level, sequence, action_id, code, print_on_new_page, hide_if_zero,
                 groupby, foldable, v15_domain,
-                v15_green_on_positive, v15_special_date_changer, v15_line_id,
+                v15_green_on_positive, v15_special_date_changer, v15_fin_line_id,
                 v15_formulas,
                 v15_figure_type
             )
@@ -225,6 +228,9 @@ def migrate(cr, version):
             """
         )
 
+    # v15_fin_report_id no longer needed
+    util.remove_column(cr, "account_report", "v15_fin_report_id")
+
     # restore lines order (`sequence` field)
     # in v15 a line's `sequence` would only compare to its siblings to establish the order among themselves
     # in v16 lines are sorted purely by the (sequence, id). Meaning that if you have the following 3 lines:
@@ -237,20 +243,21 @@ def migrate(cr, version):
     #       * A1
     # which was never the case in v15 (parent-child relationship was alwasy respected no matter the value of `sequence`)
     # The following query translates v15 conventions into v16 rules through the use of `sort` a column made up of each ancestors'
-    # sequence and their old `v15_line_id` (used as a tiebreaker for siblings with same `sequence`).
+    # sequence and their old `v15_fin_line_id` (used as a tiebreaker for siblings with same `sequence`).
     cr.execute(
         """
         WITH RECURSIVE _lines AS (
             SELECT id,
-                   LPAD(sequence::text, 5, '0') || '.' || LPAD(v15_line_id::text, 5, '0') AS sort,
+                   LPAD(sequence::text, 5, '0') || '.' || LPAD(v15_fin_line_id::text, 5, '0') AS sort,
                    report_id
               FROM account_report_line
              WHERE parent_id IS NULL
+               AND v15_fin_line_id IS NOT NULL
 
              UNION ALL
 
             SELECT arl.id,
-                   l.sort || '.' || LPAD(arl.sequence::text, 5, '0') || '.' || LPAD(arl.v15_line_id::text, 5, '0') AS sort,
+                   l.sort || '.' || LPAD(arl.sequence::text, 5, '0') || '.' || LPAD(arl.v15_fin_line_id::text, 5, '0') AS sort,
                    arl.report_id
               FROM account_report_line arl
               JOIN _lines l
@@ -267,9 +274,6 @@ def migrate(cr, version):
          WHERE arl.id = lo.id
         """
     )
-
-    # v15_fin_report_id no longer needed
-    util.remove_column(cr, "account_report", "v15_fin_report_id")
 
     # populate account_report_expression with formulas and other fields from report lines
     cr.execute(
@@ -310,7 +314,7 @@ def migrate(cr, version):
     )
 
     # account.report.line v15 temporary columns are no longer needed
-    # note that `v15_line_id` and `v15_domain` columns are deliberately kept, because used and removed in an end- script
+    # note that `v15_fin_line_id` and `v15_domain` columns are deliberately not removed, to be used and removed in a later script
     util.remove_column(cr, "account_report_line", "v15_formulas")
     util.remove_column(cr, "account_report_line", "v15_figure_type")
     util.remove_column(cr, "account_report_line", "v15_green_on_positive")
