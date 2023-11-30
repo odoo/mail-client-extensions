@@ -233,6 +233,14 @@ def fix_elem(cr, model, elem, comb_arch):
             elem.set(key, value)
 
 
+def ast_parse(val):
+    try:
+        return ast.parse(val.strip(), mode="eval").body
+    except SyntaxError:
+        _logger.exception("Error for invalid code:\n%s", val)
+        raise
+
+
 def fix_attrs(cr, model, arch, comb_arch):
     for elem in arch.xpath(
         "//attribute[@name='invisible' or @name='required' or @name='readonly' or @name='column_invisible']"
@@ -250,10 +258,10 @@ def fix_attrs(cr, model, arch, comb_arch):
     for elem in arch.xpath("//tree/header/*[contains(@context, 'active_id')]"):
         elem.set(
             "context",
-            Ast2StrVisitor(LIST_HEADER_CONTEXT_REPLACE).visit(ast.parse(elem.get("context"), mode="eval").body),
+            Ast2StrVisitor(LIST_HEADER_CONTEXT_REPLACE).visit(ast_parse(elem.get("context"))),
         )
     for elem in arch.xpath("//*[contains(@context, 'active_id')]"):
-        elem.set("context", Ast2StrVisitor().visit(ast.parse(elem.get("context"), mode="eval").body))
+        elem.set("context", Ast2StrVisitor().visit(ast_parse(elem.get("context"))))
 
     # replace <attribute name=attrs> elements with individual <attribute name=mod>
     # use a fake field element to reuse the logic for Python expression conversion
@@ -274,9 +282,7 @@ def fix_attrs(cr, model, arch, comb_arch):
             if name == "attrs" and not attrs_data["attrs"]:
                 attrs_data["attrs"] = "{}"
         # keep track of extra keys in `attrs` if any
-        extra_mods = [
-            k.value for k in ast.parse(attrs_data.get("attrs", "{}"), mode="eval").body.keys if k.value not in MODS
-        ]
+        extra_mods = [k.value for k in ast_parse(attrs_data.get("attrs", "{}")).keys if k.value not in MODS]
         fake_elem = etree.Element(parent.tag, {**parent.attrib, **attrs_data}, position="replace")
         fix_elem(cr, model, fake_elem, comb_arch)
         for mod in MODS + extra_mods:
@@ -344,7 +350,7 @@ def convert_attrs_val(cr, model, field_path, val):
         val = str(val.value).strip()  # we process the right side as a string
         # a string should be interpreted as a field name unless it is a domain!!
         if val and val[0] == "[" and val[-1] == "]":
-            val = ast.parse(val, mode="eval").body
+            val = ast_parse(val)
             return convert_attrs_val(cr, model, field_path, val)
         return mod2bool_str(val)
 
