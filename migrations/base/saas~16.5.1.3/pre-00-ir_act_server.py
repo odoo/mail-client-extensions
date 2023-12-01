@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from contextlib import suppress
+
 from psycopg2.extras import execute_values
 
 from odoo.upgrade import util
@@ -142,10 +144,10 @@ def compile_code_snippet(action, all_actions):
             return a["value"]
         elif a["evaluation_type"] == "reference":
             return f"env['{a['update_field_relation']}'].browse({int(a['value'])})"
-        else:
-            if a["update_field_type"] in ("many2one", "integer"):
+        elif a["update_field_type"] in ("many2one", "integer"):
+            with suppress(ValueError):
                 return int(a["value"])
-            return f"'{a['value']}'"
+        return f"'{a['value']}'"
 
     # get same actions
     same_actions = [a for a in all_actions if a["action_server_id"] == action["action_server_id"]]
@@ -173,3 +175,4 @@ def compile_code_snippet(action, all_actions):
 new_record = env["{action['crud_model_name']}"].create({values_snippet})
 {link_snippet}
 """
+    return None
