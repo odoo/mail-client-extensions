@@ -17,7 +17,7 @@ def migrate(cr, version):
     cr.execute(
         """
             DELETE FROM stock_warehouse_orderpoint WHERE id IN (
-                  SELECT unnest((array_agg(id ORDER BY id))[2:])
+                  SELECT unnest((array_agg(id ORDER BY NOT active, id))[2:])
                     FROM stock_warehouse_orderpoint
                 GROUP BY product_id, location_id, company_id
                   HAVING count(*) > 1
