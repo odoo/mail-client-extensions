@@ -377,7 +377,12 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
                 field_name,
                 pp_xml_elem(field_elem),
             )
-            if parent.tag == "xpath" and len(parent) == 0 and not parent.text.strip():
+            if (
+                parent.tag == "xpath"
+                and len(parent) == 0
+                and not parent.text.strip()
+                and parent.getparent() is not None
+            ):
                 # remove the xpath elem if empty
                 parent.getparent().remove(parent)
                 _logger.info("Removed empty xpath element %r", pp_xml_elem(parent))
