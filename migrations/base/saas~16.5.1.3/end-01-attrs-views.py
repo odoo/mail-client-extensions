@@ -584,6 +584,7 @@ def migrate(cr, version):
         with util.edit_view(cr, view_id=vid, active=active) as arch:
             arch.clear()
             arch.attrib.update(new_arch.attrib)
+            arch.text = new_arch.text
             arch.extend(new_arch)
             check_arch(vid, arch, "en_US", error=True)
 

@@ -16,7 +16,7 @@ class TestAttrsViewsExtraAttrs(UpgradeCase):
                 "name": "test_attrs_views_extra_attrs",
                 "model": "res.groups",
                 "type": "form",
-                "arch": """<form>
+                "arch": """<form>Keep text
                         <field name="name" attrs="{'plus': [('name', '=', 'K')]}"/>
                     </form>""",
             },
@@ -28,7 +28,8 @@ class TestAttrsViewsExtraAttrs(UpgradeCase):
         self.assertEqual(
             apply_etree_space(view.arch_db),
             apply_etree_space(
-                """<form><field name="name" plus="[('name', '=', 'K')]"/>
+                """<form>Keep text
+                        <field name="name" plus="[('name', '=', 'K')]"/>
                     </form>"""
             ),
         )
@@ -113,7 +114,8 @@ class TestAttrsViewsResetAttrs(UpgradeCase):
         self.assertEqual(
             apply_etree_space(parent.arch_db),
             apply_etree_space(
-                """<form><field name="name" readonly="name == 'K'" required="1"/>
+                """<form>
+                        <field name="name" readonly="name == 'K'" required="1"/>
                     </form>"""
             ),
         )
@@ -122,7 +124,8 @@ class TestAttrsViewsResetAttrs(UpgradeCase):
         self.assertEqual(
             apply_etree_space(child1.arch_db),
             apply_etree_space(
-                """<data><field name="name" position="attributes">
+                """<data>
+                    <field name="name" position="attributes">
                         <attribute name="invisible">name == 'P'</attribute><attribute name="readonly"></attribute></field>
                     </data>"""
             ),
@@ -131,7 +134,8 @@ class TestAttrsViewsResetAttrs(UpgradeCase):
         self.assertEqual(
             apply_etree_space(child2.arch_db),
             apply_etree_space(
-                """<data><field name="name" position="attributes">
+                """<data>
+                    <field name="name" position="attributes">
                         <attribute name="invisible"></attribute></field>
                     </data>"""
             ),
@@ -141,7 +145,8 @@ class TestAttrsViewsResetAttrs(UpgradeCase):
         self.assertEqual(
             apply_etree_space(parent2.arch_db),
             apply_etree_space(
-                """<form><field name="name" invisible="id == 1"/>
+                """<form>
+                    <field name="name" invisible="id == 1"/>
                 </form>"""
             ),
         )
@@ -151,7 +156,8 @@ class TestAttrsViewsResetAttrs(UpgradeCase):
         self.assertEqual(
             apply_etree_space(child2_1.arch_db),
             apply_etree_space(
-                """<data><field name="name" position="replace" invisible="" readonly="id == 2"/>
+                """<data>
+                    <field name="name" position="replace" invisible="" readonly="id == 2"/>
                 </data>"""
             ),
         )
@@ -761,7 +767,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(view_1.arch_db),
             apply_etree_space(
-                r"""<form><field name="is_company" invisible="1"/>
+                r"""<form>
+                    <field name="is_company" invisible="1"/>
                     <field name="active" invisible="1"/>
                     <div class="alert alert-warning oe_edit_only" role="alert" invisible="same_vat_partner_id == False">
                     A partner with the same <span><span class="o_vat_label">Tax ID</span></span> already exists (<field name="same_vat_partner_id"/>), are you sure to create a new one?
@@ -889,7 +896,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(inherit_1_1.arch_db),
             apply_etree_space(
-                """<data><widget name="web_ribbon" position="after">
+                """<data>
+                    <widget name="web_ribbon" position="after">
                         <field name="id" invisible="id != False"/>
                     </widget>
                     <widget name="web_ribbon" position="replace">
@@ -925,7 +933,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(inherit_1_2.arch_db),
             apply_etree_space(
-                """<data><xpath expr="//field[@name='category_id']//field[@name='name']" position="replace">
+                """<data>
+                    <xpath expr="//field[@name='category_id']//field[@name='name']" position="replace">
                         <field name="id"/>
                     </xpath>
                     <field name="id" position="replace">
@@ -951,7 +960,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(inherit_1_fail.arch_db),
             apply_etree_space(
-                """<data><field name="color" position="attributes">
+                """<data>
+                    <field name="color" position="attributes">
                         <attribute name="readonly">context.get('no_fail')</attribute></field>
                     <kanban position="attributes">
                         <attribute name="js_class">yolo</attribute>
@@ -976,7 +986,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(view_2.arch_db),
             apply_etree_space(
-                """<form><field name="state" invisible="1"/>
+                """<form>
+                    <field name="state" invisible="1"/>
                     <field name="name" invisible="((context.get('a-b')) or (id != False)) or (state not in ['manual'])"/>
                 </form>"""
             ),
@@ -987,7 +998,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(inherit_3_2.arch_db),
             apply_etree_space(
-                """<data><field name="is_company" position="after">
+                """<data>
+                    <field name="is_company" position="after">
                         <field name="name"/>
                     </field>
                     <field name="active" position="before">
@@ -1003,7 +1015,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(inherit_4_1.arch_db),
             apply_etree_space(
-                """<data><field name="is_company" position="after">
+                """<data>
+                    <field name="is_company" position="after">
                         <field name="name" column_invisible="1"/>
                     </field>
                 </data>"""
@@ -1016,7 +1029,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(view_4_primary_1.arch_db),
             apply_etree_space(
-                """<data><field name="name" position="after">
+                """<data>
+                    <field name="name" position="after">
                         <field name="id" column_invisible="1"/>
                     </field>
                 </data>"""
@@ -1029,7 +1043,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(view_5_deac.arch_db),
             apply_etree_space(
-                """<data><field name="name" position="replace">
+                """<data>
+                    <field name="name" position="replace">
                         <field name="title" invisible="id == 1"/>
                     </field>
                 </data>"""
@@ -1042,7 +1057,8 @@ class TestAttrsViewsToExpression(UpgradeCase):
         self.assertEqual(
             apply_etree_space(view_5_error.arch_db),
             apply_etree_space(
-                """<data><field name="title" position="replace">
+                """<data>
+                    <field name="title" position="replace">
                         <field name="title" invisible="state not in ['draft','done']"/>
                     </field>
                 </data>"""
