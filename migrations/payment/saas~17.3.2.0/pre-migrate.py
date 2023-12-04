@@ -18,3 +18,18 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, "website_payment.action_activate_stripe", "payment.action_activate_stripe")
     util.move_field_to_module(cr, "res.country", "is_stripe_supported_country", "website_payment", "payment")
+
+    util.remove_field(cr, "payment.transaction", "callback_is_done")
+    util.remove_field(cr, "payment.transaction", "callback_hash")
+    util.remove_field(cr, "payment.transaction", "callback_method")
+    util.remove_field(cr, "payment.transaction", "callback_res_id")
+    util.remove_field(cr, "payment.transaction", "callback_model_id")
+
+    cr.execute("""
+        UPDATE ir_act_server s
+           SET code = 'model._cron_post_process()'
+          FROM ir_model m
+         WHERE m.id = s.model_id
+           AND s.code = 'model._cron_finalize_post_processing()'
+           AND m.model = 'payment.transaction'
+    """)
