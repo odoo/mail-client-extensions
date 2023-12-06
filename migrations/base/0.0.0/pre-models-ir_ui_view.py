@@ -65,6 +65,7 @@ except ImportError:
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
 ODOO_MIG_TRY_FIX_VIEWS = str2bool(os.environ.get("ODOO_MIG_TRY_FIX_VIEWS", "0"))
+ODOO_MIG_SHOW_VIEW_DISABLE_ERROR = str2bool(os.environ.get("ODOO_MIG_SHOW_VIEW_DISABLE_ERROR", "0"))
 
 
 def migrate(cr, version):
@@ -653,7 +654,7 @@ def _upgrade_fix_views(fix_view, root_view):
             md.name,
         )
 
-    def disable(view, md, reactivate_children):
+    def disable(view, md, reactivate_children, e):
         view.active = False
         act_window = fix_view.env["ir.actions.act_window"]
         act_window.search([("view_id", "=", view.id)]).write({"view_id": False})
@@ -665,6 +666,8 @@ def _upgrade_fix_views(fix_view, root_view):
             child.active = True
 
         util.add_to_migration_reports(view_data(view, md), "Disabled views")
+        if ODOO_MIG_SHOW_VIEW_DISABLE_ERROR:
+            _logger.warning("Error while validating view:\n%s", e)
         _logger.log(
             # info on CI since this is due to test data
             logging.INFO if util.on_CI() else logging.WARNING,
@@ -719,13 +722,13 @@ def _upgrade_fix_views(fix_view, root_view):
         else:
             # Custom view
             if not ODOO_MIG_TRY_FIX_VIEWS:
-                disable(fix_view, md, children)
+                disable(fix_view, md, children, e)
                 return True
             arch_orig = fix_view.arch
             if not heuristic_fixes(fix_view._cr, fix_view, check, e):
                 # arch may have been changed by heuristic_fixes, restore it
                 fix_view.arch = arch_orig
-                disable(fix_view, md, children)
+                disable(fix_view, md, children, e)
                 return True
 
             # Only log a warning for non-CI upgrades as this situation occurs due to test data.
