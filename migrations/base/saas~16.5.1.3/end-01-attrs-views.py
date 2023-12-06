@@ -131,7 +131,15 @@ def fix_elem(cr, model, elem, comb_arch):
     attrs = {}
     if telem is not None and "attrs" in telem.attrib:
         ast_attrs = ast_parse(telem.get("attrs"))
-        attrs = {k.value: v for k, v in zip(ast_attrs.keys, ast_attrs.values)}
+        if isinstance(ast_attrs, ast.Dict):
+            attrs = {k.value: v for k, v in zip(ast_attrs.keys, ast_attrs.values)}
+        else:
+            _logger.log(
+                util.NEARLYWARN if util.on_CI() else logging.ERROR,
+                "Removing invalid `attrs` value %r from\n%s",
+                telem.get("attrs"),
+                etree.tostring(telem).decode(),
+            )
 
     if "attrs" in elem.attrib:
         attrs_val = elem.get("attrs")
