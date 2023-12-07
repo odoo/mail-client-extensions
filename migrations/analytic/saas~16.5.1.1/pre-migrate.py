@@ -10,7 +10,7 @@ def migrate(cr, version):
           FROM ir_config_parameter
          WHERE key LIKE 'default\_analytic\_plan\_id\_%'
     """)
-    [all_project_plans] = cr.fetchone() or [[]]
+    all_project_plans = cr.fetchone()[0] or []
     cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
     [plan_id] = cr.fetchone() or [None]
     project_plan_id = all_project_plans[0] if all_project_plans else plan_id
@@ -27,6 +27,8 @@ def migrate(cr, version):
             ],
         )
         project_plan_id = cr.fetchone()[0]
+    if project_plan_id not in all_project_plans:
+        all_project_plans.append(project_plan_id)
 
     cr.execute(r"""
         DELETE FROM ir_config_parameter
