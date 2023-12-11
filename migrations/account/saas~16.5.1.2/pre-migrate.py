@@ -25,55 +25,17 @@ def migrate(cr, version):
 
     cr.execute(
         """
-        CREATE TABLE duplicates AS
-        SELECT name,
-               applicability,
-               country_id,
-               ARRAY_AGG(id ORDER BY active DESC, id) AS ids
+        SELECT ARRAY_AGG(id ORDER BY active DESC, id) AS ids
           FROM account_account_tag
       GROUP BY name, applicability, country_id
         HAVING COUNT(*) > 1
+
         """
     )
-
-    to_update = (
-        ("account_account_account_tag", "account_account", "account_account_id"),
-        ("account_account_tag_product_template_rel", "product_template", "product_template_id"),
-        (
-            "account_account_tag_account_tax_repartition_line_rel",
-            "account_tax_repartition_line",
-            "account_tax_repartition_line_id",
-        ),
-        ("account_account_tag_account_move_line_rel", "account_move_line", "account_move_line_id"),
-    )
-    queries = []
-    for table, ftable, fcolumn in to_update:
-        queries.extend(
-            util.explode_query_range(
-                cr,
-                f"""
-                UPDATE {table} t
-                   SET account_account_tag_id = dm.ids[1]
-                  FROM duplicates AS dm,
-                       {ftable} t2
-                 WHERE t.account_account_tag_id = ANY(dm.ids[2:])
-                   AND t.{fcolumn} = t2.id
-                """,
-                table=ftable,
-                alias="t2",
-            )
-        )
-    util.parallel_execute(cr, queries)
-
-    cr.execute(
-        """
-        DELETE FROM account_account_tag t
-         USING duplicates dm
-         WHERE t.id = ANY(dm.ids[2:]);
-
-          DROP TABLE duplicates;
-        """
-    )
+    if cr.rowcount:
+        dupes = {x: t[0] for (t,) in cr.fetchall() for x in t[1:]}
+        util.replace_record_references_batch(cr, dupes, "account.account.tag", replace_xmlid=False)
+        cr.execute("DELETE FROM account_account_tag WHERE id IN %s", [tuple(dupes.keys())])
 
     util.remove_field(cr, "account.full.reconcile", "name")
     util.delete_unused(cr, "account.sequence_reconcile_seq")
