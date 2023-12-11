@@ -389,11 +389,12 @@ def convert_attrs_val(cr, model, field_path, val):
     return ast2str(val)
 
 
-def target_model(cr, model, path):
+def target_field_type(cr, model, path):
+    ttype = None
     for fname in path:
         cr.execute(
             """
-            SELECT relation
+            SELECT relation, ttype
               FROM ir_model_fields
              WHERE model = %s
                AND name = %s
@@ -402,10 +403,10 @@ def target_model(cr, model, path):
             """,
             [model, fname],
         )
-        model = cr.fetchone()[0] if cr.rowcount else None
+        model, ttype = cr.fetchone() if cr.rowcount else (None, None)
         if model is None:
             break
-    return model  # None if not a relational field
+    return ttype
 
 
 def convert_domain_leaf(cr, model, field_path, leaf):
@@ -457,12 +458,14 @@ def convert_domain_leaf(cr, model, field_path, leaf):
         # ```
         rv = f"{right}" if isinstance(right_ast, (ast.List, ast.Tuple)) else f"[{right}]"
         lv = str(left)
-        if (
-            isinstance(left, str) and target_model(cr, model, left.split(".") + field_path) is not None
-        ):  # recordset-returning field o_O
-            lv += ".ids"
-        res = f"set({lv}).intersection({rv})"  # odoo/odoo#139827, odoo/odoo#139451
-        return f"(not {res})" if op == "not in" else f"({res})"
+        ttype = target_field_type(cr, model, left.split(".") + field_path)
+        if isinstance(left, str) and ttype in ("one2many", "many2many"):  # array of ids
+            res = f"set({lv}).intersection({rv})"  # odoo/odoo#139827, odoo/odoo#139451
+            return f"(not {res})" if op == "not in" else f"({res})"
+        else:
+            # consider the left-hand side to be a single value
+            # ex. ('team_id', 'in', [val1, val2, val3, ...]) => team_id in [val1, val2, val3, ...]
+            return f"({lv} {op} {rv})"
     if op in ("=like", "=ilike") and isinstance(right_ast, ast.Constant) and isinstance(right_ast.value, str):
         # this cannot be handled in Python for all cases with the limited support of what
         # can be evaluated in an inline attribute expression, we try to deal with some cases

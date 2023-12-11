@@ -320,7 +320,10 @@ class TestAttrsViewsToExpression(UpgradeCase):
                             <group>
                                 <field name="function" placeholder="e.g. Sales Director"
                                     attrs="{'invisible': [('is_company','=', True)]}"/>
-                                <field name="phone" widget="phone"/>
+                                <field name="phone" widget="phone" attrs="{
+                                    'required': [('country_id', 'in', [1, 2, 3, 4])],
+                                    'invisible': [('country_id', 'not in', [1, 2, 3, 4])],
+                                }"/>
                                 <field name="mobile" widget="phone"/>
                                 <field name="user_ids" invisible="1"/>
                                 <field name="email" widget="email" context="{'gravatar_image': True}" attrs="{
@@ -801,10 +804,10 @@ class TestAttrsViewsToExpression(UpgradeCase):
                             <group>
                                 <field name="function" placeholder="e.g. Sales Director"
                                     invisible="is_company == True"/>
-                                <field name="phone" widget="phone"/>
+                                <field name="phone" widget="phone" invisible="country_id not in [1, 2, 3, 4]" required="country_id in [1, 2, 3, 4]"/>
                                 <field name="mobile" widget="phone"/>
                                 <field name="user_ids" invisible="1"/>
-                                <field name="email" widget="email" context="{'gravatar_image': True}" invisible="set(user_ids.ids).intersection([])" required="not set(user_ids.ids).intersection([])"/>
+                                <field name="email" widget="email" context="{'gravatar_image': True}" invisible="set(user_ids).intersection([])" required="not set(user_ids).intersection([])"/>
                                 <field name="website" string="Website" widget="url" placeholder="e.g. https://www.odoo.com"/>
                                 <field name="title" options='{"no_open": True}' placeholder="e.g. Mister"
                                     invisible="is_company == True"/>
