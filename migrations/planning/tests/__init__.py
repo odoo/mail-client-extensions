@@ -1,0 +1,1 @@
+from . import test_migrate_planning_slot_template_duration
