@@ -42,3 +42,5 @@ def migrate(cr, version):
     )
     for module in taxcloud_modules:
         util.remove_module(cr, module)
+
+    util.merge_module(cr, "l10n_fr_fec", "l10n_fr")
