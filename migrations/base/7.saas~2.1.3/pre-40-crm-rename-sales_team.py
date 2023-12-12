@@ -13,10 +13,11 @@ def migrate(cr, version):
     if util.ref(cr, "crm.crm_case_section_3"):
         # remove duplicate record related sales_team
         cr.execute(
-            """DELETE FROM ir_model_data
-                                WHERE  model = 'crm.case.section'
-                                  AND name = 'section_sales_department'
-                   """
+            """
+            DELETE FROM ir_model_data
+             WHERE module = 'crm'
+               AND name IN ('section_sales_department', 'section_sales_department_mail_alias')
+            """
         )
 
         # rename xmlid of record related to sales_team
