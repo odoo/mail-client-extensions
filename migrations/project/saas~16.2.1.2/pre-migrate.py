@@ -1,3 +1,5 @@
+import os
+
 from odoo.upgrade import util
 
 
@@ -173,7 +175,6 @@ def migrate(cr, version):
             *recurrence_fields,
             "partner_is_company",
             "manager_id",
-            "email_from",
             "ancestor_id",
             "partner_email",
             "project_analytic_account_id",
@@ -210,3 +211,9 @@ def migrate(cr, version):
     for model_name, fields in fields_to_remove_per_model_name.items():
         for field in fields:
             util.remove_field(cr, model_name, field)
+
+    upg_target = os.getenv("ODOO_UPG_DB_TARGET_VERSION")
+    drop_column = util.parse_version(upg_target) < util.parse_version("saas~17.4") or not util.module_installed(
+        cr, "website_project"
+    )
+    util.remove_field(cr, "project.task", "email_from", drop_column=drop_column)
