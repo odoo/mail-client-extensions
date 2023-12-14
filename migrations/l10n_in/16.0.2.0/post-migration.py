@@ -68,6 +68,7 @@ def migrate(cr, version):
                             ON new_ir.name = %s AND new_ir.model = 'account.account.tag'
                       WHERE atrl._upg_xmlid = %s
                         AND atrl._upg_module = 'l10n_in'
+                         ON CONFLICT DO NOTHING
             """,
             (new_tax_tag, tax_report_line),
         )
