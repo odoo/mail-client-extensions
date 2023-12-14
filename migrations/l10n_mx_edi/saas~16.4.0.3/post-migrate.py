@@ -9,7 +9,7 @@ def migrate(cr, _version):
         """
             INSERT INTO l10n_mx_edi_document (datetime, move_id, attachment_id, state, sat_state)
             SELECT
-                doc.write_date,
+                COALESCE(doc.write_date, att.create_date),
                 doc.move_id,
                 doc.attachment_id,
                 CASE WHEN move.payment_id IS NOT NULL OR move.statement_line_id IS NOT NULL
@@ -19,6 +19,7 @@ def migrate(cr, _version):
                 COALESCE(move.l10n_mx_edi_cfdi_sat_state, 'not_defined') AS sat_state
             FROM account_edi_document doc
             JOIN account_move move ON move.id = doc.move_id
+            JOIN ir_attachment att ON att.id = doc.attachment_id
             WHERE doc.state = 'sent' AND doc.edi_format_id = %s
         """,
         [cfdi_format_id],
