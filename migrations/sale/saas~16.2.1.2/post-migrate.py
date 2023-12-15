@@ -14,9 +14,9 @@ def migrate(cr, version):
          LEFT JOIN sale_order_line ol
                 ON ol.order_id = o.id
          LEFT JOIN sale_order_line_invoice_rel r
-                ON r.invoice_line_id = ol.id
+                ON r.order_line_id = ol.id
          LEFT JOIN account_move_line ml
-                ON ml.id = r.order_line_id
+                ON ml.id = r.invoice_line_id
          LEFT JOIN account_move m
                 ON m.id = ml.move_id
                AND m.move_type IN ('out_invoice', 'out_refund')
@@ -39,9 +39,9 @@ def migrate(cr, version):
               JOIN sale_order_line ol
                 ON ol.order_id = o.id
               JOIN sale_order_line_invoice_rel r
-                ON r.invoice_line_id = ol.id
+                ON r.order_line_id = ol.id
               JOIN account_move_line ml
-                ON ml.id = r.order_line_id
+                ON ml.id = r.invoice_line_id
               JOIN account_move m
                 ON m.id = ml.move_id
              WHERE m.move_type IN ('out_invoice', 'out_refund')
