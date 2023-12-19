@@ -18,11 +18,6 @@ def migrate(cr, version):
         "CREATE INDEX upg_attachment_cleanup_speedup_idx ON ir_attachment(res_model, res_field, id)"
     )
     util.ENVIRON["__created_fk_idx"].append("upg_attachment_cleanup_speedup_idx")
-    if util.table_exists(cr, "mail_message"):
-        create_index_queries.append(
-            "create index tmp_mig_mcplastseenmsg_speedup_idx on mail_message(model, author_id, res_id, id desc)"
-        )
-        util.ENVIRON["__created_fk_idx"].append("tmp_mig_mcplastseenmsg_speedup_idx")
 
     if release.version_info[:2] == (16, 0) and util.column_exists(cr, "mail_message", "email_layout_xmlid"):
         create_index_queries.append("CREATE INDEX upg_mailmsg_layout_xid ON mail_message(email_layout_xmlid)")
