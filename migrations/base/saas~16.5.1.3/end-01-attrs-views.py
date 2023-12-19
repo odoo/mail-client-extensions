@@ -614,7 +614,7 @@ def migrate(cr, version):
                 if not fix_attrs(cr, v.model, arch, comb_arch):
                     view_errors[v.id].append(lang)
                 new_archs[v.id] = (active, arch)
-            else:
+            elif md.noupdate:
                 # We cannot rely in the restore of the views fixer
                 # it may fail if the view comes from a noupdate block
                 util.update_record_from_xml(cr, f"{md.module}.{md.name}")
