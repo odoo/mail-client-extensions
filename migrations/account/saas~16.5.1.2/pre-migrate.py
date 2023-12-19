@@ -84,6 +84,7 @@ def migrate(cr, version):
            SET invoice_date = m.invoice_date
           FROM account_move m
          WHERE m.id = l.move_id
+           AND m.invoice_date IS DISTINCT FROM l.invoice_date
         """,
         table="account_move_line",
         alias="l",
