@@ -4,16 +4,11 @@ from odoo.upgrade import util
 def migrate(cr, version):
     # Access rights migration
     msg = """
-        <details>
-          <summary>
-            We reworked the Attendance application. User and Officer rights no longer exists.
-            Check the Attendance Settings and the Employee profile to define new settings.
-            All rights set on those levels have been deleted.
-          </summary>
-          <ul>%s</ul>
-        </details>
+        We reworked the Attendance application. User and Officer rights no longer exists.
+        Check the Attendance Settings and the Employee profile to define new settings.
+        All rights set on those levels have been deleted.
     """
-    util.add_to_migration_reports(msg, "Attendance", format="html")
+    util.add_to_migration_reports(msg, "Attendance", format="md")
 
     # Groups
     util.remove_record(cr, "hr_attendance.group_hr_attendance_kiosk")
