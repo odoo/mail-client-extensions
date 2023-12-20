@@ -26,3 +26,38 @@ def migrate(cr, version):
         util.rename_field(cr, "account.move", "l10n_sa_show_delivery_date", "show_delivery_date")
     else:
         util.create_column(cr, "account_move", "delivery_date", "date")
+
+    cr.execute(
+        """
+        UPDATE res_company cc
+           SET parent_id = NULL
+          FROM res_company pc
+         WHERE cc.parent_id = pc.id
+           AND cc.chart_template IS NOT NULL
+           AND cc.chart_template IS DISTINCT FROM pc.chart_template
+     RETURNING cc.id,
+               cc.name,
+               cc.chart_template,
+               pc.id,
+               pc.name,
+               pc.chart_template
+        """
+    )
+    if cr.rowcount:
+        util.add_to_migration_reports(
+            category="Company Hierarchy",
+            message="""
+                <details>
+                    <summary>
+                        Companies now cannot have a chart of accounts different than the
+                        one defined on the parent company. Therefore the parent company is removed
+                        from the following:
+                    </summary>
+                    <ul>%s</ul>
+                </details>"""
+            % "".join(
+                f"<li>{name} (id={id}) with chart '{coa}', had as parent company {p_name} (id={p_id}) with chart '{p_coa}'</li>"
+                for id, name, coa, p_id, p_name, p_coa in cr.fetchall()
+            ),
+            format="html",
+        )
