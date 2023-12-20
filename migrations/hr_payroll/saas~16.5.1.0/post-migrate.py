@@ -23,7 +23,7 @@ def migrate(cr, version):
     # Replace master rules/categories/inputs that are coming from default values
     updates = {f"categories.{code}": f'categories["{code}"]' for code in ["BASIC", "ALW", "DED", "NET"]}
     updates.update(
-        (f"inputs.{code}", f'inputs.get("{code}"')
+        (f"inputs.{code}", f'inputs.get("{code}")')
         for code in ["ATTACH_SALARY", "ASSIG_SALARY", "CHILD_SUPPORT", "REIMBURSEMENT", "DEDUCTION"]
     )
     updates["rules.NET"] = "rules.get('NET')"
