@@ -5,11 +5,13 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute(r"""
+    cr.execute(
+        r"""
         SELECT ARRAY_AGG(value::int ORDER BY value::int)
           FROM ir_config_parameter
          WHERE key LIKE 'default\_analytic\_plan\_id\_%'
-    """)
+        """
+    )
     all_project_plans = cr.fetchone()[0] or []
     cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
     [plan_id] = cr.fetchone() or [None]
@@ -30,21 +32,26 @@ def migrate(cr, version):
     if project_plan_id not in all_project_plans:
         all_project_plans.append(project_plan_id)
 
-    cr.execute(r"""
+    cr.execute(
+        r"""
         DELETE FROM ir_config_parameter
               WHERE key LIKE 'default\_analytic\_plan\_id\_%%';
         INSERT INTO ir_config_parameter (key, value)
              VALUES ('analytic.project_plan', %s)
-    """, [project_plan_id])
+    """,
+        [project_plan_id],
+    )
 
     # Make analytic plans shared between companies, except for some fields
     # First merge plans with the same name, most likely from different companies
-    cr.execute("""
+    cr.execute(
+        """
         SELECT ARRAY_AGG(id)
           FROM account_analytic_plan
       GROUP BY name
         HAVING COUNT(*) > 1
-    """)
+    """
+    )
     mapping = {}
     project_group = set(all_project_plans or [])
     for [group] in cr.fetchall():
@@ -68,7 +75,8 @@ def migrate(cr, version):
     )
     columns = util.get_columns(cr, "account_analytic_applicability")
     util.create_column(cr, "account_analytic_applicability", "company_id", "int4")
-    cr.execute(f"""
+    cr.execute(
+        f"""
         INSERT INTO account_analytic_applicability ({", ".join(columns)}, company_id)
              SELECT {", ".join("aaa.%s" % column for column in columns)}, company.id
                FROM account_analytic_applicability aaa,
@@ -76,7 +84,8 @@ def migrate(cr, version):
 
         DELETE FROM account_analytic_applicability
               WHERE company_id IS NULL;
-    """)
+    """
+    )
 
     util.remove_field(cr, "account.analytic.plan", "company_id")
 
@@ -104,10 +113,11 @@ def migrate(cr, version):
         # First create the new fields/columns
         plan_name = (
             "plan.name"
-            if util.column_type(cr, "account_analytic_plan", "name") == "jsonb" else
-            "jsonb_build_object('en_US', plan.name)"
+            if util.column_type(cr, "account_analytic_plan", "name") == "jsonb"
+            else "jsonb_build_object('en_US', plan.name)"
         )
-        cr.execute(f"""
+        cr.execute(
+            f"""
                 INSERT INTO ir_model_fields(name, model, model_id, field_description,
                                             state, store, ttype, relation)
                      SELECT 'x_plan' || plan.id ||'_id', 'account.analytic.line', m.id, {plan_name},
@@ -116,14 +126,15 @@ def migrate(cr, version):
                             ir_model m
                       WHERE plan.id = ANY(%s)
                         AND m.model = 'account.analytic.line'
-        """, [other_plan_ids])
+        """,
+            [other_plan_ids],
+        )
         for id_ in other_plan_ids:
             util.create_column(cr, "account_analytic_line", f"x_plan{id_}_id", "int4")
 
         # Then move the value from the first column to the (new) correct one
         distributed_plans = ", ".join(
-            f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id"
-            for id_ in other_plan_ids
+            f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id" for id_ in other_plan_ids
         )
         query = f"""
             WITH updated_lines AS (
