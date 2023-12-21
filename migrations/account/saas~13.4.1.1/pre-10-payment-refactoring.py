@@ -150,7 +150,7 @@ def migrate(cr, version):
     util.create_column(cr, "account_payment_pre_backup", "no_replace_account", "boolean", default=False)
 
     # cleanup `moved0` columns from backup tables
-    for table in {"account_payment_pre_backup", "account_bank_statement_line_pre_backup"}:
+    for table in ["account_payment_pre_backup", "account_bank_statement_line_pre_backup"]:
         for column in util.get_columns(cr, table):
             if re.search(r"_moved[0-9]+$", column):
                 util.remove_column(cr, table, column)
