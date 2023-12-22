@@ -26,10 +26,10 @@ def migrate(cr, version):
                 COALESCE(l.country_id, r.country_id) AS country_id,
                 %s AS company_id
             FROM crm_lead l
-            JOIN res_company comp ON comp.id = company_id
+            JOIN res_company comp ON comp.id = l.company_id
             JOIN res_partner r ON comp.partner_id = r.id
             WHERE l.phone_sanitized IS NULL
-                AND phone_state = 'correct'
+                AND l.phone_state = 'correct'
                 AND length(trim(COALESCE(l.mobile, l.phone))) > 3
         )
         SELECT l.id,
