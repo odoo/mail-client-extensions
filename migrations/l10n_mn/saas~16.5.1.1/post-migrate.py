@@ -54,6 +54,9 @@ def migrate_tags_to_tax_tags_engine(cr, module, tax_tag_changes):
     )
     old_tags = cr.fetchall()
 
+    if not old_tags:
+        return []
+
     old_tag_ids = [id for id, name in old_tags]
     old_minus_sum_tag_ids = [id for id, name in old_tags if tax_tag_changes[name][1] == "-"]
 

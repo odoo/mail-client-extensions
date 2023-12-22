@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 tag_migration_utils = util.import_script("l10n_mn/saas~16.5.1.1/post-migrate.py")
@@ -71,10 +70,9 @@ def migrate(cr, version):
     cr.execute(
         """
         DELETE FROM account_account_tag_account_tax_repartition_line_rel
-              WHERE account_account_tag_id
-                 IN %s
+                WHERE account_account_tag_id = ANY(%s)
         """,
-        [tuple(old_tag_ids)],
+        [old_tag_ids],
     )
     # reload new tags repartition lines
     cr.commit()
