@@ -59,3 +59,16 @@ def migrate(cr, version):
     util.rename_xmlid(cr, "website.template_header_contact", "website.template_header_sales_three")
 
     util.remove_view(cr, "website.language_selector_add_language")
+
+    cr.execute(
+        """
+        SELECT id
+          FROM ir_ui_view
+         WHERE key = 'website.header_call_to_action'
+           AND website_id IS NOT NULL
+        """
+    )
+    for view_id in cr.fetchall():
+        with util.edit_view(cr, view_id=view_id) as arch:
+            for node in arch.xpath('//a[@class="btn btn-primary btn_cta"]'):
+                node.attrib["class"] = "oe_unremovable btn btn-primary btn_cta"
