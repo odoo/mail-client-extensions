@@ -29,4 +29,3 @@ def migrate(cr, version):
     util.rename_xmlid(cr, "payment.payment_method_sepa", "payment.payment_method_sepa_direct_debit")
     util.rename_xmlid(cr, "payment.payment_method_diners_club_intl", "payment.payment_method_diners")
     util.rename_xmlid(cr, "payment.payment_method_american_express", "payment.payment_method_amex")
-    util.update_record_from_xml(cr, "payment.payment_method_upi")
