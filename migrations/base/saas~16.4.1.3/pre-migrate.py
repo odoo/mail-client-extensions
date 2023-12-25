@@ -13,3 +13,5 @@ def migrate(cr, version):
     util.remove_record(cr, "base.onboarding_step")
 
     util.rename_xmlid(cr, "base.identity_check_wizard", "base.res_users_identitycheck_view_form")
+
+    util.remove_field(cr, "res.partner", "translated_display_name")
