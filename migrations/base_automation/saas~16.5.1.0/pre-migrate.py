@@ -6,7 +6,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.create_column(cr, "base_automation", "name", "jsonb")
-    util.create_column(cr, "base_automation", "model_id", "integer")
+    util.create_column(cr, "base_automation", "model_id", "integer", fk_table="ir_model", on_delete_action="CASCADE")
     util.create_column(cr, "base_automation", "model_name", "varchar")
     cr.execute(
         """

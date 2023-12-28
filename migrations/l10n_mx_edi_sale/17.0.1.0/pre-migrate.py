@@ -3,7 +3,14 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, "sale_order", "l10n_mx_edi_payment_method_id", "int4")
+    util.create_column(
+        cr,
+        "sale_order",
+        "l10n_mx_edi_payment_method_id",
+        "int4",
+        fk_table="l10n_mx_edi_payment_method",
+        on_delete_action="SET NULL",
+    )
     default_pm = util.ref(cr, "l10n_mx_edi.payment_method_otros")
 
     query = cr.mogrify(

@@ -112,7 +112,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "hr.leave.accrual.level", "is_based_on_worked_time")
 
-    util.create_column(cr, "hr_leave", "company_id", "int4")
+    util.create_column(cr, "hr_leave", "company_id", "int4", fk_table="res_company", on_delete_action="SET NULL")
 
     company_id_queries = [
         """
@@ -145,7 +145,9 @@ def migrate(cr, version):
         ),
     )
 
-    util.create_column(cr, "hr_leave", "resource_calendar_id", "int4")
+    util.create_column(
+        cr, "hr_leave", "resource_calendar_id", "int4", fk_table="resource_calendar", on_delete_action="SET NULL"
+    )
     util.create_column(cr, "hr_leave", "number_of_hours", "int4", default=0)
 
     queries = [

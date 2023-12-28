@@ -34,7 +34,14 @@ def migrate(cr, version):
 
     util.create_column(cr, "knowledge_article", "is_template", "bool")
     util.create_column(cr, "knowledge_article", "template_body", "jsonb")
-    util.create_column(cr, "knowledge_article", "template_category_id", "int4")
+    util.create_column(
+        cr,
+        "knowledge_article",
+        "template_category_id",
+        "int4",
+        fk_table="knowledge_article_template_category",
+        on_delete_action="SET NULL",
+    )
     util.create_column(cr, "knowledge_article", "template_description", "jsonb")
     util.create_column(cr, "knowledge_article", "template_name", "jsonb")
     util.create_column(cr, "knowledge_article", "template_sequence", "int4")

@@ -25,7 +25,14 @@ def migrate(cr, version):
     )
 
     # Create reference to Microsoft Credentials inside res_users.
-    util.create_column(cr, "res_users", "microsoft_calendar_account_id", "int4")
+    util.create_column(
+        cr,
+        "res_users",
+        "microsoft_calendar_account_id",
+        "int4",
+        fk_table="microsoft_calendar_credentials",
+        on_delete_action="SET NULL",
+    )
 
     # Migrate the Microsoft token from res_users to Microsoft Credentials.
     cr.execute(

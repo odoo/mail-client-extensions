@@ -27,11 +27,36 @@ def migrate(cr, version):
     # mail.message model update
     util.remove_field(cr, "mail.message", "canned_response_ids")
     util.remove_field(cr, "mail.shortcode", "message_ids")
-    util.create_column(cr, "mail_message", "record_alias_domain_id", "int4")
-    util.create_column(cr, "mail_message", "record_company_id", "int4")
+
+    cr.execute(
+        """
+            CREATE TABLE mail_alias_domain (
+                id SERIAL NOT NULL PRIMARY KEY,
+                name varchar,
+                bounce_alias varchar,
+                catchall_alias varchar,
+                default_from varchar
+            );
+        """
+    )
+    util.create_column(
+        cr, "mail_message", "record_alias_domain_id", "int4", fk_table="mail_alias_domain", on_delete_action="SET NULL"
+    )
+    util.create_column(
+        cr, "mail_message", "record_company_id", "int4", fk_table="res_company", on_delete_action="SET NULL"
+    )
     # ... as well as composer update to support those (and skip computes)
-    util.create_column(cr, "mail_compose_message", "record_alias_domain_id", "int4")
-    util.create_column(cr, "mail_compose_message", "record_company_id", "int4")
+    util.create_column(
+        cr,
+        "mail_compose_message",
+        "record_alias_domain_id",
+        "int4",
+        fk_table="mail_alias_domain",
+        on_delete_action="SET NULL",
+    )
+    util.create_column(
+        cr, "mail_compose_message", "record_company_id", "int4", fk_table="res_company", on_delete_action="SET NULL"
+    )
 
     # alias views renaming
     for pre, post in [
@@ -49,7 +74,9 @@ def migrate(cr, version):
         util.rename_xmlid(cr, f"base.{xml_id}", f"mail.{xml_id}", on_collision="merge")
 
     # prepare column to store alias domain from ICP
-    util.create_column(cr, "res_company", "alias_domain_id", "int4")
+    util.create_column(
+        cr, "res_company", "alias_domain_id", "int4", fk_table="mail_alias_domain", on_delete_action="SET NULL"
+    )
 
     # create alias domain table to migrate config parameters
     cr.execute("SELECT value FROM ir_config_parameter WHERE key = 'mail.catchall.domain'")
@@ -67,17 +94,6 @@ def migrate(cr, version):
         res = cr.fetchone()
         default_from = res[0] if res else ""
 
-        cr.execute(
-            """
-                CREATE TABLE mail_alias_domain (
-                    id SERIAL NOT NULL PRIMARY KEY,
-                    name varchar,
-                    bounce_alias varchar,
-                    catchall_alias varchar,
-                    default_from varchar
-                );
-            """
-        )
         cr.execute(
             """
                 INSERT INTO mail_alias_domain (name, bounce_alias, catchall_alias, default_from)
@@ -123,7 +139,9 @@ def migrate(cr, version):
 
     # migrate aliases: set domain (if configured), set gateway check based on
     # left-part only, to be backward compatible and ease transition
-    util.create_column(cr, "mail_alias", "alias_domain_id", "int4")
+    util.create_column(
+        cr, "mail_alias", "alias_domain_id", "int4", fk_table="mail_alias_domain", on_delete_action="SET NULL"
+    )
     util.create_column(cr, "mail_alias", "alias_incoming_local", "boolean", default=True)
     if alias_domain_id:
         cr.execute(
