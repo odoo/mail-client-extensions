@@ -56,8 +56,8 @@ def migrate(cr, version):
         """
         % (
             "\n".join(
-                '<li>The converted automation rule "%s" (ID: %d) has a deprecated trigger and has been archived.</li>'
-                % (util.html_escape(automation["name"]["en_US"]), automation["id"])
+                "<li>The converted automation rule %s has a deprecated trigger and has been archived.</li>"
+                % (util.get_anchor_link_to_record("base.automation", automation["id"], automation["name"]["en_US"]),)
                 for automation in filter(lambda a: a["trigger"] in ["on_create", "on_write"], results)
             ),
         ),

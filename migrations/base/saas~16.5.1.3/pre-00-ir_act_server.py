@@ -127,7 +127,11 @@ def process_actions(actions):
             """
             % (
                 "\n".join(
-                    f'<li>"{util.html_escape(action["name"]["en_US"])}" (ID: {action["action_server_id"]})</li>'
+                    "<li>{}</li>".format(
+                        util.get_anchor_link_to_record(
+                            "ir.actions.server", action["action_server_id"], action["name"]["en_US"]
+                        )
+                    )
                     for action in res
                 )
             ),
