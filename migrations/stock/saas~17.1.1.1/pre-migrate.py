@@ -8,3 +8,5 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.picking", "show_set_qty_button")
     util.remove_field(cr, "stock.picking", "show_clear_qty_button")
     util.remove_field(cr, "stock.move", "show_reserved")
+
+    util.remove_model(cr, "stock.assign.serial")
