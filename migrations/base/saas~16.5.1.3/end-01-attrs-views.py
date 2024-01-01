@@ -630,7 +630,7 @@ def migrate(cr, version):
         data = {}
         for vid, (_, new_arch) in new_archs.items():
             check_arch(vid, new_arch, lang, error=True)
-            data[vid] = f'"{etree.tostring(new_arch).decode()}"'
+            data[vid] = etree.tostring(new_arch).decode()
         if data:  # maybe the failing views were standard which we do not fix, hence data could be empty
             cr.execute(
                 """
