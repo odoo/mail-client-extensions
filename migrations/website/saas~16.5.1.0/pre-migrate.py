@@ -16,9 +16,15 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale_wishlist.template_header_hamburger_full")
     util.remove_view(cr, "website_sale_wishlist.template_header_image")
 
-    util.rename_xmlid(cr, "website_sale_wishlist.template_header_centered_logo", "website_sale_wishlist.template_header_search")
-    util.rename_xmlid(cr, "website_sale_wishlist.template_header_slogan", "website_sale_wishlist.template_header_sales_two")
-    util.rename_xmlid(cr, "website_sale_wishlist.template_header_contact", "website_sale_wishlist.template_header_sales_three")
+    util.rename_xmlid(
+        cr, "website_sale_wishlist.template_header_centered_logo", "website_sale_wishlist.template_header_search"
+    )
+    util.rename_xmlid(
+        cr, "website_sale_wishlist.template_header_slogan", "website_sale_wishlist.template_header_sales_two"
+    )
+    util.rename_xmlid(
+        cr, "website_sale_wishlist.template_header_contact", "website_sale_wishlist.template_header_sales_three"
+    )
 
     util.remove_view(cr, "website_sale.template_header_magazine")
     util.remove_view(cr, "website_sale.template_header_hamburger_full")
