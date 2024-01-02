@@ -9,6 +9,16 @@ def apply_etree_space(arch):
 
 
 @change_version("saas~16.5")
+class TestAttrsViewsEnsureTranslatedViewsWork(UpgradeCase):
+    def prepare(self):
+        return self.env.ref("base.reset_view_arch_wizard_view").id
+
+    def check(self, vid):
+        view = self.env["ir.ui.view"].with_context(lang="fr_FR").browse(vid)
+        view._check_xml()
+
+
+@change_version("saas~16.5")
 class TestAttrsViewsExtraAttrs(UpgradeCase):
     def prepare(self):
         view = self.env["ir.ui.view"].create(
