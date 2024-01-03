@@ -140,15 +140,17 @@ def migrate(cr, version):
             SELECT am.stock_move_id, sum(aml.debit - aml.credit) as value, min(am.id) as move_id
               FROM account_move_line aml
               JOIN account_move am ON am.id = aml.move_id
+              JOIN stock_move sm ON sm.id = am.stock_move_id
               JOIN product_product pp ON pp.id = aml.product_id
               JOIN product_template pt ON pt.id = pp.product_tmpl_id
-              WHERE am.stock_move_id IS NOT NULL
-                AND 'account.account,' || aml.account_id IN
+              WHERE 'account.account,' || aml.account_id IN
                     (SELECT value_reference FROM ir_property
                     WHERE
                         name = 'property_stock_valuation_account_id' AND
                         (res_id IS NULL OR res_id = 'product.category,' || pt.categ_id) AND
                         company_id = aml.company_id ORDER BY res_id LIMIT 1)
+                AND sm.state = 'done'
+                AND {parallel_filter}
               GROUP BY am.stock_move_id
         )
         SELECT
@@ -174,15 +176,12 @@ def migrate(cr, version):
             sm.id,
             aml_value.move_id
         FROM stock_move sm
+        JOIN aml_value ON aml_value.stock_move_id = sm.id
+        JOIN product_product pp ON pp.id = sm.product_id
+        JOIN product_template pt ON pt.id = pp.product_tmpl_id
         LEFT JOIN stock_location ls ON (ls.id = sm.location_id)
         LEFT JOIN stock_location ld ON (ld.id = sm.location_dest_id)
-        LEFT JOIN aml_value ON aml_value.stock_move_id = sm.id
-        LEFT JOIN product_product pp ON pp.id = sm.product_id
-        LEFT JOIN product_template pt ON pt.id = pp.product_tmpl_id
              JOIN _upgrade_rtime_fifo rtf ON rtf.id = pt.categ_id AND rtf.company_id = sm.company_id
-        WHERE
-            sm.state = 'done' AND
-            {parallel_filter}
     """
     util.explode_execute(cr, q, table="stock_move", alias="sm")
     cr.execute("DROP TABLE _upgrade_rtime_fifo")
