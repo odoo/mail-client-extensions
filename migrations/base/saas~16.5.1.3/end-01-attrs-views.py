@@ -629,7 +629,7 @@ def migrate(cr, version):
                     _logger.warning("Some errors occurred while adapting arch of view (id=%s, lang=%s)", v.id, lang)
                     view_errors[v.id].append(lang)
                 new_archs[v.id] = (active, arch)
-            elif md.noupdate:
+            elif md.noupdate and util.module_installed(cr, md.module):
                 # We cannot rely in the restore of the views fixer
                 # it may fail if the view comes from a noupdate block
                 try:
