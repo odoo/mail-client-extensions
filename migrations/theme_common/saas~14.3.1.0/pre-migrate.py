@@ -3,6 +3,15 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    # Remove children of theme_common._assets_primary_variables since their parent will be removed
+    util.remove_record(cr, "theme_common.option_colors_09_variables")
+    util.remove_record(cr, "theme_common.option_colors_08_variables")
+    util.remove_record(cr, "theme_common.option_colors_07_variables")
+    util.remove_record(cr, "theme_common.option_colors_06_variables")
+    util.remove_record(cr, "theme_common.option_colors_05_variables")
+    util.remove_record(cr, "theme_common.option_colors_04_variables")
+    util.remove_record(cr, "theme_common.option_colors_03_variables")
+    util.remove_record(cr, "theme_common.option_colors_02_variables")
     # Remove view loading deprecated snippet files
     for (
         theme

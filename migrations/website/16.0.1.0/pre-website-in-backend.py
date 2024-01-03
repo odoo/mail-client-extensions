@@ -8,7 +8,6 @@ def migrate(cr, version):
     util.remove_view(cr, "website.one_page_line")
     util.remove_view(cr, "website.publish_short")
     util.remove_view(cr, "website.index_management")
-    util.remove_view(cr, "website.user_navbar")
     util.remove_view(cr, "website.website_configurator")
     util.remove_view(cr, "website.website_publisher")
 

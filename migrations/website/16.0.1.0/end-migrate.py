@@ -85,3 +85,5 @@ def migrate(cr, version):
             parent.insert(index + 2, e2)
             parent.insert(index + 3, e3)
             parent.insert(index + 4, e4)
+
+    util.remove_view(cr, "website.user_navbar")
