@@ -146,7 +146,7 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "hr_leave", "resource_calendar_id", "int4")
-    util.create_column(cr, "hr_leave", "number_of_hours", "int4")
+    util.create_column(cr, "hr_leave", "number_of_hours", "int4", default=0)
 
     queries = [
         """
