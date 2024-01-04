@@ -9,7 +9,8 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, "l10n_pl.res_partner_account_pl_jpk_form", "l10n_pl.res_partner_account_pl_form")
 
-    query = """
+    if util.column_exists(cr, "account_move", "l10n_pl_delivery_date"):
+        query = """
             UPDATE account_move AS move
                SET delivery_date = l10n_pl_delivery_date
               FROM res_company company
@@ -19,10 +20,11 @@ def migrate(cr, version):
                AND l10n_pl_delivery_date IS NOT NULL
                AND country.code = 'PL'
         """
-    util.explode_execute(cr, query, "account_move", alias="move")
+        util.explode_execute(cr, query, "account_move", alias="move")
 
-    util.remove_field(cr, "account.move", "l10n_pl_delivery_date")
-    util.remove_field(cr, "account.move", "l10n_pl_show_delivery_date")
+        util.remove_field(cr, "account.move", "l10n_pl_delivery_date")
+        util.remove_field(cr, "account.move", "l10n_pl_show_delivery_date")
+
     util.remove_view(cr, "l10n_pl.report_invoice_document")
 
     renames = """
