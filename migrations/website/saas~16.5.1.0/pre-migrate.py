@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from lxml import etree
+
 from odoo.upgrade import util
 
 
@@ -77,5 +79,36 @@ def migrate(cr, version):
     )
     for view_id, active in cr.fetchall():
         with util.edit_view(cr, view_id=view_id, active=active) as arch:
-            for node in arch.xpath('//a[@class="btn btn-primary btn_cta"]'):
-                node.attrib["class"] = "oe_unremovable btn btn-primary btn_cta"
+            section = arch.find('.//section[@data-snippet="s_text_block"]')
+            if section is None:
+                section = """
+                    <section class="oe_unremovable oe_unmovable s_text_block" data-snippet="s_text_block" data-name="Text">
+                        <div class="container">
+                            <a href="/contactus" class="oe_unremovable btn btn-primary btn_cta">Contact Us</a>
+                        </div>
+                    </section>
+                    """
+                div = arch.xpath('.//div[hasclass("oe_structure") and hasclass("oe_structure_solo")]')
+                if div:
+                    div[0].append(etree.fromstring(section))
+                continue
+
+            section_classes = section.attrib["class"].split(" ")
+            new_classes = [cl for cl in ["oe_unremovable", "oe_unmovable"] if cl not in section_classes]
+            if new_classes:
+                section.attrib["class"] += " " + " ".join(new_classes)
+
+            node = arch.xpath(".//a[hasclass('btn_cta') or hasclass('_cta')]")
+            if not node:
+                div = section.xpath('.//div[hasclass("container")]')
+                if div:
+                    div[0].append(
+                        etree.fromstring(
+                            """<a href="/contactus" class="oe_unremovable btn btn-primary btn_cta">Contact Us</a>"""
+                        )
+                    )
+                continue
+            a_classes = node[0].attrib["class"].split(" ")
+            new_classes = [cl for cl in ["oe_unremovable", "btn_ca"] if cl not in a_classes]
+            if new_classes:
+                node[0].attrib["class"] += " " + " ".join(new_classes)
