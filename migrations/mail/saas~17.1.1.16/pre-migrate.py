@@ -14,3 +14,10 @@ def migrate(cr, version):
         table="discuss_channel_member",
     )
     util.remove_field(cr, "discuss.channel.member", "is_minimized")
+
+    # web push naming cleaning
+    util.rename_model(cr, "mail.notification.web.push", "mail.push")
+    util.rename_model(cr, "mail.partner.device", "mail.push.device")
+    util.rename_field(cr, "mail.push", "user_device", "mail_push_device_id")
+    util.rename_xmlid(cr, "mail.access_mail_partner_device", "mail.access_mail_push_device_system")
+    util.rename_xmlid(cr, "mail.access_mail_notification_web_push", "mail.access_mail_push_system")
