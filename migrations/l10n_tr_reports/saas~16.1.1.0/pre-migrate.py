@@ -72,3 +72,19 @@ def migrate(cr, version):
     """
     for infix in rm.split():
         util.remove_record(cr, f"{M}.account_financial_report_line_trbs_{infix}_balance")
+
+    rm_line_balance_imd = tuple(f"account_report_line_trbs_{infix}" for infix in ["570", "580", "590"])
+    cr.execute(
+        """
+        DELETE FROM account_report_expression e
+         USING ir_model_data d
+         WHERE d.module = %s
+           AND d.res_id = e.report_line_id
+           AND d.name IN %s
+           AND e.label = 'balance'
+        """,
+        [
+            M,
+            rm_line_balance_imd,
+        ],
+    )
