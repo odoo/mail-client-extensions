@@ -663,6 +663,11 @@ class TestAttrsViewsToExpression(UpgradeCase):
                                 <field name="is_company"/>
                             </tree>
                         </field>
+                        <field name="user_ids">
+                            <tree>
+                                <field name="login"/>
+                            </tree>
+                        </field>
                     </field>
                 </data>""",
                 "priority": 1,
@@ -682,6 +687,28 @@ class TestAttrsViewsToExpression(UpgradeCase):
                 </data>""",
                 "priority": 33,
             },
+        )
+        view_4_primary_2 = self.env["ir.ui.view"].create(
+            {
+                "name": "test_attrs_views_order_2_2",
+                "model": "res.partner",
+                "type": "form",
+                "mode": "primary",
+                "inherit_id": view_4.id,
+                "arch": """<data>
+                    <field name="child_ids" position="before">
+                        <field name="parent_id"/>
+                        <field name="company_name" attrs="{'invisible': ['|', ('is_company', '=', True),('parent_id', 'in', [1])]}"/>
+                    </field>
+                    <field name="user_ids" position="inside">
+                        <form>
+                            <field name="groups_id" invisible="1"/>
+                            <field name="login" attrs="{'readonly': [('groups_id', 'in', [1])]}"/>
+                        </form>
+                    </field>
+                </data>""",
+                "priority": 34,
+            }
         )
         view_5 = self.env["ir.ui.view"].create(
             {
@@ -770,6 +797,7 @@ class TestAttrsViewsToExpression(UpgradeCase):
             "inherit_3_2_id": inherit_3_2.id,
             "inherit_4_1_id": inherit_4_1.id,
             "view_4_primary_1_id": view_4_primary_1.id,
+            "view_4_primary_2_id": view_4_primary_2.id,
             "view_5_deac_id": view_5_deac.id,
             "view_5_error_id": view_5_error.id,
             "view_6_error_id": view_6_error.id,
@@ -1051,6 +1079,27 @@ class TestAttrsViewsToExpression(UpgradeCase):
             "Miss inheriting order (mode=primary is applied after all extend mode)",
         )
         self.assertTrue(view_4_primary_1.active)
+
+        view_4_primary_2 = self.env["ir.ui.view"].browse(data["view_4_primary_2_id"])
+        self.assertEqual(
+            apply_etree_space(view_4_primary_2.arch_db),
+            apply_etree_space(
+                """<data>
+                    <field name="child_ids" position="before">
+                        <field name="parent_id"/>
+                        <field name="company_name" invisible="(parent_id in [1]) or (is_company == True)"/>
+                    </field>
+                    <field name="user_ids" position="inside">
+                        <form>
+                            <field invisible="1" name="groups_id"></field>
+                            <field name="login" readonly="set(groups_id).intersection([1])"></field>
+                        </form>
+                    </field>
+                </data>"""
+            ),
+            "Miss inheriting order (mode=primary is applied after all extend mode)",
+        )
+        self.assertTrue(view_4_primary_2.active)
 
         view_5_deac = self.env["ir.ui.view"].browse(data["view_5_deac_id"])
         self.assertEqual(

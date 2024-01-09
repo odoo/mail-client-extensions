@@ -91,6 +91,7 @@ def target_elem_and_view_type(elem, comb_arch):
     while pelem is not None:
         # the parent may be a targeting element (xpath or field tag with position attribute)
         # thus we need to ensure we got the parent's target
+        pelem_target_position = pelem.get("position")
         pelem = find_target(pelem)
         if view_type is None and pelem.tag in (
             "kanban",
@@ -103,7 +104,8 @@ def target_elem_and_view_type(elem, comb_arch):
             "groupby",
         ):
             view_type = pelem.tag
-        if pelem.tag == "field":
+        if pelem.tag == "field" and (not pelem_target_position or pelem_target_position == "inside"):
+            # if element is a normal <field/> or a targeting element with position="inside"
             field_path.append(pelem.get("name"))
         pelem = pelem.getparent()
     field_path.reverse()
@@ -458,7 +460,7 @@ def convert_domain_leaf(cr, model, field_path, leaf):
         # ```
         rv = f"{right}" if isinstance(right_ast, (ast.List, ast.Tuple)) else f"[{right}]"
         lv = str(left)
-        ttype = target_field_type(cr, model, left.split(".") + field_path)
+        ttype = target_field_type(cr, model, field_path + left.split("."))
         if isinstance(left, str) and ttype in ("one2many", "many2many"):  # array of ids
             res = f"set({lv}).intersection({rv})"  # odoo/odoo#139827, odoo/odoo#139451
             return f"(not {res})" if op == "not in" else f"({res})"
