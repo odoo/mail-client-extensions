@@ -126,7 +126,7 @@ def migrate(cr, version):
                 COALESCE(sot.invoice_mail_template_id, %s) AS invoice_mail_template_id,
                 sot.id AS template_id,
                 str.id AS recurrence_id,
-                str.active AS active
+                COALESCE(str.active, false) AND COALESCE(sot.active, false) AS active
            FROM combination
       LEFT JOIN sale_order_template sot ON sot.id = combination.sale_order_template_id
            JOIN sale_temporal_recurrence str ON str.id = combination.recurrence_id;
