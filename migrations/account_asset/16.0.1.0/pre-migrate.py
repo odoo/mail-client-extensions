@@ -39,7 +39,7 @@ def migrate(cr, version):
            -- make_date_leap is a function created before on this script
            SET prorata_date =
            CASE
-               WHEN method_period = '12'
+               WHEN asset.method_period = '12'
                THEN make_date_leap(
                        extract(YEAR FROM asset.first_depreciation_date)::int -
                        CASE
