@@ -41,9 +41,3 @@ def migrate(cr, version):
         "appointment.appointment_type_action_custom_and_work_hours",
         "appointment.appointment_type_action_custom_and_anytime",
     )
-    util.rename_xmlid(
-        cr,
-        "website_appointment.appointment_type_view_form_add",
-        "appointment.appointment_type_view_form_add_simplified",
-    )
-    util.update_record_from_xml(cr, "appointment.appointment_type_view_form_add_simplified")
