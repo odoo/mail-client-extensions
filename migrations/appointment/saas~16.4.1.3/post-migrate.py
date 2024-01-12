@@ -11,12 +11,15 @@ def migrate(cr, version):
         util.if_unchanged(cr, onboarding_step_id, util.update_record_from_xml)
 
     # force upgrade of some records to be sure of their coherency with new menus / rules
-    for xml_id in {
+    menu_xid = (
+        "menu_appointment_type_custom" if util.version_gte("17.0") else "menu_appointment_type_custom_and_anytime"
+    )
+    for xml_id in (
         "menu_appointment_resource",
-        "menu_appointment_type_custom_and_anytime",
+        menu_xid,
         "menu_appointment_invite",
         "group_appointment_manager",
-    }:
+    ):
         util.update_record_from_xml(cr, f"appointment.{xml_id}")
 
     # Populate appointment_resource_id for all events with a single booking line
