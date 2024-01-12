@@ -4,6 +4,7 @@ import collections
 import itertools
 import logging
 import re
+import uuid
 
 from lxml import etree
 from psycopg2.extras import Json
@@ -19,6 +20,10 @@ _logger = logging.getLogger(__name__)
 MODS = ["invisible", "readonly", "required", "column_invisible"]
 DEFAULT_CONTEXT_REPLACE = {"active_id": "id"}
 LIST_HEADER_CONTEXT_REPLACE = {"active_id": "context.get('active_id')"}
+
+
+class InvalidDomainError(Exception):
+    pass
 
 
 class Ast2StrVisitor(ast._Unparser):
@@ -121,6 +126,7 @@ def is_simple_pred(expr):
 
 
 def fix_elem(cr, model, elem, comb_arch):
+    success = True
     telem, inner_view_type, field_path = target_elem_and_view_type(elem, comb_arch)
 
     if elem.get("position") != "replace":
@@ -172,9 +178,19 @@ def fix_elem(cr, model, elem, comb_arch):
         # need to take the default value from target element since we can assume an override
         default_val = telem.get(mod, "") if telem is not None and mod in attrs else ""
         orig_mod = mod2bool_str(elem.get(mod, default_val).strip())
-        attr_mod = (
-            mod2bool_str(_clean_bool(convert_attrs_val(cr, model, field_path, attrs.get(mod)))) if mod in attrs else ""
-        )
+        try:
+            attr_mod = (
+                mod2bool_str(_clean_bool(convert_attrs_val(cr, model, field_path, attrs.get(mod))))
+                if mod in attrs
+                else ""
+            )
+        except InvalidDomainError as e:
+            domain = e.args[0]
+            _logger.error("Invalid domain `%s`, saved as data-upgrade-invalid-domain attribute", domain)  # noqa: TRY400
+            hex_hash = uuid.uuid4().hex[:6]
+            elem.attrib[f"data-upgrade-invalid-domain-{mod}-{hex_hash}"] = domain
+            attr_mod = ""
+            success = False
         # in list view we can switch the inline invisible into column_invisible
         # in case only the attrs invisible is present we can also use column_invisible
         if (
@@ -242,6 +258,8 @@ def fix_elem(cr, model, elem, comb_arch):
             _logger.info("Inlined %s=%r", key, value)
             elem.set(key, value)
 
+    return success
+
 
 def ast_parse(val):
     try:
@@ -252,6 +270,7 @@ def ast_parse(val):
 
 
 def fix_attrs(cr, model, arch, comb_arch):
+    success = True
     for elem in arch.xpath(
         "//attribute[@name='invisible' or @name='required' or @name='readonly' or @name='column_invisible']"
     ):
@@ -262,7 +281,7 @@ def fix_attrs(cr, model, arch, comb_arch):
 
     # inline all attrs combined with already inline values
     for elem in arch.xpath("//*[@attrs or @states or @invisible or @required or @readonly or @column_invisible]"):
-        fix_elem(cr, model, elem, comb_arch)
+        success &= fix_elem(cr, model, elem, comb_arch)
 
     # remove context elements
     for elem in arch.xpath("//tree/header/*[contains(@context, 'active_id')]"):
@@ -294,13 +313,15 @@ def fix_attrs(cr, model, arch, comb_arch):
         # keep track of extra keys in `attrs` if any
         extra_mods = [k.value for k in ast_parse(attrs_data.get("attrs", "{}")).keys if k.value not in MODS]
         fake_elem = etree.Element(parent.tag, {**parent.attrib, **attrs_data}, position="replace")
-        fix_elem(cr, model, fake_elem, comb_arch)
+        success &= fix_elem(cr, model, fake_elem, comb_arch)
         for mod in MODS + extra_mods:
             if mod not in fake_elem.attrib:
                 continue
             new_elem = etree.Element("attribute", name=mod)
             new_elem.text = fake_elem.get(mod)
             parent.append(new_elem)
+
+    return success
 
 
 def check_true_false(lv, ov, rv_ast):
@@ -365,14 +386,19 @@ def convert_attrs_val(cr, model, field_path, val):
         return mod2bool_str(val)
 
     if isinstance(val, ast.List):  # val is a domain
+        orig_ast = val
         val = val.elts
         if not val:
             return "True"  # all records match the empty domain
         # make an ast domain look like a domain, to be able to use normalize_domain
         val = [ast_term2domain_term(term) for term in val]
+        try:
+            norm_domain = normalize_domain(val)
+        except Exception:
+            raise InvalidDomainError(ast.unparse(orig_ast)) from None
         # convert domain into python expression
         stack = []
-        for item in reversed(normalize_domain(val)):
+        for item in reversed(norm_domain):
             if item == "!":
                 top = stack.pop()
                 stack.append(f"(not {top})")
@@ -557,6 +583,8 @@ def migrate(cr, version):
         cr.execute("UPDATE ir_ui_view SET active = False WHERE id IN %s", [ids])
     standard_modules = set(get_modules())
 
+    view_errors = collections.defaultdict(list)  # view.id -> langs
+
     def fix_archs(info, lang="en_US"):
         IrUiView = util.env(cr)["ir.ui.view"].with_context(load_all_views=True, lang=lang)
         new_archs = {}
@@ -583,7 +611,8 @@ def migrate(cr, version):
                 _logger.warning("Skipping adapt of attributes for model-less view (id=%s)", v.id)
             elif not md or md.module not in standard_modules or lang != "en_US":
                 # fix only custom views, or translations
-                fix_attrs(cr, v.model, arch, comb_arch)
+                if not fix_attrs(cr, v.model, arch, comb_arch):
+                    view_errors[v.id].append(lang)
                 new_archs[v.id] = (active, arch)
             else:
                 # We cannot rely in the restore of the views fixer
@@ -642,3 +671,39 @@ def migrate(cr, version):
                 """,
                 [f"{{{lang}}}", Json(data), tuple(data)],
             )
+
+    if not view_errors:
+        return
+    # report issues
+    cr.execute(
+        """
+        SELECT v.id,
+               v.name,
+               d.module || '.' || d.name
+          FROM ir_ui_view v
+     LEFT JOIN ir_model_data d
+            ON d.res_id = v.id
+           AND d.model = 'ir.ui.view'
+         WHERE v.id IN %s
+        """,
+        [tuple(view_errors)],
+    )
+    msg = """
+    <details>
+        <summary>
+            The following views had invalid domains in their attributes. The invalid domains were kept as
+            <code>upgrade-data-invalid-domain-&lt;...&gt;</code> attributes. Some translations may be also affected.
+        </summary>
+    <ul>{}</ul>
+    </details>
+    """.format(
+        "\n".join(
+            "<li>{} for language(s): {}</li>".format(
+                util.get_anchor_link_to_record("ir.ui.view", vid, (xmlid or name) + f"(id={vid})"),
+                ",".join(view_errors[vid]),
+            )
+            for vid, name, xmlid in cr.fetchall()
+        )
+    )
+
+    util.add_to_migration_reports(msg, category="Views", format="html")
