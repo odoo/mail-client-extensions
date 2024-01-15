@@ -83,7 +83,7 @@ def migrate(cr, version):
     # adapt email template (basic) expression
     for f in ["email_from", "email_to", "email_cc", "reply_to", "lang", "body_html"]:
         cr.execute(
-            fr"""
+            rf"""
             UPDATE mail_template
                 SET {f} = regexp_replace({f}, '\yobject\.user_id\y', 'object.user_ids[:1]', 'g')
               WHERE {f} ~ '\yobject\.user_id\y'
@@ -97,7 +97,6 @@ def migrate(cr, version):
     util.remove_column(cr, "project_task", "user_id")
     util.rename_field(cr, "project.task", "user_id", "user_ids")  # rename the field to keep the tracking values
     util.remove_field(cr, "project.task", "user_email")
-    util.update_record_from_xml(cr, "project.task_visibility_rule")
 
     cr.execute(
         """
