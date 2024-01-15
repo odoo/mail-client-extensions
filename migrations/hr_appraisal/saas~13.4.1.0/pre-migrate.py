@@ -95,6 +95,3 @@ def migrate(cr, version):
     for model, fields_to_remove in all_fields_to_remove.items():
         for field_to_remove in fields_to_remove.split():
             util.remove_field(cr, model, field_to_remove)
-
-    # Force noupdate data update
-    util.update_record_from_xml(cr, "hr_appraisal.hr_appraisal_rule_base_user")
