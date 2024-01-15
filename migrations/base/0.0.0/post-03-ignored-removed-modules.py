@@ -11,7 +11,24 @@ def migrate(cr, version):
     This scripts automaticaly remove the module if it is found in the environment and not in the addons path.
     """
 
-    exceptions = os.environ.get("suppress_upgrade_warnings", "").split(",")
+    suppress_upgrade_warnings = os.environ.get("suppress_upgrade_warnings", "")  # noqa: SIM112
+
+    if "module:payment_" in suppress_upgrade_warnings:
+        # note: model has been renamed in Odoo 16.0, but as we are in base|post, the table hasn't been renamed yet
+        table = "payment_provider" if util.version_gte("saas~16.1") else "payment_acquirer"
+        for prefix in ["express_checkout", "inline", "redirect", "token_inline"]:
+            column = prefix + "_form_view_id"
+            target = util.target_of(cr, table, column)
+            if target:
+                _, _, fk = target
+                query = """
+                        ALTER TABLE {}
+                    DROP CONSTRAINT {},
+                    ADD FOREIGN KEY ({}) REFERENCES ir_ui_view(id) ON DELETE SET NULL
+                """
+                cr.execute(util.format_query(cr, query, table, fk, column))
+
+    exceptions = suppress_upgrade_warnings.split(",")
     for exception in exceptions:
         if exception.startswith("module:"):
             module, _, version = exception[7:].partition(":")
