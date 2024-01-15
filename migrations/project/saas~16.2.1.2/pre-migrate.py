@@ -67,7 +67,7 @@ def migrate(cr, version):
             "done": "03_approved",
         }
 
-        if isinstance(value, (list, tuple)):  # noqa: SIM
+        if isinstance(value, (list, tuple)):  # noqa: SIM108
             value = [mapping.get(e, e) for e in value]
         else:
             value = mapping.get(value, value)
@@ -205,6 +205,3 @@ def migrate(cr, version):
     for model_name, fields in fields_to_remove_per_model_name.items():
         for field in fields:
             util.remove_field(cr, model_name, field)
-
-    util.update_record_from_xml(cr, "project.project_task_recurrence_1")
-    util.update_record_from_xml(cr, "project.project_task_recurrence_2")
