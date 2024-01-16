@@ -145,8 +145,6 @@ def migrate(cr, version):
     # See https://github.com/odoo/odoo/pull/115546
     util.update_field_usage(cr, "project.task", "display_project_id", "project_id")
 
-    util.update_record_from_xml(cr, "project.project_manager_all_project_tasks_rule")
-
     recurrence_fields = [
         "sun",
         "sat",
