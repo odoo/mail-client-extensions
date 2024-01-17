@@ -7,17 +7,18 @@ def migrate(cr, version):
     util.explode_execute(
         cr,
         """
-        UPDATE project_task
-            SET date_deadline = CASE
-                    WHEN planned_date_end >= planned_date_begin THEN planned_date_end
-                    WHEN date_deadline >= planned_date_begin THEN date_deadline
-                    ELSE null
-                END,
-                planned_date_begin = CASE
-                    WHEN planned_date_end >= planned_date_begin THEN planned_date_begin
-                    WHEN date_deadline >= planned_date_begin THEN planned_date_begin
-                    ELSE null
-                END
+            UPDATE project_task
+               SET date_deadline = planned_date_end
+             WHERE planned_date_end >= planned_date_begin
+        """,
+        table="project_task",
+    )
+    util.explode_execute(
+        cr,
+        """
+            UPDATE project_task
+               SET planned_date_begin = NULL
+             WHERE planned_date_begin > date_deadline
         """,
         table="project_task",
     )
