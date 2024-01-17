@@ -33,6 +33,28 @@ def migrate(cr, version):
     for record in rename_records:
         util.rename_xmlid(cr, record, record.replace("stress", "mandatory"))
 
+    cr.execute("DELETE FROM hr_leave_allocation WHERE state IN ('draft', 'cancel')")
+    amount_deleted = cr.rowcount
+
+    # warn admins
+    if amount_deleted:
+        util.add_to_migration_reports(
+            f"""
+<details>
+<summary>
+    Due to the removal of Draft and Cancel states on the time off allocations,
+    every allocation that was in one of those states prior to the migration to 17.0
+    has been removed.
+    On your database, a total of {amount_deleted} allocation(s) were removed.
+    If you allow employees to make allocation requests, it might be advised to
+    communicate this information so that they can create a new one if needed.
+</summary>
+</details>
+            """,
+            category="Time Off",
+            format="html",
+        )
+
     util.change_field_selection_values(
         cr,
         "hr.leave.accrual.level",
