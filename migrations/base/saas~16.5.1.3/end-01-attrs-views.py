@@ -442,13 +442,14 @@ def convert_domain_leaf(cr, model, field_path, leaf):
     Convert a domain leaf (tuple) into a python expression.
     It always return the expression surrounded by parenthesis such that it's safe to use it as a sub-expression.
     """
+    if isinstance(leaf, bool):
+        # JS allows almost everything in a domain, boolean fields have a clear meaning and they are
+        # interpreted in JS side as their boolean value, we do the same here.
+        return f"({leaf})"
     left, op, right_ast = leaf
     tf = check_true_false(left, op, right_ast)
     if tf is not None:
         return f"({tf})"
-    # string values in left must be interpreted as a field name
-    # string values in right are constants, hence we must use repr
-    # if isinstance(right, str):
 
     # see warnings from osv.expression.normalize_leaf
     # https://github.com/odoo/odoo/blob/7ff1dac42fe24d1070c569f99ae7a67fe66eda2b/odoo/osv/expression.py#L353-L358
