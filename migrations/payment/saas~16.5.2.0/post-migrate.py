@@ -36,6 +36,12 @@ def migrate(cr, version):
     for pm in existing_pms:
         util.update_record_from_xml(cr, f"payment.payment_method_{pm}")
 
+    # Activate pms in order to set them correctly for payment providers.
+    cr.commit()
+    cr.execute("UPDATE payment_method SET active = True WHERE active IS NOT True RETURNING id")
+    cr.commit()
+    inactive_ids = tuple(r[0] for r in cr.fetchall())
+
     # Bypass the noupdate=1 on providers to re-assign their new payment methods.
     provider_xmlids = [
         f"payment.payment_provider_{name}"
@@ -59,6 +65,11 @@ def migrate(cr, version):
     ]
     for xmlid in provider_xmlids:
         util.update_record_from_xml(cr, xmlid)
+
+    # Revert activation.
+    if inactive_ids:
+        cr.execute("UPDATE payment_method SET active=False WHERE id IN %s", [inactive_ids])
+        cr.commit()
 
     # Copy the payment methods of providers with the xmlid to their duplicates (same code).
     for xmlid in provider_xmlids:
@@ -104,9 +115,13 @@ def copy_payment_methods_to_duplicated_providers(cr, xmlid, extra_domain=None):
         msg = f"Base provider with xmlid {xmlid} not found."
         _logger.critical(msg)
         return
-    domain = [("code", "=", base_provider.code), ("id", "!=", base_provider.id)]
+    domain = [
+        ("code", "=", base_provider.code),
+        ("module_id", "=", base_provider.module_id.id),
+        ("id", "!=", base_provider.id),
+    ]
     if extra_domain:
-        expression.AND([domain, extra_domain])
+        domain = expression.AND([domain, extra_domain])
     duplicated_providers = env["payment.provider"].search(domain)
     for duplicate in duplicated_providers:
         duplicate.payment_method_ids = [
