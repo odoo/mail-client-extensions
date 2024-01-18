@@ -12,6 +12,7 @@ def migrate(cr, version):
                 WHEN 'child_support' THEN %s
                 END,
             no_end_date = (deduction_type = 'child_support')
+        WHERE deduction_type_id IS NULL
     """
     query = cr.mogrify(
         query,
