@@ -8,3 +8,4 @@ def migrate(cr, version):
     util.remove_view(cr, "l10n_mx_edi.view_l10n_mx_edi_ir_ui_view_form_inherit")
     util.remove_view(cr, "l10n_mx_edi.l10n_mx_edi_addenda_bosh_A_C")
     util.remove_view(cr, "l10n_mx_edi.l10n_mx_edi_addenda_autozone")
+    util.create_column(cr, "account_move", "l10n_mx_edi_addenda_id", "int4")
