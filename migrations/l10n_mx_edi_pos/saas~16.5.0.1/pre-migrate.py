@@ -4,7 +4,9 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.create_column(cr, "pos_order", "l10n_mx_edi_is_cfdi_needed", "bool")
-    util.create_column(cr, "pos_order", "l10n_mx_edi_cfdi_attachment_id", "int4")
+    util.create_column(
+        cr, "pos_order", "l10n_mx_edi_cfdi_attachment_id", "int4", fk_table="ir_attachment", on_delete_action="SET NULL"
+    )
     util.create_column(cr, "pos_order", "l10n_mx_edi_cfdi_state", "varchar")
     util.create_column(cr, "pos_order", "l10n_mx_edi_cfdi_sat_state", "varchar")
     util.create_column(cr, "pos_order", "l10n_mx_edi_cfdi_uuid", "varchar")

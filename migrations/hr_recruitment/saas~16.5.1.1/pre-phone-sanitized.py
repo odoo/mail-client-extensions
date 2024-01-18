@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys
 import uuid
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
-from psycopg2.extras import execute_batch
+from psycopg2.extras import Json
 
 from odoo.upgrade import util
 
@@ -32,12 +32,20 @@ def sanitize_fields(cr, san, phone_to_sanitize, phone_sanitized):
     """
     )
 
-    with ProcessPoolExecutor() as executor:
-        execute_batch(
-            cr._obj,
-            f"UPDATE hr_applicant SET {phone_sanitized} = %s WHERE id = %s",
-            executor.map(san.sanitize, *zip(*cr.fetchall())),
-        )
+    data = cr.fetchall()
+    queries = []
+
+    with ThreadPoolExecutor() as executor:
+        for batch in util.chunks(executor.map(san.sanitize, *zip(*data)), size=256):
+            values = {aid: phone for phone, aid in batch}
+            queries.append(
+                cr.mogrify(
+                    f"UPDATE hr_applicant SET {phone_sanitized} = %s::jsonb->id::text WHERE id IN %s",
+                    [Json(values), tuple(values)],
+                ).decode()
+            )
+
+    util.parallel_execute(cr, queries)
 
 
 def migrate(cr, version):
@@ -49,5 +57,15 @@ def migrate(cr, version):
     name = f"_upgrade_{uuid.uuid4().hex}"
     san = sys.modules[name] = util.import_script("sms/saas~12.5.2.0/sanitize.py", name=name)
 
+    util.create_column(cr, "hr_applicant", "partner_phone_sanitized", "varchar")
     sanitize_fields(cr, san, "partner_phone", "partner_phone_sanitized")
+
+    util.create_column(cr, "hr_applicant", "partner_mobile_sanitized", "varchar")
     sanitize_fields(cr, san, "partner_mobile", "partner_mobile_sanitized")
+
+    util.create_column(cr, "hr_applicant", "phone_sanitized", "varchar")
+    util.explode_execute(
+        cr,
+        "UPDATE hr_applicant SET phone_sanitized = COALESCE(partner_mobile_sanitized, partner_phone_sanitized)",
+        table="hr_applicant",
+    )

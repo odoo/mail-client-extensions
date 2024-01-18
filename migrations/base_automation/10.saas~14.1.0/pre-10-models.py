@@ -135,3 +135,4 @@ def migrate(cr, version):
     for f in "act_user_id act_followers server_action_ids".split():
         util.remove_field(cr, "base.automation", f)
     util.remove_column(cr, "base_automation", "name")  # keep ir.model.fields
+    util.remove_column(cr, "base_automation", "model_id")

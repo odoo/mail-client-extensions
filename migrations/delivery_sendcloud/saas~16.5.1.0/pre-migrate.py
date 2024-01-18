@@ -106,7 +106,9 @@ def migrate(cr, version):
     cr.execute("DROP FUNCTION sendcloud_csv_to_jsonb(text)")
 
     # Update delivery.carrier
-    util.create_column(cr, "delivery_carrier", "country_id", "integer")
+    util.create_column(
+        cr, "delivery_carrier", "country_id", "integer", fk_table="res_country", on_delete_action="SET NULL"
+    )
     util.create_column(cr, "delivery_carrier", "sendcloud_shipping_name", "varchar")
     util.create_column(cr, "delivery_carrier", "sendcloud_return_name", "varchar")
     util.create_column(cr, "delivery_carrier", "sendcloud_product_functionalities", "jsonb")

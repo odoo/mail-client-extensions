@@ -74,7 +74,9 @@ def migrate(cr, version):
         default_value="optional",
     )
     columns = util.get_columns(cr, "account_analytic_applicability")
-    util.create_column(cr, "account_analytic_applicability", "company_id", "int4")
+    util.create_column(
+        cr, "account_analytic_applicability", "company_id", "int4", fk_table="res_company", on_delete_action="SET NULL"
+    )
     cr.execute(
         f"""
         INSERT INTO account_analytic_applicability ({", ".join(columns)}, company_id)
@@ -130,7 +132,14 @@ def migrate(cr, version):
             [other_plan_ids],
         )
         for id_ in other_plan_ids:
-            util.create_column(cr, "account_analytic_line", f"x_plan{id_}_id", "int4")
+            util.create_column(
+                cr,
+                "account_analytic_line",
+                f"x_plan{id_}_id",
+                "int4",
+                fk_table="account_analytic_account",
+                on_delete_action="SET NULL",
+            )
 
         # Then move the value from the first column to the (new) correct one
         distributed_plans = ", ".join(

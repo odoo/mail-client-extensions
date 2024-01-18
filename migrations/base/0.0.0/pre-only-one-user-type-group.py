@@ -1,6 +1,18 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
+if util.version_gte("12.0"):
+    from odoo import models
+
+    from odoo.addons.base.models import res_users as _ignore  # noqa: F401
+
+    class Group(models.Model):
+        _inherit = "res.groups"
+        _module = "base"
+
+        def _check_one_user_type(self):
+            pass
+
 
 def migrate(cr, version):
     if util.version_gte("12.0"):

@@ -3,7 +3,9 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, "l10n_mx_edi_certificate", "company_id", "integer")
+    util.create_column(
+        cr, "l10n_mx_edi_certificate", "company_id", "integer", fk_table="res_company", on_delete_action="RESTRICT"
+    )
     cr.execute(
         """
             WITH info AS (

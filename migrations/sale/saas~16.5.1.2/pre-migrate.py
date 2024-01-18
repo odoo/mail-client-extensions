@@ -20,6 +20,8 @@ def migrate(cr, version):
 
     util.remove_field(cr, "product.template", "visible_qty_configurator")
     util.remove_field(cr, "payment.link.wizard", "show_confirmation_message")
+
+    util.create_column(cr, "sale_order", "journal_id", "int4", fk_table="account_journal", on_delete_action="RESTRICT")
     util.create_column(cr, "sale_order", "prepayment_percent", "numeric", default=1.0)
     util.create_column(cr, "res_company", "prepayment_percent", "numeric", default=1.0)
 

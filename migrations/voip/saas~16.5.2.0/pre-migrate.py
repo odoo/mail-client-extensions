@@ -2,6 +2,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # “cancel” and “open” states relate to calls generated from activities,
+    # which no longer exist after the refactoring.
+    util.explode_execute(cr, "DELETE FROM voip_phonecall WHERE state IN ('open', 'cancel')", table="voip_phonecall")
+
     util.create_column(cr, "voip_phonecall", "end_date", "timestamp")
     util.explode_execute(
         cr,
@@ -12,15 +16,6 @@ def migrate(cr, version):
              state = CASE WHEN state IN ('done', 'pending') THEN 'terminated' ELSE state END
         """,
         table="voip_phonecall",
-    )
-
-    # “cancel” and “open” states relate to calls generated from activities,
-    # which no longer exist after the refactoring.
-    cr.execute(
-        """
- DELETE FROM voip_phonecall
-       WHERE state IN ('open', 'cancel');
-        """
     )
 
     # Delete useless fields, mostly no longer relevant activity integration stuff.

@@ -591,6 +591,10 @@ def migrate(cr, version):
         for vid, active in info:
             IrUiView.invalidate_model()
             v = IrUiView.browse(vid)
+            if v.model == "board.board":
+                # board views have a dedicated schema and don't need to be fixed.
+                # Moreover, updating them using the ORM will lead to the lost of users' dashboards.
+                continue
             comb_arch = None
             # We do not get combined arch for inactive views, they can cause many issues
             # TODO: skip also combined arch if parent is inactive?
@@ -603,8 +607,8 @@ def migrate(cr, version):
                     comb_arch = v.inherit_id._get_combined_arch()
                 except Exception:
                     util._logger.exception("Error in view %s", v.id)
-            v.active = active
-            v.flush_recordset()
+            if active:
+                cr.execute("UPDATE ir_ui_view SET active=true WHERE id=%s", [vid])
             md = v.model_data_id
             arch = etree.fromstring(v.arch_db)
             if not v.model:
@@ -614,7 +618,7 @@ def migrate(cr, version):
                 if not fix_attrs(cr, v.model, arch, comb_arch):
                     view_errors[v.id].append(lang)
                 new_archs[v.id] = (active, arch)
-            else:
+            elif md.noupdate:
                 # We cannot rely in the restore of the views fixer
                 # it may fail if the view comes from a noupdate block
                 util.update_record_from_xml(cr, f"{md.module}.{md.name}")

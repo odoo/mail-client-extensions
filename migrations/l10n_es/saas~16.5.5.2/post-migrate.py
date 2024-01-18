@@ -77,9 +77,14 @@ def migrate(cr, version):
         [tuple(old_tag_ids)],
     )
     # reload new tags repartition lines
+    cr.commit()
     env = util.env(cr)
     CoA = env["account.chart.template"]
     for company in env["res.company"].search(
         [("chart_template", "in", ("es_pymes", "es_full", "es_assec", "es_common"))]
     ):
-        CoA.try_loading(company.chart_template, company=company, install_demo=False)
+        try:
+            CoA.try_loading(company.chart_template, company=company, install_demo=False)
+            cr.commit()
+        except:
+            cr.rollback()

@@ -26,7 +26,9 @@ def migrate(cr, version):
     )
     [model_id] = cr.fetchone()
 
-    util.create_column(cr, "mail_activity_plan", "department_id", "int4")
+    util.create_column(
+        cr, "mail_activity_plan", "department_id", "int4", fk_table="hr_department", on_delete_action="CASCADE"
+    )
     util.create_column(cr, "mail_activity_plan", "_old_id", "int4")
     cr.execute(
         f"""
@@ -45,8 +47,22 @@ def migrate(cr, version):
 
     util.create_column(cr, "mail_activity_plan_template", "_old_id", "int4")
     if util.module_installed(cr, "hr_contract_sign"):
-        util.create_column(cr, "mail_activity_plan_template", "sign_template_id", "int4")
-        util.create_column(cr, "mail_activity_plan_template", "employee_role_id", "int4")
+        util.create_column(
+            cr,
+            "mail_activity_plan_template",
+            "sign_template_id",
+            "int4",
+            fk_table="sign_template",
+            on_delete_action="SET NULL",
+        )
+        util.create_column(
+            cr,
+            "mail_activity_plan_template",
+            "employee_role_id",
+            "int4",
+            fk_table="sign_item_role",
+            on_delete_action="SET NULL",
+        )
         add_columns = ["sign_template_id", "employee_role_id"]
         add_column_insert = ", " + ", ".join(add_columns)
         add_column_select = ", " + ", ".join(f"old.{col}" for col in add_columns)

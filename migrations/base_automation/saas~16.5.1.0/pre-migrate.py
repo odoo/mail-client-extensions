@@ -6,7 +6,8 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.create_column(cr, "base_automation", "name", "jsonb")
-    util.create_column(cr, "base_automation", "model_id", "integer")
+    util.remove_column(cr, "base_automation", "model_id")  # pre 11.0 databases still have this column.
+    util.create_column(cr, "base_automation", "model_id", "integer", fk_table="ir_model", on_delete_action="CASCADE")
     util.create_column(cr, "base_automation", "model_name", "varchar")
     cr.execute(
         """
@@ -56,8 +57,8 @@ def migrate(cr, version):
         """
         % (
             "\n".join(
-                '<li>The converted automation rule "%s" (ID: %d) has a deprecated trigger and has been archived.</li>'
-                % (util.html_escape(automation["name"]["en_US"]), automation["id"])
+                "<li>The converted automation rule %s has a deprecated trigger and has been archived.</li>"
+                % (util.get_anchor_link_to_record("base.automation", automation["id"], automation["name"]["en_US"]),)
                 for automation in filter(lambda a: a["trigger"] in ["on_create", "on_write"], results)
             ),
         ),

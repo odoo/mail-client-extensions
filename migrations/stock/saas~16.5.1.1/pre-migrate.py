@@ -134,18 +134,14 @@ def migrate(cr, version):
     # warn admins
     util.add_to_migration_reports(
         """
-<details>
-<summary>
-    Transfers and production orders has been unreserved during migration.
-    The quantities registered before the migration are now in the quantity
-    column and mark as picked.
-    You can use the run scheduler action in debug mode to re-reserve other
-    operations.
-</summary>
-</details>
-            """,
+            Transfers and production orders has been unreserved during migration.
+            The quantities registered before the migration are now in the quantity
+            column and mark as picked.
+            You can use the run scheduler action in debug mode to re-reserve other
+            operations.
+        """,
         category="Inventory",
-        format="html",
+        format="md",
     )
 
     util.remove_field(cr, "stock.move", "reserved_availability")

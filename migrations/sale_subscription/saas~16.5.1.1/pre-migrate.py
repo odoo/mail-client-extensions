@@ -20,7 +20,9 @@ def migrate(cr, version):
         """
     )
 
-    util.create_column(cr, "sale_order_alert", "action_id", "integer")
+    util.create_column(
+        cr, "sale_order_alert", "action_id", "integer", fk_table="ir_act_server", on_delete_action="RESTRICT"
+    )
     cr.execute(
         """
             WITH actions AS (
@@ -124,7 +126,7 @@ def migrate(cr, version):
                 COALESCE(sot.invoice_mail_template_id, %s) AS invoice_mail_template_id,
                 sot.id AS template_id,
                 str.id AS recurrence_id,
-                str.active AS active
+                COALESCE(str.active, false) AND COALESCE(sot.active, false) AS active
            FROM combination
       LEFT JOIN sale_order_template sot ON sot.id = combination.sale_order_template_id
            JOIN sale_temporal_recurrence str ON str.id = combination.recurrence_id;
@@ -133,7 +135,9 @@ def migrate(cr, version):
     )
 
     # Update reference on Template
-    util.create_column(cr, "sale_order_template", "plan_id", "integer")
+    util.create_column(
+        cr, "sale_order_template", "plan_id", "integer", fk_table="sale_subscription_plan", on_delete_action="SET NULL"
+    )
     cr.execute(
         """
     UPDATE sale_order_template sot
@@ -145,7 +149,9 @@ def migrate(cr, version):
     )
 
     # Update reference on SO
-    util.create_column(cr, "sale_order", "plan_id", "integer")
+    util.create_column(
+        cr, "sale_order", "plan_id", "integer", fk_table="sale_subscription_plan", on_delete_action="RESTRICT"
+    )
     util.explode_execute(
         cr,
         """
@@ -161,7 +167,14 @@ def migrate(cr, version):
 
     # Update reference on company
     if util.column_exists(cr, "res_company", "subscription_default_recurrence_id"):
-        util.create_column(cr, "res_company", "subscription_default_plan_id", "integer")
+        util.create_column(
+            cr,
+            "res_company",
+            "subscription_default_plan_id",
+            "integer",
+            fk_table="sale_subscription_plan",
+            on_delete_action="SET NULL",
+        )
         cr.execute(
             """
           WITH ssp AS (
