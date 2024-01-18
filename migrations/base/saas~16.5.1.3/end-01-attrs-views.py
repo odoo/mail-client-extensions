@@ -621,7 +621,16 @@ def migrate(cr, version):
             elif md.noupdate:
                 # We cannot rely in the restore of the views fixer
                 # it may fail if the view comes from a noupdate block
-                util.update_record_from_xml(cr, f"{md.module}.{md.name}")
+                try:
+                    util.update_record_from_xml(cr, f"{md.module}.{md.name}")
+                except ValueError:
+                    # the xmlid may not exists.
+                    # This is the case for the `worksheet` module (and its donwstream dependencies) that create dynamic models
+                    # with views that have xmlids.
+                    # Consider its a custom view.
+                    if not fix_attrs(cr, v.model, arch, comb_arch):
+                        view_errors[v.id].append(lang)
+                    new_archs[v.id] = (active, arch)
         return new_archs
 
     # Now we update all archs at once, this updates also translations
