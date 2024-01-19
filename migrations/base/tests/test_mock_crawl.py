@@ -309,16 +309,17 @@ class TestCrawler(IntegrityCase):
         with contextlib.ExitStack() as stack:
             origin_read = Action.read
             action_fields = self.action_type_fields["ir.actions.actions"]
-            stack.enter_context(
-                patch.object(
-                    # To specify the list of fields to read on actions,
-                    # because `get_bindings` calls read without passing the list fields,
-                    # and it therefore reads alls the fields, and some custom fields might be broken.
-                    Action,
-                    "read",
-                    lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
+            if not util.version_gte("15.0"):
+                stack.enter_context(
+                    patch.object(
+                        # To specify the list of fields to read on actions,
+                        # because `get_bindings` calls read without passing the list fields,
+                        # and it therefore reads alls the fields, and some custom fields might be broken.
+                        Action,
+                        "read",
+                        lambda self, *args, **kwargs: origin_read(self, fields=action_fields),
+                    )
                 )
-            )
             if hasattr(Action, "flush"):
                 origin_flush = getattr(Action, "flush", None)
                 stack.enter_context(
