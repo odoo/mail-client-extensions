@@ -1,0 +1,14 @@
+# -*- coding: utf-8 -*-
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    # refresh templates to update some wrongly-defined fields, only if not customized
+    if util.version_gte("saas~14.5"):
+        util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_confirm", util.update_record_from_xml)
+    else:
+        util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_confirm_employee", util.update_record_from_xml)
+        util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_confirm_manager", util.update_record_from_xml)
+
+    util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_request", util.update_record_from_xml)
+    util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_request_from_employee", util.update_record_from_xml)
