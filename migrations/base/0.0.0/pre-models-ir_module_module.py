@@ -4,7 +4,7 @@ import logging
 from odoo import models
 
 try:
-    from odoo.addons.base.models import ir_module as _ignore  # noqa
+    from odoo.addons.base.models import ir_module as _ignore
 except ImportError:
     # version 10
     from odoo.addons.base.module import module as _ignore  # noqa
@@ -15,7 +15,51 @@ _logger = logging.getLogger("odoo.upgrade.base.ir_module_module")
 
 
 def migrate(cr, version):
-    pass
+    if not util.version_gte("15.0"):
+        return
+    cr.execute(
+        """
+        WITH RECURSIVE info AS (
+         SELECT array[id] AS path,
+                False AS cycle
+           FROM ir_module_category
+          WHERE parent_id IS NOT NULL
+
+          UNION ALL
+
+         SELECT child.parent_id || curr.path AS path,
+                child.parent_id = any(curr.path) AS cycle
+           FROM info AS curr
+           JOIN ir_module_category AS child
+             ON child.id = curr.path[1]
+          WHERE child.parent_id IS NOT NULL
+            AND NOT curr.cycle
+         )
+         SELECT path FROM info WHERE cycle
+        """,
+    )
+    if not cr.rowcount:
+        return
+    ids = []
+    done = set()
+    for (cycle,) in cr.fetchall():
+        to_break = min(cycle[: cycle.index(cycle[0], 1)])
+        if to_break not in done:
+            ids.append(to_break)
+        done.update(cycle)
+    cr.execute(
+        """
+        UPDATE ir_module_category
+           SET parent_id = NULL
+         WHERE id IN %s
+     RETURNING id, name
+        """,
+        [tuple(ids)],
+    )
+    _logger.warning(
+        "The module categories %s were found to be recursive, their `parent_id` were set to NULL",
+        ", ".join("{!r} (id={})".format(name, id_) for id_, name in cr.fetchall()),
+    )
 
 
 class Module(models.Model):
