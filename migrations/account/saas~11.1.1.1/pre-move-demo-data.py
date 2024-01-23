@@ -30,5 +30,10 @@ def migrate(cr, version):
         opening_line_3
     """
 
-    for xid in util.splitlines(lst):
-        util.rename_xmlid(cr, "account." + xid, "l10n_generic_coa." + xid)
+    if util.module_installed(cr, "l10n_generic_coa"):
+        for xid in util.splitlines(lst):
+            util.rename_xmlid(cr, "account." + xid, "l10n_generic_coa." + xid)
+    else:
+        # avoid deletion
+        for xid in util.splitlines(lst):
+            util.force_noupdate(cr, "account." + xid, noupdate=True)
