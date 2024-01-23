@@ -151,6 +151,7 @@ def migrate(cr, version):
                SET matching_number = 'P' || matching.min_id
               FROM matching
              WHERE matching.line_id = line.id
+               AND line.full_reconcile_id IS NULL
                AND {parallel_filter}
             """,
             table="account_move_line",
