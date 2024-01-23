@@ -10,6 +10,7 @@ except ImportError:
     Command = None
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util import module_installed
 
 
 @change_version("saas~16.2")
@@ -29,6 +30,15 @@ class TestAmountToInvoice(UpgradeCase):
                 "taxes_id": False,
             }
         )
+        journal_data = {
+            "name": "TestAmountToInvoice[16.2]",
+            "code": "TATI",
+            "type": "sale",
+        }
+        if module_installed(self.env.cr, "l10n_latam_invoice_document"):
+            journal_data["l10n_latam_use_documents"] = False
+
+        journal = self.env["account.journal"].create(journal_data)
 
         sale_order = self.env["sale.order"].create(
             {
@@ -52,7 +62,7 @@ class TestAmountToInvoice(UpgradeCase):
                 "sale_order_ids": [Command.set(sale_order.ids)],
             }
         )
-        downpayment.create_invoices()
+        downpayment.with_context({"default_journal_id": journal.id}).create_invoices()
 
         invoice = sale_order.invoice_ids
         invoice.write({"invoice_date": invoice_date})
