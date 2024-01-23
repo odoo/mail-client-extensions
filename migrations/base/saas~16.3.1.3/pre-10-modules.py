@@ -44,6 +44,16 @@ def migrate(cr, version):
                 """
             )
             util.uninstall_module(cr, "note")
+        elif util.on_CI():
+            act = util.ref(cr, "project.project_2_activity_1")
+            meeting = util.ref(cr, "mail.mail_activity_data_meeting")
+            if meeting and not act:
+                # if `calendar` is installed but `project` not, the creation of `project` demo data fail.
+                # Avoid that by forcing data value.
+                cr.execute(
+                    "UPDATE mail_activity_type SET category='default' WHERE id=%s AND category='meeting'",
+                    [meeting],
+                )
     util.rename_module(cr, "note", "project_todo")
 
     if util.module_installed(cr, "sale_subscription"):
