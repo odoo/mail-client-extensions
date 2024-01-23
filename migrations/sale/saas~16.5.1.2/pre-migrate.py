@@ -4,20 +4,30 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.create_column(cr, "product_document", "attached_on", "varchar")
     if util.column_exists(cr, "ir_attachment", "product_downloadable"):
-        cr.execute(
-            """
+        query = """
         INSERT INTO product_document (ir_attachment_id, active, attached_on)
              SELECT ia.id,
                     TRUE,
-                    'sale_order'
+                    CASE WHEN ia.product_downloadable THEN 'sale_order' ELSE NULL END
                FROM ir_attachment ia
               WHERE ia.res_model IN ('product.template', 'product.product')
-                AND ia.product_downloadable
+                AND ia.res_field IS NULL
         """
-        )
+        util.explode_execute(cr, query, table="ir_attachment", alias="ia")
 
         util.remove_field(cr, "ir.attachment", "product_downloadable")
-
+    else:
+        util.explode_execute(
+            cr,
+            """
+            INSERT INTO product_document (ir_attachment_id, active)
+            SELECT id, TRUE
+              FROM ir_attachment
+             WHERE ir_attachment.res_model IN ('product.template','product.product')
+               AND ir_attachment.res_field IS NULL
+            """,
+            table="ir_attachment",
+        )
     util.remove_field(cr, "product.template", "visible_qty_configurator")
     util.remove_field(cr, "payment.link.wizard", "show_confirmation_message")
 
