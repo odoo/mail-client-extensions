@@ -30,6 +30,7 @@ class Groups(models.Model):
 
         values = dict(values)
         values.pop("implied_ids")
+        to_write = self.browse()
         for group in self:
             ids = set(group.implied_ids.ids)
             for cmd in implied_ids:
@@ -51,4 +52,7 @@ class Groups(models.Model):
                     implied_ids,
                     group,
                 )
+                to_write |= group
+        if to_write:
+            super(Groups, to_write).write(values)
         return True
