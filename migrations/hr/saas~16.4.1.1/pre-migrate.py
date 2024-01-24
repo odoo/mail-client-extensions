@@ -59,6 +59,7 @@ def migrate(cr, version):
                    email = NULL
               FROM hr_employee e
              WHERE p.id = e.address_home_id
+               AND p.type = 'private'
         """,
         table="res_partner",
         alias="p",
@@ -74,6 +75,7 @@ def migrate(cr, version):
                      ON e.address_home_id = p.id
                   WHERE m.model = 'res.partner'
                     AND m.res_id = p.id
+                    AND p.type = 'private'
         """,
         table="mail_message",
         alias="m",
