@@ -25,9 +25,6 @@ def migrate(cr, version):
     util.remove_record(cr, "hr_attendance.hr_attendance_rule_attendance_overtime_employee")
     util.remove_record(cr, "hr_attendance.hr_attendance_report_rule_multi_company")
 
-    util.update_record_from_xml(cr, "base.user_demo", from_module="hr_attendance")
-    util.update_record_from_xml(cr, "hr.employee_admin", from_module="hr_attendance")
-
     # res.config.settings
     util.remove_field(cr, "res.config.settings", "group_attendance_use_pin")
 

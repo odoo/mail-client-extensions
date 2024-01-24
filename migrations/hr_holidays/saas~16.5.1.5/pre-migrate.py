@@ -6,7 +6,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.if_unchanged(cr, "hr_holidays.hr_leave_rule_multicompany", util.update_record_from_xml)
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("hr_holidays.menu_hr_holidays_{approvals,management}"))
     util.rename_model(cr, "hr.leave.stress.day", "hr.leave.mandatory.day")

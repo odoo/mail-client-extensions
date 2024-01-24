@@ -5,7 +5,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     eb = util.expand_braces
     util.if_unchanged(cr, "im_livechat.mail_shortcode_data_hello", util.update_record_from_xml)
-    util.if_unchanged(cr, "im_livechat.mail_canned_response_bye", util.update_record_from_xml)
+
     # Rename mail.channel to discuss.channel
     util.rename_field(cr, "chatbot.message", *eb("{mail,discuss}_channel_id"))
     xmlids = """

@@ -4,16 +4,19 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     util.drop_depending_views(cr, "product_attribute", "create_variant")
-    cr.execute("""
+    cr.execute(
+        """
         ALTER TABLE product_attribute
         ALTER COLUMN create_variant
          TYPE varchar
         USING CASE WHEN create_variant=true THEN 'always' ELSE 'no_variant' END
-    """)
+        """
+    )
 
     util.rename_model(cr, "product.attribute.line", "product.template.attribute.line")
 
-    cr.execute("""
+    cr.execute(
+        """
         CREATE TABLE product_template_attribute_value (
             id SERIAL PRIMARY KEY,
             create_uid integer,
@@ -24,8 +27,10 @@ def migrate(cr, version):
             product_tmpl_id integer,
             price_extra float8
         )
-    """)
-    cr.execute("""
+        """
+    )
+    cr.execute(
+        """
         INSERT INTO product_template_attribute_value(product_attribute_value_id, product_tmpl_id, price_extra)
              SELECT r.product_attribute_value_id, p.product_tmpl_id, COALESCE(i.price_extra, 0) price_extra
                FROM product_attribute_value_product_product_rel r
@@ -42,16 +47,21 @@ def migrate(cr, version):
                JOIN product_attribute pa
                  ON pal.attribute_id=pa.id
               WHERE pa.create_variant='no_variant'
-    """)
-    cr.execute("""
+        """
+    )
+    cr.execute(
+        """
         ALTER TABLE product_attribute_line_product_attribute_value_rel
           RENAME TO product_attribute_value_product_template_attribute_line_rel
-    """)
-    cr.execute("""
+        """
+    )
+    cr.execute(
+        """
         ALTER TABLE product_attribute_value_product_template_attribute_line_rel
       RENAME COLUMN product_attribute_line_id
                  TO product_template_attribute_line_id
-    """)
+        """
+    )
 
     util.remove_field(cr, "product.attribute.value", "product_ids")
     util.remove_field(cr, "product.attribute.value", "price_extra")
@@ -64,4 +74,4 @@ def migrate(cr, version):
     util.remove_record(cr, "product.product_attribute_value_action")
     util.remove_view(cr, "product.assets_backend")
 
-    util.force_noupdate(cr, "product.product_template_form_view", False)
+    util.force_noupdate(cr, "product.product_template_form_view", noupdate=False)

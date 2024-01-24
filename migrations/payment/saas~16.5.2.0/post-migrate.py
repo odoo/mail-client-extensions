@@ -22,9 +22,7 @@ def migrate(cr, version):
         "cirrus",
         "unionpay",
         "paypal",
-        "apple_pay",
         "bancontact",
-        "western_union",
         "sepa_direct_debit",
         "ideal",
         "giropay",
@@ -84,6 +82,19 @@ def migrate(cr, version):
         cr, cr.mogrify("UPDATE payment_token SET payment_method_id=%s", [unknown_pm_id]).decode(), table="payment_token"
     )
     # TODO: include link to documentation in migration report after it is written.
+
+    gone = """
+        payment_method_airtel_money
+        payment_method_apple_pay
+        payment_method_barter_by_flutterwave
+        payment_method_bbva_bancomer
+        payment_method_citibanamex
+        payment_method_mtn_mobile_money
+        payment_method_sadad
+        payment_method_webmoney
+        payment_method_western_union
+    """
+    util.delete_unused(cr, *[f"payment.{pm}" for pm in util.splitlines(gone)])
 
 
 def copy_payment_methods_to_duplicated_providers(cr, xmlid, extra_domain=None):

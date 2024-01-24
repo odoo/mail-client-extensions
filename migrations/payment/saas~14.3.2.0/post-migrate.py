@@ -2,10 +2,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     # === PAYMENT ACQUIRER === #
 
-    util.update_record_from_xml(cr, "payment.payment_acquirer_odoo")
+    if not util.version_gte("saas~14.5"):
+        util.update_record_from_xml(cr, "payment.payment_acquirer_odoo")
     util.update_record_from_xml(cr, "payment.payment_acquirer_ogone")
 
     # === PAYMENT ICON === #

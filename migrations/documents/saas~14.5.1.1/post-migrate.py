@@ -3,6 +3,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.update_record_from_xml(cr, "documents.documents_document_write_rule")
     util.if_unchanged(
         cr,
         "documents.mail_template_document_request",

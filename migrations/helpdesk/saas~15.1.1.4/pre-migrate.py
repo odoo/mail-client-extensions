@@ -33,6 +33,3 @@ def migrate(cr, version):
 
     util.rename_field(cr, "helpdesk.team", "upcoming_sla_fail_tickets", "sla_failed")
     util.remove_record(cr, "helpdesk.action_upcoming_sla_fail_all_tickets")
-
-    # https://github.com/odoo/enterprise/pull/25461
-    util.if_unchanged(cr, "helpdesk.helpdesk_portal_ticket_rule", util.update_record_from_xml)

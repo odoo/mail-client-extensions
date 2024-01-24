@@ -76,11 +76,6 @@ def migrate(cr, version):
     """
     )
 
-    util.update_record_from_xml(cr, "project.project_public_members_rule")
-    util.update_record_from_xml(cr, "project.task_visibility_rule")
-    util.update_record_from_xml(cr, "project.project_project_rule_portal")
-    util.update_record_from_xml(cr, "project.project_task_rule_portal")
-
     util.remove_field(cr, "project.project", "allowed_user_ids")
     util.remove_field(cr, "project.project", "allowed_internal_user_ids")
     util.remove_field(cr, "project.project", "allowed_portal_user_ids")

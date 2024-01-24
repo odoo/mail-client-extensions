@@ -2,12 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.rename_xmlid(
-        cr,
-        "payment_demo.payment_method_test",
-        "payment_demo.payment_method_demo",
-    )
-    util.update_record_from_xml(cr, "payment_demo.payment_method_demo")
+    util.remove_record(cr, "payment_demo.payment_method_test")
 
     cr.execute(
         """

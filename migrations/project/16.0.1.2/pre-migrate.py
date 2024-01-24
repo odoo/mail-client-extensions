@@ -25,5 +25,3 @@ def migrate(cr, version):
 
     util.remove_field(cr, "project.project", "analytic_tag_ids")
     util.remove_field(cr, "project.task", "analytic_tag_ids")
-    # https://github.com/odoo/odoo/pull/101006
-    util.if_unchanged(cr, "project.burndown_chart_project_user_rule", util.update_record_from_xml)

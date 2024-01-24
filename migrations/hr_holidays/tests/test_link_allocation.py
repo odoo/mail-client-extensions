@@ -2,11 +2,14 @@
 
 import time
 
+from freezegun import freeze_time
+
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("saas~14.5")
 class TestLinkAllocation(UpgradeCase):
+    @freeze_time("2022-12-12")
     def prepare(self):
         employees = self.env["hr.employee"].create(
             [
@@ -89,6 +92,7 @@ class TestLinkAllocation(UpgradeCase):
             [leave.id for leave in leaves],
         )
 
+    @freeze_time("2022-12-12")
     def check(self, init):
         emp_ids, leave_type_ids, alloc_ids, leave_ids = init
 

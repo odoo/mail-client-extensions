@@ -53,6 +53,3 @@ def migrate(cr, version):
          WHERE cte.future_driver_id = v.driver_id
     """
     cr.execute(query)
-
-    util.update_record_from_xml(cr, "fleet.fleet_rule_contract_visibility_user")
-    util.update_record_from_xml(cr, "fleet.fleet_rule_service_visibility_user")

@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from odoo.upgrade import util
 from odoo.upgrade.util.jinja_to_qweb import upgrade_jinja_fields
 
 
 def migrate(cr, version):
-    util.update_record_from_xml(cr, "planning.email_template_slot_single")
-    util.update_record_from_xml(cr, "planning.email_template_planning_planning")
-
     inline_template_fields = [
         "subject",
         "preview",

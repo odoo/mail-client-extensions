@@ -3,10 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    cr.execute("select module,name from ir_model_data where model='account.tax' and module='l10n_be'")
-    for module, id in cr.fetchall():
-        util.update_record_from_xml(cr, "%s.%s" % (module, id))
-
     util.replace_record_references_batch(
         cr,
         {

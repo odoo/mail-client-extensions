@@ -3,8 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.update_record_from_xml(cr, "project.project_manager_all_project_tasks_rule")
-
     cr.execute(
         """
         UPDATE project_task_type

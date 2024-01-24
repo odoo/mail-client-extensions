@@ -19,8 +19,3 @@ def migrate(cr, version):
 
     util.create_column(cr, "helpdesk_sla_status", "exceeded_hours", "float8")
     util.create_column(cr, "helpdesk_ticket", "sla_reached", "boolean")
-
-    # https://github.com/odoo/enterprise/pull/26811
-    util.if_unchanged(cr, "helpdesk.helpdesk_portal_ticket_rule", util.update_record_from_xml)
-    # https://github.com/odoo/enterprise/pull/31804
-    util.if_unchanged(cr, "helpdesk.helpdesk_sla_report_analysis_rule_manager", util.update_record_from_xml)

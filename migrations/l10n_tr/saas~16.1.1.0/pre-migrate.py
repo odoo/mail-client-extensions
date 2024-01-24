@@ -10,4 +10,9 @@ def migrate(cr, version):
     util.delete_unused(cr, "l10n_tr.chart_template_7a")
     util.delete_unused(cr, "l10n_tr.chart_template_7b")
 
-    util.if_unchanged(cr, "l10n_tr.tax_group_kdv_18", util.update_record_from_xml)
+    if util.version_gte("saas~16.2"):
+        # now defined as csv, not updatable from xml.
+        util.force_noupdate(cr, "l10n_tr.tax_group_kdv_18", noupdate=False)
+        util.force_noupdate(cr, "l10n_tr.tax_group_kdv_20", noupdate=False)
+    else:
+        util.if_unchanged(cr, "l10n_tr.tax_group_kdv_18", util.update_record_from_xml)

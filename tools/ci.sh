@@ -5,6 +5,7 @@ set -euo pipefail
 
 HERE=$(dirname "$0")
 UPGRADEDIR=$(realpath "$HERE/..")
+UUDIR=$(realpath "$HERE/../../upgrade-util")
 
 DATADIR="$HOME/.local/share/Odoo"
 MATTDIR="$DATADIR/upgrade_ci/matt"
@@ -37,6 +38,8 @@ touch "$TMPDIR/q"
 set -x
 # run matt via docker
 docker run --rm --tty --network=none \
-    -v "$UPGRADEDIR:/upgrade" -v "$MATTDIR:/matt" \
+    -v "$UPGRADEDIR:/upgrade" \
+    -v "$UUDIR:/upgrade-util" \
+    -v "$MATTDIR:/matt" \
     -e TMPDIR=/tmp -v "$TMPDIR/q:/tmp/q" \
     "$DOCKER_IMAGE" /run-matt.sh "$@"

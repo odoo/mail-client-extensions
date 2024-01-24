@@ -77,6 +77,4 @@ def migrate(cr, version):
            AND public = 'private'
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="mail_channel"))
-    util.update_record_from_xml(cr, "mail.mail_channel_rule")
-    util.update_record_from_xml(cr, "mail.ir_rule_mail_channel_member_group_user")
     util.remove_field(cr, "mail.channel", "public")

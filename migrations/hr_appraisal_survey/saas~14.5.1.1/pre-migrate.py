@@ -18,7 +18,6 @@ def migrate(cr, version):
         """
     )
 
-    util.update_record_from_xml(cr, "survey.survey_user_input_rule_survey_user_read")
     util.create_m2m(cr, "hr_appraisal_survey_survey_rel", "survey_survey", "hr_appraisal")
     cr.execute(
         """

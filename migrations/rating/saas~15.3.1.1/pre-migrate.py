@@ -10,10 +10,10 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, "rating.rating_rating_view", "rating.rating_rating_action")
     util.rename_xmlid(cr, "im_livechat.rating_rating_view_form_livechat", "rating.rating_rating_view_form_text")
-    util.rename_xmlid(
+    if util.rename_xmlid(
         cr, "website_slides.rating_rating_view_kanban_slide_channel", "rating.rating_rating_view_kanban_stars"
-    )
-    util.update_record_from_xml(cr, "rating.rating_rating_view_kanban_stars")
+    ):
+        util.update_record_from_xml(cr, "rating.rating_rating_view_kanban_stars")
 
     # adapt mail templates (and their translations) from method renaming
     fields_toupdate = [

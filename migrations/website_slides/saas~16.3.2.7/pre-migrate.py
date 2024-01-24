@@ -24,8 +24,6 @@ def migrate(cr, version):
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="slide_channel_partner"))
 
     util.rename_field(cr, "slide.channel", "members_done_count", "members_completed_count")
-    util.update_record_from_xml(cr, "website_slides.rule_slide_slide_signed_in_user")
-    util.update_record_from_xml(cr, "website_slides.rule_slide_channel_visibility_signed_in_user")
 
     def adapter(leaf, _, __):
         left, operator, right = leaf
@@ -34,5 +32,3 @@ def migrate(cr, version):
 
     util.update_field_usage(cr, "slide.channel.partner", "completed", "member_status", domain_adapter=adapter)
     util.remove_field(cr, "slide.channel.partner", "completed")
-
-    util.if_unchanged(cr, "website_slides.rule_slide_slide_resource_downloadable", util.update_record_from_xml)
