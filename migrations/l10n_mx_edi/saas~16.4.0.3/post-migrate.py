@@ -9,7 +9,7 @@ def migrate(cr, _version):
         """
             INSERT INTO l10n_mx_edi_document (datetime, move_id, attachment_id, state, sat_state)
             SELECT
-                COALESCE(doc.write_date, att.create_date),
+                COALESCE(doc.write_date, att.create_date, move.create_date),
                 doc.move_id,
                 doc.attachment_id,
                 CASE WHEN move.payment_id IS NOT NULL OR move.statement_line_id IS NOT NULL
