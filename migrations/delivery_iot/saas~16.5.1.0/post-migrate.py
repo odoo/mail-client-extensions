@@ -7,7 +7,7 @@ def migrate(cr, version):
     cr.execute(
         """
             INSERT INTO iot_device_ir_act_report_xml_rel (iot_device_id, ir_act_report_xml_id)
-            SELECT iot_printer_id, %s FROM stock_picking_type WHERE iot_printer_id IS NOT NULL
+            SELECT DISTINCT iot_printer_id, %s FROM stock_picking_type WHERE iot_printer_id IS NOT NULL
         """,
         [util.ref(cr, "delivery_iot.action_report_shipping_labels")],
     )
