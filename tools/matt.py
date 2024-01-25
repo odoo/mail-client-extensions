@@ -18,7 +18,7 @@ from concurrent.futures import ProcessPoolExecutor
 from contextlib import ExitStack, closing
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Generic, List, NamedTuple, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, FrozenSet, Generic, List, NamedTuple, Optional, Sequence, TypeVar, Union
 
 try:
     from setproctitle import setproctitle  # type: ignore
@@ -369,10 +369,15 @@ def extract_warnings(dbname, log):
 
 
 @result
-def process_module(module: str, workdir: Path, options: Namespace) -> None:
+def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -> None:
     config_logger(options)
-    setproctitle(f"matt :: {options.source} -> {options.target} // {module}")
-    dbname = f"matt-{module}"
+    module_plus = "+".join(sorted(modules))
+    setproctitle(f"matt :: {options.source} -> {options.target} // {module_plus}")
+    dbname = f"matt-{module_plus}"
+
+    l10n_modules = [m for m in modules if "l10n_" in m]
+    if len(l10n_modules) > 1:
+        raise ValueError("installing multiple `l10n_` modules is not yet supported")
 
     # create the database
     logger.info("create db %s in version %s", dbname, options.source)
@@ -396,7 +401,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
         ODOO_UPG_DB_TARGET_VERSION=options.target.name,
     )
 
-    def odoo(cmd: List[str], *, version: Version, python: Optional[Path], module: str = module) -> bool:
+    def odoo(cmd: List[str], *, version: Version, python: Optional[Path], module: str = module_plus) -> bool:
         cwd = workdir / "odoo" / version.odoo
         ad_path = ",".join(
             str(ad)
@@ -428,18 +433,18 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             cmd += ["--upgrade-path", options.upgrade_path[version]]
 
         step = "upgrading" if "-u" in cmd else "testing" if "--test-tags" in cmd else "installing"
-        logger.debug("%s module %s at version %s", step, module, version)
+        logger.debug("%s module set %s at version %s", step, module, version)
         logger.debug("[+] %s", " ".join(shlex.quote(arg) for arg in cmd))
         p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, check=False)
         stdout = p.stdout.decode()
         if p.returncode:
-            logger.error("Error (returncode=%s) while %s module %s:\n%s", p.returncode, step, module, stdout)
+            logger.error("Error (returncode=%s) while %s module set %s:\n%s", p.returncode, step, module, stdout)
             p.check_returncode()
 
         warns = "\n".join(extract_warnings(dbname, stdout))
         if warns:
             output = stdout if logger.isEnabledFor(logging.DEBUG) else warns
-            logger.warning("Some warnings/errors emitted while %s module %s:\n%s", step, module, output)
+            logger.warning("Some warnings/errors emitted while %s module set %s:\n%s", step, module, output)
             return False
         return True
 
@@ -448,8 +453,9 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
 
     # For versions >= 9.0, the main partner needs to be in the country of the installed l10n module.
     # If we cannot determine the version name, we assume than we try to upgrade from a version >= 9.0.
-    if "l10n_" in module and (not options.source.name or options.source.ints >= (9, 0)):
+    if l10n_modules and (not options.source.name or options.source.ints >= (9, 0)):
         # create a `base` db and modify the non-demo partners country before installing the localization
+        (module,) = l10n_modules
         odoo(["-i", "base"], **source, module="base")
         cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
 
@@ -466,7 +472,9 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             "generic": ("us", module, None),
             "multilang": ("be", "l10n_be", None),
         }
-        cc, module, l10n_module = cc_map.get(cc, (cc, module, None))
+        cc, new_module, l10n_module = cc_map.get(cc, (cc, module, None))
+        if new_module != module:
+            modules = (modules - {module}) | {new_module}
 
         sql = f"""
             UPDATE res_partner p
@@ -493,7 +501,7 @@ def process_module(module: str, workdir: Path, options: Namespace) -> None:
             # Explicitly install the localisation.
             odoo(["-i", l10n_module], **source, module=l10n_module)
 
-    odoo(["-i", module], **source, module=module)
+    odoo(["-i", ",".join(modules)], **source)
 
     # tests: preparation
     if options.run_tests:
@@ -687,26 +695,34 @@ def matt(options: Namespace) -> int:
         # We should also search modules in the $pkgdir/addons of the source
         base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
 
+        def glob(mod_glob):
+            return {
+                m.parent.name
+                for repo in [base_ad, *REPOSITORIES]
+                for wd in [workdir / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
+                for m in itertools.chain(
+                    wd.glob(f"{mod_glob}/__manifest__.py"),
+                    wd.glob(f"{mod_glob}/__openerp__.py"),
+                    wd.glob(f"{mod_glob}/__terp__.py"),
+                )
+                if repo.addons_dir
+                if all(not m.parent.relative_to(wd).match(mod_ign) for mod_ign in options.module_ignores or [])
+                # Don't match test modules via wilcards, unless explicitly asked for.
+                if "test" not in m.parent.name or "test" in mod_glob
+            }
+
         modules = {
-            m.parent.name
-            for repo in [base_ad, *REPOSITORIES]
+            p
             for mod_glob in options.module_globs or ["*"]
-            for wd in [workdir / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
-            for m in itertools.chain(
-                wd.glob(f"{mod_glob}/__manifest__.py"),
-                wd.glob(f"{mod_glob}/__openerp__.py"),
-                wd.glob(f"{mod_glob}/__terp__.py"),
-            )
-            if repo.addons_dir
-            if all(not m.parent.relative_to(wd).match(mod_ign) for mod_ign in options.module_ignores or [])
-            # Don't match test modules via wilcards, unless explicitly asked for.
-            if "test" not in m.parent.name or "test" in mod_glob
+            for p in map(frozenset, itertools.product(*(glob(s.strip()) for s in mod_glob.split("+"))))
+            if len(p) == mod_glob.count("+") + 1
         }
+
         if not modules:
             logger.error("No module found")
             return 1
         total = len(modules)
-        logger.info("Upgrading %d modules", total)
+        logger.info("Upgrading %d module sets", total)
 
         rc = 0
         with ProcessPoolExecutor(max_workers=min(options.workers, total)) as executor:
@@ -717,9 +733,9 @@ def matt(options: Namespace) -> int:
                 dump_progress(options, st, i, total)
                 setproctitle(f"matt :: {options.source} -> {options.target} [{i}/{total}]")
                 if isinstance(r, Ok):
-                    logger.info("Processed module %d/%d", i, total)
+                    logger.info("Processed module set %d/%d", i, total)
                 elif isinstance(r, Err):
-                    logger.error("Failed to process module %d/%d: %s", i, total, str(r.err()))
+                    logger.error("Failed to process module set %d/%d: %s", i, total, str(r.err()))
                     rc = 1
 
     logger.info("Job done!")
@@ -757,6 +773,12 @@ class VersionAction(Action):
         setattr(namespace, self.dest, v)
 
 
+def glob_plus(pattern):
+    if "**" in pattern or any(not s.strip() for s in pattern.split("+")):
+        raise ValueError(pattern)
+    return pattern
+
+
 def main() -> int:
     parser = ArgumentParser(
         description="matt :: Migrate All The Things",
@@ -768,6 +790,15 @@ The `source` and `target` arguments have the following format:
     BRANCH:odoo/3303                ; a `/` is also allowed as separator
 
 It allows to test upgrades against development branches.
+
+To test module combinations, use the `+` character. i.e.
+   ./matt.py -m note+calendar 16.0 17.0
+
+`*` also works in combinations. `l10n_be+delivery_*` expand to `l10n_be+delivery_bpost`, `l10n_be+delivery_dhl`,
+`l10n_be+delivery_easypost`, etc.
+`*+*` expand to a combination of all modules.
+Identity combinations will be ignored. `crm+crm` won't yield anything.
+Duplicated combinations are ignored. `payment_*+payment_*` yield all combinations of payment modules only once.
         """,
         formatter_class=RawDescriptionHelpFormatter,
     )
@@ -801,10 +832,10 @@ It allows to test upgrades against development branches.
     parser.add_argument(
         "-m",
         "--modules",
-        type=str,
+        type=glob_plus,
         action="append",
         dest="module_globs",
-        help="Modules (glob) to upgrade (default: *)",
+        help="Modules (glob+) to upgrade (default: *)",
     )
     parser.add_argument(
         "-i",
