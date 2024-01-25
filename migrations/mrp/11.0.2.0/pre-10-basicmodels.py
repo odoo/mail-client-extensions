@@ -24,7 +24,7 @@ def migrate(cr, version):
         (product_id, location_id, location_dest_id, product_qty, product_uom_qty, qty_done, product_uom_id,
         package_id, result_package_id, owner_id, picking_id, date, lot_id, move_id, done_wo, state, workorder_id,
         lot_produced_id, production_id)
-        SELECT m.product_id, m.location_id, m.location_dest_id, l.quantity, 0.0,
+        SELECT m.product_id, m.location_id, m.location_dest_id, CASE WHEN l.production_id IS NULL THEN l.quantity ELSE 0.0 END, 0.0,
         CASE WHEN m.state = 'done' THEN l.quantity_done ELSE 0.0 END, m.product_uom,
         NULL, NULL, m.restrict_partner_id, m.picking_id, m.date, l.lot_id, m.id, l.done_wo, m.state, l.workorder_id,
         l.lot_produced_id, l.production_id
