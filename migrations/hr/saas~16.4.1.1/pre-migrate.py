@@ -40,6 +40,10 @@ def migrate(cr, version):
         alias="e",
     )
 
+    for field in ["street", "street2", "city", "state_id", "zip", "country_id", "phone", "email"]:
+        util.update_field_usage(cr, "hr.employee", f"address_home_id.{field}", f"private_{field}")
+    util.update_field_usage(cr, "hr.employee", "address_home_id.lang", "lang")
+
     log("Archive private addresses + make public + empty private information")
     util.explode_execute(
         cr,
