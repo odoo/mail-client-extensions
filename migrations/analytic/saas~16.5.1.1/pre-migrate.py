@@ -161,4 +161,14 @@ def migrate(cr, version):
              WHERE updated_lines.id = account_analytic_line.id
         """
         util.explode_execute(cr, query, "account_analytic_line", alias="line")
+        for id_ in other_plan_ids:
+            column = f"x_plan{id_}_id"
+            cr.execute(
+                util.format_query(
+                    cr,
+                    "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
+                    indexname=util.fields.make_index_name("account_analytic_line", column),
+                    column=column,
+                )
+            )
     util.remove_field(cr, "account.analytic.line", "plan_id")
