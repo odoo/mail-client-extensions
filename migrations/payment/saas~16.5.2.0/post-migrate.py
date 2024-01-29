@@ -1,8 +1,5 @@
 import logging
 
-from odoo import Command
-from odoo.osv import expression
-
 from odoo.upgrade import util
 
 _logger = logging.getLogger(__name__)
@@ -36,12 +33,6 @@ def migrate(cr, version):
     for pm in existing_pms:
         util.update_record_from_xml(cr, f"payment.payment_method_{pm}")
 
-    # Activate pms in order to set them correctly for payment providers.
-    cr.commit()
-    cr.execute("UPDATE payment_method SET active = True WHERE active IS NOT True RETURNING id")
-    cr.commit()
-    inactive_ids = tuple(r[0] for r in cr.fetchall())
-
     # Bypass the noupdate=1 on providers to re-assign their new payment methods.
     provider_xmlids = [
         f"payment.payment_provider_{name}"
@@ -63,13 +54,19 @@ def migrate(cr, version):
             "transfer",
         )
     ]
+    cr.execute(
+        """
+            DELETE FROM payment_method_payment_provider_rel r
+                  USING ir_model_data m
+                  WHERE m.model = 'payment.provider'
+                    AND m.res_id = r.payment_provider_id
+                    AND CONCAT(m.module, '.', m.name) = ANY(%s)
+        """,
+        [provider_xmlids],
+    )
+
     for xmlid in provider_xmlids:
         util.update_record_from_xml(cr, xmlid)
-
-    # Revert activation.
-    if inactive_ids:
-        cr.execute("UPDATE payment_method SET active=False WHERE id IN %s", [inactive_ids])
-        cr.commit()
 
     # Copy the payment methods of providers with the xmlid to their duplicates (same code).
     for xmlid in provider_xmlids:
@@ -108,22 +105,38 @@ def migrate(cr, version):
     util.delete_unused(cr, *[f"payment.{pm}" for pm in util.splitlines(gone)])
 
 
-def copy_payment_methods_to_duplicated_providers(cr, xmlid, extra_domain=None):
-    env = util.env(cr)
-    base_provider = env.ref(xmlid)
-    if not base_provider:
-        msg = f"Base provider with xmlid {xmlid} not found."
-        _logger.critical(msg)
-        return
-    domain = [
-        ("code", "=", base_provider.code),
-        ("module_id", "=", base_provider.module_id.id),
-        ("id", "!=", base_provider.id),
-    ]
-    if extra_domain:
-        domain = expression.AND([domain, extra_domain])
-    duplicated_providers = env["payment.provider"].search(domain)
-    for duplicate in duplicated_providers:
-        duplicate.payment_method_ids = [
-            Command.set(base_provider.with_context(active_test=False).payment_method_ids.ids)
-        ]
+def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None):
+    provider = util.ref(cr, xmlid)
+    assert provider
+
+    args = {"provider": provider}
+    custom_mode_filter = "true"
+
+    if custom_mode:
+        custom_mode_filter = "o.custom_mode = %(custom_mode)s"
+        args["custom_mode"] = custom_mode
+
+    query = f"""
+        WITH duplicated_providers AS (
+            SELECT o.id
+              FROM payment_provider p
+              JOIN payment_provider o
+                ON o.code = p.code
+               AND o.module_id = p.module_id
+               AND o.id != p.id
+             WHERE p.id = %(provider)s
+               AND {custom_mode_filter}
+        ),
+        _cleanup AS (
+            DELETE FROM payment_method_payment_provider_rel r
+                  USING duplicated_providers d
+                  WHERE r.payment_provider_id = d.id
+        )
+        INSERT INTO payment_method_payment_provider_rel (payment_method_id, payment_provider_id)
+        SELECT r.payment_method_id, d.id
+          FROM payment_method_payment_provider_rel r,
+               duplicated_providers d
+         WHERE r.payment_provider_id = %(provider)s
+    """
+
+    cr.execute(query, args)
