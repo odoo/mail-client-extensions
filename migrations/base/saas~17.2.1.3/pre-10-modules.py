@@ -50,3 +50,5 @@ def migrate(cr, version):
     util.merge_module(cr, "account_reports_tax_reminder", "account_reports")
 
     util.merge_module(cr, "stock_landed_costs_company", "stock_landed_costs")
+
+    util.merge_module(cr, "l10n_es_edi_facturae_invoice_period", "l10n_es_edi_facturae")
