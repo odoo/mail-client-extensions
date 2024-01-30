@@ -295,10 +295,9 @@ def migrate(cr, version):
                   END,
 
                -- subformula
-               -- 'cross_report' is slower but the standard behavior in v15
                   CASE
                        WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN REPLACE(arl.v15_formulas, '.balance', '')
-                       ELSE 'cross_report'
+                       ELSE NULL
                   END
           FROM account_report_line arl
         """
@@ -310,6 +309,42 @@ def migrate(cr, version):
     util.remove_column(cr, "account_report_line", "v15_figure_type")
     util.remove_column(cr, "account_report_line", "v15_green_on_positive")
     util.remove_column(cr, "account_report_line", "v15_special_date_changer")
+
+    # some expressions may reference codes of lines from different reports, their `subformula` needs to be set to "cross_report"
+    cr.execute(
+        r"""
+        WITH expression_code AS (
+            SELECT REGEXP_SPLIT_TO_TABLE(
+                       REGEXP_REPLACE(are.formula, '(?:^-|\.balance|\(|\))', '', 'g'),
+                       '[\s\+\*\-/]+'
+                    ) AS code,
+                    are.id AS expression_id,
+                    arl.report_id AS report_id
+              FROM account_report_expression are
+              JOIN account_report_line arl
+                ON arl.id = are.report_line_id
+             WHERE are.engine = 'aggregation'
+               AND are.subformula IS NULL
+               AND are.formula != 'sum_children'
+        ),
+        cross_report_expression AS (
+            SELECT c.expression_id
+              FROM expression_code c
+                -- the LEFT JOIN here is used to make sure that no line with such code is present in the same report.
+                -- This assumes that, in such case, another line with such code must exist in a different report.
+                -- (otherwise the report would be broken before the upgrade)
+         LEFT JOIN account_report_line arl
+                ON arl.code = c.code
+               AND arl.report_id = c.report_id
+             WHERE arl IS NULL
+             GROUP BY c.expression_id
+        )
+        UPDATE account_report_expression are
+           SET subformula = 'cross_report'
+          FROM cross_report_expression e
+         WHERE are.id = e.expression_id
+        """
+    )
 
     # temp table, used and dropped in end- script
     cr.execute(

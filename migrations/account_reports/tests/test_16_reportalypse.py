@@ -12,25 +12,26 @@ class TestReportalypse(UpgradeCase):
     # -------------------------------------------------------------------------
 
     def _prepare_test_custom_fin_report_migrated(self):
-        report = self.env["account.financial.html.report"].create(
+        afhr = self.env["account.financial.html.report"]
+        afhrl = self.env["account.financial.html.report.line"]
+
+        report1 = afhr.create(
             {
                 "name": "Custom Financial Report Test 1",
                 "country_id": self.env["res.country"].search([("name", "=", "Belgium")]).id,
             }
         )
-        report_vals = {
-            "name": report.name,
-            "country_id": report.country_id.id,
+        report1_vals = {
+            "name": report1.name,
+            "country_id": report1.country_id.id,
         }
 
-        afhrl = self.env["account.financial.html.report.line"]
-
-        # - root-level line with aggregation formula
+        # - root-level line with aggregation formula and a refernce to a line in another report (`subformula` = "cross_report")
         line1 = afhrl.create(
             {
                 "code": "custom_code_1",
-                "financial_report_id": report.id,
-                "formulas": "custom_code_2 + custom_code_3",
+                "financial_report_id": report1.id,
+                "formulas": "custom_code_2 + custom_code_3 + custom_code_5",
                 "level": 1,
                 "name": "Custom Financial Report Line Test 1",
             }
@@ -40,6 +41,7 @@ class TestReportalypse(UpgradeCase):
             "name": line1.name,
             "hierarchy_level": line1.level,
             "formula": line1.formulas,
+            "subformula": "cross_report",
         }
 
         # - non-root level line (got a parent_id) and domain formula
@@ -56,7 +58,7 @@ class TestReportalypse(UpgradeCase):
         line2_vals = {
             "code": line2.code,
             "hierarchy_level": 3,
-            "formula": line2.formulas,
+            "subformula": line2.formulas,
             "name": line2.name,
             "parent_name": line2.parent_id.name,
         }
@@ -109,7 +111,7 @@ class TestReportalypse(UpgradeCase):
             {
                 "code": "custom_code_4",
                 "domain": groupby_domain_l4_v15,
-                "financial_report_id": report.id,
+                "financial_report_id": report1.id,
                 "formulas": "-sum_if_neg_groupby",
                 "groupby": "account_id",
                 "level": 1,
@@ -123,20 +125,69 @@ class TestReportalypse(UpgradeCase):
             "name": line4.name,
         }
 
-        return report_vals, line1_vals, line2_vals, line3_vals, line4_vals
+        report2 = afhr.create(
+            {
+                "name": "Custom Financial Report Test 2",
+                "country_id": self.env["res.country"].search([("name", "=", "Italy")]).id,
+            }
+        )
+        report2_vals = {
+            "name": report2.name,
+            "country_id": report2.country_id.id,
+        }
 
-    def _check_test_custom_fin_report_migrated(self, rep_vals, l1_vals, l2_vals, l3_vals, l4_vals):
-        report = self.env["account.report"].search([("name", "=", rep_vals["name"])])
-        self.assertTrue(report)
-        self.assertEqual(report.country_id.id, rep_vals["country_id"])
+        line5 = afhrl.create(
+            {
+                "code": "custom_code_5",
+                "financial_report_id": report2.id,
+                "formulas": "custom_code_6",
+                "level": 1,
+                "name": "Custom Financial Report Line Test 5",
+            }
+        )
+        line5_vals = {
+            "code": line5.code,
+            "name": line5.name,
+            "hierarchy_level": line5.level,
+            "formula": line5.formulas,
+        }
 
-        column = self.env["account.report.column"].search([("report_id", "=", report.id)])
-        self.assertTrue(column)
+        line6 = afhrl.create(
+            {
+                "code": "custom_code_6",
+                "domain": "[('account_id.user_type_id', '=', 13)]",
+                "formulas": "-sum",
+                "level": 2,
+                "name": "Custom Financial Report Line Test 6",
+                "parent_id": line5.id,
+            }
+        )
+        line6_vals = {
+            "code": line6.code,
+            "hierarchy_level": 3,
+            "subformula": line6.formulas,
+            "name": line6.name,
+            "parent_name": line6.parent_id.name,
+        }
 
+        return report1_vals, report2_vals, line1_vals, line2_vals, line3_vals, line4_vals, line5_vals, line6_vals
+
+    def _check_test_custom_fin_report_migrated(
+        self, rep1_vals, rep2_vals, l1_vals, l2_vals, l3_vals, l4_vals, l5_vals, l6_vals
+    ):
+        ar = self.env["account.report"]
+        arc = self.env["account.report.column"]
         arl = self.env["account.report.line"]
         are = self.env["account.report.expression"]
 
-        l1 = arl.search([("report_id", "=", report.id), ("name", "=", l1_vals["name"])])
+        report1 = ar.search([("name", "=", rep1_vals["name"])])
+        self.assertTrue(report1)
+        self.assertEqual(report1.country_id.id, rep1_vals["country_id"])
+
+        column1 = arc.search([("report_id", "=", report1.id)])
+        self.assertTrue(column1)
+
+        l1 = arl.search([("report_id", "=", report1.id), ("name", "=", l1_vals["name"])])
         self.assertTrue(l1)
         self.assertEqual(l1.hierarchy_level, l1_vals["hierarchy_level"])
         self.assertEqual(l1.code, l1_vals["code"])
@@ -147,9 +198,9 @@ class TestReportalypse(UpgradeCase):
         self.assertEqual(e1.label, "balance")
         self.assertEqual(e1.engine, "aggregation")
         self.assertEqual(e1.formula, re.sub(r"(\w+)", r"\1.balance", l1_vals["formula"]))
-        self.assertEqual(e1.subformula, "cross_report")
+        self.assertEqual(e1.subformula, l1_vals["subformula"])
 
-        l2 = arl.search([("report_id", "=", report.id), ("name", "=", l2_vals["name"])])
+        l2 = arl.search([("report_id", "=", report1.id), ("name", "=", l2_vals["name"])])
         self.assertTrue(l2)
         self.assertEqual(l2.hierarchy_level, l2_vals["hierarchy_level"])
         self.assertEqual(l2.parent_id.name, l2_vals["parent_name"])
@@ -159,10 +210,10 @@ class TestReportalypse(UpgradeCase):
         self.assertTrue(e2)
         self.assertEqual(e2.label, "balance")
         self.assertEqual(e2.engine, "domain")
-        self.assertEqual(e2.subformula, l2_vals["formula"])
-        # subformula will contain the domain however it's hard to check as it also gets adapted during the upgrade
+        # formula will contain the domain however it's hard to check as it also gets adapted during the upgrade
+        self.assertEqual(e2.subformula, l2_vals["subformula"])
 
-        l3 = arl.search([("report_id", "=", report.id), ("name", "=", l3_vals["name"])])
+        l3 = arl.search([("report_id", "=", report1.id), ("name", "=", l3_vals["name"])])
         self.assertTrue(l3)
         self.assertEqual(l3.hierarchy_level, l3_vals["hierarchy_level"])
         self.assertEqual(l3.parent_id.name, l3_vals["parent_name"])
@@ -175,7 +226,7 @@ class TestReportalypse(UpgradeCase):
         self.assertEqual(e3.formula, l3_vals["domain_16"])
         self.assertFalse(e3.subformula)
 
-        l4 = arl.search([("report_id", "=", report.id), ("name", "=", l4_vals["name"])])
+        l4 = arl.search([("report_id", "=", report1.id), ("name", "=", l4_vals["name"])])
         self.assertTrue(l4)
         self.assertEqual(l4.hierarchy_level, l4_vals["hierarchy_level"])
         self.assertEqual(l4.code, l4_vals["code"])
@@ -187,6 +238,38 @@ class TestReportalypse(UpgradeCase):
         self.assertEqual(e4.engine, "account_codes")
         self.assertEqual(e4.formula, l4_vals["domain_16"])
         self.assertFalse(e4.subformula)
+
+        report2 = ar.search([("name", "=", rep2_vals["name"])])
+        self.assertTrue(report2)
+        self.assertEqual(report2.country_id.id, rep2_vals["country_id"])
+
+        column2 = arc.search([("report_id", "=", report2.id)])
+        self.assertTrue(column2)
+
+        l5 = arl.search([("report_id", "=", report2.id), ("name", "=", l5_vals["name"])])
+        self.assertTrue(l5)
+        self.assertEqual(l5.hierarchy_level, l5_vals["hierarchy_level"])
+        self.assertEqual(l5.code, l5_vals["code"])
+        self.assertFalse(l5.parent_id)
+
+        e5 = are.search([("report_line_id", "=", l5.id)])
+        self.assertTrue(e5)
+        self.assertEqual(e5.label, "balance")
+        self.assertEqual(e5.engine, "aggregation")
+        self.assertEqual(e5.formula, re.sub(r"(\w+)", r"\1.balance", l5_vals["formula"]))
+        self.assertFalse(e5.subformula)
+
+        l6 = arl.search([("report_id", "=", report2.id), ("name", "=", l6_vals["name"])])
+        self.assertTrue(l6)
+        self.assertEqual(l6.hierarchy_level, l6_vals["hierarchy_level"])
+        self.assertEqual(l6.parent_id.name, l6_vals["parent_name"])
+        self.assertEqual(l6.code, l6_vals["code"])
+
+        e6 = are.search([("report_line_id", "=", l6.id)])
+        self.assertTrue(e6)
+        self.assertEqual(e6.label, "balance")
+        self.assertEqual(e6.engine, "domain")
+        self.assertEqual(e6.subformula, l6_vals["subformula"])
 
     # -------------------------------------------------------------------------
     # SETUP
