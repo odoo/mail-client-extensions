@@ -42,7 +42,7 @@ class Module(models.Model):
         if "test" in self.name:
             return super(Module, self)._update_dependencies(depends, *args, **kwargs)
 
-        existing = set(dep.name for dep in self.dependencies_id)
+        existing = {dep.name for dep in self.dependencies_id}
         needed = set(depends or [])
         if needed != existing:
             plus = needed - existing
@@ -55,3 +55,4 @@ class Module(models.Model):
                 self.name,
                 diff,
             )
+        return None
