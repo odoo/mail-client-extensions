@@ -13,3 +13,6 @@ def migrate(cr, version):
     )
     util.if_unchanged(cr, "mrp_plm.product_template_form_view", util.update_record_from_xml)
     util.remove_view(cr, "mrp_plm.product_normal_form_view_inherit_version_plm")
+    util.remove_view(cr, "mrp_plm.view_document_search_mrp_plm")
+    util.rename_field(cr, "mrp.eco", "mrp_document_count", "document_count")
+    util.rename_field(cr, "mrp.eco", "mrp_document_ids", "document_ids")
