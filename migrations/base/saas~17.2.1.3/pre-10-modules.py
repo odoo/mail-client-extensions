@@ -57,3 +57,5 @@ def migrate(cr, version):
     util.force_migration_of_fresh_module(cr, "l10n_fr")
 
     util.merge_module(cr, "l10n_dk_audit_trail", "l10n_dk")
+
+    util.remove_module(cr, "l10n_dk_edi")
