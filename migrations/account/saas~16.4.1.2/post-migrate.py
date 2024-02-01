@@ -20,6 +20,21 @@ def migrate(cr, version):
 
     # Now an onboarding.onboarding.step model method
     util.remove_record(cr, "account.action_open_account_onboarding_sale_tax")
+    rules_to_update = [
+        "account.journal_comp_rule",
+        "account.account_comp_rule",
+        "account.journal_group_comp_rule",
+        "account.account_group_comp_rule",
+        "account.account_root_comp_rule",
+        "account.tax_group_comp_rule",
+        "account.tax_comp_rule",
+        "account.tax_rep_comp_rule",
+        "account.account_fiscal_position_comp_rule",
+        "account.account_reconcile_model_template_comp_rule",
+        "account.account_reconcile_model_line_template_comp_rule",
+    ]
+    for rule in rules_to_update:
+        util.if_unchanged(cr, rule, util.update_record_from_xml)
 
 
 ONBOARDING_MIGRATION_PARAMS = {
