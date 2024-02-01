@@ -116,27 +116,32 @@ def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None)
         custom_mode_filter = "o.custom_mode = %(custom_mode)s"
         args["custom_mode"] = custom_mode
 
-    query = f"""
-        WITH duplicated_providers AS (
-            SELECT o.id
-              FROM payment_provider p
-              JOIN payment_provider o
-                ON o.code = p.code
-               AND o.module_id = p.module_id
-               AND o.id != p.id
-             WHERE p.id = %(provider)s
-               AND {custom_mode_filter}
-        ),
-        _cleanup AS (
-            DELETE FROM payment_method_payment_provider_rel r
-                  USING duplicated_providers d
-                  WHERE r.payment_provider_id = d.id
-        )
-        INSERT INTO payment_method_payment_provider_rel (payment_method_id, payment_provider_id)
-        SELECT r.payment_method_id, d.id
-          FROM payment_method_payment_provider_rel r,
-               duplicated_providers d
-         WHERE r.payment_provider_id = %(provider)s
-    """
+    cr.execute(
+        f"""
+        SELECT ARRAY_AGG(o.id)
+          FROM payment_provider p
+          JOIN payment_provider o
+            ON o.code = p.code
+           AND o.module_id = p.module_id
+           AND o.id != p.id
+         WHERE p.id = %(provider)s
+           AND {custom_mode_filter}
+        """,
+        args,
+    )
+    dup_ids = cr.fetchone()[0]
+    if not dup_ids:
+        return
+    args["ids"] = dup_ids
+    cr.execute(
+        """
+        DELETE FROM payment_method_payment_provider_rel r
+              WHERE r.payment_provider_id = ANY(%(ids)s);
 
-    cr.execute(query, args)
+        INSERT INTO payment_method_payment_provider_rel (payment_method_id, payment_provider_id)
+        SELECT r.payment_method_id, UNNEST(%(ids)s)
+          FROM payment_method_payment_provider_rel r
+         WHERE r.payment_provider_id = %(provider)s
+        """,
+        args,
+    )
