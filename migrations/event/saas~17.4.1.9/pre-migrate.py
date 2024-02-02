@@ -32,3 +32,8 @@ def migrate(cr, version):
     if util.module_installed(cr, "whatsapp_event"):
         util.move_field_to_module(cr, "event.registration", "date_range", "whatsapp_event", "event")
         util.rename_field(cr, "event.registration", "date_range", "event_date_range")
+
+    util.remove_column(cr, "event_mail", "notification_type")
+    util.remove_field(cr, "event.mail", "template_model_id")
+    util.remove_column(cr, "event_type_mail", "notification_type")
+    util.remove_field(cr, "event.type.mail", "template_model_id")
