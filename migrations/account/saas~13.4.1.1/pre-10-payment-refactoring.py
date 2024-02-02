@@ -148,6 +148,11 @@ def migrate(cr, version):
     cr.execute("CREATE TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
     cr.execute("CREATE TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)")
     util.create_column(cr, "account_payment_pre_backup", "no_replace_account", "boolean", default=False)
+    cr.execute("ALTER TABLE  account_payment_pre_backup ADD PRIMARY KEY (id)")
+    cr.execute("CREATE INDEX ON account_payment_pre_backup(journal_id, partner_id)")
+    cr.execute("CREATE INDEX ON account_payment_pre_backup(move_name)")
+    cr.execute("CREATE INDEX ON account_payment_pre_backup(partner_bank_account_id)")
+    cr.execute("CREATE INDEX ON account_payment_pre_backup(state)")
 
     # cleanup `moved0` columns from backup tables
     for table in ["account_payment_pre_backup", "account_bank_statement_line_pre_backup"]:
