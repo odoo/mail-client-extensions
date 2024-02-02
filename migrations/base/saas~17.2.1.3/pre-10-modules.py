@@ -52,3 +52,6 @@ def migrate(cr, version):
     util.merge_module(cr, "stock_landed_costs_company", "stock_landed_costs")
 
     util.merge_module(cr, "l10n_es_edi_facturae_invoice_period", "l10n_es_edi_facturae")
+
+    util.rename_module(cr, "l10n_fr", "l10n_fr_account")  # nofml
+    util.force_migration_of_fresh_module(cr, "l10n_fr")
