@@ -15,4 +15,4 @@ def migrate(cr, version):
             """,
             [util.ref(cr, "account_followup.demo_followup_line1")],
         )
-        util.update_record_from_xml(cr, "account_followup.demo_followup_line1")
+        util.update_record_from_xml(cr, "account_followup.demo_followup_line1", force_create=False)
