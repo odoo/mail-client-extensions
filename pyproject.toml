@@ -74,14 +74,8 @@ known-local-folder = ["odoo.upgrade", "odoo.addons.base.maintenance.migrations",
 [tool.ruff.lint.isort.sections]
 odoo-addons = ["odoo.addons", "openerp.addons"]
 
-
 [tool.ruff.lint.per-file-ignores]
 "*/__init__.py" = [
     "F401",
     "F403",
-]
-"migrations/util/*.py" = [
-    # python3 only rules
-    "RUF005",
-    "RUF007",
 ]
