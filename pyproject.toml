@@ -1,6 +1,3 @@
-[tool.black]
-line-length = 120
-
 [tool.ruff]
 fix = true
 show-fixes = true
@@ -11,7 +8,6 @@ output-format = "full"
 ignore = [
     "B904",  # reraise-no-cause; not python2 compatible
     "B905",  # zip-without-explicit-strict; not python2 compatible
-    "E501",  # line-too-long; handled by `black` formatting
     "E731",  # lambda-assignment
     "PERF203",  # try-except-in-loop
     "PLR09",  # too-many-*; unwanted code complexity checks
@@ -20,6 +16,15 @@ ignore = [
     "PLR2004",  # magic-value-comparison; not all comparisons to int or str are magic
     "TRY003",  # raise-vanilla-args; we can live without it
     "RET505",  # only true for simple if/elif branches (like in the ruff doc example). if/elif blocks are easier to read in most cases
+
+    # ruff format incompatible
+    "E111",  # indentation-with-invalid-multiple
+    "E114",  # indentation-with-invalid-multiple-comment
+    "E117",  # over-indented
+    "E501",  # line-too-long
+    "ISC001",  # single-line-implicit-string-concatenation
+    "ISC002",  # multi-line-implicit-string-concatenation
+    "W191",  # tab-indentation
 
     # not (yet) supported rules
     # "E301",
