@@ -1,10 +1,9 @@
-[tool.ruff]
 fix = true
 show-fixes = true
 line-length = 120
 output-format = "full"
 
-[tool.ruff.lint]
+[lint]
 ignore = [
     "B904",  # reraise-no-cause; not python2 compatible
     "B905",  # zip-without-explicit-strict; not python2 compatible
@@ -63,18 +62,18 @@ select = [
 
 ]
 
-[tool.ruff.lint.flake8-builtins]
+[lint.flake8-builtins]
 builtins-ignorelist = ["format", "id", "type"]
 
-[tool.ruff.lint.isort]
+[lint.isort]
 section-order = ["future", "standard-library", "third-party", "first-party", "odoo-addons", "local-folder"]
 known-first-party = ["odoo", "openerp"]
 known-local-folder = ["odoo.upgrade", "odoo.addons.base.maintenance.migrations", "openerp.addons.base.maintenance.migrations"]
 
-[tool.ruff.lint.isort.sections]
+[lint.isort.sections]
 odoo-addons = ["odoo.addons", "openerp.addons"]
 
-[tool.ruff.lint.per-file-ignores]
+[lint.per-file-ignores]
 "*/__init__.py" = [
     "F401",
     "F403",
