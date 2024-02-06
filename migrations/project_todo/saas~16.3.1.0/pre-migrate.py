@@ -165,6 +165,7 @@ def migrate(cr, version):
                 AND ptt.user_id = stage.user_id
               WHERE n.user_id IS NOT NULL
                 AND (stage.user_id = n.user_id OR rel.stage_id IS NULL)
+        ON CONFLICT DO NOTHING
         """
     )
     # add followers of notes as assigness and update followers in mail_followers
