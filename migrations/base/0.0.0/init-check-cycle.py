@@ -1,4 +1,7 @@
 def prepare_migration(cr):
+    # No need to raise an error and stop the upgrade if the record is a parent of itself
+    cr.execute("UPDATE res_partner SET parent_id = NULL WHERE parent_id = id")
+
     # check there are no cycles in partners hierarchy this is not allowed by standard
     # BUT if there is a cycle some computed fields may end up in an infinite loop
     cr.execute(
