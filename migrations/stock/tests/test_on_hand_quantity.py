@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
-
+import contextlib
 import decimal
 
 from odoo import models, release
 from odoo.tools import float_repr
+
+with contextlib.suppress(ImportError):
+    from odoo.tools import SQL
+
 from odoo.tools.parse_version import parse_version
 
 from odoo.addons.base.maintenance.migrations import util
@@ -21,14 +25,27 @@ if util.version_gte("15.0"):
         # For the details on why this override is needed see the commit message
         _module = "mrp"
 
-        def _generate_order_by_inner(self, alias, order_spec, query, reverse_direction=False, seen=None):
-            res = super()._generate_order_by_inner(alias, order_spec, query, reverse_direction, seen)
-            for i, item in enumerate(res):
-                field, _, direction = item.strip().rpartition(" ")
-                if field.split(".")[-1].strip("'\"") == "priority":
-                    nullorder = "LAST" if direction == "DESC" else "FIRST"
-                    res[i] = item + " NULLS " + nullorder
-            return res
+        if util.version_gte("17.0"):
+
+            def _order_to_sql(self, order, query, alias=None, reverse=False):
+                sql_order = super()._order_to_sql(order, query, alias, reverse)
+                terms = self.env.cr.mogrify(sql_order).decode().split(",")
+                return SQL(", ").join(SQL(term) for term in ensure_nulls_order(terms))
+
+        else:
+
+            def _generate_order_by_inner(self, alias, order_spec, query, reverse_direction=False, seen=None):
+                terms = super()._generate_order_by_inner(alias, order_spec, query, reverse_direction, seen)
+                return list(ensure_nulls_order(terms))
+
+    def ensure_nulls_order(terms):
+        for item in terms:
+            field, _, direction = item.strip().rpartition(" ")
+            if field.split(".")[-1].strip("'\"") == "priority":
+                nullorder = "LAST" if direction == "DESC" else "FIRST"
+                yield item + " NULLS " + nullorder
+            else:
+                yield item
 
 
 class TestOnHandQuantityUnchanged(IntegrityCase):
