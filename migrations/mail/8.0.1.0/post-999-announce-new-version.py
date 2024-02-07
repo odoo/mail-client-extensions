@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     # NOTE message is in RST
     message = """
@@ -31,7 +32,7 @@ def migrate(cr, version):
 """
 
     saas5_message = saas5_ui = ""
-    if version != '7.saas~5.1.0':
+    if version != "7.saas~5.1.0":
         # from older version, include saas-5 message
         saas5_ui = """\
     - Popups have been improved to be more responsive on tablets and smartphones.
@@ -75,11 +76,13 @@ def migrate(cr, version):
 """
 
     message = message.format(saas5_message=saas5_message, saas5_ui=saas5_ui)
-    util.announce(cr, '8.0', message)
+    util.announce(cr, "8.0", message)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # openerp must be in PYTHONPATH
     def echo(_cr, version, message):
-        print util.rst2html(message)
+        print(util.rst2html(message))  # noqa: T201
+
     util.announce = echo
     migrate(None, None)

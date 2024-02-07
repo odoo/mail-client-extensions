@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     # NOTE message is in RST
     message = """
@@ -75,11 +76,13 @@ def migrate(cr, version):
     PDF reports (allows supporting CJK/Asian languages)
 
 """
-    util.announce(cr, '7.saas~3', message)
+    util.announce(cr, "7.saas~3", message)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # openerp must be in PYTHONPATH
     def echo(_cr, version, message):
-        print util.rst2html(message)
+        print(util.rst2html(message))  # noqa: T201
+
     util.announce = echo
     migrate(None, None)

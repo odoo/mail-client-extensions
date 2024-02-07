@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     # NOTE message is in RST
     message = """
@@ -38,11 +39,13 @@ def migrate(cr, version):
   + New module `crm_project_issue` which allows creation of issues from leads.
 
 """
-    util.announce(cr, '7.saas~4', message)
+    util.announce(cr, "7.saas~4", message)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # openerp must be in PYTHONPATH
     def echo(_cr, version, message):
-        print util.rst2html(message)
+        print(util.rst2html(message))  # noqa: T201
+
     util.announce = echo
     migrate(None, None)

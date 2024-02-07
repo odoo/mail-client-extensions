@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from openerp.release import series
+
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
-    if series[0] == '8':
+    if series[0] == "8":
         # pass from saas-4 to 8 directly, do not output saas-5 message (will
         # be included in 8.0 message)
         return
@@ -53,13 +55,14 @@ def migrate(cr, version):
       statistics on related documents without having to click on them.
     - Color codes are now used to display availability of manufacturing order components at a glance.
 """
-    util.announce(cr, '7.saas~5', message)
+    util.announce(cr, "7.saas~5", message)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # openerp must be in PYTHONPATH
     def echo(_cr, version, message):
-        print util.rst2html(message)
+        print(util.rst2html(message))  # noqa: T201
 
-    series = 'pass'     # noqa
+    series = "pass"
     util.announce = echo
     migrate(None, None)

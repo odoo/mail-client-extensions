@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from openerp.addons.base.maintenance.migrations import util     # noqa
+from openerp.addons.base.maintenance.migrations import util
+
 
 def migrate(cr, version):
     message = """
@@ -38,13 +39,15 @@ def migrate(cr, version):
     - Many performance improvements.
 """
 
-    util.announce(cr, '9.saas~11', message, format='md')
+    util.announce(cr, "9.saas~11", message, format="md")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # openerp must be in PYTHONPATH
     # Use version < saas~10, because syspath is not initialized with `OdooHook`,
     # so no `odoo` module importable (it will import odoo.py instead).
     def echo(_cr, version, message, format):
-        print util.md2html(message)
+        print(util.md2html(message))  # noqa: T201
+
     util.announce = echo
     migrate(None, None)

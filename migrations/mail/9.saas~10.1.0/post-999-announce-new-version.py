@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
     # NOTE message is in Markdown \o/
     message = """
@@ -27,11 +28,13 @@ def migrate(cr, version):
 
 """
 
-    util.announce(cr, '9.saas~10', message, format='md', pluses_for_enterprise=False)
+    util.announce(cr, "9.saas~10", message, format="md", pluses_for_enterprise=False)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # odoo must be in PYTHONPATH
     def echo(_cr, version, message, format):
-        print util.md2html(message)
+        print(util.md2html(message))  # noqa: T201
+
     util.announce = echo
     migrate(None, None)
