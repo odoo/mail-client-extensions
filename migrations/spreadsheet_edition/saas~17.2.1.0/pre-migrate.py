@@ -2,6 +2,8 @@
 
 import json
 
+from odoo.upgrade import util
+
 
 def migrate(cr, version):
     cr.execute(
@@ -50,3 +52,29 @@ def migrate(cr, version):
             """,
             [json.dumps(data_loaded), revision_id],
         )
+
+    util.rename_field(cr, "spreadsheet.revision", "revision_id", "revision_uuid")
+    util.rename_field(cr, "spreadsheet.mixin", "server_revision_id", "current_revision_uuid")
+    util.remove_constraint(cr, "spreadsheet_revision", "spreadsheet_revision_parent_revision_unique")
+    cr.execute("CREATE INDEX spreadsheet_revision__revision_uuid_index ON spreadsheet_revision(revision_uuid)")
+
+    cr.execute(
+        """
+        ALTER TABLE spreadsheet_revision RENAME COLUMN parent_revision_id TO _parent_revision_id_upg;
+        ALTER TABLE spreadsheet_revision ADD COLUMN parent_revision_id int4;
+        """
+    )
+    util.explode_execute(
+        cr,
+        """
+        UPDATE spreadsheet_revision r
+           SET parent_revision_id = p.id
+          FROM spreadsheet_revision p
+         WHERE p.revision_uuid = r._parent_revision_id_upg
+           AND p.res_id = r.res_id
+           AND p.res_model = r.res_model
+        """,
+        table="spreadsheet_revision",
+        alias="r",
+    )
+    cr.execute("ALTER TABLE spreadsheet_revision DROP COLUMN _parent_revision_id_upg")
