@@ -100,7 +100,6 @@ base.property_rule
 
 account_asset.account_asset_multi_company_rule
 account_auto_transfer.account_auto_transfer_rule
-account_budget.budget_post_comp_rule
 account_budget.budget_comp_rule
 account_budget.budget_lines_comp_rule
 account_disallowed_expenses.account_disallowed_expenses_comp_rule
