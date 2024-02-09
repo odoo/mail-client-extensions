@@ -246,6 +246,9 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     if e is None:
         return True
 
+    if view.type == "qweb":  # QWeb views are NOT fixed, only checked and restored/disabled.
+        return False
+
     if tried_anchors is None:
         tried_anchors = set()
 
@@ -850,6 +853,9 @@ class IrUiView(models.Model):
             origin_validators = dict(_validators)
             dummy_validators = dict.fromkeys(_validators, [lambda *args, **kwargs: True])
 
+            self._cr.execute("SELECT DISTINCT report_name FROM ir_act_report_xml")
+            report_views_xml_ids = {r[0] for r in self._cr.fetchall()}
+
             def validate_view(view, is_custom_module):
                 _validators.update(dummy_validators if is_custom_module else origin_validators)
                 view = view.with_context(
@@ -857,7 +863,13 @@ class IrUiView(models.Model):
                     load_all_views=is_custom_module,
                     _upgrade_custom_modules=is_custom_module,
                 )
-                if view.model not in self.env.registry:
+                if (
+                    # skip qweb views that aren't report views
+                    (view.type == "qweb" and view.xml_id not in report_views_xml_ids)
+                    or
+                    # skip non-qweb views without model or with a non loaded model
+                    (view.type != "qweb" and view.model not in self.env.registry)
+                ):
                     return
                 try:
                     view._check_xml()
@@ -873,6 +885,7 @@ class IrUiView(models.Model):
                 while children:
                     views_to_check |= children
                     children = children.mapped("inherit_children_ids")
+
                 for view in views_to_check:
                     if view.id in standard_ids:
                         validate_view(view, is_custom_module=False)

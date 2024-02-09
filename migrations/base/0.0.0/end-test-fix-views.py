@@ -72,6 +72,18 @@ def migrate(cr, version):
                 E.field("<div>OK</div>", name="comment", position="after"),
             ),
         ),
+        (
+            "test_upg.test_fix_views_qweb_report",
+            ts(
+                E.div(name="new"),
+            ),
+        ),
+        (
+            "test_upg.test_fix_views_qweb_non_report",
+            ts(
+                E.div(name="new"),
+            ),
+        ),
     ]
 
     IrUiView = util.env(cr)["ir.ui.view"]

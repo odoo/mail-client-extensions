@@ -23,6 +23,8 @@ class TestFixViews(UpgradeCase):
             arch_fs=None,
             noupdate=False,
             disabled_post_upgrade=False,
+            is_report_primary_view=False,
+            check_post_upgrade=True,
         ):
             # default values
             vals = {
@@ -35,7 +37,7 @@ class TestFixViews(UpgradeCase):
             }
             vals.update(_vals)
             view = self.env["ir.ui.view"].create(vals)
-            info.append((view.id, disabled_post_upgrade))
+            info.append((view.id, disabled_post_upgrade, check_post_upgrade))
 
             if standard_view:
                 self.env["ir.model.data"].create(
@@ -47,6 +49,16 @@ class TestFixViews(UpgradeCase):
                         "noupdate": noupdate,
                     }
                 )
+
+                if is_report_primary_view:
+                    self.env["ir.actions.report"].create(
+                        {
+                            "name": f"action_test_upg_{vals['name']}",
+                            "model": "res.groups",
+                            # report_name must keep the full external id (`module.name`) to the view created above
+                            "report_name": f"test_upg.{vals['name']}",
+                        }
+                    )
 
             return view.id
 
@@ -513,6 +525,64 @@ class TestFixViews(UpgradeCase):
                     ),
                 },
             )
+        # ===== QWeb view tests ===== #
+        # Qweb reports modified with Studio for versions < 16.4
+        qweb_report = create_view(
+            {
+                "name": "test_fix_views_qweb_report",
+                "type": "qweb",
+                "model": False,
+                "arch_db": ts(E.div(name="name")),
+            },
+            standard_view=True,
+            is_report_primary_view=True,
+            check_post_upgrade=False,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_qweb_report_extension",
+                "type": "qweb",
+                "model": False,
+                "mode": "extension",
+                "inherit_id": qweb_report,
+                "arch_db": ts(
+                    E.data(
+                        E.xpath(expr="//div[@name='name']"),
+                    ),
+                ),
+            },
+            disabled_post_upgrade=True,
+            check_post_upgrade=False,
+        )
+
+        qweb_non_report = create_view(
+            {
+                "name": "test_fix_views_qweb_non_report",
+                "type": "qweb",
+                "model": False,
+                "arch_db": ts(E.div(name="name")),
+            },
+            standard_view=True,
+            check_post_upgrade=False,
+        )
+        create_view(
+            {
+                "name": "test_fix_views_qweb_non_report_extension",
+                "type": "qweb",
+                "model": False,
+                "mode": "extension",
+                "inherit_id": qweb_non_report,
+                "arch_db": ts(
+                    E.data(
+                        E.xpath(expr="//div[@name='name']"),
+                    ),
+                ),
+            },
+            # will not be check nor fixed since primary is non-report qweb
+            disabled_post_upgrade=False,
+            check_post_upgrade=False,
+        )
+
         return [self._get_base_version(), info]
 
     def check(self, data):
@@ -522,14 +592,14 @@ class TestFixViews(UpgradeCase):
             # Practial use case: upgrade from master to master in runbot
             return
         views = self.env["ir.ui.view"].browse([x[0] for x in info])
-        for view, (vid, disabled) in zip(views, info):
+        for view, (vid, disabled, check_post_upgrade) in zip(views, info):
             assert view.id == vid
             self.assertTrue(
                 view.active == (not disabled),
                 "The view {} was {}disabled during the migration".format(view.name, "not " if disabled else ""),
             )
-            if disabled:
-                continue  # we don't check disabled views
+            if disabled or not check_post_upgrade:
+                continue  # we don't check disabled views or views that shouldnt be fixed
             try:
                 view._check_xml()
             except Exception as e:
