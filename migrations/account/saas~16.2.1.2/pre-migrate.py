@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from odoo.tools.sql import index_exists
+
 from odoo.upgrade import util
 
 
@@ -359,7 +361,8 @@ def migrate(cr, version):
          WHERE account_move.id = to_update.id
            AND row_seq > 1
     """
-    util.explode_execute(cr, query, table="account_journal", alias="journal", bucket_size=1)
+    if not index_exists(cr, "account_move_unique_name_latam"):
+        util.explode_execute(cr, query, table="account_journal", alias="journal", bucket_size=1)
 
     # Send & Print refactor: new field to link to the PDF sent
     util.explode_execute(
