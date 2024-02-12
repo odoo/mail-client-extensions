@@ -63,3 +63,6 @@ def migrate(cr, version):
     util.remove_module(cr, "l10n_dk_edi")
 
     util.merge_module(cr, "l10n_be_codabox_bridge_wizard", "l10n_be_codabox")
+
+    util.merge_module(cr, "l10n_mx_edi_stock_30", "l10n_mx_edi_stock")
+    util.merge_module(cr, "l10n_mx_edi_stock_extended_30", "l10n_mx_edi_stock_extended")
