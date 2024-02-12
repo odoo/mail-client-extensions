@@ -22,3 +22,13 @@ def migrate(cr, version):
         cr, "product.template", "priority", "is_favorite", adapter=priority_to_is_favorite_adapter
     )
     util.remove_field(cr, "product.template", "priority")
+
+    eb = util.expand_braces
+    if util.module_installed(cr, "sale"):
+        util.move_field_to_module(cr, "res.config.settings", "module_sale_product_matrix", "product", "sale")
+        util.move_field_to_module(cr, "res.config.settings", "group_discount_per_so_line", "product", "sale")
+        util.rename_xmlid(cr, *eb("{product,sale}.group_discount_per_so_line"))
+    else:
+        util.remove_field(cr, "res.config.settings", "module_sale_product_matrix")
+        util.remove_field(cr, "res.config.settings", "group_discount_per_so_line")
+        util.remove_record(cr, "product.group_discount_per_so_line")
