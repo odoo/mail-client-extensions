@@ -55,3 +55,5 @@ def migrate(cr, version):
 
     util.rename_module(cr, "l10n_fr", "l10n_fr_account")  # nofml
     util.force_migration_of_fresh_module(cr, "l10n_fr")
+
+    util.merge_module(cr, "l10n_dk_audit_trail", "l10n_dk")
