@@ -38,7 +38,13 @@ def migrate(cr, version):
                 "name": definition.get("name"),
                 "sortedColumn": meta_data.get("sortedColumn"),
             }
-            command["definition"] = new_definition
+            command["payload"] = {
+                "definition": new_definition,
+                "table": command.get("table", {}),
+                "type": "ODOO",
+            }
+            del command["definition"]
+            del command["table"]
 
         if not changed:
             continue

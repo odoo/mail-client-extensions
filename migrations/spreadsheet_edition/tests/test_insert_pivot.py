@@ -32,7 +32,9 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                     "sheetId": "Sheet1",
                     "col": 0,
                     "row": 0,
-                    "table": {},
+                    "table": {
+                        "cols": [],
+                    },
                     "id": "1",
                     "dataSourceId": "uuid",
                     "definition": definition,
@@ -78,10 +80,15 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                         "sheetId": "Sheet1",
                         "col": 0,
                         "row": 0,
-                        "table": {},
+                        "payload": {
+                            "table": {
+                                "cols": [],
+                            },
+                            "definition": definition,
+                            "type": "ODOO",
+                        },
                         "id": "1",
                         "dataSourceId": "uuid",
-                        "definition": definition,
                     }
                 ],
             },
