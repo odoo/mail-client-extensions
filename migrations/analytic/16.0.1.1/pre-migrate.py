@@ -45,7 +45,7 @@ def migrate(cr, version):
            SET plan_id = account.plan_id
           FROM account_analytic_account account
          WHERE account.id = line.account_id
-           AND account.plan_id IS NULL
+           AND line.plan_id IS NULL
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_analytic_line", alias="line"))
 
