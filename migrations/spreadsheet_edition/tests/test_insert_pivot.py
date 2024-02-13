@@ -36,7 +36,6 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                         "cols": [],
                     },
                     "id": "1",
-                    "dataSourceId": "uuid",
                     "definition": definition,
                 }
             ],
@@ -59,7 +58,8 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
             return
         revisions = self.env["spreadsheet.revision"].browse(revision_ids)
 
-        definition = {
+        pivot = {
+            "type": "ODOO",
             "colGroupBys": ["A", "B"],
             "rowGroupBys": ["C", "D"],
             "measures": ["MEASURE"],
@@ -76,20 +76,20 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                 "type": "REMOTE_REVISION",
                 "commands": [
                     {
+                        "type": "ADD_PIVOT",
+                        "pivot": pivot,
+                        "id": "1",
+                    },
+                    {
                         "type": "INSERT_PIVOT",
+                        "id": "1",
                         "sheetId": "Sheet1",
                         "col": 0,
                         "row": 0,
-                        "payload": {
-                            "table": {
-                                "cols": [],
-                            },
-                            "definition": definition,
-                            "type": "ODOO",
+                        "table": {
+                            "cols": [],
                         },
-                        "id": "1",
-                        "dataSourceId": "uuid",
-                    }
+                    },
                 ],
             },
         )

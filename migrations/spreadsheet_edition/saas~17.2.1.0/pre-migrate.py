@@ -21,14 +21,16 @@ def migrate(cr, version):
             continue
 
         changed = False
+        new_commands = []
         for command in commands:
             if command["type"] != "INSERT_PIVOT":
+                new_commands.append(command)
                 continue
             changed = True
             definition = command["definition"]
             meta_data = definition.get("metaData", {})
             search_params = definition.get("searchParams", {})
-            new_definition = {
+            pivot = {
                 "colGroupBys": meta_data.get("colGroupBys", []),
                 "rowGroupBys": meta_data.get("rowGroupBys", []),
                 "measures": meta_data.get("activeMeasures", []),
@@ -37,19 +39,24 @@ def migrate(cr, version):
                 "context": search_params.get("context", {}),
                 "name": definition.get("name"),
                 "sortedColumn": meta_data.get("sortedColumn"),
-            }
-            command["payload"] = {
-                "definition": new_definition,
-                "table": command.get("table", {}),
                 "type": "ODOO",
             }
             del command["definition"]
-            del command["table"]
+
+            new_commands.append(
+                {
+                    "type": "ADD_PIVOT",
+                    "id": command["id"],
+                    "pivot": pivot,
+                }
+            )
+
+            new_commands.append(command)
 
         if not changed:
             continue
 
-        data_loaded["commands"] = commands
+        data_loaded["commands"] = new_commands
         cr.execute(
             """
             UPDATE spreadsheet_revision
