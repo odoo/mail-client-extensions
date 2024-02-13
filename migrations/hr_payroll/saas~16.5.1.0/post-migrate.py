@@ -24,7 +24,7 @@ def migrate(cr, version):
     # ex: inputs.VAR -> inputs.get("VAR")
     localdict_vars = ["rules", "categories", "inputs", "worked_days"]
     fields = {
-        field: rf"""regexp_replace({field}, '({'|'.join(localdict_vars)}).([A-Z0-9_]+)', E'\\1.get("\\2")', 'g')"""
+        field: rf"""regexp_replace({field}, '({'|'.join(localdict_vars)}).([A-Z0-9_]+)', E'(\\1.get("\\2") or 0)', 'g')"""
         for field in [
             "amount_python_compute",
             "quantity",
