@@ -29,7 +29,7 @@ def migrate(cr, version):
         util.remove_view(cr, "industry_fsm_report.worksheet_custom_page")
         util.rename_xmlid(cr, *eb("industry_fsm{,_report}.worksheet_custom_page"))
         util.rename_xmlid(cr, *eb("industry_fsm{,_report}.mail_template_data_task_report"))
-        util.rename_xmlid(cr, *eb("industry_fsm{,_report}.task_custom_report"))
+        util.rename_xmlid(cr, *eb("industry_fsm{,_report}.task_custom_report"), on_collision="merge")
         util.move_field_to_module(cr, "project.project", "allow_worksheets", "industry_fsm", "industry_fsm_report")
         for task_field in task_fields:
             util.move_field_to_module(cr, "project.task", task_field, "industry_fsm", "industry_fsm_report")
