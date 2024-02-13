@@ -37,7 +37,17 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                     },
                     "id": "1",
                     "definition": definition,
-                }
+                },
+                {
+                    "type": "RE_INSERT_PIVOT",
+                    "sheetId": "Sheet1",
+                    "col": 5,
+                    "row": 5,
+                    "table": {
+                        "cols": [],
+                    },
+                    "id": "1",
+                },
             ],
         }
         revision_insert = self.env["spreadsheet.revision"].create(
@@ -89,6 +99,16 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                         "table": {
                             "cols": [],
                         },
+                    },
+                    {
+                        "type": "INSERT_PIVOT",
+                        "sheetId": "Sheet1",
+                        "col": 5,
+                        "row": 5,
+                        "table": {
+                            "cols": [],
+                        },
+                        "id": "1",
                     },
                 ],
             },

@@ -23,10 +23,14 @@ def migrate(cr, version):
         changed = False
         new_commands = []
         for command in commands:
-            if command["type"] != "INSERT_PIVOT":
+            if command["type"] not in ("INSERT_PIVOT", "RE_INSERT_PIVOT"):
                 new_commands.append(command)
                 continue
             changed = True
+            if command["type"] == "RE_INSERT_PIVOT":
+                command["type"] = "INSERT_PIVOT"
+                new_commands.append(command)
+                continue
             definition = command["definition"]
             meta_data = definition.get("metaData", {})
             search_params = definition.get("searchParams", {})
