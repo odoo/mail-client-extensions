@@ -65,20 +65,6 @@ def migrate(cr, version):
         [provider_xmlids],
     )
 
-    for xmlid in provider_xmlids:
-        util.update_record_from_xml(cr, xmlid)
-
-    # Copy the payment methods of providers with the xmlid to their duplicates (same code).
-    for xmlid in provider_xmlids:
-        if xmlid == "payment.payment_provider_transfer":  # Transfer is handled in payment_custom.
-            continue
-        copy_payment_methods_to_duplicated_providers(cr, xmlid)
-
-    # Now unsupported or user-created payment methods are used for only cosmetic purposes and will
-    # not be shown anywhere anymore. As the 'code' field is created in saas-16.5, the payment
-    # methods that do not have a code are the ones to be deleted.
-    cr.execute("DELETE FROM payment_method WHERE code IS NULL")
-
     # Set the payment method "Unknown" on existing payment.transaction and payment.token records.
     unknown_pm_id = util.ref(cr, "payment.payment_method_unknown")
     util.explode_execute(
@@ -103,45 +89,3 @@ def migrate(cr, version):
         payment_method_western_union
     """
     util.delete_unused(cr, *[f"payment.{pm}" for pm in util.splitlines(gone)])
-
-
-def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None):
-    provider = util.ref(cr, xmlid)
-    assert provider
-
-    args = {"provider": provider}
-    custom_mode_filter = "true"
-
-    if custom_mode:
-        custom_mode_filter = "o.custom_mode = %(custom_mode)s"
-        args["custom_mode"] = custom_mode
-
-    cr.execute(
-        f"""
-        SELECT ARRAY_AGG(o.id)
-          FROM payment_provider p
-          JOIN payment_provider o
-            ON o.code = p.code
-           AND o.module_id = p.module_id
-           AND o.id != p.id
-         WHERE p.id = %(provider)s
-           AND {custom_mode_filter}
-        """,
-        args,
-    )
-    dup_ids = cr.fetchone()[0]
-    if not dup_ids:
-        return
-    args["ids"] = dup_ids
-    cr.execute(
-        """
-        DELETE FROM payment_method_payment_provider_rel r
-              WHERE r.payment_provider_id = ANY(%(ids)s);
-
-        INSERT INTO payment_method_payment_provider_rel (payment_method_id, payment_provider_id)
-        SELECT r.payment_method_id, UNNEST(%(ids)s)
-          FROM payment_method_payment_provider_rel r
-         WHERE r.payment_provider_id = %(provider)s
-        """,
-        args,
-    )
