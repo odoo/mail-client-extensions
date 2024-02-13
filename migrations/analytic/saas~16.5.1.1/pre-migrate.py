@@ -48,7 +48,7 @@ def migrate(cr, version):
         """
         SELECT ARRAY_AGG(id)
           FROM account_analytic_plan
-      GROUP BY name
+      GROUP BY complete_name
         HAVING COUNT(*) > 1
     """
     )
