@@ -58,8 +58,11 @@ def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None)
         SELECT ARRAY_AGG(o.id)
           FROM payment_provider p
           JOIN payment_provider o
-            ON o.code = p.code
-           AND o.module_id = p.module_id
+            ON (  -- dedicated module installed -> code != none -> match by code
+                  (p.code != 'none' AND o.code = p.code)
+                  -- dedicated module is not installed -> code = none -> match by module
+               OR (p.code = 'none' AND o.module_id = p.module_id)
+               )
            AND o.id != p.id
          WHERE p.id = %(provider)s
            AND {custom_mode_filter}
