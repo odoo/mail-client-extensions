@@ -26,3 +26,6 @@ def migrate(cr, version):
         util.rename_field(cr, "account.move", "l10n_sa_show_delivery_date", "show_delivery_date")
     else:
         util.create_column(cr, "account_move", "delivery_date", "date")
+
+    util.remove_constraint(cr, "account_tax", "account_tax_name_company_uniq")
+    util.remove_constraint(cr, "account_account", "account_account_code_company_uniq")
