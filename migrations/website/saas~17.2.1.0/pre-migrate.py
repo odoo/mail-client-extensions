@@ -2,7 +2,20 @@
 
 import re
 
+from lxml import etree
+
 from odoo.upgrade.util import snippets
+from odoo.upgrade.util.convert_bootstrap import innerxml
+
+
+def add_template_in_embed_code(el):
+    if el.xpath('.//template[hasclass("s_embed_code_saved")]'):
+        return False
+    embedded_code = el.xpath('.//div[hasclass("s_embed_code_embedded")]')[0]
+    code = innerxml(embedded_code, is_html=True)
+    template = """<template class="s_embed_code_saved">%s</template>""" % code
+    el.insert(0, etree.fromstring(template))
+    return True
 
 
 def replace_mobile_orders(el):
@@ -24,4 +37,9 @@ def migrate(cr, version):
         cr,
         snippets.html_converter(replace_mobile_orders, selector="//*[hasclass('row')]"),
         where_column=r"~ '\yrow\y'",
+    )
+    snippets.convert_html_content(
+        cr,
+        snippets.html_converter(add_template_in_embed_code, selector="//*[@data-snippet='s_embed_code']"),
+        where_column=r"~ '\ys_embed_code\y'",
     )
