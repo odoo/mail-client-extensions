@@ -16,7 +16,7 @@ def migrate(cr, version):
 
     # Make sure all taxes/tags are updated.
     CoA = env["account.chart.template"].with_context(_upgrade_l10n_mx_optim=True)
-    for company in env["res.company"].search([("chart_template", "=", "mx")]):
+    for company in env["res.company"].search([("chart_template", "=", "mx")], order="parent_path asc"):
         CoA.try_loading("mx", company=company, install_demo=False)
 
     tags_to_migrate = [
