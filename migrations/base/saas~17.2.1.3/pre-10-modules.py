@@ -43,6 +43,8 @@ def migrate(cr, version):
     for module in taxcloud_modules:
         util.remove_module(cr, module)
 
+    util.remove_module(cr, "mrp_subcontracting_studio")
+
     util.merge_module(cr, "l10n_fr_fec", "l10n_fr")
 
     util.merge_module(cr, "account_payment_term", "account")
