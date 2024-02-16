@@ -23,3 +23,6 @@ def migrate(cr, version):
     util.rename_module(cr, "l10n_hr_euro", "l10n_hr")
 
     util.force_upgrade_of_fresh_module(cr, "sale_service", init=False)
+
+    if util.module_installed(cr, "account_invoice_extract"):
+        util.force_upgrade_of_fresh_module(cr, "iap_extract")
