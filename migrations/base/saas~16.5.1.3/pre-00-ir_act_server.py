@@ -44,6 +44,8 @@ def migrate(cr, version):
 
     util.create_column(cr, "ir_act_server", "evaluation_type", "varchar")
     util.create_column(cr, "ir_act_server", "value", "varchar")
+    util.create_column(cr, "ir_act_server", "update_path", "varchar")
+    util.create_column(cr, "ir_act_server", "update_related_model_id", "int4")
     util.create_column(cr, "ir_act_server", "link_field_id", "integer")
     util.create_column(cr, "ir_act_server", "update_field_id", "integer")
     execute_values(
