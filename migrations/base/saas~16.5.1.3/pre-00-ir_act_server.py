@@ -97,8 +97,38 @@ def process_actions(actions):
         if action["action_server_id"] in processed_ids:
             continue
         processed_ids.append(action["action_server_id"])
+        # get same actions
+        same_actions = [a for a in actions if a["action_server_id"] == action["action_server_id"]]
+        if len(same_actions) == 1 and (
+            (
+                action["state"] == "object_create"
+                and action["evaluation_type"] == "value"
+                and action["update_field_name"] == "name"
+            )
+            or (action["state"] == "object_write")
+        ):
+            # There is only one field line and it can still be handled by
+            # object_create (only for "value" evaluation_type and "name" field)
+            # or object_write action states.
+            # This will avoid unnecessary code actions, which may lead
+            # to unexpected maintenance fees.
+            res.append(
+                {
+                    "action_server_id": action["action_server_id"],
+                    "name": action["name"],
+                    "state": action["state"],
+                    "code": None,
+                    "evaluation_type": action["evaluation_type"],
+                    "value": action["value"],
+                    "crud_model_id": action["crud_model_id"],
+                    "link_field_id": action["link_field_id"],
+                    "update_field_id": (None if action["state"] == "object_create" else action["update_field_id"]),
+                    "__include_in_migration_report": False,
+                }
+            )
+            continue
         # get code snippet
-        code_snippet = compile_code_snippet(action, actions)
+        code_snippet = compile_code_snippet(same_actions)
         # update the action to be a code action
         res.append(
             {
@@ -111,10 +141,12 @@ def process_actions(actions):
                 "crud_model_id": None,
                 "link_field_id": None,
                 "update_field_id": None,
+                "__include_in_migration_report": True,
             }
         )
 
-    if len(res) > 0:
+    to_report = [act for act in res if act["__include_in_migration_report"]]
+    if len(to_report) > 0:
         util.add_to_migration_reports(
             """
             <details>
@@ -134,7 +166,7 @@ def process_actions(actions):
                             "ir.actions.server", action["action_server_id"], action["name"]["en_US"]
                         )
                     )
-                    for action in res
+                    for action in to_report
                 )
             ),
             "Server Actions",
@@ -144,7 +176,7 @@ def process_actions(actions):
     return res
 
 
-def compile_code_snippet(action, all_actions):
+def compile_code_snippet(same_actions):
     def get_update_field_value(a):
         if a["evaluation_type"] == "equation":
             return a["value"]
@@ -156,30 +188,30 @@ def compile_code_snippet(action, all_actions):
                 return int(a["value"])
         return f"'{a['value']}'"
 
-    # get same actions
-    same_actions = [a for a in all_actions if a["action_server_id"] == action["action_server_id"]]
     # prepare the record data, using same actions (they are duplicates with different fields_lines)
     record_data = {action["update_field_name"]: get_update_field_value(action) for action in same_actions}
     # prepare the values string snippet
     values_snippet = "{" + ", ".join(f'"{k}": {v}' for k, v in record_data.items()) + "}"
 
-    if action["state"] == "object_write":
+    # get first action
+    first_action = same_actions[0]
+    if first_action["state"] == "object_write":
         return f"record.write({values_snippet})"
 
-    elif action["state"] == "object_create":
+    elif first_action["state"] == "object_create":
         # prepare the link snippet
         link_snippet = ""
-        if action["link_field_id"]:
+        if first_action["link_field_id"]:
             link_snippet = "# link the new record to the current record\n"
-            if action["link_field_type"] in ("one2many", "many2many"):
+            if first_action["link_field_type"] in ("one2many", "many2many"):
                 link_snippet += (
-                    f"""record.write({'{"' + action['link_field_name'] + '": [Command.link(new_record.id)]}'})"""
+                    f"""record.write({'{"' + first_action['link_field_name'] + '": [Command.link(new_record.id)]}'})"""
                 )
             else:
-                link_snippet += f"""record.write({'{"' + action['link_field_name'] + '": new_record.id}'})"""
+                link_snippet += f"""record.write({'{"' + first_action['link_field_name'] + '": new_record.id}'})"""
 
         return f"""
-new_record = env["{action['crud_model_name']}"].create({values_snippet})
+new_record = env["{first_action['crud_model_name']}"].create({values_snippet})
 {link_snippet}
 """
     return None

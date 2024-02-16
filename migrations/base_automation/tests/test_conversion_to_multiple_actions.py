@@ -58,10 +58,11 @@ class Test_00_SimpleAutomation(UpgradeCase):
                     "name": f"Force Archived {self.MODEL}",
                     "model_id": self.env["ir.model"]._get(self.MODEL).id,
                     "model_name": self.MODEL,
-                    "state": "code",
-                    "code": """record.write({"active": False})""",
-                    "evaluation_type": False,
-                    "value": False,
+                    "state": "object_write",
+                    "code": False,
+                    "evaluation_type": "equation",
+                    "value": "False",
+                    "update_field_id": self.env["ir.model.fields"]._get(self.MODEL, "active").id,
                 }
             ],
         )
