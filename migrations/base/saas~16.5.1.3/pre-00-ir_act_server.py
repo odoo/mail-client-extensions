@@ -86,6 +86,27 @@ def migrate(cr, version):
         ],
     )
 
+    # migrated to code server actions should be
+    # excluded from the cloc for maintenance fees
+    execute_values(
+        cr._obj,
+        r"""
+            INSERT INTO ir_model_data (name, module, model, res_id, noupdate)
+                 VALUES %s
+        """,
+        [
+            (
+                action["__cloc_exclude_name"],
+                "__cloc_exclude__",
+                "ir.actions.server",
+                action["action_server_id"],
+                True,
+            )
+            for action in to_update
+            if action["__include_in_migration_report"]
+        ],
+    )
+
     util.remove_field(cr, "ir.actions.server", "fields_lines")
     util.remove_model(cr, "ir.server.object.lines")
 
@@ -130,6 +151,7 @@ def process_actions(actions):
         # get code snippet
         code_snippet = compile_code_snippet(same_actions)
         # update the action to be a code action
+        # and exclude it from the cloc for maintenance fees
         res.append(
             {
                 "action_server_id": action["action_server_id"],
@@ -142,6 +164,7 @@ def process_actions(actions):
                 "link_field_id": None,
                 "update_field_id": None,
                 "__include_in_migration_report": True,
+                "__cloc_exclude_name": f"migrated_to_code_server_action_{action['action_server_id']}",
             }
         )
 
