@@ -16,3 +16,22 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.move", "scrap_ids")
     util.remove_field(cr, "stock.scrap", "move_id")
     util.remove_field(cr, "stock.warehouse", "return_type_id")
+    util.create_column(cr, "stock_lot", "location_id", "integer")
+    cr.execute(
+        """
+        WITH filtered_lots AS(
+            SELECT lot.id AS lot_id,
+                   min(quant.location_id) AS location_id
+              FROM stock_lot lot
+              JOIN stock_quant quant
+                ON lot.id = quant.lot_id
+             WHERE quant.quantity > 0
+          GROUP BY lot.id
+            HAVING count(*) = 1
+        )
+        UPDATE stock_lot sl
+           SET location_id = fl.location_id
+          FROM filtered_lots fl
+         WHERE sl.id = fl.lot_id
+    """
+    )
