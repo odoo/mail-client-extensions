@@ -36,10 +36,18 @@ def migrate(cr, version):
     # methods that do not have a code are the ones to be deleted.
     cr.execute("DELETE FROM payment_method WHERE code IS NULL")
 
-    env = util.env(cr)
-    # Activate default pms for active providers.
-    providers = env["payment.provider"].search([("state", "!=", "disabled")])
-    providers._activate_default_pms()
+    # Activate default pms for active providers, specific codes need to be done at end- of their modules
+    activate_default_pms(cr, exclude_codes=["alipay", "custom", "ogone", "payulatam", "payumoney"])
+
+
+def activate_default_pms(cr, *, code=None, exclude_codes=None):
+    assert bool(code) ^ bool(exclude_codes)
+    domain = [("state", "!=", "disabled")]
+    if exclude_codes:
+        domain.append(("code", "not in", exclude_codes))
+    else:
+        domain.append(("code", "=", code))
+    util.env(cr)["payment.provider"].search(domain)._activate_default_pms()
 
 
 def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None):

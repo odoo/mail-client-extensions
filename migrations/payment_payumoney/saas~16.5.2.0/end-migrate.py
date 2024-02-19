@@ -7,3 +7,4 @@ def migrate(cr, version):
     xmlid = "payment_payumoney.payment_provider_payumoney"
     util.update_record_from_xml(cr, xmlid)
     script.copy_payment_methods_to_duplicated_providers(cr, xmlid)
+    script.activate_default_pms(cr, code="payumoney")

@@ -7,3 +7,5 @@ def migrate(cr, version):
     xmlid = "payment.payment_provider_transfer"
     util.update_record_from_xml(cr, xmlid, from_module="payment_custom")
     script.copy_payment_methods_to_duplicated_providers(cr, xmlid, custom_mode="wire_transfer")
+    # custom also deals with website_sale_picking and website_sale_ups special providers
+    script.activate_default_pms(cr, code="custom")
