@@ -168,7 +168,7 @@ def migrate(cr, version):
     """
     )
     [project_plan_id] = cr.fetchone()
-    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s", [project_plan_id])
+    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
     column_names = ["account_id"] + [f"x_plan{id_}_id" for id_ in other_plan_ids]
 

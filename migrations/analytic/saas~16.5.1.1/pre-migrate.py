@@ -109,7 +109,7 @@ def migrate(cr, version):
     # |        |        |      i |   100 |
     cr.execute("ALTER TABLE account_analytic_line ALTER COLUMN account_id DROP NOT NULL")
 
-    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s", [project_plan_id])
+    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
     if other_plan_ids:
         # First create the new fields/columns
@@ -143,15 +143,17 @@ def migrate(cr, version):
 
         # Then move the value from the first column to the (new) correct one
         distributed_plans = ", ".join(
-            f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id" for id_ in other_plan_ids
+            f"CASE WHEN plan.parent_path LIKE '{id_}/%' THEN account.id ELSE NULL END AS plan{id_}_id"
+            for id_ in other_plan_ids
         )
         query = f"""
             WITH updated_lines AS (
                 SELECT line.id,
                        {distributed_plans},
-                       CASE WHEN account.plan_id = {project_plan_id} THEN account.id ELSE NULL END AS account_id
+                       CASE WHEN plan.parent_path LIKE '{project_plan_id}/%' THEN account.id ELSE NULL END AS account_id
                   FROM account_analytic_line line
                   JOIN account_analytic_account account ON line.account_id = account.id
+                  JOIN account_analytic_plan plan ON line.plan_id = plan.id
                  WHERE {{parallel_filter}}
             )
             UPDATE account_analytic_line

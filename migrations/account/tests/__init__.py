@@ -10,6 +10,7 @@ from . import (
     test_15_5_reportalypse,
     test_16_2_payment_term,
     test_16_4_onboarding,
+    test_16_5_analytic_plan,
     test_account,
     test_account_account_tag_unique,
     test_account_group,
