@@ -12,7 +12,3 @@ def migrate(cr, version):
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("l10n_fr{_account,}.res_company_form_l10n_fr"))
     util.rename_xmlid(cr, *eb("l10n_fr{_account,}.res_partner_form_l10n_fr"))
-
-    util.rename_xmlid(cr, *eb("l10n_fr{_account,}.partner_demo_company_fr"))
-    util.rename_xmlid(cr, *eb("l10n_fr{_account,}.demo_company_fr"))
-    util.rename_xmlid(cr, *eb("l10n_fr{_account,}.demo_bank_fr"))
