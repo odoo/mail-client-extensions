@@ -10,7 +10,7 @@ def migrate(cr, version):
         r"""
         SELECT id, commands
           FROM spreadsheet_revision
-         WHERE commands LIKE '%INSERT\_PIVOT%'
+         WHERE commands LIKE '%\_PIVOT%'
         """
     )
 
@@ -23,14 +23,26 @@ def migrate(cr, version):
         changed = False
         new_commands = []
         for command in commands:
-            if command["type"] not in ("INSERT_PIVOT", "RE_INSERT_PIVOT"):
+            if command["type"] not in ("INSERT_PIVOT", "RE_INSERT_PIVOT", "RENAME_ODOO_PIVOT"):
                 new_commands.append(command)
                 continue
             changed = True
-            if command["type"] == "RE_INSERT_PIVOT":
-                command["type"] = "INSERT_PIVOT"
+
+            # RENAME_ODOO_PIVOT is renamed to RENAME_PIVOT
+            if command["type"] == "RENAME_ODOO_PIVOT":
+                command["type"] = "RENAME_PIVOT"
                 new_commands.append(command)
                 continue
+
+            # RE_INSERT_PIVOT is renamed to INSERT_PIVOT, id is renamed to pivotId
+            if command["type"] == "RE_INSERT_PIVOT":
+                command["type"] = "INSERT_PIVOT"
+                command["pivotId"] = command["id"]
+                del command["id"]
+                new_commands.append(command)
+                continue
+
+            # INSERT_PIVOT is split into ADD_PIVOT and INSERT_PIVOT
             definition = command["definition"]
             meta_data = definition.get("metaData", {})
             search_params = definition.get("searchParams", {})
@@ -50,11 +62,12 @@ def migrate(cr, version):
             new_commands.append(
                 {
                     "type": "ADD_PIVOT",
-                    "id": command["id"],
+                    "pivotId": command["id"],
                     "pivot": pivot,
                 }
             )
-
+            command["pivotId"] = command["id"]
+            del command["id"]
             new_commands.append(command)
 
         if not changed:

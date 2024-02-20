@@ -48,6 +48,11 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                     },
                     "id": "1",
                 },
+                {
+                    "type": "RENAME_ODOO_PIVOT",
+                    "pivotId": "1",
+                    "name": "name",
+                },
             ],
         }
         revision_insert = self.env["spreadsheet.revision"].create(
@@ -88,11 +93,11 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                     {
                         "type": "ADD_PIVOT",
                         "pivot": pivot,
-                        "id": "1",
+                        "pivotId": "1",
                     },
                     {
                         "type": "INSERT_PIVOT",
-                        "id": "1",
+                        "pivotId": "1",
                         "sheetId": "Sheet1",
                         "col": 0,
                         "row": 0,
@@ -108,7 +113,12 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                         "table": {
                             "cols": [],
                         },
-                        "id": "1",
+                        "pivotId": "1",
+                    },
+                    {
+                        "type": "RENAME_PIVOT",
+                        "pivotId": "1",
+                        "name": "name",
                     },
                 ],
             },
