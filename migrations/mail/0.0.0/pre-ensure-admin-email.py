@@ -24,8 +24,16 @@ def migrate(cr, version):
                 [env.user.id],
             )
         else:
-            cr.execute("SELECT value FROM ir_config_parameter WHERE key = 'mail.catchall.domain'")
-            [domain] = cr.fetchone()
+            cr.execute(
+                r"""
+                SELECT REGEXP_REPLACE(value, '^(https?://)?(www\.)?|(:\d+)?/?$', '', 'g')
+                  FROM ir_config_parameter
+                 WHERE key IN ('mail.catchall.domain', 'web.base.url')
+              ORDER BY key  -- prefer mail.catchall.domain over web.base.url
+                 LIMIT 1
+                """
+            )
+            [domain] = cr.fetchone() or ["localhost"]
 
             if util.column_exists(cr, "res_users", "alias_id"):
                 cr.execute(
