@@ -18,6 +18,8 @@ def migrate(cr, version):
     util.create_column(cr, "account_move", "l10n_mx_edi_is_cfdi_needed", "bool")
     util.create_column(cr, "account_move", "l10n_mx_edi_cfdi_attachment_id", "int4")
     util.create_column(cr, "account_move", "l10n_mx_edi_cfdi_state", "varchar")
+    if not util.column_exists(cr, "account_move", "l10n_mx_edi_cfdi_to_public"):
+        util.create_column(cr, "account_move", "l10n_mx_edi_cfdi_to_public", "bool")
 
     query = """
         UPDATE account_move

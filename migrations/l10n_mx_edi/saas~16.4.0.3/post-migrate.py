@@ -76,6 +76,9 @@ def migrate(cr, _version):
     cr.execute("DELETE FROM account_edi_document WHERE edi_format_id = %s", [cfdi_format_id])
     util.remove_record(cr, "l10n_mx_edi.edi_cfdi_3_3")
 
+    # Recompute fields
+    util.recompute_fields(cr, "account.move", ["l10n_mx_edi_cfdi_to_public"], strategy="commit")
+
     # Cron recomputing UUIDs
     # See cron on l10n_mx_edi/16.0.0.3/post-migrate.py
     UUID_RECOMPUTATION_CRON_CODE = """
