@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if util.table_exists(cr, "account_account_type"):
+    if not util.version_gte("saas~16.1"):  # this branch is for upgrades with target <=16.0
         join = "JOIN account_account_type t ON (t.id = a.user_type_id)"
         condition = "t.type IN ('payable', 'receivable')"
         prop_label = "t.type"
@@ -24,36 +24,35 @@ def migrate(cr, version):
          WHERE {}
            AND p.id IS NULL
       GROUP BY f.name, a.company_id, f.id
-    """.format(
-            join, prop_label, condition
-        )
+        """.format(join, prop_label, condition)
     )
 
     # If you didn't understand the previous query, here is the equivalent in human readable code
-
-    # for company in env["res.company"].search([]):
-    #     for acc_type in ("payable", "receivable"):
-    #         account = env["account.account"].search(
-    #             [("user_type_id.type", "=", acc_type), ("company_id", "=", company.id)], limit=1
-    #         )
-    #         field = env["ir.model.fields"].search(
-    #             [("model", "=", "res.partner"), ("name", "=", "property_account_%s_id" % acc_type)]
-    #         )
-    #         property = env["ir.property"].search(
-    #             [
-    #                 ("name", "=", "property_account_%s_id" % acc_type),
-    #                 ("company_id", "=", company.id),
-    #                 ("fields_id", "=", field.id),
-    #                 ("res_id", "=", None),
-    #             ]
-    #         )
-    #         if account and not property:
-    #             env["ir.property"].create(
-    #                 {
-    #                     "name": "property_account_%s_id" % acc_type,
-    #                     "company_id": company.id,
-    #                     "type": "many2one",
-    #                     "fields_id": field.id,
-    #                     "value_reference": "account.account,%s" % account.id,
-    #                 }
-    #             )
+    """
+    for company in env["res.company"].search([]):
+        for acc_type in ("payable", "receivable"):
+            account = env["account.account"].search(
+                [("user_type_id.type", "=", acc_type), ("company_id", "=", company.id)], limit=1
+            )
+            field = env["ir.model.fields"].search(
+                [("model", "=", "res.partner"), ("name", "=", "property_account_%s_id" % acc_type)]
+            )
+            property = env["ir.property"].search(
+                [
+                    ("name", "=", "property_account_%s_id" % acc_type),
+                    ("company_id", "=", company.id),
+                    ("fields_id", "=", field.id),
+                    ("res_id", "=", None),
+                ]
+            )
+            if account and not property:
+                env["ir.property"].create(
+                    {
+                        "name": "property_account_%s_id" % acc_type,
+                        "company_id": company.id,
+                        "type": "many2one",
+                        "fields_id": field.id,
+                        "value_reference": "account.account,%s" % account.id,
+                    }
+                )
+    """
