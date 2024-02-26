@@ -611,7 +611,14 @@ def migrate(cr, version):
             if active:
                 cr.execute("UPDATE ir_ui_view SET active=true WHERE id=%s", [vid])
             md = v.model_data_id
-            arch = etree.fromstring(v.arch_db)
+            try:
+                arch = etree.fromstring(v.arch_db)
+            except Exception:
+                _logger.exception(
+                    "Skipping adapt of attributes for view (id=%s, lang=%r) with invalid arch", v.id, lang
+                )
+                view_errors[v.id].append(lang)
+                continue
             if not v.model:
                 _logger.warning("Skipping adapt of attributes for model-less view (id=%s)", v.id)
             elif not md or md.module not in standard_modules or lang != "en_US":
@@ -667,7 +674,13 @@ def migrate(cr, version):
     )
     to_process = collections.defaultdict(set)
     for vid, lang, arch_db in cr.fetchall():
-        if not check_arch(vid, etree.fromstring(arch_db), lang, error=False):
+        try:
+            parsed_arch = etree.fromstring(arch_db)
+        except Exception:
+            _logger.exception("Skipping adapt of attributes for view (id=%s, lang=%r) with invalid arch", vid, lang)
+            view_errors[vid].append(lang)
+            continue
+        if not check_arch(vid, parsed_arch, lang, error=False):
             to_process[lang].add(vid)
     for lang, process_ids in to_process.items():
         # we need the order per lang!
