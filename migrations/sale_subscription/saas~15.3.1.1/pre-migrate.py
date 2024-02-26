@@ -940,26 +940,26 @@ def _handle_recurring_renting_products(cr):
             template_mapping[product.product_tmpl_id.id] = new_product.product_tmpl_id.id
             case_str += "WHEN product_id=%s THEN %s \n" % (product.id, new_product.id)
 
-        case_str += "ELSE product_id"
-        query = (
-            """
-            UPDATE sale_subscription_line
-               SET product_id = CASE
-               %s
-               END
-        """
-            % case_str
-        )
-        cr.execute(query)
+        if case_str:
+            cr.execute(
+                f"""
+                UPDATE sale_subscription_line
+                   SET product_id = CASE
+                           {case_str}
+                           ELSE product_id
+                       END
+                """
+            )
 
-        cr.execute(
-            """
-            UPDATE product_template
-               SET recurring_invoice=true,rent_ok=false
-             WHERE id IN %s
-            """,
-            [tuple(template_mapping.values())],
-        )
+            cr.execute(
+                """
+                UPDATE product_template
+                   SET recurring_invoice=true,rent_ok=false
+                 WHERE id IN %s
+                """,
+                [tuple(template_mapping.values())],
+            )
+
         cr.execute(
             """
             UPDATE product_template
