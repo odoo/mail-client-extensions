@@ -502,7 +502,7 @@ def migrate(cr, version):
     util.remove_model(cr, "sale.subscription.renew.wizard")
     util.remove_model(cr, "sale.subscription.wizard.option")
     util.remove_model(cr, "sale.subscription.wizard")
-    util.remove_model(cr, "sale.subscription.line", drop_table=False)
+
     # Merge all references
     cr.execute(
         """
