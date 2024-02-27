@@ -10,3 +10,6 @@ def migrate(cr, version):
     util.remove_record(cr, "account_reports.journal_report_partner_name")
     util.remove_record(cr, "account_reports.journal_report_amount_currency")
     util.rename_field(cr, "account.report.file.download.error.wizard", "file_generation_errors", "actionable_errors")
+    util.remove_record(cr, "account_reports.account_financial_report_executivesummary_net_assets0_na_balance")
+    util.remove_record(cr, "account_reports.account_financial_report_executivesummary_avdebt0_deb")
+    util.remove_record(cr, "account_reports.account_financial_report_executivesummary_avgcre0_cre")
