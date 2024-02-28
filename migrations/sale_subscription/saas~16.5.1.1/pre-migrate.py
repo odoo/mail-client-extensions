@@ -88,7 +88,8 @@ def migrate(cr, version):
         name varchar NOT NULL,
         template_id int4,
         recurrence_id int4,
-        active boolean
+        active boolean,
+        pause boolean
         )
         """
     )
@@ -115,18 +116,28 @@ def migrate(cr, version):
                 invoice_mail_template_id,
                 template_id,
                 recurrence_id,
-                active
+                active,
+                pause
             )
          SELECT COALESCE(sot.name, str.duration || ' ' || str.unit) AS name,
-                str.unit AS billing_period_unit,
-                str.duration AS billing_period_value,
+                CASE str.unit
+                    WHEN 'day' THEN 'week'
+                    WHEN 'hour' THEN 'week'
+                    ELSE str.unit
+                END AS billing_period_unit,
+                CASE str.unit
+                    WHEN 'day' THEN CEIL(str.duration / 7)
+                    WHEN 'hour' THEN CEIL(str.duration / 24 / 7)
+                    ELSE str.duration
+                END AS billing_period_value,
                 COALESCE(sot.user_closable, false) AS user_closable,
                 COALESCE(sot.auto_close_limit, 15) AS auto_close_limit,
                 sot.company_id AS company_id,
                 COALESCE(sot.invoice_mail_template_id, %s) AS invoice_mail_template_id,
                 sot.id AS template_id,
                 str.id AS recurrence_id,
-                COALESCE(str.active, false) AND COALESCE(sot.active, false) AS active
+                COALESCE(str.active, false) AND COALESCE(sot.active, false) AS active,
+                str.unit IN ('day', 'hour') AS pause
            FROM combination
       LEFT JOIN sale_order_template sot ON sot.id = combination.sale_order_template_id
            JOIN sale_temporal_recurrence str ON str.id = combination.recurrence_id;
@@ -164,6 +175,32 @@ def migrate(cr, version):
         table="sale_order",
         alias="so",
     )
+
+    cr.execute(
+        """
+    UPDATE sale_order so
+       SET subscription_state = '4_paused'
+      FROM sale_subscription_plan ssp
+     WHERE so.recurrence_id = ssp.recurrence_id
+       AND ssp.pause
+       AND so.subscription_state in ('3_progress', '4_paused')
+ RETURNING so.id, so.name
+        """,
+    )
+    so_ids = cr.fetchall()
+    if so_ids:
+        util.add_to_migration_reports(
+            """
+            <details>
+                <summary>
+                    The following subscriptions have been paused because their recurrence was hourly/daily which is not supported anymore.
+                </summary>
+                <ul>%s</ul>
+            </details>
+            """
+            % ["\n".join(f"<li>{util.get_anchor_link_to_record('sale.order', id, name)}</li>" for id, name in so_ids)],
+            category="Subscription",
+        )
 
     # Update reference on company
     if util.column_exists(cr, "res_company", "subscription_default_recurrence_id"):

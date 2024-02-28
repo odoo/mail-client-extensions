@@ -57,6 +57,7 @@ def migrate(cr, version):
 
     # Remove columns/fields that were kept for reference
     util.remove_column(cr, "sale_subscription_plan", "template_id")
+    util.remove_column(cr, "sale_subscription_plan", "pause")
     util.remove_column(cr, "sale_subscription_plan", "recurrence_id")
     util.remove_column(cr, "sale_subscription_pricing", "old_id")
 
