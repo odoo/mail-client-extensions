@@ -256,6 +256,20 @@ class TestRefactoringEDI(UpgradeCase):
             )
         )
 
+        journal = (
+            self.env["account.journal"]
+            .with_user(user)
+            .create(
+                {
+                    "name": "journal_co",
+                    "code": "test_CO",
+                    "type": "sale",
+                    "company_id": company.id,
+                    "l10n_co_edi_dian_authorization_number": "test_dian_number",
+                }
+            )
+        )
+
         type_field = "move_type" if util.version_gte("saas~13.3") else "type"
         invoice_vals = {
             type_field: "out_invoice",
@@ -275,6 +289,7 @@ class TestRefactoringEDI(UpgradeCase):
                     },
                 )
             ],
+            "journal_id": journal.id,
         }
         return [
             self._create_invoice_posted_signed(user, dict(invoice_vals)),

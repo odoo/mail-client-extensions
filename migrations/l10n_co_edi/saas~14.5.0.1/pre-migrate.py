@@ -16,9 +16,12 @@ def migrate(cr, version):
             ON move.company_id = com.id
           JOIN res_country cntry
             ON com.account_fiscal_country_id = cntry.id
+          JOIN account_journal jrnl
+            ON jrnl.id = move.journal_id
          WHERE move.l10n_co_edi_invoice_status IN ('not_sent', 'processing')
            AND move.state = 'posted'
            AND cntry.code = 'CO'
+           AND COALESCE(jrnl.l10n_co_edi_dian_authorization_number, '') != ''
     """,
         [co_edi_format_id],
     )
