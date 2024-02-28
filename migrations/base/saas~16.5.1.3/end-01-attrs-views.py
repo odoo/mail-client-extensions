@@ -348,7 +348,7 @@ def ast_term2domain_term(term):
         try:
             left, op, right = term.elts
         except Exception:
-            util._logger.exception("Invalid domain!")
+            _logger.exception("Invalid domain!")
         else:
             return (left.value, op.value, right)
     raise SyntaxError("Domain terms must be either a domain operator either a three-elements tuple")
@@ -607,7 +607,7 @@ def migrate(cr, version):
                     # The combined arch don't take into account current view since it's disabled.
                     comb_arch = v.inherit_id._get_combined_arch()
                 except Exception:
-                    util._logger.exception("Error in view %s", v.id)
+                    _logger.exception("Error in view %s", v.id)
             if active:
                 cr.execute("UPDATE ir_ui_view SET active=true WHERE id=%s", [vid])
             md = v.model_data_id
