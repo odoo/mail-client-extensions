@@ -1,1 +1,1 @@
-from . import test_insert_pivot, test_set_formatting_change
+from . import test_create_table_command_change, test_insert_pivot, test_set_formatting_change
