@@ -548,7 +548,7 @@ def get_ordered_views(cr):
     children = collections.defaultdict(list)
     for v in data.values():
         children[v.inherit_id].append(v)
-    ordered_views = [(v.id, v.active) for v in children[None]]  # first root views
+    ordered_views = []
     for root in children[None]:
         dq = collections.deque([root])
         while dq:
