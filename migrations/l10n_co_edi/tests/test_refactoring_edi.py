@@ -9,7 +9,6 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 
 @change_version("saas~14.5")
 class TestRefactoringEDI(UpgradeCase):
-
     # -------------------------------------------------------------------------
     # HELPERS
     # -------------------------------------------------------------------------
