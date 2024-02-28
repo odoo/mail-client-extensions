@@ -16,6 +16,7 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.move", "scrap_ids")
     util.remove_field(cr, "stock.scrap", "move_id")
     util.remove_field(cr, "stock.warehouse", "return_type_id")
+    util.create_column(cr, "stock_lot", "lot_properties", "jsonb")
     util.create_column(cr, "stock_lot", "location_id", "integer")
     cr.execute(
         """
