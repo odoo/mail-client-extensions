@@ -10,7 +10,7 @@ from lxml import etree
 from psycopg2.extras import Json
 
 from odoo.modules.module import get_modules
-from odoo.osv.expression import normalize_domain
+from odoo.osv.expression import DOMAIN_OPERATORS, normalize_domain
 from odoo.tools.safe_eval import safe_eval
 
 from odoo.upgrade import util
@@ -342,16 +342,18 @@ def check_true_false(lv, ov, rv_ast):
 
 
 def ast_term2domain_term(term):
-    if isinstance(term, ast.Constant):
+    if isinstance(term, ast.Constant) and term.value in DOMAIN_OPERATORS:
         return term.value
     if isinstance(term, (ast.Tuple, ast.List)):
         try:
             left, op, right = term.elts
         except Exception:
-            _logger.exception("Invalid domain!")
+            _logger.error("Invalid domain leaf %s", ast.unparse(term))  # noqa: TRY400
+            raise SyntaxError() from None
         else:
             return (left.value, op.value, right)
-    raise SyntaxError("Domain terms must be either a domain operator either a three-elements tuple")
+    _logger.error("Domain terms must be a domain operator or a three-elements tuple, got %s", ast.unparse(term))
+    raise SyntaxError() from None
 
 
 def convert_attrs_val(cr, model, field_path, val):
@@ -391,8 +393,8 @@ def convert_attrs_val(cr, model, field_path, val):
         if not val:
             return "True"  # all records match the empty domain
         # make an ast domain look like a domain, to be able to use normalize_domain
-        val = [ast_term2domain_term(term) for term in val]
         try:
+            val = [ast_term2domain_term(term) for term in val]
             norm_domain = normalize_domain(val)
         except Exception:
             raise InvalidDomainError(ast.unparse(orig_ast)) from None
