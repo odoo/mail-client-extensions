@@ -612,7 +612,7 @@ def migrate(cr, version):
                 cr.execute("UPDATE ir_ui_view SET active=true WHERE id=%s", [vid])
             md = v.model_data_id
             try:
-                arch = etree.fromstring(v.arch_db)
+                arch = etree.fromstring((v.arch_db or "").strip())
             except Exception:
                 _logger.exception(
                     "Skipping adapt of attributes for view (id=%s, lang=%r) with invalid arch", v.id, lang
@@ -658,7 +658,7 @@ def migrate(cr, version):
         """
         SELECT arch.id,
                arch.lang,
-               arch.value
+               COALESCE(arch.value, '')
           FROM ir_ui_view v
           JOIN LATERAL (
                SELECT v.id,
@@ -675,7 +675,7 @@ def migrate(cr, version):
     to_process = collections.defaultdict(set)
     for vid, lang, arch_db in cr.fetchall():
         try:
-            parsed_arch = etree.fromstring(arch_db)
+            parsed_arch = etree.fromstring(arch_db.strip())
         except Exception:
             _logger.exception("Skipping adapt of attributes for view (id=%s, lang=%r) with invalid arch", vid, lang)
             view_errors[vid].append(lang)
