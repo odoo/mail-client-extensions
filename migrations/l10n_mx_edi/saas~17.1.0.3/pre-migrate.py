@@ -9,3 +9,6 @@ def migrate(cr, version):
     util.remove_view(cr, "l10n_mx_edi.l10n_mx_edi_addenda_bosh_A_C")
     util.remove_view(cr, "l10n_mx_edi.l10n_mx_edi_addenda_autozone")
     util.create_column(cr, "account_move", "l10n_mx_edi_addenda_id", "int4")
+
+    util.remove_field(cr, "res.partner", "l10n_mx_edi_addenda_is_readonly")
+    util.remove_field(cr, "res.partner", "l10n_mx_edi_addenda_name")
