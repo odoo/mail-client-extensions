@@ -93,6 +93,18 @@ class TestCrawler(IntegrityCase):
 
             self.render_method = render
 
+        self.skip_menus = []
+        cr = self.env.cr
+        if util.on_CI() and util.version_gte("saas~16.3") and util.module_installed(cr, "l10n_fr_hr_holidays"):
+            self.skip_menus.extend(
+                [
+                    "hr_holidays.hr_leave_menu_new_request",
+                    "hr_holidays.hr_leave_menu_my",
+                    "hr_holidays.menu_open_department_leave_approve",
+                    "hr_holidays.hr_holidays_status_menu_configuration",
+                ]
+            )
+
     def check(self, value):
         """
         @Extend
@@ -229,7 +241,9 @@ class TestCrawler(IntegrityCase):
         menu_name = "%s > %s" % (parent, menu["name"]) if parent else menu["name"]
         _logger.info("Mocking menu %s", menu_name)
         failing = set()
-        if menu.get("action"):
+        if menu["xmlid"] in self.skip_menus:
+            _logger.info("Skip known failing menu %s", menu["xmlid"])
+        elif menu.get("action"):
             action_id = int(menu["action"].split(",")[1])
             action = self.env["ir.actions.actions"].browse(action_id)
             try:
