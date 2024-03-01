@@ -15,6 +15,19 @@ def migrate(cr, version):
     util.remove_view(cr, "account.view_account_move_line_filter_with_root_selection")
     util.remove_record(cr, "account.action_account_moves_ledger_general")
 
+    if util.module_installed(cr, "hr_expense"):
+        query = """
+            UPDATE account_move move
+               SET move_type = 'in_invoice'
+              FROM hr_expense_sheet hes
+              JOIN hr_expense he
+                ON he.sheet_id = hes.id
+             WHERE move.id = hes.account_move_id
+               AND move.move_type = 'entry'
+               AND he.payment_mode = 'own_account'
+        """
+        util.explode_execute(cr, query, table="account_move", alias="move")
+
     query = """
         UPDATE account_move_line line
            SET display_type = CASE
@@ -127,9 +140,7 @@ def migrate(cr, version):
                 WHERE id = ANY(r.ids)
                 AND r.any_update
             RETURNING id, name, code
-         """.format(
-            code=unaccent("code")
-        )
+         """.format(code=unaccent("code"))
     )
 
     updated_accounts = cr.fetchall()
