@@ -8,6 +8,9 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_field(cr, "hr.leave", "report_note")
+    util.remove_field(cr, "hr.leave", "number_of_days_display")
+    util.remove_field(cr, "hr.leave", "number_of_hours_display")
+    util.remove_field(cr, "hr.leave", "number_of_hours_text")
 
     util.create_column(cr, "hr_leave_allocation", "number_of_hours_display", "float8")
     queries = [
