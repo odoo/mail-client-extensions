@@ -9,6 +9,19 @@ def migrate(cr, version):
         """
             UPDATE discuss_channel_member
                SET fold_state = 'closed'
+              FROM discuss_channel
+             WHERE discuss_channel_member.channel_id = discuss_channel.id
+               AND discuss_channel.channel_type NOT IN ('channel', 'group')
+               AND discuss_channel_member.is_pinned IS NOT true
+        """,
+        table="discuss_channel_member",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+            UPDATE discuss_channel_member
+               SET fold_state = 'closed'
              WHERE is_minimized IS NOT true
         """,
         table="discuss_channel_member",
