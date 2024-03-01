@@ -41,12 +41,3 @@ def migrate(cr, version):
         util.remove_field(cr, "l10n_mx_edi.document", "cancel_payment_button_needed")
         util.create_column(cr, "l10n_mx_edi_document", "attachment_origin", "varchar")
         util.create_column(cr, "l10n_mx_edi_document", "attachment_uuid", "varchar")
-        util.explode_execute(
-            cr,
-            """
-                UPDATE l10n_mx_edi_document
-                SET attachment_origin = '<TO_COMPUTE>'
-                WHERE l10n_mx_edi_document.attachment_id IS NOT NULL
-            """,
-            table="l10n_mx_edi_document",
-        )

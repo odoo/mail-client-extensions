@@ -10,6 +10,16 @@ if docs:
 
 
 def migrate(cr, _version):
+    util.explode_execute(
+        cr,
+        """
+            UPDATE l10n_mx_edi_document
+               SET attachment_origin = '<TO_COMPUTE>'
+             WHERE l10n_mx_edi_document.attachment_id IS NOT NULL
+        """,
+        table="l10n_mx_edi_document",
+    )
+
     util.create_cron(
         cr,
         "l10n_mx_edi: recompute UUID/ORIGIN",
