@@ -61,3 +61,5 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_dk_audit_trail", "l10n_dk")
 
     util.remove_module(cr, "l10n_dk_edi")
+
+    util.merge_module(cr, "l10n_be_codabox_bridge_wizard", "l10n_be_codabox")
