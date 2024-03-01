@@ -626,6 +626,7 @@ def migrate(cr, version):
             elif not md or md.module not in standard_modules or lang != "en_US":
                 # fix only custom views, or translations
                 if not fix_attrs(cr, v.model, arch, comb_arch):
+                    _logger.warning("Some errors occurred while adapting arch of view (id=%s, lang=%s)", v.id, lang)
                     view_errors[v.id].append(lang)
                 new_archs[v.id] = (active, arch)
             elif md.noupdate:
@@ -639,6 +640,13 @@ def migrate(cr, version):
                     # with views that have xmlids.
                     # Consider its a custom view.
                     if not fix_attrs(cr, v.model, arch, comb_arch):
+                        _logger.warning(
+                            "Some errors occurred while adapting arch of view %s.%s (id=%s, lang=%s)",
+                            md.module,
+                            md.name,
+                            v.id,
+                            lang,
+                        )
                         view_errors[v.id].append(lang)
                     new_archs[v.id] = (active, arch)
         return new_archs
