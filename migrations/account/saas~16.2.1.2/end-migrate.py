@@ -3,11 +3,13 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    env = util.env(cr)
+
     cr.execute("DELETE FROM ir_config_parameter WHERE key='account.show_line_subtotals_tax_selection'")
 
     # Update allow_out_payment. Set it to false unless there is an outgoing payment with a payment method that requires a bank
     # account and that is already reconciled.
-    payment_method_requiring_bank_account = util.env(cr)["account.payment"]._get_method_codes_needing_bank_account()
+    payment_method_requiring_bank_account = env["account.payment"]._get_method_codes_needing_bank_account()
     if payment_method_requiring_bank_account:
         cr.execute(
             """
@@ -39,3 +41,10 @@ def migrate(cr, version):
         )
 
     util.recompute_fields(cr, "res.partner.bank", ["has_iban_warning", "has_money_transfer_warning"])
+
+    # Reload existing journals and accounts to create xmlids if they do not have them
+    for company in env["res.company"].search([("chart_template", "!=", False)]):
+        ChartTemplate = env["account.chart.template"].with_company(company)
+        data = ChartTemplate._get_chart_template_data(company.chart_template)
+        template_data = data.pop("template_data")
+        ChartTemplate._pre_reload_data(company, template_data, data)
