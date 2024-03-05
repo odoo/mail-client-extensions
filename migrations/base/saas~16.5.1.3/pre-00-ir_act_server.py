@@ -56,6 +56,7 @@ def migrate(cr, version):
                    code = data.code,
                    evaluation_type = data.evaluation_type,
                    value = data.value,
+                   update_path = data.update_path,
                    crud_model_id = data.crud_model_id::INTEGER,
                    link_field_id = data.link_field_id::INTEGER,
                    update_field_id = data.update_field_id::INTEGER
@@ -67,7 +68,8 @@ def migrate(cr, version):
                        value,
                        crud_model_id,
                        link_field_id,
-                       update_field_id
+                       update_field_id,
+                       update_path
                    )
              WHERE ir_act_server.id = data.id
         """,
@@ -81,6 +83,7 @@ def migrate(cr, version):
                 action["crud_model_id"],
                 action["link_field_id"],
                 action["update_field_id"],
+                action["update_path"],
             )
             for action in to_update
         ],
@@ -144,6 +147,7 @@ def process_actions(actions):
                     "crud_model_id": action["crud_model_id"],
                     "link_field_id": action["link_field_id"],
                     "update_field_id": (None if action["state"] == "object_create" else action["update_field_id"]),
+                    "update_path": (action["update_field_name"] if action["state"] == "object_write" else None),
                     "__include_in_migration_report": False,
                 }
             )
@@ -163,6 +167,7 @@ def process_actions(actions):
                 "crud_model_id": None,
                 "link_field_id": None,
                 "update_field_id": None,
+                "update_path": None,
                 "__include_in_migration_report": True,
                 "__cloc_exclude_name": f"migrated_to_code_server_action_{action['action_server_id']}",
             }
