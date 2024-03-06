@@ -131,18 +131,17 @@ def migrate(cr, version):
     """
     )
     for table, column in tax_group_fks:
-        util.explode_execute(
-            cr,
-            f"""
+        query = f"""
             UPDATE {table} relation
                SET {column} = new.id
               FROM account_tax_group new
              WHERE relation.{column} = new._tmp_orig_id
                AND relation.{company_fk[table]} = new.company_id
-            """,
-            table=table,
-            alias="relation",
-        )
+            """
+        if util.column_exists(cr, table, "id"):
+            util.explode_execute(cr, query, table=table, alias="relation")
+        else:
+            cr.execute(query)
 
     cr.execute("""DELETE FROM account_tax_group WHERE company_id IS NULL""")
     cr.execute(
