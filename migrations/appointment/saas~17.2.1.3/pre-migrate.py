@@ -21,3 +21,6 @@ def migrate(cr, version):
         util.move_field_to_module(cr, "calendar.event", "partners_on_leave", "appointment_hr", "appointment")
         util.rename_field(cr, "calendar.event", "partners_on_leave", "on_leave_partner_ids")
     util.rename_field(cr, "calendar.event", "resources_on_leave", "on_leave_resource_ids")
+
+    util.remove_constraint(cr, "calendar_event", "check_resource_and_appointment_type")
+    util.remove_field(cr, "calendar.event", "appointment_resource_id")
