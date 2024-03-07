@@ -371,9 +371,7 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
             elems = arch.xpath(
                 """//xpath[contains(@expr, "/field[@name='{0}']")
                 and substring(@expr, string-length(@expr) - string-length("/field[@name='{0}']") + 1) = "/field[@name='{0}']"
-                and @position='replace']""".format(
-                    used_field
-                )
+                and @position='replace']""".format(used_field)
             )
             if elems:
                 elem = elems[0]
@@ -451,9 +449,7 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
         elems = arch.xpath(
             """//xpath[contains(@expr, "/field[@name='{}']")
             and substring(@expr, string-length(@expr) - string-length("/field[@name='{}']") + 1) = "/field[@name='{}']"
-            and @position='replace']""".format(
-                name, name, name
-            )
+            and @position='replace']""".format(name, name, name)
         )
         if elems:
             elem = elems[0]
@@ -921,7 +917,7 @@ class IrUiView(models.Model):
                         "".join(
                             "<li>%s</li>"
                             % util.get_anchor_link_to_record("ir.ui.view", view_id, view_xml_id or view_name)
-                            for view_id, view_xml_id, view_name, in views
+                            for view_id, view_xml_id, view_name in views
                         ),
                     ),
                     "Views",
@@ -990,7 +986,8 @@ class IrUiView(models.Model):
             for view in self:
                 if view.xml_id:
                     if "view:%s" % (view.xml_id) in os.environ.get(
-                        "suppress_upgrade_warnings", ""  # noqa: SIM112
+                        "suppress_upgrade_warnings",  # noqa: SIM112
+                        "",
                     ).split(","):
                         _logger.log(25, "View unlink %s explicitly ignored", (view.xml_id))
                     else:
