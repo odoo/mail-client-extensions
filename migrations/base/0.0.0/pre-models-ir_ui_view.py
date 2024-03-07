@@ -390,11 +390,15 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
     if m:
         field_name = m.group(2)
         model_name = m.group(4) if m.lastindex == 4 else None
-        elems = arch.xpath("//field[@name='{}']".format(field_name))
-        if not elems:
-            return False
         if not field_change(view, field_name, error_model=model_name):
             # this field was not changed during upgrade, let this view fail
+            return False
+        expr = "//field[@name='{}']".format(field_name)
+        if view.type == "calendar":
+            # calendar view heve elem like <attribute name="Property">field_name</attribute>
+            expr += "|" + "//attribute[text()='{}']".format(field_name)
+        elems = arch.xpath(expr)
+        if not elems:
             return False
         new_name = field_new_name(view, field_name, error_model=model_name)
         if (field_name, new_name) in field_changes:
@@ -403,7 +407,10 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
         for field_elem in elems:
             if new_name:
                 _logger.info("Field %r was renamed to %r", field_name, new_name)
-                field_elem.attrib["name"] = new_name
+                if field_elem.tag == "attribute":
+                    field_elem.text = new_name
+                else:  # tag is <field>
+                    field_elem.attrib["name"] = new_name
                 continue
             parent = field_elem.getparent()
             parent.remove(field_elem)
