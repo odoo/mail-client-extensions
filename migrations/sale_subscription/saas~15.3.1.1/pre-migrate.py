@@ -163,7 +163,7 @@ def migrate(cr, version):
     cr.execute(
         """
         INSERT INTO product_pricing (_upg_variant_id,price,recurrence_id,product_template_id,currency_id,pricelist_id,_mig_sub_line_id)
-        SELECT DISTINCT pp.id,ssl.price_unit,str.id,
+        SELECT DISTINCT ON(pp.id, str.id, pp.product_tmpl_id, ss.pricelist_id) pp.id,ssl.price_unit,str.id,
                pp.product_tmpl_id,ssl.currency_id,
                ss.pricelist_id,array_agg(ssl.id)
           FROM sale_subscription_line ssl
