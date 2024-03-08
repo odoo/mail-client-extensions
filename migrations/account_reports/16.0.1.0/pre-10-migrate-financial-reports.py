@@ -273,14 +273,16 @@ def migrate(cr, version):
         INSERT INTO account_report_expression (
             create_uid, write_uid, create_date, write_date,
             report_line_id, label,
-            date_scope, figure_type, green_on_positive, auditable,
+            date_scope,
+            figure_type, green_on_positive, auditable,
             engine,
             formula,
             subformula
         )
         SELECT arl.create_uid, arl.write_uid, arl.create_date, NOW(),
                arl.id, 'balance',
-               arl.v15_special_date_changer, arl.v15_figure_type, arl.v15_green_on_positive, True,
+               COALESCE(arl.v15_special_date_changer, 'strict_range'),
+               arl.v15_figure_type, arl.v15_green_on_positive, True,
                -- engine
                -- note that some formulas might contain both domain and aggregation terms. Those will be labelled as 'aggregation'
                -- and split in the end-10-migrate_financial_reports.py script.
