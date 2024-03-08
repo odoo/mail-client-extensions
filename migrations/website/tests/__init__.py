@@ -12,5 +12,6 @@ from . import (
     test_17_5_unique_website_controller_page,
     test_17_5_website_controller_page_m2o_record,
     test_assets_management,
+    test_cowed_layout,
     test_website_model,
 )
