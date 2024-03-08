@@ -34,8 +34,12 @@ def migrate(cr, version):
     invalid_ids = []
     for id_, xmlid in cr.fetchall():
         if xmlid:
-            _logger.warning("Restore action %r since it was using only dashboard views", xmlid)
-            util.update_record_from_xml(cr, xmlid)
+            if util.module_installed(cr, xmlid.split(".")[0]):
+                _logger.warning("Restore action %r since it was using only dashboard views.", xmlid)
+                util.update_record_from_xml(cr, xmlid)
+            else:
+                _logger.warning("Remove action %r since its module is uninstalled.", xmlid)
+                util.remove_record(cr, xmlid)
         else:
             invalid_ids.append(id_)
     remove_custom_views(cr)
