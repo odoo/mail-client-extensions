@@ -35,3 +35,5 @@ def migrate(cr, version):
     util.create_column(cr, "pos_config", "takeaway", "boolean")
     if util.column_exists(cr, "pos_config", "self_ordering_takeaway"):
         cr.execute("UPDATE pos_config SET takeaway = self_ordering_takeaway")
+    util.remove_field(cr, "pos.config", "iface_orderline_notes")
+    util.remove_field(cr, "res.config.settings", "pos_iface_orderline_notes")
