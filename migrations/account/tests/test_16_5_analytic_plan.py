@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import date
+from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta
 
@@ -54,7 +55,12 @@ class TestAnalyticPlan(UpgradeCase):
                 ],
             }
         )
-        invoice.action_post()
+
+        if "account.edi.format" in self.env:
+            with patch.object(type(self.env["account.edi.format"]), "_get_move_applicability", lambda _, __: None):
+                invoice.action_post()
+        else:
+            invoice.action_post()
 
         analytic_line = invoice.invoice_line_ids.analytic_line_ids
 
