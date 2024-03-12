@@ -6,6 +6,7 @@ from . import (
     test_16_0_bs5,
     test_16_1_dynamic_snippets,
     test_16_2_move_popup,
+    test_16_3_map_shapes,
     test_17_2_embed_code,
     test_17_2_mobile_order,
     test_17_3_remove_website_internal_user,
