@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import datetime
 
 from freezegun import freeze_time
@@ -260,7 +258,7 @@ class AssetsRevampingCase(UpgradeCase):
             asset_imported3,
             [
                 {
-                    "prorata_date": fields.Date.from_string("2020-04-01"),
+                    "prorata_date": fields.Date.from_string("2022-10-01"),
                     "method_number": 30,
                     "prorata_computation_type": "constant_periods",
                 }

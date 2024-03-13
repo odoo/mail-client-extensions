@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.addons.account_asset.models.account_asset import DAYS_PER_MONTH, DAYS_PER_YEAR
 
 from odoo.upgrade import util
@@ -189,32 +187,66 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, "account_asset", alias="asset")
 
+    util.create_column(cr, "account_asset", "_century_shift___upg", "boolean")
+
     # As of 16.0, the imported amount is considered in the depreciation computation.
     # Until this point in the upgrade, the prorata_date has been computed to be the date at which odoo starts to
     # depreciate the asset.
     # We now want the prorata_date to be the date at which the asset was first depreciated INCLUDING the amount already
     # depreciated in a previous software (already_depreciated_amount_import).
-    # In order to achieve this we shift the prorata_date by a certain number of period.
-    # This shift is determined by multiplying the number of period to be depreciated in Odoo by the following ratio:
-    # amount_already_depreciated_by_import / amount_to_depreciate_in_odoo
+    # In order to achieve this we shift the prorata_date by a certain number of periods.
+    # This shift is determined by computing the payments left to fully depreciate the residual value of the asset in
+    # `method_number` periods and computing the date at which those payments should have started to reach the current residual value.
+    # Assets that would, due to a very low residual value and thus even lower residual payments, shift their prorata_date
+    # more than 100 years/1200 months into the past are instead not updated.
     query = """
-        WITH periodic_payments AS (
-            SELECT id,
-                   Round((original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import)/method_number) as payment
+        WITH asset_depreciation_date_shift AS (
+            SELECT id AS asset_id,
+                   ROUND(
+                       already_depreciated_amount_import * method_number /
+                       (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import)
+                   ) AS already_depreciated_shift
               FROM account_asset
              WHERE {parallel_filter}
                AND method_number > 1
                AND already_depreciated_amount_import != 0
                AND (original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import) != 0
         )
-        UPDATE account_asset
-           SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * ROUND(already_depreciated_amount_import/p.payment),
-               method_number = method_number + ROUND(already_depreciated_amount_import/p.payment)
-          FROM periodic_payments p
-         WHERE p.id = account_asset.id
-           AND p.payment != 0
+        UPDATE account_asset aa
+           SET _century_shift___upg = adds.already_depreciated_shift > 1200 / (aa.method_period::integer),
+               prorata_date = CASE adds.already_depreciated_shift <= 1200 / (aa.method_period::integer)
+                                  WHEN TRUE THEN aa.prorata_date - INTERVAL '1 month' * (aa.method_period::integer) * adds.already_depreciated_shift
+                                  ELSE aa.prorata_date
+                               END,
+               method_number = CASE adds.already_depreciated_shift <= 1200 / (aa.method_period::integer)
+                                   WHEN TRUE THEN aa.method_number + adds.already_depreciated_shift
+                                   ELSE aa.method_number
+                                END
+          FROM asset_depreciation_date_shift adds
+         WHERE adds.asset_id = aa.id
     """
     util.explode_execute(cr, query, "account_asset")
+
+    cr.execute("SELECT name FROM account_asset WHERE _century_shift___upg")
+    if cr.rowcount:
+        util.add_to_migration_reports(
+            """
+            <details>
+                <summary>
+                    The following Assets/Deferred Revenues/Deferred Expenses have values of `Existing Depreciations => Depreciated Amount` \
+                    that seem incoherent with `Original Value`.
+                    They seem to correspond to an estimated lifetime of more than a century, as such some of their values have not been adapted \
+                    and they may behave incorrectly if Reevaluated/Disposed/Sold/Paused after the upgrade.
+                </summary>
+                <ul>%s</ul>
+            </details>
+            """
+            % " ".join([f"<li>{util.html_escape(name)}</li>" for (name,) in cr.fetchall()]),
+            category="Accounting assets",
+            format="html",
+        )
+
+    util.remove_column(cr, "account_asset", "_century_shift___upg")
 
     # To handle assets fully depreciated in another software, as it doesnt impact any further computation,
     # we just shift the prorata_date enough to be sure it would be fully depreciated if it should be computed.
@@ -223,11 +255,7 @@ def migrate(cr, version):
         UPDATE account_asset
            SET prorata_date = prorata_date - INTERVAL '1 month' * method_period::integer * method_number
          WHERE already_depreciated_amount_import != 0
-           AND (
-               method_number = 1
-            OR method_number > 1
-           AND ROUND((original_value - COALESCE(salvage_value, 0) - already_depreciated_amount_import)/method_number) = 0
-               )
+           AND method_number = 1
     """
     util.explode_execute(cr, query, "account_asset")
 
