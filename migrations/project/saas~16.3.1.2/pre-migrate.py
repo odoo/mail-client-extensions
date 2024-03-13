@@ -14,7 +14,16 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "project_color")
 
     util.update_field_usage(cr, "project.task", "display_project_id", "project_id")
-
+    util.explode_execute(
+        cr,
+        """
+            UPDATE project_task pt
+               SET project_id = NULL
+             WHERE display_project_id IS NULL
+        """,
+        table="project_task",
+        alias="pt",
+    )
     util.remove_field(cr, "project.task", "display_project_id")
     util.remove_field(cr, "project.task", "child_text")
     util.remove_field(cr, "project.task", "allow_subtasks")
