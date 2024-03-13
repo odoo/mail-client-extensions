@@ -17,23 +17,22 @@ def migrate(cr, version):
     )
     companies = cr.fetchall()
 
-    if not companies:
-        return
-
     cr.execute(
         r"""
          UPDATE account_tax_group AS atg
             SET country_id = %s
-           FROM ir_model_data AS imd
-          WHERE atg.company_id = ANY(%s)
-            AND atg.country_id = %s
+           FROM ir_model_data AS imd,
+                res_company AS rc
+          WHERE atg.country_id = %s
+            AND atg.company_id = rc.id
+            AND rc.chart_template = 'ph'
             AND imd.module = 'account'
             AND imd.model = 'account.tax.group'
             AND imd.name ~ '^\d+_l10n_ph_.+'
             AND imd.res_id = atg.id
       RETURNING atg.id, atg.name->'en_US'
         """,
-        [ph, [c[0] for c in companies], us],
+        [ph, us],
     )
     tax_groups = cr.fetchall()
 
@@ -49,24 +48,25 @@ def migrate(cr, version):
     )
     taxes = cr.fetchall()
 
-    util.add_to_migration_reports(
-        f"""
-            <details>
-                <summary>
-                    Some companies had their fiscal country set to United States instead of Philippines.
-                    The following records have been updated and have now their fiscal country set to Philippines.
-                </summary>
-                <h4>Companies</h4>
-                <ul>{"".join(f"<li>{util.get_anchor_link_to_record('res.company', id, name)}</li>"
-                              for id, name in companies)}</ul>
-                <h4>Tax groups</h4>
-                <ul>{"".join(f"<li>{util.get_anchor_link_to_record('account.tax.group', id, name)}</li>"
-                              for id, name in tax_groups)}</ul>
-                <h4>Taxes</h4>
-                <ul>{"".join(f"<li>{util.get_anchor_link_to_record('account.tax', id, name)}</li>"
-                              for id, name in taxes)}</ul>
-            </details>
-        """,
-        category="Philippines - Accounting",
-        format="html",
-    )
+    if companies or tax_groups:
+        util.add_to_migration_reports(
+            f"""
+                <details>
+                    <summary>
+                        Some companies or taxes had their fiscal country set to United States instead of Philippines.
+                        The following records have been updated and have now their fiscal country set to Philippines.
+                    </summary>
+                    <h4>Companies</h4>
+                    <ul>{"".join(f"<li>{util.get_anchor_link_to_record('res.company', id, name)}</li>"
+                                for id, name in companies)}</ul>
+                    <h4>Tax groups</h4>
+                    <ul>{"".join(f"<li>{util.get_anchor_link_to_record('account.tax.group', id, name)}</li>"
+                                for id, name in tax_groups)}</ul>
+                    <h4>Taxes</h4>
+                    <ul>{"".join(f"<li>{util.get_anchor_link_to_record('account.tax', id, name)}</li>"
+                                for id, name in taxes)}</ul>
+                </details>
+            """,
+            category="Philippines - Accounting",
+            format="html",
+        )
