@@ -6,6 +6,16 @@ def migrate(cr, version):
     without_pf_rules = [
         "rule_parameter_basic_without_pf_value",
         "rule_parameter_basic_without_pf",
+        "hr_salary_rule_hra_without_pf",
+        "hr_salary_rule_std_without_pf",
+        "hr_salary_rule_bonus_without_pf",
+        "hr_salary_rule_lta_without_pf",
+        "hr_salary_rule_spl_without_pf",
+        "hr_salary_rule_p_bonus_without_pf",
+        "hr_salary_rule_leave_without_pf",
+        "hr_salary_rule_pt_without_pf",
+        "hr_salary_rule_attach_salary_without_pf",
+        "hr_salary_rule_assig_salary_without_pf",
     ]
     for rule in without_pf_rules:
         util.delete_unused(cr, f"l10n_in_hr_payroll.{rule}")
