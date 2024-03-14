@@ -350,7 +350,7 @@ def migrate(cr, version):
                 ON move.journal_id = journal.id
              WHERE move.state = 'posted'
                AND move.name != '/'
-               AND {parallel_filter}
+               AND journal.id = %s
             WINDOW ordered_move AS (PARTITION BY move.name, move.journal_id
                                         ORDER BY move.name, move.journal_id, move.date)
         )
@@ -361,7 +361,8 @@ def migrate(cr, version):
            AND row_seq > 1
     """
     if not index_exists(cr, "account_move_unique_name_latam"):
-        util.explode_execute(cr, query, table="account_journal", alias="journal", bucket_size=1)
+        cr.execute("SELECT id FROM account_journal")
+        util.parallel_execute(cr, [cr.mogrify(query, [jid]).decode() for (jid,) in cr.fetchall()])
 
     # Send & Print refactor: new field to link to the PDF sent
     util.explode_execute(
