@@ -10,3 +10,16 @@ def migrate(cr, version):
     util.remove_view(cr, "mail.mail_shortcode_view_search")
     util.remove_view(cr, "mail.mail_shortcode_view_tree")
     util.remove_view(cr, "mail.mail_shortcode_view_form")
+
+    # Set unpin_dt to now for all non-pinned members
+    util.create_column(cr, "discuss_channel_member", "unpin_dt", "timestamp")
+    util.explode_execute(
+        cr,
+        """
+            UPDATE discuss_channel_member
+               SET unpin_dt = NOW() AT TIME ZONE 'UTC'
+             WHERE is_pinned IS NOT TRUE
+        """,
+        table="discuss_channel_member",
+    )
+    util.remove_column(cr, "discuss_channel_member", "is_pinned")
