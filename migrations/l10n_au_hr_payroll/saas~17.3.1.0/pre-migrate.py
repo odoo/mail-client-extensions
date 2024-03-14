@@ -34,3 +34,23 @@ def migrate(cr, version):
         "l10n_au_hr_payroll.structure_type_schedule_11_and_7",
     ]
     util.delete_unused(cr, *records_to_delete)
+
+    util.remove_field(cr, "hr.employee", "l10n_au_super_account_id")
+
+    util.rename_xmlid(
+        cr,
+        "l10n_au_hr_payroll.l10n_au_workplace_giving_structure_16",
+        "l10n_au_hr_payroll.l10n_au_salary_sacrifice_other_structure_15",
+    )
+    util.rename_xmlid(
+        cr,
+        "l10n_au_hr_payroll.l10n_au_workplace_giving_structure_17",
+        "l10n_au_hr_payroll.l10n_au_salary_sacrifice_structure_15",
+    )
+    util.rename_xmlid(
+        cr,
+        "l10n_au_hr_payroll.l10n_au_salary_sacrifice_total_structure_16",
+        "l10n_au_hr_payroll.l10n_au_salary_sacrifice_total_structure_15",
+    )
+
+    cr.execute("UPDATE hr_contract SET l10n_au_casual_loading = l10n_au_casual_loading / 100;")
