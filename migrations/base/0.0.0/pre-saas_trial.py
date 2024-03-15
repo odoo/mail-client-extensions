@@ -10,11 +10,16 @@ def migrate(cr, version):
     if util.version_gte("saas~14.3"):
         util.remove_record(cr, "saas_trial.assets_common")
         if util.table_exists(cr, "ir_asset"):
+            path_field_name = "path" if util.column_exists(cr, "ir_asset", "path") else "glob"
             cr.execute(
-                """
-                DELETE FROM ir_asset
-                WHERE name LIKE 'saas_trial.assets_common%'
-                AND bundle = 'web.assets_common'
-                AND path = '/saas_trial/static/js/activation.js'
-                """
+                util.format_query(
+                    cr,
+                    """
+                    DELETE FROM ir_asset
+                     WHERE name LIKE 'saas_trial.assets_common%'
+                       AND bundle = 'web.assets_common'
+                       AND {} = '/saas_trial/static/js/activation.js'
+                    """,
+                    path_field_name,
+                )
             )
