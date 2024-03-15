@@ -16,7 +16,7 @@ def migrate(cr, version):
         """
     )
     for (view,) in cr.fetchall():
-        with util.edit_view(cr, view_id=view) as arch:
+        with util.edit_view(cr, view_id=view, active=None) as arch:
             chatter = util.lxml.etree.Element("chatter")
             for node in arch.xpath('//div[@class="oe_chatter"]'):
                 parent = node.getparent()
