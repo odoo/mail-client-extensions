@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
 
 from odoo import api, models, release
 
@@ -10,6 +11,9 @@ _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
+    if util.str2bool(os.getenv("UPG_SKIP_AUTO_INDEXING", "0")):
+        _logger.info("Skip auto-indexing")
+        return
     cr.execute("ANALYZE")  # update statistics
     create_index_queries = []
     util.ENVIRON["__created_fk_idx"] = []
