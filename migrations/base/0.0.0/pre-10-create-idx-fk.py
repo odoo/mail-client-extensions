@@ -106,9 +106,7 @@ def migrate(cr, version):
            AND array_lower(con.confkey, 1) = 1
            AND con.confkey[1] = att2.attnum
            AND con.contype = 'f'
-        """.format(
-            "indnkeyatts" if cr._cnx.server_version >= 110000 else "indnatts"
-        ),
+        """.format("indnkeyatts" if cr._cnx.server_version >= 110000 else "indnatts"),
         [util.BIG_TABLE_THRESHOLD],
     )
     for i, (big_table, big_table_column, partial) in enumerate(cr.fetchall(), start=1):
@@ -118,7 +116,11 @@ def migrate(cr, version):
         if partial:
             query += " WHERE {big_table_column} IS NOT NULL"
         create_index_queries.append(
-            query.format(index_name=index_name, big_table=big_table, big_table_column=big_table_column)
+            query.format(
+                index_name=index_name,
+                big_table=big_table,
+                big_table_column=big_table_column,
+            )
         )
 
     if create_index_queries:
@@ -135,8 +137,8 @@ class Model(models.Model):
         super(Model, self)._register_hook()
         index_names = util.ENVIRON.get("__created_fk_idx", [])
         if index_names:
-            drop_index_queries = []
-            for index_name in index_names:
-                drop_index_queries.append('DROP INDEX IF EXISTS "%s"' % (index_name,))
+            drop_index_queries = [
+                util.format_query(self.env.cr, "DROP INDEX IF EXISTS {}", index_name) for index_name in index_names
+            ]
             _logger.info("dropping %s indexes", len(drop_index_queries))
             util.parallel_execute(self.env.cr, drop_index_queries)
