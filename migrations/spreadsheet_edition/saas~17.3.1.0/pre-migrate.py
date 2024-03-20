@@ -9,7 +9,7 @@ def migrate(cr, version):
         r"""
         SELECT id, commands
           FROM spreadsheet_revision
-         WHERE commands LIKE '%UPDATE\_CELL%'
+         WHERE commands LIKE '%UPDATE\_CELL%' OR commands LIKE '%ADD\_PIVOT%'
         """
     )
 
@@ -20,11 +20,14 @@ def migrate(cr, version):
             continue
 
         for command in commands:
-            if command["type"] != "UPDATE_CELL":
-                continue
-            command["content"] = re.sub(r"\bODOO\.PIVOT\(", "PIVOT.VALUE(", command["content"], flags=re.I)
-            command["content"] = re.sub(r"\bODOO\.PIVOT\.TABLE\b", "PIVOT", command["content"], flags=re.I)
-            command["content"] = re.sub(r"\bODOO\.PIVOT\.HEADER\b", "PIVOT.HEADER", command["content"], flags=re.I)
+            if command["type"] == "UPDATE_CELL":
+                command["content"] = re.sub(r"\bODOO\.PIVOT\(", "PIVOT.VALUE(", command["content"], flags=re.I)
+                command["content"] = re.sub(r"\bODOO\.PIVOT\.TABLE\b", "PIVOT", command["content"], flags=re.I)
+                command["content"] = re.sub(r"\bODOO\.PIVOT\.HEADER\b", "PIVOT.HEADER", command["content"], flags=re.I)
+            elif command["type"] == "ADD_PIVOT":
+                command["pivot"]["measures"] = [{"name": measure} for measure in command["pivot"]["measures"]]
+                command["pivot"]["colGroupBys"] = [parse_dimension(col) for col in command["pivot"]["colGroupBys"]]
+                command["pivot"]["rowGroupBys"] = [parse_dimension(row) for row in command["pivot"]["rowGroupBys"]]
 
         data_loaded["commands"] = commands
         cr.execute(
@@ -35,3 +38,10 @@ def migrate(cr, version):
             """,
             [json.dumps(data_loaded), revision_id],
         )
+
+
+def parse_dimension(dimension):
+    values = dimension.split(":")
+    if len(values) > 1:
+        return {"name": values[0], "granularity": values[1]}
+    return {"name": values[0]}

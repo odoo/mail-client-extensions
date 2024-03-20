@@ -13,7 +13,7 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
             return None
         definition = {
             "metaData": {
-                "colGroupBys": ["A", "B"],
+                "colGroupBys": ["A:month", "B"],
                 "rowGroupBys": ["C", "D"],
                 "activeMeasures": ["MEASURE"],
                 "resModel": "MODEL",
@@ -75,7 +75,7 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
 
         pivot = {
             "type": "ODOO",
-            "colGroupBys": ["A", "B"],
+            "colGroupBys": ["A:month", "B"],
             "rowGroupBys": ["C", "D"],
             "measures": ["MEASURE"],
             "model": "MODEL",
@@ -84,6 +84,12 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
             "name": "MODEL",
             "sortedColumn": None,
         }
+
+        if util.version_gte("saas~17.3"):
+            pivot["colGroupBys"] = [{"name": "A", "granularity": "month"}, {"name": "B"}]
+            pivot["rowGroupBys"] = [{"name": "C"}, {"name": "D"}]
+            pivot["measures"] = [{"name": "MEASURE"}]
+
         data = json.loads(revisions[0].commands)
         self.assertEqual(
             data,
