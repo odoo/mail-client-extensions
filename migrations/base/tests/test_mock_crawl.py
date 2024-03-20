@@ -104,6 +104,8 @@ class TestCrawler(IntegrityCase):
                     "hr_holidays.hr_holidays_status_menu_configuration",
                 ]
             )
+        if util.module_installed(cr, "l10n_fr_pos_cert"):
+            self.skip_menus.append("l10n_fr_pos_cert.menu_check_move_integrity_reporting")
 
     def check(self, value):
         """
