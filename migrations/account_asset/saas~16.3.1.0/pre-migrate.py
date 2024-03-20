@@ -37,12 +37,12 @@ def migrate(cr, version):
         cr,
         [
             """
-            UPDATE account_move
+            UPDATE account_move move
                SET asset_id = NULL
-              FROM account_asset
-             WHERE asset_id IS NOT NULL
-               AND asset_id = account_asset.id
-               AND asset_type in ('sale', 'expense')
+              FROM account_asset asset
+             WHERE move.asset_id IS NOT NULL
+               AND move.asset_id = asset.id
+               AND asset.asset_type in ('sale', 'expense')
             """,
             "CREATE INDEX IF NOT EXISTS account_account_asset_model_idx ON account_account(asset_model)",
             "CREATE INDEX IF NOT EXISTS account_asset_model_id_idx ON account_asset(model_id)",
