@@ -10,11 +10,22 @@ NS = "odoo.addons.base.maintenance.migrations.base."
 _logger = logging.getLogger(NS + __name__)
 
 
+IDX_AUTO = 0b01
+IDX_ANALYZE = 0b10
+
+UPG_AUTO_INDEXING = int(os.getenv("UPG_AUTO_INDEXING", IDX_AUTO | IDX_ANALYZE))
+
+
 def migrate(cr, version):
-    if util.str2bool(os.getenv("UPG_SKIP_AUTO_INDEXING", "0")):
+    if UPG_AUTO_INDEXING & IDX_ANALYZE:
+        _logger.info("Analyzing DB...")
+        cr.execute("ANALYZE")  # update statistics
+        _logger.info("Analyze done.")
+
+    if UPG_AUTO_INDEXING & IDX_AUTO == 0:
         _logger.info("Skip auto-indexing")
         return
-    cr.execute("ANALYZE")  # update statistics
+
     create_index_queries = []
     util.ENVIRON["__created_fk_idx"] = []
 
@@ -34,6 +45,7 @@ def migrate(cr, version):
         util.ENVIRON["__created_fk_idx"].append("tmp_mig_websitevisitortoken_speedup_idx")
 
     # create indexes on `ir_model{,_fields}` to speed up models/fields deletion
+    _logger.info("Search for foreign keys on ir_model and ir_model_fields.")
     cr.execute(
         """
            SELECT quote_ident(concat('upgrade_fk_ir_model_idx_',
@@ -74,6 +86,7 @@ def migrate(cr, version):
         create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
 
     # Return all FK columns from BIG tables
+    _logger.info("Search for foreign keys in big tables.")
     cr.execute(
         """
         SELECT quote_ident(cl1.relname) AS big_table,
@@ -141,6 +154,38 @@ class Model(models.Model):
         super(Model, self)._register_hook()
         index_names = util.ENVIRON.get("__created_fk_idx", [])
         if index_names:
+            cr = self.env.cr
+            # pg_stat_get_numscans -> see \d+ pg_stat_all_indexes and
+            # https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-STATS-VIEWS-TABLE
+            query = """
+                SELECT pg_stat_get_numscans(x.indexrelid),
+                       concat(c.relname, '(', string_agg(a.attname, ',' order by array_position(x.indkey, a.attnum)), ')')
+                  FROM pg_index x
+                  JOIN pg_class i
+                    ON i.oid = x.indexrelid
+                  JOIN pg_class c
+                    ON c.oid = x.indrelid
+                  JOIN pg_attribute a
+                    ON a.attrelid = x.indrelid AND ARRAY[a.attnum] <@ x.indkey::int2[]
+                  JOIN pg_namespace n
+                    ON n.oid = c.relnamespace
+                 WHERE n.nspname = current_schema
+                   AND i.relname = ANY(%s)
+              GROUP BY x.indexrelid, c.relname
+              ORDER BY 1 DESC
+            """
+            cr.execute(query, [index_names])
+
+            count = cr.rowcount
+            index_stats = cr.fetchall()
+
+            zero_scan_pc = "{:.2%}".format(sum(1 for (c, _) in index_stats if c == 0) / count)
+
+            n = max(5, len(str(index_stats[0][0])))
+            stats = "{0} Scans | Index\n{0}---------------\n".format(" " * (n - 5)) \
+                  + "\n".join(" {0:>{n}} | {1}".format(*s, n=n) for s in index_stats)  # fmt: skip
+            _logger.info("Auto Indexing Stats: %s unused indexes.\n%s", zero_scan_pc, stats)
+
             drop_index_queries = [
                 util.format_query(self.env.cr, "DROP INDEX IF EXISTS {}", index_name) for index_name in index_names
             ]
