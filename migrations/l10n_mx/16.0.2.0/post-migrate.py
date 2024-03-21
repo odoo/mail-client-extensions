@@ -4,6 +4,10 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     # Remove 1XXX tags with 'nature' field and replace them by 2 tags: one for debitor account and one for creditor account.
+    env = util.env(cr)
+    CoA = env.ref("l10n_mx.mx_coa")
+    for company in env["res.company"].search([("chart_template_id", "=", CoA.id)]):
+        CoA.generate_account_groups(company=company)
 
     tax_debit_id = util.ref(cr, "l10n_mx.tag_debit_balance_account")
     tax_credit_id = util.ref(cr, "l10n_mx.tag_credit_balance_account")
