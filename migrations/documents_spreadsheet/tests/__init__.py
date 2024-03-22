@@ -7,5 +7,6 @@ from . import (
     test_global_filters,
     test_move_conditional_format_command_change,
     test_move_sheet_command_change,
+    test_pivot_position,
     test_revision_model,
 )
