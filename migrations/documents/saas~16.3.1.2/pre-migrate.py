@@ -32,14 +32,6 @@ def migrate(cr, version):
     util.create_column(cr, "documents_document", "is_multipage", "boolean", default=False)  # Skip _compute
 
     util.create_column(cr, "documents_document", "file_extension", "varchar")
-    cr.execute(
-        """
-            SELECT document.id, attachment.name, attachment.mimetype
-              FROM documents_document document
-              JOIN ir_attachment attachment ON attachment.id = document.attachment_id
-             WHERE document.type = 'binary'
-        """
-    )
 
     # NOTE
     # `ProcessPoolExecutor.map` arguments needs to be pickleable
@@ -49,9 +41,19 @@ def migrate(cr, version):
     name = f"_upgrade_{uuid.uuid4().hex}"
     mod = sys.modules[name] = util.import_script(__file__, name=name)
 
-    with ProcessPoolExecutor() as executor:
-        execute_batch(
-            cr._obj,
-            "UPDATE documents_document SET file_extension = %s WHERE id = %s",
-            executor.map(mod.extract_extension, cr.fetchall()),
+    with ProcessPoolExecutor() as executor, util.named_cursor(cr) as ncr:
+        ncr.execute(
+            """
+            SELECT document.id, attachment.name, attachment.mimetype
+              FROM documents_document document
+              JOIN ir_attachment attachment ON attachment.id = document.attachment_id
+             WHERE document.type = 'binary'
+            """
         )
+        while chunk := ncr.fetchmany(100000):  # fetchall() could cause MemoryError
+            execute_batch(
+                cr._obj,
+                "UPDATE documents_document SET file_extension = %s WHERE id = %s",
+                executor.map(mod.extract_extension, chunk),
+                page_size=1000,
+            )
