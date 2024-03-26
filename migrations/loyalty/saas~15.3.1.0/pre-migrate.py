@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
 
 from psycopg2.extras import execute_values
 
 from odoo import modules
 
 from odoo.upgrade import util
+
+_logger = logging.getLogger(__name__)
 
 has_loyalty_models = False
 has_loyalty_card = False
@@ -23,7 +26,7 @@ def migrate(cr, version):
         has_gift_card = True
     if util.table_exists(cr, "loyalty_program"):
         has_pos_loyalty = True
-        global has_loyalty_models
+        global has_loyalty_models  # noqa: PLW0603
         has_loyalty_models = True
         # In order to safeguard loyalty_program translations from being lost during the merging of models, we opt to rename them prior to the migration process.
         cr.execute("UPDATE ir_translation SET name = 'temp_loyalty_name' WHERE name = 'loyalty.program,name'")
@@ -89,45 +92,72 @@ def _check_mapping(mapping):
 
 
 def _change_model_on_manual_fields(cr, from_model, to_model):
-    global has_custom_loyalty_fields
+    global has_custom_loyalty_fields  # noqa: PLW0603
     cr.execute(
         """
         WITH fields AS (
-          SELECT f.id
+          SELECT f.id,
+                 f.name,
+                 bool_or(f2.id IS NOT NULL) AS is_colliding
             FROM ir_model_fields f
             JOIN ir_model_data d
               ON d.model = 'ir.model.fields'
              AND d.res_id = f.id
+       LEFT JOIN ir_model_fields f2
+              ON f.name = f2.name
+             AND f2.model = %(to_model)s
            WHERE f.state = 'base'
-             AND f.model = %s
+             AND f.model =  %(from_model)s
         GROUP BY f.id
-          HAVING NOT array_agg(d.module::text) && %s
+          HAVING NOT array_agg(d.module::text) && %(standard_modules)s
 
            UNION
 
-          SELECT id
-            FROM ir_model_fields
-           WHERE state = 'manual'
-             AND model = %s
+          SELECT f.id,
+                 f.name,
+                 bool_or(f2.id IS NOT NULL) AS is_colliding
+            FROM ir_model_fields f
+       LEFT JOIN ir_model_fields f2
+              ON f.name = f2.name
+             AND f2.model = %(to_model)s
+           WHERE f.state = 'manual'
+             AND f.model = %(from_model)s
+        GROUP BY f.id
         )
 
-        UPDATE ir_model_fields f
-           SET model_id = m.id,
-               model = m.model
-          FROM ir_model m,
-               fields
-         WHERE fields.id = f.id
-           AND m.model = %s
-    """,
-        [
-            from_model,
-            list(modules.get_modules()),
+        , upd AS (
+          UPDATE ir_model_fields f
+             SET model_id = m.id,
+                 model = m.model
+            FROM ir_model m,
+                 fields
+           WHERE fields.id = f.id
+             AND NOT fields.is_colliding
+             AND m.model = %(to_model)s
+       RETURNING f.id
+        )
+
+        SELECT (SELECT count(*) > 0 FROM upd),
+               (SELECT array_agg(f.name) FROM fields f WHERE f.is_colliding)
+
+        """,
+        {
+            "to_model": to_model,
+            "from_model": from_model,
+            "standard_modules": list(modules.get_modules()),
+        },
+    )
+
+    has_moved_fields, skipped_fields = cr.fetchone()
+    has_custom_loyalty_fields |= has_moved_fields
+
+    if skipped_fields:
+        _logger.warning(
+            "Skip moving fields `%s` from `%s` to `%s`, already existing in target model",
+            skipped_fields,
             from_model,
             to_model,
-        ],
-    )
-    if cr.rowcount:
-        has_custom_loyalty_fields = True
+        )
 
 
 def _move_manual_fields(cr, from_table, to_model, link_col, join=None):
@@ -206,7 +236,7 @@ def _coupon_migrate(cr):
     util.remove_record(cr, "loyalty.10_percent_auto_applied_coupon_rule")
     # The loyalty.* models only exists if pos_loyalty was installed, in case it was not we actually rename the old
     #  models
-    global has_loyalty_models, has_loyalty_card
+    global has_loyalty_models, has_loyalty_card  # noqa: PLW0603
     transform_model = lambda cr, model_src, model_dst: util.rename_model(cr, model_src, model_dst, rename_table=False)
     if has_loyalty_models:
         transform_model = lambda cr, model_src, model_dst: util.merge_model(
@@ -465,7 +495,7 @@ def _coupon_migrate(cr):
 def _gift_card_migrate(cr):
     util.change_field_selection_values(cr, "product.template", "detailed_type", {"gift": "service"})
     # Rename gift card model to loyalty.card if it does not exist yet otherwise merge both models
-    global has_loyalty_card
+    global has_loyalty_card  # noqa: PLW0602
     transform_model = lambda cr, model_src, model_dst: util.rename_model(cr, model_src, model_dst, rename_table=False)
     if has_loyalty_card:
         transform_model = lambda cr, model_src, model_dst: util.merge_model(
