@@ -15,3 +15,6 @@ def migrate(cr, version):
     util.remove_field(cr, "payment.provider", "show_done_msg")
     util.remove_field(cr, "payment.provider", "show_cancel_msg")
     util.remove_field(cr, "payment.provider", "require_currency")
+
+    util.rename_xmlid(cr, "website_payment.action_activate_stripe", "payment.action_activate_stripe")
+    util.move_field_to_module(cr, "res.country", "is_stripe_supported_country", "website_payment", "payment")
