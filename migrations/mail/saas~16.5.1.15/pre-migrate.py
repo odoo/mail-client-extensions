@@ -28,6 +28,8 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.message", "canned_response_ids")
     util.remove_field(cr, "mail.shortcode", "message_ids")
 
+    util.remove_constraint(cr, "mail_alias", "mail_alias_alias_unique")
+
     cr.execute(
         """
             CREATE TABLE mail_alias_domain (
