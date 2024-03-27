@@ -57,6 +57,8 @@ def fix_image_attachment(cr, res_model, res_id, command):
             """,
             [attachment_id],
         )
+        if not cr.rowcount:
+            return False
         attachment_res_model, attachment_res_id = cr.fetchone()
         if attachment_res_model != res_model or attachment_res_id != res_id:
             new_attachment_id, access_token = copy_attachment(cr, attachment_id, res_model, res_id)
