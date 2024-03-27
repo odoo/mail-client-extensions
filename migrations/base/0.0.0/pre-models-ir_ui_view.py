@@ -359,7 +359,7 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
                     )
                 elif elem.tag in ("field", "button"):
                     add_field(parent, invisible_field)
-                elif elem.tag in ("tree", "form", "kanban"):
+                elif elem.tag in ("list", "tree", "form", "kanban"):
                     add_field(elem, invisible_field)
             for elem in arch.xpath("//attribute[@name='groups' and text()='{}']".format(group_name)):
                 parent = elem.getparent()
