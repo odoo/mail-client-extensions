@@ -20,3 +20,12 @@ def migrate(cr, version):
         util.remove_view(cr, "sale_subscription.account_analytic_account_view_inherit_sale_subscription")
 
     util.remove_record(cr, "sale_subscription.model_sale_order_subscription_cancel")
+    util.remove_view(cr, "sale_subscription.sale_subscription_plan_search")
+    util.rename_xmlid(
+        cr, "sale_subscription.sale_subscription_plan_view_search", "sale_subscription.sale_subscription_plan_search"
+    )
+
+    util.remove_record(cr, "sale_subscription.sale_subscription_plan_action")
+    util.rename_xmlid(
+        cr, "sale_subscription.sale_subscription_action_plan", "sale_subscription.sale_subscription_plan_action"
+    )
