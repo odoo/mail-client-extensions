@@ -38,7 +38,15 @@ for image in images_to_resize:
         images_recomputed |= image
     else:
         images_left |= image
-images_recomputed.recompute()
+
+try:
+    # odoo 16 and upper
+    do_recompute = images_recomputed.flush_recordset
+except Exception:
+    do_recompute = images_recomputed.recompute
+
+do_recompute()
+
 images_recomputed.write({"index_content": "image"})
 images_left.write({"index_content": "image_is_not_yet_resized"})
 """
