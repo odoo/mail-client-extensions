@@ -137,9 +137,7 @@ def image_mixin_recompute_fields(cr, model, infix="", suffixes=SUFFIXES, chunk_s
                         AND res_field = %s
                         AND res_id IS NOT NULL
                         AND res_id = ANY(%s)
-            """.format(
-                    cols=cols
-                ),
+            """.format(cols=cols),
                 [fields, model, orig_field, not_ids],
             )
             if zoom:
