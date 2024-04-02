@@ -49,7 +49,10 @@ if util.version_gte("15.0"):
 
 class TestOnHandQuantityUnchanged_Prepare(UpgradeCase):
     def prepare(self):
-        product_material = self.env["product.product"].create({"name": "Material", "type": "product"})
+        if util.version_gte("saas~17.3"):
+            product_material = self.env["product.product"].create({"name": "Material", "is_storable": True})
+        else:
+            product_material = self.env["product.product"].create({"name": "Material", "type": "product"})
         warehouse_1 = self.env.ref("stock.warehouse0")
         company_2 = self.env["res.company"].create({"name": "Company_wh2"})
         warehouse_2 = self.env["stock.warehouse"].create(
@@ -99,11 +102,12 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         ignore_kits_query = ""
         where_clause = []
         where_params = []
+        sql_pt_join_clause = "pt.is_storable = TRUE" if util.version_gte("saas~17.3") else "pt.type = 'product'"
         query = """
                 SELECT pp.id
                 FROM product_product pp
                 JOIN product_template pt ON pp.product_tmpl_id = pt.id
-                     AND pp.active = TRUE AND pt.TYPE = 'product'
+                    AND pp.active = TRUE AND {sql_pt_join_clause}
                 {ignore_kits_query}
                 WHERE {where_clause}
                 GROUP BY pp.id
@@ -124,7 +128,11 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
             where_clause += ["pp.id = ANY(%s)"]
             where_params += [list(only_product_ids)]
 
-        query = query.format(ignore_kits_query=ignore_kits_query, where_clause=" AND ".join(where_clause or ["true"]))
+        query = query.format(
+            sql_pt_join_clause=sql_pt_join_clause,
+            ignore_kits_query=ignore_kits_query,
+            where_clause=" AND ".join(where_clause or ["true"]),
+        )
         self.env.cr.execute(query, where_params)
         results = []
         for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
