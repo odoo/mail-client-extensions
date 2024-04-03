@@ -17,3 +17,12 @@ def migrate(cr, version):
 
     util.remove_record(cr, "account.action_open_sale_payment_items")
     util.rename_xmlid(cr, "account.action_open_payment_items", "account.action_amounts_to_settle")
+
+    util.remove_model(cr, "account.tour.upload.bill")
+    util.remove_model(cr, "account.tour.upload.bill.email.confirm")
+    util.remove_record(cr, "account.menu_account_supplier_accounts")
+    util.remove_record(cr, "account.onboarding_onboarding_step_create_invoice")
+    util.remove_record(cr, "account.onboarding_onboarding_step_bank_account")
+    util.remove_record(cr, "account.onboarding_onboarding_step_default_taxes")
+    util.remove_record(cr, "account.onboarding_onboarding_step_setup_bill")
+    util.remove_record(cr, "account.onboarding_onboarding_account_invoice")

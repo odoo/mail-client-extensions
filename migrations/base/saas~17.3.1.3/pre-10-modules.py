@@ -11,6 +11,8 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.merge_module(cr, "website_sale_renting_product_configurator", "website_sale_renting")
+        util.new_module(cr, "accountant", deps={"account_accountant"})
+        util.force_install_module(cr, "accountant", if_installed=["account_accountant"])
     util.force_upgrade_of_fresh_module(cr, "hr_homeworking_calendar")
 
     # Remove obsolete module 'l10n_dk_bookkeeping'.

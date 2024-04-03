@@ -25,3 +25,7 @@ def migrate(cr, version):
     util.remove_field(cr, "res.company", "deferred_journal_id")
     util.remove_field(cr, "res.config.settings", "deferred_amount_computation_method")
     util.remove_field(cr, "res.config.settings", "deferred_journal_id")
+
+    util.move_field_to_module(cr, "account.move.line", "expected_pay_date", "account_reports", "account_accountant")
+    eb = util.expand_braces
+    util.rename_xmlid(cr, *eb("{account_accountant,accountant}.menu_accounting"))
