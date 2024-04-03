@@ -121,12 +121,24 @@ def migrate(cr, version):
         cr,
         """
         UPDATE repair_order r
-           SET internal_notes = CONCAT('<h2>Invoice reference</h2><p>Name: ', acc.name,
-                                       '</p><p>Id: ', acc.id, '</p><hr>',
+           SET internal_notes = CONCAT(
+                                   CASE
+                                      WHEN acc.id IS NOT NULL THEN
+                                       CONCAT(
+                                       '<h2>Invoice reference</h2><p>Name: ', acc.name,
+                                       '</p><p>Id: ', acc.id, '</p><hr>'
+                                       )
+                                      ELSE ''
+                                   END,
+                                       '<h2>Quotation notes</h2>',
+                                       r.quotation_notes, '<hr>',
+                                       '<h2>Internal notes</h2>',
                                        r.internal_notes
                                       )
-          FROM account_move acc
-         WHERE r.invoice_id = acc.id
+          FROM repair_order ro
+     LEFT JOIN account_move acc
+            ON ro.invoice_id = acc.id
+         WHERE r.id = ro.id
         """,
         alias="r",
         table="repair_order",
