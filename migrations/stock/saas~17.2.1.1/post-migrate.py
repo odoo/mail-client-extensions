@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def migrate(cr, version):
     cr.execute("SELECT count(id) FROM res_company")
     if cr.fetchone()[0] > 1:
@@ -40,3 +37,16 @@ def migrate(cr, version):
         """,
             [inter_company_loc_id],
         )
+
+    # To maintain old pull rules behavior, we need to pre-set location_dest_from_rule on existing
+    # pull rules that have different destinations than their picking types.
+    cr.execute(
+        """
+        UPDATE stock_rule sr
+           SET location_dest_from_rule = true
+          FROM stock_picking_type spt
+         WHERE spt.id = sr.picking_type_id
+           AND sr.action IN ('pull', 'pull_push')
+           AND sr.location_dest_id IS DISTINCT FROM spt.default_location_dest_id
+    """
+    )
