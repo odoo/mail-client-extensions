@@ -20,6 +20,7 @@ from . import (
     test_analytic_15_5,
     test_bank_statement,
     test_common,
+    test_inalterable_hash_v3_to_v4,
     test_lockdate,
     test_payment_pocalypse,
     test_payments_13_4,
