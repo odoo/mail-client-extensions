@@ -18,3 +18,30 @@ def migrate(cr, version):
     remove_record(cr, "website.s_share_000_js")
     remove_record(cr, "website.s_table_of_content_000_js")
     remove_record(cr, "website.s_website_form_000_js")
+
+    cr.execute(
+        """
+        WITH info AS (
+                SELECT wm.id,
+                       wp.url AS page_url,
+                       wm.url AS menu_url,
+                       wm.mega_menu_content IS NOT NULL AS is_mega,
+                       count(child.id) > 0 AS has_child
+                  FROM website_menu wm
+             LEFT JOIN website_menu child
+                    ON child.parent_id = wm.id
+             LEFT JOIN website_page wp
+                    ON wm.page_id = wp.id
+                 GROUP BY wm.id, wp.url
+            )
+            UPDATE website_menu AS wm
+               SET url = CASE
+                             WHEN info.is_mega OR info.has_child THEN '#'
+                             WHEN info.page_url IS NOT NULL AND info.page_url != '' THEN info.page_url
+                             WHEN info.menu_url IS NOT NULL AND info.menu_url != '' THEN info.menu_url
+                             ELSE '#'
+                         END
+              FROM info
+             WHERE info.id = wm.id
+        """
+    )
