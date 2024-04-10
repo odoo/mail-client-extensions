@@ -9,6 +9,7 @@ def migrate(cr, version):
     util.remove_model(cr, "account.reconciliation.widget")
     util.remove_menus(cr, [util.ref(cr, "account_accountant.menu_action_manual_reconciliation")])
     util.remove_record(cr, "account_accountant.action_manual_reconciliation")
+    util.remove_record(cr, "account_accountant.action_backport_reconcile_wizard")
 
     # Deferred management
     util.move_field_to_module(

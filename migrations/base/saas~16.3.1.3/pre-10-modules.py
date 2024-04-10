@@ -17,6 +17,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_pe_edi_stock_20", "l10n_pe_edi_stock")
     util.merge_module(cr, "website_event_questions", "website_event")
     util.merge_module(cr, "website_event_crm_questions", "website_event_crm")
+    util.merge_module(cr, "account_reconcile_wizard", "account_accountant")
 
     if util.table_exists(cr, "note_note"):
         # uninstall the "note" module if it appears unused
