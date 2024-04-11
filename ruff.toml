@@ -5,8 +5,6 @@ output-format = "full"
 
 [lint]
 ignore = [
-    "B904",  # reraise-no-cause; not python2 compatible
-    "B905",  # zip-without-explicit-strict; not python2 compatible
     "E731",  # lambda-assignment
     "PERF203",  # try-except-in-loop
     "PLR09",  # too-many-*; unwanted code complexity checks
@@ -59,7 +57,6 @@ select = [
     "COM818",  # trailing-comma-on-bare-tuple; other rules handled by autoformatter
     "FBT003",  # boolean-positional-value-in-call; other rules not python2 compatible
     "UP005",   # deprecated-unittest-alias
-
 ]
 
 [lint.flake8-builtins]
@@ -77,4 +74,24 @@ odoo-addons = ["odoo.addons", "openerp.addons"]
 "*/__init__.py" = [
     "F401",
     "F403",
+]
+
+# python2 incompatible rules:
+# - B904 reraise-no-cause
+# - B905 zip-without-explicit-strict
+
+# <= 9.0 scripts
+"migrations/*/[789].*/*.py" = [
+    "B904",
+    "B905",
+]
+# <= 10.saas~16 script; python3 support has been implemented in 10.saas~17
+"migrations/*/10.{0,saas~14,saas~15,saas~16}.*/*.py" = [
+    "B904",
+    "B905",
+]
+# as 0.0.0 scripts should support Odoo 10.0, we cannot use python2 incompatible rules
+"migrations/*/0.0.0/*.py" = [
+    "B904",
+    "B905",
 ]
