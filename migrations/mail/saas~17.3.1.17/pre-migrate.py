@@ -10,3 +10,4 @@ def migrate(cr, version):
 
     """
     util.explode_execute(cr, query, table="discuss_channel_member")
+    util.remove_field(cr, "discuss.channel", "is_chat")
