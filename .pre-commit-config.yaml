@@ -37,7 +37,7 @@ repos:
         files: '^migrations/\w+/(tests|0\.0\.0)/.*\.py$'
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.3.7
     hooks:
     - id: ruff
       name: Check code with Ruff, apply automatic fixes
@@ -45,7 +45,7 @@ repos:
     - id: ruff-format
       name: Format code with Ruff automatically
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
     - id: check-xml
     - id: check-yaml
