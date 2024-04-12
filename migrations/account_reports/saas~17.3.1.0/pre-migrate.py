@@ -9,3 +9,4 @@ def migrate(cr, version):
     util.remove_record(cr, "account_reports.journal_report_communication")
     util.remove_record(cr, "account_reports.journal_report_partner_name")
     util.remove_record(cr, "account_reports.journal_report_amount_currency")
+    util.rename_field(cr, "account.report.file.download.error.wizard", "file_generation_errors", "actionable_errors")
