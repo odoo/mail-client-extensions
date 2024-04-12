@@ -129,6 +129,9 @@ def migrate(cr, version):
         """
     )
 
+    util.create_column(cr, "hr_leave_accrual_level", "cap_accrued_time", "boolean", default=True)
+    cr.execute("UPDATE hr_leave_accrual_level SET cap_accrued_time = False WHERE maximum_leave = 0.0")
+
     util.remove_field(cr, "hr.leave.accrual.level", "is_based_on_worked_time")
 
     util.create_column(cr, "hr_leave", "company_id", "int4", fk_table="res_company", on_delete_action="SET NULL")
