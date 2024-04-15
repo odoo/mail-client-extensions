@@ -154,7 +154,7 @@ def migrate(cr, version):
                 (account_move_line_id, account_account_tag_id)
                  SELECT aml.id AS move_line_id,
                         CASE
-                        WHEN am.move_type ILIKE '_refund'
+                        WHEN am.move_type ILIKE '%_refund'
                         THEN refund_rpl_tag.account_account_tag_id
                         ELSE invoice_rpl_tag.account_account_tag_id
                         END AS base_tag_id
