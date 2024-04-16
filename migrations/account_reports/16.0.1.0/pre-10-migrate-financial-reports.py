@@ -173,7 +173,9 @@ def migrate(cr, version):
                REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),
                CASE
                     WHEN afhrl.figure_type = 'float' THEN NULL
-                    ELSE afhrl.figure_type
+                    WHEN afhrl.figure_type = 'percents' THEN 'percentage'
+                    WHEN afhrl.figure_type = 'no_unit' THEN 'none'
+                    ELSE 'monetary'
                END
           FROM mapping m
           JOIN account_financial_html_report_line afhrl
@@ -213,7 +215,9 @@ def migrate(cr, version):
                    REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),
                    CASE
                         WHEN afhrl.figure_type = 'float' THEN NULL
-                        ELSE afhrl.figure_type
+                        WHEN afhrl.figure_type = 'percents' THEN 'percentage'
+                        WHEN afhrl.figure_type = 'no_unit' THEN 'none'
+                        ELSE 'monetary'
                    END
               FROM mapping m
               JOIN account_financial_html_report_line afhrl
