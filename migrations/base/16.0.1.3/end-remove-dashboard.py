@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 import logging
+
+from odoo import modules
 
 from odoo.upgrade import util
 
@@ -22,7 +23,7 @@ def migrate(cr, version):
          RETURNING a.id,
                    a.view_mode
         )
-        SELECT upd.id, d.module || '.' || d.name
+        SELECT upd.id, d.module, d.name
           FROM upd
      LEFT JOIN ir_model_data d
             ON d.res_id = upd.id
@@ -32,16 +33,16 @@ def migrate(cr, version):
     """
     )
     invalid_ids = []
-    for id_, xmlid in cr.fetchall():
-        if xmlid:
-            if util.module_installed(cr, xmlid.split(".")[0]):
-                _logger.warning("Restore action %r since it was using only dashboard views.", xmlid)
-                util.update_record_from_xml(cr, xmlid)
-            else:
-                _logger.warning("Remove action %r since its module is uninstalled.", xmlid)
-                util.remove_record(cr, xmlid)
-        else:
+    standard_modules = set(modules.get_modules())
+    for id_, module, name in cr.fetchall():
+        if not module or module not in standard_modules:
             invalid_ids.append(id_)
+        elif util.module_installed(cr, module):
+            _logger.warning("Restore action %s.%s since it was using only dashboard views.", module, name)
+            util.update_record_from_xml(cr, f"{module}.{name}")
+        else:
+            _logger.warning("Remove action %s.%s since its module is uninstalled.", module, name)
+            util.remove_record(cr, f"{module}.{name}")
     remove_custom_views(cr)
     if invalid_ids:
         cr.execute(
