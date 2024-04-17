@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -45,6 +44,8 @@ def migrate(cr, version):
     # Reload existing journals and accounts to create xmlids if they do not have them
     for company in env["res.company"].search([("chart_template", "!=", False)]):
         ChartTemplate = env["account.chart.template"].with_company(company)
+        if not ChartTemplate._get_chart_template_mapping().get(company.chart_template):
+            continue  # custom CoA
         data = ChartTemplate._get_chart_template_data(company.chart_template)
         template_data = data.pop("template_data")
         ChartTemplate._pre_reload_data(company, template_data, data)
