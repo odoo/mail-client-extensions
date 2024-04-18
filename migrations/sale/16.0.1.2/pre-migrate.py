@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 eb = util.expand_braces
@@ -58,3 +57,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.config.settings", "confirmation_mail_template_id")
     util.remove_menus(cr, [util.ref(cr, "sale.menu_report_product_all")])
+
+    util.remove_column(cr, "sale_order", "show_update_pricelist")
+    util.remove_column(cr, "sale_advance_payment_inv", "has_down_payments")
+    util.remove_column(cr, "sale_advance_payment_inv", "count")
