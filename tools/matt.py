@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 from argparse import Action, ArgumentError, ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from ast import literal_eval
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import ExitStack, closing
@@ -695,9 +696,17 @@ def matt(options: Namespace) -> int:
         # We should also search modules in the $pkgdir/addons of the source
         base_ad = Repo("odoo", Path(pkgdir["source"]) / "addons")
 
-        def glob(mod_glob):
-            return {
-                m.parent.name
+        def get_deps(manifest: Path) -> List[str]:
+            return list(literal_eval(manifest.read_text()).get("depends", []))
+
+        def glob(mod_glob: str) -> FrozenSet[str]:
+            filter_leaf_modules = mod_glob == "*"
+
+            if mod_glob == "**":
+                mod_glob = "*"  # normal glob that will match all modules
+
+            modules = {
+                m.parent.name: get_deps(m) if filter_leaf_modules else []
                 for repo in [base_ad, *REPOSITORIES]
                 for wd in [workdir / repo.name / getattr(options.source, repo.ident) / repo.addons_dir]
                 for m in itertools.chain(
@@ -710,6 +719,9 @@ def matt(options: Namespace) -> int:
                 # Don't match test modules via wilcards, unless explicitly asked for.
                 if "test" not in m.parent.name or "test" in mod_glob
             }
+
+            all_deps = frozenset(itertools.chain.from_iterable(modules.values()))
+            return frozenset(modules.keys()) - all_deps
 
         modules = {
             p
@@ -774,9 +786,19 @@ class VersionAction(Action):
 
 
 def glob_plus(pattern):
-    if "**" in pattern or any(not s.strip() for s in pattern.split("+")):
+    if "***" in pattern:
         raise ValueError(pattern)
-    return pattern
+
+    for s in map(str.strip, pattern.split("+")):
+        if not s:
+            break
+        if s != "**" and "**" in s:
+            # ** is only valid on itself, not as part of a glob
+            break
+    else:  # no break
+        return pattern
+
+    raise ValueError(pattern)
 
 
 def main() -> int:
@@ -791,12 +813,14 @@ The `source` and `target` arguments have the following format:
 
 It allows to test upgrades against development branches.
 
+The patterns `*` and `**` refer to `all leaf modules` and `all modules`.
 To test module combinations, use the `+` character. i.e.
    ./matt.py -m note+calendar 16.0 17.0
 
-`*` also works in combinations. `l10n_be+delivery_*` expand to `l10n_be+delivery_bpost`, `l10n_be+delivery_dhl`,
+`*` and `**` also works in combinations. `l10n_be+delivery_*` expand to `l10n_be+delivery_bpost`, `l10n_be+delivery_dhl`,
 `l10n_be+delivery_easypost`, etc.
-`*+*` expand to a combination of all modules.
+`*+*` expand to a combination of all leaf modules.
+`**+**` expand to a combination of all modules.
 Identity combinations will be ignored. `crm+crm` won't yield anything.
 Duplicated combinations are ignored. `payment_*+payment_*` yield all combinations of payment modules only once.
         """,
