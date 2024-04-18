@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.tools.sql import index_exists
 
 from odoo.upgrade import util
@@ -327,6 +326,7 @@ def migrate(cr, version):
         util.move_field_to_module(
             cr, "res.config.settings", "show_line_subtotals_tax_selection", "account", "website_sale"
         )
+        util.remove_column(cr, "res_config_settings", "show_line_subtotals_tax_selection")
     else:
         util.remove_field(cr, "res.config.settings", "show_line_subtotals_tax_selection")
 
