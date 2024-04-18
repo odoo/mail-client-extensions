@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -48,5 +47,6 @@ def migrate(cr, version):
     # Rename the intrastat code field on the product product
     # Remove the commodity code fields on the product template and product category
     util.remove_field(cr, "product.template", "intrastat_id")
+    util.remove_column(cr, "product_template", "intrastat_origin_country_id")
     util.remove_field(cr, "product.category", "intrastat_id")
     util.remove_field(cr, "product.product", "intrastat_variant_id")
