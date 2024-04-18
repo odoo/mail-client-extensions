@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -92,3 +90,6 @@ def migrate(cr, version):
     util._logger.info("Remove message_main_attachment_id from manual models: %s", manual_models)
     for model in manual_models:
         util.remove_field(cr, model, "message_main_attachment_id")
+
+    util.remove_column(cr, "mail_resend_partner", "partner_id")
+    util.remove_column(cr, "mail_template_preview", "error_msg")
