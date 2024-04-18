@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -22,3 +20,5 @@ def migrate(cr, version):
             table="res_users",
         ),
     )
+
+    util.remove_column(cr, "res_config_settings", "fail_counter")
