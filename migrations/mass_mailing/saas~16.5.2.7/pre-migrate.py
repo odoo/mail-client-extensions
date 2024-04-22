@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -35,6 +33,8 @@ def migrate(cr, version):
     util.remove_view(cr, "mass_mailing.page_mailing_unsubscribe_done")
     util.remove_view(cr, "mass_mailing.unsubscribe_done")
 
+    # the constraint will be recreated in the renamed table with the right name
+    util.remove_constraint(cr, "mailing_contact_list_rel", "mailing_contact_list_rel_unique_contact_list")
     # model renaming and its side effects
     cr.execute("ALTER TABLE mailing_contact_list_rel RENAME TO mailing_subscription")
     util.rename_model(cr, "mailing.contact.subscription", "mailing.subscription", rename_table=False)
