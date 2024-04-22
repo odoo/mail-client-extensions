@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -8,6 +6,7 @@ def migrate(cr, version):
     util.remove_column(cr, "website_visitor", "name")
     util.remove_field(cr, "website.visitor", "active")
     util.remove_field(cr, "website.visitor", "parent_id")
+    util.remove_constraint(cr, "website_visitor", "website_visitor_partner_uniq")
     # Token is now either the partner's id or <user-agent+IP> hash.
     # Public visitors (not logged in/linked to a partner) won't be retrieved and
     # will create a new visitor.
