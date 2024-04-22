@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import models
 
 from odoo.addons.account_edi.models import account_journal  # noqa
@@ -18,6 +17,6 @@ class AccountJournal(models.Model):
         if self.env.context.get("_upg_iter_browse"):
             return super()._compute_edi_format_ids()
         util.iter_browse(
-            self.env["account.journal"].with_context(_upg_iter_browse=True), self.ids
+            self.env["account.journal"].with_context(_upg_iter_browse=True, tracking_disable=True), self.ids
         )._compute_edi_format_ids()
         return True
