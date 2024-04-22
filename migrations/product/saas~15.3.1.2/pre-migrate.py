@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -77,3 +75,5 @@ def migrate(cr, version):
         util.add_to_migration_reports(msg, "Products & Pricelists")
 
     util.remove_field(cr, "res.config.settings", "module_sale_product_configurator")
+
+    util.remove_constraint(cr, "product_product", "product_product_barcode_uniq")
