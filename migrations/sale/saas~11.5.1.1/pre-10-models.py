@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -27,9 +26,13 @@ def migrate(cr, version):
             portal_confirmation_pay = (select * from conf_option) = 'pay',
             sale_quotation_onboarding_state='not_done',
             sale_onboarding_order_confirmation_state=payment_acquirer_onboarding_state,
-            sale_onboarding_sample_quotation_state=EXISTS(
-                SELECT 1 FROM sale_order WHERE state='sent' AND company_id = c.id
-            )
+            sale_onboarding_sample_quotation_state=CASE WHEN EXISTS(SELECT 1
+                                                            FROM sale_order
+                                                           WHERE state='sent'
+                                                             AND company_id = c.id)
+                                                        THEN 'just_done'
+                                                        ELSE 'not_done'
+                                                    END
     """
     )
 
