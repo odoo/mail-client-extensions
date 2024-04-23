@@ -7,7 +7,7 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     if util.version_gte("10.saas~18"):
         # Should have been removed in saas~18...
-        util.remove_constraint(cr, "res_partner_title", "res_partner_title_name_uniq")
+        util.remove_constraint(cr, "res_partner_title", "res_partner_title_name_uniq", warn=False)
 
     # forgotten temporary table
     cr.execute("DROP TABLE IF EXISTS saas124_acc_mig_bad_mappings")
@@ -68,9 +68,7 @@ def migrate(cr, version):
                     ALTER COLUMN "{name}"
                      TYPE varchar
                     USING CONVERT_FROM("{name}",'UTF8')
-                    """.format(
-                        name=name
-                    )
+                    """.format(name=name)
                     for name in names
                 ),
             )
