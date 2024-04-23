@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 
 from odoo.upgrade import util
@@ -50,8 +49,8 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.channel", "channel_message_ids")
 
     # constraints to remove: done when column removed, removing from constraint table
-    util.remove_constraint(cr, "mail_followers", "mail_followers_res_channel_res_model_id_uniq")
-    util.remove_constraint(cr, "mail_followers", "partner_xor_channel")
+    util.remove_constraint(cr, "mail_followers", "mail_followers_res_channel_res_model_id_uniq", warn=False)
+    util.remove_constraint(cr, "mail_followers", "mail_followers_partner_xor_channel")
 
     # removal of channel listener feature: message are now linked with model / res_id
     # and multi-channel notification is simply dropped out (hence dropping table
