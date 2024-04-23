@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -8,7 +7,7 @@ def migrate(cr, version):
 
     # some customers have a 'hr_job_hired_employee_check' constraint breaking the upgrade
     # that could either be leftover from Odoo 8 or custom.
-    util.remove_constraint(cr, "hr_job", "hr_job_hired_employee_check")
+    util.remove_constraint(cr, "hr_job", "hr_job_hired_employee_check", warn=False)
 
     util.create_column(cr, "hr_job", "sequence", "int4", default=10)
     cr.execute(
