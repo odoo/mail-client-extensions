@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     # Columns Creation
     util.create_column(cr, "hr_leave", "holiday_allocation_id", "int4")
     util.create_column(cr, "hr_leave", "multi_employee", "bool", default=False)
@@ -272,8 +269,8 @@ def migrate(cr, version):
     )
 
     # Drop constraints
-    util.remove_constraint(cr, "hr_leave_allocation", "number_per_interval_check")
-    util.remove_constraint(cr, "hr_leave_allocation", "interval_number_check")
+    util.remove_constraint(cr, "hr_leave_allocation", "hr_leave_allocation_number_per_interval_check")
+    util.remove_constraint(cr, "hr_leave_allocation", "hr_leave_allocation_interval_number_check")
 
     util.remove_record(cr, "hr_holidays.action_hr_holidays_dashboard")
     util.remove_record(cr, "hr_holidays.action_report_to_payslip")
