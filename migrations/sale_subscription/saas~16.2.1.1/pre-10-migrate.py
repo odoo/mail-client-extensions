@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
     cr.execute("DROP VIEW IF EXISTS sale_subscription_report CASCADE")
-    util.remove_constraint(cr, "sale_order", "sale_subscription_stage_coherence")
+    util.remove_constraint(cr, "sale_order", "sale_order_sale_subscription_stage_coherence")
     util.create_column(cr, "sale_order_log", "origin_order_id", "int4")
     util.create_column(cr, "sale_order_log", "amount_contraction", "numeric")
     util.create_column(cr, "sale_order_log", "amount_expansion", "numeric")
