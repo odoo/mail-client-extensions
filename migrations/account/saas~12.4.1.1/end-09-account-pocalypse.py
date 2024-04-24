@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import contextlib
 import functools
 import itertools
@@ -9,7 +8,11 @@ import os
 from odoo import fields
 
 from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock, skip_failing_python_taxes
+from odoo.addons.base.maintenance.migrations.util.accounting import (
+    no_deprecated_accounts,
+    no_fiscal_lock,
+    skip_failing_python_taxes,
+)
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.account.saas-12.4." + __name__)
 
@@ -515,9 +518,7 @@ def _compute_invoice_line_move_line_mapping(cr, updated_invoices, ignored_unpost
                   AND NOT EXISTS (SELECT aml_id FROM invl_aml_mapping WHERE aml_id=ml.id)
                   AND i.id = ANY(%s)
                   AND {}
-            """.format(
-                " AND ".join(filters[c] for c in cond)
-            )
+            """.format(" AND ".join(filters[c] for c in cond))
             queries = [cr.mogrify(query, (i, chunk)) for chunk in chunks]
             util.parallel_execute(cr, queries)
             cr.execute(
@@ -1129,9 +1130,7 @@ def migrate_voucher_lines(cr):
                AND ml.id NOT IN (SELECT ml_id FROM vl_ml_mapping)
 
                AND {}
-        """.format(
-                " AND ".join(filters[c] for c in cond)
-            )
+        """.format(" AND ".join(filters[c] for c in cond))
         )
         added = cr.rowcount
 
@@ -1607,7 +1606,7 @@ def migrate_invoice_lines(cr):
                 "company. These invalid accounts have been unset from these contacts to be able to upgrade the "
                 "accounting. To correct the accounts to use for these contacts, access the contact form and set the "
                 "accounts for each company available in the dropdown multi-company menu. The contact ids are: %s."
-                % ", ".join([str(id) for id, in cr.fetchall()]),
+                % ", ".join([str(id) for (id,) in cr.fetchall()]),
                 category="Accounting",
             )
 
@@ -1653,7 +1652,7 @@ def migrate_invoice_lines(cr):
                 "company. These invalid accounts have been unset from these contacts to be able to upgrade the "
                 "accounting. To correct the accounts to use for these contacts, access the contact form and set the "
                 "accounts for each company available in the dropdown multi-company menu. The product ids are: %s."
-                % ", ".join(set(str(id) for id, in cr.fetchall())),
+                % ", ".join(set(str(id) for (id,) in cr.fetchall())),
                 category="Accounting",
             )
 
@@ -2327,7 +2326,7 @@ def migrate(cr, version):
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text <> 'percent'::text")
     cr.execute("CREATE INDEX ON account_tax(company_id) WHERE (amount_type)::text = 'percent'::text")
     cr.execute("REINDEX TABLE account_tax")
-    with no_fiscal_lock(cr):
+    with no_fiscal_lock(cr), no_deprecated_accounts(cr):
         if util.ENVIRON["account_voucher_installed"]:
             migrate_voucher_lines(cr)
         migrate_invoice_lines(cr)

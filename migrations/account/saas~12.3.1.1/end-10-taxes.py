@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 import logging
 
@@ -8,14 +7,18 @@ from odoo.tools import float_round
 from odoo.tools.safe_eval import safe_eval
 
 from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock, skip_failing_python_taxes
+from odoo.addons.base.maintenance.migrations.util.accounting import (
+    no_deprecated_accounts,
+    no_fiscal_lock,
+    skip_failing_python_taxes,
+)
 
 NS = "odoo.addons.base.maintenance.migrations.account.saas~12.3."
 _logger = logging.getLogger(NS + __name__)
 
 
 def migrate(cr, version):
-    with no_fiscal_lock(cr):
+    with no_fiscal_lock(cr), no_deprecated_accounts(cr):
         return _migrate(cr, version)
 
 
@@ -873,7 +876,6 @@ def get_aml_domain(cr, invoice, domain):
     # We need to use the backup table in order to know which tax corresponds to which tag
     for index, condition in enumerate(map(expression.normalize_leaf, line_domain)):
         if condition[0] in ("tax_ids.tag_ids", "tax_line_id.tag_ids"):
-
             if condition[1] not in ("=", "!=", "in", "not in"):
                 raise UserError("Wrong operator in domain: %s" % condition[1])
 
@@ -984,10 +986,8 @@ def _fill_grids_mapping_for_lu(cr, dict_to_fill):
     )
     lutax_lines_map = {entry["name"]: entry for entry in cr.dictfetchall()}
     for v13_line in v13_tax_report_lines:
-
         v12_line_data = lutax_lines_map.get(v13_line.name)
         if v12_line_data:
-
             if v12_line_data["domain"]:
                 dict_to_fill[v12_line_data["id"]] = v13_line.tag_name
             else:
@@ -2059,7 +2059,6 @@ def get_v13_migration_dicts(cr):
                     )
 
                 for tax_report_line_id, domain, formulas, module in tag_report_lines_data:
-
                     # aml considered by this report line for both invoice and refund
                     inv_aml = env["account.move.line"].search(get_aml_domain(cr, inv, domain))
                     ref_aml = env["account.move.line"].search(get_aml_domain(cr, ref, domain))

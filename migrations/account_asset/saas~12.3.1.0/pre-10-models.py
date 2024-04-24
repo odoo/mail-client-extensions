@@ -1,11 +1,15 @@
-# -*- coding: utf-8 -*-
-
 from collections import defaultdict
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util.accounting import no_deprecated_accounts
 
 
 def migrate(cr, version):
+    with no_deprecated_accounts(cr):
+        _migrate(cr, version)
+
+
+def _migrate(cr, version):
     env = util.env(cr)
     rate_subquery = """
                       (
