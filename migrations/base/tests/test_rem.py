@@ -13,6 +13,11 @@ def _model_tables(test):
     return Json({model_name: model._table for model_name, model in test.env.items()})
 
 
+NON_STORED_FIELDS_EXCEPTIONS = {
+    ("res.partner", "signup_token")  # computed with a phantom column hack
+}
+
+
 class TestStoredFields(UpgradeCase):
     query = """
         SELECT f.model,
@@ -34,7 +39,7 @@ class TestStoredFields(UpgradeCase):
     """
 
     def check(self, value):
-        value = set(map(tuple, value))
+        value = set(map(tuple, value)) - NON_STORED_FIELDS_EXCEPTIONS
         self.env.cr.execute(self.query.format("IS NOT True"), [_model_tables(self), tuple(get_modules())])
         wrong = [x for x in self.env.cr.fetchall() if x in value]
         self.assertFalse(wrong, "Some fields became non-stored and their columns still remain")
