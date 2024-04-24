@@ -420,7 +420,7 @@ product_product_id)
           JOIN sale_subscription ss ON ss.id=ssl.analytic_account_id
           JOIN sale_order so ON so.old_subscription_id=ss.id
           JOIN sale_subscription_template sst ON ss.template_id=sst.id
-          JOIN product_pricing ppr ON ssl.id = ANY (ppr._mig_sub_line_id)
+          LEFT JOIN product_pricing ppr ON ssl.id = ANY (ppr._mig_sub_line_id)
         """
     )
     util.remove_column(cr, "product_pricing", "_mig_sub_line_id")
