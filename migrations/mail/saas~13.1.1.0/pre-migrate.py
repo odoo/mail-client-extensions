@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -56,3 +55,9 @@ def migrate(cr, version):
     util.remove_record(cr, "mail.access_mail_thread_all")
 
     util.rename_xmlid(cr, "mail.view_message_form", "mail.mail_message_view_form")
+
+    util.remove_column(cr, "mail_template", "model_object_field")
+    util.remove_column(cr, "mail_template", "sub_object")
+    util.remove_column(cr, "mail_template", "sub_model_object_field")
+    util.remove_column(cr, "mail_template", "null_value")
+    util.remove_column(cr, "mail_template", "copyvalue")
