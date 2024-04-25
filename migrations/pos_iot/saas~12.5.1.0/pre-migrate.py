@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -52,3 +51,9 @@ def migrate(cr, version):
 
     # 2. Remove the field and column `iotbox_id`
     util.remove_field(cr, "pos.config", "iotbox_id")
+
+    # 3. Remove fields overridden to be non-stored
+    util.remove_column(cr, "pos_config", "iface_electronic_scale")
+    util.remove_column(cr, "pos_config", "iface_customer_facing_display")
+    util.remove_column(cr, "pos_config", "iface_print_via_proxy")
+    util.remove_column(cr, "pos_config", "iface_scan_via_proxy")
