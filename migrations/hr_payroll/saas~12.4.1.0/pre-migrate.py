@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -154,3 +153,6 @@ def migrate(cr, version):
          WHERE module = 'hr_payroll'
            AND model = 'ir.ui.menu'
     """)
+
+    util.remove_column(cr, "hr_payslip_input", "name")
+    util.remove_column(cr, "hr_payslip_input", "code")
