@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 
 import odoo
@@ -117,30 +116,97 @@ def migrate(cr, version):
     )
 
     # invoice_id -> Field deleted, now done through a sale.order, set reference in Internal Notes
+    # fees_lines -> Model and field deleted, now done through sale_order, backup infos in Internal Notes
     util.explode_execute(
         cr,
-        """
-        UPDATE repair_order r
-           SET internal_notes = CONCAT(
-                                   CASE
-                                      WHEN acc.id IS NOT NULL THEN
-                                       CONCAT(
-                                       '<h2>Invoice reference</h2><p>Name: ', acc.name,
-                                       '</p><p>Id: ', acc.id, '</p><hr>'
-                                       )
-                                      ELSE ''
-                                   END,
-                                       '<h2>Quotation notes</h2>',
-                                       r.quotation_notes, '<hr>',
-                                       '<h2>Internal notes</h2>',
-                                       r.internal_notes
-                                      )
-          FROM repair_order ro
-     LEFT JOIN account_move acc
-            ON ro.invoice_id = acc.id
-         WHERE r.id = ro.id
+        f"""
+        WITH repair_fee_taxes AS (
+             SELECT m2m.repair_fee_line_id as fee_id,
+                    string_agg(t.name->>'en_US', ',') as taxes
+               FROM repair_fee_line_tax m2m
+               JOIN repair_order ro
+                 ON m2m.repair_fee_line_id = ro.id
+               JOIN account_tax t
+                 ON m2m.tax_id = t.id
+              WHERE {{parallel_filter}}
+           GROUP BY m2m.repair_fee_line_id
+           ),
+             repair_operation_notes AS (
+             SELECT f.repair_id,
+                    CONCAT(
+                          '<h2>Operations</h2>
+                          <table class="table table-bordered o_table">
+                          <thead><tr>
+                          <td><h4>Product</h4></td>
+                          <td><h4>Description</h4></td>
+                          <td><h4>Quantity</h4></td>
+                          <td><h4>Unit Price</h4></td>
+                          <td><h4>Taxes</h4></td>
+                          <td><h4>Tax Excl.</h4></td>
+                          <td><h4>Tax Incl.</h4></td>
+                          <td><h4>Invoiced</h4></td>
+                          </tr></thead>
+                          <tbody>',
+                          string_agg(
+                                    CONCAT(
+                                          '<tr>',
+                                          '<td>', {util.pg_html_escape("pt.name->>'en_US'")}, '</td>',
+                                          '<td>', {util.pg_html_escape("f.name")}, '</td>',
+                                          '<td>', f.product_uom_qty, '</td>',
+                                          '<td>', f.price_unit, '</td>',
+                                          '<td>', {util.pg_html_escape("ft.taxes")}, '</td>',
+                                          '<td>', f.price_subtotal, '</td>',
+                                          '<td>', f.price_total, '</td>',
+                                          '<td>',
+                                          CASE WHEN f.invoiced=TRUE
+                                               THEN 'Yes'
+                                               ELSE ''
+                                          END,
+                                          '</td>',
+                                          '</tr>'
+                                          ),
+                                    E'\n' ORDER BY f.id
+                                    ),
+                          '</tbody></table>'
+                          ) AS operation_notes
+               FROM repair_fee f
+               JOIN repair_order ro
+                 ON f.repair_id = ro.id
+               JOIN product_product p
+                 ON f.product_id = p.id
+               JOIN product_template pt
+                 ON p.product_tmpl_id = pt.id
+               JOIN repair_fee_taxes ft
+                 ON ft.fee_id = f.id
+              WHERE {{parallel_filter}}
+           GROUP BY f.repair_id
+           )
+      UPDATE repair_order r
+         SET internal_notes = CONCAT(
+                                 CASE
+                                    WHEN acc.id IS NOT NULL THEN
+                                     CONCAT(
+                                        '<h2>Invoice reference</h2>',
+                                        '<p>Name: ', {util.pg_html_escape("acc.name")}, '</p>',
+                                        '<p>Id: ', acc.id, '</p><hr>'
+                                     )
+                                    ELSE ''
+                                 END,
+                                 COALESCE(op.operation_notes, ''),
+                                     '<h2>Quotation notes</h2>',
+                                     r.quotation_notes, '<hr>',
+                                     '<h2>Internal notes</h2>',
+                                     r.internal_notes
+                                    )
+        FROM repair_order ro
+   LEFT JOIN account_move acc
+          ON ro.invoice_id = acc.id
+   LEFT JOIN repair_operation_notes op
+          ON ro.id = op.repair_id
+       WHERE r.id = ro.id
+             AND {{parallel_filter}}
         """,
-        alias="r",
+        alias="ro",
         table="repair_order",
     )
 
