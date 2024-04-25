@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -76,3 +75,5 @@ def migrate(cr, version):
     """)
     for view in views:
         util.remove_view(cr, "hr_appraisal." + view)
+
+    util.remove_column(cr, "hr_employee", "appraisal_employee")
