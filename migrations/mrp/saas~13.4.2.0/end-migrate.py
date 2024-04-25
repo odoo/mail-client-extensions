@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from collections import defaultdict
 
@@ -407,3 +406,6 @@ def migrate(cr, version):
          WHERE mw.production_id = mp.id
         """
     )
+
+    util.remove_column(cr, "mrp_workorder", "finished_lot_id")
+    util.remove_column(cr, "mrp_workorder", "qty_producing")  # from former mrp.abstract.workorder parent model
