@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import psycopg2
 
 from odoo.tools.misc import ignore
@@ -44,3 +43,9 @@ def migrate(cr, version):
             if cnt > 0:
                 env['hr.salary.rule'].browse(rule.res_id).active = False
                 util.force_noupdate(cr, xmlid)
+
+    # payslip lines now use salary_rule_id, before they actually **inherited** from salary rules
+    util.remove_column(cr, "hr_payslip_line", "appears_on_payslip")
+    util.remove_column(cr, "hr_payslip_line", "amount_select")
+    util.remove_column(cr, "hr_payslip_line", "amount_fix")
+    util.remove_column(cr, "hr_payslip_line", "amount_percentage")
