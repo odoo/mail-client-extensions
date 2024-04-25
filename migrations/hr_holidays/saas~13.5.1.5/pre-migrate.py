@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -26,3 +25,6 @@ def migrate(cr, version):
         SET duration_display = 'O hours'
         WHERE date_from IS NULL OR date_to IS NULL"""
     )
+
+    util.remove_column(cr, "hr_leave", "name")
+    util.remove_column(cr, "hr_leave_allocation", "name")
