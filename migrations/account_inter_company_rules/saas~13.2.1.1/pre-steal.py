@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -26,3 +25,5 @@ def migrate(cr, version):
     """
     for view in util.splitlines(views):
         util.rename_xmlid(cr, f"sale_purchase_inter_company_rules.{view}", f"account_inter_company_rules.{view}")
+
+    util.remove_column(cr, "res_config_settings", "intercompany_transaction_message")
