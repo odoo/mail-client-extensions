@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -86,3 +85,33 @@ def migrate(cr, version):
 
     # cleanup for saas databases
     util.remove_module(cr, "saas_docsaway")
+
+    # l10n_id was added in 12.0 never forward ported to 12.3, it appears again in 13.0
+    # get all modules that depend on l10n_id recursively, including itself
+    cr.execute(
+        """
+        WITH RECURSIVE l10n_id_deps AS (
+            SELECT m.name
+              FROM ir_module_module m
+             WHERE m.name = 'l10n_id'
+               AND m.state IN ('installed', 'to upgrade')
+
+             UNION
+
+            SELECT m.name
+              FROM ir_module_module_dependency d
+              JOIN ir_module_module m
+                ON d.module_id = m.id
+              JOIN l10n_id_deps id_d
+                ON d.name = id_d.name
+             WHERE m.state IN ('installed', 'to upgrade')
+        )
+        SELECT name FROM l10n_id_deps
+        """
+    )
+    if cr.rowcount:  # save the info in order to restore it in 13.0
+        mods = [r[0] for r in cr.fetchall()]
+        cr.execute("INSERT INTO ir_config_parameter(key, value) VALUES ('__upg_l10n_id_deps', %s)", [",".join(mods)])
+        cr.execute("UPDATE ir_module_module SET state = 'uninstalled' WHERE name = ANY(%s)", [mods])
+    # remove the entry from ir_module_module to avoid the ORM removing data associated to the module
+    cr.execute("DELETE FROM ir_module_module WHERE name = 'l10n_id'")

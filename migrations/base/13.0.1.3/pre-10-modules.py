@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -14,6 +13,18 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_it_stock_ddt", deps={"l10n_it_edi", "delivery"}, auto_install=True)
     # https://github.com/odoo/odoo/pull/40776, for `saas~12.3` databases
     util.new_module(cr, "l10n_id", deps={"account", "base_iban", "base_vat"})
+    # Restore dependant modules from 12.0 that were saved in saas-12.3, see saas~12.3.1.3/pre-30-modules.py
+    cr.execute(
+        """
+        UPDATE ir_module_module m
+           SET state = 'to upgrade'
+          FROM ir_config_parameter p
+         WHERE p.key = '__upg_l10n_id_deps'
+           AND m.name = ANY(string_to_array(p.value, ','));
+
+        DELETE FROM ir_config_parameter WHERE key = '__upg_l10n_id_deps'
+        """
+    )
     # https://github.com/odoo/odoo/commit/0bf02af0369bca8292abd83b3f8c6434c2c713f3
     util.new_module(cr, "l10n_id_efaktur", deps={"l10n_id"}, auto_install=True)
     # https://github.com/odoo/odoo/pull/46821
