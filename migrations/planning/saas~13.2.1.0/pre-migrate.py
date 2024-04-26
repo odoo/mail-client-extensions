@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -38,6 +37,7 @@ def migrate(cr, version):
     util.create_column(cr, "planning_role", "sequence", "integer")
     cr.execute("UPDATE planning_role SET sequence = id")
 
+    util.remove_constraint(cr, "planning_planning", "planning_planning_check_start_date_lower_stop_date")
     util.remove_field(cr, "planning.planning", "last_sent_date")
     util.create_m2m(cr, "planning_planning_planning_slot_rel", "planning_planning", "planning_slot")
     cr.execute(
@@ -56,6 +56,7 @@ def migrate(cr, version):
     util.create_column(cr, "planning_slot_template", "company_id", "integer")
 
     # wizard
+    util.remove_constraint(cr, "planning_send", "planning_send_check_start_date_lower_stop_date")
     util.remove_field(cr, "planning.send", "company_id")
     util.create_m2m(cr, "hr_employee_planning_send_rel", "hr_employee", "planning_send")
     util.create_m2m(cr, "planing_send_planing_slot", "planning_send", "planning_slot")
