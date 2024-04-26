@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -97,3 +96,5 @@ def migrate(cr, version):
     util.remove_field(cr, "res.partner", "l10n_co_edi_customs_type_ids")
     cr.execute("DROP TABLE IF EXISTS partner_l10n_co_edi_customs_types")
     util.remove_field(cr, "l10n_co_edi.type_code", "type")
+
+    util.remove_column(cr, "account_move", "l10n_co_edi_operation_type")
