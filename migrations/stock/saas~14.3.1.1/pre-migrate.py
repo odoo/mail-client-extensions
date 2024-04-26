@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -301,3 +300,5 @@ def migrate(cr, version):
          WHERE code = 'outgoing'
     """
     )
+
+    util.remove_column(cr, "stock_track_line", "tracking")
