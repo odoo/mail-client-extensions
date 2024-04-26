@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -94,3 +93,5 @@ def migrate(cr, version):
     util.remove_view(cr, "sale_timesheet.project_task_view_form_inherit_sale_timesheet_edit")
 
     util.remove_model(cr, "project.task.create.sale.order")
+
+    util.remove_constraint(cr, "project_project", "project_project_timesheet_product_required_if_billable_and_time")
