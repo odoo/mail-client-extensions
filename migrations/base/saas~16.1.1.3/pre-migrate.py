@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 
 from odoo.tools import sql
@@ -22,6 +20,8 @@ def migrate(cr, version):
                JOIN pg_indexes AS pi ON col.table_name = pi.tablename
          WHERE col.table_schema = current_schema
                AND pi.indexname = col.table_name || '_' || col.column_name || '_index'
+               -- skip known case of standard index that is not related to a field
+               AND pi.indexname <> 'account_move_sequence_index'
         """
     )
     _logger.info("Rename %d indexes with the new naming convention.", cr.rowcount)
