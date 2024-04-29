@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -30,3 +29,5 @@ def migrate(cr, version):
         cr.execute("UPDATE hr_work_entry SET state='draft' WHERE state='confirmed'")
 
         util.remove_constraint(cr, "hr_work_entry", "hr_work_entry__unique")
+
+    util.rename_xmlid(cr, *eb("hr_{payroll,work_entry}.work_entry_type_attendance"))
