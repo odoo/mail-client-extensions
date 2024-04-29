@@ -2,7 +2,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_gte("15.0"):
+    # Starting saas~16.3 the missing repartition lines are recreated by the ORM
+    if not util.version_between("15.0", "saas~16.2"):
         return
 
     # invoice_tax_id and refund_tax_id becomes tax_id in saas~16.2
