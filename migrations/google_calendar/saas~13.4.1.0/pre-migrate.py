@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_constraint(cr, "calendar_attendee", "calendar_attendee_google_id_uniq")
+
     util.create_column(cr, "calendar_event", "google_id", "varchar")
     util.create_column(cr, "calendar_event", "need_sync", "boolean", default=False)
     util.create_column(cr, "calendar_recurrence", "google_id", "varchar")

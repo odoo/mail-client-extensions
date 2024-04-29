@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_constraint(cr, "calendar_attendee", "calendar_attendee_google_id_uniq")
-
     # partner is now required on attendees
     Partner = util.env(cr)["res.partner"]
     cr.execute("SELECT max(id) FROM res_partner")
