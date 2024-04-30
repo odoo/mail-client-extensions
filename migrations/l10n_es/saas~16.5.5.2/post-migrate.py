@@ -84,5 +84,5 @@ def migrate(cr, version):
         try:
             CoA.try_loading(company.chart_template, company=company, install_demo=False)
             cr.commit()
-        except:
+        except Exception:
             cr.rollback()
