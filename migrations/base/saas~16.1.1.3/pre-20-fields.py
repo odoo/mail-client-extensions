@@ -32,6 +32,23 @@ def migrate(cr, version):
         """
     )
     models = [row[0] for row in cr.fetchall()]
+
+    wrong_models = [
+        m
+        for m in models
+        # fmt: off
+        if "_" in m
+        if "." not in m
+        if not m.startswith("x_")
+        if m not in util.helpers._VALID_MODELS
+        # fmt: on
+    ]
+    if wrong_models:
+        _logger.warning("There appear to be some invalid model names %s", wrong_models)
+        orig_valid_models = util.helpers._VALID_MODELS
+        # avoid unnecesary failures in remove_field
+        util.helpers._VALID_MODELS = frozenset(set(orig_valid_models) | set(wrong_models))
+
     cr.commit()  # Avoid deadlock as the processes will remove the `ir_model_fields` records
 
     # NOTE
@@ -55,3 +72,6 @@ def migrate(cr, version):
                 log_hundred_percent=True,
             )
         )
+
+    if wrong_models:
+        util.helpers._VALID_MODELS = orig_valid_models
