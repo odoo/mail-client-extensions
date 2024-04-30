@@ -13,14 +13,17 @@ def migrate(cr, version):
     cr.execute(
         """
            WITH t AS (
-               SELECT SPLIT_PART(value_reference, ',' ,2)::integer AS journal_id,
-                      company_id
+               SELECT SPLIT_PART(p.value_reference, ',' ,2)::integer AS journal_id,
+                      p.company_id
                  FROM ir_property p
                  JOIN ir_model_fields f
                    ON f.id = p.fields_id
+                 JOIN account_journal aj
+                   ON aj.id = SPLIT_PART(value_reference, ',' ,2)::integer
                 WHERE f.model = 'hr.payroll.structure'
                   AND f.name = 'journal_id'
                   AND p.res_id LIKE 'hr.payroll.structure,%'
+                  AND aj.code = 'SLR'
                GROUP BY 1, 2
            )
            INSERT INTO ir_model_data (model, res_id, module, name, noupdate)
