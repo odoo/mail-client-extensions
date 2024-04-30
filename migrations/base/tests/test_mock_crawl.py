@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import contextlib
 import inspect
 import logging
@@ -240,7 +239,7 @@ class TestCrawler(IntegrityCase):
             return safe_eval(value, eval_context)
 
     def crawl_menu(self, menu, get_menu, parent=None):
-        menu_name = "%s > %s" % (parent, menu["name"]) if parent else menu["name"]
+        menu_name = "{} > {}".format(parent, menu["name"]) if parent else menu["name"]
         _logger.info("Mocking menu %s", menu_name)
         failing = set()
         if menu["xmlid"] in self.skip_menus:
@@ -556,7 +555,7 @@ class TestCrawler(IntegrityCase):
                     if isinstance(context, dict) and context.get("group_by"):
                         group_bys.append(context["group_by"])
                 if node.tag == "field":
-                    domains.append("[('%s', '=', %r)]" % (default_filter, value))
+                    domains.append("[('{}', '=', {!r})]".format(default_filter, value))
 
         domains = [self._safe_eval(domain) for domain in domains]
         if action_domain:
