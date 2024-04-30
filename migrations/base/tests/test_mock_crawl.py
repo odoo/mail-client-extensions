@@ -39,8 +39,10 @@ try:
     from odoo.tools.sql import TableKind
 
     regular_types = ("r", TableKind.Regular)
+    view_table_types = ("v", "m", TableKind.View, TableKind.Materialized)
 except ImportError:
     regular_types = ("r",)
+    view_table_types = ("v", "m")
 
 NS = "odoo.addons.base.maintenance.migrations.base.tests"
 _logger = logging.getLogger(NS + __name__)
@@ -359,7 +361,7 @@ class TestCrawler(IntegrityCase):
             domain, group_by = self.mock_view_search(model, view, action.get("domain"))
 
         kind_of_table = table_kind(self.env.cr, model._table)
-        is_view = kind_of_table in {"v", "m"}
+        is_view = kind_of_table in view_table_types
         view_columns = set(util.get_columns(env.cr, model._table, ignore=[])) if is_view else set()
         stored_fields = (
             {name for name, field in model._fields.items() if field.store and not field.type.endswith("2many")}
