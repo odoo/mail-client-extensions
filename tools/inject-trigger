@@ -36,7 +36,7 @@ args = parser.parse_args()
 db = args.db
 table = args.table
 when = args.when.upper()
-cond = args.cond.upper()
+cond = args.cond
 port = os.environ.get("PGPORT", 5432)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
