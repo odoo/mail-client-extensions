@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # ruff: noqa: ERA001
 
+import hashlib
 import itertools
 import json
 import logging
@@ -375,6 +376,9 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
     module_plus = "+".join(sorted(modules))
     setproctitle(f"matt :: {options.source} -> {options.target} // {module_plus}")
     dbname = f"matt-{module_plus}"
+    if len(dbname) >= 64:
+        modhash = hashlib.sha3_224(module_plus.encode()).hexdigest()
+        dbname = f"matt-__{modhash}"
 
     l10n_modules = [m for m in modules if "l10n_" in m]
     if len(l10n_modules) > 1:
