@@ -10,4 +10,5 @@ def migrate(cr, version):
          WHERE s.id = j.secure_sequence_id
     """)
     util.remove_field(cr, "account.journal", "secure_sequence_id")
+    util.remove_field(cr, "account.move", "string_to_hash")
     util.remove_field(cr, "account.group", "parent_path")
