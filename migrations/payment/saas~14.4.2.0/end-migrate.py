@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -28,7 +27,8 @@ def migrate(cr, version):
             apm.id AS payment_method_id,
             pajm.name,
             CASE WHEN apm.payment_type = 'inbound' THEN jam.inbound_account_id ELSE jam.outbound_account_id END
-            AS payment_account_id
+            AS payment_account_id,
+            acquirer.id AS payment_acquirer_id
           FROM _upg_payment_acquirer_journal_mapping pajm
           JOIN payment_acquirer acquirer ON pajm.id = acquirer.id
           JOIN account_payment_method apm ON apm.code = acquirer.provider
@@ -96,4 +96,4 @@ def migrate(cr, version):
         """
     )
     if cr.rowcount:
-        env["account.payment.method.line"].search([("id", "in", [lid for lid, in cr.fetchall()])]).unlink()
+        env["account.payment.method.line"].search([("id", "in", [lid for (lid,) in cr.fetchall()])]).unlink()
