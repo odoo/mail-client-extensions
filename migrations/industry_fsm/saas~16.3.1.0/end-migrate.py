@@ -7,7 +7,7 @@ def migrate(cr, version):
         return
     # Those records are removed in a noupdate=1 function call
     # see odoo/enterprise@d7830587748d92c0dbc43c2365f5eaf6861ba4e4
-    util.remove_record(cr, "industry_fsm.planning_project_stage_0")
-    util.remove_record(cr, "industry_fsm.planning_project_stage_2")
-    util.remove_record(cr, "industry_fsm.planning_project_stage_3")
-    util.remove_record(cr, "industry_fsm.planning_project_stage_4")
+    util.delete_unused(cr, "industry_fsm.planning_project_stage_0")
+    util.delete_unused(cr, "industry_fsm.planning_project_stage_2")
+    util.delete_unused(cr, "industry_fsm.planning_project_stage_3")
+    util.delete_unused(cr, "industry_fsm.planning_project_stage_4")
