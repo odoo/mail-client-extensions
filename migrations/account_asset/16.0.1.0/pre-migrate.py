@@ -188,6 +188,7 @@ def migrate(cr, version):
     util.explode_execute(cr, query, "account_asset", alias="asset")
 
     util.create_column(cr, "account_asset", "_century_shift___upg", "boolean")
+    util.create_column(cr, "account_asset", "_negative_shift___upg", "boolean")
 
     # As of 16.0, the imported amount is considered in the depreciation computation.
     # Until this point in the upgrade, the prorata_date has been computed to be the date at which odoo starts to
@@ -214,11 +215,12 @@ def migrate(cr, version):
         )
         UPDATE account_asset aa
            SET _century_shift___upg = adds.already_depreciated_shift > 1200 / (aa.method_period::integer),
-               prorata_date = CASE adds.already_depreciated_shift <= 1200 / (aa.method_period::integer)
+               _negative_shift___upg = adds.already_depreciated_shift < 0,
+               prorata_date = CASE adds.already_depreciated_shift > 0 AND adds.already_depreciated_shift <= 1200 / (aa.method_period::integer)
                                   WHEN TRUE THEN aa.prorata_date - INTERVAL '1 month' * (aa.method_period::integer) * adds.already_depreciated_shift
                                   ELSE aa.prorata_date
                                END,
-               method_number = CASE adds.already_depreciated_shift <= 1200 / (aa.method_period::integer)
+               method_number = CASE adds.already_depreciated_shift > 0 AND adds.already_depreciated_shift <= 1200 / (aa.method_period::integer)
                                    WHEN TRUE THEN aa.method_number + adds.already_depreciated_shift
                                    ELSE aa.method_number
                                 END
@@ -246,7 +248,26 @@ def migrate(cr, version):
             format="html",
         )
 
+    cr.execute("SELECT name FROM account_asset WHERE _negative_shift___upg")
+    if cr.rowcount:
+        util.add_to_migration_reports(
+            """
+            <details>
+                <summary>
+                    The following Assets/Deferred Revenues/Deferred Expenses have values of `Existing Depreciations => Depreciated Amount` \
+                    that seem incoherent with `Original Value`.
+                    They seem to have depreciated below their `salvage_value`, as such some of their values have not been adapted \
+                    and they may behave incorrectly if Reevaluated/Disposed/Sold/Paused after the upgrade.
+                </summary>
+                <ul>{}</ul>
+            </details>
+            """.format(" ".join([f"<li>{util.html_escape(name)}</li>" for (name,) in cr.fetchall()])),
+            category="Accounting assets",
+            format="html",
+        )
+
     util.remove_column(cr, "account_asset", "_century_shift___upg")
+    util.remove_column(cr, "account_asset", "_negative_shift___upg")
 
     # To handle assets fully depreciated in another software, as it doesnt impact any further computation,
     # we just shift the prorata_date enough to be sure it would be fully depreciated if it should be computed.
