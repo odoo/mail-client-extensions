@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -25,7 +23,7 @@ def migrate(cr, version):
               )
         """
     )
-    util.remove_records(cr, "project.task.recurrence", [rid for rid, in cr.fetchall()])
+    util.remove_records(cr, "project.task.recurrence", [rid for (rid,) in cr.fetchall()])
 
     # Remove the cron that creates recurring tasks, as they will now be created when marking the last task as done
     util.remove_record(cr, "project.ir_cron_recurring_tasks")
@@ -144,7 +142,16 @@ def migrate(cr, version):
     # field is unused anymore. adapt users' filters
     # See https://github.com/odoo/odoo/pull/115546
     util.update_field_usage(cr, "project.task", "display_project_id", "project_id")
-
+    util.explode_execute(
+        cr,
+        """
+            UPDATE project_task pt
+               SET project_id = NULL
+             WHERE display_project_id IS NULL
+        """,
+        table="project_task",
+        alias="pt",
+    )
     recurrence_fields = [
         "sun",
         "sat",
