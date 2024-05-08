@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -58,3 +56,31 @@ def migrate(cr, version):
     cr.execute("DROP VIEW IF EXISTS report_project_task_user CASCADE")
     cr.execute("DROP VIEW IF EXISTS report_project_task_user_fsm CASCADE")
     util.alter_column_type(cr, "project_task", "date_deadline", "timestamp without time zone")
+    util.replace_in_all_jsonb_values(
+        cr,
+        "ir_ui_view",
+        "arch_db",
+        util.PGRegexp(r"\yindustry_fsm\.worksheet"),
+        "industry_fsm_report.worksheet",
+        extra_filter=r"""
+            t.type = 'qweb'
+        AND (   t.key LIKE 'industry\_fsm.worksheet\_custom\_copy%%'
+             OR t.key LIKE 'industry\_fsm.worksheet\_custom\_page\_copy%%')
+        """,
+    )
+    cr.execute(
+        r"""
+        UPDATE ir_ui_view
+           SET key = regexp_replace(key, '^industry_fsm\.worksheet_custom','industry_fsm_report.worksheet_custom')
+         WHERE type = 'qweb'
+           AND (   key LIKE 'industry\_fsm.worksheet\_custom\_copy%'
+                OR key LIKE 'industry\_fsm.worksheet\_custom\_page\_copy%')
+        """,
+    )
+    cr.execute(
+        r"""
+        UPDATE ir_act_report_xml
+           SET report_name = regexp_replace(report_name, '^industry_fsm\.worksheet_custom_copy','industry_fsm_report.worksheet_custom_copy')
+         WHERE report_name LIKE 'industry\_fsm.worksheet\_custom\_copy%'
+        """,
+    )
