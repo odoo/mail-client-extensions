@@ -21,3 +21,5 @@ def migrate(cr, version):
            AND l.super_account_id IS NULL
         """
     )
+
+    util.remove_model(cr, "hr.payslip.run.aba.wizard")
