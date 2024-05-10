@@ -41,3 +41,8 @@ def migrate(cr, version):
     util.update_field_usage(cr, "sign.request.item", "ignored", "state", domain_adapter=_adapter)
     util.remove_field(cr, "sign.request.item", "ignored")
     util.rename_xmlid(cr, "sign.ignore_sign_request_item", "sign.canceled_sign_request_item", noupdate=False)
+
+    util.remove_record(cr, "sign.sign_request_my_requests_action")
+    util.remove_record(cr, "sign.sign_request_waiting_for_me_action")
+    util.remove_record(cr, "sign.sign_request_waiting_for_me")
+    util.rename_xmlid(cr, "sign.sign_request_my_requests", "sign.sign_request_my_documents")
