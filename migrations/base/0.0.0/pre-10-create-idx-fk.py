@@ -2,9 +2,14 @@
 import logging
 import os
 
-from odoo import api, models, release
+try:
+    from odoo import api, models, release
 
-from odoo.addons.base.maintenance.migrations import util
+    from odoo.addons.base.maintenance.migrations import util
+except ImportError:
+    from openerp import api, models, release
+
+    from openerp.addons.base.maintenance.migrations import util
 
 NS = "odoo.addons.base.maintenance.migrations.base."
 _logger = logging.getLogger(NS + __name__)
@@ -28,11 +33,11 @@ def migrate(cr, version):
 
     create_index_queries = []
     util.ENVIRON["__created_fk_idx"] = []
-
-    create_index_queries.append(
-        "CREATE INDEX upg_attachment_cleanup_speedup_idx ON ir_attachment(res_model, res_field, id)"
-    )
-    util.ENVIRON["__created_fk_idx"].append("upg_attachment_cleanup_speedup_idx")
+    if util.version_gte("9.0"):
+        create_index_queries.append(
+            "CREATE INDEX upg_attachment_cleanup_speedup_idx ON ir_attachment(res_model, res_field, id)"
+        )
+        util.ENVIRON["__created_fk_idx"].append("upg_attachment_cleanup_speedup_idx")
 
     if release.version_info[:2] == (16, 0) and util.column_exists(cr, "mail_message", "email_layout_xmlid"):
         create_index_queries.append("CREATE INDEX upg_mailmsg_layout_xid ON mail_message(email_layout_xmlid)")
@@ -149,12 +154,18 @@ class Model(models.Model):
     _inherit = "ir.model"
     _module = "base"
 
-    @api.model
-    def _register_hook(self):
-        super(Model, self)._register_hook()
+    api_model = api.model if util.version_gte("10.0") else lambda x: x
+
+    @api_model
+    def _register_hook(self, cr=None):
+        if cr is not None:
+            super(Model, self)._register_hook(cr)
+        else:
+            super(Model, self)._register_hook()
+            cr = self.env.cr
+
         index_names = util.ENVIRON.get("__created_fk_idx", [])
         if index_names:
-            cr = self.env.cr
             # pg_stat_get_numscans -> see \d+ pg_stat_all_indexes and
             # https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-STATS-VIEWS-TABLE
             query = """
@@ -187,7 +198,7 @@ class Model(models.Model):
             _logger.info("Auto Indexing Stats: %s unused indexes.\n%s", zero_scan_pc, stats)
 
             drop_index_queries = [
-                util.format_query(self.env.cr, "DROP INDEX IF EXISTS {}", index_name) for index_name in index_names
+                util.format_query(cr, "DROP INDEX IF EXISTS {}", index_name) for index_name in index_names
             ]
             _logger.info("dropping %s indexes", len(drop_index_queries))
-            util.parallel_execute(self.env.cr, drop_index_queries)
+            util.parallel_execute(cr, drop_index_queries)
