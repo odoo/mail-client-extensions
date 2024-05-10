@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -56,14 +55,7 @@ def migrate(cr, version):
         )
 
     util.remove_view(cr, "stock.stock_report_view_search")
-    util.remove_menus(
-        cr,
-        [
-            util.ref(cr, "stock.stock_move_menu"),
-            util.ref(cr, "stock.menu_forecast_inventory"),
-        ],
-    )
-    util.remove_record(cr, "stock.stock_move_action")
+    util.remove_menus(cr, [util.ref(cr, "stock.menu_forecast_inventory")])
     util.remove_record(cr, "stock.report_stock_quantity_action")
     util.remove_record(cr, "stock.report_stock_quantity_action_product")
 
