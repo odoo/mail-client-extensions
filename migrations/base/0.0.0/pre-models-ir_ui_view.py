@@ -631,7 +631,7 @@ def _upgrade_fix_views(fix_view, root_view):
             def replacer(m):
                 xmlid = m.group("xmlid")
                 if "." not in xmlid:
-                    xmlid = "%s.%s" % (module, xmlid)
+                    xmlid = "{}.{}".format(module, xmlid)
                 return m.group("prefix") + str(xmlid_to_res_id(xmlid))
 
             return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
@@ -666,7 +666,7 @@ def _upgrade_fix_views(fix_view, root_view):
         # Mark the view as it was loaded with its XML data file.
         # Otherwise it will be deleted in _process_end
         if util.version_gte("saas~11.5"):
-            fix_view.pool.loaded_xmlids.add("%s.%s" % (md.module, md.name))
+            fix_view.pool.loaded_xmlids.add("{}.{}".format(md.module, md.name))
         else:
             fix_view.pool.model_data_reference_ids[(md.module, md.name)] = (view._name, view.id)
 
@@ -905,7 +905,7 @@ class IrUiView(models.Model):
                     <details>
                         <summary>
                             <p>
-                                %sQWeb views cannot have 'Groups' defined on the record.
+                                {}QWeb views cannot have 'Groups' defined on the record.
                                 Instead, use the 'groups' attributes inside the view definition.
                             </p>
                             <p>
@@ -922,14 +922,14 @@ class IrUiView(models.Model):
                                 than in the view architecture itself, and therefore deserve your attention:
                             </p>
                         </summary>
-                        <ul>%s</ul>
+                        <ul>{}</ul>
                     </details>
-                """
-                    % (
+                """.format(
                         "Inherited " if util.version_gte("14.0") else "",
                         "".join(
-                            "<li>%s</li>"
-                            % util.get_anchor_link_to_record("ir.ui.view", view_id, view_xml_id or view_name)
+                            "<li>{}</li>".format(
+                                util.get_anchor_link_to_record("ir.ui.view", view_id, view_xml_id or view_name)
+                            )
                             for view_id, view_xml_id, view_name in views
                         ),
                     ),
