@@ -62,3 +62,51 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "hr.payslip.run", "l10n_au_export_aba_file")
     util.remove_field(cr, "hr.payslip.run", "l10n_au_export_aba_filename")
+
+    util.create_column(cr, "hr_payslip_input_type", "l10n_au_payment_type", "varchar")
+    util.create_column(cr, "hr_payslip_input_type", "l10n_au_superannuation_treatment", "varchar")
+
+    ote_col = util.column_exists(cr, "hr_payslip_input_type", "l10n_au_is_ote")
+    cr.execute(
+        """
+            UPDATE hr_payslip_input_type
+               SET l10n_au_payment_type = CASE
+                                              WHEN hr_payslip_input_type.l10n_au_is_etp THEN 'etp'
+                                              WHEN hr_payslip_input_type.l10n_au_is_allowance THEN 'allowance'
+                                          END
+                   {}
+             WHERE country_id = %s
+               AND (  hr_payslip_input_type.l10n_au_is_etp
+                   OR hr_payslip_input_type.l10n_au_is_allowance
+                   {})
+        """.format(
+            ", l10n_au_superannuation_treatment = CASE WHEN hr_payslip_input_type.l10n_au_is_ote THEN 'ote' END"
+            if ote_col
+            else "",
+            "OR hr_payslip_input_type.l10n_au_is_ote" if ote_col else "",
+        ),
+        [util.ref(cr, "base.au")],
+    )
+
+    util.remove_field(cr, "hr.payslip.input.type", "l10n_au_is_allowance")
+    util.remove_field(cr, "hr.payslip.input.type", "l10n_au_is_etp")
+    util.remove_field(cr, "hr.payslip.input.type", "l10n_au_is_ote")
+    util.remove_field(cr, "hr.payslip.input.type", "l10n_au_allowance_type")
+
+    util.delete_unused(
+        cr,
+        "l10n_au_hr_payroll.input_cents_per_kilometre",
+        "l10n_au_hr_payroll.input_award_transport_payments",
+        "l10n_au_hr_payroll.input_laundry",
+        "l10n_au_hr_payroll.input_overtime_meal_allowances",
+        "l10n_au_hr_payroll.input_domestic_or_overseas_travel_allowances_and_overseas_accommodation_allowances",
+        "l10n_au_hr_payroll.input_tool_allowances",
+        "l10n_au_hr_payroll.input_qualification_and_certification_allowances",
+        "l10n_au_hr_payroll.input_task_allowances",
+        "l10n_au_hr_payroll.input_other_allowances_h1",
+        "l10n_au_hr_payroll.input_other_allowances_nd",
+        "l10n_au_hr_payroll.input_other_allowances_t1",
+        "l10n_au_hr_payroll.input_other_allowances_u1",
+        "l10n_au_hr_payroll.input_other_allowances_v1",
+        "l10n_au_hr_payroll.input_other_allowances_g1",
+    )
