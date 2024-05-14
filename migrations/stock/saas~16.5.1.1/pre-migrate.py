@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -149,9 +148,6 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.move.line", "reserved_qty")
     util.remove_field(cr, "stock.move.line", "is_initial_demand_editable")
     util.remove_field(cr, "stock.move.line", "product_packaging_qty_done")
-
-    util.rename_field(cr, "stock.move", "quantity_done", "quantity")
-    util.rename_field(cr, "stock.move.line", "qty_done", "quantity")
 
     util.remove_view(cr, "stock.view_stock_move_nosuggest_operations")
 
