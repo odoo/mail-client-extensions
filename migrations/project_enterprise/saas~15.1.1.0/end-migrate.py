@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -12,4 +11,4 @@ def migrate(cr, version):
         """
     )
     ids = [row[0] for row in cr.fetchall()]
-    util.recompute_fields(cr, "project.task", ["allocated_hours"], ids=ids)
+    util.recompute_fields(cr, "project.task", ["allocated_hours"], ids=ids, chunk_size=50)
