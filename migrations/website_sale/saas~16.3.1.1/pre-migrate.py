@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -15,3 +14,4 @@ def migrate(cr, version):
     )
     util.remove_field(cr, "res.company", "show_line_subtotals_tax_selection")
     util.remove_column(cr, "sale_order", "amount_delivery")
+    util.move_field_to_module(cr, "sale.report", "is_abandoned_cart", "website_sale_dashboard", "website_sale")
