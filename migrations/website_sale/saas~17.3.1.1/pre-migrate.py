@@ -22,6 +22,11 @@ def migrate(cr, version):
     util.remove_field(cr, "product.ribbon", "html")
     util.remove_field(cr, "product.ribbon", "html_class")
 
+    util.remove_view(cr, "website_sale.cart_delivery")
+    util.remove_view(cr, "website_sale.payment_delivery_methods")
+    util.remove_view(cr, "website_sale.payment_delivery")
+    util.remove_field(cr, "website", "enabled_delivery")
+
 
 def extract_text(val):
     with contextlib.suppress(etree.ParserError):
