@@ -13,3 +13,6 @@ def migrate(cr, version):
     util.remove_field(cr, "account.journal", "secure_sequence_id")
     util.remove_field(cr, "account.move", "string_to_hash")
     util.remove_field(cr, "account.group", "parent_path")
+
+    util.remove_record(cr, "account.action_open_sale_payment_items")
+    util.rename_xmlid(cr, "account.action_open_payment_items", "account.action_amounts_to_settle")
