@@ -27,3 +27,4 @@ def migrate(cr, version):
     util.remove_field(cr, "pos.config", "iface_customer_facing_display_via_proxy")
     util.remove_field(cr, "pos.config", "iface_customer_facing_display_local")
     util.remove_field(cr, "pos.config", "iface_customer_facing_display")
+    util.remove_view(cr, "point_of_sale.account_product_template_form_view")
