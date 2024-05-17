@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import psycopg2
 
 from odoo.tools.misc import ignore
@@ -35,7 +34,7 @@ def migrate(cr, version):
 
     # Account_journal
     util.create_column(cr, "account_journal", "default_account_id", "int4")
-    for infix in {"credit", "debit"}:
+    for infix in ("credit", "debit"):
         util.update_field_usage(cr, "account.journal", f"default_{infix}_account_id", "default_account_id")
 
     cr.execute(
