@@ -60,6 +60,19 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.line", "always_set_currency_id")
     util.remove_constraint(cr, "account_move_line", "account_move_line_check_amount_currency_balance_sign")
 
+    # Some databases have incorrect balance computation, off by a small fraction, for instance:
+    # 13.915 - 0.0 = 13.92
+    # We correct this error, because otherwise the constraint below is not going to be added.
+    util.explode_execute(
+        cr,
+        """
+        UPDATE account_move_line
+           SET balance = debit - credit
+         WHERE balance != debit - credit
+        """,
+        table="account_move_line",
+    )
+
     util.explode_execute(
         cr,
         """
