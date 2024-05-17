@@ -88,7 +88,7 @@ def migrate(cr, version):
     )
     for index_name, table_name, column_name in cr.fetchall():
         util.ENVIRON["__created_fk_idx"].append(index_name)
-        create_index_queries.append("CREATE INDEX %s ON %s(%s)" % (index_name, table_name, column_name))
+        create_index_queries.append("CREATE INDEX {} ON {}({})".format(index_name, table_name, column_name))
 
     # Return all FK columns from BIG tables
     _logger.info("Search for foreign keys in big tables.")
