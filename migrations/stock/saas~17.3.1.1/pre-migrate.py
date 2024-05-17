@@ -72,3 +72,77 @@ def migrate(cr, version):
 
     util.adapt_domains(cr, "stock.move", "product_type", "product_type", adapter=adapter_move)
     util.remove_field(cr, "stock.move", "product_type")
+
+    # Add default destination to either Customers or Warehouse/Stock
+    customer_id = util.ref(cr, "stock.stock_location_customers")
+    cr.execute(
+        """
+        WITH default_company_locs AS (
+               SELECT sw.company_id,
+                      (array_agg(sw.lot_stock_id ORDER BY sw.id))[1] AS lot_stock_id
+                 FROM stock_warehouse sw
+                WHERE sw.active = True
+             GROUP BY sw.company_id
+        ),
+        customer_locs AS (
+               SELECT sl.company_id,
+                      (array_agg(sl.id ORDER BY sl.active DESC, sl.id))[1] AS id
+                 FROM stock_location sl
+                WHERE sl.usage = 'customer'
+             GROUP BY sl.company_id
+        )
+        UPDATE stock_picking_type spt
+           SET default_location_dest_id = CASE WHEN spt.code IN ('outgoing', 'dropship') THEN COALESCE(%s, ccl.id, ncl.id)
+                                               ELSE COALESCE(sw.lot_stock_id, dcl.lot_stock_id)
+                                           END
+          FROM stock_picking_type spt2
+     LEFT JOIN stock_warehouse sw
+            ON spt2.warehouse_id = sw.id
+          JOIN default_company_locs dcl
+            ON spt2.company_id = dcl.company_id
+     LEFT JOIN customer_locs ncl
+            ON ncl.company_id IS NULL
+     LEFT JOIN customer_locs ccl
+            ON spt2.company_id = ccl.company_id
+         WHERE spt.default_location_dest_id IS NULL
+           AND spt.id = spt2.id
+    """,
+        [customer_id],
+    )
+
+    # Add default source to either Vendors or Warehouse/Stock
+    vendor_id = util.ref(cr, "stock.stock_location_suppliers")
+    cr.execute(
+        """
+        WITH default_company_locs AS (
+               SELECT sw.company_id,
+                      (array_agg(sw.lot_stock_id ORDER BY sw.id))[1] AS lot_stock_id
+                 FROM stock_warehouse sw
+                WHERE sw.active = True
+             GROUP BY sw.company_id
+        ),
+        vendor_locs AS (
+               SELECT sl.company_id,
+                      (array_agg(sl.id ORDER BY sl.active DESC, sl.id))[1] AS id
+                 FROM stock_location sl
+                WHERE sl.usage = 'supplier'
+             GROUP BY sl.company_id
+        )
+        UPDATE stock_picking_type spt
+           SET default_location_src_id = CASE WHEN spt.code IN ('incoming', 'dropship') THEN COALESCE(%s, cvl.id, nvl.id)
+                                              ELSE COALESCE(sw.lot_stock_id, dcl.lot_stock_id)
+                                          END
+          FROM stock_picking_type spt2
+     LEFT JOIN stock_warehouse sw
+            ON spt2.warehouse_id = sw.id
+          JOIN default_company_locs dcl
+            ON spt2.company_id = dcl.company_id
+     LEFT JOIN vendor_locs nvl
+            ON nvl.company_id IS NULL
+     LEFT JOIN vendor_locs cvl
+            ON spt2.company_id = cvl.company_id
+         WHERE spt.default_location_src_id IS NULL
+           AND spt.id = spt2.id
+    """,
+        [vendor_id],
+    )
