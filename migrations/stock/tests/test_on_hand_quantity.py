@@ -73,7 +73,14 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         before_version, before_results = value
         before_version = parse_version(before_version)
         ignore_kits = "mrp.bom" in self.env.registry and before_version < parse_version("13.0")
-        warehouses = self.env["stock.warehouse"].search([]) if before_version < parse_version("15.0") else None
+        warehouses = (
+            self.env["stock.warehouse"].search([])
+            if (
+                before_version < parse_version("15.0")  # target of the backported patch
+                or before_version in (parse_version("saas~15.2"), parse_version("saas~16.2"))  # skipped forward ports
+            )
+            else None
+        )
         after_version, after_results = self.invariant(
             ignore_kits=ignore_kits, only_product_ids=[i for i, _ in before_results], warehouses=warehouses
         )
