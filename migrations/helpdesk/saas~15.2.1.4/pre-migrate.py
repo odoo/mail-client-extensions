@@ -1,10 +1,17 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
     util.remove_field(cr, "helpdesk.team", "customer_satisfaction")
+
+    # clip helpdesk_target_closed to int4 upper limit (2^31 - 1), before converting it from float
+    cr.execute(
+        """
+        UPDATE res_users
+           SET helpdesk_target_closed = 2147483647
+         WHERE helpdesk_target_closed > 2147483647
+        """
+    )
     cr.execute("ALTER TABLE res_users ALTER COLUMN helpdesk_target_closed TYPE int4")
 
     util.rename_field(cr, "helpdesk.sla.report.analysis", "sla_status_failed", "sla_status_fail")
