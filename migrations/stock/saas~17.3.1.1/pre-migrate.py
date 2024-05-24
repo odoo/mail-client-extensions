@@ -30,7 +30,7 @@ def migrate(cr, version):
     )
 
     def adapter_product(leaf, _or, _neg):
-        # Adapt the selection value 'product' in `product.template.type` and `product.template.detailed_type
+        # Adapt the selection value 'product' in `product.template.type`
         # into `is_storable` boolean field. Since not all leaves need to be adapted
         # we need to replace the left path manually.
         left, op, right = leaf
@@ -68,9 +68,7 @@ def migrate(cr, version):
         return [leaf]
 
     util.adapt_domains(cr, "product.template", "type", "type", adapter=adapter_product)
-    util.adapt_domains(cr, "product.template", "detailed_type", "detailed_type", adapter=adapter_product)
     util.change_field_selection_values(cr, "product.template", "type", {"product": "consu"})
-    util.change_field_selection_values(cr, "product.template", "detailed_type", {"product": "consu"})
 
     util.adapt_domains(cr, "stock.move", "product_type", "product_type", adapter=adapter_move)
     util.remove_field(cr, "stock.move", "product_type")

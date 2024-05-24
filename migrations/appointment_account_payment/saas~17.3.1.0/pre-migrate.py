@@ -8,3 +8,4 @@ def migrate(cr, version):
             "website_appointment_account_payment.appointment_progress_bar",
             "appointment_account_payment.appointment_progress_bar",
         )
+    util.change_field_selection_values(cr, "product.template", "type", {"booking_fees": "service"})
