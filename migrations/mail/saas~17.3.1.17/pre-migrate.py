@@ -11,3 +11,6 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, table="discuss_channel_member")
     util.remove_field(cr, "discuss.channel", "is_chat")
+
+    # reuse existing admin channel created by a previous upgrade.
+    util.rename_xmlid(cr, "__upgrade__.channel_administrators", "mail.channel_admin", noupdate=True)
