@@ -34,5 +34,5 @@ def migrate(cr, version):
     )
     cr.execute(query)
 
-    util.adapt_domains(cr, "worksheet.template", "company_ids", "company_id")
+    util.update_field_usage(cr, "worksheet.template", "company_ids", "company_id")
     util.remove_field(cr, "worksheet.template", "company_ids")
