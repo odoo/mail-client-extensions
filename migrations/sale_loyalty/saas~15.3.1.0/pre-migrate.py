@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -52,7 +50,7 @@ def migrate(cr, version):
         WITH helper AS (
              SELECT line.id as line_id, r.id as reward_id, c.id as coupon_id,
                     CONCAT(r.id, '_', c.id, '_', line.id) AS code,
-                    CASE WHEN p.program_type = 'gift_card' THEN line.price_total / line.product_uom_qty
+                    CASE WHEN p.program_type = 'gift_card' THEN line.price_total / NULLIF(line.product_uom_qty, 0)
                         WHEN LAG(line.id) over (partition by (r.id, c.id)) IS NULL THEN 1
                         ELSE 0
                     END AS points_cost
