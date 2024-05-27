@@ -2,6 +2,17 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    cr.execute(
+        """
+        SELECT id
+          FROM hr_expense
+         WHERE total_amount_company is NULL
+           AND unit_amount = 0.00
+        """
+    )
+    ids = [x[0] for x in cr.fetchall()]
+    util.recompute_fields(cr, "hr.expense", ["total_amount_company"], ids=ids)
+
     query = """
         UPDATE hr_expense he
            SET unit_amount = ROUND(he.total_amount_company / CASE WHEN he.quantity = 0 THEN 1 ELSE he.quantity END, rc.decimal_places)
