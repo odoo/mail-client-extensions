@@ -1,37 +1,12 @@
-# -*- coding: utf-8 -*-
 from psycopg2.extras import Json
 
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute(
-        r"""
-        SELECT ARRAY_AGG(value::int ORDER BY value::int)
-          FROM ir_config_parameter
-         WHERE key LIKE 'default\_analytic\_plan\_id\_%'
-        """
-    )
-    all_project_plans = cr.fetchone()[0] or []
-    cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
-    [plan_id] = cr.fetchone() or [None]
-    project_plan_id = all_project_plans[0] if all_project_plans else plan_id
-    if not project_plan_id:
-        cr.execute(
-            """INSERT INTO account_analytic_plan(name, default_applicability)
-                           VALUES (%s, 'optional')
-                 RETURNING id
-            """,
-            [
-                Json({"en_US": "Default"})
-                if util.column_type(cr, "account_analytic_plan", "name") == "jsonb"
-                else "Default"
-            ],
-        )
-        project_plan_id = cr.fetchone()[0]
-    if project_plan_id not in all_project_plans:
-        all_project_plans.append(project_plan_id)
-
+    project_plan_id, all_project_plans = get_all_analytic_plan_ids(cr)
+    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
+    other_plan_ids = [r[0] for r in cr.fetchall()]
     cr.execute(
         r"""
         DELETE FROM ir_config_parameter
@@ -108,11 +83,77 @@ def migrate(cr, version):
     # |        |      a |        |   100 |
     # |        |        |      i |   100 |
     cr.execute("ALTER TABLE account_analytic_line ALTER COLUMN account_id DROP NOT NULL")
+    create_analytic_plan_fields(cr, "account.analytic.line", other_plan_ids)
+    # Now move the value from the first column to the (new) correct one
+    distributed_plans = ", ".join(
+        f"CASE WHEN plan.parent_path LIKE '{id_}/%' THEN account.id ELSE NULL END AS plan{id_}_id"
+        for id_ in other_plan_ids
+    )
+    query = f"""
+        WITH updated_lines AS (
+            SELECT line.id,
+                   {distributed_plans},
+                   CASE WHEN plan.parent_path LIKE '{project_plan_id}/%' THEN account.id ELSE NULL END AS account_id
+              FROM account_analytic_line line
+              JOIN account_analytic_account account ON line.account_id = account.id
+              JOIN account_analytic_plan plan ON line.plan_id = plan.id
+             WHERE {{parallel_filter}}
+        )
+        UPDATE account_analytic_line
+           SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
+               account_id = updated_lines.account_id
+          FROM updated_lines
+         WHERE updated_lines.id = account_analytic_line.id
+    """
+    util.explode_execute(cr, query, "account_analytic_line", alias="line")
+    for id_ in other_plan_ids:
+        column = f"x_plan{id_}_id"
+        cr.execute(
+            util.format_query(
+                cr,
+                "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
+                indexname=util.fields.make_index_name("account_analytic_line", column),
+                column=column,
+            )
+        )
+    util.remove_field(cr, "account.analytic.line", "plan_id")
 
-    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
-    other_plan_ids = [r[0] for r in cr.fetchall()]
+
+def get_all_analytic_plan_ids(cr):
+    # Retrieve the project plan id and all the other plan ids
+    cr.execute(
+        r"""
+        SELECT ARRAY_AGG(value::int ORDER BY value::int)
+          FROM ir_config_parameter
+         WHERE key LIKE 'default\_analytic\_plan\_id\_%'
+        """
+    )
+    all_project_plans = cr.fetchone()[0] or []
+    cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
+    [plan_id] = cr.fetchone() or [None]
+    project_plan_id = all_project_plans[0] if all_project_plans else plan_id
+    if not project_plan_id:
+        cr.execute(
+            """INSERT INTO account_analytic_plan(name, default_applicability)
+                           VALUES (%s, 'optional')
+                 RETURNING id
+            """,
+            [
+                Json({"en_US": "Default"})
+                if util.column_type(cr, "account_analytic_plan", "name") == "jsonb"
+                else "Default"
+            ],
+        )
+        project_plan_id = cr.fetchone()[0]
+    if project_plan_id not in all_project_plans:
+        all_project_plans.append(project_plan_id)
+    return project_plan_id, all_project_plans
+
+
+def create_analytic_plan_fields(cr, model, other_plan_ids):
+    # Create the new fields/columns
+    table = util.table_of_model(cr, model)
     if other_plan_ids:
-        # First create the new fields/columns
         plan_name = (
             "plan.name"
             if util.column_type(cr, "account_analytic_plan", "name") == "jsonb"
@@ -122,55 +163,21 @@ def migrate(cr, version):
             f"""
                 INSERT INTO ir_model_fields(name, model, model_id, field_description,
                                             state, store, ttype, relation)
-                     SELECT 'x_plan' || plan.id ||'_id', 'account.analytic.line', m.id, {plan_name},
+                     SELECT 'x_plan' || plan.id ||'_id', model, m.id, {plan_name},
                             'manual', true, 'many2one', 'account.analytic.account'
                        FROM account_analytic_plan plan,
                             ir_model m
                       WHERE plan.id = ANY(%s)
-                        AND m.model = 'account.analytic.line'
+                        AND m.model = '{model}'
         """,
             [other_plan_ids],
         )
         for id_ in other_plan_ids:
             util.create_column(
                 cr,
-                "account_analytic_line",
+                table,
                 f"x_plan{id_}_id",
                 "int4",
                 fk_table="account_analytic_account",
                 on_delete_action="SET NULL",
             )
-
-        # Then move the value from the first column to the (new) correct one
-        distributed_plans = ", ".join(
-            f"CASE WHEN plan.parent_path LIKE '{id_}/%' THEN account.id ELSE NULL END AS plan{id_}_id"
-            for id_ in other_plan_ids
-        )
-        query = f"""
-            WITH updated_lines AS (
-                SELECT line.id,
-                       {distributed_plans},
-                       CASE WHEN plan.parent_path LIKE '{project_plan_id}/%' THEN account.id ELSE NULL END AS account_id
-                  FROM account_analytic_line line
-                  JOIN account_analytic_account account ON line.account_id = account.id
-                  JOIN account_analytic_plan plan ON line.plan_id = plan.id
-                 WHERE {{parallel_filter}}
-            )
-            UPDATE account_analytic_line
-               SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
-                   account_id = updated_lines.account_id
-              FROM updated_lines
-             WHERE updated_lines.id = account_analytic_line.id
-        """
-        util.explode_execute(cr, query, "account_analytic_line", alias="line")
-        for id_ in other_plan_ids:
-            column = f"x_plan{id_}_id"
-            cr.execute(
-                util.format_query(
-                    cr,
-                    "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
-                    indexname=util.fields.make_index_name("account_analytic_line", column),
-                    column=column,
-                )
-            )
-    util.remove_field(cr, "account.analytic.line", "plan_id")
