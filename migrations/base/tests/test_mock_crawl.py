@@ -362,6 +362,7 @@ class TestCrawler(IntegrityCase):
 
         kind_of_table = table_kind(self.env.cr, model._table)
         is_view = kind_of_table in view_table_types
+        is_query = kind_of_table is None
         view_columns = set(util.get_columns(env.cr, model._table, ignore=[])) if is_view else set()
         stored_fields = (
             {name for name, field in model._fields.items() if field.store and not field.type.endswith("2many")}
@@ -371,6 +372,21 @@ class TestCrawler(IntegrityCase):
 
         if not kind_of_table and not getattr(model, "_table_query", None):
             # Dashboard module: a menu / action without table or view.
+            return None
+
+        stored_custom_fields = [
+            field.name
+            for field in model._fields.values()
+            if field.manual and not field.name.startswith("x_") and field.store and not field.type.endswith("2many")
+        ]
+
+        if is_query and stored_custom_fields:
+            _logger.warning(
+                "Mocking of model %s skipped because it is query-based model and still has some "
+                "stored custom fields (%r). Perhaps the model switched to be query-based during the upgrade.",
+                model._name,
+                stored_custom_fields,
+            )
             return None
 
         if is_view and not view_columns.issuperset(stored_fields):
