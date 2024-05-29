@@ -1,7 +1,7 @@
 import json
 import logging
 
-from odoo.upgrade.spreadsheet.tokenizer import tokenize
+from odoo.upgrade.util.spreadsheet import tokenize
 
 _logger = logging.getLogger(__name__)
 
