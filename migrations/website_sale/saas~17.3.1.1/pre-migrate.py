@@ -27,6 +27,8 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.payment_delivery")
     util.remove_field(cr, "website", "enabled_delivery")
 
+    util.remove_view(cr, "website_sale.product_product_view_form_add")
+
 
 def extract_text(val):
     with contextlib.suppress(etree.ParserError):
