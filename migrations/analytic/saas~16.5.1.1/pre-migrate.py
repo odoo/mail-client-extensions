@@ -83,39 +83,41 @@ def migrate(cr, version):
     # |        |      a |        |   100 |
     # |        |        |      i |   100 |
     cr.execute("ALTER TABLE account_analytic_line ALTER COLUMN account_id DROP NOT NULL")
-    create_analytic_plan_fields(cr, "account.analytic.line", other_plan_ids)
-    # Now move the value from the first column to the (new) correct one
-    distributed_plans = ", ".join(
-        f"CASE WHEN plan.parent_path LIKE '{id_}/%' THEN account.id ELSE NULL END AS plan{id_}_id"
-        for id_ in other_plan_ids
-    )
-    query = f"""
-        WITH updated_lines AS (
-            SELECT line.id,
-                   {distributed_plans},
-                   CASE WHEN plan.parent_path LIKE '{project_plan_id}/%' THEN account.id ELSE NULL END AS account_id
-              FROM account_analytic_line line
-              JOIN account_analytic_account account ON line.account_id = account.id
-              JOIN account_analytic_plan plan ON line.plan_id = plan.id
-             WHERE {{parallel_filter}}
+
+    if other_plan_ids:
+        create_analytic_plan_fields(cr, "account.analytic.line", other_plan_ids)
+        # Now move the value from the first column to the (new) correct one
+        distributed_plans = ", ".join(
+            f"CASE WHEN plan.parent_path LIKE '{id_}/%' THEN account.id ELSE NULL END AS plan{id_}_id"
+            for id_ in other_plan_ids
         )
-        UPDATE account_analytic_line
-           SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
-               account_id = updated_lines.account_id
-          FROM updated_lines
-         WHERE updated_lines.id = account_analytic_line.id
-    """
-    util.explode_execute(cr, query, "account_analytic_line", alias="line")
-    for id_ in other_plan_ids:
-        column = f"x_plan{id_}_id"
-        cr.execute(
-            util.format_query(
-                cr,
-                "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
-                indexname=util.fields.make_index_name("account_analytic_line", column),
-                column=column,
+        query = f"""
+            WITH updated_lines AS (
+                SELECT line.id,
+                       {distributed_plans},
+                       CASE WHEN plan.parent_path LIKE '{project_plan_id}/%' THEN account.id ELSE NULL END AS account_id
+                  FROM account_analytic_line line
+                  JOIN account_analytic_account account ON line.account_id = account.id
+                  JOIN account_analytic_plan plan ON line.plan_id = plan.id
+                 WHERE {{parallel_filter}}
             )
-        )
+            UPDATE account_analytic_line
+               SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
+                   account_id = updated_lines.account_id
+              FROM updated_lines
+             WHERE updated_lines.id = account_analytic_line.id
+        """
+        util.explode_execute(cr, query, "account_analytic_line", alias="line")
+        for id_ in other_plan_ids:
+            column = f"x_plan{id_}_id"
+            cr.execute(
+                util.format_query(
+                    cr,
+                    "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
+                    indexname=util.fields.make_index_name("account_analytic_line", column),
+                    column=column,
+                )
+            )
     util.remove_field(cr, "account.analytic.line", "plan_id")
 
 

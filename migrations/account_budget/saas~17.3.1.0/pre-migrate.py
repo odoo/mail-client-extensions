@@ -49,32 +49,30 @@ def migrate(cr, version):
     cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
 
-    analytic_util.create_analytic_plan_fields(cr, "budget.line", other_plan_ids)
-
-    # Then move the value from the first column to the (new) correct one
-    distributed_plans = ", ".join(
-        f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id" for id_ in other_plan_ids
-    )
-    query = f"""
-        WITH updated_lines AS (
-            SELECT line.id,
-                   {distributed_plans},
-                   CASE WHEN account.plan_id = {project_plan_id} THEN account.id ELSE NULL END AS account_id
-              FROM budget_line line
-              JOIN account_analytic_account account ON line.account_id = account.id
-             WHERE {{parallel_filter}}
-        )
-        UPDATE budget_line
-           SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
-               account_id = updated_lines.account_id
-          FROM updated_lines
-         WHERE updated_lines.id = budget_line.id
-    """
-    util.explode_execute(cr, query, "budget_line", alias="line")
-
-    cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
-    other_plan_ids = [r[0] for r in cr.fetchall()]
     if other_plan_ids:
+        analytic_util.create_analytic_plan_fields(cr, "budget.line", other_plan_ids)
+
+        # Then move the value from the first column to the (new) correct one
+        distributed_plans = ", ".join(
+            f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id" for id_ in other_plan_ids
+        )
+        query = f"""
+            WITH updated_lines AS (
+                SELECT line.id,
+                       {distributed_plans},
+                       CASE WHEN account.plan_id = {project_plan_id} THEN account.id ELSE NULL END AS account_id
+                  FROM budget_line line
+                  JOIN account_analytic_account account ON line.account_id = account.id
+                 WHERE {{parallel_filter}}
+            )
+            UPDATE budget_line
+               SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
+                   account_id = updated_lines.account_id
+              FROM updated_lines
+             WHERE updated_lines.id = budget_line.id
+        """
+        util.explode_execute(cr, query, "budget_line", alias="line")
+
         # create new model for budget.report and add new fields to it
         cr.execute("""
             INSERT INTO ir_model(name, "order", model)
