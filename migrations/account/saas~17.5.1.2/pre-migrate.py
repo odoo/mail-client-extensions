@@ -25,3 +25,4 @@ def migrate(cr, version):
     util.explode_execute(cr, query, table="account_move", alias="this")
     cr.execute("DROP INDEX IF EXISTS account_move_sequence_index3")
     util.rename_field(cr, "account.move", "reversal_move_id", "reversal_move_ids")
+    util.remove_record(cr, "account.invoice_send")
