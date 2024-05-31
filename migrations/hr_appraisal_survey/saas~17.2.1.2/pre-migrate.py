@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -25,6 +23,7 @@ def migrate(cr, version):
              ON sui.appraisal_id = am.hr_appraisal_id
            JOIN hr_employee hre
              ON am.hr_employee_id = hre.id
+          WHERE hre.user_id IS NOT NULL
        GROUP BY sui.survey_id, hre.user_id
     """
 
