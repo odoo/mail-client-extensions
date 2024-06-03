@@ -6,14 +6,13 @@ except ImportError:
     from odoo.addons.iap import jsonrpc as iap_jsonrpc
 
 from odoo.addons.base.maintenance.migrations import util
-from odoo.tools.misc import str2bool
 
 
 def migrate(cr, version):
     cr.execute("DELETE FROM ir_config_parameter WHERE key LIKE 'mail_push.fcm_%'")
     cr.execute("DELETE FROM ir_config_parameter WHERE key='mail_push.mail_push_notification' RETURNING value")
     [value] = cr.fetchone() or ["False"]
-    if str2bool(value, default=False):
+    if util.str2bool(value, default=False):
         RCS = util.env(cr)["res.config.settings"]
         RCS.create({"ocn_push_notification": True}).execute()
 

@@ -4,7 +4,6 @@ import uuid
 
 from openerp.addons.base.maintenance.migrations import util
 from openerp.release import series
-from openerp.tools.misc import str2bool
 from openerp.tools.parse_version import parse_version as pv
 
 def migrate(cr, version):
@@ -55,7 +54,7 @@ def migrate(cr, version):
     util.drop_workflow(cr, 'hr.expense.expense')
 
     keep_sheets = (pv(series) >= pv('9.saas~12') or
-                   str2bool(os.environ.get('ODOO_MIG_9_EXPENSES_KEEP_SHEETS', 'yes')))
+                   util.str2bool(os.environ.get('ODOO_MIG_9_EXPENSES_KEEP_SHEETS', 'yes')))
     keep_refs = []
     temp_name = str(uuid.uuid4())
 

@@ -3,7 +3,6 @@ import os
 
 import psycopg2
 
-from odoo.tools.misc import str2bool
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -62,7 +61,7 @@ def migrate(cr, version):
         # because its xmlid has just been created in `base/10.saas~14.1.3/pre-30-cron.py`, will
         # fail due to the ondelete=restrict PK.
         util.remove_record(cr, "procurement.ir_cron_scheduler_action")
-        if str2bool(os.environ.get("ODOO_MIG_FORCE_PROCUREMENT_UNINSTALL_11", "0")):
+        if util.str2bool(os.environ.get("ODOO_MIG_FORCE_PROCUREMENT_UNINSTALL_11", "0")):
             util.uninstall_module(cr, "procurement")
         else:
             # determine if really used

@@ -27,7 +27,6 @@ from lxml import builder, etree
 from odoo import api, models
 from odoo.modules.module import get_modules
 from odoo.tools import mute_logger
-from odoo.tools.misc import str2bool
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -64,8 +63,8 @@ except ImportError:
 
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
-ODOO_MIG_TRY_FIX_VIEWS = str2bool(os.environ.get("ODOO_MIG_TRY_FIX_VIEWS", "0"))
-ODOO_MIG_SHOW_VIEW_DISABLE_ERROR = str2bool(os.environ.get("ODOO_MIG_SHOW_VIEW_DISABLE_ERROR", "0"))
+ODOO_MIG_TRY_FIX_VIEWS = util.str2bool(os.environ.get("ODOO_MIG_TRY_FIX_VIEWS", "0"))
+ODOO_MIG_SHOW_VIEW_DISABLE_ERROR = util.str2bool(os.environ.get("ODOO_MIG_SHOW_VIEW_DISABLE_ERROR", "0"))
 
 
 def migrate(cr, version):

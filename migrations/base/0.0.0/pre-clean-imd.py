@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-from odoo.tools.misc import str2bool
 from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
     cr.execute("CREATE TABLE _upgrade_clean_imd(module varchar, name varchar)")
 
-    if str2bool(os.getenv("UPG_SKIP_IMD_CLEANING", "0")):
+    if util.str2bool(os.getenv("UPG_SKIP_IMD_CLEANING", "0")):
         return
 
     wrap_query = """

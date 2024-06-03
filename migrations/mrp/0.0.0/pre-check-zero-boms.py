@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 
-from odoo.tools.misc import str2bool
 
 from odoo.addons.base.maintenance.migrations import util
 
 # BoMs with zero product_qty are not allowed from 13.0 up.
 # If this variable is set, we fix the BoMs automatically by changing the quantity
 # from 0 to 1
-UPDATE_BOMS = str2bool(os.environ.get("ODOO_MIG_UPDATE_ZERO_QUANTITY_BOMS", "0"))
+UPDATE_BOMS = util.str2bool(os.environ.get("ODOO_MIG_UPDATE_ZERO_QUANTITY_BOMS", "0"))
 
 
 def migrate(cr, version):

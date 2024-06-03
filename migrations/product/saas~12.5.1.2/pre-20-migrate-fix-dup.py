@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 from odoo.tools import flatten
-from odoo.tools.misc import str2bool
 from psycopg2.extras import execute_values
 import logging
 import os
@@ -26,7 +25,7 @@ def migrate(cr, version):
     if not problematic_templates:
         return
     distinct_products = flatten(i["ids"] for i in problematic_templates)
-    if str2bool(os.environ.get("MIG_13_ARCHIVE_DUPLICATE_PRODUCT"), default=False):
+    if util.str2bool(os.environ.get("MIG_13_ARCHIVE_DUPLICATE_PRODUCT"), default=False):
         _logger.info("Duplicate variant with same attributes, solved by archiving")
 
         referenced = {k: 0 for k in distinct_products}
