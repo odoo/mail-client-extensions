@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 try:
     from odoo.addons.iap.tools.iap_tools import iap_jsonrpc
 except ImportError:

@@ -1,9 +1,11 @@
-# -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
-from odoo.tools import flatten
-from psycopg2.extras import execute_values
 import logging
 import os
+
+from psycopg2.extras import execute_values
+
+from odoo.tools import flatten
+
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.product.saas-12.5." + __name__)
 
@@ -41,7 +43,7 @@ def migrate(cr, version):
         for problematic_row in problematic_templates:
             referenced_filtered = {k: v for k, v in referenced.items() if k in problematic_row["ids"]}
             referenced_filtered.pop(max(referenced_filtered, key=referenced_filtered.get))
-            product_to_archive.extend([k for k in referenced_filtered.keys()])
+            product_to_archive.extend(list(referenced_filtered))
 
         cr.execute("UPDATE product_product pp SET active='f' WHERE id =ANY(%s)", (product_to_archive,))
         msg = """In our standard, all variant of the same product needs to have distinct attributes to ensure data integrity.
@@ -62,7 +64,7 @@ The following variants has been archived: {archived_product_list}""".format(
         _logger.info("Duplicate variant with same attributes, solved by adding technical attributes")
         # Alternative choice, Add a new technical attribute to conflicting variants
         max_variant_to_create = max(i["cnt"] for i in problematic_templates)
-        distinct_templates = set(i["product_tmpl_id"] for i in problematic_templates)
+        distinct_templates = {i["product_tmpl_id"] for i in problematic_templates}
 
         # create a new product_attribute
         if util.column_exists(cr, "product_attribute", "type"):
@@ -200,7 +202,7 @@ The following variants has been archived: {archived_product_list}""".format(
         # log a note to the end user
         msg = """ In our standard, all variant of the same product needs to have distinct attributes to ensure data integrity;  In your database, we detected that you have variant(s) for the same product with the same attributes (or no attributes).
 Hence we updated your variant attributes and added the`upgrade_technical` attribute, enabling the eligibility of your database (same product same attribute) for our upgrade scripts (same product, distinct attribute) without issues;
-You can find these `upgrade_technical` attributes in your database by navigating to your Settings App > General Settings > searching on ‘Variants and Options’ and clicking on 'Attributes'
+You can find these `upgrade_technical` attributes in your database by navigating to your Settings App > General Settings > searching on 'Variants and Options' and clicking on 'Attributes'
 Alternatively, you can:
 - either fix the issue in you original database (before the upgrade request)
 - or fix the issue automatically by archiving the less used variants (loop through tables and count rows referencing this product (using foreign keys)).

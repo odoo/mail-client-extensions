@@ -78,9 +78,7 @@ def fix_moves(cr):
              FROM bad_moves b
             WHERE m.id = b.mid
         RETURNING m.id, m.name
-        """.format(
-            "true" if update_uom_for_archived_product else "p.active"
-        )
+        """.format("true" if update_uom_for_archived_product else "p.active")
     )
     data.update(cr.fetchall())
     data.pop(None, None)
@@ -104,7 +102,7 @@ def fix_product_templates(cr):
         RETURNING pt.id, pt.name
         """
     )
-    return ["%s (id: %s)" % (name, str(id)) for id, name in cr.fetchall()]
+    return ["{} (id: {})".format(name, str(id)) for id, name in cr.fetchall()]
 
 
 def fix_with_most_used_method(cr, additional_conditions):
@@ -151,9 +149,7 @@ def fix_with_most_used_method(cr, additional_conditions):
                 GROUP BY mc.tmpl_id,  uom.category_id, sml.product_uom_id
                 ORDER BY mc.tmpl_id, uom.category_id, COUNT(sml.product_uom_id) DESC, sml.product_uom_id
         ) as rows
-    """.format(
-            additional_conditions
-        )
+    """.format(additional_conditions)
     )
     moves = fix_moves(cr)
     templates = fix_product_templates(cr)
@@ -185,9 +181,7 @@ def fix_with_from_product_method(cr, additional_conditions):
           JOIN uom_uom uom2 ON uom2.id = pt.uom_id
          WHERE uom1.category_id != uom2.category_id
            AND {}
-        """.format(
-            additional_conditions
-        )
+        """.format(additional_conditions)
     )
     moves = fix_moves(cr)
     log_customer_report(
@@ -225,13 +219,12 @@ def log_customer_report(cr, explanation, moves=None, templates=None):
                     used in some of your stock moves and the ones of the
                     corresponding products. These inconsistencies may lead to an
                     upgrade failure.
-                    %s
+                    {}
                 </summary>
-                %s
-                %s
+                {}
+                {}
             </details>
-            """
-            % (explanation, move_details, template_details),
+            """.format(explanation, move_details, template_details),
             category="Stock",
             format="html",
         )
@@ -253,9 +246,7 @@ def log_faulty_objects(cr, additional_conditions):
            WHERE uom1.category_id != uom2.category_id
              AND {}
         GROUP BY sml.move_id
-        """.format(
-            additional_conditions
-        )
+        """.format(additional_conditions)
     )
     if not cr.rowcount:
         return
@@ -276,9 +267,7 @@ def log_faulty_objects(cr, additional_conditions):
     ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES to 1
 
     Details of the faulty stock moves:\n\n{}
-    """.format(
-        "\n".join("     * {} (lines: {})".format(move_id, lines) for move_id, lines in cr.fetchall())
-    )
+    """.format("\n".join("     * {} (lines: {})".format(move_id, lines) for move_id, lines in cr.fetchall()))
     util.add_to_migration_reports(message=msg, category="Stock", format="md")
     util._logger.warning(msg)
 

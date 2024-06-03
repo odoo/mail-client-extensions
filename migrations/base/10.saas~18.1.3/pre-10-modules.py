@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 import os
 
 import psycopg2
-
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -97,7 +95,7 @@ def migrate(cr, version):
     util.module_deps_diff(cr, "sale_crm", plus={"sale_management"}, minus={"sale"})
     # Do not undo what have been done in saas~17 as it has to be redo in 11.0
     # saas~18 being a dead release (no one use it), we can keep currently correct dependencies
-    # util.module_deps_diff(cr, 'sale_stock', plus={'sale'}, minus={'sale_management'})
+    # util.module_deps_diff(cr, 'sale_stock', plus={'sale'}, minus={'sale_management'}) # noqa: ERA001
 
     util.module_deps_diff(cr, "website", plus={"http_routing", "portal"})
 

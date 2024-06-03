@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from odoo.upgrade import util
 
 
@@ -16,7 +13,7 @@ def migrate(cr, version):
     if not use_quotation_validity_days:
         cr.execute("""UPDATE res_company SET quotation_validity_days = 0""")
 
-    default_deposit_product_id = ICP.get_param("sale.default_deposit_product_id", False)
+    default_deposit_product_id = ICP.get_param("sale.default_deposit_product_id", default=False)
     util.create_column(
         cr, "res_company", "sale_down_payment_product_id", "int4", default=default_deposit_product_id or None
     )

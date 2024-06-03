@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-
 from odoo.addons.base.maintenance.migrations import util
 
 # BoMs with zero product_qty are not allowed from 13.0 up.
@@ -56,7 +55,5 @@ def migrate(cr, version):
 
     The BoMs with zero produced quantity are:
     {}
-    """.format(
-        "\n".join("    * {} (product: {})".format(*r) for r in info)
-    )
+    """.format("\n".join("    * {} (product: {})".format(*r) for r in info))
     raise util.MigrationError(msg)
