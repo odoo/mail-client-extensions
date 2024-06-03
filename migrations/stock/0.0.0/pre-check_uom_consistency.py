@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-from odoo.tools.misc import str2bool
-
 from odoo.addons.base.maintenance.migrations import util
 
 # Handle inconsistencies between UoM category used in stock move lines and the
@@ -18,7 +16,7 @@ from odoo.addons.base.maintenance.migrations import util
 allowed_methods = ["SKIP", "MOST_USED", "FROM_PRODUCT"]
 fix_inconsistencies_method = os.environ.get("ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX", "SKIP").upper()
 archived_product_env = os.environ.get("ODOO_MIG_DO_NOT_IGNORE_ARCHIVED_PRODUCTS_FOR_UOM_INCONSISTENCIES")
-update_uom_for_archived_product = str2bool(archived_product_env, default=False)
+update_uom_for_archived_product = util.str2bool(archived_product_env, default=False)
 
 if fix_inconsistencies_method and fix_inconsistencies_method not in allowed_methods:
     raise ValueError(
