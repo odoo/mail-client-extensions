@@ -18,3 +18,5 @@ def migrate(cr, version):
         util.remove_field(cr, "account.analytic.account", "subscription_count")
         util.remove_field(cr, "account.analytic.account", "subscription_ids")
         util.remove_view(cr, "sale_subscription.account_analytic_account_view_inherit_sale_subscription")
+
+    util.remove_record(cr, "sale_subscription.model_sale_order_subscription_cancel")
