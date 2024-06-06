@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 
 from psycopg2.extras import Json
@@ -241,6 +240,8 @@ product_product_id)
         ),
     ]
     manual_field_cols = []
+    translated_manual_fields = {"sale_order_line": [], "sale_order_template": []}
+
     for so_id, ss_id, model in model_ids:
         table = util.table_of_model(cr, model)
         table_sub = table.replace("order", "subscription")
@@ -275,7 +276,8 @@ product_product_id)
                  WHERE f.id = info.id
                  -- return new column name and type
              RETURNING quote_ident(f.name),
-                       info.udt_name
+                       info.udt_name,
+                       f.translate
             """,
             {
                 "so_id": so_id,
@@ -295,11 +297,14 @@ product_product_id)
             )
             cr.execute(
                 "ALTER TABLE {}\n{}".format(
-                    table, ",\n".join(f"ADD COLUMN {col_name} {col_type}" for col_name, col_type in info)
+                    table, ",\n".join(f"ADD COLUMN {col_name} {col_type}" for col_name, col_type, _ in info)
                 )
             )
             if table == "sale_order":
                 manual_field_cols = [r[0] for r in info]
+
+            if table != "sale_order":
+                translated_manual_fields[table].extend(col for (col, _, translate) in info if translate)
 
     query = """
         INSERT INTO sale_order (old_subscription_id, campaign_id, source_id, medium_id, client_order_ref,
@@ -569,6 +574,98 @@ product_product_id)
     )
     cr.execute("CREATE INDEX ON sale_subscription(new_sale_order_id)")
     cr.execute("CREATE INDEX ON sale_subscription_line(new_sale_order_line_id)")
+
+    sale_order_line_translations = {
+        f"sale.subscription.line,{field}": f"sale.order.line,{field}"
+        for field in translated_manual_fields["sale_order_line"]
+    }
+    if sale_order_line_translations:
+        queries = [
+            cr.mogrify(query, [Json(sale_order_line_translations), tuple(sale_order_line_translations)])
+            for query in util.explode_query_range(
+                cr,
+                """
+                UPDATE ir_translation it
+                   SET name = %s::jsonb->>it.name,
+                       res_id = ssl.new_sale_order_line_id
+                  FROM sale_subscription_line ssl
+                 WHERE it.name IN %s
+                   AND ssl.id = it.res_id
+                """,
+                table="ir_translation",
+                alias="it",
+            )
+        ]
+
+        util.parallel_execute(cr, queries)
+
+    sale_order_template_translations = {
+        f"sale.subscription.template,{field}": f"sale.order.template,{field}"
+        for field in translated_manual_fields["sale_order_template"]
+    }
+    if sale_order_template_translations:
+        queries = [
+            cr.mogrify(query, [Json(sale_order_template_translations), tuple(sale_order_template_translations)])
+            for query in util.explode_query_range(
+                cr,
+                """
+                UPDATE ir_translation it
+                   SET name = %s::jsonb->>it.name,
+                       res_id = sst.new_sale_order_template_id
+                  FROM sale_subscription_template sst
+                 WHERE it.name IN %s
+                   AND sst.id = it.res_id
+                """,
+                table="ir_translation",
+                alias="it",
+            )
+        ]
+
+        util.parallel_execute(cr, queries)
+
+    restore_manual_fields_models = [
+        (
+            util.ref(cr, "sale.model_sale_order_line"),
+            "new_sale_order_line_id",
+            "sale_order_line",
+            "sale_subscription_line",
+        ),
+        (
+            util.ref(cr, "sale_management.model_sale_order_template"),
+            "new_sale_order_template_id",
+            "sale_order_template",
+            "sale_subscription_template",
+        ),
+    ]
+
+    for model_id, field, table, table_sub in restore_manual_fields_models:
+        cr.execute(
+            """
+            SELECT f.name
+              FROM ir_model_fields f
+              JOIN information_schema.columns c1
+                ON f.name = c1.column_name
+               AND c1.table_name = %s
+              JOIN information_schema.columns c2
+                ON f.name = c2.column_name
+               AND c2.table_name = %s
+             WHERE f.model_id = %s
+               AND f.state = 'manual'
+               AND f.store = True
+               AND f.ttype != 'binary'
+            """,
+            [table, table_sub, model_id],
+        )
+        info = cr.fetchall()
+        columns = ",".join([f'"{column}" = {table_sub}."{column}"' for (column,) in info])
+        if columns:
+            query = f"""
+                    UPDATE {table} t
+                       SET {columns}
+                      FROM {table_sub}
+                     WHERE {table_sub}.{field} = t.id
+                    """
+            util.explode_execute(cr, query, table=table, alias="t")
 
     for main_table, map_field in [
         ("sale_subscription", "new_sale_order_id"),
@@ -950,7 +1047,7 @@ def _handle_recurring_renting_products(cr):
             new_product = product.copy()
             new_product.product_tmpl_id.product_pricing_ids = [(5, 0, 0)]
             template_mapping[product.product_tmpl_id.id] = new_product.product_tmpl_id.id
-            case_str += "WHEN product_id=%s THEN %s \n" % (product.id, new_product.id)
+            case_str += cr.mogrify("WHEN product_id=%s THEN %s\n", [product.id, new_product.id]).decode()
 
         if case_str:
             cr.execute(
