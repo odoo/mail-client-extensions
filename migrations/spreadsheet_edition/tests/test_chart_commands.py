@@ -19,7 +19,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "line",
                         "title": "Chart Title",
                         "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -28,7 +27,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "line",
                         "title": "Chart Title",
                         "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
                 {
@@ -37,7 +35,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "bar",
                         "title": "Chart Title",
                         "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -55,7 +52,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "pie",
                         "title": "Chart Title",
                         "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -64,7 +60,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "pie",
                         "title": "Chart Title",
                         "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
                 {
@@ -72,8 +67,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     "definition": {
                         "type": "scorecard",
                         "title": "Chart Title",
-                        "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -81,8 +74,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     "definition": {
                         "type": "scorecard",
                         "title": "Chart Title",
-                        "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
                 {
@@ -90,8 +81,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     "definition": {
                         "type": "gauge",
                         "title": "Chart Title",
-                        "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -99,8 +88,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     "definition": {
                         "type": "gauge",
                         "title": "Chart Title",
-                        "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
                 {
@@ -109,7 +96,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "scatter",
                         "title": "Chart Title",
                         "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -118,7 +104,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "scatter",
                         "title": "Chart Title",
                         "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
                 {
@@ -126,8 +111,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     "definition": {
                         "type": "combo",
                         "title": "Chart Title",
-                        "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -135,8 +118,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     "definition": {
                         "type": "combo",
                         "title": "Chart Title",
-                        "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
                 {
@@ -145,7 +126,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "waterfall",
                         "title": "Chart Title",
                         "dataSets": ["A1:B2", "C1:D2"],
-                        "verticalAxisPosition": "left",
                     },
                 },
                 {
@@ -154,7 +134,6 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                         "type": "waterfall",
                         "title": "Chart Title",
                         "dataSets": ["C1:D2"],
-                        "verticalAxisPosition": "right",
                     },
                 },
             ],
@@ -221,113 +200,108 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                             "dataSets": [
                                 {"dataRange": "C1:D2"},
                             ],
-                        },
-                    },
-                    {
-                        "type": "CREATE_CHART",
-                        "definition": {
-                            "type": "pie",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": ["A1:B2", "C1:D2"],
-                        },
-                    },
-                    {
-                        "type": "UPDATE_CHART",
-                        "definition": {
-                            "type": "pie",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": ["C1:D2"],
-                        },
-                    },
-                    {
-                        "type": "CREATE_CHART",
-                        "definition": {
-                            "type": "scorecard",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": ["A1:B2", "C1:D2"],
-                        },
-                    },
-                    {
-                        "type": "UPDATE_CHART",
-                        "definition": {
-                            "type": "scorecard",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": ["C1:D2"],
-                        },
-                    },
-                    {
-                        "type": "CREATE_CHART",
-                        "definition": {
-                            "type": "gauge",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": ["A1:B2", "C1:D2"],
-                        },
-                    },
-                    {
-                        "type": "UPDATE_CHART",
-                        "definition": {
-                            "type": "gauge",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": ["C1:D2"],
-                        },
-                    },
-                    {
-                        "type": "CREATE_CHART",
-                        "definition": {
-                            "type": "scatter",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": [
-                                {"dataRange": "A1:B2"},
-                                {"dataRange": "C1:D2"},
-                            ],
-                        },
-                    },
-                    {
-                        "type": "UPDATE_CHART",
-                        "definition": {
-                            "type": "scatter",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": [{"dataRange": "C1:D2"}],
-                        },
-                    },
-                    {
-                        "type": "CREATE_CHART",
-                        "definition": {
-                            "type": "combo",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": [
-                                {"dataRange": "A1:B2"},
-                                {"dataRange": "C1:D2"},
-                            ],
-                        },
-                    },
-                    {
-                        "type": "UPDATE_CHART",
-                        "definition": {
-                            "type": "combo",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": [{"dataRange": "C1:D2"}],
-                        },
-                    },
-                    {
-                        "type": "CREATE_CHART",
-                        "definition": {
-                            "type": "waterfall",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": [
-                                {"dataRange": "A1:B2"},
-                                {"dataRange": "C1:D2"},
-                            ],
-                            "verticalAxisPosition": "left",
-                        },
-                    },
-                    {
-                        "type": "UPDATE_CHART",
-                        "definition": {
-                            "type": "waterfall",
-                            "title": {"text": "Chart Title"},
-                            "dataSets": [{"dataRange": "C1:D2"}],
                             "verticalAxisPosition": "right",
+                        },
+                    },
+                    {
+                        "type": "CREATE_CHART",
+                        "definition": {
+                            "type": "pie",
+                            "title": {"text": "Chart Title"},
+                            "dataSets": [
+                                {"dataRange": "A1:B2"},
+                                {"dataRange": "C1:D2"},
+                            ],
+                        },
+                    },
+                    {
+                        "type": "UPDATE_CHART",
+                        "definition": {
+                            "type": "pie",
+                            "title": {"text": "Chart Title"},
+                            "dataSets": [
+                                {"dataRange": "C1:D2"},
+                            ],
+                        },
+                    },
+                    {
+                        "type": "CREATE_CHART",
+                        "definition": {
+                            "type": "scorecard",
+                            "title": {"text": "Chart Title"},
+                        },
+                    },
+                    {
+                        "type": "UPDATE_CHART",
+                        "definition": {
+                            "type": "scorecard",
+                            "title": {"text": "Chart Title"},
+                        },
+                    },
+                    {
+                        "type": "CREATE_CHART",
+                        "definition": {
+                            "type": "gauge",
+                            "title": {"text": "Chart Title"},
+                        },
+                    },
+                    {
+                        "type": "UPDATE_CHART",
+                        "definition": {
+                            "type": "gauge",
+                            "title": {"text": "Chart Title"},
+                        },
+                    },
+                    {
+                        "type": "CREATE_CHART",
+                        "definition": {
+                            "type": "scatter",
+                            "title": {"text": "Chart Title"},
+                            "dataSets": [
+                                {"dataRange": "A1:B2"},
+                                {"dataRange": "C1:D2"},
+                            ],
+                        },
+                    },
+                    {
+                        "type": "UPDATE_CHART",
+                        "definition": {
+                            "type": "scatter",
+                            "title": {"text": "Chart Title"},
+                            "dataSets": [{"dataRange": "C1:D2"}],
+                        },
+                    },
+                    {
+                        "type": "CREATE_CHART",
+                        "definition": {
+                            "type": "combo",
+                            "title": {"text": "Chart Title"},
+                        },
+                    },
+                    {
+                        "type": "UPDATE_CHART",
+                        "definition": {
+                            "type": "combo",
+                            "title": {"text": "Chart Title"},
+                        },
+                    },
+                    {
+                        "type": "CREATE_CHART",
+                        "definition": {
+                            "type": "waterfall",
+                            "title": {"text": "Chart Title"},
+                            "dataSets": [
+                                {"dataRange": "A1:B2"},
+                                {"dataRange": "C1:D2"},
+                            ],
+                        },
+                    },
+                    {
+                        "type": "UPDATE_CHART",
+                        "definition": {
+                            "type": "waterfall",
+                            "title": {"text": "Chart Title"},
+                            "dataSets": [{"dataRange": "C1:D2"}],
                         },
                     },
                 ],

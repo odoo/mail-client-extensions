@@ -23,12 +23,9 @@ def migrate(cr, version):
             # 1. title is now an object
             if "title" in definition:
                 definition["title"] = {"text": definition["title"]}
-            # 2. dataSets is now an object for chart combo, bar, line, scatter, waterfall
-            if definition["type"] in ["combo", "bar", "line", "scatter", "waterfall"]:
+            # 2. dataSets is now an object
+            if "dataSets" in definition:
                 definition["dataSets"] = [{"dataRange": r} for r in definition.get("dataSets", [])]
-            # 3. verticalAxisPosition is removed, except for waterfall chart
-            if definition["type"] != "waterfall" and not definition["type"].startswith("odoo_"):
-                definition.pop("verticalAxisPosition", None)
 
         data_loaded["commands"] = commands
         cr.execute(
