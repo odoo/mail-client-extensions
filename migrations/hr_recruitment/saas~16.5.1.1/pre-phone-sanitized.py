@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import sys
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
-from psycopg2.extras import Json
+from psycopg2.extras import execute_batch
 
 from odoo.upgrade import util
 
@@ -32,20 +31,14 @@ def sanitize_fields(cr, san, phone_to_sanitize, phone_sanitized):
     """
     )
 
-    data = cr.fetchall()
-    queries = []
-
-    with ThreadPoolExecutor() as executor:
-        for batch in util.chunks(executor.map(san.sanitize, *zip(*data)), size=256):
-            values = {aid: phone for phone, aid in batch}
-            queries.append(
-                cr.mogrify(
-                    f"UPDATE hr_applicant SET {phone_sanitized} = %s::jsonb->id::text WHERE id IN %s",
-                    [Json(values), tuple(values)],
-                ).decode()
-            )
-
-    util.parallel_execute(cr, queries)
+    with ProcessPoolExecutor() as executor:
+        chunksize = 1024
+        execute_batch(
+            cr._obj,
+            f"UPDATE hr_applicant SET {phone_sanitized} = %s WHERE id = %s",
+            executor.map(san.sanitize, *zip(*cr.fetchall()), chunksize=chunksize),
+            page_size=chunksize,
+        )
 
 
 def migrate(cr, version):
