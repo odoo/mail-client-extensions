@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 
 from odoo.addons.base.maintenance.migrations import util
@@ -17,6 +15,10 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                 {
                     "type": "UPDATE_CELL",
                     "content": "=ODOO.PIVOT(1)+ODOO.PIVOT.TABLE(1)+ODOO.PIVOT.HEADER(1)",
+                },
+                {
+                    "type": "UPDATE_CELL",
+                    "style": "1",
                 },
             ],
         }
@@ -47,6 +49,10 @@ class TestSpreadsheetRenamePivotFunctions(UpgradeCase):
                     {
                         "type": "UPDATE_CELL",
                         "content": "=PIVOT.VALUE(1)+PIVOT(1)+PIVOT.HEADER(1)",
+                    },
+                    {
+                        "type": "UPDATE_CELL",
+                        "style": "1",
                     },
                 ],
             },
