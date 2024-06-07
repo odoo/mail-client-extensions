@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 import uuid
 from concurrent.futures import ProcessPoolExecutor
@@ -9,7 +8,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     # calculating "phone_sanitized" is kind of complicated. Here's what we do:
     # 1. We choose which phone number to use in the same order as they would be considered
     # 2. We check if a "country_id" is entered, if not, default to the base company's "country_id"
@@ -51,8 +49,10 @@ def migrate(cr, version):
     san = sys.modules[name] = util.import_script("sms/saas~12.5.2.0/sanitize.py", name=name)
 
     with ProcessPoolExecutor() as executor:
+        chunksize = 1024
         execute_batch(
             cr._obj,
             "UPDATE crm_lead SET phone_sanitized = %s WHERE id = %s",
-            executor.map(san.sanitize, *zip(*cr.fetchall())),
+            executor.map(san.sanitize, *zip(*cr.fetchall()), chunksize=chunksize),
+            page_size=chunksize,
         )

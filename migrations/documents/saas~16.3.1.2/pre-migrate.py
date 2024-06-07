@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import mimetypes
 import sys
 import uuid
@@ -51,9 +49,10 @@ def migrate(cr, version):
             """
         )
         while chunk := ncr.fetchmany(100000):  # fetchall() could cause MemoryError
+            chunksize = 1000
             execute_batch(
                 cr._obj,
                 "UPDATE documents_document SET file_extension = %s WHERE id = %s",
-                executor.map(mod.extract_extension, chunk),
-                page_size=1000,
+                executor.map(mod.extract_extension, chunk, chunksize=chunksize),
+                page_size=chunksize,
             )

@@ -64,7 +64,7 @@ def migrate(cr, version):
     with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor:
         list(
             util.log_progress(
-                executor.map(mod.rm_last_update, repeat(cr.dbname), models),
+                executor.map(mod.rm_last_update, repeat(cr.dbname), models, chunksize=32),
                 _logger,
                 qualifier="models",
                 size=len(models),

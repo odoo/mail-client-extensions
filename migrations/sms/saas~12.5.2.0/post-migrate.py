@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 import uuid
 from concurrent.futures import ProcessPoolExecutor
@@ -9,8 +8,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
-    limit = 10 ** 5
+    limit = 10**5
     there_is_moar = True
     while there_is_moar:
         cr.execute(
@@ -57,8 +55,10 @@ def migrate(cr, version):
         san = sys.modules[name] = util.import_script("sms/saas~12.5.2.0/sanitize.py", name=name)
 
         with ProcessPoolExecutor() as executor:
+            chunksize = 1024
             execute_batch(
                 cr._obj,
                 "UPDATE res_partner SET phone_sanitized = %s WHERE id = %s",
-                executor.map(san.sanitize, *zip(*cr.fetchall())),
+                executor.map(san.sanitize, *zip(*cr.fetchall()), chunksize=chunksize),
+                page_size=chunksize,
             )
