@@ -10,7 +10,8 @@ from odoo.addons.base.maintenance.migrations import util
 # enterprise/14.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/15.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/16.0:pos_blackbox_be/__manifest__.py:    'installable': True,
-BLACKBOX_CERTIFIED_VERSIONS = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0"}
+# enterprise/17.0:pos_blackbox_be/__manifest__.py:    'installable': True,
+BLACKBOX_CERTIFIED_VERSIONS = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0", "17.0"}
 
 
 ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE = util.str2bool(os.getenv("ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE", "0"))
