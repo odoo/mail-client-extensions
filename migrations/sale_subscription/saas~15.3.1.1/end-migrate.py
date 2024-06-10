@@ -2,9 +2,9 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_draft", False)
-    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_in_progress", False)
-    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_closed", False)
+    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_draft", noupdate=False)
+    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_in_progress", noupdate=False)
+    util.force_noupdate(cr, "sale_subscription.sale_subscription_stage_closed", noupdate=False)
     # Migrate the account analytic tags
     if util.table_exists(cr, "account_analytic_tag_sale_order_rel"):
         cr.execute(
@@ -34,6 +34,7 @@ def migrate(cr, version):
     util.remove_view(cr, "sale_subscription.sale_subscription_view_graph")
     util.remove_view(cr, "sale_subscription.sale_subscription_view_cohort")
 
+    # ruff: noqa: ERA001
     # arj todo: this query should be useless because the pricing_id is not required on the sol and the price_unit is
     # copied from the sale_subscription_line
     # util.parallel_execute(
