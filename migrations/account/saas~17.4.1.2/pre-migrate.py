@@ -4,3 +4,5 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_field(cr, "account.move.send", "send_mail_warning_message")
     util.remove_field(cr, "account.move.send", "sequence_gap_warning")
+    util.rename_field(cr, "mail.message", "show_audit_log", "account_audit_log_activated")
+    util.remove_view(cr, "account.res_config_settings_view_form_inherit_account_audit_trail")
