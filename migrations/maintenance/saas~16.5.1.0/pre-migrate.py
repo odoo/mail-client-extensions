@@ -4,9 +4,9 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.create_column(cr, "maintenance_request", "recurring_maintenance", "boolean")
-    util.create_column(cr, "maintenance_request", "repeat_interval", "int4")
-    util.create_column(cr, "maintenance_request", "repeat_unit", "varchar")
-    util.create_column(cr, "maintenance_request", "repeat_type", "varchar")
+    util.create_column(cr, "maintenance_request", "repeat_interval", "int4", default=1)
+    util.create_column(cr, "maintenance_request", "repeat_unit", "varchar", default="week")
+    util.create_column(cr, "maintenance_request", "repeat_type", "varchar", default="forever")
     util.create_column(cr, "maintenance_request", "repeat_until", "date")
 
     query = """
