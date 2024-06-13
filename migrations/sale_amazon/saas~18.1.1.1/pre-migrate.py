@@ -14,3 +14,5 @@ def migrate(cr, version):
     )
     util.update_field_usage(cr, "res.partner", "amazon_email", "email")
     util.remove_field(cr, "res.partner", "amazon_email")
+    util.remove_field(cr, "amazon.account", "is_follow_up_displayed")
+    util.remove_record(cr, "sale_amazon.list_amazon_marketplace_action")
