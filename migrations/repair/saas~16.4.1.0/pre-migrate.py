@@ -124,8 +124,10 @@ def migrate(cr, version):
              SELECT m2m.repair_fee_line_id as fee_id,
                     string_agg(t.name->>'en_US', ',') as taxes
                FROM repair_fee_line_tax m2m
+               JOIN repair_fee rf
+                 ON m2m.repair_fee_line_id = rf.id
                JOIN repair_order ro
-                 ON m2m.repair_fee_line_id = ro.id
+                 ON rf.repair_id = ro.id
                JOIN account_tax t
                  ON m2m.tax_id = t.id
               WHERE {{parallel_filter}}
