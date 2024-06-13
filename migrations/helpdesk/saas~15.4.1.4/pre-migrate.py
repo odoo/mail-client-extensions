@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -27,4 +26,4 @@ def migrate(cr, version):
         ]
 
     for sub_type in subtype_to_update:
-        util.if_unchanged(cr, f"helpdesk.{sub_type}", util.update_record_from_xml)
+        util.if_unchanged(cr, f"helpdesk.{sub_type}", util.update_record_from_xml, ensure_references=True)
