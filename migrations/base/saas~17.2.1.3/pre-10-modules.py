@@ -56,6 +56,9 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_es_edi_facturae_invoice_period", "l10n_es_edi_facturae")
 
     util.rename_module(cr, "l10n_fr", "l10n_fr_account")  # nofml
+    eb = util.expand_braces
+    util.rename_xmlid(cr, *eb("{l10n_fr_account,l10n_fr}.fr_and_mc"))
+    util.rename_xmlid(cr, *eb("{l10n_fr_account,l10n_fr}.dom-tom"))
     util.force_migration_of_fresh_module(cr, "l10n_fr")
 
     util.merge_module(cr, "l10n_dk_audit_trail", "l10n_dk")
