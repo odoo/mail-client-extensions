@@ -10,6 +10,7 @@ from . import (
     test_16_4_onboarding,
     test_16_5_analytic_plan,
     test_17_3_invoice_currency_rate,
+    test_17_5_lock_dates,
     test_account,
     test_account_account_tag_unique,
     test_account_group,

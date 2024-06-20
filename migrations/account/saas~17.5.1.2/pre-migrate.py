@@ -2,6 +2,19 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "res_company", "sale_lock_date", "date")
+    util.create_column(cr, "res_company", "purchase_lock_date", "date")
+    cr.execute(
+        """
+        UPDATE res_company c
+           SET sale_lock_date = c.period_lock_date,
+               purchase_lock_date = c.period_lock_date
+         WHERE c.period_lock_date IS NOT NULL
+        """,
+    )
+    util.remove_field(cr, "res.company", "period_lock_date")
+    util.remove_field(cr, "res.company", "max_tax_lock_date")
+
     util.rename_field(cr, "account.move", "made_sequence_hole", "made_sequence_gap")
     util.create_column(cr, "account_move", "made_sequence_gap", "bool")
 

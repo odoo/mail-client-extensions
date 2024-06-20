@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 from odoo.addons.base.maintenance.migrations import util
@@ -15,7 +14,9 @@ class LockDateCase(UpgradeCase):
         columns = [col for col in util.get_columns(self.env.cr, "res_company") if col.endswith("_lock_date")]
         if not columns:
             return
-        query = "UPDATE res_company SET {}".format(",".join("{} = %(lock_date)s".format(col) for col in columns))
+        query = "UPDATE res_company SET {} WHERE name <> 'TestLockDatesRework 17.5 upgrade company'".format(
+            ",".join("{} = %(lock_date)s".format(col) for col in columns),
+        )
         self.env.cr.execute(query, locals())
 
     def check(self, init):
