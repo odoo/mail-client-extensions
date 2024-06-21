@@ -410,14 +410,24 @@ product_product_id)
             table="sale_order",
             alias="so",
         )
+    cr.execute("SELECT id, name FROM sale_subscription_line WHERE product_id IS NULL AND price_unit = 0")
+    if cr.rowcount:
+        _logger.warning(
+            "There are %s subcription lines with no product set and zero unit price, they will be migrated as NOTE order lines:\n * %s",
+            cr.rowcount,
+            "\n * ".join(f"`{name}` (id={id_})" for id_, name in cr.fetchall()),
+        )
+
     # SO lines creation
     cr.execute(
         """
         INSERT INTO sale_order_line (old_subscription_line_id,old_subscription_id,product_id,product_uom_qty,product_uom,
+                                    display_type,
                                     price_unit,discount,price_subtotal,currency_id,order_id,name,
                                     customer_lead,state,
                                     pricing_id,create_date,create_uid,write_date,write_uid,company_id,qty_delivered_method)
-        SELECT ssl.id,ssl.analytic_account_id,ssl.product_id,ssl.quantity,ssl.uom_id,
+        SELECT ssl.id,ssl.analytic_account_id,ssl.product_id,CASE WHEN ssl.product_id IS NULL AND ssl.price_unit = 0 THEN 0 ELSE ssl.quantity END,ssl.uom_id,
+               CASE WHEN ssl.product_id IS NULL AND ssl.price_unit = 0 THEN 'line_note' else NULL END,
                ssl.price_unit,ssl.discount,ssl.price_subtotal,ssl.currency_id,so.id,ssl.name,
                0,so.state,ppr.id,ssl.create_date,ssl.create_uid,ssl.write_date,ssl.write_uid,so.company_id,'manual'
 
