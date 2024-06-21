@@ -623,50 +623,6 @@ product_product_id)
 
         util.parallel_execute(cr, queries)
 
-    restore_manual_fields_models = [
-        (
-            util.ref(cr, "sale.model_sale_order_line"),
-            "new_sale_order_line_id",
-            "sale_order_line",
-            "sale_subscription_line",
-        ),
-        (
-            util.ref(cr, "sale_management.model_sale_order_template"),
-            "new_sale_order_template_id",
-            "sale_order_template",
-            "sale_subscription_template",
-        ),
-    ]
-
-    for model_id, field, table, table_sub in restore_manual_fields_models:
-        cr.execute(
-            """
-            SELECT f.name
-              FROM ir_model_fields f
-              JOIN information_schema.columns c1
-                ON f.name = c1.column_name
-               AND c1.table_name = %s
-              JOIN information_schema.columns c2
-                ON f.name = c2.column_name
-               AND c2.table_name = %s
-             WHERE f.model_id = %s
-               AND f.state = 'manual'
-               AND f.store = True
-               AND f.ttype != 'binary'
-            """,
-            [table, table_sub, model_id],
-        )
-        info = cr.fetchall()
-        columns = ",".join([f'"{column}" = {table_sub}."{column}"' for (column,) in info])
-        if columns:
-            query = f"""
-                    UPDATE {table} t
-                       SET {columns}
-                      FROM {table_sub}
-                     WHERE {table_sub}.{field} = t.id
-                    """
-            util.explode_execute(cr, query, table=table, alias="t")
-
     for main_table, map_field in [
         ("sale_subscription", "new_sale_order_id"),
         ("sale_subscription_line", "new_sale_order_line_id"),
@@ -978,6 +934,50 @@ product_product_id)
     cr.execute("create index sale_order_origin_order_id_idx on sale_order using btree(origin_order_id)")
     cr.execute("create index sale_order_line_parent_line_id_idx on sale_order_line using btree(parent_line_id)")
     util.remove_model(cr, "sale.subscription.template", drop_table=False)
+
+    restore_manual_fields_models = [
+        (
+            util.ref(cr, "sale.model_sale_order_line"),
+            "new_sale_order_line_id",
+            "sale_order_line",
+            "sale_subscription_line",
+        ),
+        (
+            util.ref(cr, "sale_management.model_sale_order_template"),
+            "new_sale_order_template_id",
+            "sale_order_template",
+            "sale_subscription_template",
+        ),
+    ]
+
+    for model_id, field, table, table_sub in restore_manual_fields_models:
+        cr.execute(
+            """
+            SELECT f.name
+              FROM ir_model_fields f
+              JOIN information_schema.columns c1
+                ON f.name = c1.column_name
+               AND c1.table_name = %s
+              JOIN information_schema.columns c2
+                ON f.name = c2.column_name
+               AND c2.table_name = %s
+             WHERE f.model_id = %s
+               AND f.state = 'manual'
+               AND f.store = True
+               AND f.ttype != 'binary'
+            """,
+            [table, table_sub, model_id],
+        )
+        info = cr.fetchall()
+        columns = ",".join([f'"{column}" = {table_sub}."{column}"' for (column,) in info])
+        if columns:
+            query = f"""
+                    UPDATE {table} t
+                       SET {columns}
+                      FROM {table_sub}
+                     WHERE {table_sub}.{field} = t.id
+                    """
+            util.explode_execute(cr, query, table=table, alias="t")
 
 
 def _handle_recurring_renting_products(cr):
