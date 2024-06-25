@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
 This tool is useful to detect where a change happens during an upgrade.
 
 Example:
-$ inject_trigger test_17_s ir_module_module update "new.state='installed' and new.name='stock'"
+$ inject-trigger test_17_s ir_module_module update "new.state='installed' and new.name='stock'"
     """,
     formatter_class=argparse.RawDescriptionHelpFormatter,
 )
