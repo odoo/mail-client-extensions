@@ -2,6 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    eb = util.expand_braces
     util.create_column(cr, "restaurant_table", "table_number", "integer")
 
     cr.execute(
@@ -60,3 +61,10 @@ def migrate(cr, version):
         util.add_to_migration_reports(category="Restaurant", format="html", message=msg)
 
     util.remove_field(cr, "restaurant.table", "name")
+
+    util.rename_xmlid(cr, *eb("pos_restaurant.cheeseburger_combo_{line,item}"))
+    util.rename_xmlid(cr, *eb("pos_restaurant.bacon_burger_combo_{line,item}"))
+    util.rename_xmlid(cr, *eb("pos_restaurant.coke_combo_{line,item}"))
+    util.rename_xmlid(cr, *eb("pos_restaurant.water_combo_{line,item}"))
+    util.rename_xmlid(cr, *eb("pos_restaurant.maid_combo_{line,item}"))
+    util.rename_xmlid(cr, *eb("pos_restaurant.milkshake_combo_{line,item}"))
