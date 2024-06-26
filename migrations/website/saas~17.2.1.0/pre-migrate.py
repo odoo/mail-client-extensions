@@ -9,7 +9,10 @@ from odoo.upgrade.util.convert_bootstrap import innerxml
 def add_template_in_embed_code(el):
     if el.xpath('.//template[hasclass("s_embed_code_saved")]'):
         return False
-    embedded_code = el.xpath('.//div[hasclass("s_embed_code_embedded")]')[0]
+    embedded_code = el.xpath('.//div[hasclass("s_embed_code_embedded")]')
+    if not embedded_code:
+        return False
+    embedded_code = embedded_code[0]
     code = innerxml(embedded_code, is_html=True)
     template = """<template class="s_embed_code_saved">%s</template>""" % code
     el.insert(0, html.fromstring(template, parser=html.HTMLParser(encoding="utf-8")))
