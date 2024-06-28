@@ -23,3 +23,6 @@ def migrate(cr, version):
                     path_field_name,
                 )
             )
+
+    # Avoid view being deativated by the view verification post test.
+    util.remove_view(cr, "saas_trial.paid_apps_module_kanban")
