@@ -11,6 +11,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_br_avatax_services", "l10n_br_avatax")
     util.merge_module(cr, "l10n_br_edi_services", "l10n_br_edi")
     util.merge_module(cr, "l10n_br_edi_sale_services", "l10n_br_edi_sale")
+    util.merge_module(cr, "l10n_fr_invoice_addr", "l10n_fr_account")
 
     if util.has_enterprise():
         util.merge_module(cr, "l10n_ch_hr_payroll_elm", "l10n_ch_hr_payroll")
