@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -22,5 +21,4 @@ def migrate(cr, version):
         for move in moves_to_update:
             move._check_company()
             move._adjust_procure_method()
-            move._action_confirm()
-            move._trigger_scheduler()
+            move._action_confirm()._trigger_scheduler()
