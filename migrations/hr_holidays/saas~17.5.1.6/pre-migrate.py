@@ -6,3 +6,5 @@ def migrate(cr, version):
 
     util.alter_column_type(cr, "hr_leave", "request_hour_from", "float8", using="{}::double precision")
     util.alter_column_type(cr, "hr_leave", "request_hour_to", "float8", using="{}::double precision")
+
+    util.remove_record(cr, "hr_holidays.hr_leave_action_action_department")
