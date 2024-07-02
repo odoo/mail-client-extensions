@@ -19,3 +19,13 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("point_of_sale.access_{pos_combo,product_combo_pos}_user"))
     util.rename_xmlid(cr, *eb("point_of_sale.access_{pos_combo_line,product_combo_item_pos}_manager"))
     util.rename_xmlid(cr, *eb("point_of_sale.access_{pos_combo_line,product_combo_item_pos}_user"))
+
+    for fields_to_add in [
+        "card_brand",
+        "card_no",
+        "payment_ref_no",
+        "payment_method_authcode",
+        "payment_method_issuer_bank",
+        "payment_method_payment_mode",
+    ]:
+        util.create_column(cr, "pos_payment", fields_to_add, "varchar")
