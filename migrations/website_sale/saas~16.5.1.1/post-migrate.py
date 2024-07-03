@@ -7,14 +7,16 @@ def migrate(cr, version):
     )
 
     # Set the arch for carried over cowed views, see pre-migrate.py
-    cr.execute(
-        """
-        UPDATE ir_ui_view v
-           SET arch_db = vv.arch_db
-          FROM ir_ui_view vv
-         WHERE vv.key = 'website_sale.extra_info'
-           AND vv.website_id IS NULL -- the "main" view, not a cowed one
-           AND v.key = 'website_sale.extra_info'
-           AND v.website_id IS NOT NULL
-        """
-    )
+    for key in ["website_sale.extra_info", "website_sale.accept_terms_and_conditions"]:
+        cr.execute(
+            """
+            UPDATE ir_ui_view cowed
+               SET arch_db = original.arch_db
+              FROM ir_ui_view original
+             WHERE original.key = %s
+               AND original.website_id IS NULL
+               AND cowed.key = original.key
+               AND cowed.website_id IS NOT NULL
+            """,
+            [key],
+        )
