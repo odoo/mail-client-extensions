@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import itertools
 
 from odoo.addons.resource.models.utils import HOURS_PER_DAY
@@ -7,6 +6,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_field(cr, "hr.leave", "is_user_only_responsible")
+
     util.remove_field(cr, "hr.leave", "report_note")
     util.remove_field(cr, "hr.leave", "number_of_days_display")
     util.remove_field(cr, "hr.leave", "number_of_hours_display")
