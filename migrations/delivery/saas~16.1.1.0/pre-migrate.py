@@ -1,20 +1,7 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
-def migrate(cr, version):
-    util.create_column(cr, "stock_move_line", "carrier_id", "int4")
-    query = """
-        UPDATE stock_move_line sml
-           SET carrier_id = sp.carrier_id
-          FROM stock_picking sp
-         WHERE sml.picking_id = sp.id
-    """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move_line", alias="sml"))
-    util.update_field_usage(cr, "stock.move.line", "carrier_name", "carrier_id")
-
-    util.remove_field(cr, "stock.move.line", "carrier_name")
-
+def compute_shipping_weight(cr):
     util.create_column(cr, "sale_order", "shipping_weight", "float8")
     query = """
         WITH so AS (
@@ -46,3 +33,19 @@ def migrate(cr, version):
          WHERE so.id = o.id
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_order", alias="o"))
+
+
+def migrate(cr, version):
+    util.create_column(cr, "stock_move_line", "carrier_id", "int4")
+    query = """
+        UPDATE stock_move_line sml
+           SET carrier_id = sp.carrier_id
+          FROM stock_picking sp
+         WHERE sml.picking_id = sp.id
+    """
+    util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move_line", alias="sml"))
+    util.update_field_usage(cr, "stock.move.line", "carrier_name", "carrier_id")
+
+    util.remove_field(cr, "stock.move.line", "carrier_name")
+
+    compute_shipping_weight(cr)

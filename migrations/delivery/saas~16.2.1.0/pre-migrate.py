@@ -1,8 +1,17 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
+def recompute_field_on_install(cr):
+    util.create_column(cr, "sale_order_line", "is_delivery", "boolean")
+    delivery_script = util.import_script("delivery/saas~16.1.1.0/pre-migrate.py")
+    delivery_script.compute_shipping_weight(cr)
+
+
 def migrate(cr, version):
+    if version == "saas~16.2":
+        recompute_field_on_install(cr)
+        return
+
     models_to_move = (
         "choose.delivery.package",
         "product.template",
@@ -17,10 +26,8 @@ def migrate(cr, version):
 
     # rename moved demo data
     eb = util.expand_braces
-    for suffix in {"confirmed", "assigned", "done"}:
+    for suffix in ("confirmed", "assigned", "done"):
         util.rename_xmlid(cr, *eb(f"stock_delivery.outgoing_shipment_with_carrier_{suffix}{{_1,}}"))
-
-    util.move_field_to_module(cr, "sale.order", "shipping_weight", "delivery", "stock_delivery")
 
     views_to_move = (
         "choose_delivery_package_view_form",

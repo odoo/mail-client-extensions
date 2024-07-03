@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -38,6 +36,8 @@ def migrate(cr, version):
         force_installs |= {"l10n_be_hr_payroll_sd_worx"}
     if util.modules_installed(cr, "delivery"):
         force_installs |= {"stock_delivery"}
+    if util.module_installed(cr, "website_sale") and not util.module_installed(cr, "delivery"):
+        force_upgrades |= {"delivery"}
     if util.modules_installed(cr, "delivery") or util.modules_installed(cr, "website_sale", "stock"):
         # `website_sale` now depends on `delivery`. Due to the auto_install flag,
         # `stock_delivery` will be installed. However, we don't want its demo data to be updated.
