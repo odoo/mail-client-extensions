@@ -15,3 +15,10 @@ def migrate(cr, version):
 
     util.move_field_to_module(cr, "res.bank", "country_code", "l10n_pe", "base")
     util.move_field_to_module(cr, "res.bank", "country_code", "l10n_hk_hr_payroll", "base")
+
+    if util.table_exists(cr, "ir_embedded_actions"):
+        util.remove_constraint(
+            cr,
+            "ir_embedded_actions",
+            "ir_embedded_actions_action_id_fkey",
+        )
