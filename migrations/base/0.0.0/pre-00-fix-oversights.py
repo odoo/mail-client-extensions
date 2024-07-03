@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import ast
 import collections
+import json
+
+from psycopg2.extras import Json
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -75,3 +79,21 @@ def migrate(cr, version):
             for table, names in info.items()
         ]
         util.parallel_execute(cr, queries)
+
+    # Fix ir.filters JSON format
+    to_update = {}
+    cr.execute("SELECT id, name, sort FROM ir_filters WHERE sort like '%''%'")
+    for fid, fname, sort in cr.fetchall():
+        try:
+            parsed_sort = ast.literal_eval(sort)
+        except Exception:
+            util._logger.error("Invalid `sort` value on filter %r (id=%s): %s", fname, fid, sort)
+            continue
+        fsort = json.dumps(parsed_sort)
+        if fsort != sort.strip():
+            util._logger.warning("`sort` value on filter %r (id=%s) updated from %s to %s", fname, fid, sort, fsort)
+            to_update[fid] = fsort
+    if to_update:
+        cr.execute(
+            "UPDATE ir_filters SET sort = (%s::jsonb)->>(id::text) WHERE id IN %s", [Json(to_update), tuple(to_update)]
+        )
