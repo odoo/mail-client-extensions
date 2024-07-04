@@ -2,7 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_view(cr, "website_sale_comparison.recommended_product")
     cr.execute(
         """
         UPDATE ir_ui_view
@@ -11,8 +10,9 @@ def migrate(cr, version):
         """,
         [
             (
-                util.ref(cr, "website_sale_comparison.add_to_compare"),
-                util.ref(cr, "website_sale_comparison.product_attributes_body"),
+                util.ref(cr, "website_helpdesk.navbar_search_date"),
+                util.ref(cr, "website_helpdesk.navbar_search_type"),
+                util.ref(cr, "website_helpdesk.navbar_search_tag"),
             )
         ],
     )

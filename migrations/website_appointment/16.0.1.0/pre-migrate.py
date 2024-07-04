@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -9,4 +8,12 @@ def migrate(cr, version):
         cr,
         "website_appointment.appointment_type_action_add",
         "website_appointment.appointment_type_action_add_simplified",
+    )
+    cr.execute(
+        """
+        UPDATE ir_ui_view
+           SET customize_show = FALSE
+         WHERE id = %s
+        """,
+        [util.ref(cr, "website_appointment.opt_appointments_list_cards")],
     )

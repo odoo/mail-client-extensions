@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -31,4 +29,30 @@ def migrate(cr, version):
     )
     util.rename_xmlid(
         cr, "website_sale.menu_ecommerce_payment_acquirers", "website_sale.menu_ecommerce_payment_providers"
+    )
+    cr.execute(
+        """
+        UPDATE ir_ui_view
+           SET customize_show = FALSE
+         WHERE id IN %s
+        """,
+        [
+            tuple(
+                util.ref(cr, f"website_sale.{xml_id}")
+                for xml_id in [
+                    "products_description",
+                    "products_attributes",
+                    "products_add_to_cart",
+                    "products_list_view",
+                    "product_buy_now",
+                    "product_comment",
+                    "product_variants",
+                    "product_quantity",
+                    "product_share_buttons",
+                    # renamed above in this script
+                    "product_picture_magnify_hover",
+                    "product_picture_magnify_click",
+                ]
+            )
+        ],
     )
