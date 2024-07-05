@@ -11,6 +11,6 @@ def migrate(cr, version):
             util.rename_field(cr, model, *eb(f"l10n_{{de,din5008}}_{suffix}"))
 
     util.rename_xmlid(cr, *eb("{l10n_de,l10n_din5008}.paperformat_euro_din"))
-    util.rename_xmlid(cr, *eb("{l10n_de,l10n_din5008}.paperformat_euro_dina"))
+    util.rename_xmlid(cr, *eb("{l10n_de,l10n_din5008}.paperformat_euro_din_a"))
     util.rename_xmlid(cr, *eb("{l10n_de,l10n_din5008}.din5008_css"))
     util.rename_xmlid(cr, *eb("{l10n_de,l10n_din5008}.external_layout_din5008"))
