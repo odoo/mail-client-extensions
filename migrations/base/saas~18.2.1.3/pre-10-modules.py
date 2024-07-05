@@ -46,3 +46,23 @@ def migrate(cr, version):
     util.force_migration_of_fresh_module(cr, "stock_maintenance")
 
     util.merge_module(cr, "l10n_it_edi_ndd", "l10n_it_edi")
+
+    cr.execute("SELECT 1 FROM ir_config_parameter WHERE key IN ('google.pse.id', 'google.custom_search.key')")
+    if cr.rowcount == 2 and util.module_installed(cr, "product_images"):
+        if not util.module_installed(cr, "product_barcodelookup"):
+            util.add_to_migration_reports(
+                """
+                The Google API is no longer in use to fetch product images; Barcode Lookup is now the active API.
+                """
+            )
+        util.rename_field(cr, "product.product", "image_fetch_pending", "is_image_fetch_pending")
+        util.rename_xmlid(
+            cr,
+            *util.expand_braces(
+                "{product_images.product_images_,product_barcodelookup.}product_fetch_image_wizard_rule"
+            ),
+        )
+        util.remove_view(cr, "product_images.res_config_settings_view_form")
+        util.merge_module(cr, "product_images", "product_barcodelookup")
+    else:
+        util.remove_module(cr, "product_images")
