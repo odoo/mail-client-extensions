@@ -165,6 +165,38 @@ def migrate(cr, version):
         """
     )
 
+    # Before Odoo 16, tax report lines with neither `tag_name` nor `formula` set
+    # would evaluate to the sum of their children lines with a defined `tag_name`
+    # Since in Odoo 17, `sum_children` simply sums *all* children lines,
+    # the following is needed to compute the full blown formulas and preserve the same behaviour
+    cr.execute(
+        """
+        UPDATE account_tax_report_line
+           SET code = 'UPG' || id || '_auto_assigned'
+         WHERE code IS NULL
+        """
+    )
+    cr.execute(
+        """
+        WITH section_formulas AS (
+            SELECT STRING_AGG(children_lines.code, ' + ') AS formula,
+                   parent_line.id AS line_id
+              FROM account_tax_report_line children_lines
+              JOIN account_tax_report_line parent_line
+                ON parent_line.id = children_lines.parent_id
+             WHERE parent_line.formula IS NULL
+               AND parent_line.tag_name IS NULL
+               AND children_lines.tag_name IS NOT NULL
+             GROUP BY parent_line.id
+        )
+        UPDATE account_tax_report_line atrl
+           SET formula = sf.formula
+          FROM section_formulas sf
+         WHERE sf.line_id = atrl.id
+           AND sf.formula IS NOT NULL
+        """
+    )
+
     # create temporary column to have mapping between the old and the new report line ids (for parent_id)
     util.create_column(cr, "account_report_line", "v15_tax_line_id", "integer")
 
@@ -278,9 +310,9 @@ def migrate(cr, version):
                   CASE
                        WHEN arl.v15_tag_name IS NOT NULL THEN arl.v15_tag_name
                        WHEN arl.v15_formula IS NOT NULL THEN REGEXP_REPLACE(arl.v15_formula, '({TERM_CODE_REGEX})', '\1.balance', 'g')
-                       ELSE 'sum_children'
                   END
           FROM account_report_line arl
+         WHERE COALESCE(arl.v15_tag_name, arl.v15_formula) IS NOT NULL
         """
     )
 
