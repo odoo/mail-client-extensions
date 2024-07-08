@@ -6,7 +6,9 @@ def migrate(cr, version):
     update_rules(cr, util.splitlines(TO_UPDATE))
 
 
-TO_UPDATE = """
+not_in_175 = "#" if util.version_gte("saas~17.5") else ""
+
+TO_UPDATE = f"""
 account.account_bank_statement_comp_rule
 account.account_payment_term_comp_rule
 analytic.analytic_comp_rule
@@ -117,7 +119,7 @@ hr_payroll.ir_rule_hr_payslip_multi_company
 hr_payroll.ir_rule_hr_payslip_line_multi_company
 hr_payroll.ir_rule_hr_payslip_run_multi_company
 hr_payroll.ir_rule_hr_salary_attachment_multi_company
-hr_payroll.ir_rule_hr_salary_attachment_report_multi_company
+{not_in_175}hr_payroll.ir_rule_hr_salary_attachment_report_multi_company
 hr_payroll.ir_rule_hr_payroll_report_multi_company
 hr_recruitment_reports.hr_recruitment_report_multi_company
 hr_recruitment_reports.hr_recruitment_stage_report_multi_company
