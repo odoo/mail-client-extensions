@@ -12,8 +12,9 @@ from lxml import etree
 from odoo import fields
 from odoo.exceptions import RedirectWarning, UserError
 from odoo.osv import expression
-from odoo.tools import OrderedSet, mute_logger, table_kind
+from odoo.tools import OrderedSet, mute_logger
 from odoo.tools.safe_eval import safe_eval
+from odoo.tools.sql import table_kind
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
