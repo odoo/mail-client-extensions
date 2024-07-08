@@ -48,4 +48,5 @@ def migrate(cr, version):
             continue  # custom CoA
         data = ChartTemplate._get_chart_template_data(company.chart_template)
         template_data = data.pop("template_data")
+        data = {model: data[model] for model in ("account.journal", "account.account") if model in data}
         ChartTemplate._pre_reload_data(company, template_data, data)
