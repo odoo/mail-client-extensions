@@ -52,13 +52,15 @@ def migrate(cr, version):
         """
         SELECT asset.id AS asset_id,
                asset.name AS asset_name,
-               array_agg(ml.id ORDER BY ml.id) FILTER (WHERE ml.credit != 0) AS credit_line_ids,
-               array_agg(ml.name ORDER BY ml.id) FILTER (WHERE ml.credit != 0) AS credit_line_names
+               array_agg(ml.id ORDER BY ml.id) FILTER (WHERE ml.credit != 0 OR (ml.credit = 0 AND ml.debit = 0 AND m.state='draft')) AS credit_line_ids,
+               array_agg(ml.name ORDER BY ml.id) FILTER (WHERE ml.credit != 0 OR (ml.credit = 0 AND ml.debit = 0 AND m.state='draft')) AS credit_line_names
           FROM account_asset AS asset
           JOIN asset_move_line_rel AS mlr
             ON mlr.asset_id = asset.id
           JOIN account_move_line AS ml
             ON ml.id = mlr.line_id
+          JOIN account_move AS m
+            ON m.id = ml.move_id
       GROUP BY asset.id
         HAVING (sum(ml.credit) != 0 AND sum(ml.debit) != 0)
             OR sum(ml.credit + ml.debit) = 0
@@ -67,7 +69,7 @@ def migrate(cr, version):
     asset_move_line_ids = cr.fetchall()
     credit_line_ids = []
     for res in asset_move_line_ids:
-        credit_line_ids.extend(res[2])
+        credit_line_ids.extend(res[2] or [])
     if credit_line_ids:
         if ODOO_UPG_UNLINK_CREDIT_LINES_FROM_ASSETS:
             cr.execute(
@@ -78,7 +80,8 @@ def migrate(cr, version):
                 """
                   <details>
                       <summary>
-                          Some assets have linked journal items with positive credit.
+                          Some assets have linked journal items with positive credit,
+                          or zero debit and credit.
                           Standard assets cannot be linked to journal items containing
                           credit and debit on the account or with a null amount.
                           The journal entries have been automatically unlinked from the assets.
