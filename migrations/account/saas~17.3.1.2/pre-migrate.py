@@ -26,3 +26,19 @@ def migrate(cr, version):
     util.remove_record(cr, "account.onboarding_onboarding_step_default_taxes")
     util.remove_record(cr, "account.onboarding_onboarding_step_setup_bill")
     util.remove_record(cr, "account.onboarding_onboarding_account_invoice")
+
+    # statement line journal_id and company_id fields are now stored related
+    util.create_column(cr, "account_bank_statement_line", "journal_id", "int4")
+    util.create_column(cr, "account_bank_statement_line", "company_id", "int4")
+    util.explode_execute(
+        cr,
+        """
+            UPDATE account_bank_statement_line stl
+               SET journal_id = am.journal_id,
+                   company_id = am.company_id
+              FROM account_move am
+             WHERE stl.move_id = am.id
+        """,
+        "account_bank_statement_line",
+        alias="stl",
+    )
