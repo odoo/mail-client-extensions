@@ -7,6 +7,36 @@ def migrate(cr, version):
     if not tax_report_ids:
         return
 
+    # Multiple tax report lines with same code on same report are not supported in Odoo 16
+    # Actually Odoo 16 reports must have unique codes across all reports
+    # However codes repeated on different reports can be (and are) automatically fixed.
+    cr.execute(
+        """
+        SELECT code,
+               report_id,
+               COUNT(*)
+          FROM account_tax_report_line
+         WHERE code IS NOT NULL
+           AND report_id IN %s
+         GROUP BY code, report_id
+        HAVING COUNT(*) > 1
+        """,
+        [tax_report_ids],
+    )
+    if cr.rowcount:
+        raise util.UpgradeError(
+            f"There is {cr.rowcount} instance(s) of codes repeated on multiple account tax report lines "
+            "associated to the same custom tax report.\n"
+            "This setup is not supported in Odoo 16: in order to upgrade your custom tax reports "
+            "their lines must all have different codes.\n"
+            "Here is the list of codes that appear multiple times, for each report id:\n{}".format(
+                "\n".join(
+                    f"\t* {count} tax report lines have same code {code!r} and are associated to the same report (id={report_id})"
+                    for code, report_id, count in cr.fetchall()
+                )
+            )
+        )
+
     # create temporary column to have mapping between the old and the new report ids
     util.create_column(cr, "account_report", "v15_tax_report_id", "integer")
 
