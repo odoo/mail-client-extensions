@@ -18,7 +18,3 @@ def migrate(cr, version):
             "last_tax_period": "previous_tax_period",
         },
     )
-    if util.module_installed(cr, "sale"):
-        util.move_field_to_module(cr, "account.move.line", "is_downpayment", "sale", "account")
-    else:
-        util.create_column(cr, "account_move_line", "is_downpayment", "bool", default=False)
