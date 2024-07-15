@@ -2,6 +2,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # missing columns removals from saas~13.5 (see odoo/upgrade@a25ddc9de)
+    util.remove_column(cr, "hr_leave", "name")
+    util.remove_column(cr, "hr_leave_allocation", "name")
+
     cr.execute("""
         ALTER TABLE hr_leave_allocation
       RENAME COLUMN private_name
