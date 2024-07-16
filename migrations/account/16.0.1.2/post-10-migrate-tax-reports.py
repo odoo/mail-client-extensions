@@ -120,12 +120,18 @@ def migrate(cr, version):
                    account_report ar
              WHERE c.code = atrl.code
                AND ar.v15_tax_report_id = atrl.report_id
-         RETURNING c.code AS old_code, atrl.code AS new_code, atrl.report_id
+         RETURNING c.code AS old_code, atrl.report_id
+        ),
+        grouped_old_codes AS (
+            SELECT STRING_AGG(old_code, '|') AS or_pattern,
+                   report_id
+              FROM renamed_codes
+             GROUP BY report_id
         )
         UPDATE account_tax_report_line atrl
-           SET formula = REGEXP_REPLACE(formula, '\m' || rc.old_code || '\M', rc.new_code, 'g')
-          FROM renamed_codes rc
-         WHERE atrl.report_id = rc.report_id
+           SET formula = REGEXP_REPLACE(formula, '\m(' || c.or_pattern || ')\M', '\1_R' || c.report_id, 'g')
+          FROM grouped_old_codes c
+         WHERE atrl.report_id = c.report_id
         """
     )
 
