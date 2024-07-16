@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # flake8:noqa: F401
 
 from . import (
@@ -9,6 +8,7 @@ from . import (
     test_16_2_move_popup,
     test_17_2_embed_code,
     test_17_2_mobile_order,
+    test_17_5_unique_website_controller_page,
     test_assets_management,
     test_website_model,
 )
