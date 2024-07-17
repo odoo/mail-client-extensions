@@ -295,14 +295,15 @@ def migrate(cr, version):
                     The following custom tax reports have been migrated, note however they might be partially or substantially wrong.
                     It is therefore crucial to analyze them thoroughly and either fix the errors or create them anew.
                 </summary>
-                <ul>%s</ul>
+                <ul>{}</ul>
             </details>
-        """
-        % " ".join(
-            [
-                f"<li>{util.get_anchor_link_to_record('account.report', id, name)}</li>"
-                for id, name in new_custom_tax_reports
-            ]
+        """.format(
+            " ".join(
+                [
+                    f"<li>{util.get_anchor_link_to_record('account.report', id, name)}</li>"
+                    for id, name in new_custom_tax_reports
+                ]
+            )
         ),
         category="Tax reports",
         format="html",
