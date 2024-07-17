@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+from contextlib import ExitStack
 from datetime import date
 from unittest.mock import patch
 
@@ -56,10 +56,13 @@ class TestAnalyticPlan(UpgradeCase):
             }
         )
 
-        if "account.edi.format" in self.env:
-            with patch.object(type(self.env["account.edi.format"]), "_get_move_applicability", lambda _, __: None):
-                invoice.action_post()
-        else:
+        with ExitStack() as stack:
+            if hasattr(invoice, "_check_document_types_post"):
+                stack.enter_context(patch.object(type(invoice), "_check_document_types_post", lambda _: None))
+            if "account.edi.format" in self.env:
+                stack.enter_context(
+                    patch.object(type(self.env["account.edi.format"]), "_get_move_applicability", lambda _, __: None)
+                )
             invoice.action_post()
 
         analytic_line = invoice.invoice_line_ids.analytic_line_ids
