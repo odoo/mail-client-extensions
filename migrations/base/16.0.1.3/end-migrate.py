@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import collections
 import logging
 
@@ -51,9 +50,7 @@ def migrate_custom_fields(cr, done, skip_models):
             {}
         </ul>
     </details>
-    """.format(
-        "\n".join("<li>{}: {}</li>".format(model, ",".join(fields)) for model, fields in custom_fields.items())
-    )
+    """.format("\n".join("<li>{}: {}</li>".format(model, ",".join(fields)) for model, fields in custom_fields.items()))
     util.add_to_migration_reports(msg, category="Translations", format="html")
 
 
@@ -88,7 +85,7 @@ def migrate(cr, version):
                 """,
                 [tuple(row[0] for row in expected)],
             )
-            indexes_to_delete = [f'"{index_name}"' for index_name, in cr.fetchall()]
+            indexes_to_delete = [f'"{index_name}"' for (index_name,) in cr.fetchall()]
             if indexes_to_delete:
                 cr.execute(f"DROP INDEX {', '.join(indexes_to_delete)}")
                 _logger.info(
