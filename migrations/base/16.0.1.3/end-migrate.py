@@ -38,6 +38,8 @@ def migrate_custom_fields(cr, done, skip_models):
                 continue
             util.convert_field_to_translatable(cr, model_name, field)
 
+    if not custom_fields:
+        return
     msg = """
     <details>
         <summary>
