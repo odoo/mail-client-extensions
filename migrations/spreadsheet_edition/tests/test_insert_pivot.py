@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 
 from odoo.addons.base.maintenance.migrations import util
@@ -86,9 +84,11 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
         }
 
         if util.version_gte("saas~17.3"):
-            pivot["colGroupBys"] = [{"name": "A", "granularity": "month"}, {"name": "B"}]
-            pivot["rowGroupBys"] = [{"name": "C"}, {"name": "D"}]
+            pivot["columns"] = [{"name": "A", "granularity": "month"}, {"name": "B"}]
+            pivot["rows"] = [{"name": "C"}, {"name": "D"}]
             pivot["measures"] = [{"name": "MEASURE"}]
+            del pivot["colGroupBys"]
+            del pivot["rowGroupBys"]
 
         data = json.loads(revisions[0].commands)
         self.assertEqual(

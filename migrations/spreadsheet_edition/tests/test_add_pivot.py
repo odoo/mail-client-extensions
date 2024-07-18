@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 
 from odoo.addons.base.maintenance.migrations import util
@@ -30,6 +28,11 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
                     "pivot": pivot,
                     "pivotId": "1",
                 },
+                {
+                    "type": "UPDATE_PIVOT",
+                    "pivot": pivot,
+                    "pivotId": "1",
+                },
             ],
         }
         field_name = "revision_uuid" if util.version_gte("saas~17.2") else "revision_id"
@@ -54,5 +57,9 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
         data = json.loads(revisions[0].commands)
         pivot = data["commands"][0]["pivot"]
         self.assertEqual(pivot["measures"], [{"name": "MEASURE"}])
-        self.assertEqual(pivot["colGroupBys"], [{"name": "A"}, {"name": "B"}])
-        self.assertEqual(pivot["rowGroupBys"], [{"name": "C"}, {"name": "D"}])
+        self.assertEqual(pivot["columns"], [{"name": "A"}, {"name": "B"}])
+        self.assertEqual(pivot["rows"], [{"name": "C"}, {"name": "D"}])
+        updated_pivot = data["commands"][1]["pivot"]
+        self.assertEqual(updated_pivot["measures"], [{"name": "MEASURE"}])
+        self.assertEqual(updated_pivot["columns"], [{"name": "A"}, {"name": "B"}])
+        self.assertEqual(updated_pivot["rows"], [{"name": "C"}, {"name": "D"}])

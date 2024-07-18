@@ -15,10 +15,12 @@ def migrate(cr, version):
                 command["content"] = re.sub(r"\bODOO\.PIVOT\(", "PIVOT.VALUE(", command["content"], flags=re.I)
                 command["content"] = re.sub(r"\bODOO\.PIVOT\.TABLE\b", "PIVOT", command["content"], flags=re.I)
                 command["content"] = re.sub(r"\bODOO\.PIVOT\.HEADER\b", "PIVOT.HEADER", command["content"], flags=re.I)
-            elif command["type"] == "ADD_PIVOT":
+            elif command["type"] in ["ADD_PIVOT", "UPDATE_PIVOT"]:
                 command["pivot"]["measures"] = [{"name": measure} for measure in command["pivot"]["measures"]]
-                command["pivot"]["colGroupBys"] = [parse_dimension(col) for col in command["pivot"]["colGroupBys"]]
-                command["pivot"]["rowGroupBys"] = [parse_dimension(row) for row in command["pivot"]["rowGroupBys"]]
+                command["pivot"]["columns"] = [parse_dimension(col) for col in command["pivot"]["colGroupBys"]]
+                command["pivot"]["rows"] = [parse_dimension(row) for row in command["pivot"]["rowGroupBys"]]
+                del command["pivot"]["colGroupBys"]
+                del command["pivot"]["rowGroupBys"]
         cr.execute(
             """
             UPDATE spreadsheet_revision
@@ -32,7 +34,7 @@ def migrate(cr, version):
     SELECT id, commands
       FROM spreadsheet_revision
      WHERE commands LIKE '%UPDATE\_CELL%'
-        OR commands LIKE '%ADD\_PIVOT%'
+        OR commands LIKE '%\_PIVOT%'
     """
     with util.named_cursor(cr, BATCH_SIZE) as ncr:
         ncr.execute(query)
