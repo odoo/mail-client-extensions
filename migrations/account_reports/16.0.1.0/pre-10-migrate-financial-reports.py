@@ -163,7 +163,8 @@ def migrate(cr, version):
             create_uid, write_uid, create_date, write_date,
             report_id, name,
             hierarchy_level, sequence, action_id, code, print_on_new_page, hide_if_zero,
-            groupby, foldable, v15_domain,
+            groupby,
+            foldable, v15_domain,
             v15_green_on_positive, v15_special_date_changer, v15_fin_line_id,
             v15_formulas,
             v15_figure_type
@@ -171,7 +172,11 @@ def migrate(cr, version):
         SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(),
                m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
                1, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
-               afhrl.groupby, afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
+               CASE
+                    WHEN afhrl.formulas ~ '^{DOMAIN_EXPR_REGEX}$' THEN afhrl.groupby
+                    ELSE NULL
+               END,
+               afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
                afhrl.green_on_positive, afhrl.special_date_changer, afhrl.id,
                REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),
                CASE
@@ -204,7 +209,8 @@ def migrate(cr, version):
                 create_uid, write_uid, create_date, write_date,
                 report_id, name,
                 parent_id, hierarchy_level, sequence, action_id, code, print_on_new_page, hide_if_zero,
-                groupby, foldable, v15_domain,
+                groupby,
+                foldable, v15_domain,
                 v15_green_on_positive, v15_special_date_changer, v15_fin_line_id,
                 v15_formulas,
                 v15_figure_type
@@ -212,7 +218,11 @@ def migrate(cr, version):
             SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(),
                    m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
                    m.parent_id, m.parent_hierarchy_level + 2, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
-                   afhrl.groupby, afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
+                   CASE
+                        WHEN afhrl.formulas ~ '^{DOMAIN_EXPR_REGEX}$' THEN afhrl.groupby
+                        ELSE NULL
+                   END,
+                   afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
                    afhrl.green_on_positive, afhrl.special_date_changer, afhrl.id,
                    REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),
                    CASE
