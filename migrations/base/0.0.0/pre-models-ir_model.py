@@ -40,6 +40,34 @@ class Model(models.Model):
         return super(Model, self).unlink()
 
 
+if util.version_gte("saas~13.3"):
+
+    class ModelSelection(models.Model):
+        _inherit = "ir.model.fields.selection"
+        _module = "base"
+
+        def unlink(self):
+            ignored_models = set()
+            ignored_fields = set()
+
+            for e in os.environ.get("suppress_upgrade_warnings", "").split(","):
+                if e.startswith("model:"):
+                    ignored_models.add(e[6:])
+                elif e.startswith("field:"):
+                    ignored_fields.add(e[6:])
+
+            manual_delete = self.filtered(
+                lambda r: r.field_id.model in ignored_models
+                or "{}.{}".format(r.field_id.model, r.field_id.name) in ignored_fields
+            )
+
+            if manual_delete:
+                self.env.cr.execute("DELETE FROM ir_model_fields_selection WHERE id IN %s", [tuple(manual_delete.ids)])
+
+            others = self - manual_delete
+            return super(ModelSelection, others).unlink()
+
+
 class Field(models.Model):
     _inherit = "ir.model.fields"
     _module = "base"
@@ -47,10 +75,19 @@ class Field(models.Model):
     def unlink(self):
         unlink_fields = self.env["ir.model.fields"]
         ignore_fields = self.env["ir.model.fields"]
+        ignored_models = set()
+        ignored_fields = set()
+
+        for e in os.environ.get("suppress_upgrade_warnings", "").split(","):
+            if e.startswith("model:"):
+                ignored_models.add(e[6:])
+            elif e.startswith("field:"):
+                ignored_fields.add(e[6:])
+
         for field in self:
             model = self.env.get(field.model)
             f = model._fields.get(field.name) if model is not None else None
-            if "field:%s.%s" % (field.model, field.name) in os.environ.get("suppress_upgrade_warnings", "").split(","):
+            if field.model in ignored_models or "{}.{}".format(field.model, field.name) in ignored_fields:
                 ignore_fields |= field
                 util._logger.log(
                     util.NEARLYWARN, "Field unlink %s.%s explicitly ignored, skipping", field.model, field.name
