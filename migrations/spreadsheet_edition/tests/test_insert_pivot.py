@@ -90,6 +90,24 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
             del pivot["colGroupBys"]
             del pivot["rowGroupBys"]
 
+        if util.version_gte("saas~17.5"):
+            pivot["columns"] = [
+                {
+                    "fieldName": "A",
+                    "granularity": "month",
+                    "id": "A",
+                },
+                {"fieldName": "B", "id": "B"},
+            ]
+            pivot["rows"] = [
+                {"fieldName": "C", "id": "C"},
+                {
+                    "fieldName": "D",
+                    "id": "D",
+                },
+            ]
+            pivot["measures"] = [{"fieldName": "MEASURE", "id": "MEASURE"}]
+
         data = json.loads(revisions[0].commands)
         self.assertEqual(
             data,

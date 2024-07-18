@@ -56,10 +56,15 @@ class TestSpreadsheetInsertPivot(UpgradeCase):
 
         data = json.loads(revisions[0].commands)
         pivot = data["commands"][0]["pivot"]
-        self.assertEqual(pivot["measures"], [{"name": "MEASURE"}])
-        self.assertEqual(pivot["columns"], [{"name": "A"}, {"name": "B"}])
-        self.assertEqual(pivot["rows"], [{"name": "C"}, {"name": "D"}])
-        updated_pivot = data["commands"][1]["pivot"]
-        self.assertEqual(updated_pivot["measures"], [{"name": "MEASURE"}])
-        self.assertEqual(updated_pivot["columns"], [{"name": "A"}, {"name": "B"}])
-        self.assertEqual(updated_pivot["rows"], [{"name": "C"}, {"name": "D"}])
+
+        for cmd in data["commands"]:
+            pivot = cmd["pivot"]
+
+            if util.version_gte("saas~17.5"):
+                self.assertEqual(pivot["measures"], [{"fieldName": "MEASURE", "id": "MEASURE"}])
+                self.assertEqual(pivot["columns"], [{"fieldName": "A", "id": "A"}, {"fieldName": "B", "id": "B"}])
+                self.assertEqual(pivot["rows"], [{"fieldName": "C", "id": "C"}, {"fieldName": "D", "id": "D"}])
+            else:
+                self.assertEqual(pivot["measures"], [{"name": "MEASURE"}])
+                self.assertEqual(pivot["columns"], [{"name": "A"}, {"name": "B"}])
+                self.assertEqual(pivot["rows"], [{"name": "C"}, {"name": "D"}])
