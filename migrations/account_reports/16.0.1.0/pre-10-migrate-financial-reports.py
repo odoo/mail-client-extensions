@@ -39,10 +39,9 @@ def migrate(cr, version):
                         based on your specific case.
                         The custom financial reports that are being lost in this migration are the following ones:
                     </summary>
-                    <ul>%s</ul>
+                    <ul>{}</ul>
                 </details>
-            """
-            % " ".join([f"<li>{name} (id: {id})</li>" for id, name in custom_fin_reports]),
+            """.format(" ".join([f"<li>{name} (id: {id})</li>" for id, name in custom_fin_reports])),
             category="Financial Reports",
             format="html",
         )
@@ -374,14 +373,15 @@ def migrate(cr, version):
                     wrong.
                     It is therefore crucial to analyze them thouroughlly and either fix the errors or create them anew.
                 </summary>
-                <ul>%s</ul>
+                <ul>{}</ul>
             </details>
-        """
-        % " ".join(
-            [
-                f"<li>{util.get_anchor_link_to_record('account.report', id, name)}</li>"
-                for id, name in new_custom_fin_reports
-            ]
+        """.format(
+            " ".join(
+                [
+                    f"<li>{util.get_anchor_link_to_record('account.report', id, name)}</li>"
+                    for id, name in new_custom_fin_reports
+                ]
+            )
         ),
         category="Accounting reports",
         format="html",
