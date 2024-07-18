@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# ruff: noqa: SIM112, UP031
 import os
 
 from odoo import models
@@ -6,7 +7,7 @@ from odoo import models
 from odoo.addons.base.maintenance.migrations import util
 
 try:
-    from odoo.addons.base.models import ir_model as _ignore  # noqa
+    from odoo.addons.base.models import ir_model as _ignore
 except ImportError:
     # version 10
     from odoo.addons.base.ir import ir_model as _ignore  # noqa
@@ -24,13 +25,12 @@ class Model(models.Model):
         invalid_models = []
         for model in self.mapped("model"):
             if "model:%s" % model in os.environ.get("suppress_upgrade_warnings", "").split(","):
-                util._logger.log(25, "Model unlink %s explicitly ignored, skipping" % model)
+                util._logger.log(util.NEARLYWARN, "Model unlink %s explicitly ignored, skipping", model)
             else:
                 invalid_models.append(model)
         if invalid_models:
-            message = (
-                "💥 It looks like you forgot to call `util.remove_model` on the following models: %s"
-                % ", ".join(invalid_models)
+            message = "💥 It looks like you forgot to call `util.remove_model` on the following models: %s" % ", ".join(
+                invalid_models
             )
             if util.on_CI():
                 util._logger.critical(message)
@@ -52,7 +52,9 @@ class Field(models.Model):
             f = model._fields.get(field.name) if model is not None else None
             if "field:%s.%s" % (field.model, field.name) in os.environ.get("suppress_upgrade_warnings", "").split(","):
                 ignore_fields |= field
-                util._logger.log(25, "Field unlink %s.%s explicitly ignored, skipping" % (field.model, field.name))
+                util._logger.log(
+                    util.NEARLYWARN, "Field unlink %s.%s explicitly ignored, skipping", field.model, field.name
+                )
             elif f and f.inherited:
                 # See https://github.com/odoo/odoo/pull/53632
                 util._logger.critical(
@@ -159,13 +161,12 @@ class Field(models.Model):
         invalid_unlink_fields = unlink_fields - ignore_fields
         if invalid_unlink_fields:
             fields = ["%s.%s" % (f.model, f.name) for f in invalid_unlink_fields]
-            message = (
-                "💥 It looks like you forgot to call `util.remove_field` on the following fields: %s" % ", ".join(fields)
+            message = "💥 It looks like you forgot to call `util.remove_field` on the following fields: %s" % ", ".join(
+                fields
             )
             if util.on_CI():
                 util._logger.critical(message)
             else:
                 raise util.MigrationError(message)
-
 
         return super(Field, unlink_fields).unlink()
