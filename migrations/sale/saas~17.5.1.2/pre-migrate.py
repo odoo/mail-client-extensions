@@ -10,3 +10,6 @@ def migrate(cr, version):
 
     for sub_type in subtype_to_update:
         util.if_unchanged(cr, f"sale.{sub_type}", util.update_record_from_xml)
+
+    util.remove_field(cr, "sale.order", "analytic_account_id")
+    util.remove_field(cr, "sale.report", "analytic_account_id")
