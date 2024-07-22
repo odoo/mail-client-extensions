@@ -54,13 +54,6 @@ else:
     file_path = get_resource_from_path = get_view_arch_from_file = None
     _validators = {}
 
-try:
-    from odoo.tools.pycompat import to_text
-except ImportError:
-
-    def to_text(t):
-        return t
-
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.base." + __name__)
 ODOO_MIG_TRY_FIX_VIEWS = util.str2bool(os.environ.get("ODOO_MIG_TRY_FIX_VIEWS", "0"))
@@ -633,7 +626,10 @@ def _upgrade_fix_views(fix_view, root_view):
                     xmlid = "{}.{}".format(module, xmlid)
                 return m.group("prefix") + str(xmlid_to_res_id(xmlid))
 
-            return re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
+            arch = re.sub(r"(?P<prefix>[^%])%\((?P<xmlid>.*?)\)[ds]", replacer, arch_fs)
+            if isinstance(arch, bytes):
+                return arch.decode("utf-8")
+            return arch
 
         def check_path(path):
             try:
@@ -660,7 +656,7 @@ def _upgrade_fix_views(fix_view, root_view):
         view_copy = view.with_context(_upgrade_fix_views=True).copy(
             {"active": False, "name": "%s (Copy created during upgrade)" % view.name}
         )
-        view.arch_db = to_text(resolve_external_ids(arch_db, md.module).replace("%%", "%"))
+        view.arch_db = resolve_external_ids(arch_db, md.module).replace("%%", "%")
 
         # Mark the view as it was loaded with its XML data file.
         # Otherwise it will be deleted in _process_end
