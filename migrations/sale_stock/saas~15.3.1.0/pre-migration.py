@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -22,13 +21,32 @@ def migrate(cr, version):
     )
     cr.execute(
         """
+        WITH lines AS (
+            SELECT distinct order_id
+              FROM sale_order_line
+             WHERE qty_delivered > 0
+        ),
+        picks AS (
+            SELECT distinct sale_id AS order_id
+              FROM stock_picking
+        )
+        UPDATE sale_order so
+           SET delivery_status='partial'
+          FROM lines l, picks p
+         WHERE so.id=l.order_id
+           AND so.id=p.order_id
+           AND so.delivery_status IS NULL
+    """
+    )
+    cr.execute(
+        """
         WITH picks AS (
             SELECT distinct sale_id AS order_id
               FROM stock_picking
              WHERE state='done'
         )
         UPDATE sale_order so
-           SET delivery_status='partial'
+           SET delivery_status='started'
           FROM picks p
          WHERE so.id=p.order_id
            AND so.delivery_status IS NULL
@@ -52,7 +70,7 @@ def migrate(cr, version):
             SELECT order_id
               FROM states s
              WHERE NOT (array_position(s.states, 'cancel') > 0
-                          AND 
+                          AND
                         array_length(s.states, 1) = 1)
         )
         UPDATE sale_order so
