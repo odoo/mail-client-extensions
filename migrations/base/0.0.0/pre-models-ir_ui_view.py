@@ -11,6 +11,11 @@ except ImportError:
     unescape = HTMLParser.HTMLParser().unescape
 
 try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
+try:
     zip = itertools.izip  # noqa: A001
 except AttributeError:
     zip_longest = itertools.zip_longest
@@ -711,7 +716,9 @@ def _upgrade_fix_views(fix_view, root_view):
     def check():
         # Check from root view and return the exception representation
         e = None
-        with mute_logger("odoo.addons.base.ir.ir_ui_view", "odoo.addons.base.models.ir_ui_view"):
+        with mute_logger("odoo.addons.base.ir.ir_ui_view", "odoo.addons.base.models.ir_ui_view"), patch(
+            "odoo.api.Environment.lang", "en_US"
+        ):
             try:
                 super(IrUiView, root_view.with_context(lang="en_US"))._check_xml()
             except Exception as _e:
