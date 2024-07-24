@@ -52,3 +52,4 @@ def migrate(cr, version):
 
     cr.execute("ALTER TABLE website_controller_page RENAME COLUMN page_name TO name")
     util.remove_field(cr, "website.controller.page", "page_name")
+    util.remove_view(cr, "website.s_faq_collapse_options")
