@@ -75,3 +75,5 @@ def migrate(cr, version):
 
     if wrong_models:
         util.helpers._VALID_MODELS = orig_valid_models
+    for m in models:
+        util.ENVIRON["__renamed_fields"][m]["__last_update"] = None
