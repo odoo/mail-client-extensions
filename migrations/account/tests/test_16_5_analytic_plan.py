@@ -10,6 +10,7 @@ except ImportError:
     Command = None
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util import module_installed
 
 
 @change_version("saas~16.5")
@@ -33,13 +34,22 @@ class TestAnalyticPlan(UpgradeCase):
                 "plan_id": child_analytic_plan.id,
             }
         )
+        journal_data = {
+            "name": "Journal Test Analytic Plan 16_5",
+            "code": "AP165",
+            "type": "sale",
+        }
+        if module_installed(self.env.cr, "l10n_latam_invoice_document"):
+            journal_data["l10n_latam_use_documents"] = False
 
+        journal = self.env["account.journal"].create(journal_data)
         partner = self.env["res.partner"].create({"name": "Some Partner"})
         product = self.env["product.product"].create({"name": "Some Product"})
         invoice_date = self.env.company._get_user_fiscal_lock_date() + relativedelta(months=1) or date.today()
         invoice = self.env["account.move"].create(
             {
                 "partner_id": partner.id,
+                "journal_id": journal.id,
                 "move_type": "out_invoice",
                 "invoice_date": invoice_date,
                 "invoice_line_ids": [
