@@ -23,9 +23,10 @@ def migrate(cr, version):
              GROUP BY tax.type, doc.type
             )
             INSERT INTO account_tax_repartition_line(
-                            repartition_type,document_type,factor_percent,tax_id
+                            repartition_type,document_type,factor_percent,tax_id,company_id,sequence
                         )
-                 SELECT info.ttype, info.dtype, 100.0, t.id
+                 SELECT info.ttype, info.dtype, 100.0, t.id, t.company_id,
+                   CASE WHEN info.ttype = 'base' THEN 1 ELSE 2 END AS sequence
                    FROM info,
                         account_tax t
                   WHERE t.amount_type != 'group'
@@ -53,7 +54,7 @@ def migrate(cr, version):
               GROUP BY tax.type, doc.type
             )
             INSERT INTO account_tax_repartition_line(
-                            repartition_type,invoice_tax_id,refund_tax_id,factor_percent
+                            repartition_type,invoice_tax_id,refund_tax_id,factor_percent,company_id,sequence
                         )
                  SELECT info.ttype,
                         CASE
@@ -64,7 +65,9 @@ def migrate(cr, version):
                             WHEN info.dtype = 'refund' THEN t.id
                             ELSE NULL
                         END AS refund_tax_id,
-                        100.0
+                        100.0,
+                        t.company_id,
+                        CASE WHEN info.ttype = 'base' THEN 1 ELSE 2 END AS sequence
                    FROM info,
                         account_tax t
                   WHERE t.amount_type != 'group'
