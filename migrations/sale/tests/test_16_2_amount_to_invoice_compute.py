@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-
+from contextlib import ExitStack
 from datetime import date
+from unittest.mock import patch
 
 from dateutil.relativedelta import relativedelta
 
@@ -66,7 +66,16 @@ class TestAmountToInvoice(UpgradeCase):
 
         invoice = sale_order.invoice_ids
         invoice.write({"invoice_date": invoice_date})
-        invoice.action_post()
+
+        with ExitStack() as stack:
+            if module_installed(self.env.cr, "l10n_mx_edi"):
+                stack.enter_context(
+                    patch.object(
+                        type(self.env["account.edi.format"]), "_l10n_mx_edi_check_configuration", lambda _, __: []
+                    )
+                )
+
+            invoice.action_post()
 
         return sale_order.id
 
