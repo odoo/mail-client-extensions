@@ -2,6 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_view(cr, "hr_expense.account_journal_dashboard_kanban_view_inherit_hr_expense")
     util.explode_execute(
         cr,
         """
