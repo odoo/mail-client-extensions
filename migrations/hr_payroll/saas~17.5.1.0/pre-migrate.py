@@ -78,3 +78,6 @@ def migrate(cr, version):
     util.remove_record(cr, "hr_payroll.ir_rule_hr_salary_attachment_type_multi_company")
     util.remove_record(cr, "hr_payroll.access_hr_salary_attachment_type")
     util.remove_menus(cr, [util.ref(cr, "hr_payroll.menu_hr_salary_attachment_type")])
+
+    if util.module_installed(cr, "l10n_be_hr_payroll"):
+        util.move_field_to_module(cr, "hr.employee", "disabled", "l10n_be_hr_payroll", "hr_payroll")
