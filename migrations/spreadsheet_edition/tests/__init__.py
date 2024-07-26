@@ -2,6 +2,8 @@ from . import (
     test_add_dataset_to_odoo_charts,
     test_add_operator_to_gauge_chart,
     test_add_pivot,
+    test_broken_revision_history,
+    test_broken_revision_history_with_no_snapshot,
     test_chart_commands,
     test_create_table_command_change,
     test_image_attachment,

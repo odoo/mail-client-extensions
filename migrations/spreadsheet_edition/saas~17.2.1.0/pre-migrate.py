@@ -54,6 +54,54 @@ def migrate(cr, version):
         commands.clear()
         commands.extend(new_commands)
 
+    cr.execute(
+        r"""
+        WITH RECURSIVE info AS (
+            -- get the last snapshot per reference record
+            SELECT max(sr.id) FILTER(WHERE sr.commands LIKE '%SNAPSHOT\_CREATED%') AS id
+              FROM spreadsheet_revision sr
+         LEFT JOIN spreadsheet_revision sr2
+                ON sr.parent_revision_id = sr2.revision_id
+          GROUP BY sr.res_id, sr.res_model
+            -- restrict to cases with more than one revision with missing parent
+            -- note: the head revision will always have a missing parent
+            HAVING COUNT(*) FILTER(WHERE sr2.id IS NULL) > 1
+        ), hierarchy AS (
+            -- starting from the last snapshot
+            SELECT s.id,
+                   s.revision_id,
+                   s.res_id,
+                   s.res_model
+              FROM spreadsheet_revision s
+              JOIN info
+                ON s.id = info.id
+
+             UNION ALL
+
+            SELECT t.id,
+                   t.revision_id,
+                   t.res_id,
+                   t.res_model
+              FROM spreadsheet_revision t
+              JOIN hierarchy h
+                ON t.parent_revision_id = h.revision_id
+        ), grouped AS (
+            SELECT res_id,
+                   res_model,
+                   array_agg(id) AS ids
+              FROM hierarchy
+          GROUP BY res_id, res_model
+        )
+            -- remove all revisions that are not in a unbroken straight line
+            -- from the last snapshot of each record (res_model/id)
+       DELETE FROM spreadsheet_revision sr
+             USING grouped
+             WHERE sr.id != ALL(grouped.ids)
+               AND sr.res_id = grouped.res_id
+               AND sr.res_model = grouped.res_model
+        """
+    )
+
     util.rename_field(cr, "spreadsheet.revision", "revision_id", "revision_uuid")
     util.rename_field(cr, "spreadsheet.mixin", "server_revision_id", "current_revision_uuid")
     util.remove_constraint(cr, "spreadsheet_revision", "spreadsheet_revision_parent_revision_unique")
