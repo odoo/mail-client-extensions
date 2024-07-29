@@ -44,3 +44,24 @@ def migrate(cr, version):
     util.create_column(cr, "account_move", "is_manually_modified", "bool", default=True)
     util.create_column(cr, "res_partner", "autopost_bills", "varchar", default="ask")
     util.create_column(cr, "res_company", "autopost_bills", "bool", default=True)
+
+    util.create_column(cr, "account_move", "preferred_payment_method_line_id", "int4")
+    if util.column_exists(cr, "account_move", "preferred_payment_method_id"):
+        # Create a mapping for payment_method and a payment method line
+        query = """
+            WITH pay_lines AS (
+                SELECT l.payment_method_id,
+                       j.company_id,
+                       min(l.id) AS payment_method_line_id
+                  FROM account_payment_method_line l
+                  JOIN account_journal j
+                    ON j.id = l.journal_id
+              GROUP BY l.payment_method_id, j.company_id
+            )
+          UPDATE account_move am
+             SET preferred_payment_method_line_id = pl.payment_method_line_id
+            FROM pay_lines pl
+           WHERE am.preferred_payment_method_id = pl.payment_method_id
+             AND am.company_id = pl.company_id
+        """
+        util.explode_execute(cr, query, table="account_move", alias="am")
