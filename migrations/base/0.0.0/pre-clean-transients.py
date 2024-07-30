@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import itertools
 from collections import defaultdict
 
@@ -33,8 +32,8 @@ def migrate(cr, version):
         util.parallel_execute(
             cr,
             [
-                "ALTER TABLE {} {}".format(t, ", ".join("ALTER COLUMN {} DROP NOT NULL".format(c) for c in l))
-                for t, l in columns_to_set_null.items()
+                "ALTER TABLE {} {}".format(t, ", ".join("ALTER COLUMN {} DROP NOT NULL".format(c) for c in columns))
+                for t, columns in columns_to_set_null.items()
             ],
         )
         update_set_null_queries = list(
@@ -60,7 +59,7 @@ def migrate(cr, version):
     cr.execute(util.format_query(cr, "TRUNCATE {} CASCADE", sql.SQL(", ").join(map(sql.Identifier, tables))))
 
     for ir in util.indirect_references(cr, bound_only=True):
-        query = 'DELETE FROM "{0}" WHERE {1} AND "{2}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
+        query = 'DELETE FROM "{}" WHERE {} AND "{}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
         with suppress(psycopg2.Error), util.savepoint(cr):
             cr.executemany(query, models)
 
