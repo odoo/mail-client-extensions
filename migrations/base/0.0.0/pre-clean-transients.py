@@ -3,6 +3,7 @@ import itertools
 from collections import defaultdict
 
 import psycopg2
+from psycopg2 import sql
 
 try:
     from contextlib import suppress
@@ -56,9 +57,7 @@ def migrate(cr, version):
         cr.execute(
             "ALTER TABLE {} {}".format(table_name, ", ".join("DROP CONSTRAINT {}".format(c) for c in constraints))
         )
-
-    tables = ", ".join(tables)
-    cr.execute("TRUNCATE {} CASCADE".format(tables))
+    cr.execute(util.format_query(cr, "TRUNCATE {} CASCADE", sql.SQL(", ").join(map(sql.Identifier, tables))))
 
     for ir in util.indirect_references(cr, bound_only=True):
         query = 'DELETE FROM "{0}" WHERE {1} AND "{2}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
