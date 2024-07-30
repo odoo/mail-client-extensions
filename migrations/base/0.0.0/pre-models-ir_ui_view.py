@@ -360,7 +360,11 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
             for elem in arch.xpath("//attribute[@name='groups' and text()='{}']".format(group_name)):
                 parent = elem.getparent()
                 invisible_field = builder.E.field(name=used_field, invisible="1")
-                expr = parent.attrib["expr"] if parent.tag == "xpath" else "//field[@name=%r]" % parent.attrib["name"]
+                expr = (
+                    parent.attrib["expr"]
+                    if parent.tag == "xpath"
+                    else "//field[@name={}]".format(parent.attrib["name"])
+                )
                 full_element = builder.E.xpath(invisible_field, expr=expr, position="before")
                 parent.addprevious(full_element)
             elems = arch.xpath(
@@ -654,7 +658,7 @@ def _upgrade_fix_views(fix_view, root_view):
             return
 
         view_copy = view.with_context(_upgrade_fix_views=True).copy(
-            {"active": False, "name": "%s (Copy created during upgrade)" % view.name}
+            {"active": False, "name": "{} (Copy created during upgrade)".format(view.name)}
         )
         view.arch_db = resolve_external_ids(arch_db, md.module).replace("%%", "%")
 
@@ -846,7 +850,7 @@ class IrUiView(models.Model):
             """
             super(IrUiView, self)._register_hook()
             origin_validators = dict(_validators)
-            dummy_validators = dict.fromkeys(_validators, [lambda *args, **kwargs: True])
+            dummy_validators = dict.fromkeys(_validators, [lambda *args, **kwargs: True])  # noqa: RUF024 reason: we want same list
 
             self._cr.execute("SELECT DISTINCT report_name FROM ir_act_report_xml")
             report_views_xml_ids = {r[0] for r in self._cr.fetchall()}
@@ -993,7 +997,7 @@ class IrUiView(models.Model):
         def unlink(self):
             for view in self:
                 if view.xml_id:
-                    if "view:%s" % (view.xml_id) in os.environ.get(
+                    if "view:{}".format(view.xml_id) in os.environ.get(
                         "suppress_upgrade_warnings",  # noqa: SIM112
                         "",
                     ).split(","):
