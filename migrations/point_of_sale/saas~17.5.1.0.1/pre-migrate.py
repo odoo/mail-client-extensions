@@ -29,3 +29,7 @@ def migrate(cr, version):
         "payment_method_payment_mode",
     ]:
         util.create_column(cr, "pos_payment", fields_to_add, "varchar")
+
+    if util.module_installed(cr, "pos_self_order"):
+        util.move_field_to_module(cr, "product.template", "description_self_order", "pos_self_order", "point_of_sale")
+        util.rename_field(cr, "product.template", "description_self_order", "public_description")
