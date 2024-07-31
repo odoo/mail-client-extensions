@@ -6,6 +6,7 @@ def migrate(cr, version):
     util.remove_field(cr, "pos.config", "module_pos_mercury")
     util.remove_field(cr, "res.config.settings", "module_pos_mercury")
 
+    util.rename_field(cr, "pos.order", "note", "floating_order_name")
     util.rename_field(cr, "pos.order.line", *eb("combo_{line,item}_id"))
 
     util.rename_xmlid(cr, *eb("point_of_sale.product_jeans_combo_{line,item}_1"))
