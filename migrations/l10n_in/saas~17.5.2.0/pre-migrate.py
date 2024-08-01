@@ -1,3 +1,6 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
     query = """
       UPDATE ir_model_data d
@@ -10,3 +13,6 @@ def migrate(cr, version):
          AND n.code = 'IN'
     """
     cr.execute(query)
+    if util.module_installed(cr, "l10n_in_edi"):
+        util.move_field_to_module(cr, "res.company", "l10n_in_edi_production_env", "l10n_in_edi", "l10n_in")
+        util.move_field_to_module(cr, "res.config.settings", "l10n_in_edi_production_env", "l10n_in_edi", "l10n_in")
