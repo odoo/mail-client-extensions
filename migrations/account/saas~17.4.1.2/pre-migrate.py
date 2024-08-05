@@ -5,6 +5,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move.send", "send_mail_warning_message")
     util.remove_field(cr, "account.move.send", "sequence_gap_warning")
     util.rename_field(cr, "mail.message", "show_audit_log", "account_audit_log_activated")
+    util.remove_field(cr, "mail.message", "account_audit_log_display_name")
     util.remove_view(cr, "account.res_config_settings_view_form_inherit_account_audit_trail")
     util.remove_view(cr, "account.view_account_payment_method_line_kanban")
     util.change_field_selection_values(
