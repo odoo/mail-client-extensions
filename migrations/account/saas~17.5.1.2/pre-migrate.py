@@ -109,3 +109,17 @@ def migrate(cr, version):
     util.remove_field(cr, "account.root", "company_id")
     util.remove_record(cr, "account.account_root_comp_rule")
     util.remove_field(cr, "account.cash.rounding", "company_id")
+
+    util.remove_model(cr, "account.unreconcile")
+
+    util.invert_boolean_field(cr, "account.move", "to_check", "checked")
+    cr.execute("ALTER INDEX IF EXISTS account_move_to_check_idx RENAME TO account_move_checked_idx")
+
+    util.create_column(cr, "account_move", "amount_untaxed_in_currency_signed", "int4")
+    query_amount_untaxed = """
+        UPDATE account_move
+           SET amount_untaxed_in_currency_signed = amount_untaxed *
+     CASE WHEN move_type IN ('entry', 'in_invoice', 'out_refund', 'in_receipt')
+          THEN -1 ELSE 1 END
+    """
+    util.explode_execute(cr, query_amount_untaxed, table="account_move")

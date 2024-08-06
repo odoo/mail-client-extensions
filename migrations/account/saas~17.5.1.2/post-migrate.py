@@ -42,3 +42,5 @@ def migrate(cr, version):
         util.explode_execute(
             cr, cr.mogrify(query, [new_field_id, old_field_id]).decode(), table="ir_property", alias="p"
         )
+
+    util.if_unchanged(cr, "account.journal_group_comp_rule", util.update_record_from_xml)
