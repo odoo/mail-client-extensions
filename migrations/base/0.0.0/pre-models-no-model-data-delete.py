@@ -36,7 +36,7 @@ class IrModelData(models.Model):
         if hasattr(self.pool, "loaded_xmlids"):
             loaded_xmlids = self.pool.loaded_xmlids
         else:
-            loaded_xmlids = set(".".join([module, name]) for module, name in self.loads)
+            loaded_xmlids = {".".join([module, name]) for module, name in self.loads}
 
         self.env.cr.execute(
             """
@@ -85,19 +85,22 @@ class IrModelData(models.Model):
                 if not noupdate_forced:
                     continue
 
-                suppress = set(
+                suppress = {
                     xmlid
                     for (type_, _, xmlid) in (
-                        elem.partition(":") for elem in os.environ.get("suppress_upgrade_warnings", "").split(",")
+                        elem.partition(":")
+                        for elem in os.environ.get("suppress_upgrade_warnings", "").split(",")  # noqa: SIM112
                     )
                     if type_ == "xmlid"
-                )
+                }
                 ignored_xmlids = unloaded_xmlids & suppress
                 if ignored_xmlids:
                     _logger.log(util.NEARLYWARN, "Explictly ignoring unlink of record(s) %s", ",".join(ignored_xmlids))
                 error_xmlids = unloaded_xmlids - suppress
                 if error_xmlids:
-                    error_msg = "It looks like you forgot to call `util.delete_unused` on %s" % (",".join(error_xmlids))
+                    error_msg = "It looks like you forgot to call `util.delete_unused` on {}".format(
+                        ",".join(error_xmlids)
+                    )
                     _logger.critical(error_msg)
 
         return super(IrModelData, self)._process_end(modules)
