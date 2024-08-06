@@ -763,8 +763,9 @@ def _upgrade_fix_views(fix_view, root_view):
             arch_orig = fix_view.arch
             if not heuristic_fixes(fix_view._cr, fix_view, check, e):
                 # arch may have been changed by heuristic_fixes, restore it
+                last_e = check()  #  last error from heuristic_fixes, before resetting arch
                 fix_view.arch = arch_orig
-                disable(fix_view, md, children, e)
+                disable(fix_view, md, children, last_e)
                 return True
 
             # Only log a warning for non-CI upgrades as this situation occurs due to test data.
