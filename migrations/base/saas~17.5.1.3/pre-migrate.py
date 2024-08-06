@@ -11,3 +11,4 @@ def migrate(cr, version):
         """
     )
     util.rename_xmlid(cr, "base.lang_sr_RS", "base.lang_sr@Cyrl")
+    util.remove_view(cr, "base.res_users_identitycheck_view_form_revokedevices")
