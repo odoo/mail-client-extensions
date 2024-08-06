@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import itertools
 import logging
 import os
 
@@ -98,9 +99,10 @@ class IrModelData(models.Model):
                     _logger.log(util.NEARLYWARN, "Explictly ignoring unlink of record(s) %s", ",".join(ignored_xmlids))
                 error_xmlids = unloaded_xmlids - suppress
                 if error_xmlids:
-                    error_msg = "It looks like you forgot to call `util.delete_unused` on {}".format(
-                        ",".join(error_xmlids)
-                    )
-                    _logger.critical(error_msg)
+                    for _, gx in itertools.groupby(sorted(error_xmlids), key=lambda x: x.split(".")[0]):
+                        _logger.critical(
+                            "It looks like you forgot to call `util.delete_unused(cr, %s)`",
+                            ", ".join(map('"{}"'.format, gx)),
+                        )
 
         return super(IrModelData, self)._process_end(modules)

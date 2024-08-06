@@ -1011,7 +1011,7 @@ class IrUiView(models.Model):
                     ).split(","):
                         _logger.log(25, "View unlink %s explicitly ignored", (view.xml_id))
                     else:
-                        _logger.critical("It looks like you forgot to call `util.remove_view(cr, %r)`", view.xml_id)
+                        _logger.critical('It looks like you forgot to call `util.remove_view(cr, "%s")`', view.xml_id)
 
             return super().unlink()
 
