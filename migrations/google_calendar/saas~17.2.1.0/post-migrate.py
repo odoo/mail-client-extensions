@@ -6,8 +6,13 @@ def migrate(cr, version):
     User settings table for calendar users (Community PR:151537).
     """
     # Upsert the Google Calendar Credentials into the Res Users Settings table.
+    p, q = (
+        (", calendar_default_privacy", ", 'public'")
+        if util.column_exists(cr, "res_users_settings", "calendar_default_privacy")
+        else ("", "")
+    )
     cr.execute(
-        """
+        f"""
         INSERT INTO res_users_settings (
                         user_id,
                         google_calendar_sync_token,
@@ -16,6 +21,7 @@ def migrate(cr, version):
                         google_synchronization_stopped,
                         google_calendar_token_validity,
                         google_calendar_cal_id
+                        {p}
                     )
              SELECT usr.id,
                     cred_user.calendar_sync_token,
@@ -24,6 +30,7 @@ def migrate(cr, version):
                     cred_user.synchronization_stopped,
                     cred_user.calendar_token_validity,
                     cred_user.calendar_cal_id
+                    {q}
                FROM google_calendar_credentials AS cred_user
                JOIN res_users AS usr
                  ON usr.google_calendar_account_id = cred_user.id
