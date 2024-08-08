@@ -39,3 +39,8 @@ def migrate(cr, version):
     cr.execute("DROP INDEX IF EXISTS account_move_sequence_index3")
     util.rename_field(cr, "account.move", "reversal_move_id", "reversal_move_ids")
     util.remove_record(cr, "account.invoice_send")
+
+    # Autopost bills
+    util.create_column(cr, "account_move", "is_manually_modified", "bool", default=True)
+    util.create_column(cr, "res_partner", "autopost_bills", "varchar", default="ask")
+    util.create_column(cr, "res_company", "autopost_bills", "bool", default=True)
