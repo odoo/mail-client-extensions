@@ -16,4 +16,5 @@ def migrate(cr, version):
         snippets.html_converter(
             replace_z_index_classes, selector="//*[contains(@class, 'z-index-0') or contains(@class, 'z-index-1')]"
         ),
+        where_column=r"~ '\yz-index-[01]\y'",
     )

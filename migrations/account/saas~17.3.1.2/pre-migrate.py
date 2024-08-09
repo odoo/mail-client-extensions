@@ -28,8 +28,12 @@ def migrate(cr, version):
     util.remove_record(cr, "account.onboarding_onboarding_account_invoice")
 
     # statement line journal_id and company_id fields are now stored related
-    util.create_column(cr, "account_bank_statement_line", "journal_id", "int4")
-    util.create_column(cr, "account_bank_statement_line", "company_id", "int4")
+    util.create_column(
+        cr, "account_bank_statement_line", "journal_id", "int4", fk_table="account_journal", on_delete_action="RESTRICT"
+    )
+    util.create_column(
+        cr, "account_bank_statement_line", "company_id", "int4", fk_table="res_company", on_delete_action="RESTRICT"
+    )
     util.explode_execute(
         cr,
         """
@@ -42,3 +46,17 @@ def migrate(cr, version):
         "account_bank_statement_line",
         alias="stl",
     )
+
+    # payments
+    util.create_column(
+        cr, "account_payment", "journal_id", "int4", fk_table="account_journal", on_delete_action="RESTRICT"
+    )
+    util.create_column(cr, "account_payment", "company_id", "int4", fk_table="res_company", on_delete_action="RESTRICT")
+    query = """
+        UPDATE account_payment p
+           SET journal_id = m.journal_id,
+               company_id = m.company_id
+          FROM account_move m
+         WHERE m.id = p.move_id
+    """
+    util.explode_execute(cr, query, table="account_payment", alias="p")
