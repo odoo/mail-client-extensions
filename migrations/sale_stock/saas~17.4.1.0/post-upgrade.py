@@ -14,4 +14,4 @@ def migrate(cr, version):
     cr.execute("SELECT id FROM sale_order_line WHERE route_id IS NOT NULL")
     ids = [lid for (lid,) in cr.fetchall()]
     if ids:
-        util.recompute_fields(cr, "sale.order.line", "warehouse_id", ids=ids)
+        util.recompute_fields(cr, "sale.order.line", ["warehouse_id"], ids=ids)
