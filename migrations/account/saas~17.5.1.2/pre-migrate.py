@@ -1,3 +1,5 @@
+from odoo.tools import SQL
+
 from odoo.upgrade import util
 
 
@@ -65,3 +67,45 @@ def migrate(cr, version):
              AND am.company_id = pl.company_id
         """
         util.explode_execute(cr, query, table="account_move", alias="am")
+
+    # Share accounts between companies
+    # 1. Populate ir_property with account codes
+    cr.execute("SELECT id FROM ir_model_fields WHERE model='account.account' AND name='code'")
+    [fields_id] = cr.fetchone()
+    cr.execute(
+        SQL(
+            """
+        INSERT INTO ir_property (name, res_id, company_id, fields_id, value_text, type)
+             SELECT 'code' AS name,
+                    'account.account,' || account_account.id AS res_id,
+                    SPLIT_PART(res_company.parent_path, '/', 1)::int AS company_id,
+                    %s AS fields_id,
+                    account_account.code AS value_text,
+                    'char' AS type
+               FROM account_account
+               JOIN res_company ON res_company.id = account_account.company_id
+    """,
+            fields_id,
+        )
+    )
+    util.remove_column(cr, "account_account", "code")
+
+    # 2. Create and populate account_account_res_company_rel
+    util.create_m2m(cr, "account_account_res_company_rel", "account_account", "res_company")
+    cr.execute("""
+        INSERT INTO account_account_res_company_rel (account_account_id, res_company_id)
+             SELECT id AS account_account_id,
+                    company_id AS res_company_id
+               FROM account_account
+    """)
+    util.rename_field(cr, "account.account", "company_id", "company_ids")
+    util.remove_column(cr, "account_account", "company_ids")
+
+    # 3. Misc column/field changes
+    util.remove_column(cr, "account_account", "group_id")
+    util.remove_column(cr, "account_account", "root_id")
+    util.remove_column(cr, "account_move_line", "account_root_id")
+    cr.execute('DROP VIEW IF EXISTS "account_root" CASCADE')
+    util.remove_field(cr, "account.root", "company_id")
+    util.remove_record(cr, "account.account_root_comp_rule")
+    util.remove_field(cr, "account.cash.rounding", "company_id")
