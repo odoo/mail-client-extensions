@@ -56,6 +56,8 @@ def migrate(cr, version):
     util.create_column(cr, "documents_document", "create_activity_note", "varchar")
     util.create_column(cr, "documents_document", "create_activity_user_id", "int4")
 
+    util.create_column(cr, "documents_document", "_upg_was_shared", "boolean")
+
     # Root folders will have NULL folder_id when we transform them into documents
     cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
     util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
@@ -618,7 +620,9 @@ def migrate(cr, version):
         cr,
         """
          UPDATE documents_document d
-            SET access_via_link = 'view', is_access_via_link_hidden = (COALESCE(d.access_internal, 'none') = 'none')
+            SET access_via_link = 'view',
+                is_access_via_link_hidden = (COALESCE(d.access_internal, 'none') = 'none'),
+                _upg_was_shared = TRUE
            FROM documents_redirect AS redirect
           WHERE d.id = redirect.document_id
             AND {parallel_filter}
@@ -630,7 +634,8 @@ def migrate(cr, version):
         cr,
         """
          UPDATE documents_document d
-            SET access_via_link = 'view'
+            SET access_via_link = 'view',
+                _upg_was_shared = TRUE
            FROM documents_redirect AS redirect
            JOIN documents_document doc
              ON doc.id = redirect.document_id

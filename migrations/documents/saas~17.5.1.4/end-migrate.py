@@ -49,6 +49,7 @@ def migrate(cr, version):
     ############
     # we might need those field for the sub-modules migration
     util.remove_column(cr, "documents_document", "_upg_old_folder_id")
+    util.remove_column(cr, "documents_document", "_upg_was_shared")
     util.remove_field(cr, "documents.document", "create_share_id")
     util.remove_field(cr, "documents.document", "group_ids")
     util.remove_field(cr, "documents.document", "available_rule_ids")
