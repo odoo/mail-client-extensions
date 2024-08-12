@@ -53,3 +53,17 @@ def migrate(cr, version):
             """,
             {"insurance_model": insurance_model},
         )
+
+    hr_salary_rule = [
+        "l10n_ch_employees_indemnity_maternity_2",
+        "l10n_ch_employees_indemnity_illness_2",
+        "l10n_ch_employees_indemnity_accident_2",
+        "l10n_ch_employees_company_car_employee_2",
+        "l10n_ch_employees_ijm_comp",
+        "l10n_ch_employees_ijm",
+        "l10n_ch_employees_ijm_salary",
+        "l10n_ch_employees_laac_comp",
+        "l10n_ch_employees_laac_salary",
+        "l10n_ch_employees_aanp_salary",
+    ]
+    util.delete_unused(cr, *[f"l10n_ch_hr_payroll.{xmlid}" for xmlid in hr_salary_rule])
