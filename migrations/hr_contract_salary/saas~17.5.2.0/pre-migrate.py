@@ -14,3 +14,19 @@ def migrate(cr, version):
         """,
         table="hr_contract_salary_offer",
     )
+
+    util.rename_field(cr, "hr.contract.salary.benefit.value", "color", "selector_highlight")
+    util.change_field_selection_values(cr, "hr.contract.salary.benefit.value", "selector_highlight", {"green": "none"})
+    util.remove_field(cr, "hr.contract.salary.benefit", "impacts_net_salary")
+    util.create_column(cr, "hr_contract_salary_benefit", "always_show_description", "boolean", default=True)
+    cr.execute("""
+    UPDATE hr_contract_salary_benefit
+       SET always_show_description=FALSE
+     WHERE hide_description=TRUE""")
+    util.remove_field(cr, "hr.contract.salary.benefit", "hide_description")
+    util.create_column(cr, "hr_contract_salary_benefit_value", "always_show_description", "boolean", default=True)
+    cr.execute("""
+    UPDATE hr_contract_salary_benefit_value
+       SET always_show_description=FALSE
+     WHERE hide_description=TRUE""")
+    util.remove_field(cr, "hr.contract.salary.benefit.value", "hide_description")
