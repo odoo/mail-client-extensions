@@ -2,6 +2,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_record(cr, "sale.sale_order_action_view_quotation_tree")
+    util.remove_record(cr, "sale.sale_order_action_view_quotation_kanban")
     util.remove_view(cr, "sale.sale_order_view_form")
     util.remove_record(cr, "sale.onboarding_onboarding_sale_quotation")
     util.remove_record(cr, "sale.onboarding_onboarding_step_sale_order_confirmation")
