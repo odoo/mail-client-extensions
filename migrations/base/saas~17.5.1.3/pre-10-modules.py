@@ -96,6 +96,7 @@ def migrate(cr, version):
 
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
     util.force_upgrade_of_fresh_module(cr, "html_editor", init=False)
+    util.force_upgrade_of_fresh_module(cr, "l10n_br_edi_website_sale")
     if util.module_installed(cr, "mrp_account") and not util.module_installed(cr, "project"):
         # The following query identifies whether there is at least a BOM or a MO that has an analytic distribution
         # which contains exactly one line at 100%. If that's the case, we force the installation of the project module
