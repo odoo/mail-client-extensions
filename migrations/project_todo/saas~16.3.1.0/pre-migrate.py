@@ -284,6 +284,61 @@ def migrate(cr, version):
         [converted_note_tag_id],
     )
 
+    # ------------- 8. Move Studio fields and manual fields ------------------
+    for src_model, dst_model, map_col in [
+        ("note.note", "project.task", "_upg_note_id"),
+        ("note.stage", "project.task.type", "_upg_note_stage_id"),
+        ("note.tag", "project.tags", "_upg_note_tag_id"),
+    ]:
+        src_table, dst_table = util.table_of_model(cr, src_model), util.table_of_model(cr, dst_model)
+        cr.execute(
+            """
+            SELECT imf.name
+              FROM ir_model_fields imf
+              LEFT JOIN ir_model_data imd
+                ON imd.res_id = imf.id
+               AND imd.model = 'ir.model.fields'
+             WHERE (
+                    (imf.state = 'manual' AND imf.ttype NOT IN ('one2many', 'many2many'))
+                    OR imd.module = 'studio_customization'
+                   )
+               AND imf.model = %s
+               AND imf.store
+            """,
+            [src_model],
+        )
+
+        for (name,) in cr.fetchall():
+            column_type = util.column_type(cr, src_table, name)
+            if not column_type:
+                continue
+            util.create_column(cr, dst_table, name, column_type)
+            cr.execute(
+                util.format_query(
+                    cr,
+                    """
+                UPDATE {dst_table} dst
+                   SET {name} = src.{name}
+                  FROM {src_table} src
+                 WHERE dst.{map_col} = src.id
+                    """,
+                    dst_table=dst_table,
+                    src_table=src_table,
+                    name=name,
+                    map_col=map_col,
+                )
+            )
+
+            cr.execute(
+                """
+                UPDATE ir_model_fields
+                   SET model = %s
+                 WHERE model = %s
+                   AND name = %s
+                """,
+                (dst_model, src_model, name),
+            )
+
     # Manually deleting unused xmlids
     util.delete_unused(
         cr,
