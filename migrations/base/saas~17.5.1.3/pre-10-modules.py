@@ -1,8 +1,40 @@
+import os
+
 from odoo.upgrade import util
+
+ODOO_MIG_18_REMOVE_CONSOLIDATION = util.str2bool(os.getenv("ODOO_MIG_18_REMOVE_CONSOLIDATION"), "")
 
 
 def migrate(cr, version):
     util.remove_module(cr, "account_lock")
+
+    if util.module_installed(cr, "account_consolidation"):
+        if not ODOO_MIG_18_REMOVE_CONSOLIDATION:
+            cr.execute("""
+                SELECT 1
+                FROM consolidation_period
+                LIMIT 1
+            """)
+
+            if cr.rowcount:
+                raise util.UpgradeError("""
+                    The Consolidation app is removed in Odoo 18.0, in favour of the shared accounts feature.
+                    Your database contains data for this app that cannot be migrated automatically.
+                    All existing consolidation data will be lost ; you will be required to create a new configuration using the new feature.
+                    Please contact us to proceed, or for additional information.
+                """)
+
+        util.add_to_migration_reports(
+            """
+            The Consolidation app has been removed. It is now replaced by the possibility
+            to share accounts between companies, and directly consolidate them into your accounting reports.
+            """,
+            category="Accounting",
+        )
+        # TODO: Add a link to the doc once it is written
+
+    util.remove_module(cr, "account_consolidation")
+    util.remove_module(cr, "l10n_be_us_consolidation_demo")
 
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
     util.force_upgrade_of_fresh_module(cr, "html_editor", init=False)
