@@ -9,6 +9,7 @@ from . import (
     test_17_2_embed_code,
     test_17_2_mobile_order,
     test_17_5_unique_website_controller_page,
+    test_17_5_website_controller_page_m2o_record,
     test_assets_management,
     test_website_model,
 )

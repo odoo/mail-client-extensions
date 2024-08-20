@@ -26,7 +26,7 @@ class TestWebsiteControllerPageUnique(UpgradeCase):
 
     def check(self, init):
         pages = self.env["website.controller.page"].browse(init["page_ids"])
-        self.assertTrue((pages[0].page_type, pages[0].name_slugified) != (pages[1].page_type, pages[1].name_slugified))
+        self.assertTrue(pages[0].name_slugified != pages[1].name_slugified)
         for page in pages:
             url = f"/model/{page.name_slugified}"
             for menu_id in page.menu_ids:

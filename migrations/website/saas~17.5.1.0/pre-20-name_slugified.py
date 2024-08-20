@@ -2,13 +2,15 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    ## Migrate for PR odoo/odoo#173592
+    # name_slugified now has a unicity constraint
     updated = {}
     while True:
         cr.execute("""
         WITH dups AS (
             SELECT unnest(array_agg(id)) as id
                 FROM website_controller_page
-            GROUP BY page_type, name_slugified
+            GROUP BY name_slugified
             HAVING count(id) > 1
         )
         UPDATE website_controller_page p
