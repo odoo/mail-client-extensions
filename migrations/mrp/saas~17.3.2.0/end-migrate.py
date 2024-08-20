@@ -22,5 +22,5 @@ def migrate(cr, version):
     ids_mapped = dict(cr.fetchall())
     util.remove_column(cr, "product_document", "_upg_mrp_id")
     if ids_mapped:
-        util.replace_record_references_batch(cr, ids_mapped, "product.document")
+        util.replace_record_references_batch(cr, ids_mapped, "mrp.document", "product.document")
     util.merge_model(cr, "mrp.document", "product.document")
