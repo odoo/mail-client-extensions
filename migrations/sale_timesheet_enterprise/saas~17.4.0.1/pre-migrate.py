@@ -8,7 +8,7 @@ def migrate(cr, version):
     cr.execute(
         """
            UPDATE hr_employee he
-              SET billing_rate_target = (he.billable_time_target * (comp.billing_rate_target / 100.0)) / (COALESCE(cal.hours_per_day, %s) * 20.0)
+              SET billing_rate_target = (he.billable_time_target * (comp.billing_rate_target / 100.0)) / (COALESCE(NULLIF(cal.hours_per_day, 0), %s) * 20.0)
              FROM res_company comp
         LEFT JOIN resource_calendar cal
                ON comp.resource_calendar_id = cal.id
