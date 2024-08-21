@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from contextlib import suppress
 
 from psycopg2.extras import execute_values
@@ -21,9 +20,14 @@ def migrate(cr, version):
                imf2.relation AS update_field_relation,
                imf2.name     AS update_field_name,
                imf2.ttype    AS update_field_type,
+               fs.id         AS selection_value,
                isol.evaluation_type,
                isol.value
           FROM ir_server_object_lines AS isol
+               LEFT JOIN ir_model_fields_selection AS fs
+               ON fs.value = isol.value
+               AND fs.field_id = isol.col1
+
                LEFT JOIN ir_act_server AS act
                ON act.id = isol.server_id
 
@@ -48,6 +52,7 @@ def migrate(cr, version):
     util.create_column(cr, "ir_act_server", "update_related_model_id", "int4")
     util.create_column(cr, "ir_act_server", "link_field_id", "integer")
     util.create_column(cr, "ir_act_server", "update_field_id", "integer")
+    util.create_column(cr, "ir_act_server", "selection_value", "integer")
     execute_values(
         cr._obj,
         r"""
@@ -59,7 +64,8 @@ def migrate(cr, version):
                    update_path = data.update_path,
                    crud_model_id = data.crud_model_id::INTEGER,
                    link_field_id = data.link_field_id::INTEGER,
-                   update_field_id = data.update_field_id::INTEGER
+                   update_field_id = data.update_field_id::INTEGER,
+                   selection_value = data.selection_value::INTEGER
               FROM (VALUES %s) AS data(
                        id,
                        state,
@@ -69,6 +75,7 @@ def migrate(cr, version):
                        crud_model_id,
                        link_field_id,
                        update_field_id,
+                       selection_value,
                        update_path
                    )
              WHERE ir_act_server.id = data.id
@@ -83,6 +90,7 @@ def migrate(cr, version):
                 action["crud_model_id"],
                 action["link_field_id"],
                 action["update_field_id"],
+                action["selection_value"],
                 action["update_path"],
             )
             for action in to_update
@@ -147,6 +155,7 @@ def process_actions(actions):
                     "crud_model_id": action["crud_model_id"],
                     "link_field_id": action["link_field_id"],
                     "update_field_id": (None if action["state"] == "object_create" else action["update_field_id"]),
+                    "selection_value": (action["selection_value"] if action["evaluation_type"] == "value" else None),
                     "update_path": (action["update_field_name"] if action["state"] == "object_write" else None),
                     "__include_in_migration_report": False,
                 }
@@ -167,6 +176,7 @@ def process_actions(actions):
                 "crud_model_id": None,
                 "link_field_id": None,
                 "update_field_id": None,
+                "selection_value": None,
                 "update_path": None,
                 "__include_in_migration_report": True,
                 "__cloc_exclude_name": f"migrated_to_code_server_action_{action['action_server_id']}",
@@ -184,10 +194,9 @@ def process_actions(actions):
                     <br/>
                     You should verify that their code is correct.
                 </summary>
-                <ul>%s</ul>
+                <ul>{}</ul>
             </details>
-            """
-            % (
+            """.format(
                 "\n".join(
                     "<li>{}</li>".format(
                         util.get_anchor_link_to_record(
