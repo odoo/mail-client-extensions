@@ -1,4 +1,4 @@
-from odoo.addons.base.maintenance.migrations import util
+from odoo.upgrade import util
 
 
 def migrate(cr, version):
@@ -6,6 +6,12 @@ def migrate(cr, version):
     cr.execute("SELECT id FROM stock_warehouse")
     warehouse_ids = [row[0] for row in cr.fetchall()]
     for warehouse in util.iter_browse(env["stock.warehouse"], warehouse_ids):
+        vals = {
+            "reception_steps": warehouse.reception_steps,
+            "delivery_steps": warehouse.delivery_steps,
+            "company_id": warehouse.company_id.id,
+        }
+        warehouse._create_missing_locations(vals)
         # Will create all missing picking types and sequences for every existing warehouses
         new_types_vals = warehouse._create_or_update_sequences_and_picking_types()
         if new_types_vals:
