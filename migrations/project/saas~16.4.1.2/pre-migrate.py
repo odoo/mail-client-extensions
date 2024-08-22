@@ -1,4 +1,5 @@
 from odoo.upgrade import util
+from odoo.upgrade.util.inconsistencies import break_recursive_loops
 
 
 def migrate(cr, version):
@@ -31,6 +32,8 @@ def migrate(cr, version):
             table="project_task",
             alias="pt",
         )
+    # Before running a recursive query, break any loops in the recursive data
+    break_recursive_loops(cr, "project.task", "parent_id")
     # Set "project_id" of all non-private tasks to their project root
     # and "display_in_project" to false
     util.explode_execute(
