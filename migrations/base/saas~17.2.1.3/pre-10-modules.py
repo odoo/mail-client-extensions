@@ -2,18 +2,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # Don't delete the included fiscal position (could be used).
+    util.delete_unused(cr, "account_taxcloud.account_fiscal_position_taxcloud_us", keep_xmlids=False)
     if util.module_installed(cr, "account_taxcloud"):
         # Archive taxcloud fiscal positions because they will no longer work.
         cr.execute("UPDATE account_fiscal_position SET active = false WHERE is_taxcloud")
-
-        # Don't delete the included fiscal position (could be used).
-        cr.execute(
-            """
-            DELETE FROM ir_model_data
-                  WHERE module = 'account_taxcloud'
-                    AND name = 'account_fiscal_position_taxcloud_us'
-            """
-        )
 
         util.add_to_migration_reports(
             """
