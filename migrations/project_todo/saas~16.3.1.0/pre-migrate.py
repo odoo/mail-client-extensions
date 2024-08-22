@@ -1,6 +1,8 @@
-# -*- coding: utf-8 -*-
+import logging
 
 from odoo.upgrade import util
+
+_logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
@@ -60,17 +62,16 @@ def migrate(cr, version):
 
     # B. Users who have no personal stage, neither in Notes, nor in Project: Create the default ones
     default_stages = util.env(cr)["project.task"]._get_default_personal_stage_create_vals(None)
-    queries = []
-    for stage in default_stages:
-        queries.append(
-            cr.mogrify(
-                """
-            SELECT jsonb_build_object('en_US', %s), %s, id, %s, true
-              FROM users
-                 """,
-                [stage["name"], stage["sequence"], stage["fold"]],
-            ).decode()
-        )
+    queries = [
+        cr.mogrify(
+            """
+          SELECT jsonb_build_object('en_US', %s), %s, id, %s, true
+            FROM users
+            """,
+            [stage["name"], stage["sequence"], stage["fold"]],
+        ).decode()
+        for stage in default_stages
+    ]
 
     query = """
       WITH users AS (
@@ -85,9 +86,7 @@ def migrate(cr, version):
       )
       INSERT INTO project_task_type (name, sequence, user_id, fold, active)
       {}
-    """.format(
-        " UNION ".join(queries)
-    )
+    """.format(" UNION ".join(queries))
     cr.execute(query)
 
     # ----------- 4. Converting note.note -> project.task --------------
@@ -311,6 +310,14 @@ def migrate(cr, version):
         for (name,) in cr.fetchall():
             column_type = util.column_type(cr, src_table, name)
             if not column_type:
+                continue
+            if util.column_exists(cr, dst_table, name):
+                _logger.info(
+                    "Skip moving field %s from %s to %s because a column with that name already exists.",
+                    name,
+                    src_table,
+                    dst_table,
+                )
                 continue
             util.create_column(cr, dst_table, name, column_type)
             cr.execute(
