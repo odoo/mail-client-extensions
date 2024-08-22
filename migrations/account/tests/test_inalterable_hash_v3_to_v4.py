@@ -3,6 +3,7 @@ from odoo.tools import format_date
 
 from odoo.addons.base.maintenance.migrations.account.tests.test_common import TestAccountingSetupCommon
 from odoo.addons.base.maintenance.migrations.testing import change_version
+from odoo.addons.base.maintenance.migrations.util import version_gte
 from odoo.addons.base.maintenance.migrations.util.accounting import no_fiscal_lock
 
 
@@ -60,7 +61,9 @@ class TestAccountMoveInalterableHashV3ToV4Upgrade(TestAccountingSetupCommon):
             new_moves = self._prepare_invoices(["2024-01-06", "2024-01-07"], account_id, partner_id)
             moves |= new_moves
             new_moves.action_post()
-            new_moves.button_hash()
+            if not version_gte("saas~17.5"):
+                new_moves.button_hash()
+            self.assertNotIn(member=False, container=new_moves.mapped("inalterable_hash"))
 
         # Check that the hashing chain check is still correct after adding new moves
         integrity_check = moves.company_id._check_hash_integrity()["results"]
