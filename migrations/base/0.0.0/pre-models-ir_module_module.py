@@ -91,7 +91,7 @@ class Module(models.Model):
         if needed != existing:
             plus = needed - existing
             minus = existing - needed
-            diff = "\n".join(["\n".join(" + %s" % p for p in plus), "\n".join(" - %s" % m for m in minus)])
+            diff = "\n".join(["\n".join(" + " + p for p in plus), "\n".join(" - " + m for m in minus)])
             _logger.log(
                 util.NEARLYWARN,
                 "Changes of the %r module dependencies should be handled via an upgrade script. "
