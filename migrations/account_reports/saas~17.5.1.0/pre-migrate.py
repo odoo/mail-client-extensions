@@ -11,3 +11,5 @@ def migrate(cr, version):
            AND journal.default_account_id != aml.account_id
     """
     util.explode_execute(cr, query_exclude_bank_lines, table="account_move_line", alias="aml")
+
+    util.remove_field(cr, "account.move", "tax_closing_show_multi_closing_warning")
