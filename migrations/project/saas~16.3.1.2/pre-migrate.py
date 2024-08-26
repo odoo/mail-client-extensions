@@ -10,7 +10,7 @@ def migrate(cr, version):
 
     util.update_field_usage(cr, "project.task", "project_color", "project_id.color")
     util.remove_field(cr, "project.task", "project_color")
-    util.remove_field(cr, "project.task", "display_project_id")
+    util.remove_field(cr, "project.task", "display_project_id", drop_column=False)
     util.remove_field(cr, "project.task", "child_text")
     util.remove_field(cr, "project.task", "allow_subtasks")
     util.remove_field(cr, "project.task", "stage_display")

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -22,6 +20,17 @@ def migrate(cr, version):
     util.remove_field(cr, "project.task", "project_root_id")
     # Create the column "display_in_project"
     util.create_column(cr, "project_task", "display_in_project", "boolean", default=True)
+    if util.column_exists(cr, "project_task", "display_project_id"):
+        util.explode_execute(
+            cr,
+            """
+            UPDATE project_task pt
+               SET display_in_project = false
+             WHERE display_project_id IS NULL
+            """,
+            table="project_task",
+            alias="pt",
+        )
     # Set "project_id" of all non-private tasks to their project root
     # and "display_in_project" to false
     util.explode_execute(

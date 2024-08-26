@@ -144,16 +144,17 @@ def migrate(cr, version):
     # field is unused anymore. adapt users' filters
     # See https://github.com/odoo/odoo/pull/115546
     util.update_field_usage(cr, "project.task", "display_project_id", "project_id")
-    util.explode_execute(
-        cr,
-        """
-            UPDATE project_task pt
-               SET project_id = NULL
-             WHERE display_project_id IS NULL
-        """,
-        table="project_task",
-        alias="pt",
-    )
+    if not util.version_gte("saas~16.4"):
+        util.explode_execute(
+            cr,
+            """
+                UPDATE project_task pt
+                   SET project_id = NULL
+                 WHERE display_project_id IS NULL
+            """,
+            table="project_task",
+            alias="pt",
+        )
     recurrence_fields = [
         "sun",
         "sat",
