@@ -488,7 +488,7 @@ def migrate(cr, version):
             """
         )
 
-        chunk_size = 1000
+        chunk_size = 3000
         nbr_chunks = (stl_total - 1) // chunk_size + 1
 
         def chunks():

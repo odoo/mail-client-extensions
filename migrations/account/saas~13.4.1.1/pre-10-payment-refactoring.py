@@ -144,9 +144,9 @@ def migrate(cr, version):
     # ===========================================================
 
     # Backup tables to use the old relational structure in post-* scripts.
-    cr.execute("CREATE TABLE account_payment_pre_backup AS TABLE account_payment")
-    cr.execute("CREATE TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
-    cr.execute("CREATE TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)")
+    cr.execute("CREATE UNLOGGED TABLE account_payment_pre_backup AS TABLE account_payment")
+    cr.execute("CREATE UNLOGGED TABLE account_bank_statement_line_pre_backup AS TABLE account_bank_statement_line")
+    cr.execute("CREATE UNLOGGED TABLE account_journal_backup AS (SELECT id, post_at FROM account_journal)")
     util.create_column(cr, "account_payment_pre_backup", "no_replace_account", "boolean", default=False)
     cr.execute("ALTER TABLE  account_payment_pre_backup ADD PRIMARY KEY (id)")
     cr.execute("CREATE INDEX ON account_payment_pre_backup(journal_id, partner_id)")
