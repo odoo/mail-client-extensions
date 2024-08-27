@@ -13,3 +13,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "sale.order", "analytic_account_id")
     util.remove_field(cr, "sale.report", "analytic_account_id")
+    util.remove_column(cr, "sale_order", "amount_to_invoice")
+    util.move_field_to_module(cr, "sale.order.line", "qty_invoiced_posted", "l10n_it_edi_doi", "sale")
+    util.remove_column(cr, "sale_order_line", "qty_invoiced_posted")
