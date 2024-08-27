@@ -35,10 +35,9 @@ from odoo.tools import mute_logger
 
 from odoo.addons.base.maintenance.migrations import util
 
-if util.version_gte("12.0"):
-    from odoo.addons.base.maintenance.migrations.testing import DATA_TABLE
-else:
-    DATA_TABLE = None
+# defined in odoo.addons.base.maintenance.migrations.testing
+# don't import to avoid importing odoo.tests
+DATA_TABLE = "upgrade_test_data" if util.version_gte("12.0") else None
 
 if util.version_gte("10.0"):
     from odoo.modules.module import get_resource_from_path
