@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from psycopg2 import sql
 
 from odoo.upgrade import util

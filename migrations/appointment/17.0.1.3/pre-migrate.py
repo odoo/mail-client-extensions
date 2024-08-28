@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 from odoo.upgrade.util import expand_braces as eb
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.osv.expression import FALSE_DOMAIN, TRUE_DOMAIN
 
 from odoo.upgrade import util
