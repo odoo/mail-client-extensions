@@ -29,6 +29,7 @@ def migrate(cr, version):
     util.remove_field(cr, "bank.rec.widget", "form_suggest_balance")
     util.remove_field(cr, "bank.rec.widget", "form_tax_ids")
     util.remove_field(cr, "bank.rec.widget", "form_transaction_details")
+    util.remove_field(cr, "bank.rec.widget", "journal_default_account_id")
     util.remove_field(cr, "bank.rec.widget", "lines_widget")
     util.remove_field(cr, "bank.rec.widget", "next_action_todo")
     util.remove_field(cr, "bank.rec.widget", "reco_models_widget")
