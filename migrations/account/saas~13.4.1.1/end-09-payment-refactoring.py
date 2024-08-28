@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 from datetime import date, timedelta
@@ -82,7 +81,7 @@ def migrate(cr, version):
            )
         """
     )
-    journal_ids = [journal_id for journal_id, in cr.fetchall()]
+    journal_ids = [journal_id for (journal_id,) in cr.fetchall()]
     current_assets_type = env.ref("account.data_account_type_current_assets")
     liquidity_type = env.ref("account.data_account_type_liquidity")
     for journal in util.iter_browse(env["account.journal"], journal_ids):
@@ -251,7 +250,7 @@ def migrate(cr, version):
     if payment_ids:
         util.add_to_migration_reports(
             "The following payments have been deleted during the migration because there were posted but no longer"
-            "linked to any journal entry: %s" % payment_ids,
+            "linked to any journal entry: {}".format(payment_ids),
             "Accounting",
         )
         _logger.info("Removing %s posted payments that are not linked to any journal entry.", len(payment_ids))
@@ -296,7 +295,7 @@ def migrate(cr, version):
             RETURNING move.id
         """
         )
-        updated_move_ids = set(r[0] for r in cr.fetchall())
+        updated_move_ids = {r[0] for r in cr.fetchall()}
         move_ids |= updated_move_ids
         if updated_move_ids:
             other = "credit" if debit_credit == "debit" else "debit"
@@ -312,10 +311,10 @@ def migrate(cr, version):
             """,
                 {"move_ids": tuple(updated_move_ids)},
             )
-            move_ids |= set(r[0] for r in cr.fetchall())
+            move_ids |= {r[0] for r in cr.fetchall()}
     if move_ids:
         cr.execute("SELECT payment_id FROM account_move WHERE id IN %s AND payment_id IS NOT NULL", [tuple(move_ids)])
-        payment_ids = set(r[0] for r in cr.fetchall())
+        payment_ids = {r[0] for r in cr.fetchall()}
         util.recompute_fields(
             cr,
             env["account.payment"].with_context(**ctx),
@@ -376,12 +375,11 @@ def migrate(cr, version):
                             The following payments have been deleted because the accounting was not correctly configured
                             and it wasn't possible to determine a destination account for them.
                         </summary>
-                        <ul>%s</ul>
+                        <ul>{}</ul>
                         </details>
-                    """
-                    % (
+                    """.format(
                         "\n".join(
-                            "<li>%s(#%s)</li>" % (util.html_escape(move.payment_id.name), move.payment_id.id)
+                            "<li>{}(#{})</li>".format(util.html_escape(move.payment_id.name), move.payment_id.id)
                             for move in invalid_moves
                         ),
                     ),
