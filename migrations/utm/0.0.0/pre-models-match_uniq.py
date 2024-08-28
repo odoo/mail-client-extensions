@@ -16,13 +16,14 @@ def migrate(cr, version):
     the same name with one of the standard xmlids, since restoring the
     standard xmlid would violate the unique_name constraint.
     """
-    if util.version_between("saas~15.3", "saas~17.2"):  # 15.3 introduced unique constraint; bump max version if needed
+    twitter = "X" if util.version_gte("saas~17.3") else "Twitter"
+    if util.version_between("saas~15.3", "18.0"):  # 15.3 introduced unique constraint; bump max version if needed
         source_names = [
             ("utm_source_search_engine", "Search engine"),
             ("utm_source_mailing", "Lead Recall"),
             ("utm_source_newsletter", "Newsletter"),
             ("utm_source_facebook", "Facebook"),
-            ("utm_source_twitter", "Twitter"),
+            ("utm_source_twitter", twitter),
             ("utm_source_linkedin", "LinkedIn"),
             ("utm_source_monster", "Monster"),
             ("utm_source_glassdoor", "Glassdoor"),
@@ -37,7 +38,7 @@ def migrate(cr, version):
             ("utm_medium_direct", "Direct"),
             ("utm_medium_email", "Email"),
             ("utm_medium_banner", "Banner"),
-            ("utm_medium_twitter", "Twitter"),
+            ("utm_medium_twitter", twitter),
             ("utm_medium_facebook", "Facebook"),
             ("utm_medium_linkedin", "LinkedIn"),
             ("utm_medium_television", "Television"),
