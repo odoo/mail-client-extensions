@@ -38,3 +38,5 @@ def migrate(cr, version):
     util.remove_field(cr, "pos.config", "start_category")
     util.remove_field(cr, "res.config.settings", "pos_iface_start_categ_id")
     util.remove_field(cr, "res.config.settings", "pos_start_category")
+
+    util.remove_view(cr, "point_of_sale.qunit_suite")
