@@ -72,6 +72,7 @@ def migrate(cr, version):
               WHERE ABS(aml.amount_currency) = ap.amount
                 AND account.account_type NOT IN ('asset_receivable', 'liability_payable')
                 AND apm.code = 'own_checks'
+           ORDER BY aml.id
       """.format(payment_field)
     )
 
@@ -98,6 +99,21 @@ def migrate(cr, version):
     """
     )
 
+    cr.execute(
+        """
+        WITH checks AS (
+            SELECT id,
+                   ROW_NUMBER() OVER (PARTITION BY name, payment_method_line_id ORDER BY id) AS rn
+              FROM l10n_latam_check
+             WHERE outstanding_line_id IS NOT NULL
+        )
+        UPDATE l10n_latam_check llc
+           SET name = llc.name || ' - #' || checks.rn
+          FROM checks
+         WHERE llc.id = checks.id
+           AND checks.rn > 1
+        """
+    )
     # Create new link table from the moving of 3rd party checks
     util.create_m2m(
         cr, "l10n_latam_check_account_payment_rel", "l10n_latam_check", "account_payment", "check_id", "payment_id"
