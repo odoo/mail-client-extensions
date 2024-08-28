@@ -14,7 +14,7 @@ def add_template_in_embed_code(el):
         return False
     embedded_code = embedded_code[0]
     code = innerxml(embedded_code, is_html=True)
-    template = """<template class="s_embed_code_saved">%s</template>""" % code
+    template = f"""<template class="s_embed_code_saved">{code}</template>"""
     el.insert(0, html.fromstring(template, parser=html.HTMLParser(encoding="utf-8")))
     return True
 

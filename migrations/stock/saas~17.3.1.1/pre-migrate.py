@@ -33,7 +33,7 @@ def migrate(cr, version):
         # Adapt the selection value 'product' in `stock.move.product_type` to use
         # `is_storable` boolean field instead, before removal of `product_type`
         left, op, right = leaf
-        if right == "product" or right == "consu" or isinstance(right, (tuple, list)) and len(right) == 1:
+        if right in ("product", "consu") or (isinstance(right, (tuple, list)) and len(right) == 1):
             path = left.split(".")
             path[-1] = "is_storable"
             new_left = ".".join(path)
