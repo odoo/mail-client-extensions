@@ -58,7 +58,6 @@ select = [
     "FBT003",  # boolean-positional-value-in-call; other rules not python2 compatible
     "UP005",   # deprecated-unittest-alias
     "UP009",   # utf8-encoding-declaration
-    "UP027",   # unpacked-list-comprehension
     "UP030",   # format-literals
     "UP031",   # printf-string-formatting
 ]
