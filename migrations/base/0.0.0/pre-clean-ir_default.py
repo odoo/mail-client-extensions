@@ -6,10 +6,13 @@ def migrate(cr, version):
         cr.execute(
             """
             DELETE FROM ir_default d
-             USING ir_model_fields f
-             WHERE d.field_id = f.id
-               AND f.required IS TRUE
-               AND f.ttype = 'selection'
-               AND d.json_value = '""'
+             USING ir_model_fields imf
+             WHERE d.field_id = imf.id
+               AND imf.required IS TRUE
+               AND CASE imf.ttype
+                       WHEN 'selection' THEN d.json_value = '""'
+                       WHEN 'many2one' THEN d.json_value IN ('""', 'false', '0', 'null')
+                       ELSE false
+                   END
             """
         )
