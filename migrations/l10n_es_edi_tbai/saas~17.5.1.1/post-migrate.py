@@ -14,9 +14,7 @@ def migrate(cr, version):
                         _upg_move_id,
                         name,
                         date,
-                        company_id,
-                        sequence_prefix,
-                        sequence_number
+                        company_id
                     )
              SELECT 'accepted',
                     FALSE,
@@ -28,9 +26,7 @@ def migrate(cr, version):
                     am.id,
                     am.name,
                     am.date,
-                    am.company_id,
-                    am.sequence_prefix,
-                    am.sequence_number
+                    am.company_id
                FROM ir_attachment ia
                JOIN account_move am
                  ON ia.res_id = am.id
@@ -58,9 +54,7 @@ def migrate(cr, version):
                         _upg_move_id,
                         name,
                         date,
-                        company_id,
-                        sequence_prefix,
-                        sequence_number
+                        company_id
                     )
             SELECT  'accepted',
                     TRUE,
@@ -68,9 +62,7 @@ def migrate(cr, version):
                     am.id,
                     am.name,
                     am.date,
-                    am.company_id,
-                    am.sequence_prefix,
-                    am.sequence_number
+                    am.company_id
                FROM ir_attachment ia
                JOIN account_move am
                  ON ia.res_id = am.id

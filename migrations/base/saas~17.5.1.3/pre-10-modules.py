@@ -70,6 +70,7 @@ def migrate(cr, version):
         util.remove_module(cr, module)
 
     util.rename_module(cr, "website_sale_picking", "website_sale_collect")
+    util.rename_module(cr, "l10n_es_pos_tbai", "l10n_es_edi_tbai_pos")
 
     if util.module_installed(cr, "payment"):
         cr.execute(
