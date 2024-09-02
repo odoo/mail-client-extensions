@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 
 from odoo.upgrade import util
@@ -15,6 +13,8 @@ def migrate(cr, version):
         RETURNING id"""
     )
     [tag_id] = cr.fetchone()
+    # correctly set `parent_path`
+    cr.execute("UPDATE res_partner_category SET parent_path = CONCAT(id, '/') WHERE id = %s", [tag_id])
 
     cr.execute(
         """
