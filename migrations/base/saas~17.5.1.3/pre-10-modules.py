@@ -79,3 +79,6 @@ def migrate(cr, version):
             )
             util.force_install_module(cr, "project_mrp")
             util.force_upgrade_of_fresh_module(cr, "project_mrp")
+
+    util.remove_module(cr, "test_marketing_card")
+    util.remove_module(cr, "mass_mailing_marketing_card")
