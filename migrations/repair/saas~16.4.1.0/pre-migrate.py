@@ -178,7 +178,7 @@ def migrate(cr, version):
                  ON f.product_id = p.id
                JOIN product_template pt
                  ON p.product_tmpl_id = pt.id
-               JOIN repair_fee_taxes ft
+          LEFT JOIN repair_fee_taxes ft
                  ON ft.fee_id = f.id
               WHERE {{parallel_filter}}
            GROUP BY f.repair_id
