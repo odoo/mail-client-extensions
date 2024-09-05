@@ -19,3 +19,4 @@ def migrate(cr, version):
             "last_tax_period": "previous_tax_period",
         },
     )
+    util.force_noupdate(cr, "account.account_invoices", noupdate=False)
