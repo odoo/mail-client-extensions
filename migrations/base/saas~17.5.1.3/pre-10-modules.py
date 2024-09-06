@@ -83,3 +83,6 @@ def migrate(cr, version):
 
     util.remove_module(cr, "test_marketing_card")
     util.remove_module(cr, "mass_mailing_marketing_card")
+
+    util.rename_module(cr, "account_sepa", "account_iso20022")
+    util.rename_module(cr, "hr_payroll_account_sepa", "hr_payroll_account_iso20022")

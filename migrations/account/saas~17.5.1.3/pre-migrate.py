@@ -151,3 +151,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.partner", "has_unreconciled_entries")
     util.remove_field(cr, "res.partner", "last_time_entries_checked")
+
+    util.rename_field(cr, "res.config.settings", "module_account_sepa", "module_account_iso20022")

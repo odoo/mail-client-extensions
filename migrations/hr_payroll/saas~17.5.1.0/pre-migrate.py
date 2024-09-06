@@ -81,3 +81,5 @@ def migrate(cr, version):
 
     if util.module_installed(cr, "l10n_be_hr_payroll"):
         util.move_field_to_module(cr, "hr.employee", "disabled", "l10n_be_hr_payroll", "hr_payroll")
+
+    util.remove_field(cr, "res.config.settings", "module_hr_payroll_account_sepa")
