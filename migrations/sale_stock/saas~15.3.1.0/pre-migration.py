@@ -54,24 +54,12 @@ def migrate(cr, version):
     )
     cr.execute(
         """
-        WITH sps AS(
-            SELECT sale_id AS order_id,
-                   state
-              FROM stock_picking
-          GROUP BY 1,2
-        ),
-        states AS (
-            SELECT order_id,
-                   array_agg(state) as states
-              FROM sps
-          GROUP BY 1
-        ),
-        not_cancelled AS (
-            SELECT order_id
-              FROM states s
-             WHERE NOT (array_position(s.states, 'cancel') > 0
-                          AND
-                        array_length(s.states, 1) = 1)
+        WITH not_cancelled AS (
+             SELECT sale_id AS order_id
+               FROM stock_picking sp
+              WHERE sp.state != 'cancel'
+              GROUP BY sp.sale_id
+             HAVING COUNT(*) > 0
         )
         UPDATE sale_order so
            SET delivery_status='pending'
