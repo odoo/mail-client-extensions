@@ -30,6 +30,26 @@ def migrate(cr, version):
             ],
         )
 
+    if cr._cnx.server_version < 130000:
+        # Postgres 12 is missing the `gen_random_uuid()` function. Define one.
+        func = """
+            CREATE FUNCTION gen_random_uuid()
+            RETURNS uuid as $body$
+                SELECT string_agg(
+                           CASE i
+                               WHEN 13 THEN '4' -- uuid4 spec
+                               WHEN 17 THEN to_hex(8 + width_bucket(random(), 0, 1, 4) - 1)  -- uuid4 spec, random from 8,9,10,11
+                               ELSE to_hex(width_bucket(random(), 0, 1, 16) - 1) -- random hex value
+                           END,
+                           ''
+                       )::uuid
+                  FROM generate_series(1, 32) as data(i);
+            $body$
+            LANGUAGE 'sql'
+            VOLATILE
+        """
+        cr.execute(func)
+
     cr.execute(
         """
             UPDATE account_payment pmt
