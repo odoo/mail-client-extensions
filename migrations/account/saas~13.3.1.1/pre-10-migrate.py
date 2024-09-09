@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
     util.fixup_m2m(
-        cr, "account_journal_account_print_journal_rel", "account_journal", "account_print_journal",
+        cr,
+        "account_journal_account_print_journal_rel",
+        "account_journal",
+        "account_print_journal",
     )
 
     # ===========================================================
@@ -27,25 +28,30 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.payment", "destination_journal_id")
     util.create_column(cr, "account_payment", "is_internal_transfer", "boolean")
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
-    UPDATE account_payment
-       SET is_internal_transfer = (payment_type = 'transfer')
-    """
+        UPDATE account_payment
+           SET is_internal_transfer = (payment_type = 'transfer')
+        """,
+        table="account_payment",
     )
     # change payment_type from 'transfer' to 'inbound', update partner_id & move_name
     cr.commit()
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
-    UPDATE account_payment pay
-       SET payment_type = 'outbound',
-           partner_id = comp.partner_id,
-           move_name = split_part(pay.move_name, '§§', 1)
-      FROM account_journal journal
-      JOIN res_company comp ON comp.id = journal.company_id
-     WHERE journal.id = pay.journal_id
-       AND pay.payment_type = 'transfer'
-    """
+        UPDATE account_payment pay
+           SET payment_type = 'outbound',
+               partner_id = comp.partner_id,
+               move_name = split_part(pay.move_name, '§§', 1)
+          FROM account_journal journal
+          JOIN res_company comp ON comp.id = journal.company_id
+         WHERE journal.id = pay.journal_id
+           AND pay.payment_type = 'transfer'
+        """,
+        table="account_payment",
+        alias="pay",
     )
 
     # ===========================================================
@@ -86,13 +92,16 @@ def migrate(cr, version):
 
     util.create_column(cr, "account_payment", "company_id", "int4")
     cr.commit()
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE account_payment pay
         SET company_id = journal.company_id
         FROM account_journal journal
         WHERE journal.id = pay.journal_id
-    """
+        """,
+        table="account_payment",
+        alias="pay",
     )
 
     util.convert_field_to_property(
