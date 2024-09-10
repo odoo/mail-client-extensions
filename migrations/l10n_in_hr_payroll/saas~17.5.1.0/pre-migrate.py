@@ -27,3 +27,5 @@ def migrate(cr, version):
     util.remove_model(cr, "hr.payroll.advice")
     util.remove_model(cr, "hr.payroll.advice.line")
     util.remove_model(cr, "report.l10n_in_hr_payroll.report_hrsalarybymonth")
+
+    util.remove_view(cr, "l10n_in_hr_payroll.report_payslipdetails")
