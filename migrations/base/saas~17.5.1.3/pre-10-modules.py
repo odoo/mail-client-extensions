@@ -37,6 +37,8 @@ def migrate(cr, version):
     util.remove_module(cr, "account_consolidation")
     util.remove_module(cr, "l10n_be_us_consolidation_demo")
 
+    util.rename_module(cr, "website_sale_picking", "website_sale_collect")
+
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
     util.force_upgrade_of_fresh_module(cr, "html_editor", init=False)
     if util.module_installed(cr, "mrp_account") and not util.module_installed(cr, "project"):
