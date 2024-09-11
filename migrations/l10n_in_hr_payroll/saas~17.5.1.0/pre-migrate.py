@@ -29,3 +29,6 @@ def migrate(cr, version):
     util.remove_model(cr, "report.l10n_in_hr_payroll.report_hrsalarybymonth")
 
     util.remove_view(cr, "l10n_in_hr_payroll.report_payslipdetails")
+
+    util.remove_field(cr, "yearly.salary.detail", "date_from")
+    util.remove_field(cr, "yearly.salary.detail", "date_to")
