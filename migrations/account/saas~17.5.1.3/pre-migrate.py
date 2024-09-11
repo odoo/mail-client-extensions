@@ -148,3 +148,6 @@ def migrate(cr, version):
         alias="t",
     )
     util.remove_column(cr, "account_tax", "price_include")
+
+    util.remove_field(cr, "res.partner", "has_unreconciled_entries")
+    util.remove_field(cr, "res.partner", "last_time_entries_checked")
