@@ -1,4 +1,5 @@
 from . import (
+    test_add_operator_to_gauge_chart,
     test_add_pivot,
     test_chart_commands,
     test_create_table_command_change,
