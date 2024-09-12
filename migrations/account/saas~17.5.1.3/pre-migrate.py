@@ -242,3 +242,13 @@ def migrate(cr, version):
             "rating_ids",
         ),
     )
+    util.remove_model(cr, "account.move.send")
+    util.remove_field(cr, "res.company", "invoice_is_download")
+    util.remove_field(cr, "res.company", "invoice_is_email")
+    util.remove_field(cr, "res.config.settings", "invoice_is_download")
+    util.remove_field(cr, "res.config.settings", "invoice_is_email")
+    util.rename_field(cr, "account.move", "send_and_print_values", "sending_data")
+    util.move_field_to_module(cr, "res.partner", "ubl_cii_format", "account_edi_ubl_cii", "account")
+    util.rename_field(cr, "res.partner", "ubl_cii_format", "invoice_edi_format_store")
+    util.make_field_company_dependent(cr, "res.partner", "invoice_edi_format_store", "selection")
+    util.remove_record(cr, "account.account_move_send_single_rule_group_invoice")

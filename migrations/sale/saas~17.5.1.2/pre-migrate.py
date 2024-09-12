@@ -16,3 +16,5 @@ def migrate(cr, version):
     util.remove_column(cr, "sale_order", "amount_to_invoice")
     util.move_field_to_module(cr, "sale.order.line", "qty_invoiced_posted", "l10n_it_edi_doi", "sale")
     util.remove_column(cr, "sale_order_line", "qty_invoiced_posted")
+    util.remove_record(cr, "sale.account_invoice_send_rule_see_personal")
+    util.remove_record(cr, "sale.account_invoice_send_rule_see_all")

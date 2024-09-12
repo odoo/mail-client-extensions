@@ -30,3 +30,22 @@ def migrate(cr, version):
     )
 
     util.remove_view(cr, "account_peppol.res_partner_view_tree")
+    util.explode_execute(
+        cr,
+        """
+        WITH new_vals AS (
+            SELECT p.id,
+                   jsonb_object_agg(data.key, 'peppol') AS value
+              FROM res_partner p,
+                   jsonb_each_text(p.peppol_verification_state) AS data(key, value)
+             WHERE data.value = 'valid'
+               AND {parallel_filter}
+          GROUP BY p.id
+        ) UPDATE res_partner p
+             SET invoice_sending_method = COALESCE(invoice_sending_method, '{{}}'::jsonb) || new_vals.value
+            FROM new_vals
+           WHERE new_vals.id = p.id
+        """,
+        table="res_partner",
+        alias="p",
+    )
