@@ -39,6 +39,30 @@ def migrate(cr, version):
 
     util.rename_module(cr, "website_sale_picking", "website_sale_collect")
 
+    if util.module_installed(cr, "payment"):
+        cr.execute(
+            """
+            UPDATE payment_provider
+               SET state = 'disabled',
+                   redirect_form_view_id = NULL
+             WHERE "code" IN ('ogone', 'sips')
+            """
+        )
+        if util.module_installed(cr, "payment_ogone"):
+            util.add_to_migration_reports(
+                "The module 'Payment Provider: Ogone' has been removed, as Ogone is replaced by Worldline.",
+                category="Payments",
+            )
+            # TODO EDM: auto-install payment_worldline and migrate existing payment.token records.
+        if util.module_installed(cr, "payment_sips"):
+            util.add_to_migration_reports(
+                "The module 'Payment Provider: SIPS' has been removed, as SIPS is replaced by Worldline.",
+                category="Payments",
+            )
+        util.change_field_selection_values(cr, "payment.provider", "code", {"ogone": "none", "sips": "none"})
+    util.remove_module(cr, "payment_ogone")
+    util.remove_module(cr, "payment_sips")
+
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
     util.force_upgrade_of_fresh_module(cr, "html_editor", init=False)
     if util.module_installed(cr, "mrp_account") and not util.module_installed(cr, "project"):
