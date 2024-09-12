@@ -11,7 +11,8 @@ from odoo.addons.base.maintenance.migrations import util
 # enterprise/15.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/16.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/17.0:pos_blackbox_be/__manifest__.py:    'installable': True,
-BLACKBOX_CERTIFIED_VERSIONS = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0", "17.0"}
+MULTI_COMPANY_CERTIFIED_BLACKBOX = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0", "17.0"}
+SINGLE_COMPANY_CERTIFIED_BLACKBOX = {"saas~17.2", "saas~17.4"}
 
 
 ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE = util.str2bool(os.getenv("ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE", "0"))
@@ -21,6 +22,16 @@ def migrate(cr, version):
     if not ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE and util.module_installed(cr, "pos_blackbox_be"):
         source = os.getenv("ODOO_UPG_DB_SOURCE_VERSION")
         target = os.getenv("ODOO_UPG_DB_TARGET_VERSION")
+        cr.execute("SELECT COUNT(*)>1 FROM res_company")
+        is_multi_company = cr.fetchone()[0]
+
+        # Historically, any user using pos_blackbox_be in a version prior to 17.0 could
+        # use the multi-company feature. SPF asked us to remove this feature, so we blocked
+        # it in saas-only versions, so that we can still support multi-company users in major versions.
+        if is_multi_company:
+            BLACKBOX_CERTIFIED_VERSIONS = MULTI_COMPANY_CERTIFIED_BLACKBOX
+        else:
+            BLACKBOX_CERTIFIED_VERSIONS = SINGLE_COMPANY_CERTIFIED_BLACKBOX + MULTI_COMPANY_CERTIFIED_BLACKBOX
 
         # block the upgrade if source version is certified but not target version
         if source in BLACKBOX_CERTIFIED_VERSIONS and target not in BLACKBOX_CERTIFIED_VERSIONS:
