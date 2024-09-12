@@ -252,3 +252,9 @@ def migrate(cr, version):
     util.rename_field(cr, "res.partner", "ubl_cii_format", "invoice_edi_format_store")
     util.make_field_company_dependent(cr, "res.partner", "invoice_edi_format_store", "selection")
     util.remove_record(cr, "account.account_move_send_single_rule_group_invoice")
+
+    util.remove_view(cr, "account.tax_groups_totals")
+    util.remove_field(cr, "account.tax", "total_tax_factor")
+    util.remove_field(cr, "account.move.line", "tax_key")
+    util.remove_field(cr, "account.move.line", "compute_all_tax")
+    util.remove_field(cr, "account.move.line", "compute_all_tax_dirty")
