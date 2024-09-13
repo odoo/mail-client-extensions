@@ -13,3 +13,11 @@ def migrate(cr, version):
     util.explode_execute(cr, query_exclude_bank_lines, table="account_move_line", alias="aml")
 
     util.remove_field(cr, "account.move", "tax_closing_show_multi_closing_warning")
+
+    # P&L report modified for 18.0
+    util.remove_record(cr, "account_reports.account_financial_report_less_expenses0")
+    util.remove_record(cr, "account_reports.account_financial_report_less_expenses0_balance")
+    util.remove_record(cr, "account_reports.account_financial_report_totalincome0")
+    util.remove_record(cr, "account_reports.account_financial_report_totalincome0_balance")
+    util.remove_record(cr, "account_reports.account_financial_report_income0")
+    util.remove_record(cr, "account_reports.account_financial_report_income0_balance")
