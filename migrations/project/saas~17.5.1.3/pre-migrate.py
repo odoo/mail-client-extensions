@@ -27,3 +27,4 @@ def migrate(cr, version):
 
     util.remove_field(cr, "project.task", "analytic_account_id")
     util.remove_field(cr, "res.config.settings", "analytic_plan_id")
+    util.remove_record(cr, "project.mail_activity_plan_action_config_task_plan")
