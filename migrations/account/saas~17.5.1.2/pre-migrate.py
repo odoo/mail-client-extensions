@@ -69,23 +69,16 @@ def migrate(cr, version):
         util.explode_execute(cr, query, table="account_move", alias="am")
 
     # Share accounts between companies
-    # 1. Populate ir_property with account codes
-    cr.execute("SELECT id FROM ir_model_fields WHERE model='account.account' AND name='code'")
-    [fields_id] = cr.fetchone()
+    # 1. Populate code_store with account codes
+    util.create_column(cr, "account_account", "code_store", "jsonb")
     cr.execute(
         SQL(
             """
-        INSERT INTO ir_property (name, res_id, company_id, fields_id, value_text, type)
-             SELECT 'code' AS name,
-                    'account.account,' || account_account.id AS res_id,
-                    SPLIT_PART(res_company.parent_path, '/', 1)::int AS company_id,
-                    %s AS fields_id,
-                    account_account.code AS value_text,
-                    'char' AS type
-               FROM account_account
-               JOIN res_company ON res_company.id = account_account.company_id
-    """,
-            fields_id,
+            UPDATE account_account
+               SET code_store = jsonb_build_object(SPLIT_PART(res_company.parent_path, '/', 1), account_account.code)
+              FROM res_company
+             WHERE res_company.id = account_account.company_id
+            """
         )
     )
 

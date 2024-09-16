@@ -41,9 +41,7 @@ def migrate(cr, version):
                      WHERE t.alias_id = a.id
                        AND a.alias_parent_model_id = %s
                        AND a.alias_parent_thread_id != t.id
-                """.format(
-                    table=table
-                ),
+                """.format(table=table),
                 [mid],
             )
         )
@@ -58,6 +56,7 @@ def migrate(cr, version):
     mail_queries = []
     for ir in util.indirect_references(cr, bound_only=True):
         if ir.table == "mail_alias":
+            assert not ir.company_dependent_comodel
             util.parallel_execute(
                 cr,
                 [
@@ -66,11 +65,13 @@ def migrate(cr, version):
                 ],
             )
         elif ir.table in ["mail_mail_statistics", "mailing_trace"]:
+            assert not ir.company_dependent_comodel
             # statistics table (renamed in saas~12.5) has a NULLABLE m2o to `mail_mail`.
             # Removing a `mail_message` will also remove the linked `mail_mail`, forcing NULL on `mail_mail_statistics`
             # We should then proccess them separately.
             util.parallel_execute(cr, list(util.generate_indirect_reference_cleaning_queries(cr, ir)))
         elif ir.table.startswith("mail_"):
+            assert not ir.company_dependent_comodel
             mail_queries.extend(util.generate_indirect_reference_cleaning_queries(cr, ir))
 
     util.parallel_execute(cr, mail_queries)

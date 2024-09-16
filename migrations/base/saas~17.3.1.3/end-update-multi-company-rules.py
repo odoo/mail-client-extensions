@@ -98,7 +98,7 @@ test_mail_full.mail_test_rating_rule_mc
 base.res_partner_rule
 base.res_partner_bank_rule
 base.res_currency_rate_rule
-base.property_rule
+{not_in_175}base.property_rule
 
 account_asset.account_asset_multi_company_rule
 account_auto_transfer.account_auto_transfer_rule

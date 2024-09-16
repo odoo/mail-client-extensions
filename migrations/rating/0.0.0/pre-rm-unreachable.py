@@ -12,6 +12,7 @@ def migrate(cr, version):
     #   - A null `res_id` is ok. Records should not be removed in this case.
     for ir in util.indirect_references(cr, bound_only=True):
         if ir.table == "rating_rating":
+            assert not ir.company_dependent_comodel
             util.parallel_execute(
                 cr,
                 [

@@ -3,6 +3,25 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if util.version_gte("saas~17.5"):
+        cr.execute(
+            """
+            INSERT INTO ir_default(company_id, field_id, json_value)
+            SELECT a.company_id, f.id, ((array_agg(a.id ORDER BY a.code))[1])::text
+              FROM account_account a
+              JOIN ir_model_fields f
+                ON f.model = 'res.partner'
+               AND f.name = CONCAT('property_account_', split_part(a.account_type, '_', 2), '_id')
+         LEFT JOIN ir_default d
+                ON d.field_id = f.id
+               AND d.company_id = a.company_id
+             WHERE a.account_type IN ('asset_receivable', 'liability_payable')
+               AND d.id IS NULL
+          GROUP BY a.company_id, f.id
+            """
+        )
+        return
+
     if not util.version_gte("saas~16.1"):  # this branch is for upgrades with target <=16.0
         join = "JOIN account_account_type t ON (t.id = a.user_type_id)"
         condition = "t.type IN ('payable', 'receivable')"

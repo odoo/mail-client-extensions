@@ -48,6 +48,11 @@ class Base(models.AbstractModel):
             # indexes of vals in vals_list for which create() must be called
             create_idx_list = []
 
+            def convert_to_column(f):
+                if util.version_gte("saas~17.5"):
+                    return f.convert_to_column_insert
+                return f.convert_to_column
+
             # fill in record_ids with existing records
             for idx, vals in enumerate(vals_list):
                 for [constraint_fields] in constraint_fields_list:
@@ -67,7 +72,7 @@ class Base(models.AbstractModel):
                             "Matching record %r using domain %r has XMLID %r. Missing rename?", record, domain, xmlid
                         )
                     store_values = {
-                        key: record._fields[key].convert_to_column(value, record)
+                        key: convert_to_column(record._fields[key])(value, record)
                         for key, value in vals.items()
                         if record._fields[key].column_type
                     }

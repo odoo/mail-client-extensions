@@ -13,10 +13,19 @@ def migrate(cr, version):
         """
     )
 
-    for name, fields_id in cr.fetchall():
-        util.ensure_xmlid_match_record(
-            cr,
-            "stock_account." + name,
-            "ir.property",
-            {"name": name, "res_id": None, "company_id": env.user.company_id.id, "fields_id": fields_id},
-        )
+    if util.version_gte("saas~17.5"):
+        for name, field_id in cr.fetchall():
+            util.ensure_xmlid_match_record(
+                cr,
+                "stock_account." + name,
+                "ir.default",
+                {"company_id": env.user.company_id.id, "field_id": field_id},
+            )
+    else:
+        for name, fields_id in cr.fetchall():
+            util.ensure_xmlid_match_record(
+                cr,
+                "stock_account." + name,
+                "ir.property",
+                {"name": name, "res_id": None, "company_id": env.user.company_id.id, "fields_id": fields_id},
+            )

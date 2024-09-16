@@ -59,6 +59,9 @@ def migrate(cr, version):
     cr.execute(util.format_query(cr, "TRUNCATE {} CASCADE", sql.SQL(", ").join(map(sql.Identifier, tables))))
 
     for ir in util.indirect_references(cr, bound_only=True):
+        if ir.company_dependent_comodel:
+            # XXX: company dependent references to transient models are not handled
+            continue
         query = 'DELETE FROM "{}" WHERE {} AND "{}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
         with suppress(psycopg2.Error), util.savepoint(cr):
             cr.executemany(query, models)
