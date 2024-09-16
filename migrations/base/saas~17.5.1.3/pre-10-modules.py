@@ -37,6 +37,37 @@ def migrate(cr, version):
     util.remove_module(cr, "account_consolidation")
     util.remove_module(cr, "l10n_be_us_consolidation_demo")
 
+    payment_types = ["alipay", "payulatam", "payumoney"]
+    if util.module_installed(cr, "payment"):
+        cr.execute(
+            """
+            UPDATE payment_provider
+               SET state = 'disabled',
+                   redirect_form_view_id = NULL
+             WHERE code IN %s
+            """,
+            [tuple(payment_types)],
+        )
+        util.change_field_selection_values(
+            cr,
+            "payment.provider",
+            "code",
+            {payment: "none" for payment in payment_types},
+        )
+
+    modules_to_remove = [(f"payment_{payment}", "") for payment in payment_types]
+    modules_to_remove.append(("sale_ebay", "Ebay sale connector is no longer maintained and will be removed."))
+    for module, message in modules_to_remove:
+        if util.module_installed(cr, module):
+            if not message:
+                util.add_to_migration_reports(
+                    f"Previously deprecated module {module} has been removed.",
+                    category="Payments",
+                )
+            else:
+                util.add_to_migration_reports(message, category="Ebay Connector")
+        util.remove_module(cr, module)
+
     util.rename_module(cr, "website_sale_picking", "website_sale_collect")
 
     if util.module_installed(cr, "payment"):
