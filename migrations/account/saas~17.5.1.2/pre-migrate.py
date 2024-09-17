@@ -88,7 +88,6 @@ def migrate(cr, version):
             fields_id,
         )
     )
-    util.remove_column(cr, "account_account", "code")
 
     # 2. Create and populate account_account_res_company_rel
     util.create_m2m(cr, "account_account_res_company_rel", "account_account", "res_company")
