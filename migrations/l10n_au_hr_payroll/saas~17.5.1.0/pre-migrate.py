@@ -170,5 +170,77 @@ def migrate(cr, version):
         "l10n_au_hr_payroll.rule_parameter_medicare_levy",
         "l10n_au_hr_payroll.rule_parameter_underage_schedule_3",
         "l10n_au_hr_payroll.rule_parameter_withholding_coefficients",
+        # Payslip input types
+        "l10n_au_hr_payroll.input_gross_bonuses_and_commissions",
+        "ll0n_au_hr_payroll.input_gross_cdep",
+        "ll0n_au_hr_payroll.input_extra_pay",
+        "ll0n_au_hr_payroll.input_cents_per_kilometer_4",
+        "ll0n_au_hr_payroll.input_overseas_accommodation_allowance_2",
     ]
     util.delete_unused(cr, *records_to_delete)
+
+    util.rename_field(cr, "hr.employee", "l10n_au_previous_id_bms", "l10n_au_previous_payroll_id")
+
+    cr.execute(
+        "UPDATE hr_employee SET l10n_au_child_support_garnishee_amount=0 WHERE l10n_au_child_support_garnishee_amount>1"
+    )
+
+    util.create_column(cr, "hr_payslip", "l10n_au_extra_negotiated_super", "float8")
+    util.create_column(cr, "hr_payslip", "l10n_au_extra_compulsory_super", "float8")
+    util.create_column(cr, "hr_payslip", "l10n_au_salary_sacrifice_superannuation", "float8")
+    util.create_column(cr, "hr_payslip", "l10n_au_salary_sacrifice_other", "float8")
+
+    query = """
+        UPDATE hr_payslip p
+           SET l10n_au_extra_negotiated_super = 0,
+               l10n_au_extra_compulsory_super = 0,
+               l10n_au_salary_sacrifice_superannuation = c.l10n_au_salary_sacrifice_superannuation,
+               l10n_au_salary_sacrifice_other = c.l10n_au_salary_sacrifice_other
+          FROM hr_contract c
+         WHERE c.id = p.contract_id
+           AND p.company_id in %s
+        """
+    util.explode_execute(cr, cr.mogrify(query, [cids]).decode(), table="hr_payslip", alias="p")
+
+    util.remove_field(cr, "res.company", "l10n_au_sfei")
+    util.remove_field(cr, "res.config.settings", "l10n_au_sfei")
+    util.remove_field(cr, "hr.employee", "l10n_au_child_support_garnishee")
+
+    util.remove_view(cr, "l10n_au_hr_payroll.l10n_au_payevnt_0004_form_wizard")
+    util.remove_view(cr, "l10n_au_hr_payroll.l10n_au_payevent0004_action_view_tree")
+
+    if util.module_installed(cr, "l10n_au_hr_payroll_account"):
+        eb = util.expand_braces
+        util.rename_xmlid(cr, *eb("l10n_au_hr_payroll{,_account}.l10n_au_payevent_transaction_sequence"))
+        util.rename_xmlid(cr, *eb("l10n_au_hr_payroll{,_account}.l10n_au_payevent_transaction_sequence_demo"))
+        util.rename_xmlid(cr, *eb("l10n_au_hr_payroll{,_account}.payevent_0004_xml_report"))
+        util.rename_xmlid(
+            cr,
+            "l10n_au_hr_payroll.l10n_au_payevent0004_action",
+            "l10n_au_hr_payroll_account.l10n_au_stp_action",
+        )
+        util.move_model(cr, "l10n_au.payevnt.0004", "l10n_au_hr_payroll", "l10n_au_hr_payroll_account")
+        util.rename_xmlid(
+            cr,
+            "l10n_au_hr_payroll.menu_l10n_au_l10n_au_payevent0004",
+            "l10n_au_hr_payroll_account.menu_l10n_au_l10n_au_stp",
+        )
+        util.move_model(cr, "l10n_au.payevnt.emp.0004", "l10n_au_hr_payroll", "l10n_au_hr_payroll_account")
+        util.rename_model(cr, "l10n_au.payevnt.0004", "l10n_au.stp")
+        util.rename_model(cr, "l10n_au.payevnt.emp.0004", "l10n_au.stp.emp")
+        util.rename_field(cr, "l10n_au.stp.emp", "payevnt_0004_id", "stp_id")
+        util.remove_field(cr, "l10n_au.stp.emp", "payslip_currency_id")
+        util.remove_field(cr, "l10n_au.stp.emp", "payslip_id")
+        util.remove_field(cr, "l10n_au.stp", "intermediary")
+        util.remove_field(cr, "l10n_au.stp", "previous_id_bms")
+    else:
+        util.delete_model(cr, "l10n_au.payevnt.0004")
+        util.delete_model(cr, "l10n_au.payevnt.emp.0004")
+        util.delete_unused(
+            cr,
+            "l10n_au_hr_payroll.l10n_au_payevent_transaction_sequence_demo",
+            "l10n_au_hr_payroll.l10n_au_payevent_transaction_sequence",
+            "l10n_au_hr_payroll.l10n_au_payevent0004_action",
+        )
+        util.remove_view(cr, "l10n_au_hr_payroll.payevent_0004_xml_report")
+        util.remove_menus(cr, [util.ref(cr, "l10n_au_hr_payroll.menu_l10n_au_l10n_au_payevent0004")])
