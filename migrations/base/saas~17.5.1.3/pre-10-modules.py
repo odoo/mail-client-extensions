@@ -86,3 +86,5 @@ def migrate(cr, version):
 
     util.rename_module(cr, "account_sepa", "account_iso20022")
     util.rename_module(cr, "hr_payroll_account_sepa", "hr_payroll_account_iso20022")
+
+    util.merge_module(cr, "l10n_ro_efactura", "l10n_ro_edi")
