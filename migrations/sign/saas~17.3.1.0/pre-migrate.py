@@ -16,6 +16,7 @@ def migrate(cr, version):
              JOIN sign_request r
                ON r.id = i.sign_request_id
             WHERE i.ignored is true
+              AND i.state != 'completed'
               AND r.state IN ('sent', 'shared')
               AND {parallel_filter}
          GROUP BY r.id
@@ -32,6 +33,7 @@ def migrate(cr, version):
         UPDATE sign_request_item
            SET state = 'canceled'
          WHERE ignored = true
+           AND state != 'completed'
     """
     util.explode_execute(cr, sign_request_item_update_query, table="sign_request_item")
 
