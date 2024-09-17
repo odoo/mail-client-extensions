@@ -41,3 +41,9 @@ def migrate(cr, version):
         """,
         [Json(mapping), tuple(mapping)],
     )
+
+    cr.execute(
+        "UPDATE ir_act_report_xml SET paperformat_id = NULL WHERE id = %s",
+        [util.ref(cr, "l10n_in_hr_payroll.payslip_details_report")],
+    )
+    util.delete_unused(cr, "l10n_in_hr_payroll.paperformat_india_payslip")
