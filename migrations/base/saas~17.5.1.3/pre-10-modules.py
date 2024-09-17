@@ -154,3 +154,6 @@ def migrate(cr, version):
     util.remove_module(cr, "spreadsheet_dashboard_purchase")
 
     util.force_migration_of_fresh_module(cr, "certificate")
+
+    util.remove_module(cr, "l10n_account_customer_statements")
+    util.remove_module(cr, "l10n_uk_customer_statements")
