@@ -10,3 +10,5 @@ def migrate(cr, version):
     util.rename_field(cr, "bank.rec.widget", "st_line_to_check", "st_line_checked")
 
     util.remove_view(cr, "account_accountant.view_bank_statement_form_with_buttons")
+
+    util.remove_field(cr, "account.move.line", "expected_pay_date")

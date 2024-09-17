@@ -28,3 +28,5 @@ def migrate(cr, version):
     util.make_field_company_dependent(
         cr, "res.partner", "peppol_verification_state", "selection", default_value="not_verified"
     )
+
+    util.remove_view(cr, "account_peppol.res_partner_view_tree")

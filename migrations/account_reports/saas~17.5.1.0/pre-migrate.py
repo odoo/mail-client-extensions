@@ -27,3 +27,5 @@ def migrate(cr, version):
     util.remove_record(cr, "account_reports.account_financial_current_year_earnings_line_1_balance")
     util.remove_record(cr, "account_reports.account_financial_current_year_earnings_line_2")
     util.remove_record(cr, "account_reports.account_financial_current_year_earnings_line_2_balance")
+
+    util.remove_view(cr, "account_reports.partner_view_buttons")

@@ -122,3 +122,5 @@ def migrate(cr, version):
           THEN -1 ELSE 1 END
     """
     util.explode_execute(cr, query_amount_untaxed, table="account_move")
+
+    util.remove_field(cr, "account.move.line", "blocked")
