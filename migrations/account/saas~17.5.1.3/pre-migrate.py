@@ -153,3 +153,92 @@ def migrate(cr, version):
     util.remove_field(cr, "res.partner", "last_time_entries_checked")
 
     util.rename_field(cr, "res.config.settings", "module_account_sepa", "module_account_iso20022")
+
+    cr.execute(
+        """
+        WITH line2account AS (
+            SELECT line.id,
+                   CASE
+                       WHEN method.payment_type = 'inbound'
+                       THEN company.account_journal_payment_debit_account_id
+                       ELSE company.account_journal_payment_credit_account_id
+                   END AS account
+              FROM account_payment_method_line line
+              JOIN account_journal journal
+                ON line.journal_id = journal.id
+              JOIN res_company company
+                ON journal.company_id = company.id
+              JOIN account_payment_method method
+                ON line.payment_method_id = method.id
+             WHERE line.payment_account_id IS NULL
+        )
+        UPDATE account_payment_method_line line
+           SET payment_account_id = line2account.account
+          FROM line2account
+         WHERE line.id = line2account.id
+        """
+    )
+
+    util.remove_field(cr, "res.config.settings", "account_journal_payment_debit_account_id")
+    util.remove_field(cr, "res.config.settings", "account_journal_payment_credit_account_id")
+    util.remove_field(cr, "res.company", "account_journal_payment_debit_account_id", drop_column=False)
+    util.remove_field(cr, "res.company", "account_journal_payment_credit_account_id", drop_column=False)
+    util.remove_field(cr, "account.payment", "destination_journal_id")
+    util.remove_field(cr, "account.payment", "is_internal_transfer")
+
+    util.rename_field(cr, "account.move", "payment_id", "origin_payment_id")
+    util.rename_field(cr, "account.payment", "is_move_sent", "is_sent")
+    util.create_column(cr, "account_payment", "is_sent", "int4")
+    util.rename_field(cr, "account.payment", "ref", "memo")
+    util.create_column(cr, "account_payment", "memo", "varchar")
+    util.rename_field(cr, "account.payment", "duplicate_move_ids", "duplicate_payment_ids")
+    util.rename_field(cr, "account.payment.register", "duplicate_move_ids", "duplicate_payment_ids")
+    util.create_column(cr, "account_payment", "name", "varchar")
+    util.create_column(cr, "account_payment", "state", "varchar")
+    query_update_payment_from_move = """
+        UPDATE account_payment
+           SET name = move.name,
+               memo = move.ref,
+               is_sent = move.is_move_sent,
+               state = CASE WHEN move.state = 'draft' THEN 'draft'
+                            WHEN move.state = 'posted' AND NOT account_payment.is_matched THEN 'in_process'
+                            WHEN move.state = 'posted AND account_payment.is_matched THEN 'paid'
+                            WHEN move.state = 'cancel' THEN 'canceled'
+                            ELSE 'draft'
+                       END
+          FROM account_move move
+         WHERE move.origin_payment_id = account_payment.id
+    """
+    util.explode_execute(cr, query_update_payment_from_move, table="account_payment")
+
+    util.remove_inherit_from_model(
+        cr,
+        model="account.payment",
+        inherit="account.move",
+        keep=(
+            "name",
+            "state",
+            "date",
+            "currency_id",
+            "company_id",
+            "journal_id",
+            "partner_id",
+            "partner_bank_id",
+            "payment_reference",
+            "attachment_ids",
+            "need_cancel_request",
+            "expense_sheet_id",
+            "need_cancel_request",
+            "sdd_mandate_id",
+            "sdd_mandate_scheme",
+            "bacs_ddi_id",
+            "l10n_ma_reports_payment_method",
+            # mail.thread
+            "activity_ids",
+            "message_follower_ids",
+            "message_ids",
+            "message_main_attachment_id",
+            "website_message_ids",
+            "rating_ids",
+        ),
+    )

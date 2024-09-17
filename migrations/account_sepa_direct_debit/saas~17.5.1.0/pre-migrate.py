@@ -23,3 +23,5 @@ def migrate(cr, version):
         """,
         table="account_payment",
     )
+    util.remove_column(cr, "account_move", "sdd_mandate_id")  # the field is now related from payment to move
+    util.remove_field(cr, "account.move", "sdd_mandate_scheme")

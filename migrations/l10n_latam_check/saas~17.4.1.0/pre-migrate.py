@@ -44,6 +44,9 @@ def migrate(cr, version):
 
     # Migrate own checks from payments to the separate table
     # The liquidity_line points to itself, but if a payment is done with multiple checks, it will point to a separate journal entry
+    payment_field = "payment_id"
+    if util.version_gte("saas~17.5"):
+        payment_field = "origin_payment_id"
     cr.execute(
         """
         INSERT INTO l10n_latam_check
@@ -61,7 +64,7 @@ def migrate(cr, version):
                JOIN account_payment_method apm
                  ON apml.payment_method_id = apm.id
                JOIN account_move am
-                 ON am.payment_id = ap.id
+                 ON am.{} = ap.id
                JOIN account_move_line aml
                  ON aml.move_id = am.id
                JOIN account_account account
@@ -69,7 +72,7 @@ def migrate(cr, version):
               WHERE ABS(aml.amount_currency) = ap.amount
                 AND account.account_type NOT IN ('asset_receivable', 'liability_payable')
                 AND apm.code = 'own_checks'
-    """
+      """.format(payment_field)
     )
 
     # Migrate new 3rd party checks from payments to the separate table

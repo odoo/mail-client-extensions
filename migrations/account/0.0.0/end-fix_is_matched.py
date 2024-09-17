@@ -11,13 +11,16 @@ def migrate(cr, version):
     if util.module_installed(cr, "hr_expense") and util.version_gte("16.0"):
         extra_join = "LEFT JOIN hr_expense_sheet hes ON hes.account_move_id = am.id"
         extra_where = "AND hes.id IS NULL"
+    payment_field = "payment_id"
+    if util.version_gte("saas~17.5"):
+        payment_field = "origin_payment_id"
 
     cr.execute(
         """
         SELECT ap.payment_type,
                array_agg(ap.id)
           FROM account_payment ap
-          JOIN account_move am ON am.payment_id = ap.id
+          JOIN account_move am ON am.{} = ap.id
           JOIN account_journal aj ON aj.id = am.journal_id
           {}
          WHERE ap.is_matched IS False
@@ -26,9 +29,7 @@ def migrate(cr, version):
            AND ap.is_reconciled IS False
            {}
          GROUP BY ap.payment_type
-        """.format(
-            extra_join, extra_where
-        )
+        """.format(payment_field, extra_join, extra_where)
     )
     for payment_type, payment_ids in cr.fetchall():
         if not payment_ids:

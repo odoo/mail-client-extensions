@@ -8,6 +8,7 @@ ODOO_MIG_18_REMOVE_CONSOLIDATION = util.str2bool(os.getenv("ODOO_MIG_18_REMOVE_C
 def migrate(cr, version):
     util.remove_module(cr, "web_tour_recorder")
     util.remove_module(cr, "account_lock")
+    util.remove_module(cr, "l10n_bg_reports")
 
     if util.module_installed(cr, "account_consolidation"):
         if not ODOO_MIG_18_REMOVE_CONSOLIDATION:

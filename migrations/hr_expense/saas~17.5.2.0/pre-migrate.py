@@ -12,3 +12,11 @@ def migrate(cr, version):
         """,
         table="hr_expense",
     )
+
+    util.create_column(cr, "res_company", "expense_outstanding_account_id", "int4")
+    cr.execute(
+        """
+        UPDATE res_company
+           SET expense_outstanding_account_id = account_journal_payment_credit_account_id
+        """
+    )
