@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 from freezegun import freeze_time
 from lxml import etree
 
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.l10n_mx_edi.tests.test_16_4_refactoring_edi import TestRefactoringL10nMxEDI
 from odoo.addons.base.maintenance.migrations.testing import change_version
 
@@ -168,38 +168,39 @@ class TestRefactoringEDI(TestRefactoringL10nMxEDI):
                 "l10n_mx_edi_operator_licence": "a234567890",
             }
         )
+        edi_vehicle = {
+            "name": "DEMOPERMIT",
+            "transport_insurer": "DEMO INSURER",
+            "transport_insurance_policy": "DEMO POLICY",
+            "transport_perm_sct": "TPAF10",
+            "vehicle_model": "2020",
+            "vehicle_config": "T3S1",
+            "vehicle_licence": "ABC123",
+            "trailer_ids": [(0, 0, {"name": "trail1", "sub_type": "CTR003"})],
+            "figure_ids": [
+                (
+                    0,
+                    0,
+                    {
+                        "type": "01",
+                        "operator_id": self.operator_pedro.id,
+                    },
+                ),
+                (
+                    0,
+                    0,
+                    {
+                        "type": "02",
+                        "operator_id": self.env.company.partner_id.id,
+                        "part_ids": [(6, 0, self.env.ref("l10n_mx_edi_stock.l10n_mx_edi_part_05").ids)],
+                    },
+                ),
+            ],
+        }
+        if util.module_installed(self.env.cr, "l10n_mx_edi_stock_30"):
+            edi_vehicle["gross_vehicle_weight"] = 1000
 
-        self.vehicle_pedro = self.env["l10n_mx_edi.vehicle"].create(
-            {
-                "name": "DEMOPERMIT",
-                "transport_insurer": "DEMO INSURER",
-                "transport_insurance_policy": "DEMO POLICY",
-                "transport_perm_sct": "TPAF10",
-                "vehicle_model": "2020",
-                "vehicle_config": "T3S1",
-                "vehicle_licence": "ABC123",
-                "trailer_ids": [(0, 0, {"name": "trail1", "sub_type": "CTR003"})],
-                "figure_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "type": "01",
-                            "operator_id": self.operator_pedro.id,
-                        },
-                    ),
-                    (
-                        0,
-                        0,
-                        {
-                            "type": "02",
-                            "operator_id": self.env.company.partner_id.id,
-                            "part_ids": [(6, 0, self.env.ref("l10n_mx_edi_stock.l10n_mx_edi_part_05").ids)],
-                        },
-                    ),
-                ],
-            }
-        )
+        self.vehicle_pedro = self.env["l10n_mx_edi.vehicle"].create(edi_vehicle)
 
         results["tests"].append(("_check_stock_picking", self._prepare_test_stock_picking()))
         return results
