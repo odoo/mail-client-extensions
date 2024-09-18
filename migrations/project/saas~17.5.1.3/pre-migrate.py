@@ -4,7 +4,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     analytic_util = util.import_script("analytic/saas~16.5.1.1/pre-migrate.py")
 
-    project_plan_id, _all_project_plans = analytic_util.get_all_analytic_plan_ids(cr)
+    project_plan_id = analytic_util.get_project_plan_id(cr)
     cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
     analytic_util.create_analytic_plan_fields(cr, "project.project", other_plan_ids)

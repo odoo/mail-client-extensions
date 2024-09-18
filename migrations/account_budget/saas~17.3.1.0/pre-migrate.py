@@ -45,7 +45,7 @@ def migrate(cr, version):
     # create analytic_json column in purchase_order_line
     util.create_column(cr, "purchase_order_line", "analytic_json", "jsonb")
 
-    project_plan_id, _all_project_plans = analytic_util.get_all_analytic_plan_ids(cr)
+    project_plan_id = analytic_util.get_project_plan_id(cr)
     cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
 

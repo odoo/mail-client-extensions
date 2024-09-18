@@ -10,7 +10,7 @@ def migrate(cr, version):
     util.remove_field(cr, "project.project", "workorder_count")
     analytic_util = util.import_script("analytic/saas~16.5.1.1/pre-migrate.py")
 
-    project_plan_id, _all_project_plans = analytic_util.get_all_analytic_plan_ids(cr)
+    project_plan_id = analytic_util.get_project_plan_id(cr)
     all_account_ids = set()
     res_ids_per_res_model_per_account_ids = defaultdict(lambda: defaultdict(list))
 

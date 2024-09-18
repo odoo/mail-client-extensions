@@ -4,7 +4,19 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    project_plan_id, all_project_plans = get_all_analytic_plan_ids(cr)
+    # Retrieve the project plan id and all the other plan ids
+    cr.execute(
+        r"""
+        SELECT ARRAY_AGG(value::int ORDER BY value::int)
+          FROM ir_config_parameter
+         WHERE key LIKE 'default\_analytic\_plan\_id\_%'
+        """
+    )
+    all_project_plans = cr.fetchone()[0] or []
+    project_plan_id = all_project_plans[0] if all_project_plans else _find_or_create_project_plan(cr)
+    if project_plan_id not in all_project_plans:
+        all_project_plans.append(project_plan_id)
+
     cr.execute("SELECT id FROM account_analytic_plan WHERE id != %s AND parent_id IS NULL", [project_plan_id])
     other_plan_ids = [r[0] for r in cr.fetchall()]
     cr.execute(
@@ -55,7 +67,7 @@ def migrate(cr, version):
     cr.execute(
         f"""
         INSERT INTO account_analytic_applicability ({", ".join(columns)}, company_id)
-             SELECT {", ".join("aaa.%s" % column for column in columns)}, company.id
+             SELECT {", ".join("aaa.{}".format(column) for column in columns)}, company.id
                FROM account_analytic_applicability aaa,
                     res_company company;
 
@@ -121,20 +133,10 @@ def migrate(cr, version):
     util.remove_field(cr, "account.analytic.line", "plan_id")
 
 
-def get_all_analytic_plan_ids(cr):
-    # Retrieve the project plan id and all the other plan ids
-    cr.execute(
-        r"""
-        SELECT ARRAY_AGG(value::int ORDER BY value::int)
-          FROM ir_config_parameter
-         WHERE key LIKE 'default\_analytic\_plan\_id\_%'
-        """
-    )
-    all_project_plans = cr.fetchone()[0] or []
-    cr.execute("SELECT id FROM account_analytic_plan ORDER BY id")
+def _find_or_create_project_plan(cr):
+    cr.execute("SELECT id FROM account_analytic_plan ORDER BY id FETCH FIRST ROW ONLY")
     [plan_id] = cr.fetchone() or [None]
-    project_plan_id = all_project_plans[0] if all_project_plans else plan_id
-    if not project_plan_id:
+    if not plan_id:
         cr.execute(
             """INSERT INTO account_analytic_plan(name, default_applicability)
                            VALUES (%s, 'optional')
@@ -146,10 +148,15 @@ def get_all_analytic_plan_ids(cr):
                 else "Default"
             ],
         )
-        project_plan_id = cr.fetchone()[0]
-    if project_plan_id not in all_project_plans:
-        all_project_plans.append(project_plan_id)
-    return project_plan_id, all_project_plans
+        plan_id = cr.fetchone()[0]
+    return plan_id
+
+
+def get_project_plan_id(cr):
+    cr.execute("SELECT value::int FROM ir_config_parameter WHERE key = 'analytic.project_plan'")
+    if cr.rowcount:
+        return cr.fetchone()[0]
+    return _find_or_create_project_plan(cr)
 
 
 def create_analytic_plan_fields(cr, model, other_plan_ids):
