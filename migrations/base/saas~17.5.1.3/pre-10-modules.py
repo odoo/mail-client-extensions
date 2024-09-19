@@ -150,3 +150,5 @@ def migrate(cr, version):
     if not util.has_enterprise():
         util.remove_module(cr, "spreadsheet_dashboard_purchase_stock")
     util.remove_module(cr, "spreadsheet_dashboard_purchase")
+
+    util.force_migration_of_fresh_module(cr, "certificate")

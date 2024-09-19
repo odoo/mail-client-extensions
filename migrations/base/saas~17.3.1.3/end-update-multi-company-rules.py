@@ -130,7 +130,7 @@ hr_referral.hr_hr_referral_onboarding_comp_rule
 hr_referral.report_hr_referral_report_comp_rule
 iot.iot_box_comp_rule
 iot.iot_device_comp_rule
-l10n_cl_edi.l10n_cl_certificate_comp_rule
+{not_in_175}l10n_cl_edi.l10n_cl_certificate_comp_rule
 l10n_cl_edi.l10n_cl_dte_caf_comp_rule
 l10n_lu_reports.l10n_lu_appendix_multi_company_rule
 l10n_pe_edi_stock.l10n_pe_edi_vehicle
