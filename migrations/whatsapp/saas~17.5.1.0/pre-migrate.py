@@ -1,3 +1,6 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
     cr.execute(
         """
@@ -6,3 +9,4 @@ def migrate(cr, version):
          WHERE template_type is NULL
         """
     )
+    util.remove_field(cr, "discuss.channel", "whatsapp_mail_message_id")
