@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -9,7 +8,7 @@ def migrate(cr, version):
     cr.execute(
         """
         WITH pol AS (
-                SELECT po.id, MIN(date_done) as date_done
+                SELECT po.id, MIN(s.date_done) as date_done
                   FROM purchase_order po
                   JOIN purchase_order_stock_picking_rel r ON (po.id = r.purchase_order_id)
                   JOIN stock_picking s ON (s.id = r.stock_picking_id)
