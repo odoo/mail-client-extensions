@@ -20,5 +20,6 @@ def migrate(cr, version):
     if util.module_installed(cr, "l10n_in_edi"):
         util.move_field_to_module(cr, "res.company", "l10n_in_edi_production_env", "l10n_in_edi", "l10n_in")
         util.move_field_to_module(cr, "res.config.settings", "l10n_in_edi_production_env", "l10n_in_edi", "l10n_in")
+        util.rename_xmlid(cr, *util.expand_braces("l10n_in{_edi,}.iap_service_l10n_in_edi"))
     util.remove_field(cr, "product.template", "l10n_in_hsn_description")
     util.rename_field(cr, "account.move", "l10n_in_hsn_code_warning", "l10n_in_warning")
