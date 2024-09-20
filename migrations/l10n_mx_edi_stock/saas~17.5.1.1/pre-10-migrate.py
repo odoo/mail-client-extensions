@@ -1,0 +1,1 @@
+../../l10n_mx_edi_stock_extended/saas~17.2.1.0/pre-migrate.py
