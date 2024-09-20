@@ -157,3 +157,23 @@ def migrate(cr, version):
 
     util.remove_module(cr, "l10n_account_customer_statements")
     util.remove_module(cr, "l10n_uk_customer_statements")
+
+    if util.module_installed(cr, "l10n_in") and not util.module_installed(cr, "l10n_in_withholding"):
+        cr.execute("""
+            SELECT 1
+              FROM account_move_line aml
+              JOIN account_account_tag_account_move_line_rel aml_tag
+                ON aml_tag.account_move_line_id = aml.id
+              JOIN account_account_tag a_tag
+                ON a_tag.id = aml_tag.account_account_tag_id
+              JOIN account_report_expression arx
+                ON a_tag.name->>'en_US' IN (CONCAT('+', arx.formula), CONCAT('-', arx.formula))
+              JOIN ir_model_data ref
+                ON ref.res_id = arx.id
+               AND ref.model= 'account.report.expression'
+             WHERE ref.name ILIKE '%tds_report_line_section%'
+                OR ref.name ILIKE '%tcs_report_line_section%'
+             LIMIT 1
+        """)
+        if cr.rowcount:
+            util.force_install_module(cr, "l10n_in_withholding")
