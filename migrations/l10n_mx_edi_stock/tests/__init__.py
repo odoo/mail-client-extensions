@@ -1,3 +1,1 @@
-# -*- encoding: utf-8 -*-
-
-from . import test_16_4_refactoring_edi
+from . import test_16_4_refactoring_edi, test_17_5_hazardous_material_code
