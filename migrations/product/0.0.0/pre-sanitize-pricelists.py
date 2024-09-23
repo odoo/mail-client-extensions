@@ -58,12 +58,14 @@ def migrate(cr, version):
                     """.format_map(
                         dict(
                             row,
-                            msg_browsing=('While browsing the company "{}",'.format(row["property_company"]))
+                            msg_browsing=(
+                                'While browsing the company "{}",'.format(util.html_escape(row["property_company"]))
+                            )
                             if row["property_company"]
                             else "While browsing any company",
                             msg_partner=(
                                 'the partner "{}" (#%{}) used the pricelist'.format(
-                                    row["partner_name"], row["partner_id"]
+                                    util.html_escape(row["partner_name"]), row["partner_id"]
                                 )
                             )
                             if row["partner_id"]
