@@ -34,39 +34,43 @@ def migrate(cr, version):
             """
                 <details>
                 <summary>
-                    While browsing the database using the company "%s",
-                    some partners were assigned pricelists from the company "%s",
+                    While browsing the database using the company "{}",
+                    some partners were assigned pricelists from the company "{}",
                     and the other way around as well.
                     As this is not a valid configuration, the pricelists of these partners have been unassigned.
                     If you want these partners to have an assigned pricelist, you will need to reassign them.
                     You will find the list of the partners updated below.
                 </summary>
                 <ul>
-                    %s
+                    {}
                 </ul>
                 </details>
-            """
-            % (
+            """.format(
                 util.html_escape(deleted[0]["property_company"]),
                 util.html_escape(deleted[0]["pricelist_company"]),
                 "\n".join(
                     """
                         <li>
-                            %(msg_browsing)s
-                            %(msg_partner)s
-                            "%(pricelist_name)s" (#%(pricelist_id)s) from the company "%(pricelist_company)s"
+                            {msg_browsing}
+                            {msg_partner}
+                            "{pricelist_name}" (#{pricelist_id}) from the company "{pricelist_company}"
                         </li>
-                    """
-                    % dict(
-                        row,
-                        msg_browsing=('While browsing the company "%(property_company)s",' % row)
-                        if row["property_company"]
-                        else "While browsing any company",
-                        msg_partner=('the partner "%(partner_name)s" (#%(partner_id)s) used the pricelist' % row)
-                        if row["partner_id"]
-                        else "the default pricelist was",
+                    """.format_map(
+                        dict(
+                            row,
+                            msg_browsing=('While browsing the company "{}",'.format(row["property_company"]))
+                            if row["property_company"]
+                            else "While browsing any company",
+                            msg_partner=(
+                                'the partner "{}" (#%{}) used the pricelist'.format(
+                                    row["partner_name"], row["partner_id"]
+                                )
+                            )
+                            if row["partner_id"]
+                            else "the default pricelist was",
+                        )
+                        for row in deleted
                     )
-                    for row in deleted
                 ),
             ),
             "Pricelists",
