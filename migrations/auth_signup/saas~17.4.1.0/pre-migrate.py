@@ -20,7 +20,7 @@ def migrate(cr, version):
             "mail_template",
             "body_html",
             "object.signup_url",
-            "object{subfield}.partner_id._get_signup_url()",
+            f"object{subfield}._get_signup_url()",
             extra_filter=cr.mogrify("t.model = %s", [model]).decode(),
         )
 
