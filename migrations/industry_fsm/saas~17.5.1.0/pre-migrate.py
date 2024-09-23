@@ -3,6 +3,15 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     eb = util.expand_braces
+    cr.execute(
+        """
+        UPDATE ir_act_window
+           SET path=NULL
+         WHERE id=%s
+           AND path='field-service'
+        """,
+        [util.ref(cr, "industry_fsm.project_task_action_fsm")],
+    )
     if util.module_installed(cr, "industry_fsm_report"):
         util.rename_xmlid(cr, *eb("industry_fsm{_report,}.worksheet_custom"))
         util.rename_xmlid(cr, *eb("industry_fsm{_report,}.mail_template_data_task_report"))
