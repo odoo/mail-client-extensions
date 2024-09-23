@@ -13,7 +13,7 @@ def migrate(cr, version):
                 FROM account_account_res_company_rel rel
                 JOIN res_company c
                   ON c.id = rel.res_company_id
-                JOIN ir_property p
+                JOIN _ir_property p
                   ON p.name = 'code'
                  AND p.res_id = 'account.account,' || rel.account_account_id
                  AND p.company_id = SPLIT_PART(c.parent_path, '/', 1)::int
