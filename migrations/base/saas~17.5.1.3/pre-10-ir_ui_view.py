@@ -23,3 +23,20 @@ def migrate(cr, version):
     cr.execute(
         r"UPDATE ir_act_window SET context = regexp_replace(context, '\ytree_view_ref\y', 'list_view_ref', 'g') WHERE context LIKE '%tree\_view\_ref%'"
     )
+
+    util.replace_in_all_jsonb_values(
+        cr,
+        "ir_ui_view",
+        "arch_db",
+        util.PGRegexp(r'name=(["\'])kanban-menu\1'),
+        r"name=\1menu\1",
+        extra_filter="t.arch_db::TEXT LIKE '%%kanban-card%%' AND t.type IN ('kanban', 'form')",
+    )
+    util.replace_in_all_jsonb_values(
+        cr,
+        "ir_ui_view",
+        "arch_db",
+        util.PGRegexp(r'name=(["\'])kanban-card\1'),
+        r"name=\1card\1",
+        extra_filter="t.type IN ('kanban', 'form')",
+    )
