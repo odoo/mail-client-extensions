@@ -52,8 +52,8 @@ def migrate(cr, version):
         """
         SELECT asset.id AS asset_id,
                asset.name AS asset_name,
-               array_agg(ml.id ORDER BY ml.id) FILTER (WHERE ml.credit != 0 OR (ml.credit = 0 AND ml.debit = 0 AND m.state='draft')) AS credit_line_ids,
-               array_agg(ml.name ORDER BY ml.id) FILTER (WHERE ml.credit != 0 OR (ml.credit = 0 AND ml.debit = 0 AND m.state='draft')) AS credit_line_names
+               array_agg(ml.id ORDER BY ml.id) FILTER (WHERE ml.credit != 0 OR (ml.credit = 0 AND ml.debit = 0)) AS credit_line_ids,
+               array_agg(ml.name ORDER BY ml.id) FILTER (WHERE ml.credit != 0 OR (ml.credit = 0 AND ml.debit = 0)) AS credit_line_names
           FROM account_asset AS asset
           JOIN asset_move_line_rel AS mlr
             ON mlr.asset_id = asset.id
