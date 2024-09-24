@@ -170,8 +170,8 @@ def migrate(cr, version):
                             if row["partner_id"]
                             else "the default pricelist was",
                         )
-                        for row in deleted
                     )
+                    for row in deleted
                 ),
             ),
             "Pricelists",
