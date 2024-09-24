@@ -45,6 +45,10 @@ def migrate(cr, version):
           JOIN ir_model_fields AS imf
             ON ip.fields_id = imf.id
            AND imf.store IS NOT TRUE
+           -- ignore some fields handled in their own modules
+           AND (imf.model, imf.name) NOT IN (
+               ('planning.slot.template', 'project_id')  -- no more company dependent since saas-17.1
+           )
       ORDER BY imf.model
         """
     )
