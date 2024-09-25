@@ -2,6 +2,10 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+
+    if util.version_gte("saas~17.5"):
+        return
+
     if util.version_gte("14.0"):
         util.ensure_mail_alias_mapping(
             cr,
