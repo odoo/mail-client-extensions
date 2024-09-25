@@ -117,7 +117,7 @@ def migrate(cr, version):
              (WITH _mrp_bom AS (
                    SELECT CAST(SPLIT_PART(res_id, ',', 2) AS INTEGER) AS id,
                           CAST(value_text AS jsonb) AS analytic_distribution
-                     FROM _ir_property
+                     FROM ir_property
                     WHERE name = 'analytic_distribution_text'
                       AND value_text != 'false'
                  )
