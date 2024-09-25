@@ -213,8 +213,25 @@ def migrate(cr, version):
             ON folder._upg_old_folder_id = write_group.documents_folder_id
          WHERE documents_document.id = folder.id
            AND documents_document.access_internal IS NULL
+           AND folder.type = 'folder'
         """,
         {"internal": internal_id},
+    )
+
+    # Propagate access_internal from the folder to the documents inside of if
+    # (but not on the folders inside of it)
+    util.explode_execute(
+        cr,
+        """
+        UPDATE documents_document document
+           SET access_internal = folder.access_internal
+          FROM documents_document AS folder
+         WHERE folder.id = document.folder_id
+           AND document.type != 'folder'
+           AND {parallel_filter}
+        """,
+        table="documents_document",
+        alias="document",
     )
 
     # For each non-internal groups, create one <documents.access> per user in the group on the folder
@@ -304,7 +321,7 @@ def migrate(cr, version):
                FROM documents_folder AS old_folder
                JOIN documents_document AS folder
                  ON old_folder.id = folder._upg_old_folder_id
-              WHERE (user_specific OR user_specific_write)
+              WHERE (old_folder.user_specific OR old_folder.user_specific_write)
                 AND {parallel_filter}
         )
     """
@@ -367,30 +384,29 @@ def migrate(cr, version):
         """
         CREATE TABLE documents_redirect (
             id SERIAL PRIMARY KEY,
-            create_uid integer,
-            create_date timestamp without time zone,
-            write_uid integer,
-            write_date timestamp without time zone,
-            document_id integer,
-            access_token varchar
+            create_uid INTEGER,
+            create_date TIMESTAMP WITHOUT TIME ZONE,
+            write_uid INTEGER,
+            write_date TIMESTAMP WITHOUT TIME ZONE,
+            document_id INTEGER,
+            access_token VARCHAR
         )
         """
     )
 
-    # We don't migrate non-"include sub-folder" shares, or share of selected documents
+    # We don't migrate non-"include sub-folder" shares, shares of selected documents ids, or shares
+    # with a customized domain.
     # But we might need the share for the sub-modules migration, so we add a new column
     # to flag the share that we want to ignore here
     util.create_column(cr, "documents_share", "to_ignore", "boolean")
     util.explode_execute(
         cr,
-        """
+        r"""
         UPDATE documents_share
            SET to_ignore = TRUE
-         WHERE NOT include_sub_folders
-                 OR (
-                    domain != '[[''folder_id'', ''child_of'', ' || folder_id || ']]'
-                    AND type = 'domain'
-                )
+         WHERE TYPE = 'domain'
+           AND (NOT include_sub_folders
+                OR regexp_replace(domain, '[\s\[\]()''"]+', '', 'g') != 'folder_id,child_of,' || folder_id)
            AND {parallel_filter}
         """,
         table="documents_share",
@@ -583,7 +599,7 @@ def migrate(cr, version):
         {"document_model_id": document_model_id},
     )
 
-    for r in cr.dictfetchall():  # TODO: find a better way
+    for r in cr.dictfetchall():
         alias_id = r["alias_id"]
         document_id = r["document_id"]  # if document is set, it's the main alias
         defaults = ast.literal_eval(r["alias_defaults"])
@@ -700,26 +716,37 @@ def migrate(cr, version):
     # C (no company)
     # |
     # D (no company)
+    break_recursive_loops(cr, "documents.document", "folder_id")
     cr.execute(
         """
-    WITH RECURSIVE documents AS (
-            SELECT id AS id,
-                   folder_id,
-                   company_id
-              FROM documents_document
-             WHERE company_id IS NULL
-  UNION ALL SELECT child.id,
-                   parent.folder_id,
-                   parent.company_id
-              FROM documents AS child
-              JOIN documents_document AS parent
-                ON parent.id = child.folder_id
-             WHERE child.company_id IS NULL -- we found the highest with a company
-        )
-            UPDATE documents_document
-               SET company_id = documents.company_id
-              FROM documents
-             WHERE documents.id = documents_document.id
+WITH RECURSIVE docs AS (
+            -- start from all documents that have company set
+            -- and at least one child with NULL company
+        SELECT p.id,
+               p.company_id
+          FROM documents_document p
+          JOIN documents_document c
+            ON c.folder_id = p.id
+         WHERE p.company_id IS NOT NULL
+           AND c.company_id IS NULL
+      GROUP BY p.id
+
+         UNION ALL -- fine to use ALL because we always add new ids
+            -- propagate the company from parent to child
+            -- when child has NULL company
+        SELECT c.id,
+               p.company_id
+          FROM documents_document c
+          JOIN docs p
+            ON p.id = c.folder_id
+         WHERE c.company_id IS NULL
+    )
+            -- update only the documents that have NULL company
+        UPDATE documents_document d
+           SET company_id = docs.company_id
+          FROM docs
+         WHERE d.id = docs.id
+           AND d.company_id IS NULL
         """
     )
 
@@ -854,7 +881,7 @@ def migrate_folders_xmlid(cr, module, xmlid_mapping):
 
 def fix_missing_document_tokens(cr):
     """Fill the empty `document_token` column of the `documents_document` table."""
-    cr.execute("SELECT 1 FROM pg_proc WHERE proname = 'gen_random_bytes';")
+    cr.execute("SELECT 1 FROM pg_proc WHERE proname = 'gen_random_bytes'")
     if not cr.fetchall():
         BATCH = 1000
         ncr = util.named_cursor(cr, BATCH)

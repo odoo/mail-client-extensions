@@ -11,8 +11,6 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 class TestShareMigration(UpgradeCase):
     def prepare(self):
         if not util.version_gte("saas~17.4"):
-            # TODO: is that correct ?
-            # fail on the runbot, see https://runbot.odoo.com/runbot/build/68372144
             return None
 
         Folder = self.env["documents.folder"]
@@ -116,7 +114,15 @@ class TestShareMigration(UpgradeCase):
 
         documents = Document.create(
             [
-                {"folder_id": f_level0[0].id, "name": "A - DOC"},
+                {
+                    "folder_id": f_level0[0].id,
+                    "name": "A - DOC",
+                    # folder_id
+                    # -> group_ids: other_group
+                    # -> read_group_ids: system_user
+                    # The owner should be removed to not give him access
+                    "owner_id": internals[0].id,
+                },
                 {"folder_id": f_level0[2].id, "name": "C - DOC"},
                 {"folder_id": f_level0[1].id, "name": "B - DOC"},
                 {"folder_id": f_level1[0].id, "name": "A A - DOC 1"},
@@ -309,7 +315,7 @@ class TestShareMigration(UpgradeCase):
         )
 
         # Rename of fields in workflow rule
-        workflow_rule = self.env["documents.workflow.rule"].create(
+        workflow_rule = self.env["documents.workflow.rule"].create(  # TODO: keep ?
             {
                 "domain_folder_id": f_level0[1].id,
                 "name": "workflow Folder B",
@@ -573,13 +579,19 @@ class TestShareMigration(UpgradeCase):
         )
 
         # share single document
+        self.assertEqual(documents[0].folder_id.access_internal, "none")
+        self.assertEqual(documents[0].access_internal, "none")
         self.assertEqual(documents[0].access_via_link, "view")
         self.assertEqual(documents[0], _get_redirection(init["share_documents"][-1]))
         self.assertEqual(
             documents[0],
             _get_redirection(init["share_documents"][0]),
         )
+        self.assertEqual(documents[0].owner_id, self.env.ref("base.user_root"), "The owner should be reset")
+        self.assertFalse(documents[0].with_user(users_internals[0]).has_access("read"))
         self.assertEqual(documents[1].access_via_link, "view")
+        self.assertEqual(documents[1].folder_id.access_internal, "edit")
+        self.assertEqual(documents[1].access_internal, "edit")
         self.assertEqual(
             documents[1],
             _get_redirection(init["share_documents"][1]),
@@ -613,13 +625,16 @@ class TestShareMigration(UpgradeCase):
             users_admins.partner_id,
         )
         self.assertEqual(f_level0[1].access_internal, "none")
+        self.assertEqual(f_level1[1].access_via_link, "none")
 
         # no group set, internal can read and write
         self.assertFalse(f_level0[2].access_ids)
         self.assertEqual(f_level0[2].access_internal, "edit")
+        self.assertEqual(f_level0[2].access_via_link, "none")
 
         self.assertFalse(f_level1[0].access_ids)
         self.assertEqual(f_level1[0].access_internal, "edit")
+        self.assertEqual(f_level1[0].access_via_link, "none")
 
         # check the propagation of the access of the folder on the documents
         self.assertEqual(
@@ -663,6 +678,20 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(doc_1.owner_id, self.env.ref("base.user_root"))
         self.assertEqual(doc_2.owner_id, self.env.ref("base.user_root"))
         self.assertEqual(doc_3.owner_id, users_internals[0])
+
+        # Global checks
+        self.assertEqual(
+            documents.mapped("access_internal"),
+            ["none", "edit", "none", "edit", "edit", "edit", "edit"] + ["none"] * 4,
+        )
+        self.assertEqual(
+            documents.mapped("access_via_link"),
+            ["view", "view"] + ["none"] * 9,
+        )
+        self.assertEqual(
+            documents.mapped("is_access_via_link_hidden"),
+            [False] * 7 + [True, True, True, False],
+        )
 
         ###############
         # CHECK ALIAS #

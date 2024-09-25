@@ -108,7 +108,6 @@ class TestSpreadsheetShareMigration(UpgradeCase):
         if not init:
             return
 
-        # TODO: check how that function behave on the runbot with the documents module tests
         Document = self.env["documents.document"]
         share_single_doc_1_token = init["share_single_doc_1"]
         share_single_doc_2_token = init["share_single_doc_2"]
