@@ -11,3 +11,24 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "group_sale_pricelist")
     util.remove_field(cr, "res.config.settings", "product_pricelist_setting")
     util.remove_field(cr, "product.pricelist", "discount_policy")
+
+    util.create_column(cr, "product_pricelist_item", "price_markup", "float8")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE product_pricelist_item
+           SET price_markup = -price_discount
+         WHERE base = 'standard_price'
+        """,
+        table="product_pricelist_item",
+    )
+    util.create_column(cr, "product_pricelist_item", "display_applied_on", "varchar", default="1_product")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE product_pricelist_item
+           SET display_applied_on = '2_product_category'
+         WHERE applied_on = '2_product_category'
+        """,
+        table="product_pricelist_item",
+    )
