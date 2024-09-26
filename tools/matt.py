@@ -686,6 +686,11 @@ def matt(options: Namespace) -> int:
                             if options.upgrade_branch[0] in "/.":
                                 # do not polute the local directory.
                                 stack.callback(sl.unlink)
+                        elif sl.match("*/tests/__init__.py") and version.ints[0] == 12:
+                            # merge content
+                            content = sl.read_text()
+                            sl.write_text(f"{content}\n{f.read_text()}")
+                            stack.callback(sl.write_text, content)
 
                     # Now that we have done the symlinks, we cannot use `--upgrade-path` for the target version,
                     # else it we will ends with duplicated upgrade scripts. Consider util has being embedded.
