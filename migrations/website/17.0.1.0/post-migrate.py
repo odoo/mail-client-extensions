@@ -19,3 +19,6 @@ def migrate(cr, version):
     )
     for (website_id,) in cr.fetchall():
         view.copy({"website_id": website_id, "active": True})
+    util.if_unchanged(
+        cr, "website.res_config_settings_view_form", util.update_record_from_xml, reset_translations={"arch_db"}
+    )
