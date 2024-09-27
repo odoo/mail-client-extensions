@@ -6,7 +6,8 @@ def migrate(cr, version):
 
 
 class Group(models.Model):
-    _inherit = "res.groups"
+    _name = "res.groups"
+    _inherit = ["res.groups"]
     _module = "base"
     _match_uniq = True
     _match_uniq_warning = (

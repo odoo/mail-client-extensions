@@ -22,7 +22,8 @@ def migrate(cr, version):
 
 
 class Module(models.Model):
-    _inherit = "ir.module.module"
+    _name = "ir.module.module"
+    _inherit = ["ir.module.module"]
     _module = "base"
 
     def create(self, values):

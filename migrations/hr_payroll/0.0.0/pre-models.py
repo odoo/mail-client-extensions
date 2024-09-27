@@ -7,12 +7,14 @@ if util.version_gte("saas~12.5"):
     from odoo.addons.hr_payroll.models import hr_rule_parameter as _ignore  # noqa: F401
 
     class HRPV(models.Model):
-        _inherit = "hr.rule.parameter.value"
+        _name = "hr.rule.parameter.value"
+        _inherit = ["hr.rule.parameter.value"]
         _module = "hr_payroll"
         _match_uniq = True
 
     class HRP(models.Model):
-        _inherit = "hr.rule.parameter"
+        _name = "hr.rule.parameter"
+        _inherit = ["hr.rule.parameter"]
         _module = "hr_payroll"
         _match_uniq = True
 

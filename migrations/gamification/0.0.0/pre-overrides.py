@@ -19,7 +19,8 @@ def migrate(cr, version):
 
 
 class Challenge(models.Model):
-    _inherit = "gamification.challenge"
+    _name = "gamification.challenge"
+    _inherit = ["gamification.challenge"]
     _module = "gamification"
 
     def _recompute_challenge_users(self):
@@ -30,7 +31,7 @@ class Challenge(models.Model):
 
 
 class ResUsers(models.Model):
-    _inherit = "res.users"
+    _inherit = ["res.users"]
     _module = "gamification"
 
     def _rank_changed(self):

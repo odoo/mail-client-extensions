@@ -13,7 +13,7 @@ def migrate(cr, version):
 
 
 class Base(models.AbstractModel):
-    _inherit = "base"
+    _inherit = ["base"]
     _module = "base"
 
     if util.version_gte("12.0"):
@@ -176,6 +176,7 @@ if util.version_gte("saas~12.5"):
 for model in match_uniq_models:
 
     class Americaine(models.Model):  # a.k.a "Le grand détournement"
-        _inherit = model
+        _name = model
+        _inherit = [model]
         _module = "base"
         _match_uniq = True

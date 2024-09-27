@@ -12,7 +12,7 @@ if util.version_gte("saas~16.5"):
     _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.payment.0.0.0." + __name__)
 
     class PaymentProvider(models.Model):
-        _inherit = "payment.provider"
+        _inherit = ["payment.provider"]
         _name = "payment.provider"
         _module = "payment"
 

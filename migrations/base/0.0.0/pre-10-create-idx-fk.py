@@ -151,7 +151,8 @@ def migrate(cr, version):
 
 
 class Model(models.Model):
-    _inherit = "ir.model"
+    _name = "ir.model"
+    _inherit = ["ir.model"]
     _module = "base"
 
     api_model = api.model if util.version_gte("10.0") else lambda x: x

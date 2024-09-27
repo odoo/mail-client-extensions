@@ -9,6 +9,7 @@ def migrate(cr, version):
 
 
 class WorkEntryType(models.Model):
-    _inherit = "hr.work.entry.type"
+    _name = "hr.work.entry.type"
+    _inherit = ["hr.work.entry.type"]
     _module = "hr_work_entry"
     _match_uniq = True

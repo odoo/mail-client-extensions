@@ -12,7 +12,8 @@ def migrate(cr, version):
 if util.version_gte("saas~16.4"):
 
     class ChartTemplate(models.AbstractModel):
-        _inherit = "account.chart.template"
+        _name = "account.chart.template"
+        _inherit = ["account.chart.template"]
         _module = "account"
 
         def _load_data(self, data, *args, **kwargs):

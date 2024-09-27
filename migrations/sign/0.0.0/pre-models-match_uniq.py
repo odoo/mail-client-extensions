@@ -8,6 +8,7 @@ def migrate(cr, version):
 
 
 class Tags(models.Model):
-    _inherit = "sign.template.tag"
+    _name = "sign.template.tag"
+    _inherit = ["sign.template.tag"]
     _module = "sign"
     _match_uniq = True

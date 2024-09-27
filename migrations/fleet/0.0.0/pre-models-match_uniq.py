@@ -12,6 +12,7 @@ def migrate(cr, version):
 
 
 class VehicleState(models.Model):
-    _inherit = "fleet.vehicle.state"
+    _name = "fleet.vehicle.state"
+    _inherit = ["fleet.vehicle.state"]
     _module = "fleet"
     _match_uniq = True

@@ -10,7 +10,8 @@ def migrate(cr, version):
 if util.version_gte("saas~17.3"):
 
     class IrActions(models.Model):
-        _inherit = "ir.actions.actions"
+        _name = "ir.actions.actions"
+        _inherit = ["ir.actions.actions"]
         _module = "base"
 
         def write(self, vals):

@@ -8,6 +8,7 @@ def migrate(cr, version):
 
 
 class WhatsAppTemplate(models.Model):
-    _inherit = "whatsapp.template"
+    _name = "whatsapp.template"
+    _inherit = ["whatsapp.template"]
     _module = "whatsapp"
     _match_uniq = True

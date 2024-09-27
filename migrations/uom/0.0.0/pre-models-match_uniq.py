@@ -17,7 +17,8 @@ class UniqError(ValidationError):
 
 
 class UoM(models.Model):
-    _inherit = "uom.uom"
+    _name = "uom.uom"
+    _inherit = ["uom.uom"]
     _module = "uom"
     # _match_uniq = True    # Not an SQL unique constraint
 

@@ -11,7 +11,8 @@ def migrate(cr, version):
 if util.version_gte("13.0"):
 
     class YodleeProviderAccount(models.Model):
-        _inherit = "account.online.provider"
+        _name = "account.online.provider"
+        _inherit = ["account.online.provider"]
         _module = "account_yodlee"
 
         def yodlee_fetch(self, url, params, data, type_request="POST"):
@@ -21,7 +22,8 @@ if util.version_gte("13.0"):
 else:
 
     class YodleeProviderAccount(models.Model):
-        _inherit = "account.online.provider"
+        _name = "account.online.provider"
+        _inherit = ["account.online.provider"]
         _module = "account_yodlee"
 
         @api.multi

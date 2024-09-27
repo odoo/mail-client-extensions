@@ -12,6 +12,7 @@ def migrate(cr, version):
 
 
 class Tax(models.Model):
-    _inherit = "calendar.event.type"
+    _name = "calendar.event.type"
+    _inherit = ["calendar.event.type"]
     _module = "calendar"
     _match_uniq = True

@@ -5,7 +5,8 @@ from odoo.addons.sale_amazon.models import amazon_marketplace  # noqa
 
 
 class AmazonMarketplace(models.Model):
-    _inherit = "amazon.marketplace"
+    _name = "amazon.marketplace"
+    _inherit = ["amazon.marketplace"]
     _module = "sale_amazon"
     _match_uniq = True
 

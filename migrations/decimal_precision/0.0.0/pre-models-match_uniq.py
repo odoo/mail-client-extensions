@@ -7,7 +7,8 @@ def migrate(cr, version):
     pass
 
 
-class Tags(models.Model):
-    _inherit = "decimal.precision"
+class DecimalPrecision(models.Model):
+    _name = "decimal.precision"
+    _inherit = ["decimal.precision"]
     _module = "decimal_precision"
     _match_uniq = True

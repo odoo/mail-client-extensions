@@ -16,7 +16,8 @@ if util.version_gte("saas~16.4"):
     from odoo.addons.base.models.ir_ui_menu import IrUiMenu as _ignore  # noqa
 
     class Menu(models.Model):
-        _inherit = "ir.ui.menu"
+        _name = "ir.ui.menu"
+        _inherit = ["ir.ui.menu"]
         _module = "base"
 
         def unlink(self):

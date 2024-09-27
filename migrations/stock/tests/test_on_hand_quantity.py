@@ -16,7 +16,7 @@ if util.version_gte("15.0"):
 
     class ProductProduct(models.Model):
         _name = "product.product"
-        _inherit = "product.product"
+        _inherit = ["product.product"]
         # The reason to use mrp here is twofold:
         # * The mismatch in ordering by product_id happens on mrp when searching the boms
         # * This override won't work for `_modele = "stock"` since the module is already

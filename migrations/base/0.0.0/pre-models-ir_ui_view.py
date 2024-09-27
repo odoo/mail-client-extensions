@@ -826,7 +826,7 @@ def _upgrade_fix_views(fix_view, root_view):
 
 
 class IrUiView(models.Model):
-    _inherit = "ir.ui.view"
+    _inherit = ["ir.ui.view"]
     _module = "base"
 
     if util.version_gte("10.0"):

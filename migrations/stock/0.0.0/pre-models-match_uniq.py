@@ -12,6 +12,7 @@ def migrate(cr, version):
 
 
 class Warehouse(models.Model):
-    _inherit = "stock.warehouse"
+    _name = "stock.warehouse"
+    _inherit = ["stock.warehouse"]
     _module = "stock"
     _match_uniq = True

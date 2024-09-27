@@ -18,7 +18,8 @@ def migrate(cr, version):
 
 
 class Model(models.Model):
-    _inherit = "ir.model"
+    _name = "ir.model"
+    _inherit = ["ir.model"]
     _module = "base"
 
     def unlink(self):
@@ -43,7 +44,8 @@ class Model(models.Model):
 if util.version_gte("saas~13.3"):
 
     class ModelSelection(models.Model):
-        _inherit = "ir.model.fields.selection"
+        _name = "ir.model.fields.selection"
+        _inherit = ["ir.model.fields.selection"]
         _module = "base"
 
         def unlink(self):
@@ -69,7 +71,8 @@ if util.version_gte("saas~13.3"):
 
 
 class Field(models.Model):
-    _inherit = "ir.model.fields"
+    _name = "ir.model.fields"
+    _inherit = ["ir.model.fields"]
     _module = "base"
 
     def unlink(self):

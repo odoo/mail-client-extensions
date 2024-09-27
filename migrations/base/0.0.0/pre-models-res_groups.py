@@ -20,7 +20,8 @@ def migrate(cr, version):
 
 
 class Groups(models.Model):
-    _inherit = "res.groups"
+    _name = "res.groups"
+    _inherit = ["res.groups"]
     _module = "base"
 
     def write(self, values):

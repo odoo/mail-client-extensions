@@ -49,6 +49,6 @@ def migrate(cr, version):
 
 
 class UtmSource(models.Model):
-    _inherit = "utm.source"
+    _inherit = ["utm.source"]
     _module = "utm"
     _match_uniq = True

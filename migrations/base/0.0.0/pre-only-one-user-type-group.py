@@ -7,7 +7,8 @@ if util.version_gte("12.0"):
     from odoo.addons.base.models import res_users as _ignore  # noqa: F401
 
     class Group(models.Model):
-        _inherit = "res.groups"
+        _name = "res.groups"
+        _inherit = ["res.groups"]
         _module = "base"
 
         def _check_one_user_type(self):

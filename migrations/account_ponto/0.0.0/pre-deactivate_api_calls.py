@@ -11,7 +11,8 @@ def migrate(cr, version):
 if util.version_gte("12.0"):
 
     class PontoProviderAccount(models.Model):
-        _inherit = "account.online.provider"
+        _name = "account.online.provider"
+        _inherit = ["account.online.provider"]
         _module = "account_ponto"
 
         def _ponto_fetch(self, method, url, params, data):

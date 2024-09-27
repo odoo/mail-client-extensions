@@ -10,7 +10,8 @@ def migrate(cr, version):
 
 
 class Invoice(models.Model):
-    _inherit = "account.move" if util.version_gte("saas~12.4") else "account.invoice"
+    _name = "account.move" if util.version_gte("saas~12.4") else "account.invoice"
+    _inherit = ["account.move"] if util.version_gte("saas~12.4") else ["account.invoice"]
     _module = "l10n_co_edi"
 
     def _l10n_co_edi_is_l10n_co_edi_required(self):

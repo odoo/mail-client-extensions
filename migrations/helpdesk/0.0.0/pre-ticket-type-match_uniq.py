@@ -10,7 +10,8 @@ if not util.version_gte("saas~17.1"):
         from odoo.addons.helpdesk.models import helpdesk  # noqa
 
     class TicketType(models.Model):
-        _inherit = "helpdesk.ticket.type"
+        _name = "helpdesk.ticket.type"
+        _inherit = ["helpdesk.ticket.type"]
         _module = "helpdesk"
         _match_uniq = True
 

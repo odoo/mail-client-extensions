@@ -20,12 +20,14 @@ def migrate(cr, version):
 
 
 class Tax(models.Model):
-    _inherit = "account.tax"
+    _name = "account.tax"
+    _inherit = ["account.tax"]
     _module = "account"
     _match_uniq = True
 
 
 class AccountPaymentMethod(models.Model):
-    _inherit = "account.payment.method"
+    _name = "account.payment.method"
+    _inherit = ["account.payment.method"]
     _module = "account"
     _match_uniq = True
