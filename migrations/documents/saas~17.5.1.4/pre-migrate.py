@@ -13,11 +13,6 @@ def migrate(cr, version):
     # DOCUMENTS.FOLDERS #
     #####################
 
-    util.remove_constraint(  # the model changed
-        cr,
-        "documents_document",
-        "documents_document_folder_id_fkey",
-    )
     cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
 
     # create a temporary column to store the old <documents.folder>.id
@@ -60,13 +55,34 @@ def migrate(cr, version):
         """
     )
 
-    update_m2o_documents_folder(cr, "documents_document", "folder_id")
+    cr.execute("SELECT _upg_old_folder_id, id FROM documents_document WHERE _upg_old_folder_id IS NOT NULL")
+    folder_mapping = dict(cr.fetchall())
+    util.replace_record_references_batch(cr, folder_mapping, "documents.folder", "documents.document")
+
+    util.merge_model(
+        cr,
+        "documents.folder",
+        "documents.document",
+        drop_table=False,
+        ignore_m2m=(
+            "documents_folder_read_groups",
+            "documents_folder_res_groups_rel",
+        ),
+    )
+
+    # For simplicity, we keep the old folder ids on the share
+    util.remove_constraint(cr, "documents_share", "documents_share_folder_id_fkey")
+
+    # break_recursive_loops will fail without that, why ?
+    util.remove_constraint(cr, "documents_document", "documents_document_folder_id_fkey")
+    update_m2o_documents_folder(cr, "documents_document", "folder_id")  # Why do I need this ?
 
     cr.execute(
         """
-         ALTER TABLE documents_document
-      ADD CONSTRAINT fk_folder_id FOREIGN KEY (folder_id)
-          REFERENCES documents_document(id)
+        ALTER TABLE documents_document
+        ADD FOREIGN KEY ("folder_id")
+        REFERENCES "documents_document"("id")
+        ON DELETE SET null
         """
     )
 
@@ -418,11 +434,11 @@ def migrate(cr, version):
         cr,
         """
      INSERT INTO documents_redirect (document_id, access_token)
-          SELECT convert_id.id,
+          SELECT document.id,
                  share.access_token
             FROM documents_share AS share
-            JOIN documents_document AS convert_id
-              ON convert_id._upg_old_folder_id = share.folder_id
+            JOIN documents_document AS document
+              ON document._upg_old_folder_id = share.folder_id
            WHERE share.type = 'domain'
              AND share.to_ignore = FALSE
              AND {parallel_filter}
@@ -795,15 +811,6 @@ WITH RECURSIVE docs AS (
     cr.execute(
         """
         ALTER TABLE documents_document
-        ADD FOREIGN KEY ("folder_id")
-        REFERENCES "documents_document"("id")
-        ON DELETE set null
-        """
-    )
-
-    cr.execute(
-        """
-        ALTER TABLE documents_document
         ADD FOREIGN KEY ("alias_id")
         REFERENCES "mail_alias"("id")
         ON DELETE restrict
@@ -843,6 +850,9 @@ WITH RECURSIVE docs AS (
     util.remove_view(cr, "documents.workflow_action_view_form")
     util.remove_view(cr, "documents.workflow_action_view_tree")
     util.remove_record(cr, "documents.documents_kanban_view_mobile_scss")
+    util.remove_view(cr, "documents.folder_view_form")
+    util.remove_view(cr, "documents.folder_view_tree")
+    util.remove_view(cr, "documents.folder_view_search")
 
 
 def update_m2o_documents_folder(cr, table, field):
@@ -864,18 +874,6 @@ def update_m2o_documents_folder(cr, table, field):
 
 def migrate_folders_xmlid(cr, module, xmlid_mapping):
     for old_name, new_name in xmlid_mapping.items():
-        cr.execute(
-            """
-                UPDATE ir_model_data AS imd
-                  SET res_id = d.id, model = 'documents.document'
-                 FROM documents_document d
-                WHERE imd.module = %s
-                  AND imd.model = 'documents.folder'
-                  AND imd.name = %s
-                  AND d._upg_old_folder_id = imd.res_id
-            """,
-            [module, old_name],
-        )
         util.rename_xmlid(cr, f"{module}.{old_name}", f"{module}.{new_name}")
 
 

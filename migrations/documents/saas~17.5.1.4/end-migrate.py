@@ -34,6 +34,10 @@ def migrate(cr, version):
     ###############
     # ACCESS.RULE #
     ###############
+    util.remove_record(cr, "documents.documents_folder_global_rule")
+    util.remove_record(cr, "documents.documents_folder_groups_rule")
+    util.remove_record(cr, "documents.documents_folder_manager_rule")
+
     util.remove_record(cr, "documents.documents_document_readonly_rule")
     util.remove_record(cr, "documents.documents_document_write_rule")
     util.remove_record(cr, "documents.documents_document_manager_rule")
