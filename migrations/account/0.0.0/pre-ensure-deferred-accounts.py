@@ -22,6 +22,7 @@ if util.version_gte("saas~16.4"):
                     for (c_id, vals) in data["res.company"].items()
                     for (field_name, xmlid) in vals.items()
                     if field_name in ("deferred_expense_account_id", "deferred_revenue_account_id")
+                    and xmlid
                     and not self.ref(xmlid, raise_if_not_found=False)
                 }
                 if needed_account_xmlids:
