@@ -202,7 +202,7 @@ def migrate(cr, version):
                is_sent = move.is_move_sent,
                state = CASE WHEN move.state = 'draft' THEN 'draft'
                             WHEN move.state = 'posted' AND NOT account_payment.is_matched THEN 'in_process'
-                            WHEN move.state = 'posted AND account_payment.is_matched THEN 'paid'
+                            WHEN move.state = 'posted' AND account_payment.is_matched THEN 'paid'
                             WHEN move.state = 'cancel' THEN 'canceled'
                             ELSE 'draft'
                        END
