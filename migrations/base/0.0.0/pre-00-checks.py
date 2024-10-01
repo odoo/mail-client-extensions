@@ -31,7 +31,7 @@ def migrate(cr, version):
         if is_multi_company:
             BLACKBOX_CERTIFIED_VERSIONS = MULTI_COMPANY_CERTIFIED_BLACKBOX
         else:
-            BLACKBOX_CERTIFIED_VERSIONS = SINGLE_COMPANY_CERTIFIED_BLACKBOX + MULTI_COMPANY_CERTIFIED_BLACKBOX
+            BLACKBOX_CERTIFIED_VERSIONS = SINGLE_COMPANY_CERTIFIED_BLACKBOX | MULTI_COMPANY_CERTIFIED_BLACKBOX
 
         # block the upgrade if source version is certified but not target version
         if source in BLACKBOX_CERTIFIED_VERSIONS and target not in BLACKBOX_CERTIFIED_VERSIONS:
