@@ -3,6 +3,7 @@ import base64
 import uuid
 
 import psycopg2
+from psycopg2 import sql
 
 from odoo.upgrade import util
 from odoo.upgrade.util.inconsistencies import break_recursive_loops
@@ -12,11 +13,6 @@ def migrate(cr, version):
     #####################
     # DOCUMENTS.FOLDERS #
     #####################
-
-    cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
-
-    # create a temporary column to store the old <documents.folder>.id
-    util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
 
     # new <documents.document> fields
     util.create_column(cr, "documents_document", "is_access_via_link_hidden", "boolean")
@@ -34,57 +30,101 @@ def migrate(cr, version):
     util.create_column(cr, "documents_document", "create_activity_note", "varchar")
     util.create_column(cr, "documents_document", "create_activity_user_id", "int4")
 
+    # Root folders will have NULL folder_id when we transform them into documents
+    cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
+    util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
+    # Before:
+    #
+    # documents_document          documents_folder
+    # folder_id -------FK-------> id <-----------------+
+    #                             parent_folder_id -FK-+
+    #
+    # After the insert query below we'll have new records with:
+    #
+    # documents_document          documents_folder
+    # _upgrade_old_folder_id <--- id
+    # folder_id <---------------- parent_folder_id
+    #
+    # When we update all FKs pointing to documents_folder we also
+    # update the reference documents_document via folder_id:
+    #
+    # document_documents          documents_document
+    # folder_id ----------------> upg_old_folder_id
+    #        ^-----SET----------- id
+    #
+    # In other words documents_document.folder_id will correctly point
+    # to the new record in document_documents corresponding to the
+    # former documents_folder
     cr.execute(
         """
-    INSERT INTO documents_document (
-                    _upg_old_folder_id, name, type, res_id, res_model,
-                    active, parent_path, company_id, folder_id
-                ) (
-         SELECT id,
-                name->>'en_US',  -- <documents.folder>.name is translatable,
-                                 -- <documents.document>.name is not
-                'folder',
-                NULL,
-                NULL,
-                active,
-                NULL, -- to be set for all documents
-                company_id,
-                parent_folder_id
-           FROM documents_folder
-    )
+        INSERT INTO documents_document (
+                        _upg_old_folder_id, name, type, res_id, res_model,
+                        active, parent_path, company_id, folder_id
+                    )
+             SELECT id, name->>'en_US', 'folder', NULL, NULL,
+                    active, NULL, company_id, parent_folder_id
+               FROM documents_folder
         """
     )
 
+    # documents_share will be used during the upgrade, keep the reference to documents_folder
+    util.remove_constraint(cr, "documents_share", "documents_share_folder_id_fkey")
+
+    # replace all FKs to documents_folder by the new documents_document
+    actions_map = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}
+    for table, column, constraint_name, action in util.get_fk(cr, "documents_folder"):
+        if table == "documents_folder":
+            # do not update self references, the documents.folder model will be removed anyway
+            # custom references need to be handled post upgrade
+            continue
+        cr.execute(util.format_query(cr, "ALTER TABLE {} DROP CONSTRAINT {}", table, constraint_name))
+
+        new_index = f"_upg_{table}_{column}"
+        cr.execute(util.format_query(cr, "CREATE INDEX {} ON {}({})", new_index, table, column))
+
+        util.explode_execute(
+            cr,
+            util.format_query(
+                cr,
+                """
+                UPDATE {table} t
+                   SET {column} = doc.id
+                  FROM documents_document doc
+                 WHERE t.{column} = doc._upg_old_folder_id
+                """,
+                table=table,
+                column=column,
+            ),
+            table="documents_document",
+            alias="doc",
+        )
+        cr.execute(
+            util.format_query(
+                cr,
+                """
+                DROP INDEX {index_name};
+
+                ALTER TABLE {table}
+                ADD FOREIGN KEY ({column}) REFERENCES documents_document(id)
+                         ON DELETE {new_action}
+                """,
+                table=table,
+                column=column,
+                constraint_name=constraint_name,
+                index_name=new_index,
+                new_action=sql.SQL(
+                    # special case for documents_document: we want SET NULL instead fo RESTRICT
+                    "SET NULL" if table == "documents_document" and column == "folder_id" else actions_map[action]
+                ),
+            )
+        )
+
+    # replace all remaining references, mostly relevant for indirect references
     cr.execute("SELECT _upg_old_folder_id, id FROM documents_document WHERE _upg_old_folder_id IS NOT NULL")
     folder_mapping = dict(cr.fetchall())
     util.replace_record_references_batch(cr, folder_mapping, "documents.folder", "documents.document")
 
-    util.merge_model(
-        cr,
-        "documents.folder",
-        "documents.document",
-        drop_table=False,
-        ignore_m2m=(
-            "documents_folder_read_groups",
-            "documents_folder_res_groups_rel",
-        ),
-    )
-
-    # For simplicity, we keep the old folder ids on the share
-    util.remove_constraint(cr, "documents_share", "documents_share_folder_id_fkey")
-
-    # break_recursive_loops will fail without that, why ?
-    util.remove_constraint(cr, "documents_document", "documents_document_folder_id_fkey")
-    update_m2o_documents_folder(cr, "documents_document", "folder_id")  # Why do I need this ?
-
-    cr.execute(
-        """
-        ALTER TABLE documents_document
-        ADD FOREIGN KEY ("folder_id")
-        REFERENCES "documents_document"("id")
-        ON DELETE SET null
-        """
-    )
+    util.merge_model(cr, "documents.folder", "documents.document", drop_table=False)
 
     break_recursive_loops(cr, "documents.document", "folder_id")
     cr.execute(  # fix `parent_path`
@@ -224,9 +264,9 @@ def migrate(cr, version):
                END
           FROM documents_document AS folder
      LEFT JOIN documents_folder_read_groups AS read_group
-            ON folder._upg_old_folder_id = read_group.documents_folder_id
+            ON folder.id = read_group.documents_folder_id
      LEFT JOIN documents_folder_res_groups_rel AS write_group
-            ON folder._upg_old_folder_id = write_group.documents_folder_id
+            ON folder.id = write_group.documents_folder_id
          WHERE documents_document.id = folder.id
            AND documents_document.access_internal IS NULL
            AND folder.type = 'folder'
@@ -259,7 +299,7 @@ def migrate(cr, version):
                    'edit'
               FROM documents_document AS folder
               JOIN documents_folder_res_groups_rel AS write_group
-                ON folder._upg_old_folder_id = write_group.documents_folder_id
+                ON folder.id = write_group.documents_folder_id
               JOIN res_groups_users_rel AS rel
                 ON rel.gid = write_group.res_groups_id
                AND rel.gid != %(internal)s
@@ -282,7 +322,7 @@ def migrate(cr, version):
                    TRUE
               FROM documents_document AS folder
               JOIN documents_folder_read_groups AS read_group
-                ON folder._upg_old_folder_id = read_group.documents_folder_id
+                ON folder.id = read_group.documents_folder_id
               JOIN res_groups_users_rel AS rel
                 ON rel.gid = read_group.res_groups_id
                AND rel.gid != %(internal)s
@@ -771,38 +811,6 @@ WITH RECURSIVE docs AS (
     ################################
 
     fix_missing_document_tokens(cr)
-
-    ############################################
-    # RE-MAP documents.folder relational field #
-    ############################################
-    for table, column, constraint_name, delete_action in util.get_fk(cr, "documents_folder"):
-        other_columns = util.get_columns(cr, table, ignore=(column,))
-        if len(other_columns) == 1:  # m2m
-            continue
-        util.remove_constraint(cr, table, constraint_name)
-        update_m2o_documents_folder(cr, table, column)
-
-        _delete_action = {
-            "a": "NO ACTION",
-            "r": "RESTRICT",
-            "c": "CASCADE",
-            "n": "SET NULL",
-            "d": "SET DEFAULT",
-        }[delete_action]
-
-        query = util.format_query(
-            cr,
-            """
-            ALTER TABLE {table}
-            ADD FOREIGN KEY ({column})
-            REFERENCES "documents_document"("id")
-            ON DELETE {delete_action}
-            """,
-            table=table,
-            column=column,
-            delete_action=psycopg2.sql.SQL(_delete_action),
-        )
-        cr.execute(query)
 
     ###################
     # ADD FOREIGN KEY #
