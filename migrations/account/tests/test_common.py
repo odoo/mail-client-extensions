@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from unittest.mock import patch
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase
@@ -16,8 +15,10 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
         return self.env.ref(f"{module}.{self.env.company.id}_{xml_id}")
 
     def _get_account(self, domain):
+        # accounts could be shared by several companies as of 18.0
+        company_field = "company_ids" if version_gte("18.0") else "company_id"
         return self.env["account.account"].search(
-            ["&", ("company_id", "=", self.company.id), *domain],
+            ["&", (company_field, "=", self.company.id), *domain],
             limit=1,
         )
 
