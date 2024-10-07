@@ -512,8 +512,8 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(f_level0.mapped("is_access_via_link_hidden"), [False] * 3)
         self.assertEqual(f_level0.mapped("access_via_link"), ["view", "none", "none"])
         self.assertEqual(f_level1.mapped("is_access_via_link_hidden"), [False] * 3)
-        self.assertEqual(f_level1.mapped("access_via_link"), ["none", "none", "view"])
-        self.assertEqual(f_level2.mapped("access_via_link"), ["none", "view"] + ["none"] * 5)
+        self.assertEqual(f_level1.mapped("access_via_link"), ["view", "none", "view"])
+        self.assertEqual(f_level2.mapped("access_via_link"), ["view"] * 7)
         self.assertEqual(f_level2.mapped("is_access_via_link_hidden"), [False] * 7)
 
         def _check_document_access(document, user, access):
@@ -634,7 +634,7 @@ class TestShareMigration(UpgradeCase):
 
         self.assertFalse(f_level1[0].access_ids)
         self.assertEqual(f_level1[0].access_internal, "edit")
-        self.assertEqual(f_level1[0].access_via_link, "none")
+        self.assertEqual(f_level1[0].access_via_link, "view")
 
         # check the propagation of the access of the folder on the documents
         self.assertEqual(
@@ -653,11 +653,11 @@ class TestShareMigration(UpgradeCase):
         # Check user_specific
         doc_1, doc_2, doc_3 = documents[7], documents[8], documents[9]
         self.assertEqual(doc_1.access_internal, "none")
-        self.assertEqual(doc_1.access_via_link, "none")
+        self.assertEqual(doc_1.access_via_link, "view")
         self.assertEqual(doc_2.access_internal, "none")
-        self.assertEqual(doc_2.access_via_link, "none")
+        self.assertEqual(doc_2.access_via_link, "view")
         self.assertEqual(doc_3.access_internal, "none")
-        self.assertEqual(doc_3.access_via_link, "none")
+        self.assertEqual(doc_3.access_via_link, "view")
 
         self.assertEqual(len(doc_1.access_ids), 1)
         self.assertEqual(len(doc_2.access_ids), 1)
@@ -686,7 +686,7 @@ class TestShareMigration(UpgradeCase):
         )
         self.assertEqual(
             documents.mapped("access_via_link"),
-            ["view", "view"] + ["none"] * 9,
+            ["view", "view", "none"] + ["view"] * 8,
         )
         self.assertEqual(
             documents.mapped("is_access_via_link_hidden"),
@@ -801,14 +801,14 @@ class TestShareMigration(UpgradeCase):
         # no folder above with a company to fix it
         self.assertFalse(f_level0[2].company_id)
 
-        self.assertEqual(f_level1[0].company_id, companies[0])
-        self.assertEqual(f_level1[1].company_id, companies[1])
+        self.assertFalse(f_level1[0].company_id)
+        self.assertFalse(f_level1[1].company_id)
         self.assertEqual(f_level1[2].company_id, companies[0])
 
         self.assertEqual(f_level2[0].company_id, companies[1])
-        self.assertEqual(f_level2[1].company_id, companies[0])
-        self.assertEqual(f_level2[2].company_id, companies[0])
-        self.assertEqual(f_level2[3].company_id, companies[0])
+        self.assertFalse(f_level2[1].company_id)
+        self.assertFalse(f_level2[2].company_id)
+        self.assertFalse(f_level2[3].company_id)
 
         self.assertEqual(documents[0].company_id, companies[0])
         self.assertFalse(documents[1].company_id)  # f_level0[2] has no company

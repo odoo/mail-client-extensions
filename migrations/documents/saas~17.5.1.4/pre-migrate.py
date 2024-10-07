@@ -33,6 +33,11 @@ def migrate(cr, version):
     # Root folders will have NULL folder_id when we transform them into documents
     cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
     util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
+
+    # Avoid unique constraints failures during update
+    cr.execute("ALTER TABLE documents_folder_read_groups DROP CONSTRAINT documents_folder_read_groups_pkey")
+    cr.execute("ALTER TABLE documents_folder_res_groups_rel DROP CONSTRAINT documents_folder_res_groups_rel_pkey")
+
     # Before:
     #
     # documents_document          documents_folder
@@ -119,12 +124,16 @@ def migrate(cr, version):
             )
         )
 
+    # Restore primary keys (also integrity check post re-referencing)
+    for m2m in ("documents_folder_read_groups", "documents_folder_res_groups_rel"):
+        util.fixup_m2m(cr, m2m, "documents_document", "res_groups", "documents_folder_id", "res_groups_id")
+
     # replace all remaining references, mostly relevant for indirect references
     cr.execute("SELECT _upg_old_folder_id, id FROM documents_document WHERE _upg_old_folder_id IS NOT NULL")
     folder_mapping = dict(cr.fetchall())
     util.replace_record_references_batch(cr, folder_mapping, "documents.folder", "documents.document")
 
-    util.merge_model(cr, "documents.folder", "documents.document", drop_table=False)
+    util.merge_model(cr, "documents.folder", "documents.document", drop_table=False, ignore_m2m="*")
 
     break_recursive_loops(cr, "documents.document", "folder_id")
     cr.execute(  # fix `parent_path`
@@ -512,18 +521,20 @@ def migrate(cr, version):
         alias="share",
     )
 
-    # Force access_via_link == 'view' on all documents that had a share
+    # Force access_via_link == 'view' on all documents that had or were included in a share
     util.explode_execute(
         cr,
         """
-         UPDATE documents_document
+         UPDATE documents_document d
             SET access_via_link = 'view'
            FROM documents_redirect AS redirect
-          WHERE redirect.document_id = documents_document.id
+           JOIN documents_document doc
+             ON doc.id = redirect.document_id
+          WHERE d.parent_path like doc.parent_path || '%'
             AND {parallel_filter}
         """,
         table="documents_document",
-        alias="documents_document",
+        alias="d",
     )
 
     ##############
@@ -762,48 +773,28 @@ def migrate(cr, version):
     # PROPAGATE THE COMPANY #
     #########################
 
-    # Propagate the company from the parent to the children
-    # For that, we look for the first folder in the ancestors with a company
-    # In that example, C and D will get the company 2
-    # A (company 1)
-    # |
-    # B (company 2)
-    # |
-    # C (no company)
-    # |
-    # D (no company)
-    break_recursive_loops(cr, "documents.document", "folder_id")
-    cr.execute(
-        """
-WITH RECURSIVE docs AS (
-            -- start from all documents that have company set
-            -- and at least one child with NULL company
-        SELECT p.id,
-               p.company_id
-          FROM documents_document p
-          JOIN documents_document c
-            ON c.folder_id = p.id
-         WHERE p.company_id IS NOT NULL
-           AND c.company_id IS NULL
-      GROUP BY p.id
+    # As users could nest folders accessible to other companies, propagate the company
+    # from the parent to the immediate non-folder children only
 
-         UNION ALL -- fine to use ALL because we always add new ids
-            -- propagate the company from parent to child
-            -- when child has NULL company
-        SELECT c.id,
-               p.company_id
-          FROM documents_document c
-          JOIN docs p
-            ON p.id = c.folder_id
-         WHERE c.company_id IS NULL
-    )
-            -- update only the documents that have NULL company
-        UPDATE documents_document d
-           SET company_id = docs.company_id
-          FROM docs
-         WHERE d.id = docs.id
-           AND d.company_id IS NULL
+    util.explode_execute(
+        cr,
         """
+        WITH folders_with_company AS (
+            SELECT id, company_id
+              FROM documents_document
+             WHERE type = 'folder'
+               AND company_id IS NOT NULL
+        )
+        UPDATE documents_document d
+           SET company_id = f.company_id
+          FROM folders_with_company f
+         WHERE d.folder_id = f.id
+           AND d.type != 'folder'
+           AND d.company_id IS NULL
+           AND {parallel_filter}
+        """,
+        table="documents_document",
+        alias="d",
     )
 
     ################################
@@ -861,23 +852,6 @@ WITH RECURSIVE docs AS (
     util.remove_view(cr, "documents.folder_view_form")
     util.remove_view(cr, "documents.folder_view_tree")
     util.remove_view(cr, "documents.folder_view_search")
-
-
-def update_m2o_documents_folder(cr, table, field):
-    """Update the many2one from <documents.folder> to <documents.document>"""
-    query = util.format_query(
-        cr,
-        """
-        UPDATE {table}
-           SET {field} = folder.id
-          FROM documents_document AS folder
-         WHERE folder.type = 'folder'
-           AND folder._upg_old_folder_id = {table}.{field}
-        """,
-        table=table,
-        field=field,
-    )
-    cr.execute(query)
 
 
 def migrate_folders_xmlid(cr, module, xmlid_mapping):
