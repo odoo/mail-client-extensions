@@ -48,18 +48,22 @@ class TestReportValuesCommon(TestAccountingSetupCommon, abstract=True):
             return move
 
         # Create an invoice and a credit note with a different sales tax on each line.
-        sale_taxes = self.env["account.tax"].search(
-            [("company_id", "=", self.company.id), ("type_tax_use", "=", "sale")]
+        sale_taxes = (
+            self.env["account.tax"]
+            .with_context(active_test=False)
+            .search([("company_id", "=", self.company.id), ("type_tax_use", "=", "sale")])
         )
-        create_invoice("out_invoice", sale_taxes, price_offset=0)
-        create_invoice("out_refund", sale_taxes, price_offset=10)
+        create_invoice("out_invoice", sale_taxes, price_offset=10000)
+        create_invoice("out_refund", sale_taxes, price_offset=1000)
 
         # Create a vendor bill and a vendor credit note with a different purchase tax on each line.
-        purchase_taxes = self.env["account.tax"].search(
-            [("company_id", "=", self.company.id), ("type_tax_use", "=", "purchase")]
+        purchase_taxes = (
+            self.env["account.tax"]
+            .with_context(active_test=False)
+            .search([("company_id", "=", self.company.id), ("type_tax_use", "=", "purchase")])
         )
-        create_invoice("in_invoice", purchase_taxes, price_offset=20)
-        create_invoice("in_refund", purchase_taxes, price_offset=30)
+        create_invoice("in_invoice", purchase_taxes, price_offset=100)
+        create_invoice("in_refund", purchase_taxes, price_offset=10)
 
     def _prepare_report_values(self, old_report_xmlid, options):
         """Generate the old report, and retrieve its lines' values for post-mig testing.
