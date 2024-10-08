@@ -1,24 +1,8 @@
-# -*- coding: utf-8 -*-
-
-import json
+from odoo.upgrade.util.spreadsheet import iter_commands
 
 
 def migrate(cr, version):
-    cr.execute(
-        r"""
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%\_GLOBAL\_FILTER%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data = json.loads(data)
-        commands = data.get("commands", [])
-        if not commands:
-            continue
-
-        changed = False
+    for commands in iter_commands(cr, like_all=[r"%\_GLOBAL\_FILTER%"]):
         for command in commands:
             if "_GLOBAL_FILTER" not in command["type"] or "filter" not in command:
                 continue
@@ -32,17 +16,3 @@ def migrate(cr, version):
                 elif default["year"] == "antepenultimate_year":
                     default["yearOffset"] = -2
                 del default["year"]
-                changed = True
-
-        if not changed:
-            continue
-
-        data["commands"] = commands
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-                SET commands=%s
-                WHERE id=%s
-            """,
-            [json.dumps(data), revision_id],
-        )

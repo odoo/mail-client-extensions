@@ -1,30 +1,14 @@
-import json
-
 from odoo.upgrade import util
+from odoo.upgrade.util.spreadsheet import iter_commands
 
 
 def migrate(cr, version):
-    cr.execute(
-        r"""
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%\_PIVOT%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data_loaded = json.loads(data)
-        commands = data_loaded.get("commands", [])
-        if not commands:
-            continue
-
-        changed = False
+    for commands in iter_commands(cr, like_all=[r"%\_PIVOT%"]):
         new_commands = []
         for command in commands:
             if command["type"] not in ("INSERT_PIVOT", "RE_INSERT_PIVOT", "RENAME_ODOO_PIVOT"):
                 new_commands.append(command)
                 continue
-            changed = True
 
             # RENAME_ODOO_PIVOT is renamed to RENAME_PIVOT
             if command["type"] == "RENAME_ODOO_PIVOT":
@@ -67,19 +51,8 @@ def migrate(cr, version):
             command["pivotId"] = command["id"]
             del command["id"]
             new_commands.append(command)
-
-        if not changed:
-            continue
-
-        data_loaded["commands"] = new_commands
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-               SET commands=%s
-             WHERE id=%s
-            """,
-            [json.dumps(data_loaded), revision_id],
-        )
+        commands.clear()
+        commands.extend(new_commands)
 
     util.rename_field(cr, "spreadsheet.revision", "revision_id", "revision_uuid")
     util.rename_field(cr, "spreadsheet.mixin", "server_revision_id", "current_revision_uuid")

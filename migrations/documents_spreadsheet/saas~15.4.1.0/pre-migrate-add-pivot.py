@@ -1,41 +1,18 @@
-# -*- coding: utf-8 -*-
-
 import json
 import re
 from uuid import uuid4
 
 from odoo.upgrade import util
+from odoo.upgrade.util.spreadsheet import iter_commands
 
 
 def migrate(cr, version):
     if not util.table_exists(cr, "spreadsheet_revision"):
         return
-    cr.execute(
-        """
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%ADD_PIVOT%'
-            OR commands LIKE '%UPDATE_CELL%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data = json.loads(data)
-        commands = data.get("commands", [])
-        if not commands:
-            continue
+    for commands in iter_commands(cr, like_any=[r"%ADD\_PIVOT%", r"%UPDATE\_CELL%"]):
         pivot_update_cell = [cmd for cmd in commands if (cmd.get("type") == "UPDATE_CELL" and cmd.get("content"))]
         for cmd in pivot_update_cell:
             cmd["content"] = re.sub(r"=PIVOT(\(|\.HEADER)", r"=ODOO.PIVOT\1", cmd["content"], flags=re.I)
-        if pivot_update_cell:
-            cr.execute(
-                """
-                UPDATE spreadsheet_revision
-                   SET commands=%s
-                 WHERE id=%s
-                """,
-                [json.dumps(data), revision_id],
-            )
         is_pivot_insertion = commands[0]["type"] == "ADD_PIVOT"
         pivot = commands[0].get("pivot")
         if not pivot and is_pivot_insertion:
@@ -89,7 +66,7 @@ def migrate(cr, version):
 
             table_cols.append(row_with_width)
 
-        table_measures = list(set([cell["values"][-1] for cell in table_cols[-1]]))
+        table_measures = list({cell["values"][-1] for cell in table_cols[-1]})
         payload = {
             "type": "INSERT_PIVOT" if is_pivot_insertion else "RE_INSERT_PIVOT",
             "sheetId": formulas[0].get("sheetId"),
@@ -124,12 +101,5 @@ def migrate(cr, version):
                     },
                 }
             )
-        data["commands"] = [payload]
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-                SET commands=%s
-                WHERE id=%s
-            """,
-            [json.dumps(data), revision_id],
-        )
+        commands.clear()
+        commands.append(payload)

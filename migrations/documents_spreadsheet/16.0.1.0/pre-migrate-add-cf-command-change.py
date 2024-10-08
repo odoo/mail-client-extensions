@@ -1,24 +1,8 @@
-# -*- coding: utf-8 -*-
-
-import json
+from odoo.upgrade.util.spreadsheet import iter_commands
 
 
 def migrate(cr, version):
-    cr.execute(
-        r"""
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%ADD\_CONDITIONAL\_FORMAT%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data = json.loads(data)
-        commands = data.get("commands", [])
-        if not commands:
-            continue
-
-        changed = False
+    for commands in iter_commands(cr, like_all=[r"%ADD\_CONDITIONAL\_FORMAT%"]):
         for command in commands:
             if command["type"] != "ADD_CONDITIONAL_FORMAT":
                 continue
@@ -26,17 +10,3 @@ def migrate(cr, version):
             sheet_id = command["sheetId"]
             command["ranges"] = [{"_sheetId": sheet_id, "_zone": zone} for zone in command["target"]]
             del command["target"]
-            changed = True
-
-        if not changed:
-            continue
-
-        data["commands"] = commands
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-                SET commands=%s
-                WHERE id=%s
-            """,
-            [json.dumps(data), revision_id],
-        )

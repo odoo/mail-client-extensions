@@ -1,23 +1,8 @@
-# -*- coding: utf-8 -*-
-
-import json
+from odoo.upgrade.util.spreadsheet import process_commands
 
 
 def migrate(cr, version):
-    cr.execute(
-        r"""
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%MOVE\_SHEET%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data = json.loads(data)
-        commands = data.get("commands", [])
-        if not commands:
-            continue
-
+    def adapter(commands):
         changed = False
         for command in commands:
             if command["type"] != "MOVE_SHEET":
@@ -27,16 +12,6 @@ def migrate(cr, version):
             command["delta"] = -1 if direction == "left" else 1
             del command["direction"]
             changed = True
+        return changed
 
-        if not changed:
-            continue
-
-        data["commands"] = commands
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-                SET commands=%s
-                WHERE id=%s
-            """,
-            [json.dumps(data), revision_id],
-        )
+    process_commands(cr, adapter, like_all=[r"%MOVE\_SHEET%"])

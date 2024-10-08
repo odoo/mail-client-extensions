@@ -1,44 +1,20 @@
-# -*- coding: utf-8 -*-
-
-import json
 import re
 from uuid import uuid4
 
 from odoo.upgrade import util
+from odoo.upgrade.util.spreadsheet import iter_commands
 
 
 def migrate(cr, version):
     if not util.table_exists(cr, "spreadsheet_revision"):
         return
-    cr.execute(
-        """
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%ADD_ODOO_LIST%'
-            OR commands LIKE '%UPDATE_CELL%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data = json.loads(data)
-        commands = data.get("commands", [])
-        if not commands:
-            continue
+    for commands in iter_commands(cr, like_any=[r"%ADD\_ODOO\_LIST%", r"%UPDATE\_CELL%"]):
         list_update_cell = [cmd for cmd in commands if (cmd.get("type") == "UPDATE_CELL" and cmd.get("content"))]
         for cmd in list_update_cell:
             cmd["content"] = re.sub(r"=LIST(\(|\.HEADER)", r"=ODOO.LIST\1", cmd["content"], flags=re.I)
-        if list_update_cell:
-            cr.execute(
-                """
-                UPDATE spreadsheet_revision
-                   SET commands=%s
-                 WHERE id=%s
-                """,
-                [json.dumps(data), revision_id],
-            )
         is_list_insertion = commands[0]["type"] == "ADD_ODOO_LIST"
-        list = commands[0].get("list")
-        if not list and is_list_insertion:
+        lst = commands[0].get("list")
+        if not lst and is_list_insertion:
             continue
 
         headers = [
@@ -64,17 +40,15 @@ def migrate(cr, version):
         if not linesNumber:
             continue
 
-        columns = []
-        for cell in headers:
-            columns.append(
-                {
-                    "name": cell["args"][1],
-                    # Type is only needed to format the column, but we cannot
-                    # infer them from these commands.
-                    "type": "",
-                }
-            )
-
+        columns = [
+            {
+                "name": cell["args"][1],
+                # Type is only needed to format the column, but we cannot
+                # infer them from these commands.
+                "type": "",
+            }
+            for cell in headers
+        ]
         payload = {
             "type": "INSERT_ODOO_LIST" if is_list_insertion else "RE_INSERT_ODOO_LIST",
             "sheetId": headers[0].get("sheetId"),
@@ -90,24 +64,17 @@ def migrate(cr, version):
                     "dataSourceId": str(uuid4()),
                     "definition": {
                         "metaData": {
-                            "resModel": list.get("model"),
+                            "resModel": lst.get("model"),
                             "columns": [col["name"] for col in columns],
                         },
                         "searchParams": {
-                            "context": list.get("context"),
-                            "domain": list.get("domain"),
+                            "context": lst.get("context"),
+                            "domain": lst.get("domain"),
                             "orderBy": [],
                         },
-                        "name": list.get("model"),
+                        "name": lst.get("model"),
                     },
                 }
             )
-        data["commands"] = [payload]
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-                SET commands=%s
-                WHERE id=%s
-            """,
-            [json.dumps(data), revision_id],
-        )
+        commands.clear()
+        commands.append(payload)

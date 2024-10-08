@@ -1,23 +1,12 @@
-import json
 import logging
 
-from odoo.upgrade.util.spreadsheet import tokenize
+from odoo.upgrade.util.spreadsheet import iter_commands, tokenize
 
 _logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
     _logger.info("Starting migration to remove ODOO.PIVOT.POSITION")
-
-    cr.execute(
-        """
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE res_model = 'spreadsheet.template'
-            AND commands LIKE '%UPDATE_CELL%'
-            AND commands LIKE '%ODOO.PIVOT.POSITION%'
-        """
-    )
 
     def _pivot_position_to_pivot(content):
         if content and content.startswith("=") and "ODOO.PIVOT.POSITION" in content:
@@ -39,21 +28,8 @@ def migrate(cr, version):
         return None
 
     _logger.info("Processing %s revisions with ODOO.PIVOT.POSITION", cr.rowcount)
-    for revision_id, payload in cr.fetchall():
-        data = json.loads(payload)
-        commands = data.get("commands", [])
-        if not commands:
-            continue
+    for commands in iter_commands(cr, like_all=[r"%UPDATE\_CELL%", r"%ODOO.PIVOT.POSITION%"]):
         pivot_update_cell = [cmd for cmd in commands if (cmd.get("type") == "UPDATE_CELL" and cmd.get("content"))]
         _logger.info("Processing %s cells with ODOO.PIVOT.POSITION", len(pivot_update_cell))
         for cmd in pivot_update_cell:
             cmd["content"] = _pivot_position_to_pivot(cmd["content"]) or cmd["content"]
-        if pivot_update_cell:
-            cr.execute(
-                """
-                UPDATE spreadsheet_revision
-                   SET commands=%s
-                 WHERE id=%s
-                """,
-                [json.dumps(data), revision_id],
-            )

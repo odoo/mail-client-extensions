@@ -1,21 +1,8 @@
-import json
+from odoo.upgrade.util.spreadsheet import iter_commands
 
 
 def migrate(cr, version):
-    cr.execute(
-        r"""
-        SELECT id, commands
-          FROM spreadsheet_revision
-         WHERE commands LIKE '%\_CHART%'
-        """
-    )
-
-    for revision_id, data in cr.fetchall():
-        data_loaded = json.loads(data)
-        commands = data_loaded.get("commands", [])
-        if not commands:
-            continue
-
+    for commands in iter_commands(cr, like_all=[r"%\_CHART%"]):
         for command in commands:
             if command["type"] not in ["CREATE_CHART", "UPDATE_CHART"]:
                 continue
@@ -26,13 +13,3 @@ def migrate(cr, version):
             # 2. dataSets is now an object
             if "dataSets" in definition:
                 definition["dataSets"] = [{"dataRange": r} for r in definition.get("dataSets", [])]
-
-        data_loaded["commands"] = commands
-        cr.execute(
-            """
-            UPDATE spreadsheet_revision
-               SET commands=%s
-             WHERE id=%s
-            """,
-            [json.dumps(data_loaded), revision_id],
-        )
