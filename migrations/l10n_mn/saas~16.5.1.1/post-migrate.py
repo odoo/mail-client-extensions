@@ -230,5 +230,5 @@ def migrate(cr, version):
     # - will update all taxes with the new tax repartition lines on templates.
     # - will create new accounts if needed
     # - will set the Cashflow Statement tags on accounts
-    for company in env["res.company"].search([("chart_template", "=", "mn")]):
+    for company in env["res.company"].search([("chart_template", "=", "mn")], order="parent_path"):
         env["account.chart.template"].try_loading("mn", company=company, install_demo=False)
