@@ -79,3 +79,27 @@ def migrate(cr, version):
         table="documents_document",
         alias="document",
     )
+
+    ##################
+    # PINNED FOLDERS #
+    ##################
+
+    # Pin odoobot folders at the company root, so users are not lost
+    util.explode_execute(
+        cr,
+        cr.mogrify(
+            """
+                UPDATE documents_document
+                   SET is_pinned_folder = TRUE
+                  FROM documents_document document
+                 WHERE documents_document.id = document.id
+                   AND document.type='folder'
+                   AND document.folder_id IS NULL
+                   AND document.owner_id = %s
+                   AND {parallel_filter}
+            """,
+            [util.ref(cr, "base.user_root")],
+        ).decode(),
+        table="documents_document",
+        alias="document",
+    )

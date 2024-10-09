@@ -22,6 +22,7 @@ def migrate(cr, version):
 
     # new <documents.document> fields
     util.create_column(cr, "documents_document", "is_access_via_link_hidden", "boolean")
+    util.create_column(cr, "documents_document", "is_pinned_folder", "boolean")
     util.create_column(cr, "documents_document", "company_id", "int4")
     util.create_column(cr, "documents_document", "document_token", "varchar")
     util.create_column(cr, "documents_document", "access_via_link", "varchar")
