@@ -142,7 +142,7 @@ class TestSpreadsheetShareMigration(UpgradeCase):
             self.assertEqual(frozen_folder.handler, "frozen_folder")
             self.assertEqual(frozen_folder.access_via_link, "none")
             self.assertEqual(frozen_folder.access_internal, "view")
-
+            self.assertEqual(frozen_folder.parent_path, f"{frozen_folder.folder_id.parent_path}{frozen_folder.id}/")
         self.assertEqual(
             set(frozen_folders.mapped("folder_id.name")),
             {"Spreadsheet_main", "Spreadsheet_other"},
@@ -158,6 +158,7 @@ class TestSpreadsheetShareMigration(UpgradeCase):
         self.assertEqual(document_1.excel_export, b"UEsFBgAAAAAAAAAAAAAAAAAAAAAAAA==")
         self.assertEqual(document_1.spreadsheet_data, json.dumps({"test": "data A"}))
         self.assertIn(document_1.folder_id, frozen_folders)
+        self.assertEqual(document_1.parent_path, f"{document_1.folder_id.parent_path}{document_1.id}/")
 
         document_2 = _get_redirection(share_single_doc_2_token)
         self.assertEqual(len(document_2), 1)
@@ -166,6 +167,7 @@ class TestSpreadsheetShareMigration(UpgradeCase):
         self.assertEqual(base64.b64decode(document_2.datas), b'{"test": "data B"}')
         self.assertEqual(document_2.spreadsheet_data, json.dumps({"test": "data B"}))
         self.assertIn(document_2.folder_id, frozen_folders)
+        self.assertEqual(document_2.parent_path, f"{document_2.folder_id.parent_path}{document_2.id}/")
 
         company = self.env["res.company"].browse(init["company"])
         self.assertEqual(
