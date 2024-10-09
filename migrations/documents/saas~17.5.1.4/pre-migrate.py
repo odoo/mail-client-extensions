@@ -10,6 +10,12 @@ from odoo.upgrade.util.inconsistencies import break_recursive_loops
 
 
 def migrate(cr, version):
+    ######################
+    # DOCUMENTS.DOCUMENT #
+    ######################
+
+    util.change_field_selection_values(cr, "documents.document", "type", {"empty": "binary"})
+
     #####################
     # DOCUMENTS.FOLDERS #
     #####################
