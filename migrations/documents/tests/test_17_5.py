@@ -10,8 +10,10 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 @change_version("saas~17.5")
 class TestShareMigration(UpgradeCase):
     def prepare(self):
-        if not util.version_gte("saas~17.4"):
-            return None
+        upload_vals = {
+            "allow": {"allow_upload": True} if util.version_gte("saas~17.2") else {"action": "downloadupload"},
+            "deny": {"allow_upload": False} if util.version_gte("saas~17.2") else {"action": "download"},
+        }
 
         Folder = self.env["documents.folder"]
         Document = self.env["documents.document"]
@@ -20,7 +22,7 @@ class TestShareMigration(UpgradeCase):
         Tag = self.env["documents.tag"]
         User = self.env["res.users"]
 
-        companies = self.env["res.company"].create([{"name": "Company 1"}, {"name": "Company 2"}])
+        companies = self.env["res.company"].create([{"name": "Company UPG1"}, {"name": "Company UPG2"}])
 
         # to check that the XMLID has been changed
         self.env.ref("documents.documents_internal_folder").name = "INTERNAL FOLDER"
@@ -194,7 +196,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Share",
                     "folder_id": f_level0[0].id,
                     # include_sub_folders is True by default
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-1",
@@ -211,7 +213,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Share",
                     "folder_id": f_level0[0].id,
                     "include_sub_folders": True,
-                    "allow_upload": False,
+                    **upload_vals["deny"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-2",
@@ -221,7 +223,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Share",
                     "folder_id": f_level1[2].id,
                     "include_sub_folders": True,
-                    "allow_upload": False,
+                    **upload_vals["deny"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level1[2].id]],
                     "alias_name": "alias-3",
@@ -230,7 +232,7 @@ class TestShareMigration(UpgradeCase):
                     # Ignored because impossible with the new implementation
                     "name": "Share",
                     "folder_id": f_level1[1].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "include_sub_folders": False,
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level1[1].id]],
@@ -239,7 +241,7 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-4",
@@ -248,7 +250,7 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-5",
@@ -259,7 +261,7 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-6",
@@ -268,7 +270,7 @@ class TestShareMigration(UpgradeCase):
                     # Share with create activity that will be transmitted on the folder
                     "name": "Share",
                     "folder_id": f_level2[1].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level2[1].id]],
                     "alias_name": "alias-8",
@@ -285,7 +287,7 @@ class TestShareMigration(UpgradeCase):
                     # no `date_deadline` field, and we don't want to extend the access)
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-7",

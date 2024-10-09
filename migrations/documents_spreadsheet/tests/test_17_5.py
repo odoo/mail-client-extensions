@@ -8,8 +8,14 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 @change_version("saas~17.5")
 class TestSpreadsheetShareMigration(UpgradeCase):
     def prepare(self):
-        if not util.version_gte("saas~17.4"):
-            return None
+        def get_frozen_spreadsheet_vals(spreadsheet_shares_vals):
+            if util.version_gte("saas~17.4"):
+                return {"spreadsheet_shares": json.dumps(spreadsheet_shares_vals)}
+            return {
+                "freezed_spreadsheet_ids": self.env["documents.share"]._create_spreadsheet_share_commands(
+                    spreadsheet_shares_vals
+                )
+            }
 
         folders = self.env["documents.folder"].create(
             [
@@ -31,62 +37,59 @@ class TestSpreadsheetShareMigration(UpgradeCase):
             ]
         )
 
-        spreadsheet_shares = json.dumps(
-            [
-                {
-                    "excel_files": [],
-                    "spreadsheet_data": json.dumps({"test": "data A"}),
-                    "document_id": spreadsheets[0].id,
-                }
-            ]
-        )
-        share_single_doc_1 = (
-            self.env["documents.share"]
-            .with_context(
-                **spreadsheets[0].create_share()["context"],
-                default_spreadsheet_shares=spreadsheet_shares,
-            )
-            .create({})
+        spreadsheet_shares = [
+            {
+                "excel_files": [],
+                "spreadsheet_data": json.dumps({"test": "data A"}),
+                "document_id": spreadsheets[0].id,
+            }
+        ]
+
+        share_single_doc_1 = self.env["documents.share"].create(
+            {
+                "document_ids": [(6, 0, spreadsheets[0].ids)],
+                "folder_id": spreadsheets[0].folder_id.id,
+                "type": "ids",
+            }
+            | get_frozen_spreadsheet_vals(spreadsheet_shares)
         )
 
-        spreadsheet_shares = json.dumps(
-            [
-                {
-                    "excel_files": [],
-                    "spreadsheet_data": json.dumps({"test": "data B"}),
-                    "document_id": spreadsheets[1].id,
-                }
-            ]
-        )
-        share_single_doc_2 = (
-            self.env["documents.share"]
-            .with_context(
-                **spreadsheets[1].create_share()["context"],
-                default_spreadsheet_shares=spreadsheet_shares,
-            )
-            .create({})
+        spreadsheet_shares = [
+            {
+                "excel_files": [],
+                "spreadsheet_data": json.dumps({"test": "data B"}),
+                "document_id": spreadsheets[1].id,
+            }
+        ]
+
+        share_single_doc_2 = self.env["documents.share"].create(
+            {
+                "document_ids": [(6, 0, spreadsheets[1].ids)],
+                "folder_id": spreadsheets[1].folder_id.id,
+                "type": "ids",
+            }
+            | get_frozen_spreadsheet_vals(spreadsheet_shares)
         )
 
         self.assertEqual(len(share_single_doc_2.freezed_spreadsheet_ids), 1)
 
-        spreadsheet_shares = json.dumps(
-            [
-                {
-                    "excel_files": [],
-                    "spreadsheet_data": json.dumps({"test": f"data {i}"}),
-                    "document_id": spreadsheet.id,
-                }
-                for i, spreadsheet in enumerate(spreadsheets)
-            ]
-        )
+        spreadsheet_shares = [
+            {
+                "excel_files": [],
+                "spreadsheet_data": json.dumps({"test": f"data {i}"}),
+                "document_id": spreadsheet.id,
+            }
+            for i, spreadsheet in enumerate(spreadsheets)
+        ]
+
         share_two_docs = self.env["documents.share"].create(
             {
                 "type": "domain",
                 "folder_id": folders[0].id,
                 "domain": repr([("id", "in", spreadsheets.ids)]),
                 "document_ids": spreadsheets.ids,
-                "spreadsheet_shares": spreadsheet_shares,
             }
+            | get_frozen_spreadsheet_vals(spreadsheet_shares)
         )
         self.assertEqual(len(share_two_docs.freezed_spreadsheet_ids), 2)
 
