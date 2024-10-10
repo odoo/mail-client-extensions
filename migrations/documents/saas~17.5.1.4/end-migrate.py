@@ -157,8 +157,6 @@ def migrate(cr, version):
 
     util.remove_column(cr, "documents_access", "_upg_added_from_group")
 
-    util.remove_field(cr, "documents.tag", "folder_id")
-
     util.remove_model(cr, "documents.folder")
     util.remove_model(cr, "documents.share")
 
