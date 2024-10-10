@@ -82,14 +82,12 @@ def main():
                 sl.symlink_to(f)
             gitignore.append(str(sl.relative_to(upg_dir)))
 
-    gitignore_file = upg_dir / ".git" / "info" / "exclude"
-    blockinfile(gitignore_file, "managed by link-upgrade-util", gitignore, args.remove)
+    logging.info("Symlinks have been %s.", "removed" if args.remove else "added")
 
-    logging.info(
-        "Symlinks have been %s. Gitignore file %s has been adapted.",
-        "removed" if args.remove else "added",
-        gitignore_file,
-    )
+    gitignore_file = upg_dir / ".git" / "info" / "exclude"
+    if gitignore_file.parent.is_dir():
+        blockinfile(gitignore_file, "managed by link-upgrade-util", gitignore, args.remove)
+        logging.info("Gitignore file %s has been adapted.", gitignore_file)
 
 
 if __name__ == "__main__":
