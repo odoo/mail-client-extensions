@@ -48,7 +48,8 @@ def migrate(cr, version):
            -- ignore some fields handled in their own modules
            AND (imf.model, imf.name) NOT IN (
                ('planning.slot.template', 'project_id')  -- no more company dependent since saas-17.1
-           )
+              ,('res.partner', 'property_product_pricelist')
+              )
       ORDER BY imf.model
         """
     )
