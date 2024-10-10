@@ -881,7 +881,7 @@ def fix_missing_document_tokens(cr):
         )
 
         res = ncr.fetchmany(BATCH)
-        upd_query = "UPDATE documents_document SET document_token = (%s::jsonb->id::text)::text WHERE id IN %s"
+        upd_query = "UPDATE documents_document SET document_token = (%s::jsonb->>id::text)::text WHERE id IN %s"
         while res:
             data = {r[0]: base64.urlsafe_b64encode(uuid.uuid4().bytes).decode().removesuffix("==") for r in res}
             cr.execute(upd_query, [psycopg2.extras.Json(data), tuple(data)])
