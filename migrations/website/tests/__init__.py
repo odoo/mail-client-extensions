@@ -8,6 +8,7 @@ from . import (
     test_16_2_move_popup,
     test_17_2_embed_code,
     test_17_2_mobile_order,
+    test_17_3_remove_website_internal_user,
     test_17_5_unique_website_controller_page,
     test_17_5_website_controller_page_m2o_record,
     test_assets_management,

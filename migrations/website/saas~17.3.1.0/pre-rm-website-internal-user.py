@@ -10,6 +10,7 @@ def migrate(cr, version):
          WHERE rel.uid = u.id
            AND rel.gid = %s
            AND u.website_id IS NOT NULL
+           AND u.active
         """,
         [util.ref(cr, "base.group_user")],
     )
