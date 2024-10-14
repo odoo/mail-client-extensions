@@ -60,7 +60,7 @@ def migrate(cr, version):
     util.explode_execute(cr, query, table="stock_move", alias="move")
 
     # remove reservation
-    cr.execute("DELETE FROM stock_move_line WHERE picked = false")
+    util.explode_execute(cr, "DELETE FROM stock_move_line WHERE picked = false", table="stock_move_line")
 
     util.rename_field(cr, "stock.move", "quantity_done", "quantity")
     util.rename_field(cr, "stock.move.line", "qty_done", "quantity")
