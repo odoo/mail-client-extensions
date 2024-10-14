@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.8"
+# ///
+
 # ruff: noqa: PLW0603, T201
 
 import ast
@@ -167,7 +171,7 @@ def main():
                     and node.func.attr == "rename_module"
                     and not content_lines[node.lineno - 1].endswith(b"# nofml")
                 ):
-                    if not check_module_rename(version, node.args[1].s, node.args[2].s):
+                    if not check_module_rename(version, node.args[1].value, node.args[2].value):
                         rc = 1
                 elif (
                     isinstance(node.func.value, ast.Name)
@@ -175,7 +179,7 @@ def main():
                     and node.func.attr == "merge_module"
                     and not content_lines[node.lineno - 1].endswith(b"# nofml")
                 ):
-                    if not check_module_merge(version, node.args[1].s, node.args[2].s):
+                    if not check_module_merge(version, node.args[1].value, node.args[2].value):
                         rc = 1
                 else:
                     pass
