@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# ruff: noqa: PLW0603, T201
 
 import ast
 import sys
@@ -11,7 +11,7 @@ MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 EXCEPTIONS = {
     MIGRATIONS_DIR / e
-    for e in {
+    for e in (
         # scripts that don't need a symlink because they are already handled in other ways
         "report/10.saas~14.1.0/pre-migrate.py",
         "website_account/10.saas~17.1.0/pre-migrate.py",
@@ -25,15 +25,15 @@ EXCEPTIONS = {
         "google_base_account/7.saas~2.1.0/pre-10-remove-views.py",
         "account_analytic_analysis/8.saas~6.1.1/pre-rm-views.py",
         "account_invoicing/saas~11.1.1.0/pre-remove.py",
-    }
+    )
 }
 
 
 def saas(x, y):
     """inject `saas~` in the right place depending of the major version"""
     if x >= 11:
-        return "saas~%s.%s" % (x, y)
-    return "%s.saas~%s" % (x, y)
+        return f"saas~{x}.{y}"
+    return f"{x}.saas~{y}"
 
 
 def previous_versions(version):
@@ -49,7 +49,7 @@ def previous_versions(version):
         min_saas = {8: 6, 9: 7, 10: 14}
         matches = [saas(v[0], f"{m}.*") for m in range(min_saas.get(v[0], 1), v[1])]
 
-    return matches + [f"{version}.*"]
+    return [*matches, f"{version}.*"]
 
 
 def _match_linked_files(version, new, found, reason):
@@ -57,7 +57,7 @@ def _match_linked_files(version, new, found, reason):
     expected = {f for f in found.iterdir() if f.is_file()}
 
     for exc in expected & EXCEPTIONS:
-        exc = exc.relative_to(MIGRATIONS_DIR)
+        exc = exc.relative_to(MIGRATIONS_DIR)  # noqa: PLW2901
         if VERBOSE:
             print(f"🆗 {exc} manually handled in {new}/{version} ▶︎ [module {reason}]")
 
@@ -177,6 +177,8 @@ def main():
                 ):
                     if not check_module_merge(version, node.args[1].s, node.args[2].s):
                         rc = 1
+                else:
+                    pass
     return rc
 
 
