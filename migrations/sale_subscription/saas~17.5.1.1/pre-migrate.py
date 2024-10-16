@@ -29,3 +29,19 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, "sale_subscription.sale_subscription_action_plan", "sale_subscription.sale_subscription_plan_action"
     )
+
+    util.create_column(
+        cr, "sale_order_log", "plan_id", "int4", fk_table="sale_subscription_plan", on_delete_action="RESTRICT"
+    )
+    util.explode_execute(
+        cr,
+        """
+        UPDATE sale_order_log l
+           SET plan_id = o.plan_id
+          FROM sale_order o
+         WHERE o.id = l.order_id
+           AND o.plan_id IS NOT NULL
+        """,
+        table="sale_order_log",
+        alias="l",
+    )
