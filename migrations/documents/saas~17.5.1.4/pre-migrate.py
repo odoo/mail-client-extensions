@@ -783,32 +783,52 @@ def migrate(cr, version):
     # mail attachment. We take advantage of that here by setting the create_xx field that will be used to create the activities
     # on the final document. If those create_xx fields are set, they take precedence over the create_xx of the folder.
     cr.execute(
-        r"""
-    WITH share AS (
-        SELECT alias_id,
-               $$'create_activity_option': True$$ ||
-                COALESCE($$, 'create_activity_type_id': $$ || activity_type_id, '') ||
-                COALESCE($$, 'create_activity_summary': '$$ || activity_summary || $$'$$, '') ||
-                COALESCE($$, 'create_activity_note': '$$ || activity_note || $$'$$, '') ||
-                COALESCE($$, 'create_activity_user_id': $$ || activity_user_id, '') ||
-                COALESCE($$, 'create_activity_date_deadline_range': $$ || activity_date_deadline_range, '') ||
-                COALESCE($$, 'create_activity_date_deadline_range_type': '$$ || activity_date_deadline_range_type || $$'$$, '')
-                AS create_activity_data
-          FROM documents_share
-          WHERE alias_id NOT IN (SELECT alias_id FROM documents_document WHERE alias_id IS NOT NULL)
-            AND activity_option IS TRUE
-            AND documents_share.to_ignore = FALSE
-    )
-     UPDATE mail_alias
-        SET alias_defaults = CASE
-          WHEN alias_defaults ~ '^\s*{\s*}\s*$' THEN '{' || share.create_activity_data || '}'
-          ELSE regexp_replace(alias_defaults, '\s*}\s*$', ', ' || share.create_activity_data || '}')
-        END
-       FROM share
-      WHERE id = share.alias_id
-        AND alias_defaults NOT LIKE '%activity_ids%'
+        """
+    SELECT alias.id AS alias_id,
+           alias.alias_defaults,
+           share.activity_type_id,
+           share.activity_summary,
+           share.activity_note,
+           share.activity_user_id,
+           share.activity_date_deadline_range,
+           share.activity_date_deadline_range_type
+      FROM mail_alias as alias
+      JOIN documents_share as share
+        ON share.alias_id = alias.id
+ LEFT JOIN documents_document doc
+        ON doc.alias_id = alias.id
+     WHERE doc IS NULL
+       AND share.activity_option
+       AND share.to_ignore = FALSE
         """
     )
+    alias_update_queries = []
+    for r in cr.dictfetchall():
+        try:
+            alias_defaults = ast.literal_eval(r["alias_defaults"])
+        except ValueError:
+            continue  # Ignore malformed alias_defaults
+        create_data = {
+            f"create_{field_name}": r[field_name]
+            for field_name in (
+                "activity_type_id",
+                "activity_summary",
+                "activity_note",
+                "activity_user_id",
+                "activity_date_deadline_range",
+                "activity_date_deadline_range_type",
+            )
+            if r[field_name]
+        }
+        if create_data:
+            alias_defaults["create_activity_option"] = True
+            alias_defaults.update(create_data)
+            alias_update_queries.append(
+                cr.mogrify(
+                    "UPDATE mail_alias SET alias_defaults = %s WHERE id = %s", [repr(alias_defaults), r["alias_id"]]
+                )
+            )
+    util.parallel_execute(cr, alias_update_queries)
 
     #########################
     # PROPAGATE THE COMPANY #
