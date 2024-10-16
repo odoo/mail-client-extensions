@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 import logging
 import math
-
 from multiprocessing import Process, Semaphore
 
-from odoo.addons.base.maintenance.migrations import util
-from odoo.addons.phone_validation.tools import phone_validation
 from odoo.exceptions import UserError
 
+from odoo.addons.phone_validation.tools import phone_validation
+
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migrations.crm.saas-12.4." + __name__)
 
@@ -39,7 +38,7 @@ def validate_phone(cr, lead_ids, out_sem):
 
 def migrate(cr, version):
     _logger.info("Starting phone_valid computation")
-    query = "UPDATE crm_lead SET phone_state = 'empty' WHERE phone_state IS NULL AND (phone IS NULL OR phone='')"
+    query = "UPDATE crm_lead SET phone_state = 'empty' WHERE phone_state IS NULL AND NULLIF(phone, '') IS NULL"
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="crm_lead"))
 
     query = """
@@ -55,9 +54,7 @@ def migrate(cr, version):
     nbr_thd = min(util.cpu_count(), 8)
     chunksize = int(math.ceil(len(lead_ids) / float(nbr_thd)))
     lead_chunks = (
-        [lead_ids[i : i + chunksize] for i in range(0, len(lead_ids), chunksize)]  # noqa: E203
-        if chunksize > 0
-        else [lead_ids]
+        [lead_ids[i : i + chunksize] for i in range(0, len(lead_ids), chunksize)] if chunksize > 0 else [lead_ids]
     )
     lst_thd = []
     out_sem = Semaphore()
@@ -72,7 +69,7 @@ def migrate(cr, version):
     _logger.info("Computing email_state")
     query = """
         UPDATE crm_lead
-           SET email_state = CASE WHEN email_from IS NULL or email_from = ''
+           SET email_state = CASE WHEN NULLIF(email_from, '') IS NULL
                                   THEN 'empty'
                                   WHEN email_from SIMILAR TO '([^ ,;<@]+@[^> ,;]+)'
                                   THEN 'correct'

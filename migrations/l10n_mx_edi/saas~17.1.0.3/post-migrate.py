@@ -29,5 +29,6 @@ def migrate(cr, version):
           FROM res_partner partner
          WHERE partner.l10n_mx_edi_addenda_id IS NOT NULL
            AND (m.partner_id = partner.id OR m.commercial_partner_id = partner.id)
+           AND {parallel_filter}
     """
     util.explode_execute(cr, am_query, table="account_move", alias="m")

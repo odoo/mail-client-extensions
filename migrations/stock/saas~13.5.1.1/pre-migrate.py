@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     for table in ("stock_picking", "stock_move"):
         util.parallel_execute(
             cr,
@@ -16,6 +14,7 @@ def migrate(cr, version):
                                ELSE '0'
                           END
          WHERE (priority IN ('1', '2', '3') OR priority IS NULL)
+           AND {{parallel_filter}}
                 """,
                 table=table,
             ),

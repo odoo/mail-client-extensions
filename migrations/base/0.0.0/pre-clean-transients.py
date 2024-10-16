@@ -40,7 +40,7 @@ def migrate(cr, version):
             itertools.chain.from_iterable(
                 util.explode_query_range(
                     cr,
-                    "UPDATE {} SET {} WHERE ({})".format(
+                    "UPDATE {} SET {} WHERE ({}) AND {{parallel_filter}}".format(
                         t,
                         ", ".join("{} = NULL".format(c) for c in q),
                         " OR ".join("{} IS NOT NULL".format(c) for c in q),

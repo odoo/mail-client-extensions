@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -44,5 +42,6 @@ def migrate(cr, version):
           FROM default_stage_by_job j
          WHERE j.job = a.job_id
            AND j.stage IS NOT DISTINCT FROM a.stage_id
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="hr_applicant", alias="a"))

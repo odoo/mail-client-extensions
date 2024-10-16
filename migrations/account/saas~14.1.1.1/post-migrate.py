@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -34,6 +33,7 @@ def migrate(cr, version):
           FROM account_move, account_journal
          WHERE account_move.id = account_move_line.move_id
            AND account_journal.id = account_move_line.journal_id
+           AND {{parallel_filter}}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line"))
 

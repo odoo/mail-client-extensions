@@ -48,7 +48,9 @@ def migrate(cr, version):
                 WHEN description IS NULL OR description = '' THEN comment
                 ELSE                                         CONCAT(description, '<hr/>', comment)
                END
-         WHERE comment IS NOT NULL AND comment <> ''
+         WHERE comment IS NOT NULL
+           AND comment <> ''
+           AND {parallel_filter}
     """
     util.explode_execute(cr, query, table="project_task")
     util.remove_field(cr, "project.task", "comment")

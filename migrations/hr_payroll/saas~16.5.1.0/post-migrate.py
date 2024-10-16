@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -34,6 +32,8 @@ def migrate(cr, version):
         ]
     }
 
-    query = "UPDATE hr_salary_rule SET " + ", ".join(f"{f} = {v}" for f, v in fields.items())
+    query = "UPDATE hr_salary_rule SET {} WHERE {{parallel_filter}}".format(
+        ", ".join(f"{f} = {v}" for f, v in fields.items())
+    )
 
     util.explode_execute(cr, query, table="hr_salary_rule")

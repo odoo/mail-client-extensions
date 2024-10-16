@@ -105,10 +105,11 @@ def migrate(cr, version):
         UPDATE repair_order r
            SET under_warranty = TRUE
          WHERE r.guarantee_limit IS NOT NULL
-               AND (
+           AND (
                    r.state = 'done'
                    OR r.guarantee_limit >= NOW()::date
                )
+           AND {parallel_filter}
         """,
         alias="r",
         table="repair_order",

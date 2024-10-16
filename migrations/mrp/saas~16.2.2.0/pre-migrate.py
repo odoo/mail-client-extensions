@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -12,6 +11,7 @@ def migrate(cr, version):
           FROM product_template pt
          WHERE b.product_tmpl_id = pt.id
            AND (pt.produce_delay <> 0 OR pt.days_to_prepare_mo <> 0)
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="mrp_bom", alias="b"))
     util.remove_field(cr, "product.template", "produce_delay")

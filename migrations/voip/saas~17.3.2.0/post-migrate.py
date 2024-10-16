@@ -23,8 +23,9 @@ def migrate(cr, version):
             """
                 UPDATE res_users_settings
                    SET voip_provider_id = %s
-                 WHERE voip_username IS NOT NULL
-                    OR voip_secret IS NOT NULL
+                 WHERE (voip_username IS NOT NULL
+                    OR voip_secret IS NOT NULL)
+                   AND {parallel_filter}
             """,
             [voip_provider_id],
         ).decode()

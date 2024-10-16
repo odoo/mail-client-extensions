@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 from ast import literal_eval
 from collections import defaultdict
@@ -142,13 +141,14 @@ def migrate(cr, version):
           JOIN pg_inherits i ON (i.inhrelid = c.oid OR i.inhparent = c.oid)
         """
     )
-    tables_with_inheritance = {t for t, in cr.fetchall()}
+    tables_with_inheritance = {t for (t,) in cr.fetchall()}
 
     def get_queries(table, columns, filter_modules, sequential):
         if not columns:
             return []
         model = util.model_of_table(cr, table) if util.column_exists(cr, table, "id") else None
-        query = "UPDATE {} t SET {} WHERE {}\n{}".format(
+        only_one = sequential or not util.column_exists(cr, table, "id")
+        query = "UPDATE {} t SET {} WHERE {}\n{}\n{}".format(
             table,
             ",\n".join(
                 "{col}=CASE WHEN {col}=%(u1id)s THEN %(u2id)s ELSE {col} END".format(col=col) for col in columns
@@ -166,9 +166,10 @@ def migrate(cr, version):
             """
             if filter_modules and model
             else "",
+            "AND {parallel_filter}" if not only_one else "",
         )
         query = cr.mogrify(query, {"u1id": u1id, "u2id": u2id, "model": model}).decode()
-        if sequential or not util.column_exists(cr, table, "id"):
+        if only_one:
             return [query]
         return util.explode_query_range(cr, query, table, alias="t")
 
@@ -187,11 +188,11 @@ def migrate(cr, version):
         uid_cols = cols & {"create_uid", "write_uid"}
         other_cols = cols - {"create_uid", "write_uid"}
         if table in tables_with_inheritance:
-            sequential_queries.extend(get_queries(table, uid_cols, True, sequential=True))
-            sequential_queries.extend(get_queries(table, other_cols, False, sequential=True))
+            sequential_queries.extend(get_queries(table, uid_cols, filter_modules=True, sequential=True))
+            sequential_queries.extend(get_queries(table, other_cols, filter_modules=False, sequential=True))
         else:
-            uid_queries.extend(get_queries(table, uid_cols, True, sequential=False))
-            other_queries.extend(get_queries(table, other_cols, False, sequential=False))
+            uid_queries.extend(get_queries(table, uid_cols, filter_modules=True, sequential=False))
+            other_queries.extend(get_queries(table, other_cols, filter_modules=False, sequential=False))
 
     util._logger.info("Running %s sequential queries", len(sequential_queries))
     for query in sequential_queries:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
 
@@ -14,6 +13,7 @@ def migrate(cr, version):
           FROM account_period p
          WHERE p.id = a.period_id
            AND ((a.date NOT BETWEEN p.date_start AND p.date_stop) OR a.date IS NULL)
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move", alias="a"))
 
@@ -23,6 +23,7 @@ def migrate(cr, version):
            SET date = am.date
           FROM account_move am
          WHERE aml.move_id = am.id
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
 
@@ -33,6 +34,7 @@ def migrate(cr, version):
           FROM account_period p
          WHERE p.id = a.period_id
            AND ((a.date NOT BETWEEN p.date_start AND p.date_stop) OR a.date IS NULL)
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_bank_statement", alias="a"))
 
@@ -44,6 +46,7 @@ def migrate(cr, version):
           FROM account_period p
          WHERE p.id = a.period_id
            AND ((a.date_invoice NOT BETWEEN p.date_start AND p.date_stop) OR a.date_invoice IS NULL)
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_invoice", alias="a"))
 
@@ -54,5 +57,6 @@ def migrate(cr, version):
          WHERE date_invoice IS NOT NULL
            AND date IS NULL
            AND state NOT IN ('draft','cancel')
+           AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_invoice"))

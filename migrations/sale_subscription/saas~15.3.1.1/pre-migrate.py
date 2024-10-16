@@ -772,36 +772,32 @@ product_product_id)
 
     query = cr.mogrify(
         """
-        WITH parent_sub AS (
-        SELECT id,recurrence_id,state
-          FROM sale_order sub
-        )
         UPDATE sale_order so
            SET is_subscription= CASE
-               WHEN so.state='draft' OR so.state='sent' THEN true
+               WHEN so.state IN ('draft', 'sent') THEN true
                ELSE false
            END,
            subscription_management= CASE
-               WHEN so.state = 'sale' OR so.state = 'done' THEN 'renewal_so'
+               WHEN so.state IN ('sale', 'done') THEN 'renewal_so'
                ELSE so.subscription_management
            END,
            recurrence_id=parent_sub.recurrence_id,
            next_invoice_date=
            CASE
-               WHEN so.state='sale' OR so.state = 'done'  THEN current_date
+               WHEN so.state IN ('sale', 'done') THEN current_date
                ELSE NULL
            END,
            stage_category=
            CASE
-               WHEN so.state='draft' OR so.state='sent' THEN 'draft'
-               WHEN so.state='sale' OR so.state='done' THEN 'closed'
+               WHEN so.state IN ('draft', 'sent') THEN 'draft'
+               WHEN so.state IN ('sale', 'done') THEN 'closed'
            END,
            stage_id=
            CASE
-               WHEN so.state='draft' OR so.state='sent' THEN %(draft)s
-               WHEN so.state='sale' OR so.state='done' THEN %(closed)s
+               WHEN so.state IN ('draft', 'sent') THEN %(draft)s
+               WHEN so.state IN ('sale', 'done') THEN %(closed)s
            END
-          FROM parent_sub
+          FROM sale_order parent_sub
          WHERE parent_sub.id=so.subscription_id
            AND so.subscription_management='renew'
         """,
@@ -1089,13 +1085,14 @@ def _handle_recurring_renting_products(cr):
         )
 
         if archived_products:
+            # TODO html formatting of the output
             util.add_to_migration_reports(
                 "Several products were configured to be rented and used in subscription. This use case is not supported anymore. "
                 "We converted the products with only one variant but some product had multiple variants and were used in both"
                 "Subscriptions and Rental orders. We archived it to prevent issues in the future. You need to duplicate"
                 "products template that need to be both used in subscription and rental and update the draft and confirmed "
                 "subscription with the relevant product copy.\n"
-                "The archived products are %s" % (", ".join(archived_products))
+                "The archived products are {}".format(", ".join(archived_products))
             )
 
 

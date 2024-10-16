@@ -29,6 +29,7 @@ def migrate(cr, version):
          WHERE q.survey_id = s.id
            AND (COALESCE(s.session_speed_rating, FALSE) <> COALESCE(q.is_time_limited, FALSE)
                 OR (q.is_time_limited AND q.time_limit != 30))
+           AND {parallel_filter}
     """
     util.explode_execute(cr, query, table="survey_question", alias="q")
 

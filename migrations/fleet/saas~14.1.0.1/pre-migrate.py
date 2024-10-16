@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -19,7 +18,7 @@ def migrate(cr, version):
     waiting_list = util.ref(cr, "fleet.fleet_vehicle_state_waiting_list")
     if waiting_list:
         # as it's a demo data, I expect this branch will only be taken by CI checks
-        state_filter = cr.mogrify(f"({state_filter} OR v.state_id = %s)", [waiting_list]).decode()
+        state_filter = cr.mogrify("NULLIF(v.state_id, %s) IS NULL", [waiting_list]).decode()
 
     cte = f"""\
         cte AS (

@@ -118,6 +118,7 @@ def migrate(cr, version):
                     OR
                     st_line.currency_id = COALESCE(journal.currency_id, com.currency_id)
                   )
+              AND {parallel_filter}
             """,
             alias="st_line",
             table="account_bank_statement_line",

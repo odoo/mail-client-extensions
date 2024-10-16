@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import api, models
 
 from odoo.upgrade import util
@@ -13,7 +12,7 @@ class AccountAccount(models.Model):
         # In case there are multiple "Current Year Earnings" accounts we do not
         # want to deal with that and just avoid the check during the upgrade
         if self.env.context.get("_upg_ignore_earning_accounts_check"):
-            return
+            return None
         return super()._check_user_type_id_unique_current_year_earning()
 
 
@@ -101,5 +100,6 @@ def migrate(cr, version):
                     (pay.payment_type = 'outbound' AND rec.debit_move_id = aml.id)
                  OR (pay.payment_type = 'inbound' AND rec.credit_move_id = aml.id)
             )
+            AND {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="pay"))

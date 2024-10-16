@@ -9,8 +9,7 @@ def migrate(cr, version):
         """
         UPDATE res_partner
            SET comment = format('%s\nTax name: %s\nTax address: %s', comment, l10n_id_tax_name, l10n_id_tax_address)
-         WHERE l10n_id_tax_name IS NOT NULL
-            OR l10n_id_tax_address IS NOT NULL
+         WHERE COALESCE(l10n_id_tax_name, l10n_id_tax_address) IS NOT NULL
         """,
         table="res_partner",
     )

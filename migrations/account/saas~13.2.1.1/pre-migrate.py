@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import itertools
 import logging
 import re
@@ -98,7 +97,7 @@ def migrate(cr, version):
             cr.execute("UPDATE account_journal SET sequence_override_regex = %s WHERE id = %s", [regex, jid])
 
             number = re.sub(r"\?P<\w+>", "?:", regex.replace(r"?P<seq>", ""))
-            prefix = re.sub(r"\?P<\w+>", "", re.sub(r"(\?<seq>.*)", "(?:.*)", regex))
+            re_prefix = re.sub(r"\?P<\w+>", "", re.sub(r"(\?<seq>.*)", "(?:.*)", regex))
             for table in ["account_move", "account_bank_statement"]:
                 cr.execute(
                     f"""
@@ -107,7 +106,7 @@ def migrate(cr, version):
                                sequence_number = ('0' || (regexp_match(name, %s))[1])::integer
                          WHERE journal_id = %s;
                     """,
-                    [prefix, number, jid],
+                    [re_prefix, number, jid],
                 )
 
     if bad_journals:
@@ -116,24 +115,27 @@ def migrate(cr, version):
                  <summary>Some account journals has been deactivated</summary>
                  <ul>{}</ul>
                </details>
-            """.format(
-                "".join(f"<li>{util.html_escape(b)}</li>" for b in bad_journals)
-            ),
+            """.format("".join(f"<li>{util.html_escape(b)}</li>" for b in bad_journals)),
             format="html",
             category="Accounting",
         )
 
     # default match
     for table in ["account_move", "account_bank_statement"]:
-        query = (
-            r"""
-                UPDATE %s
-                   SET sequence_prefix = (regexp_match(name, '^(.*?)(?:\d{{0,9}})(?:\D*?)$'))[1],
-                       sequence_number = ('0' || (regexp_match(name, '^(?:.*?)(\d{{0,9}})(?:\D*?)$'))[1])::integer
-                 WHERE sequence_number IS NULL
-            """
-            % table
-        )
+        query = cr.mogrify(
+            util.format_query(
+                cr,
+                r"""
+                    UPDATE {}
+                       SET sequence_prefix = (regexp_match(name, %s))[1],
+                           sequence_number = ('0' || (regexp_match(name, %s))[1])::integer
+                     WHERE sequence_number IS NULL
+                """,
+                table,
+            ),
+            [r"^(.*?)(?:\d{0,9})(?:\D*?)$", r"^(?:.*?)(\d{{0,9}})(?:\D*?)$"],
+        ).decode()
+        query = query.replace("{", "{{").replace("}", "}}")
         util.parallel_execute(cr, util.explode_query_range(cr, query, table))
 
     # ===
@@ -149,7 +151,7 @@ def migrate(cr, version):
     util.create_column(cr, "account_move", "posted_before", "boolean")
     util.explode_execute(
         cr,
-        "UPDATE account_move SET posted_before = (state = 'posted' OR name != '/')",
+        "UPDATE account_move SET posted_before = (state = 'posted' OR name != '/') WHERE {parallel_filter}",
         table="account_move",
     )
 
@@ -179,6 +181,7 @@ def migrate(cr, version):
           FROM account_partial_reconcile p
          WHERE (p.credit_move_id = l.id OR p.debit_move_id = l.id)
            AND l.matching_number IS NULL
+           AND {parallel_filter}
         """,
         table="account_move_line",
         alias="l",

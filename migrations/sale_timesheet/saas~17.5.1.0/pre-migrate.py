@@ -6,16 +6,21 @@ def migrate(cr, version):
     util.explode_execute(
         cr,
         """
-        UPDATE account_analytic_line aal
-           SET timesheet_invoice_type = CASE timesheet_invoice_type
-                 WHEN 'timesheet_revenues' THEN 'billable_time'
-                 ELSE 'other_costs'
-               END
-         WHERE (    timesheet_invoice_type = 'timesheet_revenues'
-                AND unit_amount <= 0)
-            OR (    timesheet_invoice_type IN ('service_revenues', 'other_revenues')
-                AND unit_amount < 0)
+        UPDATE account_analytic_line
+           SET timesheet_invoice_type = 'billable_time'
+         WHERE timesheet_invoice_type = 'timesheet_revenues'
+           AND unit_amount <= 0
         """,
         table="account_analytic_line",
-        alias="aal",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE account_analytic_line
+           SET timesheet_invoice_type = 'other_costs'
+         WHERE timesheet_invoice_type IN ('service_revenues', 'other_revenues')
+           AND unit_amount < 0
+        """,
+        table="account_analytic_line",
     )

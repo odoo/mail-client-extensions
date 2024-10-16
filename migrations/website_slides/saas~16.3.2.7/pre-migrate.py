@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -20,6 +19,7 @@ def migrate(cr, version):
                   WHEN completion = 100 OR completed = True THEN 'completed'
                   ELSE 'ongoing'
                END)
+         WHERE {parallel_filter}
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="slide_channel_partner"))
 

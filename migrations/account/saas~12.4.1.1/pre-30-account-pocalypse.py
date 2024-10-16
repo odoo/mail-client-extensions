@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# ruff: noqa: ERA001
 import itertools
 
 from odoo.addons.base.maintenance.migrations import util
@@ -352,6 +352,7 @@ def migrate(cr, version):
                    AND company_currency_id IS NOT NULL
                    AND company_currency_id = currency_id
                    AND (amount_currency = 0 OR amount_currency = balance)
+                   AND {parallel_filter}
             """,
             "account_move_line",
         ),

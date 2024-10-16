@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -30,6 +29,7 @@ def migrate(cr, version):
                             )
                 ) as timesheet ON TRUE) as timesheets
             WHERE timesheets.id=planning_slot.id
+              AND {parallel_filter}
         """,
         table="planning_slot",
     )

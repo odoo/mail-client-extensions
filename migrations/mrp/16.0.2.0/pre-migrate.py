@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -36,5 +35,6 @@ def migrate(cr, version):
          WHERE m.state = 'draft'
            AND m.id = move.id
            AND (bom.manual_consumption OR pt.tracking != 'none')
+           AND {parallel_filter}
         """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_move", alias="move"))

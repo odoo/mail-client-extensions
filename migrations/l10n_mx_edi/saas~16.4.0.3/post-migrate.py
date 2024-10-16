@@ -21,6 +21,7 @@ def migrate(cr, _version):
             JOIN account_move move ON move.id = doc.move_id
             JOIN ir_attachment att ON att.id = doc.attachment_id
             WHERE doc.state = 'sent' AND doc.edi_format_id = %s
+              AND {parallel_filter}
         """,
         [cfdi_format_id],
     ).decode()

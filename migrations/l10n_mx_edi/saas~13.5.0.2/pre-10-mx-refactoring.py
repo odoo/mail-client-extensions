@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -30,6 +28,7 @@ def migrate(cr, version):
               JOIN res_country k ON k.id = p.country_id
              WHERE c.id = m.company_id
                AND upper(k.code) = 'MX'
+               AND {parallel_filter}
         """,
         """
             UPDATE account_move m
@@ -79,7 +78,6 @@ def migrate(cr, version):
     """
     )
 
-    #
     util.remove_model(cr, "l10n_mx_edi.pac.sw.mixin")
     util.remove_field(cr, "account.payment.register", "l10n_mx_edi_partner_bank_id")
     #

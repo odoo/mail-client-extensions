@@ -55,6 +55,7 @@ def migrate(cr, version):
             OR apml.payment_method_id = map.payment_method_id)
            AND apml.journal_id = map.journal_id
          WHERE map.id = ap.id
+           AND {parallel_filter}
          """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_payment", alias="ap"))
 

@@ -231,8 +231,9 @@ def migrate(cr, version):
 
     cr.execute("SELECT name FROM account_asset WHERE _century_shift___upg")
     if cr.rowcount:
+        li = " ".join([f"<li>{util.html_escape(name)}</li>" for (name,) in cr.fetchall()])
         util.add_to_migration_reports(
-            """
+            f"""
             <details>
                 <summary>
                     The following Assets/Deferred Revenues/Deferred Expenses have values of `Existing Depreciations => Depreciated Amount` \
@@ -240,10 +241,9 @@ def migrate(cr, version):
                     They seem to correspond to an estimated lifetime of more than a century, as such some of their values have not been adapted \
                     and they may behave incorrectly if Reevaluated/Disposed/Sold/Paused after the upgrade.
                 </summary>
-                <ul>%s</ul>
+                <ul>{li}</ul>
             </details>
-            """
-            % " ".join([f"<li>{util.html_escape(name)}</li>" for (name,) in cr.fetchall()]),
+            """,
             category="Accounting assets",
             format="html",
         )
@@ -284,6 +284,7 @@ def migrate(cr, version):
         UPDATE account_asset
            SET prorata_computation_type = 'constant_periods'
          WHERE (prorata IS TRUE OR prorata_date != acquisition_date)
+           AND {parallel_filter}
     """
     util.explode_execute(cr, constant_period_query, "account_asset")
 
