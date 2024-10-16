@@ -232,7 +232,6 @@ def migrate(cr, version):
             "sdd_mandate_id",
             "sdd_mandate_scheme",
             "bacs_ddi_id",
-            "l10n_ma_reports_payment_method",
             # mail.thread
             "activity_ids",
             "message_follower_ids",
@@ -240,6 +239,10 @@ def migrate(cr, version):
             "message_main_attachment_id",
             "website_message_ids",
             "rating_ids",
+            # localizations
+            "l10n_in_withhold_move_ids",
+            "l10n_in_total_withholding_amount",
+            "l10n_ma_reports_payment_method",
         ),
     )
     util.remove_model(cr, "account.move.send")
