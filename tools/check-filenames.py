@@ -41,6 +41,11 @@ for name in sys.argv[1:]:
             continue
 
         init = ROOT / path.parent / "__init__.py"
+        if not init.exists():
+            print(f"❌ Missing init file `{init.relative_to(ROOT)!s}`. It should import {path.stem!r}.")
+            rc = 1
+            continue
+
         for node in ast.walk(ast.parse(init.read_text())):
             if isinstance(node, ast.alias) and node.name == path.stem:
                 break
