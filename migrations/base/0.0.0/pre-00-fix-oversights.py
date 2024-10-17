@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import ast
 import collections
-import json
 
 from psycopg2.extras import Json
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.addons.base.maintenance.migrations.util import json
 
 
 def migrate(cr, version):

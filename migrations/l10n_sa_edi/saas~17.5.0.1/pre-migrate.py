@@ -1,9 +1,9 @@
 import base64
-import json
 
 from odoo.exceptions import UserError
 
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 
 
 def migrate(cr, version):

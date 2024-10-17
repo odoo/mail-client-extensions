@@ -1,4 +1,3 @@
-import json
 import logging
 
 from psycopg2.extras import execute_values
@@ -6,6 +5,7 @@ from psycopg2.extras import execute_values
 from odoo import modules
 
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 
 _logger = logging.getLogger(__name__)
 

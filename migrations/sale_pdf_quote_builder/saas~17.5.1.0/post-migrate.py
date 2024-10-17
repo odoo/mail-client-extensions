@@ -1,8 +1,7 @@
-import json
-
 from psycopg2.extras import execute_values
 
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 
 
 def migrate(cr, version):

@@ -1,9 +1,9 @@
 # ruff: noqa: PLW2901, SIM108
-import json
 import re
 from ast import literal_eval
 
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 
 
 def migrate(cr, version):

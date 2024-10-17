@@ -1,6 +1,5 @@
-import json
-
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 
 
 def migrate(cr, version):

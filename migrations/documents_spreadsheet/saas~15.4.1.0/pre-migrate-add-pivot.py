@@ -1,8 +1,8 @@
-import json
 import re
 from uuid import uuid4
 
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 from odoo.upgrade.util.spreadsheet import iter_commands
 
 

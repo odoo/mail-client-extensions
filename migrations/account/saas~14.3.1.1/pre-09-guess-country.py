@@ -1,11 +1,11 @@
 import functools
-import json
 from pathlib import Path
 
 import pytz
 from psycopg2.extras import execute_values
 
 from odoo.addons.base.maintenance.migrations import util
+from odoo.upgrade.util import json
 
 
 @functools.lru_cache(maxsize=1)

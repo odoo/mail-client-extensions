@@ -1,9 +1,9 @@
-import json
 import logging
 from datetime import date, timedelta
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.util.accounting import no_deprecated_accounts, no_fiscal_lock
+from odoo.upgrade.util import json
 
 _logger = logging.getLogger("odoo.upgrade.account.saas-13.4." + __name__)
 

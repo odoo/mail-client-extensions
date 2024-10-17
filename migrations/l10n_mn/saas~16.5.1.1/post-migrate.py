@@ -3,9 +3,9 @@
 
 # ruff: noqa: ERA001
 
-import json
-
 from odoo import SUPERUSER_ID, api
+
+from odoo.upgrade.util import json
 
 
 def migrate_tags_to_tax_tags_engine(cr, module, tax_tag_changes):

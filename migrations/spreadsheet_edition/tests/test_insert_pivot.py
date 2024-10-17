@@ -1,7 +1,6 @@
-import json
-
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+from odoo.addons.base.maintenance.migrations.util import json
 
 
 @change_version("17.2")

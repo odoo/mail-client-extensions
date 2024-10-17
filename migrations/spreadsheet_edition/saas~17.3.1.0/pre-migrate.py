@@ -1,4 +1,3 @@
-import json
 import re
 import sys
 import uuid
@@ -7,6 +6,7 @@ from concurrent.futures import ProcessPoolExecutor
 from psycopg2.extras import execute_batch
 
 from odoo.upgrade import util
+from odoo.upgrade.util import json
 
 BATCH_SIZE = 1000
 MANY = BATCH_SIZE * util.get_max_workers()
