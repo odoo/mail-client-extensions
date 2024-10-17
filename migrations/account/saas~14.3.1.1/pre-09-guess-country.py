@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import functools
 import json
 from pathlib import Path
@@ -42,7 +41,7 @@ def countries_with_regions(cr):
     with open(iso_path, "rb") as f:
         regions_json = json.load(f)
 
-    codes = set([country["code"].split("-")[0] for country in regions_json["3166-2"]])
+    codes = {country["code"].split("-")[0] for country in regions_json["3166-2"]}
     cr.execute(
         """
         SELECT id
@@ -122,7 +121,7 @@ def migrate(cr, version):
         get_lang_country_ids,
     ]
 
-    country_dict = dict()  # will hold company_id -> (country_id,reason)
+    country_dict = {}  # will hold company_id -> (country_id,reason)
     for company_id in company_no_country_ids:
         # run all clue functions on the company, and keep only the first entry with len==1
         all_country_hints = []  # will hold all non-empty hints, in case of a MigrationError
@@ -232,7 +231,7 @@ def get_partner_country_ids(cr, company_id):
     return {c[0] for c in cr.fetchall()}
 
 
-@clue_func("the country being included in the company name", False)
+@clue_func("the country being included in the company name", prefer_big_countries=False)
 def get_name_country_ids(cr, company_id):
     """Returns the country whose name is a substring of the company's name.
 
@@ -256,9 +255,7 @@ def get_name_country_ids(cr, company_id):
     else:
         country_list = cr.fetchall()
         # If a country is a subword of another, keep the longer one:
-        country_list = [c1[0] for c1 in country_list if not any([c1[1] in c2[1] for c2 in country_list if c1 != c2])]
-
-        return {c for c in country_list}
+        return {c1[0] for c1 in country_list if not any(c1[1] in c2[1] for c2 in country_list if c1 != c2)}
 
 
 @clue_func("the currency of the company's journals")

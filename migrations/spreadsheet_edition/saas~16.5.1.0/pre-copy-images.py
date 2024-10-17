@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 import uuid
 
@@ -63,7 +61,7 @@ def fix_image_attachment(cr, res_model, res_id, command):
         if attachment_res_model != res_model or attachment_res_id != res_id:
             new_attachment_id, access_token = copy_attachment(cr, attachment_id, res_model, res_id)
 
-            path = "/web/image/%s" % new_attachment_id
+            path = f"/web/image/{new_attachment_id}"
             if access_token and "access_token" in command["definition"]["path"]:
                 path += f"?access_token={access_token}"
             command["definition"]["path"] = path

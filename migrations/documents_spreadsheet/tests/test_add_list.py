@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 
 from odoo.addons.base.maintenance.migrations import util
@@ -10,7 +8,7 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 class TestSpreadsheetAddList(UpgradeCase):
     def prepare(self):
         if not util.table_exists(self.env.cr, "spreadsheet_revision"):
-            return
+            return None
         folder = self.env["documents.folder"].create(
             {
                 "name": "folder",
@@ -21,7 +19,7 @@ class TestSpreadsheetAddList(UpgradeCase):
                 "folder_id": folder.id,
             }
         )
-        list = {
+        lst = {
             "model": "MODEL",
             "domain": [["A", "=", "test"]],
             "context": {"context_key": "context_value"},
@@ -32,7 +30,7 @@ class TestSpreadsheetAddList(UpgradeCase):
         commands = {
             "type": "REMOTE_REVISION",
             "commands": [
-                {"type": "ADD_ODOO_LIST", "list": list},
+                {"type": "ADD_ODOO_LIST", "list": lst},
                 # Headers of list
                 {
                     "type": "ADD_ODOO_LIST_FORMULA",

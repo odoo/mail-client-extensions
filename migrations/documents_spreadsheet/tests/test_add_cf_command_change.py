@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 
 from odoo.addons.base.maintenance.migrations import util
@@ -10,7 +8,7 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 class TestSpreadsheetChangeAddCFCommand(UpgradeCase):
     def prepare(self):
         if not util.table_exists(self.env.cr, "spreadsheet_revision"):
-            return
+            return None
         folder = self.env["documents.folder"].create(
             {
                 "name": "folder",

@@ -1,6 +1,8 @@
 # The test for this script is found under l10n_mn_reports/tests/test_vat_report_16_5.py
 # as it requires l10n_mn_reports to be installed prior to the upgrade.
 
+# ruff: noqa: ERA001
+
 import json
 
 from odoo import SUPERUSER_ID, api

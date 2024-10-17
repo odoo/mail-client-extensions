@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+# ruff: noqa: PLW2901, SIM108
 import json
 import re
 from ast import literal_eval

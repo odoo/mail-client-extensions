@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 
@@ -219,10 +218,10 @@ def _move_manual_fields(cr, from_table, to_model, link_col, join=None):
         """.format(
             to_table=to_table,
             from_table=from_table,
-            join="JOIN %s j ON j.%s = f.%s" % tuple(join) if join else "",
+            join="JOIN {} j ON j.{} = f.{}".format(*join) if join else "",
             key=link_col,
             condition_table2="j" if join else "f",
-            columns=",".join("%s = f.%s" % (col[0], col[0]) for col in custom_cols),
+            columns=",".join("{0} = f.{0}".format(col[0]) for col in custom_cols),
         )
         util.explode_execute(cr, fill_columns, table=to_table, alias="t")
 
@@ -548,23 +547,25 @@ def _gift_card_migrate(cr):
 
     execute_values(
         cr._obj,
-        """
-        WITH cte AS (
-            INSERT INTO loyalty_rule (
-                reward_point_amount, reward_point_mode, reward_point_split,
-                minimum_qty, minimum_amount, minimum_amount_tax_mode,
-                active, program_id, company_id, mode
+        cr.mogrify(
+            """
+            WITH cte AS (
+                INSERT INTO loyalty_rule (
+                    reward_point_amount, reward_point_mode, reward_point_split,
+                    minimum_qty, minimum_amount, minimum_amount_tax_mode,
+                    active, program_id, company_id, mode
+                )
+                VALUES %%s
+             RETURNING id
             )
-            VALUES %s
-         RETURNING id
-        )
-        INSERT INTO loyalty_rule_product_product_rel (
-            loyalty_rule_id, product_product_id
-        )
-        SELECT id, %s
-          FROM cte
-        """
-        % ("%s", gift_card_product),
+            INSERT INTO loyalty_rule_product_product_rel (
+                loyalty_rule_id, product_product_id
+            )
+            SELECT id, %s
+              FROM cte
+            """,
+            [gift_card_product],
+        ).decode(),
         rule_values,
     )
     # loyalty.reward

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version

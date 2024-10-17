@@ -395,7 +395,7 @@ def migrate(cr, version):
             for move in moves:
                 created_move_ids.add(move.id)
                 for vals in move.payment_id._prepare_move_line_default_vals():
-                    move_lines_to_create.append({**vals, "move_id": move.id, "exclude_from_invoice_tab": True})
+                    move_lines_to_create.append({**vals, "move_id": move.id, "exclude_from_invoice_tab": True})  # noqa
 
             env["account.move.line"].with_context(**ctx).create(move_lines_to_create)
 
