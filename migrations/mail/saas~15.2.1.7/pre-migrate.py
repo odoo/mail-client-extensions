@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -39,10 +37,13 @@ def migrate(cr, version):
     cr.execute(
         r"""
         UPDATE mail_template
-           SET body_html = regexp_replace(body_html,
-                                          'object\.with_context\(force_website=True\)\.get_access_action\(\)',
-                                          'object._get_access_action(force_website=True)',
-                                          'g')
+           SET body_html = replace(replace(body_html,
+                                          'object.with_context(force_website=True).get_access_action()',
+                                          'object._get_access_action(force_website=True)'
+                                          ),
+                                          'object.get_access_action()',
+                                          'object._get_access_action()'
+                                          )
          WHERE body_html like '%get\_access\_action%'
         """
     )
@@ -50,10 +51,13 @@ def migrate(cr, version):
     cr.execute(
         r"""
         UPDATE ir_translation
-           SET value = regexp_replace(value,
-                                      'object\.with_context\(force_website=True\)\.get_access_action\(\)',
-                                      'object._get_access_action(force_website=True)',
-                                      'g')
+           SET value = replace(replace(value,
+                                      'object.with_context(force_website=True).get_access_action()',
+                                      'object._get_access_action(force_website=True)'
+                                      ),
+                                      'object.get_access_action()',
+                                      'object._get_access_action()'
+                                      )
          WHERE name = 'mail.template,body_html'
            AND value like '%get\_access\_action%'
         """
