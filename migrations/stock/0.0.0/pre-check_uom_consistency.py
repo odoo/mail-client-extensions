@@ -20,8 +20,9 @@ update_uom_for_archived_product = util.str2bool(archived_product_env, default=Fa
 
 if fix_inconsistencies_method and fix_inconsistencies_method not in allowed_methods:
     raise ValueError(
-        "unknown value for environment variable ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX: %s"
-        % fix_inconsistencies_method
+        """
+            unknown value for environment variable ODOO_MIG_ENABLE_UOM_INCONSISTENCIES_FIX: {fix_inconsistencies_method}
+        """.format(fix_inconsistencies_method=fix_inconsistencies_method)
     )
 
 
@@ -200,12 +201,16 @@ def log_customer_report(cr, explanation, moves=None, templates=None):
     """
     if moves or templates:
         move_details = (
-            "<h4>Stock moves</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % util.html_escape(m) for m in moves])
+            "<h4>Stock moves</h4><ul>{}</ul>".format(
+                " ".join(["<li>{}</li>".format(util.html_escape(m)) for m in moves])
+            )
             if moves
             else ""
         )
         template_details = (
-            "<h4>Product templates</h4><ul>%s</ul>" % " ".join(["<li>%s</li>" % util.html_escape(t) for t in templates])
+            "<h4>Product templates</h4><ul>{}</ul>".format(
+                " ".join(["<li>{}</li>".format(util.html_escape(t)) for t in templates])
+            )
             if templates
             else ""
         )

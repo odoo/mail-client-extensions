@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version

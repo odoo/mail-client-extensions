@@ -8,3 +8,5 @@ def migrate(cr, version):
     util.rename_field(cr, "account.move.send.wizard", "mail_body", "body")
 
     util.remove_field(cr, "account.move.send.wizard", "is_download_only")
+
+    util.remove_field(cr, "account.move.line", "product_uom_category_id")
