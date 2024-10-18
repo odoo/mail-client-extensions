@@ -40,6 +40,7 @@ def migrate(cr, version):
     # Root folders will have NULL folder_id when we transform them into documents
     cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
     util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
+    util.create_column(cr, "documents_folder", "_upg_new_folder_id", "int4")
 
     # Avoid unique constraints failures during update
     cr.execute("ALTER TABLE documents_folder_read_groups DROP CONSTRAINT documents_folder_read_groups_pkey")
@@ -69,13 +70,22 @@ def migrate(cr, version):
     # former documents_folder
     cr.execute(
         """
-        INSERT INTO documents_document (
-                        _upg_old_folder_id, name, type, res_id, res_model,
-                        active, parent_path, company_id, folder_id
-                    )
-             SELECT id, name->>'en_US', 'folder', NULL, NULL,
-                    active, NULL, company_id, parent_folder_id
-               FROM documents_folder
+        WITH new_folder_ids AS (
+            INSERT INTO documents_document (
+                    _upg_old_folder_id, name, type, res_id, res_model,
+                    active, parent_path, company_id, folder_id
+                 )
+                 SELECT id, name->>'en_US', 'folder', NULL, NULL,
+                        active, NULL, company_id, parent_folder_id
+                   FROM documents_folder
+              RETURNING id, _upg_old_folder_id
+        )
+        UPDATE documents_folder
+           SET _upg_new_folder_id = new_folder_ids.id
+          FROM documents_folder f
+          JOIN new_folder_ids
+            ON new_folder_ids._upg_old_folder_id = f.id
+         WHERE documents_folder.id = f.id
         """
     )
 
@@ -528,7 +538,24 @@ def migrate(cr, version):
         alias="share",
     )
 
-    # Force access_via_link == 'view' on all documents that had or were included in a share
+    # Force access_via_link == 'view' on all documents that have a non-ignored share
+    # (with is_access_via_link_hidden=TRUE if no access_internal so that sharing does not make it accessible through discovery)
+    # or were included in (is_access_via_link_hidden=FALSE or shared folders would seem empty)
+    # We have to do two passes to make sure to make the first level of a migrated share
+    # discoverable if it is included in another share.
+
+    util.explode_execute(
+        cr,
+        """
+         UPDATE documents_document d
+            SET access_via_link = 'view', is_access_via_link_hidden = (COALESCE(d.access_internal, 'none') = 'none')
+           FROM documents_redirect AS redirect
+          WHERE d.id = redirect.document_id
+            AND {parallel_filter}
+        """,
+        table="documents_document",
+        alias="d",
+    )
     util.explode_execute(
         cr,
         """
@@ -537,7 +564,7 @@ def migrate(cr, version):
            FROM documents_redirect AS redirect
            JOIN documents_document doc
              ON doc.id = redirect.document_id
-          WHERE d.parent_path like doc.parent_path || '%'
+          WHERE d.parent_path like doc.parent_path || '_%' -- only children
             AND {parallel_filter}
         """,
         table="documents_document",
