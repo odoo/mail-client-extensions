@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 
 from odoo.upgrade import util
 
@@ -79,33 +80,32 @@ def migrate(cr, version):
                SET state = 'disabled',
                    redirect_form_view_id = NULL
              WHERE "code" IN ('ogone', 'sips')
+               AND state = 'enabled'
+         RETURNING code
             """
         )
-        if util.module_installed(cr, "payment_ogone"):
-            # Ogone uses the same API as Worldline, with the same credentials. We modify the providers so that they continue
-            # working. Payment tokens can thus remain untouched and will continue to work through Worldline.
-            util.rename_xmlid(cr, "payment_ogone.payment_provider_ogone", "payment.payment_provider_worldline")
-            # Moving credentials fields to payment_worldline before the removing of Ogone to keep them
-            util.move_field_to_module(cr, "payment.provider", "ogone_pspid", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_userid", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_password", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_shakey_in", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_shakey_out", "payment_ogone", "payment_worldline")
-            util.add_to_migration_reports(
-                "The module 'Payment Provider: Ogone' has been removed, as Ogone is replaced by Worldline. Your existing Ogone"
-                " payment providers have been changed to use Worldline instead. Your credentials and existing tokens were"
-                " preserved and should still be working, though the providers have been disabled so you could ensure everything"
-                " is still working as expected.",
-                category="Payments",
-            )
-            util.modules_auto_discovery(cr, force_installs={"payment_worldline"}, force_upgrades={"payment_worldline"})
-        if util.module_installed(cr, "payment_sips"):
-            util.add_to_migration_reports(
-                "The module 'Payment Provider: SIPS' has been removed, as SIPS is replaced by Worldline.",
-                category="Payments",
-            )
-        util.change_field_selection_values(cr, "payment.provider", "code", {"ogone": "worldline", "sips": "none"})
-    util.remove_module(cr, "payment_ogone")
+        providers = Counter(c for (c,) in cr.fetchall())
+    else:
+        providers = {}
+
+    if providers.get("ogone") and util.module_installed(cr, "payment_ogone"):
+        util.add_to_migration_reports(
+            "The module 'Payment Provider: Ogone' has been removed, as Ogone is replaced by Worldline. Your existing Ogone"
+            " payment providers have been changed to use Worldline instead. Your credentials and existing tokens were"
+            " preserved and should still be working, though the providers have been disabled so you could ensure everything"
+            " is still working as expected.",
+            category="Payments",
+        )
+
+    # Ogone uses the same API as Worldline, with the same credentials. We modify the providers so that they continue
+    # working. Payment tokens can thus remain untouched and will continue to work through Worldline.
+    util.rename_module(cr, "payment_ogone", "payment_worldline")
+
+    if providers.get("sip") and util.module_installed(cr, "payment_sips"):
+        util.add_to_migration_reports(
+            "The module 'Payment Provider: SIPS' has been removed, as SIPS is replaced by Worldline.",
+            category="Payments",
+        )
     util.remove_module(cr, "payment_sips")
 
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
