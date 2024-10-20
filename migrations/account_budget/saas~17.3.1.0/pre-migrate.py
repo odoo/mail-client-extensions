@@ -5,8 +5,14 @@ def migrate(cr, version):
     eb = util.expand_braces
     analytic_util = util.import_script("analytic/saas~16.5.1.1/pre-migrate.py")
 
-    # Changing the state of budget form validated to confirmed
-    util.change_field_selection_values(cr, "crossovered.budget", "state", {"confirmed": "validate"})
+    # Update budget state names and change "validate" to "confirmed"
+    state_mapping = {
+        "confirm": "confirmed",
+        "validate": "confirmed",
+        "cancel": "canceled",
+    }
+    util.change_field_selection_values(cr, "crossovered.budget", "state", state_mapping)
+    util.change_field_selection_values(cr, "crossovered.budget.lines", "crossovered_budget_state", state_mapping)
 
     # budget post changes
     util.remove_model(cr, "account.budget.post", drop_table=False)
