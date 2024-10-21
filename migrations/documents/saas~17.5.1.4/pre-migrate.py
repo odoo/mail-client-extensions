@@ -3,28 +3,26 @@ import base64
 import uuid
 
 import psycopg2
+from psycopg2 import sql
 
 from odoo.upgrade import util
 from odoo.upgrade.util.inconsistencies import break_recursive_loops
 
 
 def migrate(cr, version):
+    ######################
+    # DOCUMENTS.DOCUMENT #
+    ######################
+
+    util.change_field_selection_values(cr, "documents.document", "type", {"empty": "binary"})
+
     #####################
     # DOCUMENTS.FOLDERS #
     #####################
 
-    util.remove_constraint(  # the model changed
-        cr,
-        "documents_document",
-        "documents_document_folder_id_fkey",
-    )
-    cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
-
-    # create a temporary column to store the old <documents.folder>.id
-    util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
-
     # new <documents.document> fields
     util.create_column(cr, "documents_document", "is_access_via_link_hidden", "boolean")
+    util.create_column(cr, "documents_document", "is_pinned_folder", "boolean")
     util.create_column(cr, "documents_document", "company_id", "int4")
     util.create_column(cr, "documents_document", "document_token", "varchar")
     util.create_column(cr, "documents_document", "access_via_link", "varchar")
@@ -39,36 +37,120 @@ def migrate(cr, version):
     util.create_column(cr, "documents_document", "create_activity_note", "varchar")
     util.create_column(cr, "documents_document", "create_activity_user_id", "int4")
 
+    # Root folders will have NULL folder_id when we transform them into documents
+    cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
+    util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
+    util.create_column(cr, "documents_folder", "_upg_new_folder_id", "int4")
+
+    # Avoid unique constraints failures during update
+    cr.execute("ALTER TABLE documents_folder_read_groups DROP CONSTRAINT documents_folder_read_groups_pkey")
+    cr.execute("ALTER TABLE documents_folder_res_groups_rel DROP CONSTRAINT documents_folder_res_groups_rel_pkey")
+
+    # Before:
+    #
+    # documents_document          documents_folder
+    # folder_id -------FK-------> id <-----------------+
+    #                             parent_folder_id -FK-+
+    #
+    # After the insert query below we'll have new records with:
+    #
+    # documents_document          documents_folder
+    # _upgrade_old_folder_id <--- id
+    # folder_id <---------------- parent_folder_id
+    #
+    # When we update all FKs pointing to documents_folder we also
+    # update the reference documents_document via folder_id:
+    #
+    # document_documents          documents_document
+    # folder_id ----------------> upg_old_folder_id
+    #        ^-----SET----------- id
+    #
+    # In other words documents_document.folder_id will correctly point
+    # to the new record in document_documents corresponding to the
+    # former documents_folder
     cr.execute(
         """
-    INSERT INTO documents_document (
+        WITH new_folder_ids AS (
+            INSERT INTO documents_document (
                     _upg_old_folder_id, name, type, res_id, res_model,
                     active, parent_path, company_id, folder_id
-                ) (
-         SELECT id,
-                name->>'en_US',  -- <documents.folder>.name is translatable,
-                                 -- <documents.document>.name is not
-                'folder',
-                NULL,
-                NULL,
-                active,
-                NULL, -- to be set for all documents
-                company_id,
-                parent_folder_id
-           FROM documents_folder
-    )
+                 )
+                 SELECT id, name->>'en_US', 'folder', NULL, NULL,
+                        active, NULL, company_id, parent_folder_id
+                   FROM documents_folder
+              RETURNING id, _upg_old_folder_id
+        )
+        UPDATE documents_folder
+           SET _upg_new_folder_id = new_folder_ids.id
+          FROM documents_folder f
+          JOIN new_folder_ids
+            ON new_folder_ids._upg_old_folder_id = f.id
+         WHERE documents_folder.id = f.id
         """
     )
 
-    update_m2o_documents_folder(cr, "documents_document", "folder_id")
+    # documents_share will be used during the upgrade, keep the reference to documents_folder
+    util.remove_constraint(cr, "documents_share", "documents_share_folder_id_fkey")
 
-    cr.execute(
-        """
-         ALTER TABLE documents_document
-      ADD CONSTRAINT fk_folder_id FOREIGN KEY (folder_id)
-          REFERENCES documents_document(id)
-        """
-    )
+    # replace all FKs to documents_folder by the new documents_document
+    actions_map = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}
+    for table, column, constraint_name, action in util.get_fk(cr, "documents_folder"):
+        if table == "documents_folder":
+            # do not update self references, the documents.folder model will be removed anyway
+            # custom references need to be handled post upgrade
+            continue
+        cr.execute(util.format_query(cr, "ALTER TABLE {} DROP CONSTRAINT {}", table, constraint_name))
+
+        new_index = f"_upg_{table}_{column}"
+        cr.execute(util.format_query(cr, "CREATE INDEX {} ON {}({})", new_index, table, column))
+
+        util.explode_execute(
+            cr,
+            util.format_query(
+                cr,
+                """
+                UPDATE {table} t
+                   SET {column} = doc.id
+                  FROM documents_document doc
+                 WHERE t.{column} = doc._upg_old_folder_id
+                """,
+                table=table,
+                column=column,
+            ),
+            table="documents_document",
+            alias="doc",
+        )
+        cr.execute(
+            util.format_query(
+                cr,
+                """
+                DROP INDEX {index_name};
+
+                ALTER TABLE {table}
+                ADD FOREIGN KEY ({column}) REFERENCES documents_document(id)
+                         ON DELETE {new_action}
+                """,
+                table=table,
+                column=column,
+                constraint_name=constraint_name,
+                index_name=new_index,
+                new_action=sql.SQL(
+                    # special case for documents_document: we want SET NULL instead fo RESTRICT
+                    "SET NULL" if table == "documents_document" and column == "folder_id" else actions_map[action]
+                ),
+            )
+        )
+
+    # Restore primary keys (also integrity check post re-referencing)
+    for m2m in ("documents_folder_read_groups", "documents_folder_res_groups_rel"):
+        util.fixup_m2m(cr, m2m, "documents_document", "res_groups", "documents_folder_id", "res_groups_id")
+
+    # replace all remaining references, mostly relevant for indirect references
+    cr.execute("SELECT _upg_old_folder_id, id FROM documents_document WHERE _upg_old_folder_id IS NOT NULL")
+    folder_mapping = dict(cr.fetchall())
+    util.replace_record_references_batch(cr, folder_mapping, "documents.folder", "documents.document")
+
+    util.merge_model(cr, "documents.folder", "documents.document", drop_table=False, ignore_m2m="*")
 
     break_recursive_loops(cr, "documents.document", "folder_id")
     cr.execute(  # fix `parent_path`
@@ -208,13 +290,30 @@ def migrate(cr, version):
                END
           FROM documents_document AS folder
      LEFT JOIN documents_folder_read_groups AS read_group
-            ON folder._upg_old_folder_id = read_group.documents_folder_id
+            ON folder.id = read_group.documents_folder_id
      LEFT JOIN documents_folder_res_groups_rel AS write_group
-            ON folder._upg_old_folder_id = write_group.documents_folder_id
+            ON folder.id = write_group.documents_folder_id
          WHERE documents_document.id = folder.id
            AND documents_document.access_internal IS NULL
+           AND folder.type = 'folder'
         """,
         {"internal": internal_id},
+    )
+
+    # Propagate access_internal from the folder to the documents inside of if
+    # (but not on the folders inside of it)
+    util.explode_execute(
+        cr,
+        """
+        UPDATE documents_document document
+           SET access_internal = folder.access_internal
+          FROM documents_document AS folder
+         WHERE folder.id = document.folder_id
+           AND document.type != 'folder'
+           AND {parallel_filter}
+        """,
+        table="documents_document",
+        alias="document",
     )
 
     # For each non-internal groups, create one <documents.access> per user in the group on the folder
@@ -226,7 +325,7 @@ def migrate(cr, version):
                    'edit'
               FROM documents_document AS folder
               JOIN documents_folder_res_groups_rel AS write_group
-                ON folder._upg_old_folder_id = write_group.documents_folder_id
+                ON folder.id = write_group.documents_folder_id
               JOIN res_groups_users_rel AS rel
                 ON rel.gid = write_group.res_groups_id
                AND rel.gid != %(internal)s
@@ -249,7 +348,7 @@ def migrate(cr, version):
                    TRUE
               FROM documents_document AS folder
               JOIN documents_folder_read_groups AS read_group
-                ON folder._upg_old_folder_id = read_group.documents_folder_id
+                ON folder.id = read_group.documents_folder_id
               JOIN res_groups_users_rel AS rel
                 ON rel.gid = read_group.res_groups_id
                AND rel.gid != %(internal)s
@@ -304,7 +403,7 @@ def migrate(cr, version):
                FROM documents_folder AS old_folder
                JOIN documents_document AS folder
                  ON old_folder.id = folder._upg_old_folder_id
-              WHERE (user_specific OR user_specific_write)
+              WHERE (old_folder.user_specific OR old_folder.user_specific_write)
                 AND {parallel_filter}
         )
     """
@@ -367,30 +466,29 @@ def migrate(cr, version):
         """
         CREATE TABLE documents_redirect (
             id SERIAL PRIMARY KEY,
-            create_uid integer,
-            create_date timestamp without time zone,
-            write_uid integer,
-            write_date timestamp without time zone,
-            document_id integer,
-            access_token varchar
+            create_uid INTEGER,
+            create_date TIMESTAMP WITHOUT TIME ZONE,
+            write_uid INTEGER,
+            write_date TIMESTAMP WITHOUT TIME ZONE,
+            document_id INTEGER,
+            access_token VARCHAR
         )
         """
     )
 
-    # We don't migrate non-"include sub-folder" shares, or share of selected documents
+    # We don't migrate non-"include sub-folder" shares, shares of selected documents ids, or shares
+    # with a customized domain.
     # But we might need the share for the sub-modules migration, so we add a new column
     # to flag the share that we want to ignore here
     util.create_column(cr, "documents_share", "to_ignore", "boolean")
     util.explode_execute(
         cr,
-        """
+        r"""
         UPDATE documents_share
            SET to_ignore = TRUE
-         WHERE NOT include_sub_folders
-                 OR (
-                    domain != '[[''folder_id'', ''child_of'', ' || folder_id || ']]'
-                    AND type = 'domain'
-                )
+         WHERE TYPE = 'domain'
+           AND (NOT include_sub_folders
+                OR regexp_replace(domain, '[\s\[\]()''"]+', '', 'g') != 'folder_id,child_of,' || folder_id)
            AND {parallel_filter}
         """,
         table="documents_share",
@@ -402,11 +500,11 @@ def migrate(cr, version):
         cr,
         """
      INSERT INTO documents_redirect (document_id, access_token)
-          SELECT convert_id.id,
+          SELECT document.id,
                  share.access_token
             FROM documents_share AS share
-            JOIN documents_document AS convert_id
-              ON convert_id._upg_old_folder_id = share.folder_id
+            JOIN documents_document AS document
+              ON document._upg_old_folder_id = share.folder_id
            WHERE share.type = 'domain'
              AND share.to_ignore = FALSE
              AND {parallel_filter}
@@ -440,18 +538,37 @@ def migrate(cr, version):
         alias="share",
     )
 
-    # Force access_via_link == 'view' on all documents that had a share
+    # Force access_via_link == 'view' on all documents that have a non-ignored share
+    # (with is_access_via_link_hidden=TRUE if no access_internal so that sharing does not make it accessible through discovery)
+    # or were included in (is_access_via_link_hidden=FALSE or shared folders would seem empty)
+    # We have to do two passes to make sure to make the first level of a migrated share
+    # discoverable if it is included in another share.
+
     util.explode_execute(
         cr,
         """
-         UPDATE documents_document
-            SET access_via_link = 'view'
+         UPDATE documents_document d
+            SET access_via_link = 'view', is_access_via_link_hidden = (COALESCE(d.access_internal, 'none') = 'none')
            FROM documents_redirect AS redirect
-          WHERE redirect.document_id = documents_document.id
+          WHERE d.id = redirect.document_id
             AND {parallel_filter}
         """,
         table="documents_document",
-        alias="documents_document",
+        alias="d",
+    )
+    util.explode_execute(
+        cr,
+        """
+         UPDATE documents_document d
+            SET access_via_link = 'view'
+           FROM documents_redirect AS redirect
+           JOIN documents_document doc
+             ON doc.id = redirect.document_id
+          WHERE d.parent_path like doc.parent_path || '_%' -- only children
+            AND {parallel_filter}
+        """,
+        table="documents_document",
+        alias="d",
     )
 
     ##############
@@ -583,7 +700,7 @@ def migrate(cr, version):
         {"document_model_id": document_model_id},
     )
 
-    for r in cr.dictfetchall():  # TODO: find a better way
+    for r in cr.dictfetchall():
         alias_id = r["alias_id"]
         document_id = r["document_id"]  # if document is set, it's the main alias
         defaults = ast.literal_eval(r["alias_defaults"])
@@ -690,37 +807,28 @@ def migrate(cr, version):
     # PROPAGATE THE COMPANY #
     #########################
 
-    # Propagate the company from the parent to the children
-    # For that, we look for the first folder in the ancestors with a company
-    # In that example, C and D will get the company 2
-    # A (company 1)
-    # |
-    # B (company 2)
-    # |
-    # C (no company)
-    # |
-    # D (no company)
-    cr.execute(
+    # As users could nest folders accessible to other companies, propagate the company
+    # from the parent to the immediate non-folder children only
+
+    util.explode_execute(
+        cr,
         """
-    WITH RECURSIVE documents AS (
-            SELECT id AS id,
-                   folder_id,
-                   company_id
+        WITH folders_with_company AS (
+            SELECT id, company_id
               FROM documents_document
-             WHERE company_id IS NULL
-  UNION ALL SELECT child.id,
-                   parent.folder_id,
-                   parent.company_id
-              FROM documents AS child
-              JOIN documents_document AS parent
-                ON parent.id = child.folder_id
-             WHERE child.company_id IS NULL -- we found the highest with a company
+             WHERE type = 'folder'
+               AND company_id IS NOT NULL
         )
-            UPDATE documents_document
-               SET company_id = documents.company_id
-              FROM documents
-             WHERE documents.id = documents_document.id
-        """
+        UPDATE documents_document d
+           SET company_id = f.company_id
+          FROM folders_with_company f
+         WHERE d.folder_id = f.id
+           AND d.type != 'folder'
+           AND d.company_id IS NULL
+           AND {parallel_filter}
+        """,
+        table="documents_document",
+        alias="d",
     )
 
     ################################
@@ -729,50 +837,9 @@ def migrate(cr, version):
 
     fix_missing_document_tokens(cr)
 
-    ############################################
-    # RE-MAP documents.folder relational field #
-    ############################################
-    for table, column, constraint_name, delete_action in util.get_fk(cr, "documents_folder"):
-        other_columns = util.get_columns(cr, table, ignore=(column,))
-        if len(other_columns) == 1:  # m2m
-            continue
-        util.remove_constraint(cr, table, constraint_name)
-        update_m2o_documents_folder(cr, table, column)
-
-        _delete_action = {
-            "a": "NO ACTION",
-            "r": "RESTRICT",
-            "c": "CASCADE",
-            "n": "SET NULL",
-            "d": "SET DEFAULT",
-        }[delete_action]
-
-        query = util.format_query(
-            cr,
-            """
-            ALTER TABLE {table}
-            ADD FOREIGN KEY ({column})
-            REFERENCES "documents_document"("id")
-            ON DELETE {delete_action}
-            """,
-            table=table,
-            column=column,
-            delete_action=psycopg2.sql.SQL(_delete_action),
-        )
-        cr.execute(query)
-
     ###################
     # ADD FOREIGN KEY #
     ###################
-
-    cr.execute(
-        """
-        ALTER TABLE documents_document
-        ADD FOREIGN KEY ("folder_id")
-        REFERENCES "documents_document"("id")
-        ON DELETE set null
-        """
-    )
 
     cr.execute(
         """
@@ -816,45 +883,19 @@ def migrate(cr, version):
     util.remove_view(cr, "documents.workflow_action_view_form")
     util.remove_view(cr, "documents.workflow_action_view_tree")
     util.remove_record(cr, "documents.documents_kanban_view_mobile_scss")
-
-
-def update_m2o_documents_folder(cr, table, field):
-    """Update the many2one from <documents.folder> to <documents.document>"""
-    query = util.format_query(
-        cr,
-        """
-        UPDATE {table}
-           SET {field} = folder.id
-          FROM documents_document AS folder
-         WHERE folder.type = 'folder'
-           AND folder._upg_old_folder_id = {table}.{field}
-        """,
-        table=table,
-        field=field,
-    )
-    cr.execute(query)
+    util.remove_view(cr, "documents.folder_view_form")
+    util.remove_view(cr, "documents.folder_view_tree")
+    util.remove_view(cr, "documents.folder_view_search")
 
 
 def migrate_folders_xmlid(cr, module, xmlid_mapping):
     for old_name, new_name in xmlid_mapping.items():
-        cr.execute(
-            """
-                UPDATE ir_model_data AS imd
-                  SET res_id = d.id, model = 'documents.document'
-                 FROM documents_document d
-                WHERE imd.module = %s
-                  AND imd.model = 'documents.folder'
-                  AND imd.name = %s
-                  AND d._upg_old_folder_id = imd.res_id
-            """,
-            [module, old_name],
-        )
         util.rename_xmlid(cr, f"{module}.{old_name}", f"{module}.{new_name}")
 
 
 def fix_missing_document_tokens(cr):
     """Fill the empty `document_token` column of the `documents_document` table."""
-    cr.execute("SELECT 1 FROM pg_proc WHERE proname = 'gen_random_bytes';")
+    cr.execute("SELECT 1 FROM pg_proc WHERE proname = 'gen_random_bytes'")
     if not cr.fetchall():
         BATCH = 1000
         ncr = util.named_cursor(cr, BATCH)
@@ -867,7 +908,7 @@ def fix_missing_document_tokens(cr):
         )
 
         res = ncr.fetchmany(BATCH)
-        upd_query = "UPDATE documents_document SET document_token = (%s::jsonb->id::text)::text WHERE id IN %s"
+        upd_query = "UPDATE documents_document SET document_token = (%s::jsonb->>id::text)::text WHERE id IN %s"
         while res:
             data = {r[0]: base64.urlsafe_b64encode(uuid.uuid4().bytes).decode().removesuffix("==") for r in res}
             cr.execute(upd_query, [psycopg2.extras.Json(data), tuple(data)])

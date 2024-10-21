@@ -11,6 +11,40 @@ def migrate(cr, version):
     util.remove_record(cr, "documents.documents_finance_documents_Contracts")
 
     ############
+    # OWNER ID #
+    ############
+
+    # Reset the owner, if the user didn't have write access
+    # (at the very end, because spreadsheet creates records)
+    util.explode_execute(
+        cr,
+        cr.mogrify(
+            """
+                UPDATE documents_document
+                   SET owner_id = %s
+                  FROM documents_document AS document
+                  JOIN res_users AS usr
+                    ON usr.id = document.owner_id
+             LEFT JOIN documents_access AS access
+                    ON access.document_id = document.id
+                   AND access.role = 'edit'
+                   AND access.partner_id = usr.partner_id
+             LEFT JOIN documents_folder f
+                    ON f._upg_new_folder_id = document.folder_id
+                 WHERE document.access_internal IS DISTINCT FROM 'edit'
+                   AND access IS NULL
+                   AND documents_document.id = document.id
+                   AND NOT COALESCE(f.user_specific, FALSE)
+                   AND NOT COALESCE(f.user_specific_write, FALSE)
+                   AND {parallel_filter}
+            """,
+            [util.ref(cr, "base.user_root")],
+        ).decode(),
+        table="documents_document",
+        alias="document",
+    )
+
+    ############
     # CLEAN DB #
     ############
     # we might need those field for the sub-modules migration
@@ -34,6 +68,10 @@ def migrate(cr, version):
     ###############
     # ACCESS.RULE #
     ###############
+    util.remove_record(cr, "documents.documents_folder_global_rule")
+    util.remove_record(cr, "documents.documents_folder_groups_rule")
+    util.remove_record(cr, "documents.documents_folder_manager_rule")
+
     util.remove_record(cr, "documents.documents_document_readonly_rule")
     util.remove_record(cr, "documents.documents_document_write_rule")
     util.remove_record(cr, "documents.documents_document_manager_rule")
@@ -44,3 +82,27 @@ def migrate(cr, version):
     util.update_record_from_xml(cr, "documents.mail_plan_rule_group_document_manager_document")
     util.update_record_from_xml(cr, "documents.mail_plan_template_rule_group_document_manager_document")
     util.update_record_from_xml(cr, "documents.documents_tag_rule_portal")
+
+    ##################
+    # PINNED FOLDERS #
+    ##################
+
+    # Pin odoobot folders at the company root, so users are not lost
+    util.explode_execute(
+        cr,
+        cr.mogrify(
+            """
+                UPDATE documents_document
+                   SET is_pinned_folder = TRUE
+                  FROM documents_document document
+                 WHERE documents_document.id = document.id
+                   AND document.type='folder'
+                   AND document.folder_id IS NULL
+                   AND document.owner_id = %s
+                   AND {parallel_filter}
+            """,
+            [util.ref(cr, "base.user_root")],
+        ).decode(),
+        table="documents_document",
+        alias="document",
+    )

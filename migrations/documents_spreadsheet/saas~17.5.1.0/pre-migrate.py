@@ -35,10 +35,10 @@ def migrate(cr, version):
     cr.execute(
         frozen_spreadsheets
         + """
-        INSERT INTO documents_document (
+            INSERT INTO documents_document (
                     name, type, handler, folder_id, owner_id,
-                    access_via_link, access_internal, active
-        )
+                    access_via_link, access_internal, active, parent_path
+            )
              SELECT DISTINCT ON (doc.folder_id)
                     'Frozen spreadsheets',  -- TODO: should we translate the name ?
                     'folder',
@@ -47,12 +47,26 @@ def migrate(cr, version):
                     %(odoobot)s,
                     'none',
                     'view',
-                    TRUE
+                    TRUE,
+                    COALESCE(folder.parent_path, '') -- start with folder when we don't know the id
                FROM frozen_spreadsheets
                JOIN documents_document AS doc
                  ON doc.id = frozen_spreadsheets.id
+          LEFT JOIN documents_document as folder
+                 ON folder.id = doc.folder_id
+          RETURNING id
         """,
         {"odoobot": util.ref(cr, "base.user_root")},
+    )
+
+    ids_to_update = [r[0] for r in cr.fetchall()]
+    cr.execute(
+        """
+        UPDATE documents_document
+           SET parent_path = concat(parent_path, id, '/')
+         WHERE id = ANY(%(new_folder_ids)s)
+        """,
+        {"new_folder_ids": ids_to_update},
     )
 
     documents_pre_migrate.fix_missing_document_tokens(cr)
@@ -62,7 +76,7 @@ def migrate(cr, version):
         frozen_spreadsheets
         + """
         INSERT INTO documents_document (
-                    name, type, handler, folder_id, owner_id, document_token,
+                    name, type, handler, folder_id, parent_path, owner_id, document_token,
                     access_via_link, access_internal, is_access_via_link_hidden, active,
                     _upg_old_shared_spreadsheet_id, attachment_id
         )
@@ -70,6 +84,7 @@ def migrate(cr, version):
                     'binary',
                     'frozen_spreadsheet',
                     frozen_folder.id,
+                    frozen_folder.parent_path,
                     spreadsheet.owner_id,
                     frozen.access_token,  -- temporary keep the token to ease the migration to documents_redirect
                     'view',
@@ -88,8 +103,19 @@ def migrate(cr, version):
                  ON attachment.res_model = 'documents.shared.spreadsheet'
                 AND attachment.res_field = 'spreadsheet_binary_data'
                 AND attachment.res_id = documents_shared_spreadsheet_id
+          RETURNING id
         """,
         {"odoobot": util.ref(cr, "base.user_root")},
+    )
+
+    ids_to_update = [r[0] for r in cr.fetchall()]
+    cr.execute(
+        """
+        UPDATE documents_document
+           SET parent_path = concat(parent_path, id, '/')
+         WHERE id = ANY(%(new_document_ids)s)
+        """,
+        {"new_document_ids": ids_to_update},
     )
 
     # move excel_export, datas, ... from <documents.shared.spreadsheet> to <documents.document>

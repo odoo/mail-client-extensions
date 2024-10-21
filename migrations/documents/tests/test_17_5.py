@@ -10,10 +10,10 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 @change_version("saas~17.5")
 class TestShareMigration(UpgradeCase):
     def prepare(self):
-        if not util.version_gte("saas~17.4"):
-            # TODO: is that correct ?
-            # fail on the runbot, see https://runbot.odoo.com/runbot/build/68372144
-            return None
+        upload_vals = {
+            "allow": {"allow_upload": True} if util.version_gte("saas~17.2") else {"action": "downloadupload"},
+            "deny": {"allow_upload": False} if util.version_gte("saas~17.2") else {"action": "download"},
+        }
 
         Folder = self.env["documents.folder"]
         Document = self.env["documents.document"]
@@ -22,7 +22,7 @@ class TestShareMigration(UpgradeCase):
         Tag = self.env["documents.tag"]
         User = self.env["res.users"]
 
-        companies = self.env["res.company"].create([{"name": "Company 1"}, {"name": "Company 2"}])
+        companies = self.env["res.company"].create([{"name": "Company UPG1"}, {"name": "Company UPG2"}])
 
         # to check that the XMLID has been changed
         self.env.ref("documents.documents_internal_folder").name = "INTERNAL FOLDER"
@@ -79,6 +79,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Folder B B",
                     "company_id": companies[0].id,
                 },
+                {"parent_folder_id": f_level0[1].id, "name": "Folder B C"},
             ]
         )
 
@@ -111,12 +112,27 @@ class TestShareMigration(UpgradeCase):
                     "group_ids": other_group.ids,
                     "read_group_ids": system_user.ids,
                 },
+                {
+                    # Same but will be shared and not its parent, so it shouldn't be discoverable via link
+                    "parent_folder_id": f_level1[3].id,
+                    "name": "Folder B C A",
+                    "group_ids": other_group.ids,
+                    "read_group_ids": system_user.ids,
+                },
             ]
         )
 
         documents = Document.create(
             [
-                {"folder_id": f_level0[0].id, "name": "A - DOC"},
+                {
+                    "folder_id": f_level0[0].id,
+                    "name": "A - DOC",
+                    # folder_id
+                    # -> group_ids: other_group
+                    # -> read_group_ids: system_user
+                    # The owner should be removed to not give him access
+                    "owner_id": internals[0].id,
+                },
                 {"folder_id": f_level0[2].id, "name": "C - DOC"},
                 {"folder_id": f_level0[1].id, "name": "B - DOC"},
                 {"folder_id": f_level1[0].id, "name": "A A - DOC 1"},
@@ -188,7 +204,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Share",
                     "folder_id": f_level0[0].id,
                     # include_sub_folders is True by default
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-1",
@@ -205,7 +221,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Share",
                     "folder_id": f_level0[0].id,
                     "include_sub_folders": True,
-                    "allow_upload": False,
+                    **upload_vals["deny"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-2",
@@ -215,7 +231,7 @@ class TestShareMigration(UpgradeCase):
                     "name": "Share",
                     "folder_id": f_level1[2].id,
                     "include_sub_folders": True,
-                    "allow_upload": False,
+                    **upload_vals["deny"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level1[2].id]],
                     "alias_name": "alias-3",
@@ -224,7 +240,7 @@ class TestShareMigration(UpgradeCase):
                     # Ignored because impossible with the new implementation
                     "name": "Share",
                     "folder_id": f_level1[1].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "include_sub_folders": False,
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level1[1].id]],
@@ -233,7 +249,7 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-4",
@@ -242,7 +258,7 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-5",
@@ -253,7 +269,7 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-6",
@@ -262,7 +278,7 @@ class TestShareMigration(UpgradeCase):
                     # Share with create activity that will be transmitted on the folder
                     "name": "Share",
                     "folder_id": f_level2[1].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level2[1].id]],
                     "alias_name": "alias-8",
@@ -279,11 +295,21 @@ class TestShareMigration(UpgradeCase):
                     # no `date_deadline` field, and we don't want to extend the access)
                     "name": "Share",
                     "folder_id": f_level0[0].id,
-                    "allow_upload": True,
+                    **upload_vals["allow"],
                     "type": "domain",
                     "domain": [["folder_id", "child_of", f_level0[0].id]],
                     "alias_name": "alias-7",
                     "date_deadline": fields.Date.today() + timedelta(days=4),
+                },
+                {
+                    # Check discoverability
+                    "name": "Share",
+                    "folder_id": f_level2[7].id,
+                    "include_sub_folders": True,
+                    **upload_vals["deny"],
+                    "type": "domain",
+                    "domain": [["folder_id", "child_of", f_level2[7].id]],
+                    "alias_name": "alias-9",
                 },
             ]
         )
@@ -309,7 +335,7 @@ class TestShareMigration(UpgradeCase):
         )
 
         # Rename of fields in workflow rule
-        workflow_rule = self.env["documents.workflow.rule"].create(
+        workflow_rule = self.env["documents.workflow.rule"].create(  # TODO: keep ?
             {
                 "domain_folder_id": f_level0[1].id,
                 "name": "workflow Folder B",
@@ -405,20 +431,21 @@ class TestShareMigration(UpgradeCase):
             [("name", "=like", "Folder _ _")],
             order="name",
         )
-        self.assertEqual(len(f_level1), 3)
+        self.assertEqual(len(f_level1), 4)
         self.assertEqual(
             f_level1.mapped("name"),
-            ["Folder A A", "Folder B A", "Folder B B"],
+            ["Folder A A", "Folder B A", "Folder B B", "Folder B C"],
         )
         self.assertEqual(f_level1[0].folder_id, f_level0[0])
         self.assertEqual(f_level1[1].folder_id, f_level0[1])
         self.assertEqual(f_level1[2].folder_id, f_level0[1])
+        self.assertEqual(f_level1[3].folder_id, f_level0[1])
 
         f_level2 = self.env["documents.document"].search(
             [("name", "=like", "Folder _ _ _")],
             order="name",
         )
-        self.assertEqual(len(f_level2), 7)
+        self.assertEqual(len(f_level2), 8)
         self.assertEqual(
             f_level2.mapped("name"),
             [
@@ -429,14 +456,13 @@ class TestShareMigration(UpgradeCase):
                 "Folder B B C",
                 "Folder B B D",
                 "Folder B B E",
+                "Folder B C A",
             ],
         )
-        self.assertEqual(f_level2[0].folder_id, f_level1[0])
-        self.assertEqual(f_level2[1].folder_id, f_level1[0])
-        self.assertEqual(f_level2[2].folder_id, f_level1[2])
-        self.assertEqual(f_level2[3].folder_id, f_level1[2])
-        self.assertEqual(f_level2[4].folder_id, f_level1[2])
-        self.assertEqual(f_level2[5].folder_id, f_level1[2])
+        self.assertEqual(f_level2[0:2].folder_id, f_level1[0])
+        self.assertEqual(f_level2[2:5].folder_id, f_level1[2])
+        self.assertEqual(f_level2[5:7].folder_id, f_level1[2])
+        self.assertEqual(f_level2[7].folder_id, f_level1[3])
 
         self.assertEqual(documents[0].folder_id, f_level0[0])
         self.assertEqual(documents[1].folder_id, f_level0[2])
@@ -471,12 +497,14 @@ class TestShareMigration(UpgradeCase):
             f"{f_level0[1].id}/{f_level1[2].id}/",
             f"{f_level0[1].id}/{f_level1[2].id}/",
             f"{f_level0[1].id}/{f_level1[2].id}/",
+            f"{f_level0[1].id}/{f_level1[3].id}/",
         ]
         for doc, folder_path in zip(f_level2, folder_parent_path, strict=True):
             self.assertEqual(doc.parent_path, f"{folder_path}{doc.id}/")
 
         folder_parent_path = [  # f_level1.parent_path
             f"{f_level0[0].id}/",
+            f"{f_level0[1].id}/",
             f"{f_level0[1].id}/",
             f"{f_level0[1].id}/",
         ]
@@ -503,12 +531,13 @@ class TestShareMigration(UpgradeCase):
         # CHECK SHARES #
         ################
 
-        self.assertEqual(f_level0.mapped("is_access_via_link_hidden"), [False] * 3)
+        self.assertEqual(f_level0.mapped("is_access_via_link_hidden"), [True, False, False])
         self.assertEqual(f_level0.mapped("access_via_link"), ["view", "none", "none"])
-        self.assertEqual(f_level1.mapped("is_access_via_link_hidden"), [False] * 3)
-        self.assertEqual(f_level1.mapped("access_via_link"), ["none", "none", "view"])
-        self.assertEqual(f_level2.mapped("access_via_link"), ["none", "view"] + ["none"] * 5)
-        self.assertEqual(f_level2.mapped("is_access_via_link_hidden"), [False] * 7)
+        self.assertEqual(f_level1.mapped("is_access_via_link_hidden"), [False] * 4)
+        self.assertEqual(f_level1.mapped("access_via_link"), ["view", "none", "view", "none"])
+        self.assertEqual(f_level2.mapped("access_via_link"), ["view"] * 8)
+        # f_level2[7] is not included in another share and not accessible to internal users -> not discoverable
+        self.assertEqual(f_level2.mapped("is_access_via_link_hidden"), [False] * 7 + [True])
 
         def _check_document_access(document, user, access):
             document_access = self.env["documents.access"].search(
@@ -573,13 +602,19 @@ class TestShareMigration(UpgradeCase):
         )
 
         # share single document
+        self.assertEqual(documents[0].folder_id.access_internal, "none")
+        self.assertEqual(documents[0].access_internal, "none")
         self.assertEqual(documents[0].access_via_link, "view")
         self.assertEqual(documents[0], _get_redirection(init["share_documents"][-1]))
         self.assertEqual(
             documents[0],
             _get_redirection(init["share_documents"][0]),
         )
+        self.assertEqual(documents[0].owner_id, self.env.ref("base.user_root"), "The owner should be reset")
+        self.assertFalse(documents[0].with_user(users_internals[0]).has_access("read"))
         self.assertEqual(documents[1].access_via_link, "view")
+        self.assertEqual(documents[1].folder_id.access_internal, "edit")
+        self.assertEqual(documents[1].access_internal, "edit")
         self.assertEqual(
             documents[1],
             _get_redirection(init["share_documents"][1]),
@@ -613,13 +648,28 @@ class TestShareMigration(UpgradeCase):
             users_admins.partner_id,
         )
         self.assertEqual(f_level0[1].access_internal, "none")
+        self.assertEqual(f_level1[1].access_via_link, "none")
 
         # no group set, internal can read and write
         self.assertFalse(f_level0[2].access_ids)
         self.assertEqual(f_level0[2].access_internal, "edit")
+        self.assertEqual(f_level0[2].access_via_link, "none")
 
         self.assertFalse(f_level1[0].access_ids)
         self.assertEqual(f_level1[0].access_internal, "edit")
+        self.assertEqual(f_level1[0].access_via_link, "view")
+
+        self.assertFalse(f_level1[3].access_ids)
+        self.assertEqual(f_level1[3].access_internal, "edit")
+        self.assertEqual(f_level1[3].access_via_link, "none")
+
+        self.assertEqual(
+            f_level2[7].access_ids.mapped("partner_id"),
+            (users_internals | users_admins).partner_id,
+        )
+        self.assertEqual(f_level2[7].access_internal, "none")
+        self.assertEqual(f_level2[7].access_via_link, "view")
+        self.assertEqual(f_level2[7].is_access_via_link_hidden, True)
 
         # check the propagation of the access of the folder on the documents
         self.assertEqual(
@@ -638,11 +688,11 @@ class TestShareMigration(UpgradeCase):
         # Check user_specific
         doc_1, doc_2, doc_3 = documents[7], documents[8], documents[9]
         self.assertEqual(doc_1.access_internal, "none")
-        self.assertEqual(doc_1.access_via_link, "none")
+        self.assertEqual(doc_1.access_via_link, "view")
         self.assertEqual(doc_2.access_internal, "none")
-        self.assertEqual(doc_2.access_via_link, "none")
+        self.assertEqual(doc_2.access_via_link, "view")
         self.assertEqual(doc_3.access_internal, "none")
-        self.assertEqual(doc_3.access_via_link, "none")
+        self.assertEqual(doc_3.access_via_link, "view")
 
         self.assertEqual(len(doc_1.access_ids), 1)
         self.assertEqual(len(doc_2.access_ids), 1)
@@ -663,6 +713,20 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(doc_1.owner_id, self.env.ref("base.user_root"))
         self.assertEqual(doc_2.owner_id, self.env.ref("base.user_root"))
         self.assertEqual(doc_3.owner_id, users_internals[0])
+
+        # Global checks
+        self.assertEqual(
+            documents.mapped("access_internal"),
+            ["none", "edit", "none", "edit", "edit", "edit", "edit"] + ["none"] * 4,
+        )
+        self.assertEqual(
+            documents.mapped("access_via_link"),
+            ["view", "view", "none"] + ["view"] * 8,
+        )
+        self.assertEqual(
+            documents.mapped("is_access_via_link_hidden"),
+            [True] + [False] * 6 + [True, True, True, False],
+        )
 
         ###############
         # CHECK ALIAS #
@@ -772,14 +836,14 @@ class TestShareMigration(UpgradeCase):
         # no folder above with a company to fix it
         self.assertFalse(f_level0[2].company_id)
 
-        self.assertEqual(f_level1[0].company_id, companies[0])
-        self.assertEqual(f_level1[1].company_id, companies[1])
+        self.assertFalse(f_level1[0].company_id)
+        self.assertFalse(f_level1[1].company_id)
         self.assertEqual(f_level1[2].company_id, companies[0])
 
         self.assertEqual(f_level2[0].company_id, companies[1])
-        self.assertEqual(f_level2[1].company_id, companies[0])
-        self.assertEqual(f_level2[2].company_id, companies[0])
-        self.assertEqual(f_level2[3].company_id, companies[0])
+        self.assertFalse(f_level2[1].company_id)
+        self.assertFalse(f_level2[2].company_id)
+        self.assertFalse(f_level2[3].company_id)
 
         self.assertEqual(documents[0].company_id, companies[0])
         self.assertFalse(documents[1].company_id)  # f_level0[2] has no company
