@@ -25,3 +25,4 @@ def migrate(cr, version):
            AND imf.model = 'product.category'
          WHERE rc.id = d.company_id
     """)
+    util.change_field_selection_values(cr, "account.report", "filter_multi_company", {"disabled": "selector"})
