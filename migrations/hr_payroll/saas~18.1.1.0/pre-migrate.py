@@ -269,3 +269,6 @@ def migrate(cr, version):
 
     if util.module_installed(cr, "l10n_ma_hr_payroll"):
         util.remove_record(cr, "l10n_ma_hr_payroll.COMP")
+
+    for field in ["department_id", "job_id", "structure_type_id"]:
+        util.remove_field(cr, "hr.payslip.employees", field)
