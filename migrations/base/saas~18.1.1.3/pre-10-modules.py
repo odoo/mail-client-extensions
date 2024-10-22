@@ -5,3 +5,4 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_us_hr_payroll_state_calculation", "l10n_us_hr_payroll")
     util.merge_module(cr, "l10n_in_reports_gstr_spreadsheet", "l10n_in_reports_gstr")
     util.merge_module(cr, "l10n_in_withholding_payment", "l10n_in_withholding")
+    util.merge_module(cr, "auth_totp_mail_enforce", "auth_totp_mail")
