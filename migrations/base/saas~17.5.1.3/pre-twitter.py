@@ -13,6 +13,7 @@ def migrate(cr, version):
         snippets.convert_html_content(
             cr,
             snippets.html_converter(remove_s_twitter, selector="//*[@data-snippet='s_twitter']"),
+            where_column=r"LIKE '%data-snippet=_s\_twitter%'",
         )
 
     if util.module_installed(cr, "website_event_twitter_wall"):
