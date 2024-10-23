@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -22,6 +21,7 @@ def migrate(cr, version):
             )
         """
     )
+    cr.execute("ALTER TABLE _upg_payment_acquirer_journal_mapping ADD PRIMARY KEY (id)")
 
     # Make sure that we do not have duplicated name for the same journal in the temp table.
     # This could happen if two acquirers having the same name, are both active on the same journal.
