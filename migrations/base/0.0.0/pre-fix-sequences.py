@@ -12,6 +12,9 @@ def migrate(cr, version):
            SELECT SUBSTRING(pg_get_expr(d.adbin,0), 'nextval\(''([[:alpha:]][\w\$]*)''::regclass\)') as sequence_name,
                   t.relname table_name
              FROM pg_attribute a
+             JOIN pg_type tt
+               ON tt.oid=a.atttypid
+              AND tt.typname='int4'
              JOIN pg_class t
                ON t.oid=a.attrelid
               AND t.relkind='r'
