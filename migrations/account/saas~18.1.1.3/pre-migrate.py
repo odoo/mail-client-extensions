@@ -26,3 +26,6 @@ def migrate(cr, version):
          WHERE rc.id = d.company_id
     """)
     util.change_field_selection_values(cr, "account.report", "filter_multi_company", {"disabled": "selector"})
+    util.rename_field(
+        cr, "account.setup.bank.manual.config", "num_journals_without_account", "num_journals_without_account_bank"
+    )
