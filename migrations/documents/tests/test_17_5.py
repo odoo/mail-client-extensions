@@ -1,5 +1,10 @@
 import ast
-from datetime import timedelta
+import base64
+from datetime import date, timedelta
+from unittest.mock import patch
+
+from dateutil.relativedelta import relativedelta
+from freezegun import freeze_time
 
 from odoo import fields
 
@@ -30,6 +35,7 @@ class TestShareMigration(UpgradeCase):
         system_user = self.env.ref("base.group_system")
         other_group = self.env["res.groups"].create({"name": "Other group"})
         activity_type_todo = self.env.ref("mail.mail_activity_data_todo")
+        activity_type_call = self.env.ref("mail.mail_activity_data_call")
 
         admins = User.create(
             [
@@ -142,6 +148,8 @@ class TestShareMigration(UpgradeCase):
                     # -> read_group_ids: system_user
                     # The owner should be removed to not give him access
                     "owner_id": internals[0].id,
+                    "datas": base64.b64encode(b"iVBORw0KGgoAA"),
+                    "mimetype": "image/png",
                 },
                 {"folder_id": f_level0[2].id, "name": "C - DOC"},
                 {"folder_id": f_level0[1].id, "name": "B - DOC"},
@@ -346,62 +354,154 @@ class TestShareMigration(UpgradeCase):
         )
 
         # Rename of fields in workflow rule
-        workflow_rule = self.env["documents.workflow.rule"].create(  # TODO: keep ?
-            {
-                "domain_folder_id": f_level0[1].id,
-                "name": "workflow Folder B",
-                "folder_id": f_level0[0].id,
-                "remove_activities": True,
-                "activity_option": True,
-                "activity_type_id": activity_type_todo.id,
-                "activity_summary": "Test workflow rule activity summary",
-                "activity_date_deadline_range": 2,
-                "activity_date_deadline_range_type": "months",
-                "activity_note": "Test workflow rule activity note",
-                "has_owner_activity": True,
-                "activity_user_id": internals[0].id,
-                "domain": [
-                    ("folder_id.name", "=", "test"),
-                    "|",
-                    ("folder_id", "!=", f_level1[1].id),
-                    ("folder_id", "in", (f_level2[0].id, f_level2[2].id)),
+        workflow_rule_base_create = {
+            "domain_folder_id": f_level0[0].id,
+            "condition_type": "domain",
+            "folder_id": f_level0[1].id,
+            "remove_activities": True,
+            "activity_option": True,
+            "activity_type_id": activity_type_todo.id,
+            "activity_summary": "Test workflow rule activity summary",
+            "activity_date_deadline_range": 2,
+            "activity_date_deadline_range_type": "months",
+            "activity_note": "Test workflow rule activity note",
+            "has_owner_activity": True,
+            "activity_user_id": False,
+            "tag_action_ids": [
+                [
+                    0,
+                    0,
+                    {
+                        "action": "replace",
+                        "tag_id": tags[0].id,  # add Tag 1
+                        "facet_id": tags[0].facet_id.id,  # remove Tag 2&3
+                    },
                 ],
+            ],
+        }
+        if util.module_installed(self.env.cr, "documents_account"):
+            company_id = self.env.company
+            cur_id = company_id.currency_id.id
+            journal_ids = (
+                self.env["account.journal"]
+                .create(
+                    {
+                        "name": "Sale Journal",
+                        "code": "MiGraTion18",
+                        "type": "sale",
+                        "company_id": company_id.id,
+                        "currency_id": cur_id,
+                    }
+                )
+                .ids
+            )
+        else:
+            journal_ids = []
+        create_workflow_rules = [
+            {
+                **workflow_rule_base_create,
+                "name": "MiGraTion18-Base",
+            },
+            {
+                **workflow_rule_base_create,
+                "name": "MiGraTion18-LinkToRecord",
+                "create_model": "link.to.record",
+                "tag_action_ids": [
+                    [
+                        0,
+                        0,
+                        {
+                            "action": "remove",
+                            "tag_id": tags[0].id,  # remove Tag 1
+                            "facet_id": False,
+                        },
+                    ]
+                ],
+                "has_owner_activity": False,
+                "activity_user_id": internals[0].id,
+                "activity_type_id": activity_type_call.id,
+            },
+            {
+                **workflow_rule_base_create,
+                "name": "MiGraTion18-LinkToContactRecord",
+                "create_model": "link.to.record",
+                "link_model": self.env.ref("base.model_res_partner").id,
                 "tag_action_ids": [
                     [
                         0,
                         0,
                         {
                             "action": "add",
-                            "tag_id": tags[0].id,
-                            "facet_id": tags[0].facet_id.id,
+                            "tag_id": tags[0].id,  # add Tag 1
+                            "facet_id": False,
                         },
-                    ],
-                    [
-                        0,
-                        0,
-                        {
-                            "action": "replace",
-                            "tag_id": tags[1].id,
-                            "facet_id": tags[1].facet_id.id,
-                        },
-                    ],
-                    [
-                        0,
-                        0,
-                        {
-                            "action": "replace",
-                            "tag_id": tags[0].id,
-                            "facet_id": tags[0].facet_id.id,
-                        },
-                    ],
+                    ]
                 ],
-            }
+                "remove_activities": False,
+                "has_owner_activity": False,
+                "activity_user_id": internals[1].id,
+                "activity_date_deadline_range": 3,
+                "activity_date_deadline_range_type": "days",
+                "folder_id": f_level0[2].id,
+            },
+        ]
+        if util.module_installed(self.env.cr, "documents_account"):
+            create_workflow_rules.extend(
+                {
+                    **workflow_rule_base_create,
+                    "name": f"MiGraTion18-Create-account.move-{move_type}",
+                    "create_model": f"account.move.{move_type}",
+                    "journal_id": journal_ids[0],
+                }
+                for move_type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "entry", "in_receipt")
+            )
+            create_workflow_rules.append(
+                {
+                    **workflow_rule_base_create,
+                    "name": "MiGraTion18-Create-account.bank.statement",
+                    "create_model": "account.bank.statement",
+                    "journal_id": journal_ids[0],
+                }
+            )
+        for create_models, module in (
+            (("hr.expense",), "documents_hr_expense"),
+            (("hr.applicant",), "documents_hr_recruitment"),
+            (("product.template",), "documents_product"),
+            (("project.task",), "documents_project"),
+            (("sign.template.new", "sign.template.direct"), "documents_sign"),
+        ):
+            if util.module_installed(self.env.cr, module):
+                create_workflow_rules.extend(
+                    {
+                        **workflow_rule_base_create,
+                        "name": f"MiGraTion18-Create-{create_model}",
+                        "create_model": create_model,
+                    }
+                    for create_model in create_models
+                )
+        # Create workflow rule with criterion (rules are migrated but not pinned)
+        create_workflow_rules.extend(
+            [
+                {
+                    **workflow_rule_base_create,
+                    "name": f"MiGraTion18-Criterion-{field}",
+                    "condition_type": "domain" if field == "domain" else "criteria",
+                    field: value,
+                }
+                for field, value in (
+                    ("domain", f"[('owner_id', '=', {internals[0].id})]"),
+                    ("criteria_partner_id", internals[0].partner_id.id),
+                    ("criteria_owner_id", internals[0].id),
+                    ("required_tag_ids", [tags[0].id]),
+                    ("excluded_tag_ids", [tags[0].id]),
+                )
+            ]
         )
+        self.env["documents.workflow.rule"].create(create_workflow_rules)
 
         return {
             "documents": documents.ids,
             "tags": tags.ids,
-            "workflow_rules": workflow_rule.ids,
             # Shares
             "share_documents": [share.access_token for share in share_documents],
             "share_folders": [share.access_token for share in share_folders],
@@ -410,6 +510,7 @@ class TestShareMigration(UpgradeCase):
             "users_internals": internals.ids,
             "alias_ids": share_folders.alias_id.ids,
             "companies_ids": companies.ids,
+            "journal_ids": journal_ids,
         }
 
     def check(self, init):
@@ -882,3 +983,227 @@ class TestShareMigration(UpgradeCase):
         self.assertFalse(documents[1].company_id)  # f_level0[2] has no company
         # inherit from f_level2[0]
         self.assertEqual(documents[5].company_id, companies[1])
+
+        ###################
+        # WORK FLOW RULES #
+        ###################
+        activity_type_todo = self.env.ref("mail.mail_activity_data_todo")
+        activity_type_call = self.env.ref("mail.mail_activity_data_call")
+        internal_user = self.env.ref("base.group_user")
+        doc_a_base = documents[0]
+
+        def get_server_action(name):
+            act_server = self.env["ir.actions.server"].search([("name", "=", name)])
+            self.assertTrue(act_server)
+            self.assertEqual(act_server.groups_id, internal_user)
+            return act_server
+
+        def get_embedded_action(act_server):
+            embedded_action = self.env["ir.embedded.actions"].search(
+                [
+                    ("action_id", "=", act_server.id),
+                    ("parent_action_id", "=", self.env.ref("documents.document_action").id),
+                    ("name", "=", act_server.name),
+                    ("parent_res_model", "=", "documents.document"),
+                    ("parent_res_id", "=", f_level0[0].id),
+                ]
+            )
+            self.assertTrue(embedded_action)
+            self.assertEqual(embedded_action.groups_ids, internal_user)
+            return embedded_action
+
+        def check_activity_common(activity):
+            self.assertEqual(activity.summary, "Test workflow rule activity summary")
+            self.assertEqual(activity.note, "<p>Test workflow rule activity note</p>")
+
+        def get_doc_a_copy():
+            doc_a = doc_a_base.copy()
+            doc_a.res_id = doc_a.id  # copy doesn't set correctly res_id
+            doc_a.activity_schedule("mail.mail_activity_data_call")
+            self.assertEqual(doc_a.activity_ids.activity_type_id, activity_type_call)
+            return doc_a.with_context(active_model="documents.document", active_id=doc_a.id)
+
+        def check_base(activity):
+            check_activity_common(activity)
+            self.assertEqual(activity.activity_type_id, activity_type_todo)
+            self.assertEqual(activity.date_deadline, date.today() + relativedelta(months=2))
+            self.assertEqual(activity.user_id, doc_a.owner_id)
+            self.assertEqual(doc_a.folder_id, f_level0[1])
+            self.assertEqual(doc_a.res_id, doc_a.id)
+            self.assertEqual(doc_a.res_model, "documents.document")
+
+        # Check workflow rule conversion that only depends on documents (and not submodules)
+        with freeze_time("1900-01-04"):
+            act_server = get_server_action("MiGraTion18-Base")
+            embedded_action = get_embedded_action(act_server)
+            self.assertEqual(
+                set(act_server.child_ids.mapped("name")),
+                {
+                    "Mark activities as completed",
+                    "Remove Tag Tag 2",
+                    "Remove Tag Tag 3",
+                    "Add Tag Tag 1",
+                    "Create Activity To-Do",
+                    "MiGraTion18-Base_custom_code",
+                },
+            )
+            doc_a = get_doc_a_copy()
+            action = doc_a.action_execute_embedded_action(embedded_action.id)
+            self.assertFalse(action)
+            self.assertEqual(set(doc_a.tag_ids.mapped("name")), {"Tag 1", "Tag A"})
+            check_base(doc_a.activity_ids)
+
+            act_server = get_server_action("MiGraTion18-LinkToRecord")
+            embedded_action = get_embedded_action(act_server)
+            doc_a = get_doc_a_copy()
+            self.assertEqual(
+                set(act_server.child_ids.mapped("name")),
+                {
+                    "Mark activities as completed",
+                    "Remove Tag Tag 1",
+                    "Create Activity Call",
+                    "MiGraTion18-LinkToRecord_custom_code",
+                    "ir_actions_server_link_to",
+                },
+            )
+            action = doc_a.action_execute_embedded_action(embedded_action.id)
+            self.assertEqual(
+                action,
+                {
+                    "name": "Choose a record to link",
+                    "type": "ir.actions.act_window",
+                    "res_model": "documents.link_to_record_wizard",
+                    "view_mode": "form",
+                    "target": "new",
+                    "views": [(False, "form")],
+                    "context": {
+                        "default_document_ids": doc_a.ids,
+                        "default_resource_ref": False,
+                        "default_is_readonly_model": False,
+                        "default_model_ref": False,
+                    },
+                },
+            )
+            self.assertEqual(set(doc_a.tag_ids.mapped("name")), {"Tag A", "Tag 2", "Tag 3"})
+            activity = doc_a.activity_ids
+            check_activity_common(activity)
+            self.assertEqual(activity.activity_type_id, activity_type_call)
+            self.assertEqual(activity.date_deadline, date.today() + relativedelta(months=2))
+            self.assertEqual(activity.user_id, users_internals[0])
+            self.assertEqual(doc_a.folder_id, f_level0[1])
+            self.assertEqual(doc_a.res_id, doc_a.id)
+            self.assertEqual(doc_a.res_model, "documents.document")
+
+            act_server = get_server_action("MiGraTion18-LinkToContactRecord")
+            embedded_action = get_embedded_action(act_server)
+            doc_a = get_doc_a_copy()
+            self.assertEqual(
+                set(act_server.child_ids.mapped("name")),
+                {
+                    "Add Tag Tag 1",
+                    "Create Activity To-Do",
+                    "MiGraTion18-LinkToContactRecord_custom_code",
+                    "ir_actions_server_link_to_res_partner",
+                },
+            )
+            action = doc_a.action_execute_embedded_action(embedded_action.id)
+            first_valid_partner_id = self.env["res.partner"].search([], limit=1).id
+            self.assertEqual(
+                action,
+                {
+                    "name": "Choose a record to link",
+                    "type": "ir.actions.act_window",
+                    "res_model": "documents.link_to_record_wizard",
+                    "view_mode": "form",
+                    "target": "new",
+                    "views": [(False, "form")],
+                    "context": {
+                        "default_document_ids": doc_a.ids,
+                        "default_resource_ref": f"res.partner,{first_valid_partner_id}",
+                        "default_is_readonly_model": True,
+                        "default_model_ref": False,
+                        "default_model_id": self.env.ref("base.model_res_partner").id,
+                    },
+                },
+            )
+            self.assertEqual(set(doc_a.tag_ids.mapped("name")), {"Tag A", "Tag 1", "Tag 2", "Tag 3"})
+            self.assertEqual(doc_a.activity_ids.activity_type_id, activity_type_call | activity_type_todo)
+            activity_by_type = {act.activity_type_id: act for act in doc_a.activity_ids}
+            activity = activity_by_type[activity_type_todo]
+            check_activity_common(activity)
+            self.assertEqual(activity.date_deadline, date.today() + relativedelta(days=3))
+            self.assertEqual(activity.user_id, users_internals[1])
+            self.assertEqual(doc_a.folder_id, f_level0[2])
+            self.assertEqual(doc_a.res_id, doc_a.id)
+            self.assertEqual(doc_a.res_model, "documents.document")
+
+            # Check workflow rules of submodules that create specific records.
+            if util.module_installed(self.env.cr, "documents_account") and init["journal_ids"]:
+                journal_id = init["journal_ids"][0]
+                for move_type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "entry", "in_receipt"):
+                    act_server = get_server_action(f"MiGraTion18-Create-account.move-{move_type}")
+                    embedded_action = get_embedded_action(act_server)
+                    doc_a = get_doc_a_copy()
+                    with patch.object(
+                        type(self.env["documents.document"]), "account_create_account_move", autospec=True
+                    ) as mock_create:
+                        doc_a.action_execute_embedded_action(embedded_action.id)
+                    mock_create.assert_called_once_with(doc_a, move_type, journal_id)
+                    check_base(doc_a.activity_ids)
+                act_server = get_server_action("MiGraTion18-Create-account.bank.statement")
+                embedded_action = get_embedded_action(act_server)
+                doc_a = get_doc_a_copy()
+                with patch.object(
+                    type(self.env["documents.document"]), "account_create_account_bank_statement", autospec=True
+                ) as mock_create:
+                    doc_a.action_execute_embedded_action(embedded_action.id)
+                mock_create.assert_called_once_with(doc_a, journal_id)
+                check_base(doc_a.activity_ids)
+
+            for module, create_infos in (
+                ("documents_hr_expense", [("hr.expense", "document_hr_expense_create_hr_expense", [])]),
+                ("documents_hr_recruitment", [("hr.applicant", "document_hr_recruitment_create_hr_candidate", [])]),
+                ("documents_product", [("product.template", "create_product_template", [])]),
+                ("documents_project", [("project.task", "action_create_project_task", [])]),
+                (
+                    "documents_sign",
+                    [
+                        ("sign.template.new", "document_sign_create_sign_template_x", ["sign.template.new"]),
+                        ("sign.template.direct", "document_sign_create_sign_template_x", ["sign.template.direct"]),
+                    ],
+                ),
+            ):
+                if util.module_installed(self.env.cr, module):
+                    for create_model, method_name, parameters in create_infos:
+                        doc_a = get_doc_a_copy()
+                        act_server = get_server_action(f"MiGraTion18-Create-{create_model}")
+                        create_model_act_server_name = f"ir_actions_server_{method_name}"
+                        if parameters:
+                            create_model_act_server_name += "_" + ("_".join(parameters))
+                        self.assertIn(create_model_act_server_name, set(act_server.child_ids.mapped("name")))
+                        with patch.object(
+                            type(self.env["documents.document"]), method_name, autospec=True
+                        ) as mock_create:
+                            if create_model == "sign.template.direct":
+                                # Action related to sign.template.direct can only be executed on one document -> no embedded action
+                                self.assertFalse(
+                                    self.env["ir.embedded.actions"].search([("action_id", "=", act_server.id)])
+                                )
+                                act_server.with_context(active_model="documents.document", active_id=doc_a.id).run()
+                            else:
+                                embedded_action = get_embedded_action(act_server)
+                                doc_a.action_execute_embedded_action(embedded_action.id)
+                        mock_create.assert_called_once_with(*[doc_a, *parameters])
+                        check_base(doc_a.activity_ids)
+
+            # Check that no embedded action are created for workflow rule with criterion (as we can ensure those criterion)
+            for criteria in (
+                "domain",
+                "criteria_partner_id",
+                "criteria_owner_id",
+                "required_tag_ids",
+                "excluded_tag_ids",
+            ):
+                act_server = self.env["ir.actions.server"].search([("name", "=", f"MiGraTion18-Criterion-{criteria}")])
+                self.assertTrue(act_server)
+                self.assertFalse(self.env["ir.embedded.actions"].search([("action_id", "=", act_server.id)]))

@@ -26,9 +26,6 @@ def migrate(cr, version):
             """
         )
 
-    util.remove_field(cr, "documents.tag", "facet_id")
-    util.remove_model(cr, "documents.facet")
-
     ######################
     # DOCUMENTS.DOCUMENT #
     ######################
