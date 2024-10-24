@@ -44,6 +44,11 @@ repos:
       args: [ --fix, --exit-non-zero-on-fix ]
     - id: ruff-format
       name: Format code with Ruff automatically
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.93.0
+    hooks:
+    - id: semgrep
+      args: ['--disable-version-check', '--quiet', '--skip-unknown-extensions', '--metrics', 'off', '--oss-only', '--error', '--config', './semgrep.yaml']
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

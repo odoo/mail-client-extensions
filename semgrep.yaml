@@ -1,0 +1,15 @@
+rules:
+  - id: convert_html_content-without-where_column
+    languages:
+      - python
+    message: Calling `snippets.convert_html_content` without filtering with the `where_column`
+             argument is slow. Please specify it.
+    severity: WARNING
+    patterns:
+      - pattern: $UPGRADE.snippets.convert_html_content(...)
+      - pattern-not: $UPGRADE.snippets.convert_html_content(..., where_column=$_)
+      - metavariable-pattern:
+          metavariable: $UPGRADE
+          pattern-either:
+            - pattern: odoo.addons.base.maintenance.migrations.util
+            - pattern: odoo.upgrade.util
