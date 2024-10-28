@@ -17,11 +17,16 @@ def migrate(cr, version):
         "list_view_ref",
     )
     util.change_field_selection_values(cr, "ir.ui.view", "type", {"tree": "list"})
+    util.change_field_selection_values(cr, "ir.actions.act_window.view", "view_mode", {"tree": "list"})
     cr.execute(
         r"UPDATE ir_act_window SET view_mode = regexp_replace(view_mode, '\ytree\y', 'list', 'g') WHERE view_mode LIKE '%tree%'"
     )
     cr.execute(
         r"UPDATE ir_act_window SET context = regexp_replace(context, '\ytree_view_ref\y', 'list_view_ref', 'g') WHERE context LIKE '%tree\_view\_ref%'"
+    )
+    cr.execute("UPDATE ir_act_window SET mobile_view_mode = 'list' WHERE mobile_view_mode = 'tree'")
+    cr.execute(
+        r"UPDATE ir_actions SET binding_view_types = regexp_replace(binding_view_types, '\ytree\y', 'list', 'g') WHERE binding_view_types LIKE '%tree%'"
     )
 
     util.replace_in_all_jsonb_values(
