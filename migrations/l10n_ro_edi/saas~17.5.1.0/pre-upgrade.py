@@ -23,21 +23,24 @@ def migrate(cr, version):
         {"invoice_sent": "invoice_validated", "invoice_sending": "invoice_sent"},
     )
 
-    # set account_move.l10n_ro_edi_index to the first found related document with key_loading information
-    util.create_column(cr, "account_move", "l10n_ro_edi_index", "varchar")
-    cr.execute("""
-        WITH document_with_index AS (
-            SELECT DISTINCT ON (invoice_id)
-                   invoice_id,
-                   key_loading
-              FROM l10n_ro_edi_document
-             WHERE key_loading IS NOT NULL
-          ORDER BY invoice_id,
-                   datetime DESC,
-                   id DESC
-        )
-        UPDATE account_move move
-           SET l10n_ro_edi_index = document_with_index.key_loading
-          FROM document_with_index
-         WHERE document_with_index.invoice_id = move.id;
-    """)
+    # 'l10n_ro_edi.document' model was in module 'l10n_ro_efactura' that is
+    # merged with 'l10n_ro_edi' in saas~17.5, 'l10n_ro_efactura' may be uninstalled
+    if util.table_exists(cr, "l10n_ro_edi_document"):
+        # set account_move.l10n_ro_edi_index to the first found related document with key_loading information
+        util.create_column(cr, "account_move", "l10n_ro_edi_index", "varchar")
+        cr.execute("""
+            WITH document_with_index AS (
+                SELECT DISTINCT ON (invoice_id)
+                       invoice_id,
+                       key_loading
+                  FROM l10n_ro_edi_document
+                 WHERE key_loading IS NOT NULL
+              ORDER BY invoice_id,
+                       datetime DESC,
+                       id DESC
+            )
+            UPDATE account_move move
+               SET l10n_ro_edi_index = document_with_index.key_loading
+              FROM document_with_index
+             WHERE document_with_index.invoice_id = move.id;
+        """)
