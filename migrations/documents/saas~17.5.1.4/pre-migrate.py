@@ -216,8 +216,9 @@ def migrate(cr, version):
     )
     tags_mapping = dict(cr.fetchall())
     _tags_mapping = {src: dest for src, dest in tags_mapping.items() if src != dest}
-    util.replace_record_references_batch(cr, _tags_mapping, "documents.tag", replace_xmlid=False)
-    cr.execute("DELETE FROM documents_tag WHERE id = ANY(%s)", [list(_tags_mapping)])
+    if _tags_mapping:
+        util.replace_record_references_batch(cr, _tags_mapping, "documents.tag", replace_xmlid=True)
+        cr.execute("DELETE FROM documents_tag WHERE id = ANY(%s)", [list(_tags_mapping)])
 
     # Some tags have been removed because the names were duplicated
     # map the removed tags to new one
