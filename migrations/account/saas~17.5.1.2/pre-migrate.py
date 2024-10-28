@@ -107,7 +107,7 @@ def migrate(cr, version):
     util.invert_boolean_field(cr, "account.move", "to_check", "checked")
     cr.execute("ALTER INDEX IF EXISTS account_move_to_check_idx RENAME TO account_move_checked_idx")
 
-    util.create_column(cr, "account_move", "amount_untaxed_in_currency_signed", "int4")
+    util.create_column(cr, "account_move", "amount_untaxed_in_currency_signed", "numeric")
     query_amount_untaxed = """
         UPDATE account_move
            SET amount_untaxed_in_currency_signed = amount_untaxed *
