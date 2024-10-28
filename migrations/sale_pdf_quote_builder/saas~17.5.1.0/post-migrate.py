@@ -20,7 +20,11 @@ def migrate(cr, version):
         UPDATE ir_attachment a
            SET res_model = 'quotation.document',
                res_id = docs.id,
-               name = CASE a.res_field WHEN 'sale_header' THEN c.sale_header_name ELSE c.sale_footer_name END,
+               name =  CASE
+                        a.res_field WHEN 'sale_header'
+                        THEN COALESCE( c.sale_header_name, 'Company quote header: ' || c.name)
+                        ELSE COALESCE( c.sale_footer_name, 'Company quote footer: ' || c.name)
+                       END,
                res_field = NULL
           FROM docs, res_company c
          WHERE a.id = docs.ir_attachment_id
