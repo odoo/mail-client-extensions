@@ -23,23 +23,24 @@ def migrate(cr, version):
     # Fields moved from hr.payroll.structure.type to hr.employee
     util.create_column(cr, "hr_employee", "l10n_au_tax_treatment_category", "varchar")
     util.create_column(cr, "hr_employee", "l10n_au_income_stream_type", "varchar")
-    cr.execute(
-        """
-            UPDATE hr_employee e
-               SET l10n_au_withholding_variation = c.l10n_au_withholding_variation,
-                   l10n_au_employment_basis_code = c.l10n_au_employment_basis_code,
-                   l10n_au_withholding_variation_amount = c.l10n_au_withholding_variation_amount,
-                   l10n_au_work_country_id = c.l10n_au_country_code,
-                   l10n_au_tax_treatment_category = COALESCE(s.l10n_au_tax_treatment_category, 'R'),
-                   l10n_au_income_stream_type = COALESCE(s.l10n_au_income_stream_type, 'SAW')
-              FROM hr_contract c
-              LEFT JOIN hr_payroll_structure_type s
-                ON c.structure_type_id = s.id
-             WHERE c.employee_id = e.id
-               AND e.company_id in %s
-            """,
-        [cids],
-    )
+    if cids:
+        cr.execute(
+            """
+                UPDATE hr_employee e
+                   SET l10n_au_withholding_variation = c.l10n_au_withholding_variation,
+                       l10n_au_employment_basis_code = c.l10n_au_employment_basis_code,
+                       l10n_au_withholding_variation_amount = c.l10n_au_withholding_variation_amount,
+                       l10n_au_work_country_id = c.l10n_au_country_code,
+                       l10n_au_tax_treatment_category = COALESCE(s.l10n_au_tax_treatment_category, 'R'),
+                       l10n_au_income_stream_type = COALESCE(s.l10n_au_income_stream_type, 'SAW')
+                  FROM hr_contract c
+                  LEFT JOIN hr_payroll_structure_type s
+                    ON c.structure_type_id = s.id
+                 WHERE c.employee_id = e.id
+                   AND e.company_id IN %s
+                """,
+            [cids],
+        )
 
     fields_to_delete = [
         ("hr.contract", "l10n_au_tax_treatment_option"),
@@ -60,14 +61,15 @@ def migrate(cr, version):
     for model, field in fields_to_delete:
         util.remove_field(cr, model, field)
 
-    cr.execute(
-        "UPDATE hr_contract SET structure_type_id = %s WHERE company_id in %s",
-        [util.ref(cr, "l10n_au_hr_payroll.structure_type_schedule_1"), cids],
-    )
-    cr.execute(
-        "UPDATE hr_payslip SET struct_id = %s WHERE company_id in %s",
-        [util.ref(cr, "l10n_au_hr_payroll.hr_payroll_structure_au_regular"), cids],
-    )
+    if cids:
+        cr.execute(
+            "UPDATE hr_contract SET structure_type_id = %s WHERE company_id IN %s",
+            [util.ref(cr, "l10n_au_hr_payroll.structure_type_schedule_1"), cids],
+        )
+        cr.execute(
+            "UPDATE hr_payslip SET struct_id = %s WHERE company_id IN %s",
+            [util.ref(cr, "l10n_au_hr_payroll.hr_payroll_structure_au_regular"), cids],
+        )
 
     # Finally delete all old salary struct, struct_type and rules
     records_to_delete = [
@@ -198,9 +200,10 @@ def migrate(cr, version):
                l10n_au_salary_sacrifice_other = c.l10n_au_salary_sacrifice_other
           FROM hr_contract c
          WHERE c.id = p.contract_id
-           AND p.company_id in %s
+           AND p.company_id IN %s
         """
-    util.explode_execute(cr, cr.mogrify(query, [cids]).decode(), table="hr_payslip", alias="p")
+    if cids:
+        util.explode_execute(cr, cr.mogrify(query, [cids]).decode(), table="hr_payslip", alias="p")
 
     util.remove_field(cr, "res.company", "l10n_au_sfei")
     util.remove_field(cr, "res.config.settings", "l10n_au_sfei")
