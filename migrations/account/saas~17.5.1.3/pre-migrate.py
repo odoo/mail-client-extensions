@@ -188,7 +188,7 @@ def migrate(cr, version):
 
     util.rename_field(cr, "account.move", "payment_id", "origin_payment_id")
     util.rename_field(cr, "account.payment", "is_move_sent", "is_sent")
-    util.create_column(cr, "account_payment", "is_sent", "int4")
+    util.create_column(cr, "account_payment", "is_sent", "boolean")
     util.rename_field(cr, "account.payment", "ref", "memo")
     util.create_column(cr, "account_payment", "memo", "varchar")
     util.rename_field(cr, "account.payment", "duplicate_move_ids", "duplicate_payment_ids")
