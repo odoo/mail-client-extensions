@@ -10,6 +10,25 @@ from odoo.upgrade.util.inconsistencies import break_recursive_loops
 
 
 def migrate(cr, version):
+    ###################
+    # DOCUMENTS.FACET #
+    ###################
+
+    util.create_column(cr, "documents_tag", "color", "int4")
+    if util.column_exists(cr, "documents_facet", "color"):
+        # The tags take the color of its facet
+        cr.execute(
+            """
+            UPDATE documents_tag tag
+               SET color = facet.color
+              FROM documents_facet AS facet
+             WHERE facet.id = tag.facet_id
+            """
+        )
+
+    util.remove_field(cr, "documents.tag", "facet_id")
+    util.remove_model(cr, "documents.facet")
+
     ######################
     # DOCUMENTS.DOCUMENT #
     ######################
@@ -179,19 +198,6 @@ def migrate(cr, version):
     ###################
     # DOCUMENTS.TAGS  #
     ###################
-
-    util.create_column(cr, "documents_tag", "color", "int4")
-
-    if util.column_exists(cr, "documents_facet", "color"):
-        # The tags take the color of its facet
-        cr.execute(
-            """
-            UPDATE documents_tag tag
-               SET color = facet.color
-              FROM documents_facet AS facet
-             WHERE facet.id = tag.facet_id
-            """
-        )
 
     # Remove duplicated tags, and keep only one per name, in the English version.
     # Fill a table that will map the removed tag to the one we kept
@@ -871,10 +877,6 @@ def migrate(cr, version):
     util.remove_view(cr, "documents.share_view_form")
     util.remove_view(cr, "documents.share_view_tree")
     util.remove_view(cr, "documents.share_view_search")
-    util.remove_view(cr, "documents.facet_view_tree")
-    util.remove_view(cr, "documents.facet_view_form_with_folder")
-    util.remove_view(cr, "documents.facet_view_form")
-    util.remove_view(cr, "documents.facet_view_search")
     util.remove_view(cr, "documents.share_files_page")
     util.remove_view(cr, "documents.share_workspace_page")
     util.remove_view(cr, "documents.workflow_rule_form_view")

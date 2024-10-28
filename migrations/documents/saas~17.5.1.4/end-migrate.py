@@ -54,11 +54,9 @@ def migrate(cr, version):
     util.remove_field(cr, "documents.document", "available_rule_ids")
     util.remove_field(cr, "documents.document", "is_shared")
 
-    util.remove_field(cr, "documents.tag", "facet_id")
     util.remove_field(cr, "documents.tag", "folder_id")
 
     util.remove_model(cr, "documents.folder")
-    util.remove_model(cr, "documents.facet")
     util.remove_model(cr, "documents.share")
 
     # TODO: migration action to server action / embedded actions
