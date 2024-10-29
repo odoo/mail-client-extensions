@@ -22,3 +22,5 @@ def migrate(cr, version):
             "ir_embedded_actions",
             "ir_embedded_actions_action_id_fkey",
         )
+
+    util.create_column(cr, "res_users_apikeys", "expiration_date", "timestamp without time zone")
