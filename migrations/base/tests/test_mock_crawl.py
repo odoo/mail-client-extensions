@@ -537,6 +537,13 @@ class TestCrawler(IntegrityCase):
                     "colors": literal_eval(progressbar.get("colors")),
                     "sum_field": progressbar.get("sum_field"),
                 }
+                if (
+                    util.version_gte("saas~18.2")
+                    and ":" not in kanban_group_by
+                    and kanban_group_by in model._fields
+                    and model._fields[kanban_group_by].type in ("date, datetime")
+                ):
+                    kanban_group_by += ":month"
                 model.read_progress_bar(domain, kanban_group_by, bar)
 
     def mock_view_list(self, model, view, fields_list, domain, group_by):
@@ -594,10 +601,26 @@ class TestCrawler(IntegrityCase):
             read_display_name(model.env[model._fields[fname].comodel_name].browse(values).sudo())
 
     def mock_web_read_group(self, model, view, domain, group_by, fields_list, limit=80, limit_group=None):
-        _logger.info("read_group, %s, %s, %s", model, domain, group_by)
         if hasattr(model, "web_read_group"):
-            data = model.web_read_group(domain, fields_list, group_by, limit=limit)["groups"]
+            _logger.info("web_read_group, %s, %s, %s", model, domain, group_by)
+            if util.version_gte("saas~18.2"):
+                aggregates = [
+                    f"{fname}:{model._fields[fname]._description_aggregator(model.env)}"
+                    for fname in fields_list
+                    if model._fields[fname]._description_aggregator(model.env)
+                ]
+                groupby = group_by[0]
+                if (
+                    ":" not in groupby
+                    and groupby in model._fields
+                    and model._fields[groupby].type in ("date", "datetime")
+                ):
+                    groupby += ":month"
+                data = model.web_read_group(domain, [groupby], aggregates, limit=limit)["groups"]
+            else:
+                data = model.web_read_group(domain, fields_list, group_by, limit=limit)["groups"]
         else:
+            _logger.info("read_group, %s, %s, %s", model, domain, group_by)
             data = model.read_group(domain, fields_list, group_by, limit=limit)
 
         if limit_group and data:
@@ -606,28 +629,31 @@ class TestCrawler(IntegrityCase):
             chunk = math.ceil(len(data) / (limit_group - 1))
             data = data[0:-1:chunk] + [data[-1]]
 
-        # Get the display name of all groups
-        group_by = group_by[0]
-        fname = group_by.split(":")[0]  # e.g. date:day
-        field = model._fields[fname]
-        if field.comodel_name:
-            groups = [group[group_by][0] for group in data if group[group_by]]
-            read_display_name(model.env[field.comodel_name].browse(groups).sudo())
+        if not util.version_gte("saas~16.3"):
+            # Get the display name of all groups explicitly for version before the saas~16.3
+            # where display_name values was lazy
+            first_groupby = group_by[0]
+            fname = first_groupby.split(":")[0]  # e.g. date:day
+            field = model._fields[fname]
+            if field.comodel_name:
+                groups = [group[first_groupby][0] for group in data if group[first_groupby]]
+                read_display_name(model.env[field.comodel_name].browse(groups).sudo())
 
         # Get the data in each group
         for group in data:
-            if group.get("__context", {}).get("group_by"):
+            domain = group["__domain"] if "__domain" in group else expression.AND([group["__extra_domain"], domain])
+            if len(group_by) > 1:
                 self.mock_web_read_group(
                     model,
                     view,
-                    group["__domain"],
-                    group["__context"]["group_by"],
+                    domain,
+                    group_by[1:],
                     fields_list,
                     limit=limit,
                     limit_group=limit_group,
                 )
             else:
-                self.mock_web_search_read(model, view, [group["__domain"]], fields_list)
+                self.mock_web_search_read(model, view, [domain], fields_list)
 
 
 class datetime_extended(datetime.datetime):
