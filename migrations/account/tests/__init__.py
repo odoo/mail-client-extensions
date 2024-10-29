@@ -14,6 +14,7 @@ from . import (
     test_17_5_lock_dates,
     test_account,
     test_account_account_tag_unique,
+    test_account_custom_report_lines,
     test_account_group,
     test_account_pocalypse,
     test_account_type_domains,
