@@ -166,7 +166,6 @@ def migrate(cr, version):
                 AND module LIKE 'l10n%'
     """
     )
-    util.remove_column(cr, "account_tax_group", "_tmp_orig_id")
     for fname in [
         "tax_payable_account_id",
         "tax_receivable_account_id",
@@ -185,9 +184,10 @@ def migrate(cr, version):
                                             AND field.model = 'account.tax.group'
              LEFT JOIN ir_property default_prop ON default_prop.fields_id = field.id
                                                AND default_prop.company_id = tg.company_id
+                                               AND default_prop.res_id IS NULL
              LEFT JOIN ir_property prop ON prop.fields_id = field.id
                                        AND prop.company_id = tg.company_id
-                                       AND prop.res_id = 'account.tax.group,' || tg.id
+                                       AND prop.res_id = 'account.tax.group,' || tg._tmp_orig_id
                    )
             UPDATE account_tax_group
                SET {fname} = to_update.account_id
@@ -206,7 +206,7 @@ def migrate(cr, version):
         """,
             [fname],
         )
-
+    util.remove_column(cr, "account_tax_group", "_tmp_orig_id")
     util.move_field_to_module(cr, "account.move", "amount_total_words", "l10n_dz", "account")
     util.move_field_to_module(cr, "account.move", "amount_total_words", "l10n_in", "account")
 
