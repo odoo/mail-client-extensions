@@ -29,3 +29,4 @@ def migrate(cr, version):
         util.force_install_module(cr, "pos_iot_six")
     util.remove_module(cr, "pos_six")
     util.merge_module(cr, "payment_razorpay_oauth", "payment_razorpay")
+    util.force_migration_of_fresh_module(cr, "stock_maintenance")
