@@ -117,6 +117,22 @@ def migrate(cr, version):
 
         util.module_auto_install(cr, "voip_crm", auto_install=True)
 
+        # https://github.com/odoo/enterprise/pull/18597
+        util.new_module(cr, "sale_amazon_spapi", deps={"sale_amazon", "sale_amazon_authentication"}, auto_install=True)
+
+        # https://github.com/odoo/odoo/pull/87706
+        util.new_module(cr, "l10n_fi_sale", deps={"l10n_fi", "sale"}, auto_install=True)
+
+        # https://github.com/odoo/odoo/pull/87041
+        util.new_module(cr, "payment_adyen_paybylink", deps={"payment_adyen"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/30632
+        util.module_deps_diff(cr, "mrp_workorder_iot", plus={"quality_iot"}, minus={"iot"})
+        util.module_deps_diff(cr, "quality_control_iot", plus={"quality_iot"}, minus={"iot"})
+        util.module_deps_diff(
+            cr, "quality_mrp_workorder_iot", plus={"quality_control_iot", "mrp_workorder_iot"}, minus={"iot"}
+        )
+
     if util.has_design_themes():
         util.new_module(
             cr,

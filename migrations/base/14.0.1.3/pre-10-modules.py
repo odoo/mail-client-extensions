@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -45,6 +44,39 @@ def migrate(cr, version):
 
     # https://github.com/odoo/odoo/pull/104891
     util.new_module(cr, "sale_mrp_margin", deps={"sale_mrp", "sale_stock_margin"}, auto_install=True)
+
+    # https://github.com/odoo/odoo/pull/127221
+    util.module_deps_diff(cr, "mass_mailing_event_sms", plus={"mass_mailing_event"})
+
+    # https://github.com/odoo/odoo/pull/83849
+    util.new_module(cr, "account_edi_ubl_cii", deps={"account_edi"})
+    util.new_module(
+        cr,
+        "l10n_account_edi_ubl_cii_tests",
+        deps={
+            "l10n_generic_coa",
+            "account_edi_ubl_cii",
+            "l10n_fr",
+            "l10n_be",
+            "l10n_de",
+        },
+    )
+
+    # https://github.com/odoo/odoo/pull/114822
+    util.new_module(cr, "l10n_lu_peppol_id", deps={"l10n_lu", "account_edi_ubl_cii"})
+
+    # https://github.com/odoo/odoo/pull/79829
+    util.new_module(cr, "l10n_gcc_invoice", deps={"account"})
+    util.new_module(cr, "l10n_sa_invoice", deps={"l10n_sa", "l10n_gcc_invoice"})
+
+    # https://github.com/odoo/odoo/pull/80214
+    util.new_module(cr, "l10n_gcc_pos", deps={"point_of_sale", "l10n_gcc_invoice"}, auto_install=True)
+
+    # https://github.com/odoo/odoo/pull/81280
+    util.new_module(cr, "l10n_ph", deps={"account", "base_vat", "l10n_multilang"}, auto_install=True)
+
+    # https://github.com/odoo/odoo/pull/92954
+    util.new_module(cr, "l10n_fr_facturx_chorus_pro", deps={"account", "account_edi_facturx", "l10n_fr"})
 
     if util.has_enterprise():
         util.new_module(cr, "account_reports_tax", deps={"account_reports"}, auto_install=True)
@@ -125,6 +157,67 @@ def migrate(cr, version):
 
         # https://github.com/odoo/enterprise/pull/23728 (fw)
         util.trigger_auto_install(cr, "l10n_lu_reports_annual_vat")
+
+        # https://github.com/odoo/enterprise/pull/23535
+        util.new_module(cr, "account_avatax", deps={"payment", "account"})
+        util.new_module(cr, "account_avatax_sale", deps={"account_avatax", "sale"}, auto_install=True)
+        util.new_module(
+            cr, "account_avatax_sale_subscription", deps={"account_avatax_sale", "sale_subscription"}, auto_install=True
+        )
+        util.new_module(
+            cr, "website_sale_account_avatax", deps={"account_avatax_sale", "website_sale"}, auto_install=True
+        )
+
+        # https://github.com/odoo/enterprise/pull/34563
+        util.new_module(cr, "l10n_de_datev_reports", deps={"l10n_de_reports"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/38500/
+        util.new_module(cr, "data_merge_stock_account", deps={"data_merge", "stock_account"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/23158
+        util.new_module(cr, "l10n_pe_edi_stock", deps={"delivery", "l10n_pe_edi"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/34648
+        util.new_module(cr, "l10n_pe_edi_stock_20", deps={"l10n_pe_edi_stock"}, auto_install=True)
+
+        # https://github.com/odoo/odoo/pull/80214
+        util.new_module(cr, "l10n_sa_pos", deps={"l10n_gcc_pos", "l10n_sa_invoice"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/27675
+        util.new_module(cr, "l10n_mx_edi_40", deps={"l10n_mx_edi"}, auto_install=True)
+        util.new_module(cr, "l10n_mx_edi_stock_40", deps={"l10n_mx_edi_40", "l10n_mx_edi_stock"}, auto_install=True)
+        util.new_module(
+            cr,
+            "l10n_mx_edi_stock_extended_40",
+            deps={"l10n_mx_edi_stock_40", "l10n_mx_edi_stock_extended"},
+            auto_install=True,
+        )
+
+        # https://github.com/odoo/enterprise/pull/32866
+        util.new_module(cr, "l10n_es_reports_2023", deps={"l10n_es_reports"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/29091
+        util.new_module(cr, "l10n_mx_xml_polizas_edi", deps={"l10n_mx_edi", "l10n_mx_xml_polizas"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/35051
+        util.new_module(cr, "l10n_lu_reports_annual_vat_2023", deps={"l10n_lu_reports_annual_vat"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/27675
+        util.new_module(
+            cr, "l10n_mx_edi_extended_40", deps={"l10n_mx_edi_40", "l10n_mx_edi_extended"}, auto_install=True
+        )
+
+        # https://github.com/odoo/enterprise/pull/43538
+        util.new_module(cr, "delivery_ups_rest", deps={"delivery", "mail"})
+
+        # https://github.com/odoo/enterprise/pull/18805
+        util.new_module(cr, "account_reports_tax_reminder", deps={"account_reports"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/39079
+        util.new_module(cr, "l10n_es_reports_2023_2", deps={"l10n_es_reports"}, auto_install=True)
+
+        # https://github.com/odoo/enterprise/pull/19348
+        util.new_module(cr, "l10n_be_reports_post_wizard", deps={"l10n_be_reports"}, auto_install=True)
 
     util.remove_module(cr, "website_gengo")
     util.remove_module(cr, "base_gengo")
