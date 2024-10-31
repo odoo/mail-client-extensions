@@ -30,6 +30,7 @@ def migrate(cr, version):
     # DOCUMENTS.DOCUMENT #
     ######################
 
+    util.remove_field(cr, "documents.document", "create_share_id")
     util.change_field_selection_values(cr, "documents.document", "type", {"empty": "binary"})
 
     #####################
@@ -254,7 +255,6 @@ def migrate(cr, version):
     for old_name, new_name in mapping.items():
         # rename the first element
         util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}")
-
 
     # Ensure those tags exists.
     # We can't use `util.update_record_from_xml` as the `documents.tag` model is not known by the ORM
@@ -615,6 +615,11 @@ def migrate(cr, version):
     ###################
     # DOCUMENTS.SHARE #
     ###################
+    # remove non-indexed FK to accelerate the deletion.
+    # (this is not an issue as the model, and its FKs, will be removed anyway)
+    for table, column, constraint_name, _action in util.get_fk(cr, "documents_share", quote_ident=False):
+        if not util.get_index_on(cr, table, column):
+            cr.execute(util.format_query(cr, "ALTER TABLE {} DROP CONSTRAINT {}", table, constraint_name))
 
     # Remove all shares with an expiration date, because we don't support that feature
     # anymore (and we don't want to extend the access the user had)
