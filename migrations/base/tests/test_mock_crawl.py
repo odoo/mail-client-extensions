@@ -266,7 +266,7 @@ class TestCrawler(IntegrityCase):
 
     def mock_action(self, action):
         if action["type"] == "ir.actions.act_window":
-            pass
+            return self.mock_act_window(action)
         elif action["type"] == "ir.actions.server":
             try:
                 action = self.env[action["type"]].browse(action["id"]).run()
@@ -283,7 +283,6 @@ class TestCrawler(IntegrityCase):
                 action_id = redirect.args[1]
                 action_type = self.env["ir.actions.actions"].browse(action_id).type
                 [action] = self.env[action_type].browse(action_id).read(self.action_type_fields[action_type])
-
             return self.mock_action(action)
         elif action["type"] in ("ir.actions.client", "ir.actions.act_url"):
             return None
@@ -297,6 +296,7 @@ class TestCrawler(IntegrityCase):
             _logger.error("Action %r is not implemented", action["type"])
             return None
 
+    def mock_act_window(self, action):
         context = action.get("context") or {}
         if isinstance(context, str):
             context = self._safe_eval(context) if context else {}
@@ -373,7 +373,7 @@ class TestCrawler(IntegrityCase):
 
         if not kind_of_table and not getattr(model, "_table_query", None):
             # Dashboard module: a menu / action without table or view.
-            return None
+            return
 
         stored_custom_fields = [
             field.name
@@ -388,7 +388,7 @@ class TestCrawler(IntegrityCase):
                 model._name,
                 stored_custom_fields,
             )
-            return None
+            return
 
         if is_view and not view_columns.issuperset(stored_fields):
             # Report SQL views with unkown columns.
@@ -399,7 +399,7 @@ class TestCrawler(IntegrityCase):
                 model._name,
                 missing_columns,
             )
-            return None
+            return
 
         if any(
             # we need to check for None since the view is gone on test_check
@@ -411,14 +411,14 @@ class TestCrawler(IntegrityCase):
                 "Mocking of model %s skipped because it has a manual related field with a SQL view as comodel.",
                 model._name,
             )
-            return None
+            return
 
         for view_type, data in views.items():
             if view_type == "search":
                 # Ignore, the searh view is already mocked before.
                 # Otherwise we get an error in the number of args below when we call it.
                 continue
-            mock_method = getattr(self, "mock_view_%s" % view_type, None)
+            mock_method = getattr(self, "mock_view_{}".format(view_type), None)
             if mock_method:
                 _logger.info("Mocking %s %s view ", model._name, view_type)
                 view = etree.fromstring(data["arch"])
@@ -427,7 +427,6 @@ class TestCrawler(IntegrityCase):
                 )
 
                 mock_method(model, view, fields_list, domain, group_by)
-        return None
 
     def mock_view_activity(self, model, view, fields_list, domain, group_by):
         domain = expression.AND([domain, [("activity_ids", "!=", False)]])
@@ -566,7 +565,7 @@ class TestCrawler(IntegrityCase):
         domains = []
         group_bys = []
         for default_filter, value in default_filters:
-            for node in view.xpath("//*[@name='%s']" % default_filter):
+            for node in view.xpath("//*[@name='{}']".format(default_filter)):
                 if node.get("domain"):
                     domains.append(node.get("domain"))
                 if node.get("context"):
