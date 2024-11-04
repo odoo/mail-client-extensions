@@ -80,3 +80,6 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "onss_pem_certificate")
     util.remove_field(cr, "res.config.settings", "onss_key")
     util.remove_field(cr, "res.config.settings", "onss_pem_passphrase")
+
+    util.remove_column(cr, "hr_payslip_employee_depature_notice", "start_notice_period")
+    util.remove_column(cr, "hr_payslip_employee_depature_notice", "first_contract")
