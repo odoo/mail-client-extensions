@@ -97,16 +97,18 @@ class TestShareMigration(UpgradeCase):
                     "parent_folder_id": f_level1[2].id,
                     "name": "Folder B B C",
                     "user_specific": True,
+                    "group_ids": internal_user.ids,
+                    "read_group_ids": internal_user.ids,
                 },
                 {
                     "parent_folder_id": f_level1[2].id,
                     "name": "Folder B B D",
                     "user_specific": True,
                     "user_specific_write": True,
+                    "group_ids": internal_user.ids,
+                    "read_group_ids": internal_user.ids,
                 },
                 {
-                    # only read_group_ids is propagated to the children
-                    # group_ids has only effect on the folder, not on the files inside of it
                     "parent_folder_id": f_level1[2].id,
                     "name": "Folder B B E",
                     "group_ids": other_group.ids,
@@ -676,14 +678,19 @@ class TestShareMigration(UpgradeCase):
             documents[0].access_ids.mapped("partner_id"),
             users_admins.partner_id,
         )
-        self.assertEqual(documents[0].access_ids.mapped("role"), ["view"] * 2)
+        self.assertEqual(documents[0].access_ids.mapped("role"), ["edit"] * 2)
 
-        # only the read_group is propagated, not the write_group
-        self.assertEqual(
-            documents[10].access_ids.mapped("partner_id"),
-            users_admins.partner_id,
-        )
-        self.assertEqual(documents[10].access_ids.mapped("role"), ["view"] * 2)
+        # "other_group" gained write access, "system" gained read access
+        for document in (documents[10], documents[10].folder_id):
+            self.assertEqual(
+                document.access_ids.mapped("partner_id"),
+                (users_admins | users_internals).partner_id,
+            )
+            access = document.access_ids
+            other_group_access = access.filtered(lambda a: a.partner_id in users_internals.partner_id)
+            system_group_access = access.filtered(lambda a: a.partner_id in users_admins.partner_id)
+            self.assertEqual(other_group_access.mapped("role"), ["edit", "edit"])
+            self.assertEqual(system_group_access.mapped("role"), ["view", "view"])
 
         # Check user_specific
         doc_1, doc_2, doc_3 = documents[7], documents[8], documents[9]

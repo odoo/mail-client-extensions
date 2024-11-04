@@ -269,9 +269,7 @@ def migrate(cr, version):
             document_id integer,
             partner_id integer,
             role varchar,
-            expiration_date timestamp without time zone,
-            -- temporary column, true if the user is in read_group
-            _upg_is_read_group_set boolean
+            expiration_date timestamp without time zone
         )
         """
     )
@@ -348,11 +346,10 @@ def migrate(cr, version):
 
     cr.execute(
         """
-       INSERT INTO documents_access (document_id, partner_id, role, _upg_is_read_group_set) (
+       INSERT INTO documents_access (document_id, partner_id, role) (
             SELECT folder.id,
                    res_users.partner_id,
-                   'view',
-                   TRUE
+                   'view'
               FROM documents_document AS folder
               JOIN documents_folder_read_groups AS read_group
                 ON folder.id = read_group.documents_folder_id
@@ -364,8 +361,7 @@ def migrate(cr, version):
                AND res_users.active
              WHERE folder.type = 'folder'
         )
-                ON CONFLICT (document_id, partner_id)
-                DO UPDATE SET _upg_is_read_group_set = TRUE
+                ON CONFLICT DO NOTHING
         """,
         {"internal": internal_id},
     )
@@ -376,23 +372,24 @@ def migrate(cr, version):
        INSERT INTO documents_access (document_id, partner_id, role) (
             SELECT document.id,
                    access.partner_id,
-                   -- if we were in the write group AND in the read group,
-                   -- we only gain read access on the file
-                   'view'
+                   access.role
               FROM documents_document AS folder
+              JOIN documents_folder AS old_folder
+                ON old_folder.id = folder._upg_old_folder_id
               JOIN documents_access AS access
                 ON access.document_id = folder.id
-               AND _upg_is_read_group_set -- only the read group should be propagated
               JOIN documents_document AS document
                 ON document.folder_id = folder.id
                AND document.type != 'folder'
              WHERE folder.type = 'folder'
+               AND CASE access.role
+                     WHEN 'view' THEN old_folder.user_specific IS NOT TRUE
+                     WHEN 'edit' THEN old_folder.user_specific_write IS NOT TRUE
+                     ELSE false
+                   END
         )
-                ON CONFLICT DO NOTHING
         """,
     )
-
-    util.remove_column(cr, "documents_access", "_upg_is_read_group_set")
 
     ###########################################
     # DOCUMENTS.ACCESS - user_specific_folder #
@@ -426,8 +423,17 @@ def migrate(cr, version):
                   FROM user_specific_folder AS folder
                   JOIN documents_document AS document
                     ON document.folder_id = folder.id
+
+                    -- owner needs the group to be added as viewer
+                  JOIN documents_folder_read_groups AS read_group
+                    ON folder.id = read_group.documents_folder_id
+                  JOIN res_groups_users_rel AS rel
+                    ON rel.gid = read_group.res_groups_id
+
                   JOIN res_users AS u
                     ON u.id = document.owner_id
+                   AND rel.uid = u.id
+
                  WHERE NOT folder.write
             )
                 ON CONFLICT DO NOTHING -- maybe has write access from group_ids
@@ -448,9 +454,20 @@ def migrate(cr, version):
                    END,
                    is_access_via_link_hidden = TRUE,
                    -- Remove the owner for user_specific == TRUE - user_specific_write = FALSE
-                   owner_id = CASE WHEN NOT folder.write THEN %s ELSE d.owner_id END
-              FROM user_specific_folder AS folder
-             WHERE d.folder_id = folder.id
+                   -- Or if the user is not in the "write group"
+                   owner_id = CASE WHEN (NOT folder.write OR rel IS NULL) THEN %s ELSE d.owner_id END
+              FROM documents_document AS doc
+              JOIN user_specific_folder AS folder
+                ON doc.folder_id = folder.id
+
+                   -- is the owner in the "write group" ?
+         LEFT JOIN documents_folder_res_groups_rel AS write_group
+                ON folder.id = write_group.documents_folder_id
+         LEFT JOIN res_groups_users_rel AS rel
+                ON rel.gid = write_group.res_groups_id
+               AND rel.uid = doc.owner_id
+
+             WHERE doc.id = d.id
             """,
             [util.ref(cr, "base.user_root")],
         ).decode(),
