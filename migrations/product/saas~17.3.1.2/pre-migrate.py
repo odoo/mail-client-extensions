@@ -104,4 +104,35 @@ def migrate(cr, version):
 
     util.update_field_usage(cr, "product.template", "type", "detailed_type")
     util.remove_field(cr, "product.template", "type")
+
+    # clean deprecated user-defined defaults for product.template.detailed_type if any,
+    # as they are now invalid and will throw ValueError while product creation in upgraded version
+    cr.execute(
+        """
+        DELETE FROM ir_default defaults
+              USING ir_model_fields imf
+              WHERE imf.id = defaults.field_id
+                AND imf.model = 'product.template'
+                AND imf.name = 'detailed_type'
+                AND defaults.json_value NOT IN ('"consu"', '"service"', '"combo"')
+          RETURNING imf.field_description->>'en_US', defaults.json_value::jsonb->>0
+        """
+    )
+    if cr.rowcount:
+        util.add_to_migration_reports(
+            category="User-defined defaults",
+            message=(
+                """
+                <details>
+                    <summary>
+                        The following user-defined defaults have been removed, as they were invalid
+                        in the newer version for the <kbd>product.template</kbd> field <kbd>type</kbd>.
+                    </summary>
+                    <ul>{}</ul>
+                </details>
+                """.format(" ".join(f"<li>{field} - <b>{value}</b></li>" for field, value in cr.fetchall()))
+            ),
+            format="html",
+        )
+
     util.rename_field(cr, "product.template", "detailed_type", "type")
