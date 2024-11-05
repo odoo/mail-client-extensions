@@ -31,6 +31,25 @@ def migrate(cr, version):
     ]:
         util.create_column(cr, "pos_payment", fields_to_add, "varchar")
 
+    cr.execute(
+        """
+        WITH method2account AS (
+            SELECT pm.id,
+                   company.account_journal_payment_debit_account_id AS account
+              FROM pos_payment_method pm
+              JOIN res_company company
+                ON pm.company_id = company.id
+              JOIN account_journal journal
+                ON journal.id = pm.journal_id
+             WHERE journal.type = 'bank' AND pm.outstanding_account_id IS NULL
+        )
+        UPDATE pos_payment_method pm
+           SET outstanding_account_id = method2account.account
+          FROM method2account
+         WHERE pm.id = method2account.id
+        """
+    )
+
     if util.module_installed(cr, "pos_self_order"):
         util.move_field_to_module(cr, "product.template", "description_self_order", "pos_self_order", "point_of_sale")
         util.rename_field(cr, "product.template", "description_self_order", "public_description")
