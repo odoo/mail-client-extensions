@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
+from odoo.release import series
+
 from odoo.addons.base.maintenance.migrations import util
 
 # > git -C ~/src/enterprise/master grep 'installable.*True' enterprise/{9..15}.0 -- pos_blackbox_be/__{openerp,manifest}__.py
@@ -11,7 +13,8 @@ from odoo.addons.base.maintenance.migrations import util
 # enterprise/15.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/16.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/17.0:pos_blackbox_be/__manifest__.py:    'installable': True,
-MULTI_COMPANY_CERTIFIED_BLACKBOX = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0", "17.0"}
+# enterprise/18.0:pos_blackbox_be/__manifest__.py:    'installable': True,
+MULTI_COMPANY_CERTIFIED_BLACKBOX = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0", "17.0", "18.0"}
 SINGLE_COMPANY_CERTIFIED_BLACKBOX = {"saas~17.2", "saas~17.4"}
 
 
@@ -42,3 +45,9 @@ def migrate(cr, version):
         # warn about upgrading to a certified version
         if source not in BLACKBOX_CERTIFIED_VERSIONS and target in BLACKBOX_CERTIFIED_VERSIONS:
             util._logger.info("pos_blackbox_be will be upgraded to a certified version in %s from %s", target, source)
+
+        if series == "18.0":
+            util.add_to_migration_reports(
+                message="Starting 18.0, once a device opens a certified Point of Sale, it will not be able to open a non-certified Point of Sale anymore.",
+                category="POS Blackbox",
+            )
