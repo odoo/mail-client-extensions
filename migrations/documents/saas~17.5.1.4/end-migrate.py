@@ -54,6 +54,8 @@ def migrate(cr, version):
     util.remove_field(cr, "documents.document", "available_rule_ids")
     util.remove_field(cr, "documents.document", "is_shared")
 
+    util.remove_column(cr, "documents_access", "_upg_added_from_group")
+
     util.remove_field(cr, "documents.tag", "folder_id")
 
     util.remove_model(cr, "documents.folder")

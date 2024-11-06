@@ -121,6 +121,14 @@ class TestShareMigration(UpgradeCase):
                     "group_ids": other_group.ids,
                     "read_group_ids": system_user.ids,
                 },
+                {
+                    "parent_folder_id": f_level1[3].id,
+                    "name": "Folder B C B",
+                    "user_specific": True,
+                    "user_specific_write": True,
+                    "group_ids": system_user.ids,
+                    "read_group_ids": internal_user.ids,
+                },
             ]
         )
 
@@ -447,7 +455,7 @@ class TestShareMigration(UpgradeCase):
             [("name", "=like", "Folder _ _ _")],
             order="name",
         )
-        self.assertEqual(len(f_level2), 8)
+        self.assertEqual(len(f_level2), 9)
         self.assertEqual(
             f_level2.mapped("name"),
             [
@@ -459,6 +467,7 @@ class TestShareMigration(UpgradeCase):
                 "Folder B B D",
                 "Folder B B E",
                 "Folder B C A",
+                "Folder B C B",
             ],
         )
         self.assertEqual(f_level2[0:2].folder_id, f_level1[0])
@@ -500,6 +509,7 @@ class TestShareMigration(UpgradeCase):
             f"{f_level0[1].id}/{f_level1[2].id}/",
             f"{f_level0[1].id}/{f_level1[2].id}/",
             f"{f_level0[1].id}/{f_level1[3].id}/",
+            f"{f_level0[1].id}/{f_level1[3].id}/",
         ]
         for doc, folder_path in zip(f_level2, folder_parent_path, strict=True):
             self.assertEqual(doc.parent_path, f"{folder_path}{doc.id}/")
@@ -537,9 +547,9 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(f_level0.mapped("access_via_link"), ["view", "none", "none"])
         self.assertEqual(f_level1.mapped("is_access_via_link_hidden"), [False] * 4)
         self.assertEqual(f_level1.mapped("access_via_link"), ["view", "none", "view", "none"])
-        self.assertEqual(f_level2.mapped("access_via_link"), ["view"] * 8)
+        self.assertEqual(f_level2.mapped("access_via_link"), ["view"] * 8 + ["none"])
         # f_level2[7] is not included in another share and not accessible to internal users -> not discoverable
-        self.assertEqual(f_level2.mapped("is_access_via_link_hidden"), [False] * 7 + [True])
+        self.assertEqual(f_level2.mapped("is_access_via_link_hidden"), [False] * 7 + [True, False])
 
         def _check_document_access(document, user, access):
             document_access = self.env["documents.access"].search(
@@ -720,6 +730,16 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(doc_1.owner_id, self.env.ref("base.user_root"))
         self.assertEqual(doc_2.owner_id, self.env.ref("base.user_root"))
         self.assertEqual(doc_3.owner_id, users_internals[0])
+
+        # Check that the folders are not accessible for all users if they have a write group
+        # (eg, the payslip folders won't be visible anymore, only HR user can write inside,
+        # but payslips inside of it will still be accessible in "Shared With Me")
+        self.assertEqual(f_level2[4].access_internal, "view")
+        self.assertFalse(f_level2[4].access_ids)
+        self.assertEqual(f_level2[5].access_internal, "view")
+        self.assertFalse(f_level2[5].access_ids)
+        self.assertEqual(f_level2[8].access_internal, "none")
+        self.assertEqual(f_level2[8].access_ids.mapped("role"), ["edit", "edit"])
 
         # Global checks
         self.assertEqual(

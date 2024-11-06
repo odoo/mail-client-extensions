@@ -269,7 +269,9 @@ def migrate(cr, version):
             document_id integer,
             partner_id integer,
             role varchar,
-            expiration_date timestamp without time zone
+            expiration_date timestamp without time zone,
+            -- is the access created because of a group (other than internal)
+            _upg_added_from_group boolean
         )
         """
     )
@@ -324,10 +326,11 @@ def migrate(cr, version):
     # For each non-internal groups, create one <documents.access> per user in the group on the folder
     cr.execute(
         """
-       INSERT INTO documents_access (document_id, partner_id, role) (
+       INSERT INTO documents_access (document_id, partner_id, role, _upg_added_from_group) (
             SELECT folder.id,
                    res_users.partner_id,
-                   'edit'
+                   'edit',
+                   TRUE
               FROM documents_document AS folder
               JOIN documents_folder_res_groups_rel AS write_group
                 ON folder.id = write_group.documents_folder_id
@@ -346,10 +349,11 @@ def migrate(cr, version):
 
     cr.execute(
         """
-       INSERT INTO documents_access (document_id, partner_id, role) (
+       INSERT INTO documents_access (document_id, partner_id, role, _upg_added_from_group) (
             SELECT folder.id,
                    res_users.partner_id,
-                   'view'
+                   'view',
+                   TRUE
               FROM documents_document AS folder
               JOIN documents_folder_read_groups AS read_group
                 ON folder.id = read_group.documents_folder_id
@@ -369,10 +373,11 @@ def migrate(cr, version):
     # Copy the <documents.access> of the folders, on the direct documents inside of it
     cr.execute(
         """
-       INSERT INTO documents_access (document_id, partner_id, role) (
+       INSERT INTO documents_access (document_id, partner_id, role, _upg_added_from_group) (
             SELECT document.id,
                    access.partner_id,
-                   access.role
+                   access.role,
+                   TRUE
               FROM documents_document AS folder
               JOIN documents_folder AS old_folder
                 ON old_folder.id = folder._upg_old_folder_id
@@ -416,10 +421,11 @@ def migrate(cr, version):
         cr,
         user_specific_folder
         + """
-           INSERT INTO documents_access (document_id, partner_id, role) (
+           INSERT INTO documents_access (document_id, partner_id, role, _upg_added_from_group) (
                 SELECT document.id,
                        u.partner_id,
-                       'view'
+                       'view',
+                       FALSE
                   FROM user_specific_folder AS folder
                   JOIN documents_document AS document
                     ON document.folder_id = folder.id
@@ -436,7 +442,8 @@ def migrate(cr, version):
 
                  WHERE NOT folder.write
             )
-                ON CONFLICT DO NOTHING -- maybe has write access from group_ids
+                ON CONFLICT (document_id, partner_id)  -- maybe has write access from group_ids
+                DO UPDATE SET _upg_added_from_group = FALSE
             """,
         table="documents_folder",
         alias="old_folder",
@@ -471,6 +478,45 @@ def migrate(cr, version):
             """,
             [util.ref(cr, "base.user_root")],
         ).decode(),
+        table="documents_folder",
+        alias="old_folder",
+    )
+
+    # For the folders (not the files), which are user specific,
+    # - set access_internal = 'none' if all user can see it, but not write inside of it
+    # - remove the members with only read access (only keep those who can write in the folder)
+    # (because new files created inside of it will inherit from the folder access, and
+    # we don't want them to be accessible by default)
+    util.explode_execute(
+        cr,
+        cr.mogrify(
+            user_specific_folder
+            + """
+            UPDATE documents_document d
+               SET access_internal = 'none'
+              FROM user_specific_folder AS folder
+         LEFT JOIN documents_folder_res_groups_rel AS write_group
+                ON folder.id = write_group.documents_folder_id
+             WHERE d.id = folder.id
+               AND access_internal = 'view'
+               AND (write_group IS NULL OR write_group.res_groups_id != %(internal)s)
+            """,
+            {"internal": internal_id},
+        ).decode(),
+        table="documents_folder",
+        alias="old_folder",
+    )
+    util.explode_execute(
+        cr,
+        user_specific_folder
+        + """
+            DELETE
+              FROM documents_access a
+             USING user_specific_folder u
+             WHERE a.document_id = u.id
+               AND a.role = 'view'
+               AND a._upg_added_from_group IS TRUE
+        """,
         table="documents_folder",
         alias="old_folder",
     )
