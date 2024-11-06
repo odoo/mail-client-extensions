@@ -158,6 +158,7 @@ class TestShareMigration(UpgradeCase):
                     "folder_id": f_level2[4].id,
                     "name": "B B C - DOC",
                     "owner_id": internals[0].id,
+                    "partner_id": internals[1].partner_id.id,
                 },
                 {  # user specific write
                     "folder_id": f_level2[5].id,
@@ -623,6 +624,8 @@ class TestShareMigration(UpgradeCase):
             _get_redirection(init["share_documents"][0]),
         )
         self.assertEqual(documents[0].owner_id, self.env.ref("base.user_root"), "The owner should be reset")
+        self.assertEqual(documents[0].partner_id, users_internals[0].partner_id)
+
         self.assertFalse(documents[0].with_user(users_internals[0]).has_access("read"))
         self.assertEqual(documents[1].access_via_link, "view")
         self.assertEqual(documents[1].folder_id.access_internal, "edit")
@@ -728,8 +731,11 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(doc_2.access_ids.role, "view")
 
         self.assertEqual(doc_1.owner_id, self.env.ref("base.user_root"))
+        self.assertEqual(doc_1.partner_id, users_internals[1].partner_id)
         self.assertEqual(doc_2.owner_id, self.env.ref("base.user_root"))
+        self.assertEqual(doc_2.partner_id, users_internals[1].partner_id, "The partner was set, do not change it")
         self.assertEqual(doc_3.owner_id, users_internals[0])
+        self.assertFalse(doc_3.partner_id, "The owner is not reset, do not change the contact")
 
         # Check that the folders are not accessible for all users if they have a write group
         # (eg, the payslip folders won't be visible anymore, only HR user can write inside,

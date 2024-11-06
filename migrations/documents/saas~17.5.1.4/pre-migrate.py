@@ -464,10 +464,18 @@ def migrate(cr, version):
                    is_access_via_link_hidden = TRUE,
                    -- Remove the owner for user_specific == TRUE - user_specific_write = FALSE
                    -- Or if the user is not in the "write group"
-                   owner_id = CASE WHEN (NOT folder.write OR rel IS NULL) THEN %s ELSE d.owner_id END
+                   owner_id = CASE WHEN (NOT folder.write OR rel IS NULL) THEN %s ELSE d.owner_id END,
+                   -- Set the contact if we reset the owner and if the contact is false
+                   partner_id = CASE
+                       WHEN (NOT folder.write OR rel IS NULL) AND d.partner_id IS NULL THEN usr.partner_id
+                       ELSE d.partner_id
+                   END
               FROM documents_document AS doc
               JOIN user_specific_folder AS folder
                 ON doc.folder_id = folder.id
+
+         LEFT JOIN res_users AS usr
+                ON usr.id = doc.owner_id
 
                    -- is the owner in the "write group" ?
          LEFT JOIN documents_folder_res_groups_rel AS write_group

@@ -21,7 +21,8 @@ def migrate(cr, version):
         cr.mogrify(
             """
                 UPDATE documents_document
-                   SET owner_id = %s
+                   SET owner_id = %s,
+                       partner_id = COALESCE(document.partner_id, usr.partner_id)
                   FROM documents_document AS document
                   JOIN res_users AS usr
                     ON usr.id = document.owner_id
