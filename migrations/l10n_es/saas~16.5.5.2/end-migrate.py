@@ -1,6 +1,6 @@
 from odoo.upgrade import util
 
-tag_migration_utils = util.import_script("l10n_mn/saas~16.5.1.1/post-migrate.py")
+tag_migration_utils = util.import_script("l10n_mn/saas~16.5.1.1/end-migrate.py")
 
 
 def migrate(cr, version):
