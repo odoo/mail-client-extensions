@@ -1,5 +1,4 @@
 import os
-from collections import Counter
 
 from odoo.upgrade import util
 
@@ -73,39 +72,18 @@ def migrate(cr, version):
     util.rename_module(cr, "website_sale_picking", "website_sale_collect")
     util.rename_module(cr, "l10n_es_pos_tbai", "l10n_es_edi_tbai_pos")
 
-    if util.module_installed(cr, "payment"):
-        cr.execute(
-            """
-            UPDATE payment_provider
-               SET state = 'disabled',
-                   redirect_form_view_id = NULL
-             WHERE "code" IN ('ogone', 'sips')
-               AND state = 'enabled'
-         RETURNING code
-            """
-        )
-        providers = Counter(c for (c,) in cr.fetchall())
-    else:
-        providers = {}
-
-    if providers.get("ogone") and util.module_installed(cr, "payment_ogone"):
-        util.add_to_migration_reports(
-            "The module 'Payment Provider: Ogone' has been removed, as Ogone is replaced by Worldline. Your existing Ogone"
-            " payment providers have been changed to use Worldline instead. Your credentials and existing tokens were"
-            " preserved and should still be working, though the providers have been disabled so you could ensure everything"
-            " is still working as expected.",
-            category="Payments",
-        )
-
     # Ogone uses the same API as Worldline, with the same credentials. We modify the providers so that they continue
     # working. Payment tokens can thus remain untouched and will continue to work through Worldline.
     util.rename_module(cr, "payment_ogone", "payment_worldline")
 
-    if providers.get("sip") and util.module_installed(cr, "payment_sips"):
-        util.add_to_migration_reports(
-            "The module 'Payment Provider: SIPS' has been removed, as SIPS is replaced by Worldline.",
-            category="Payments",
-        )
+    if util.module_installed(cr, "payment_sips"):
+        cr.execute("UPDATE payment_provider SET redirect_form_view_id = NULL WHERE code = 'sips'")
+        cr.execute("UPDATE payment_provider SET state = 'disabled' WHERE code = 'sips' AND state = 'enabled'")
+        if cr.rowcount:
+            util.add_to_migration_reports(
+                "The module 'Payment Provider: SIPS' has been removed, as SIPS is replaced by Worldline.",
+                category="Payments",
+            )
     util.remove_module(cr, "payment_sips")
 
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
