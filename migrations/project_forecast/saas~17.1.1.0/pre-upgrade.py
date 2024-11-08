@@ -15,8 +15,8 @@ def migrate(cr, version):
         # no project is accessible to all companies, we can limit to the companies having projects
         cr.execute("SELECT company_id FROM project_project GROUP BY company_id")
         if cr.rowcount:
-            cids = [c for (c,) in cr.fetchall()]
-            company_filter = cr.mogrify("d.company_id IN %s", cids)
+            cids = tuple(c for (c,) in cr.fetchall())
+            company_filter = cr.mogrify("d.company_id IN %s", [cids])
 
     cols = util.get_columns(cr, "planning_slot_template", ignore=("id", "project_id"))
 
