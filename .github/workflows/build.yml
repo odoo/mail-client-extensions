@@ -1,0 +1,116 @@
+name: Build Gmail App
+
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: 'Additional domains separated by commas'
+        type: string
+        required: false
+        default: 'apik.cloud,*.apik.cloud,apix.bzh,*apix.bzh'
+      push:
+        description: 'Push to CLASP Project'
+        type: boolean
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./gmail    
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.9.0'
+          cache: npm
+          cache-dependency-path: gmail/package-lock.json
+
+      - name: Install Dependencies
+        id: install
+        run: |
+          npm install
+
+      - name: Remove specific lines from src/views/login.ts
+        id: remove
+        if: ${{ inputs.domains }}
+        run: |
+          sed -i '/^ *if (!\/\^https:\/\/([^\\\/?]*\.)?odoo\\.com(\\/|$)\/.test(validatedUrl)) {$/,/^ *}$/d' src/views/login.ts          
+
+      - name: Add domains
+        id: domains
+        if: ${{ inputs.domains }}
+        env:
+          DOMAINS: ${{ inputs.domains }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const domainsInput = process.env.DOMAINS;
+            const filePath = './appsscript.json';
+
+            // Split and format domains
+            const domains = domainsInput.split(',').map(domain => {
+              domain = domain.trim();
+              return domain.startsWith('http') ? domain : 'https://' + domain;
+            });
+
+            // Read existing appsscript.json file
+            const appsscriptData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+            // Ensure urlFetchWhitelist array exists
+            appsscriptData.urlFetchWhitelist = appsscriptData.urlFetchWhitelist || [];
+
+            // Find entries starting with 'https://odoo.com'
+            const odooEntries = appsscriptData.urlFetchWhitelist.filter(entry => entry.startsWith('https://odoo.com'));
+
+            // For each new domain, duplicate the 'https://odoo.com' entries
+            domains.forEach(domain => {
+              odooEntries.forEach(entry => {
+                const newEntry = entry.replace('https://odoo.com', domain);
+                if (!appsscriptData.urlFetchWhitelist.includes(newEntry)) {
+                  appsscriptData.urlFetchWhitelist.push(newEntry);
+                }
+              });
+            });
+
+            // Write the updated appsscript.json file
+            fs.writeFileSync(filePath, JSON.stringify(appsscriptData, null, 2));
+            console.log(`Updated urlFetchWhitelist with new entries for domains: ${domains}`);
+          "    
+      
+      - name: Build
+        id: build
+        run: npx rollup -c
+
+      - name: Upload
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmail
+          path: gmail
+
+      - name: Push
+        id: push
+        if: ${{ inputs.push == 'true' }}
+        uses: daikikatsuragawa/clasp-action@v1.1.0
+        with:
+          accessToken: ${{ secrets.ACCESS_TOKEN }}
+          idToken: ${{ secrets.ID_TOKEN }}
+          refreshToken: ${{ secrets.REFRESH_TOKEN }}
+          clientId: ${{ secrets.CLIENT_ID }}     
+          clientSecret: ${{ secrets.CLIENT_SECRET }}
+          scriptId: ${{ secrets.SCRIPT_ID }}
+          rootDir: 'gmail'
+          command: 'push'
