@@ -16,7 +16,7 @@ def migrate(cr, version):
         cr.execute("SELECT company_id FROM project_project GROUP BY company_id")
         if cr.rowcount:
             cids = tuple(c for (c,) in cr.fetchall())
-            company_filter = cr.mogrify("d.company_id IN %s", [cids])
+            company_filter = cr.mogrify("d.company_id IN %s", [cids]).decode()
 
     cols = util.get_columns(cr, "planning_slot_template", ignore=("id", "project_id"))
 
