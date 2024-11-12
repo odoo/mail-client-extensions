@@ -523,6 +523,32 @@ def migrate(cr, version):
         alias="old_folder",
     )
 
+    # For the special case of the user_specific_write folders on the root, with group=internal,
+    # we keep access_internal=edit, because users won't be able to write on the folder
+    # itself, because it's pinned, but so they can still upload in it after the migration
+    # Done here to not propagate the access on the documents inside of it
+    util.explode_execute(
+        cr,
+        cr.mogrify(
+            """
+            UPDATE documents_document d
+               SET access_internal = 'edit'
+              FROM documents_document AS folder
+              JOIN documents_folder AS old_folder
+                ON old_folder._upg_new_folder_id = folder.id
+               AND old_folder.user_specific_write IS TRUE
+              JOIN documents_folder_res_groups_rel AS write_group
+                ON write_group.documents_folder_id = folder.id
+               AND write_group.res_groups_id = %(internal)s
+             WHERE d.id = folder.id
+               AND d.folder_id IS NULL
+            """,
+            {"internal": internal_id},
+        ).decode(),
+        table="documents_document",
+        alias="folder",
+    )
+
     ###################
     # DOCUMENTS.SHARE #
     ###################

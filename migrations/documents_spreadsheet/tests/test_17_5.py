@@ -17,10 +17,24 @@ class TestSpreadsheetShareMigration(UpgradeCase):
                 )
             }
 
+        group_user = self.env.ref("base.group_user")
+
         folders = self.env["documents.folder"].create(
             [
-                {"name": "Spreadsheet_main"},
-                {"name": "Spreadsheet_other"},
+                {
+                    "name": "Spreadsheet_main",
+                    "user_specific": True,
+                    "user_specific_write": True,
+                    "group_ids": group_user.ids,
+                    "read_group_ids": group_user.ids,
+                },
+                {
+                    "name": "Spreadsheet_other",
+                    "user_specific": True,
+                    "user_specific_write": True,
+                    "group_ids": group_user.ids,
+                    "read_group_ids": group_user.ids,
+                },
             ]
         )
 
@@ -179,3 +193,5 @@ class TestSpreadsheetShareMigration(UpgradeCase):
             company.document_spreadsheet_folder_id.name,
             "Spreadsheet_other",
         )
+
+        self.assertEqual(company.document_spreadsheet_folder_id.access_internal, "edit")
