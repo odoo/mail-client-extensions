@@ -139,7 +139,7 @@ def cleanup_stock_account_property(cr):
         """
     )
     # company_ids whose fallback for product.category.property_valuation is not 'real_time'
-    non_real_time_fallback_company_ids = tuple(cr.fetchone()[0]) if cr.rowcount else ()
+    [non_real_time_fallback_company_ids] = cr.fetchone() or [[]]
 
     cr.execute(
         """
@@ -172,13 +172,13 @@ def cleanup_stock_account_property(cr):
                 ON p.res_id = spv.res_id
                AND p.company_id = spv.company_id
              WHERE COALESCE(spv.property_valuation, '') != 'real_time'
-                OR (spv.res_id IS NULL AND p.company_id IN %s)
+                OR (spv.res_id IS NULL AND p.company_id = ANY(%s))
         )
         DELETE FROM _ir_property p
                USING to_delete d
                WHERE p.id = d.id
         """,
-        (non_real_time_fallback_company_ids,),
+        [non_real_time_fallback_company_ids],
     )
 
 
