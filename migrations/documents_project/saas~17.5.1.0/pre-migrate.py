@@ -49,15 +49,24 @@ def migrate(cr, version):
         """
         WITH doc_with_project_privacy AS (
             SELECT d.id AS document_id,
-                   BOOL_OR(p.privacy_visibility = 'followers') as is_followers
-              FROM project_project p
-         LEFT JOIN project_task t
-                ON p.id = t.project_id
-              JOIN documents_document d
-                ON (res_model = 'project.project' AND res_id = p.id)
-                OR (res_model = 'project.task' AND res_id = t.id)
+                   (p.privacy_visibility = 'followers') as is_followers
+              FROM documents_document d
+              JOIN project_project p
+                ON d.res_model = 'project.project'
+               AND d.res_id = p.id
                AND {parallel_filter}
-          GROUP BY d.id
+
+             UNION
+
+            SELECT d.id AS document_id,
+                   (p.privacy_visibility = 'followers') as is_followers
+              FROM documents_document d
+              JOIN project_task t
+                ON d.res_model = 'project.task'
+               AND d.res_id = t.id
+              JOIN project_project p
+                ON p.id = t.project_id
+               AND {parallel_filter}
         )
         UPDATE documents_document document
            SET access_internal = CASE WHEN dp.is_followers THEN 'none' ELSE 'edit' END,
@@ -88,26 +97,44 @@ def migrate(cr, version):
             SELECT d.id as document_id,
                    CASE p.privacy_visibility WHEN 'followers' THEN 'edit' ELSE 'view' END AS role,
                    f.partner_id as partner_id
-              FROM project_project p
-         LEFT JOIN project_task t
-                ON p.id = t.project_id
+              FROM documents_document d
+              JOIN project_project p
+                ON d.res_model = 'project.project'
+               AND d.res_id = p.id
               JOIN mail_followers f
-                ON (f.res_model = 'project.project' AND f.res_id = p.id)
-                OR (f.res_model = 'project.task' AND f.res_id = t.id)
+                ON f.res_model = 'project.project'
+               AND f.res_id = p.id
               JOIN res_partner rp
                 ON rp.id = f.partner_id
-              JOIN documents_document d
-                ON (d.res_model = f.res_model AND d.res_id = f.res_id)
-                -- Match project followers with their task related documents too
-                OR (    d.res_model = 'project.task' AND d.res_id = t.id
-                    AND f.res_model = 'project.project' AND f.res_id = p.id)
              WHERE (   (p.privacy_visibility = 'followers' AND rp.partner_share IS NOT TRUE)
                     OR (p.privacy_visibility = 'portal' AND rp.partner_share IS TRUE))
                AND p.use_documents IS TRUE
                AND f.partner_id <> %s
                AND d._upg_was_shared IS TRUE
                AND {parallel_filter}
-          GROUP BY d.id, p.privacy_visibility, f.partner_id
+
+             UNION ALL
+
+            SELECT d.id as document_id,
+                   CASE p.privacy_visibility WHEN 'followers' THEN 'edit' ELSE 'view' END AS role,
+                   f.partner_id as partner_id
+              FROM documents_document d
+              JOIN project_task t
+                ON d.res_model = 'project.task'
+               AND d.res_id = t.id
+              JOIN project_project p
+                ON p.id = t.project_id
+              JOIN mail_followers f
+                ON f.res_model = 'project.task' AND f.res_id = t.id
+                OR f.res_model = 'project.project' AND f.res_id = p.id
+              JOIN res_partner rp
+                ON rp.id = f.partner_id
+             WHERE (   (p.privacy_visibility = 'followers' AND rp.partner_share IS NOT TRUE)
+                    OR (p.privacy_visibility = 'portal' AND rp.partner_share IS TRUE))
+               AND p.use_documents IS TRUE
+               AND f.partner_id <> %s
+               AND d._upg_was_shared IS TRUE
+               AND {parallel_filter}
         )
         INSERT INTO documents_access (document_id, role, partner_id)
              SELECT ff.document_id, ff.role, ff.partner_id
@@ -115,7 +142,7 @@ def migrate(cr, version):
         -- because members could have been created with a generic step before this, better safe than sorry
         ON CONFLICT DO NOTHING
         """,
-            [util.ref(cr, "base.partner_root")],
+            [util.ref(cr, "base.partner_root"), util.ref(cr, "base.partner_root")],
         ).decode(),
         table="documents_document",
         alias="d",
