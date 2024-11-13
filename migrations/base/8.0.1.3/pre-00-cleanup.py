@@ -31,3 +31,18 @@ def migrate(cr, version):
             UPDATE "%s" SET name = id WHERE name IS NULL OR name = '';
             ALTER TABLE "%s" ALTER COLUMN name DROP DEFAULT;
             """ % (table, table))
+
+    # add missing PKs from 7.0
+    cr.execute(
+        """
+        SELECT c.relname
+          FROM pg_class c
+     LEFT JOIN pg_constraint p
+            ON p.conrelid = c.oid
+           AND p.contype = 'p'
+         WHERE c.relname IN ('ir_model_constraint', 'ir_model_relation')
+           AND p.oid IS NULL
+        """
+    )
+    for table_name, in cr.fetchall():
+        cr.execute(util.format_query(cr, "ALTER TABLE {} ADD PRIMARY KEY (id)", table_name))
