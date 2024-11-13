@@ -323,6 +323,7 @@ def migrate(cr, version):
     )
 
     # For each non-internal groups, create one <documents.access> per user in the group on the folder
+    # if he's in the company
     cr.execute(
         """
        INSERT INTO documents_access (document_id, partner_id, role, _upg_added_from_group) (
@@ -333,13 +334,17 @@ def migrate(cr, version):
               FROM documents_document AS folder
               JOIN documents_folder_res_groups_rel AS write_group
                 ON folder.id = write_group.documents_folder_id
-              JOIN res_groups_users_rel AS rel
-                ON rel.gid = write_group.res_groups_id
-               AND rel.gid != %(internal)s
+              JOIN res_groups_users_rel AS group_rel
+                ON group_rel.gid = write_group.res_groups_id
+               AND group_rel.gid != %(internal)s
+         LEFT JOIN res_company_users_rel AS comp_rel
+                ON comp_rel.user_id = group_rel.uid
+               AND comp_rel.cid = folder.company_id
               JOIN res_users
-                ON res_users.id = rel.uid
+                ON res_users.id = group_rel.uid
                AND res_users.active
              WHERE folder.type = 'folder'
+               AND (folder.company_id IS NULL OR comp_rel.cid IS NOT NULL)
         )
                 ON CONFLICT DO NOTHING
         """,
@@ -356,13 +361,17 @@ def migrate(cr, version):
               FROM documents_document AS folder
               JOIN documents_folder_read_groups AS read_group
                 ON folder.id = read_group.documents_folder_id
-              JOIN res_groups_users_rel AS rel
-                ON rel.gid = read_group.res_groups_id
-               AND rel.gid != %(internal)s
+              JOIN res_groups_users_rel AS group_rel
+                ON group_rel.gid = read_group.res_groups_id
+               AND group_rel.gid != %(internal)s
+         LEFT JOIN res_company_users_rel AS comp_rel
+                ON comp_rel.user_id = group_rel.uid
+               AND comp_rel.cid = folder.company_id
               JOIN res_users
-                ON res_users.id = rel.uid
+                ON res_users.id = group_rel.uid
                AND res_users.active
              WHERE folder.type = 'folder'
+               AND (folder.company_id IS NULL OR comp_rel.cid IS NOT NULL)
         )
                 ON CONFLICT DO NOTHING
         """,
@@ -407,7 +416,8 @@ def migrate(cr, version):
     user_specific_folder = """
         WITH user_specific_folder AS (
              SELECT folder.id AS id,
-                    COALESCE(user_specific_write, FALSE) AS write
+                    user_specific_write IS TRUE AS write,
+                    folder.company_id
                FROM documents_folder AS old_folder
                JOIN documents_document AS folder
                  ON old_folder.id = folder._upg_old_folder_id
@@ -432,14 +442,20 @@ def migrate(cr, version):
                     -- owner needs the group to be added as viewer
                   JOIN documents_folder_read_groups AS read_group
                     ON folder.id = read_group.documents_folder_id
-                  JOIN res_groups_users_rel AS rel
-                    ON rel.gid = read_group.res_groups_id
+                  JOIN res_groups_users_rel AS group_rel
+                    ON group_rel.gid = read_group.res_groups_id
+
+                    -- owner needs to be in the company
+             LEFT JOIN res_company_users_rel AS comp_rel
+                    ON comp_rel.user_id = group_rel.uid
+                   AND comp_rel.cid = folder.company_id
 
                   JOIN res_users AS u
                     ON u.id = document.owner_id
-                   AND rel.uid = u.id
+                   AND group_rel.uid = u.id
 
                  WHERE NOT folder.write
+                   AND (folder.company_id IS NULL OR comp_rel.cid IS NOT NULL)
             )
                 ON CONFLICT (document_id, partner_id)  -- maybe has write access from group_ids
                 DO UPDATE SET _upg_added_from_group = FALSE
@@ -460,11 +476,19 @@ def migrate(cr, version):
                    END,
                    is_access_via_link_hidden = TRUE,
                    -- Remove the owner for user_specific == TRUE - user_specific_write = FALSE
-                   -- Or if the user is not in the "write group"
-                   owner_id = CASE WHEN (NOT folder.write OR rel IS NULL) THEN %s ELSE d.owner_id END,
+                   -- Or if the user is not in the "write group" / in the folder company
+                   owner_id = CASE WHEN (
+                       NOT folder.write
+                        OR group_rel IS NULL
+                        OR (folder.company_id is NOT NULL AND comp_rel.cid IS NULL)
+                   ) THEN %s ELSE d.owner_id END,
                    -- Set the contact if we reset the owner and if the contact is false
                    partner_id = CASE
-                       WHEN (NOT folder.write OR rel IS NULL) AND d.partner_id IS NULL THEN usr.partner_id
+                       WHEN (
+                           NOT folder.write
+                           OR group_rel IS NULL
+                           OR (folder.company_id is NOT NULL AND comp_rel.cid IS NULL)
+                       ) AND d.partner_id IS NULL THEN usr.partner_id
                        ELSE d.partner_id
                    END
               FROM documents_document AS doc
@@ -477,11 +501,17 @@ def migrate(cr, version):
                    -- is the owner in the "write group" ?
          LEFT JOIN documents_folder_res_groups_rel AS write_group
                 ON folder.id = write_group.documents_folder_id
-         LEFT JOIN res_groups_users_rel AS rel
-                ON rel.gid = write_group.res_groups_id
-               AND rel.uid = doc.owner_id
+         LEFT JOIN res_groups_users_rel AS group_rel
+                ON group_rel.gid = write_group.res_groups_id
+               AND group_rel.uid = doc.owner_id
+
+                   -- owner need to be in the company
+         LEFT JOIN res_company_users_rel AS comp_rel
+                ON comp_rel.user_id = group_rel.uid
+               AND comp_rel.cid = folder.company_id
 
              WHERE doc.id = d.id
+               AND (folder.company_id IS NULL OR comp_rel.cid IS NOT NULL)
             """,
             [util.ref(cr, "base.user_root")],
         ).decode(),

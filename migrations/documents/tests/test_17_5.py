@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 from freezegun import freeze_time
 
 from odoo import fields
+from odoo.exceptions import AccessError
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
@@ -42,9 +43,20 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": f"admin {i}",
                     "login": f"admin {i}",
-                    "groups_id": system_user.ids,
+                    "groups_id": (system_user | internal_user).ids,
+                    "company_id": companies[i].id,
+                    "company_ids": companies.ids,
                 }
                 for i in range(2)
+            ]
+            + [
+                {
+                    "name": "admin 2",
+                    "login": "admin 2",
+                    "groups_id": (system_user | internal_user).ids,
+                    "company_id": companies[0].id,
+                    "company_ids": companies[0].ids,
+                }
             ]
         )
 
@@ -70,11 +82,16 @@ class TestShareMigration(UpgradeCase):
                 {
                     "name": "Folder B",
                     "group_ids": system_user.ids,
+                    "read_group_ids": system_user.ids,
                     "company_id": companies[1].id,
                 },
                 {"name": "Folder C"},
             ]
         )
+
+        f_level0[0].with_user(admins[2]).check_access_rule("read")
+        with self.assertRaises(AccessError):
+            f_level0[1].with_user(admins[2]).check_access_rule("read")
 
         f_level1 = Folder.create(
             [
@@ -539,6 +556,12 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(f_level0.mapped("name"), ["Folder A", "Folder B", "Folder C"])
         self.assertTrue(not any(f_level0.mapped("folder_id")))
 
+        self.assertEqual(f_level0[0].access_ids.mapped("role"), ["edit"] * 3)
+        self.assertEqual(f_level0[0].access_ids.mapped("partner_id"), users_admins.partner_id)
+        self.assertEqual(f_level0[1].access_ids.mapped("role"), ["edit"] * 2)
+        self.assertEqual(f_level0[1].access_ids.mapped("partner_id"), users_admins[:2].partner_id)
+        self.assertFalse(f_level0[2].access_ids)
+
         f_level1 = self.env["documents.document"].search(
             [("name", "=like", "Folder _ _")],
             order="name",
@@ -749,8 +772,8 @@ class TestShareMigration(UpgradeCase):
         ##########################
         # CHECK DOCUMENTS.ACCESS #
         ##########################
-        self.assertEqual(len(f_level0[0].access_ids), 2)
-        self.assertEqual(f_level0[0].access_ids.mapped("role"), ["edit"] * 2)
+        self.assertEqual(len(f_level0[0].access_ids), 3)
+        self.assertEqual(f_level0[0].access_ids.mapped("role"), ["edit"] * 3)
         self.assertEqual(
             f_level0[0].access_ids.mapped("partner_id"),
             users_admins.partner_id,
@@ -761,7 +784,8 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(f_level0[1].access_ids.mapped("role"), ["edit"] * 2)
         self.assertEqual(
             f_level0[1].access_ids.mapped("partner_id"),
-            users_admins.partner_id,
+            users_admins[:2].partner_id,
+            "Third admin is not in company 2",
         )
         self.assertEqual(f_level0[1].access_internal, "none")
         self.assertEqual(f_level1[1].access_via_link, "none")
@@ -792,7 +816,7 @@ class TestShareMigration(UpgradeCase):
             documents[0].access_ids.mapped("partner_id"),
             users_admins.partner_id,
         )
-        self.assertEqual(documents[0].access_ids.mapped("role"), ["edit"] * 2)
+        self.assertEqual(documents[0].access_ids.mapped("role"), ["edit"] * 3)
 
         # "other_group" gained write access, "system" gained read access
         for document in (documents[10], documents[10].folder_id):
@@ -804,7 +828,7 @@ class TestShareMigration(UpgradeCase):
             other_group_access = access.filtered(lambda a: a.partner_id in users_internals.partner_id)
             system_group_access = access.filtered(lambda a: a.partner_id in users_admins.partner_id)
             self.assertEqual(other_group_access.mapped("role"), ["edit", "edit"])
-            self.assertEqual(system_group_access.mapped("role"), ["view", "view"])
+            self.assertEqual(system_group_access.mapped("role"), ["view", "view", "view"])
 
         # Check user_specific
         doc_1, doc_2, doc_3 = documents[7], documents[8], documents[9]
@@ -846,7 +870,7 @@ class TestShareMigration(UpgradeCase):
         self.assertEqual(f_level2[5].access_internal, "view")
         self.assertFalse(f_level2[5].access_ids)
         self.assertEqual(f_level2[8].access_internal, "none")
-        self.assertEqual(f_level2[8].access_ids.mapped("role"), ["edit", "edit"])
+        self.assertEqual(f_level2[8].access_ids.mapped("role"), ["edit", "edit", "edit"])
 
         # Global checks
         self.assertEqual(
