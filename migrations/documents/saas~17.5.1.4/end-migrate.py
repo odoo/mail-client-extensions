@@ -373,6 +373,10 @@ def migrate_workflow_rule(
         """
     )
     workflow_rules = cr.dictfetchall()
+
+    if not workflow_rules:
+        return [], [], []
+
     cr.execute("SELECT id, model FROM ir_model")
     model_by_id = {row["id"]: row["model"] for row in cr.dictfetchall()}
     journal_by_workflow_rule_id = {}
