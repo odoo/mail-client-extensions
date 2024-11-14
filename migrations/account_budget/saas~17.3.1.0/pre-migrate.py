@@ -15,13 +15,15 @@ def migrate(cr, version):
     util.change_field_selection_values(cr, "crossovered.budget.lines", "crossovered_budget_state", state_mapping)
 
     # budget post changes
-    util.remove_model(cr, "account.budget.post", drop_table=False)
+    util.remove_model(cr, "account.budget.post", drop_table=False, ignore_m2m=("account_budget_rel",))
     util.remove_view(cr, "account_budget.view_budget_post_search")
 
     # budget analytic changes
     util.rename_model(cr, "crossovered.budget", "budget.analytic")
     util.rename_model(cr, "crossovered.budget.lines", "budget.line")
     util.rename_field(cr, "budget.analytic", "crossovered_budget_line", "budget_line_ids")
+    # previous behavior was `both` but the new default is `expense`
+    util.create_column(cr, "budget_analytic", "budget_type", "varchar", default="both")
     util.rename_xmlid(cr, *eb("account_budget.view_{crossovered_,}budget_line_graph"))
     util.rename_xmlid(cr, *eb("account_budget.view_{crossovered_,}budget_line_pivot"))
     util.rename_xmlid(cr, *eb("account_budget.view_{crossovered_,}budget_line_form"))
@@ -34,7 +36,7 @@ def migrate(cr, version):
 
     # budget line changes
     util.remove_field(cr, "budget.line", "paid_date")
-    util.remove_field(cr, "budget.line", "general_budget_id")
+    util.remove_field(cr, "budget.line", "general_budget_id", drop_column=False)
     util.remove_field(cr, "budget.line", "analytic_plan_id")
     util.rename_field(cr, "budget.line", "analytic_account_id", "account_id")
     util.rename_field(cr, "budget.line", "crossovered_budget_id", "budget_analytic_id")
@@ -67,7 +69,7 @@ def migrate(cr, version):
             WITH updated_lines AS (
                 SELECT line.id,
                        {distributed_plans},
-                       CASE WHEN account.plan_id = {project_plan_id} THEN account.id ELSE NULL END AS account_id
+                       CASE WHEN account.root_plan_id = {project_plan_id} THEN account.id ELSE NULL END AS account_id
                   FROM budget_line line
                   JOIN account_analytic_account account ON line.account_id = account.id
                  WHERE {{parallel_filter}}
