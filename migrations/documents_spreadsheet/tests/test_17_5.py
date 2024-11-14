@@ -158,7 +158,7 @@ class TestSpreadsheetShareMigration(UpgradeCase):
             self.assertTrue(frozen_folder.active)
             self.assertEqual(frozen_folder.handler, "frozen_folder")
             self.assertEqual(frozen_folder.access_via_link, "none")
-            self.assertEqual(frozen_folder.access_internal, "view")
+            self.assertEqual(frozen_folder.access_internal, "none")
             self.assertEqual(frozen_folder.parent_path, f"{frozen_folder.folder_id.parent_path}{frozen_folder.id}/")
         self.assertEqual(
             set(frozen_folders.mapped("folder_id.name")),

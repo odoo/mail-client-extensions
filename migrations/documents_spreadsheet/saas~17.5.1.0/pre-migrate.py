@@ -46,7 +46,7 @@ def migrate(cr, version):
                     doc.folder_id,
                     %(odoobot)s,
                     'none',
-                    'view',
+                    'none',
                     TRUE,
                     COALESCE(folder.parent_path, '') -- start with folder when we don't know the id
                FROM frozen_spreadsheets
