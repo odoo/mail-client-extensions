@@ -133,7 +133,7 @@ def migrate(cr, version):
                 """,
                 table,
             ),
-            [r"^(.*?)(?:\d{0,9})(?:\D*?)$", r"^(?:.*?)(\d{{0,9}})(?:\D*?)$"],
+            [r"^(.*?)(?:\d{0,9})(?:\D*?)$", r"^(?:.*?)(\d{0,9})(?:\D*?)$"],
         ).decode()
         query = query.replace("{", "{{").replace("}", "}}")
         util.parallel_execute(cr, util.explode_query_range(cr, query, table))
