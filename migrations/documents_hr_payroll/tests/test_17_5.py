@@ -5,10 +5,13 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 class TestShareMigration(UpgradeCase):
     def prepare(self):
         """Check that documents manager can not read others payslips after the upgrade."""
+        company = self.env["res.company"].create({"name": "Company"})
         user_1 = self.env["res.users"].create(
             {
                 "name": "Test HR 1",
                 "login": "test_hr_1",
+                "company_id": company.id,
+                "company_ids": company.ids,
                 "groups_id": [(6, 0, [self.env.ref("documents.group_documents_manager").id])],
             }
         )
@@ -16,6 +19,8 @@ class TestShareMigration(UpgradeCase):
             {
                 "name": "Test HR 2",
                 "login": "test_hr_2",
+                "company_id": company.id,
+                "company_ids": company.ids,
                 "groups_id": [(6, 0, [self.env.ref("documents.group_documents_manager").id])],
             }
         )
@@ -24,6 +29,8 @@ class TestShareMigration(UpgradeCase):
             {
                 "name": "Test HR 3",
                 "login": "test_hr_3",
+                "company_id": company.id,
+                "company_ids": company.ids,
                 "groups_id": [
                     (6, 0, [self.env.ref("hr.group_hr_user").id, self.env.ref("documents.group_documents_manager").id])
                 ],
@@ -36,6 +43,7 @@ class TestShareMigration(UpgradeCase):
                 "group_ids": [(4, self.env.ref("hr.group_hr_user").id)],
                 "read_group_ids": [(4, self.env.ref("base.group_user").id)],
                 "user_specific": True,
+                "company_id": company.id,
             }
         )
         document_1 = self.env["documents.document"].create(

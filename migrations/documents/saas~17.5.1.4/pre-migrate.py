@@ -511,7 +511,6 @@ def migrate(cr, version):
                AND comp_rel.cid = folder.company_id
 
              WHERE doc.id = d.id
-               AND (folder.company_id IS NULL OR comp_rel.cid IS NOT NULL)
             """,
             [util.ref(cr, "base.user_root")],
         ).decode(),
