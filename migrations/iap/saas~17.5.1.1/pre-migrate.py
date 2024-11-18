@@ -39,4 +39,4 @@ def migrate(cr, version):
           FROM iap_service
          WHERE iap_account.service_name = iap_service.technical_name""")
 
-    util.remove_field(cr, "iap.account", "service_name")
+    util.remove_column(cr, "iap_account", "service_name")
