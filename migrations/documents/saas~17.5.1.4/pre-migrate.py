@@ -1,12 +1,18 @@
 import ast
 import base64
 import uuid
+from collections import defaultdict
+from os import getenv
 
 import psycopg2
 from psycopg2 import sql
+from psycopg2.extras import execute_values
 
 from odoo.upgrade import util
 from odoo.upgrade.util.inconsistencies import break_recursive_loops
+
+FOLDERS_GROUPS_MAX_MEMBERS = 49
+DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS_OPTIONS = {"SET_NOBODY", "SET_USER_SPECIFIC", "ACCEPT_AS_IS"}
 
 
 def migrate(cr, version):
@@ -60,6 +66,10 @@ def migrate(cr, version):
     cr.execute("ALTER TABLE documents_document ALTER COLUMN folder_id DROP NOT NULL")
     util.create_column(cr, "documents_document", "_upg_old_folder_id", "int4")
     util.create_column(cr, "documents_folder", "_upg_new_folder_id", "int4")
+
+    internal_id = util.ref(cr, "base.group_user")
+
+    check_or_raise_large_groups(cr, internal_id)
 
     # Avoid unique constraints failures during update
     cr.execute("ALTER TABLE documents_folder_read_groups DROP CONSTRAINT IF EXISTS documents_folder_read_groups_pkey")
@@ -290,8 +300,6 @@ def migrate(cr, version):
     # DOCUMENTS.ACCESS #
     ####################
 
-    internal_id = util.ref(cr, "base.group_user")
-
     cr.execute(
         """
         CREATE TABLE documents_access (
@@ -412,6 +420,9 @@ def migrate(cr, version):
         """,
         {"internal": internal_id},
     )
+
+    # Check that large groups mitigation was unnecessary or done correctly
+    check_or_raise_many_members(cr)
 
     # Copy the <documents.access> of the folders, on the direct documents inside of it
     cr.execute(
@@ -1145,3 +1156,218 @@ def fix_missing_document_tokens(cr):
               WHERE document_token IS NULL
             """
         )
+
+
+def check_or_raise_large_groups(cr, internal_id):
+    large_groups_option = getenv("ODOO_UPG_18_DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS")
+    if large_groups_option and large_groups_option not in DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS_OPTIONS:
+        raise util.MigrationError("Documents: Incorrect value for ODOO_UPG_18_DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS.")
+    if large_groups_option == "ACCEPT_AS_IS":
+        return
+
+    cr.execute(
+        """
+        WITH groups_company_users AS (
+            SELECT gu.gid AS gid,
+                   gu.uid AS uid,
+                   cu.cid AS cid
+              FROM res_groups_users_rel gu
+              JOIN res_company_users_rel cu
+                ON cu.user_id = gu.uid
+             WHERE gu.gid <> %(internal)s
+
+         UNION ALL
+
+            SELECT gid,
+                   uid,
+                   NULL::int4 AS cid
+              FROM res_groups_users_rel
+             WHERE gid <> %(internal)s
+        ),
+        -- Get all non-user-specific groups for each folder
+        folders_groups_kind AS (
+            SELECT rg.documents_folder_id AS fid,
+                   rg.res_groups_id AS gid,
+                   'READ' AS kind
+              FROM documents_folder_read_groups rg
+              JOIN documents_folder f
+                ON f.id = rg.documents_folder_id
+               AND f.user_specific IS NOT TRUE
+             WHERE rg.res_groups_id <> %(internal)s
+
+         UNION ALL
+
+             SELECT wg.documents_folder_id AS fid,
+                    wg.res_groups_id AS gid,
+                    'WRITE' AS kind
+              FROM documents_folder_res_groups_rel wg
+              JOIN documents_folder f
+                ON f.id = wg.documents_folder_id
+               AND f.user_specific_write IS NOT TRUE
+             WHERE res_groups_id <> %(internal)s
+        ),
+        -- Get unique groups for each folder
+        folders_unique_groups AS (
+            SELECT fid,
+                   gid
+              FROM folders_groups_kind
+          GROUP BY fid, gid
+        ),
+        -- Identify folders with too many unique active allowed users across groups
+        many_users_folders AS (
+            SELECT f.id AS fid,
+                   f.name as fname,
+                   c.name as cname,
+                   COUNT(DISTINCT gcu.uid) AS total_users
+              FROM documents_folder f
+         LEFT JOIN res_company c
+                ON c.id = f.company_id
+              JOIN folders_unique_groups fug
+                ON fug.fid = f.id
+              JOIN groups_company_users gcu
+                ON gcu.gid = fug.gid
+               AND gcu.cid IS NOT DISTINCT FROM f.company_id
+              JOIN res_users u
+                ON u.id = gcu.uid
+               AND u.active
+          GROUP BY f.id, f.name, c.name
+            HAVING COUNT(DISTINCT gcu.uid) > %(max_members)s
+        )
+        -- Retrieve groups info
+        SELECT muf.fid AS folder_id,
+               muf.fname->>'en_US',
+               muf.cname,
+               muf.total_users,
+               JSONB_AGG(JSONB_BUILD_OBJECT(
+                    'kind', fgk.kind,
+                    'name', g.name->>'en_US',
+                    'id', fgk.gid
+               ))
+          FROM many_users_folders muf
+          JOIN folders_groups_kind fgk
+            ON muf.fid = fgk.fid
+          JOIN res_groups g
+            ON fgk.gid = g.id
+      GROUP BY muf.fid, muf.fname->>'en_US', muf.cname, muf.total_users
+      ORDER BY muf.total_users DESC
+    """,
+        {"max_members": FOLDERS_GROUPS_MAX_MEMBERS, "internal": internal_id},
+    )
+    folders_groups_data = cr.fetchall()
+
+    if not folders_groups_data:
+        return
+    many_members_folder_ids = [folder_data[0] for folder_data in folders_groups_data]
+
+    if large_groups_option == "SET_NOBODY":
+        # replace large groups with temporary empty group
+        group_nobody_id = util.ENVIRON["documents_group_nobody_id"] = (
+            util.env(cr)["res.groups"].create({"name": "_UPG_NOBODY"}).id
+        )
+        cr.execute(
+            """
+            WITH _rm AS (
+               DELETE
+                 FROM documents_folder_read_groups r
+                WHERE documents_folder_id = ANY(%(large_read)s)
+            RETURNING documents_folder_id
+            )
+         INSERT INTO documents_folder_read_groups(documents_folder_id, res_groups_id)
+              SELECT documents_folder_id, %(group_nobody)s
+                FROM _rm
+            GROUP BY documents_folder_id
+        """,
+            {"group_nobody": group_nobody_id, "large_read": many_members_folder_ids},
+        )
+        cr.execute(
+            """
+            WITH _rm AS (
+               DELETE
+                 FROM documents_folder_res_groups_rel r
+                WHERE documents_folder_id = ANY(%(large_write)s)
+            RETURNING documents_folder_id
+            )
+     INSERT INTO documents_folder_res_groups_rel(documents_folder_id, res_groups_id)
+          SELECT documents_folder_id, %(group_nobody)s
+            FROM _rm
+        GROUP BY documents_folder_id
+        """,
+            {"group_nobody": group_nobody_id, "large_write": many_members_folder_ids},
+        )
+
+    elif large_groups_option == "SET_USER_SPECIFIC":
+        execute_values(
+            cr._obj,
+            """
+            UPDATE documents_folder f
+               SET user_specific = TRUE,
+                   user_specific_write = TRUE
+              FROM (VALUES %s) AS fus (folder_id)
+             WHERE fus.folder_id = f.id
+        """,
+            many_members_folder_ids,
+        )
+        return
+
+    # Otherwise, prepare helpful error message
+    workspaces_users_report_lines = []
+    for folder_id, folder_name, company_name, folder_users, folder_groups in folders_groups_data:
+        kinds_groups = defaultdict(list)
+        for group in folder_groups:
+            kinds_groups[group["kind"]].append((group["id"], group["name"]))
+        folder_kind_groups = []
+        for kind, kind_groups in kinds_groups.items():
+            groups_list = ", ".join(f'"{group_name}" (id={group_id})' for group_id, group_name in kind_groups)
+            folder_kind_groups.append(f"    * {kind}: {groups_list}")
+        kind_groups_message = "\n".join(folder_kind_groups)
+        workspaces_users_report_lines.append(
+            f'- [{int(folder_users)} users]: "{folder_name}" (id={folder_id}, company={company_name}) '
+            f"with groups:\n{kind_groups_message}"
+        )
+    workspaces_users_report = "\n".join(workspaces_users_report_lines)
+
+    raise util.MigrationError(f"""
+Many-member groups used on Documents Workspaces:
+
+{workspaces_users_report}
+
+Upgrading as-is would have two downsides:
+    1. The access rights panel could get *very* hard to manage (adding or removing members among a large list)
+    2. The Documents application can become slow to use
+
+Several options are available, possibly in combination:
+
+    1. Adapting your configuration:
+      * If restricting is not that important, remove the group configuration on the folder
+      * If restricting is important:
+        * Use another group with fewer members instead / reduce the number of members of the group
+        * Set the group as user-specific (read/write) so users keep access to their own documents only
+
+    2. Ask Odoo Support to enable one of the following settings (this can be done after 1 too) using
+      the ODOO_UPG_18_DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS key with the following possible values:
+      * [SET_USER_SPECIFIC]: Set these folders groups configuration as USER_SPECIFIC for READ AND WRITE automatically
+      * [SET_NOBODY]: Set these folders as restricted access, only users with the new Documents group
+        "System Administrator" will be able to view and edit these folders (including access rights)
+        after the upgrade.
+      * [ACCEPT_AS_IS] Confirm that the current configuration is what you need and upgrade as-is.
+""")
+
+
+def check_or_raise_many_members(cr):
+    large_groups_option = getenv("ODOO_UPG_18_DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS")
+    if large_groups_option == "ACCEPT_AS_IS":
+        return
+
+    cr.execute(
+        """
+        SELECT COUNT(*)
+          FROM documents_access
+      GROUP BY document_id
+        HAVING COUNT(*) > %(max_members)s
+        """,
+        {"max_members": FOLDERS_GROUPS_MAX_MEMBERS},
+    )
+    if cr.fetchall():
+        if large_groups_option:
+            raise util.MigrationError("Documents: Failure to mitigate large number of members.")
+        raise util.MigrationError("Documents: unexpectedly large number of members to be created.")

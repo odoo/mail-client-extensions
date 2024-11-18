@@ -169,6 +169,9 @@ def migrate(cr, version):
 
     util.remove_column(cr, "ir_act_server", "_upg_name")
 
+    if gid := util.ENVIRON.get("documents_group_nobody_id"):
+        util.remove_record(cr, ("res.groups", gid))
+
     ###############
     # ACCESS.RULE #
     ###############
