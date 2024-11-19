@@ -108,6 +108,7 @@ def migrate(cr, version):
     )
 
     # 6. remove model ir.property
+    util.remove_record(cr, "base.ir_property_form")
     util.remove_model(cr, "ir.property")
 
 
