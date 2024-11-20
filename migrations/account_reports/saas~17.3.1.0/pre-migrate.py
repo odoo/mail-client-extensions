@@ -14,4 +14,5 @@ def migrate(cr, version):
     util.remove_record(cr, "account_reports.account_financial_report_executivesummary_avdebt0_deb")
     util.remove_record(cr, "account_reports.account_financial_report_executivesummary_avgcre0_cre")
 
-    util.delete_unused(cr, "account_reports.mail_activity_type_tax_report_to_be_sent")
+    if not util.version_gte("saas~17.4"):  # In case of upgrade to 17.3
+        util.delete_unused(cr, "account_reports.mail_activity_type_tax_report_to_be_sent")
