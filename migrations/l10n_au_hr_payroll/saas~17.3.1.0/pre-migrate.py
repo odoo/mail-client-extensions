@@ -55,11 +55,14 @@ def migrate(cr, version):
 
     cr.execute("UPDATE hr_contract SET l10n_au_casual_loading = l10n_au_casual_loading / 100;")
 
-    util.rename_xmlid(
-        cr,
-        "l10n_au_hr_payroll.hr_payslip_run_form_inherit_l10n_au_hr_payroll",
-        "l10n_au_hr_payroll_account.hr_payslip_run_form_inherit_l10n_au_hr_payroll",
-    )
+    if util.module_installed(cr, "l10n_au_hr_payroll_account"):
+        util.rename_xmlid(
+            cr,
+            *util.expand_braces("l10n_au_hr_payroll{,_account}.hr_payslip_run_form_inherit_l10n_au_hr_payroll"),
+        )
+    else:
+        util.remove_view(cr, "l10n_au_hr_payroll.hr_payslip_run_form_inherit_l10n_au_hr_payroll")
+
     util.remove_field(cr, "hr.payslip.run", "l10n_au_export_aba_file")
     util.remove_field(cr, "hr.payslip.run", "l10n_au_export_aba_filename")
 
