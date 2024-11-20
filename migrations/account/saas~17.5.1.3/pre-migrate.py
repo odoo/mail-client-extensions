@@ -195,10 +195,12 @@ def migrate(cr, version):
     util.rename_field(cr, "account.payment.register", "duplicate_move_ids", "duplicate_payment_ids")
     util.create_column(cr, "account_payment", "name", "varchar")
     util.create_column(cr, "account_payment", "state", "varchar")
+    util.create_column(cr, "account_payment", "date", "date")
     query_update_payment_from_move = """
         UPDATE account_payment
            SET name = move.name,
                memo = move.ref,
+               date = move.date,
                is_sent = move.is_move_sent,
                state = CASE WHEN move.state = 'draft' THEN 'draft'
                             WHEN move.state = 'posted' AND NOT account_payment.is_matched THEN 'in_process'
