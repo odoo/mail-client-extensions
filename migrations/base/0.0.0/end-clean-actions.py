@@ -12,6 +12,12 @@ def migrate(cr, version):
         inh.model for inh in util.for_each_inherit(cr, "ir.actions.actions") if not inh.via
     ]
 
+    # These columns have constraints that collide with a null value and are supposed to cascade on delete
+    removable_refs = [
+        ("ir_filters", "action_id"),
+        ("studio_approval_rule", "action_id"),
+    ]
+
     cr.execute(
         """
         SELECT model, name, required
@@ -26,7 +32,7 @@ def migrate(cr, version):
         table = util.table_of_model(cr, model)
         if not util.column_updatable(cr, table, column):
             continue
-        if required:
+        if required or (table, column) in removable_refs:
             query = util.format_query(
                 cr,
                 """
@@ -35,8 +41,10 @@ def migrate(cr, version):
                  WHERE NOT EXISTS(
                     SELECT 1 FROM ir_actions a WHERE a.id = t.{}
                  )
+                   AND t.{} IS NOT NULL
                 """,
                 table,
+                column,
                 column,
             )
             cr.execute(query)
