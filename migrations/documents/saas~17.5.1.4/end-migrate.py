@@ -102,6 +102,7 @@ def migrate(cr, version):
         """
     )
     excluded_tag_ids_by_workflow_rule = dict(cr.fetchall())
+    cr.execute("CREATE SEQUENCE _upg_document_sequence_action")
     queries_steps = migrate_workflow_rule(
         cr=cr,
         document_model_id=document_model_id,
@@ -116,6 +117,7 @@ def migrate(cr, version):
     )
     for queries in queries_steps:
         util.parallel_execute(cr, queries)
+    cr.execute("DROP SEQUENCE _upg_document_sequence_action")
     cr.execute(
         "SELECT id FROM ir_act_server WHERE _upg_name IS NOT NULL AND _upg_name NOT IN %s",
         [tuple(init_existing_server_act)],
@@ -150,14 +152,11 @@ def migrate(cr, version):
     # we might need those field for the sub-modules migration
     util.remove_column(cr, "documents_document", "_upg_old_folder_id")
     util.remove_column(cr, "documents_document", "_upg_was_shared")
-    util.remove_field(cr, "documents.document", "create_share_id")
     util.remove_field(cr, "documents.document", "group_ids")
     util.remove_field(cr, "documents.document", "available_rule_ids")
     util.remove_field(cr, "documents.document", "is_shared")
 
     util.remove_column(cr, "documents_access", "_upg_added_from_group")
-
-    util.remove_field(cr, "documents.tag", "folder_id")
 
     util.remove_model(cr, "documents.folder")
     util.remove_model(cr, "documents.share")
@@ -655,18 +654,18 @@ def migrate_workflow_rule(
                     """
                     WITH inserted_ea AS (
                         INSERT INTO ir_embedded_actions("create_uid", "create_date", "write_uid", "write_date", "name", "parent_action_id", "action_id", "parent_res_model", "parent_res_id", "sequence")
-                             VALUES (
-                             1, -- create_uid
-                             now() at time zone 'utc', -- create_date
-                             1, -- write_uid
-                             now() at time zone 'utc', -- write_date
-                             jsonb_build_object('en_US', %s), -- name
-                             %s, -- parent_action_id
-                             (SELECT id FROM ir_act_server WHERE _upg_name = %s), -- action_id
-                             'documents.document', -- parent_res_model
-                             %s, -- parent_res_id
-                             (SELECT MAX(sequence) FROM ir_embedded_actions) + 1 -- sequence
-                             )
+                             SELECT 1, -- create_uid
+                                    now() at time zone 'utc', -- create_date
+                                    1, -- write_uid
+                                    now() at time zone 'utc', -- write_date
+                                    jsonb_build_object('en_US', %s), -- name
+                                    %s, -- parent_action_id
+                                    ir_act_server.id, -- action_id
+                                    'documents.document', -- parent_res_model
+                                    %s, -- parent_res_id
+                                    nextval('_upg_document_sequence_action') -- sequence
+                               FROM ir_act_server
+                              WHERE _upg_name = %s
                         RETURNING id
                     )
                     INSERT INTO ir_embedded_actions_res_groups_rel("ir_embedded_actions_id", "res_groups_id")
@@ -676,8 +675,8 @@ def migrate_workflow_rule(
                     [
                         server_action["name"],
                         documents_action_id,
-                        server_action["upg_name"],
                         server_action["folder_id"],
+                        server_action["upg_name"],
                         internal_id,
                     ],
                 )

@@ -50,3 +50,13 @@ def migrate(cr, version):
 
     domain = [("state", "!=", "disabled"), ("code", "=", "worldline")]
     PaymentProvider.search(domain)._activate_default_pms()
+
+    if util.module_installed(cr, "account_payment"):
+        cr.execute(
+            """
+            UPDATE account_payment_method
+               SET code = 'worldline',
+                   name = jsonb_build_object('en_US', 'Worldline')
+             WHERE code = 'ogone'
+            """
+        )

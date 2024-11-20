@@ -72,44 +72,23 @@ def migrate(cr, version):
     util.rename_module(cr, "website_sale_picking", "website_sale_collect")
     util.rename_module(cr, "l10n_es_pos_tbai", "l10n_es_edi_tbai_pos")
 
-    if util.module_installed(cr, "payment"):
-        cr.execute(
-            """
-            UPDATE payment_provider
-               SET state = 'disabled',
-                   redirect_form_view_id = NULL
-             WHERE "code" IN ('ogone', 'sips')
-            """
-        )
-        if util.module_installed(cr, "payment_ogone"):
-            # Ogone uses the same API as Worldline, with the same credentials. We modify the providers so that they continue
-            # working. Payment tokens can thus remain untouched and will continue to work through Worldline.
-            util.rename_xmlid(cr, "payment_ogone.payment_provider_ogone", "payment.payment_provider_worldline")
-            # Moving credentials fields to payment_worldline before the removing of Ogone to keep them
-            util.move_field_to_module(cr, "payment.provider", "ogone_pspid", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_userid", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_password", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_shakey_in", "payment_ogone", "payment_worldline")
-            util.move_field_to_module(cr, "payment.provider", "ogone_shakey_out", "payment_ogone", "payment_worldline")
-            util.add_to_migration_reports(
-                "The module 'Payment Provider: Ogone' has been removed, as Ogone is replaced by Worldline. Your existing Ogone"
-                " payment providers have been changed to use Worldline instead. Your credentials and existing tokens were"
-                " preserved and should still be working, though the providers have been disabled so you could ensure everything"
-                " is still working as expected.",
-                category="Payments",
-            )
-            util.modules_auto_discovery(cr, force_installs={"payment_worldline"}, force_upgrades={"payment_worldline"})
-        if util.module_installed(cr, "payment_sips"):
+    # Ogone uses the same API as Worldline, with the same credentials. We modify the providers so that they continue
+    # working. Payment tokens can thus remain untouched and will continue to work through Worldline.
+    util.rename_module(cr, "payment_ogone", "payment_worldline")
+
+    if util.module_installed(cr, "payment_sips"):
+        cr.execute("UPDATE payment_provider SET redirect_form_view_id = NULL WHERE code = 'sips'")
+        cr.execute("UPDATE payment_provider SET state = 'disabled' WHERE code = 'sips' AND state = 'enabled'")
+        if cr.rowcount:
             util.add_to_migration_reports(
                 "The module 'Payment Provider: SIPS' has been removed, as SIPS is replaced by Worldline.",
                 category="Payments",
             )
-        util.change_field_selection_values(cr, "payment.provider", "code", {"ogone": "worldline", "sips": "none"})
-    util.remove_module(cr, "payment_ogone")
     util.remove_module(cr, "payment_sips")
 
     util.merge_module(cr, "l10n_mx_edi_stock_extended_31", "l10n_mx_edi_stock_extended")
     util.merge_module(cr, "l10n_mx_edi_stock_extended", "l10n_mx_edi_stock")
+    util.force_upgrade_of_fresh_module(cr, "l10n_mx_edi_extended")  # new dep of `l10n_mx_edi_stock`; needs bootstraping
     util.force_upgrade_of_fresh_module(cr, "html_editor", init=False)
     util.force_upgrade_of_fresh_module(cr, "l10n_br_edi_website_sale")
     if util.module_installed(cr, "mrp_account") and not util.module_installed(cr, "project"):

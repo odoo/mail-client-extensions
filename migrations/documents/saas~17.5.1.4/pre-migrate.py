@@ -30,6 +30,7 @@ def migrate(cr, version):
     # DOCUMENTS.DOCUMENT #
     ######################
 
+    util.remove_field(cr, "documents.document", "create_share_id")
     util.change_field_selection_values(cr, "documents.document", "type", {"empty": "binary"})
 
     #####################
@@ -194,9 +195,13 @@ def migrate(cr, version):
     """
     )
 
+    util.create_column(cr, "documents_document", "is_pinned_folder", "boolean", default=False)
+
     ###################
     # DOCUMENTS.TAGS  #
     ###################
+
+    util.remove_field(cr, "documents.tag", "folder_id")
 
     # Remove duplicated tags, and keep only one per name, in the English version.
     # Fill a table that will map the removed tag to the one we kept
@@ -217,7 +222,7 @@ def migrate(cr, version):
     _tags_mapping = {src: dest for src, dest in tags_mapping.items() if src != dest}
     if _tags_mapping:
         util.replace_record_references_batch(cr, _tags_mapping, "documents.tag", replace_xmlid=True)
-        cr.execute("DELETE FROM documents_tag WHERE id = ANY(%s)", [list(_tags_mapping)])
+        util.remove_records(cr, "documents.tag", list(_tags_mapping))
 
     # Some tags have been removed because the names were duplicated
     # map the removed tags to new one
@@ -250,6 +255,30 @@ def migrate(cr, version):
     for old_name, new_name in mapping.items():
         # rename the first element
         util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}")
+
+    # Ensure those tags exists.
+    # We can't use `util.update_record_from_xml` as the `documents.tag` model is not known by the ORM
+    # at this point (we are in`pre`) and those records are needed for the parsing of the XML data files.
+    tags = {
+        "inbox": ("Inbox", 4),
+        "to_validate": ("To Validate", 6),
+        "validated": ("Validated", 8),
+        "bill": ("To Bill", 4),
+    }
+    for xid, (name, sequence) in tags.items():
+        if util.ref(cr, f"documents.documents_tag_{xid}"):
+            continue
+        query = """
+            WITH _tag AS (
+                INSERT INTO documents_tag(name, sequence)
+                     VALUES (jsonb_build_object('en_US', %s), %s)
+                  RETURNING id
+            )
+            INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
+                 SELECT 'documents', 'documents_tag_' || %s, 'documents.tag', id, true
+                   FROM _tag
+        """
+        cr.execute(query, [name, sequence, xid])
 
     ####################
     # DOCUMENTS.ACCESS #
@@ -586,10 +615,15 @@ def migrate(cr, version):
     ###################
     # DOCUMENTS.SHARE #
     ###################
+    # remove non-indexed FK to accelerate the deletion.
+    # (this is not an issue as the model, and its FKs, will be removed anyway)
+    for table, column, constraint_name, _action in util.get_fk(cr, "documents_share", quote_ident=False):
+        if not util.get_index_on(cr, table, column):
+            cr.execute(util.format_query(cr, "ALTER TABLE {} DROP CONSTRAINT {}", table, constraint_name))
 
     # Remove all shares with an expiration date, because we don't support that feature
     # anymore (and we don't want to extend the access the user had)
-    cr.execute("DELETE FROM documents_share WHERE date_deadline IS NOT NULL")
+    util.explode_execute(cr, "DELETE FROM documents_share WHERE date_deadline IS NOT NULL", table="documents_share")
 
     # When migrating the shares, because we will do a stupid redirection,
     # we can not keep access_via_link == edit (otherwise the read share will gain write access)
@@ -765,6 +799,35 @@ def migrate(cr, version):
         alias="document",
     )
 
+    # Create an alias for the other documents (column is required)
+    util.explode_execute(
+        cr,
+        # FIXME is it `alias_parent_*` or `alias_force_*` columns that should be filled?
+        cr.mogrify(
+            """
+            WITH _aliases AS (
+                INSERT INTO mail_alias(alias_name, alias_model_id, alias_force_thread_id,
+                                       alias_defaults,
+                                       alias_contact, alias_status)
+                   SELECT NULL, %s, d.id,
+                          jsonb_build_object('folder_id', d.id)::text,
+                          'followers', 'invalid'
+                     FROM documents_document d
+                    WHERE d.alias_id IS NULL
+                      AND {parallel_filter}
+                RETURNING id, alias_force_thread_id
+            )
+            UPDATE documents_document d
+               SET alias_id = a.id
+              FROM _aliases a
+             WHERE a.alias_force_thread_id = d.id
+            """,
+            [document_model_id],
+        ).decode(),
+        table="documents_document",
+        alias="d",
+    )
+
     # Fix `alias_parent_model_id` and `alias_parent_thread_id`
     util.explode_execute(
         cr,
@@ -891,20 +954,22 @@ def migrate(cr, version):
         )
 
     # Update the `folder_id` key in `alias_defaults`
-    cr.execute(
+    query = cr.mogrify(
         r"""
-         UPDATE mail_alias
+         UPDATE mail_alias a
             SET alias_defaults = REGEXP_REPLACE(
                     alias_defaults,
                     '''folder_id'':\s*([0-9]+)',
                     '''folder_id'': ' || document.id
                 )
            FROM documents_document AS document
-          WHERE alias_model_id = %(document_model_id)s
-            AND alias_defaults ~ ('''folder_id'':\s*' || (document._upg_old_folder_id::text) || '\D')
+          WHERE a.alias_model_id = %s
+            AND a.alias_defaults ~ ('''folder_id'':\s*' || (document._upg_old_folder_id::text) || '\D')
+            AND document._upg_old_folder_id IS NOT NULL
         """,
-        {"document_model_id": document_model_id},
-    )
+        [document_model_id],
+    ).decode()
+    util.explode_execute(cr, query, table="mail_alias", alias="a")
 
     # Update alias_defaults for creating activity on secondary alias
     # Note that the document created with the alias_defaults is used as a template for creating all the document for all the
