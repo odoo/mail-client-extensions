@@ -403,7 +403,7 @@ product_product_id)
                SET payment_exception=true
               FROM account_analytic_tag_sale_subscription_rel rel
              WHERE so.old_subscription_id=rel.sale_subscription_id
-              AND account_analytic_tag_id=%s
+               AND rel.account_analytic_tag_id=%s
                 """,
                 [payment_exception_tag_id],
             ).decode(),
