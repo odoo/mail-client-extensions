@@ -25,7 +25,7 @@ def migrate(cr, version):
     """)
     warn_indexes = []
     for index_name, table_name, index_def in cr.fetchall():
-        condition = index_def.split("WHERE", limit=1)[1]
+        condition = index_def.split("WHERE", maxsplit=1)[1]
         warn_indexes.append("{!r} on {!r} with condition `{}`".format(index_name, table_name, condition))
     if warn_indexes:
         _logger.warning(
