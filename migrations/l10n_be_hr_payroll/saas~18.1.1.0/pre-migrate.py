@@ -14,3 +14,9 @@ def migrate(cr, version):
             "Belgium Payroll",
         )
     util.remove_field(cr, "hr.employee", "fiscal_voluntary_rate")
+
+    util.create_column(cr, "hr_departure_reason", "l10n_be_reason_code", "int4")
+    cr.execute("""
+        UPDATE hr_departure_reason
+           SET l10n_be_reason_code = reason_code
+    """)
