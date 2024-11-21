@@ -1023,3 +1023,9 @@ class IrUiView(models.Model):
             if self.env.context.get("_upgrade_custom_modules"):
                 return None
             return super()._validate_tag_label(*args, **kwargs)
+
+    if util.version_gte("saas~18.1"):
+
+        def write(self, vals):
+            # write calls _check_xml, ensure we defuse it
+            return super(IrUiView, self.with_context(_upgrade_validate_views=False)).write(vals)
