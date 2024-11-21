@@ -111,6 +111,8 @@ def migrate(cr, version):
     # documents_share will be used during the upgrade, keep the reference to documents_folder
     util.remove_constraint(cr, "documents_share", "documents_share_folder_id_fkey")
 
+    cr.execute("ALTER TABLE documents_facet DROP CONSTRAINT IF EXISTS documents_facet_name_unique")
+
     # replace all FKs to documents_folder by the new documents_document
     actions_map = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}
     for table, column, constraint_name, action in util.get_fk(cr, "documents_folder"):
@@ -159,6 +161,8 @@ def migrate(cr, version):
                 ),
             )
         )
+
+    cr.execute("ALTER TABLE documents_facet ADD CONSTRAINT documents_facet_name_unique UNIQUE(folder_id, name)")
 
     # Restore primary keys (also integrity check post re-referencing)
     for m2m in ("documents_folder_read_groups", "documents_folder_res_groups_rel"):
