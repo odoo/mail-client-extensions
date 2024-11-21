@@ -315,6 +315,7 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
     # Note:
     # previously the NULL stored in ir_property.value_xxx will be stored as 'false' in ir_default.json_value
     #
+    cr.execute("DELETE FROM ir_default WHERE field_id = %s", [field_id])
     cr.execute(
         util.format_query(
             cr,
@@ -349,16 +350,14 @@ def upgrade_property_product_pricelist(cr):
 
     cr.execute(
         """
-        SELECT id, model, model_id, name, ttype, relation
+        SELECT id, model, model_id, ttype, relation
           FROM ir_model_fields
          WHERE model = 'res.partner'
            AND name = 'property_product_pricelist'
         """
     )
-    field_id, model_name, model_id, field_name, field_type, field_relation = cr.fetchone()
-    upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_type, field_relation)
+    old_field_id, model_name, model_id, field_type, field_relation = cr.fetchone()
 
-    # create ir_model_fields record to allow the column to be traced by indirect reference
     cr.execute(
         """
         INSERT INTO ir_model_fields(
@@ -368,32 +367,39 @@ def upgrade_property_product_pricelist(cr):
              VALUES (%s, %s,
                      'res.partner', 'specific_property_product_pricelist', 'many2one',
                      'product.pricelist', 'base', True, True)
+          RETURNING id
         """,
         [model_id, Json({"en_US": "Specific Property Product Pricelist"})],
     )
+    [field_id] = cr.fetchone()
 
+    # migrate company dependent data from property_product_pricelist to specific_property_product_pricelist
     cr.execute(
         """
-        ALTER TABLE res_partner
-      RENAME COLUMN property_product_pricelist TO specific_property_product_pricelist;
-        ALTER INDEX res_partner__property_product_pricelist_index
-          RENAME TO res_partner__specific_property_product_pricelist_index
-        """
+        UPDATE _ir_property
+           SET fields_id = %s
+         WHERE fields_id = %s
+        """,
+        [field_id, old_field_id],
+    )
+
+    upgrade_company_dependent_field(
+        cr, model_name, "specific_property_product_pricelist", field_id, field_type, field_relation
     )
 
     # move the fallback values to ir_config_parameter
     # ir.config_parameter.value is a required field, use python str(False) text for NULL value
-    cr.execute("""
+    cr.execute(
+        """
         WITH deleted_default AS (
-            DELETE FROM ir_default d
-             USING ir_model_fields imf
-             WHERE d.field_id = imf.id
-               AND imf.name = 'property_product_pricelist'
-               AND imf.model = 'res.partner'
-         RETURNING d.company_id, d.json_value
+            DELETE FROM ir_default
+             WHERE field_id = %s
+         RETURNING company_id, json_value
         )
         INSERT INTO ir_config_parameter(key, value)
              SELECT 'res.partner.property_product_pricelist' || COALESCE('_' || company_id::text, ''),
                     CASE WHEN json_value = 'false' THEN 'False' ELSE json_value END
                FROM deleted_default
-    """)
+        """,
+        [field_id],
+    )
