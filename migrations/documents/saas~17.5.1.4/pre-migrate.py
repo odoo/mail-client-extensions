@@ -62,8 +62,10 @@ def migrate(cr, version):
     util.create_column(cr, "documents_folder", "_upg_new_folder_id", "int4")
 
     # Avoid unique constraints failures during update
-    cr.execute("ALTER TABLE documents_folder_read_groups DROP CONSTRAINT documents_folder_read_groups_pkey")
-    cr.execute("ALTER TABLE documents_folder_res_groups_rel DROP CONSTRAINT documents_folder_res_groups_rel_pkey")
+    cr.execute("ALTER TABLE documents_folder_read_groups DROP CONSTRAINT IF EXISTS documents_folder_read_groups_pkey")
+    cr.execute(
+        "ALTER TABLE documents_folder_res_groups_rel DROP CONSTRAINT IF EXISTS documents_folder_res_groups_rel_pkey"
+    )
 
     # Before:
     #
