@@ -275,6 +275,7 @@ def migrate(cr, version):
     # Ensure those tags exists.
     # We can't use `util.update_record_from_xml` as the `documents.tag` model is not known by the ORM
     # at this point (we are in`pre`) and those records are needed for the parsing of the XML data files.
+    cr.execute("ALTER TABLE documents_tag ALTER COLUMN facet_id DROP NOT NULL")
     tags = {
         "inbox": ("Inbox", 4),
         "to_validate": ("To Validate", 6),
