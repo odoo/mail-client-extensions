@@ -16,6 +16,13 @@ def migrate(cr, version):
         util.PGRegexp(r"\ytree_view_ref\y"),
         "list_view_ref",
     )
+    util.replace_in_all_jsonb_values(
+        cr,
+        "ir_ui_view",
+        "arch_db",
+        util.PGRegexp(r'mode=([\'"])tree\1'),
+        r"mode=\1list\1",
+    )
     util.change_field_selection_values(cr, "ir.ui.view", "type", {"tree": "list"})
     util.change_field_selection_values(cr, "ir.actions.act_window.view", "view_mode", {"tree": "list"})
     cr.execute(
