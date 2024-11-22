@@ -27,3 +27,17 @@ def migrate(cr, version):
             table="project_task",
             alias="t",
         )
+    util.remove_field(cr, "project.task", "show_display_in_project")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE project_task t
+           SET display_in_project = False
+          FROM project_task parent
+         WHERE parent.id = t.parent_id
+           AND t.display_in_project IS TRUE
+           AND t.project_id = parent.project_id
+        """,
+        table="project_task",
+        alias="t",
+    )
