@@ -60,3 +60,7 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "pos_start_category")
 
     util.remove_view(cr, "point_of_sale.qunit_suite")
+
+    if util.module_installed(cr, "l10n_in_pos"):
+        util.move_field_to_module(cr, "account.move", "l10n_in_pos_session_ids", "l10n_in_pos", "point_of_sale")
+        util.rename_field(cr, "account.move", "l10n_in_pos_session_ids", "pos_session_ids")
