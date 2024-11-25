@@ -2,6 +2,7 @@ fix = true
 show-fixes = true
 line-length = 120
 output-format = "full"
+target-version = "py38"
 
 [lint]
 ignore = [

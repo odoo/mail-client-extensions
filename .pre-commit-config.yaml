@@ -37,7 +37,7 @@ repos:
         files: '^migrations/\w+/(tests|0\.0\.0)/.*\.py$'
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.1
+    rev: v0.8.0
     hooks:
     - id: ruff
       name: Check code with Ruff, apply automatic fixes
@@ -45,7 +45,7 @@ repos:
     - id: ruff-format
       name: Format code with Ruff automatically
   - repo: https://github.com/semgrep/semgrep
-    rev: v1.93.0
+    rev: v1.97.0
     hooks:
     - id: semgrep
       args: ['--disable-version-check', '--quiet', '--skip-unknown-extensions', '--metrics', 'off', '--oss-only', '--error', '--config', './semgrep.yaml']
