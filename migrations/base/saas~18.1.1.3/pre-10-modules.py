@@ -12,3 +12,5 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_nl_reports_sbr_ob_nummer", "l10n_nl_reports")
         util.merge_module(cr, "l10n_nl_reports_sbr_status_info", "l10n_nl_reports")
         util.merge_module(cr, "l10n_nl_reports_sbr_icp", "l10n_nl_reports")
+        util.rename_module(cr, "pos_urban_piper_swiggy", "l10n_in_pos_urban_piper")
+        util.merge_module(cr, "pos_urban_piper_zomato", "l10n_in_pos_urban_piper")
