@@ -107,19 +107,17 @@ def migrate(cr, version):
         SELECT 'hr.applicant',
                 a.id,
                 c.partner_name,
-                u.partner_id,
-                COALESCE(a.write_date, a.create_date),
+                COALESCE(a.partner_id, %s),
+                a.create_date,
                 'comment',
                 a.description,
                 %s
           FROM hr_applicant a
-          JOIN res_users u
-            ON (u.id = COALESCE(a.write_uid, a.create_uid, 1))
           JOIN hr_candidate c
             ON (c.id = a.candidate_id)
          WHERE a.description is NOT NULL
         """,
-        [util.ref(cr, "mail.mt_activities")],
+        [util.ref(cr, "base.root_partner"), util.ref(cr, "mail.mt_activities")],
     )
 
     util.remove_field(cr, "hr.applicant", "description")
