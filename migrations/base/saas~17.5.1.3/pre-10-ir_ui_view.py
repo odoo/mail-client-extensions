@@ -20,8 +20,8 @@ def migrate(cr, version):
         cr,
         "ir_ui_view",
         "arch_db",
-        util.PGRegexp(r'mode=([\'"])tree\1'),
-        r"mode=\1list\1",
+        util.PGRegexp(r'mode=([\'"])([a-z, ]*)tree([ ,a-z]*)\1'),
+        r"mode=\1\2list\3\1",
     )
     util.change_field_selection_values(cr, "ir.ui.view", "type", {"tree": "list"})
     util.change_field_selection_values(cr, "ir.actions.act_window.view", "view_mode", {"tree": "list"})
