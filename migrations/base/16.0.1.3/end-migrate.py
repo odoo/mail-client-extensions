@@ -123,3 +123,5 @@ def migrate(cr, version):
     util.parallel_execute(cr, cleanup_queries)
 
     util.remove_model(cr, "ir.translation")
+    # avoid future FK issues
+    cr.execute("ALTER TABLE _ir_translation DROP CONSTRAINT IF EXISTS ir_translation_lang_fkey_res_lang")

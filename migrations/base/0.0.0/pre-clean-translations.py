@@ -3,6 +3,9 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if util.table_exists(cr, "_ir_translation"):
+        cr.execute("ALTER TABLE _ir_translation DROP CONSTRAINT IF EXISTS ir_translation_lang_fkey_res_lang")
+
     if not util.table_exists(cr, "ir_translation"):
         return
 
