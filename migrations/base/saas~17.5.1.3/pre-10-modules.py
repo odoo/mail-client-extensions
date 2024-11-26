@@ -58,6 +58,7 @@ def migrate(cr, version):
 
     modules_to_remove = [(f"payment_{payment}", "") for payment in payment_types]
     modules_to_remove.append(("sale_ebay", "Ebay sale connector is no longer maintained and will be removed."))
+    util.delete_unused(cr, "sale_ebay.product_category_ebay", keep_xmlids=False)
     for module, message in modules_to_remove:
         if util.module_installed(cr, module):
             if not message:
