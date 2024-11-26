@@ -590,6 +590,8 @@ def migrate_workflow_rule(
             name = f"Add Tag {tag_info[tag_id]['name']}"
             upg_name = f"ir_actions_server_tag_add_{sanitize(tag_info[tag_id]['name'])}"
             sequence = 10
+        if upg_name in existing_server_act:
+            continue
         queries_step_1.append(
             build_insert_ir_act_server(
                 cr=cr,
