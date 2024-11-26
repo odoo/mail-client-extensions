@@ -47,3 +47,4 @@ def migrate(cr, version):
         [util.ref(cr, "l10n_in_hr_payroll.payslip_details_report")],
     )
     util.delete_unused(cr, "l10n_in_hr_payroll.paperformat_india_payslip")
+    util.delete_unused(cr, "l10n_in_hr_payroll.l10n_in_hr_salary_rule_pfe")
