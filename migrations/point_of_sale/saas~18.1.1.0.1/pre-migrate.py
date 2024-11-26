@@ -9,3 +9,13 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_pos_paytm")
 
     util.remove_view(cr, "point_of_sale.product_product_view_form_normalized_pos")
+
+    cr.execute(
+        """
+         DELETE FROM pos_bill_pos_config_rel r
+         USING pos_bill b
+         WHERE b.id = r.pos_bill_id
+           AND b.for_all_config IS TRUE
+        """
+    )
+    util.remove_field(cr, "pos.bill", "for_all_config")
