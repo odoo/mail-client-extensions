@@ -74,7 +74,14 @@ def migrate(cr, version):
     new_mail_alias_ids = cr.fetchall()
 
     cr.execute(
-        "SELECT id, plan_id FROM account_analytic_account WHERE id = ANY(%s)",
+        """
+        SELECT account.id,
+               SPLIT_PART(plan.parent_path, '/', 1)::integer AS root_plan_id
+          FROM account_analytic_account account
+          JOIN account_analytic_plan plan
+            ON plan.id = account.plan_id
+         WHERE account.id = ANY(%s)
+        """,
         [list(all_account_ids)],
     )
     plan_id_per_account_id = dict(cr.fetchall())
