@@ -52,7 +52,11 @@ def migrate(cr, version):
             UPDATE ir_attachment a
                SET res_model = 'quotation.document',
                    res_id = docs.id,
-                   name = CASE a.res_field WHEN 'sale_header' THEN t.sale_header_name ELSE t.sale_footer_name END,
+                   name = CASE
+                            a.res_field WHEN 'sale_header'
+                            THEN COALESCE(t.sale_header_name, 'Quotation template header: ' || t.name)
+                            ELSE COALESCE(t.sale_footer_name, 'Quotation template footer: ' || t.name)
+                          END,
                    res_field = NULL
               FROM docs, sale_order_template t
              WHERE a.id = docs.ir_attachment_id
