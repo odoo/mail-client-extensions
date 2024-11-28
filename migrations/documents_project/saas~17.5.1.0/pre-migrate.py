@@ -162,3 +162,5 @@ def migrate(cr, version):
         table="documents_document",
         alias="d",
     )
+
+    util.rename_xmlid(cr, "documents_project.documents_project_folder", "documents_project.document_project_folder")
