@@ -13,3 +13,4 @@ def migrate(cr, version):
     util.remove_field(cr, "mrp.workorder", "worksheet_type")
     util.remove_field(cr, "mrp.workorder", "worksheet_google_slide")
     util.remove_field(cr, "mrp.workorder", "operation_note")
+    util.remove_field(cr, "mrp.production.split", "counter")
