@@ -117,7 +117,7 @@ def migrate(cr, version):
 
     # replace all FKs to documents_folder by the new documents_document
     actions_map = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}
-    for table, column, constraint_name, action in util.get_fk(cr, "documents_folder"):
+    for table, column, constraint_name, action in util.get_fk(cr, "documents_folder", quote_ident=False):
         if table == "documents_folder":
             # do not update self references, the documents.folder model will be removed anyway
             # custom references need to be handled post upgrade
