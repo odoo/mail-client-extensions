@@ -30,3 +30,4 @@ def migrate(cr, version):
         cr, "account.setup.bank.manual.config", "num_journals_without_account", "num_journals_without_account_bank"
     )
     util.rename_field(cr, "account.invoice.report", "price_total", "price_total_currency")
+    util.change_field_selection_values(cr, "account.journal", "invoice_reference_type", {"none": "invoice"})
