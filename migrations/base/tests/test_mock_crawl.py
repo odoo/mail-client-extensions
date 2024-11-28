@@ -164,9 +164,12 @@ class TestCrawler(IntegrityCase):
         }
 
         # Try to use an admin to crawl the menus, if not fallback on using an employee.
+        field_group_ids = "all_group_ids" if util.version_gte("saas~18.2") else "groups_id"
         for group in ["base.group_system", "base.group_erp_manager", "base.group_user"]:
             user = (
-                self.env["res.users"].sudo().search([("groups_id", "in", self.env.ref(group).id)], order="id", limit=1)
+                self.env["res.users"]
+                .sudo()
+                .search([(field_group_ids, "in", self.env.ref(group).id)], order="id", limit=1)
             )
             if user:
                 self.env = self.env(user=user)

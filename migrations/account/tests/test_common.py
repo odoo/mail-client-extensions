@@ -40,22 +40,24 @@ class TestAccountingSetupCommon(UpgradeCase, abstract=True):
         )
 
         # Create user.
-        user = (
-            self.env["res.users"]
-            .with_context(no_reset_password=True)
-            .create(
-                {
-                    "name": f"user {test_name}",
-                    "login": test_name,
-                    "groups_id": [
-                        (6, 0, self.env.user.groups_id.ids),
-                        (4, self.env.ref("account.group_account_user").id),
-                    ],
-                    "company_ids": [(6, 0, self.company.ids)],
-                    "company_id": self.company.id,
-                }
-            )
-        )
+        values = {
+            "name": f"user {test_name}",
+            "login": test_name,
+            "company_ids": [(6, 0, self.company.ids)],
+            "company_id": self.company.id,
+        }
+        if version_gte("saas~18.2"):
+            values["group_ids"] = [
+                (6, 0, self.env.user.all_group_ids.ids),
+                (4, self.env.ref("account.group_account_user").id),
+            ]
+        else:
+            values["groups_id"] = [
+                (6, 0, self.env.user.groups_id.ids),
+                (4, self.env.ref("account.group_account_user").id),
+            ]
+
+        user = self.env["res.users"].with_context(no_reset_password=True).create(values)
         user.partner_id.email = f"{test_name}@test.com"
 
         self.env = self.env(user=user)

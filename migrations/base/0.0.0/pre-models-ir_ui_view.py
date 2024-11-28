@@ -942,7 +942,7 @@ class IrUiView(models.Model):
                                 rather than on the `group_ids` field of the `ir.ui.view` record, this will work as expected.
                             </p>
                             <p>
-                                The following QWeb views have groups (`groups_id`) defined on their record rather
+                                The following QWeb views have groups (`{}`) defined on their record rather
                                 than in the view architecture itself, and therefore deserve your attention:
                             </p>
                         </summary>
@@ -950,6 +950,7 @@ class IrUiView(models.Model):
                     </details>
                 """.format(
                         "Inherited " if util.version_gte("14.0") else "",
+                        "group_ids" if util.version_gte("saas~18.2") else "groups_id",
                         "".join(
                             "<li>{}</li>".format(
                                 util.get_anchor_link_to_record("ir.ui.view", view_id, view_xml_id or view_name)
@@ -963,7 +964,7 @@ class IrUiView(models.Model):
 
         if not util.on_CI():
 
-            @api.constrains("type", "groups_id", "inherit_id")
+            @api.constrains("type", "group_ids" if util.version_gte("saas~18.2") else "groups_id", "inherit_id")
             def _check_groups(self):
                 try:
                     return super(IrUiView, self)._check_groups()

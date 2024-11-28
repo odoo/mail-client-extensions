@@ -40,7 +40,7 @@ def migrate(cr, version):
         (
             "test_upg.test_fix_views_child",
             ts(
-                E.xpath(E.div("Remove field"), expr="//field[@name='users']", position="replace"),
+                E.xpath(E.div("Remove field"), expr="//field[@name='color']", position="replace"),
             ),
         ),
         (
