@@ -96,7 +96,6 @@ def migrate(cr, version):
             LEFT JOIN _upg_l10n_in_ewaybill_so_data_temp sdt ON sdt.move_id = edi_doc.move_id
             LEFT JOIN _upg_l10n_in_ewaybill_po_data_temp pdt ON pdt.move_id = edi_doc.move_id
            WHERE aef.code = 'in_ewaybill_1_03'
-             AND am.l10n_in_type_id IS NOT NULL
              AND {parallel_filter}
          RETURNING id, account_move_id
         )
