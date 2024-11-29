@@ -272,3 +272,5 @@ def migrate(cr, version):
 
     for field in ["department_id", "job_id", "structure_type_id"]:
         util.remove_field(cr, "hr.payslip.employees", field)
+
+    util.remove_field(cr, "hr.payslip", "number")
