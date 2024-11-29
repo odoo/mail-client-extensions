@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from psycopg2 import sql
+
 from odoo.upgrade import util
 
 
@@ -79,7 +81,8 @@ def migrate(cr, version):
     #   2. Take it from fields (removed after this upgrade) that stored it already.
     #   3. Compute it from the ratio of the totals of the invoice in company and document currency
     # In a second query for all the remaining moves (c.f. `update_query_remaining_invoices`):
-    #   4. Fetch the rate from the database at invoice date
+    #   4. Fetch the rate from the database at invoice date (or other dates depending on localization)
+    #      (see `move_invoice_rate_date_expression`)
 
     util.create_column(cr, "account_move", "invoice_currency_rate", "numeric")
 
@@ -138,23 +141,48 @@ def migrate(cr, version):
     if l10n_dk_bookkeeping:
         util.remove_column(cr, "account_move", "l10n_dk_currency_rate_at_transaction")
 
+    # Some localizations have special requirements on the date used for the the currency conversion.
+    # The date we use is the first non-NULL result of expressions in `date_expressions`
+    # (also see variable `move_invoice_rate_date_expression`).
+    date_expressions = []
+    if util.module_installed(cr, "l10n_cz"):
+        date_expressions.append("CASE WHEN country.code = 'CZ' THEN move.taxable_supply_date END")
+    if util.module_installed(cr, "l10n_hu_edi"):
+        date_expressions.append("CASE WHEN country.code = 'HU' THEN move.delivery_date END")
+    date_expressions.extend(
+        [
+            "move.invoice_date",
+            "move.date",
+            "(NOW() at time zone 'UTC')::date",
+        ]
+    )
+    move_invoice_rate_date_expression = sql.SQL(
+        util.format_query(cr, "COALESCE({})", sql.SQL(",\n").join(map(sql.SQL, date_expressions)))
+    )
+
     # Check whether all invoices are upgraded already.
     # In the process we already gather some information needed to upgrade the remaining invoices:
     # The information will later be used to build a table called _upg_currency_rates in which we can quickly
     # lookup the invoice_currency_rate of the remaining invoices.
     # (See the comments there for more details.)
-    remaining_currencies_query = """
+    remaining_currencies_query = util.format_query(
+        cr,
+        """
           SELECT split_part(company.parent_path, '/', 1)::integer AS root_company_id,
                  unnest(ARRAY[move.currency_id, company.currency_id]) AS currency,
-                 MIN(COALESCE(move.invoice_date, move.date, NOW())::date) AS first_rate_date,
-                 MAX(COALESCE(move.invoice_date, move.date, NOW())::date) AS last_rate_date
+                 MIN({move_invoice_rate_date_expression}) AS first_rate_date,
+                 MAX({move_invoice_rate_date_expression}) AS last_rate_date
             FROM account_move move
             JOIN res_company company
               ON move.company_id = company.id
+       LEFT JOIN res_country country
+              ON company.account_fiscal_country_id = country.id
            WHERE move.move_type <> 'entry'
              AND move.invoice_currency_rate IS NULL
         GROUP BY root_company_id, currency
-    """
+        """,
+        move_invoice_rate_date_expression=move_invoice_rate_date_expression,
+    )
     cr.execute(remaining_currencies_query)
     remaining_currencies = cr.fetchall()
     if not remaining_currencies:
@@ -198,7 +226,9 @@ def migrate(cr, version):
         ANALYZE _upg_currency_rates;
     """)
 
-    update_query_remaining_invoices = """
+    update_query_remaining_invoices = util.format_query(
+        cr,
+        """
         WITH to_update AS (
             SELECT move.id,
                    COALESCE(foreign_rate.rate, foreign_rate_without_company.rate)
@@ -206,23 +236,25 @@ def migrate(cr, version):
               FROM account_move move
               JOIN res_company company
                 ON company.id = move.company_id
+         LEFT JOIN res_country country
+                ON company.account_fiscal_country_id = country.id
               JOIN _upg_currency_rates foreign_rate
                 ON foreign_rate.root_company_id = (split_part(company.parent_path, '/', 1)::integer)
                AND foreign_rate.currency_id = move.currency_id
-               AND foreign_rate.date = (COALESCE(move.invoice_date, move.date, NOW())::date)
+               AND foreign_rate.date = ({move_invoice_rate_date_expression})
               JOIN _upg_currency_rates company_rate
                 ON company_rate.root_company_id = (split_part(company.parent_path, '/', 1)::integer)
                AND company_rate.currency_id = company.currency_id
-               AND company_rate.date = (COALESCE(move.invoice_date, move.date, NOW())::date)
+               AND company_rate.date = ({move_invoice_rate_date_expression})
               JOIN _upg_currency_rates foreign_rate_without_company
                 ON foreign_rate_without_company.root_company_id IS NULL
                AND foreign_rate_without_company.currency_id = move.currency_id
-               AND foreign_rate_without_company.date = (COALESCE(move.invoice_date, move.date, NOW())::date)
+               AND foreign_rate_without_company.date = ({move_invoice_rate_date_expression})
               JOIN _upg_currency_rates company_rate_without_company
                 ON company_rate_without_company.root_company_id IS NULL
                AND company_rate_without_company.currency_id = company.currency_id
-               AND company_rate_without_company.date = (COALESCE(move.invoice_date, move.date, NOW())::date)
-             WHERE {parallel_filter}
+               AND company_rate_without_company.date = ({move_invoice_rate_date_expression})
+             WHERE {{parallel_filter}}
                AND move.move_type <> 'entry'
                AND move.invoice_currency_rate IS NULL
         )
@@ -230,7 +262,9 @@ def migrate(cr, version):
            SET invoice_currency_rate = to_update.rate
           FROM to_update
          WHERE move.id = to_update.id
-    """
+        """,
+        move_invoice_rate_date_expression=move_invoice_rate_date_expression,
+    )
     util.explode_execute(cr, update_query_remaining_invoices, table="account_move", alias="move")
 
     cr.execute("DROP TABLE _upg_currency_rates")

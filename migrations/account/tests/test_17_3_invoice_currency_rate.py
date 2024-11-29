@@ -23,9 +23,12 @@ class TestMoveInvoiceCurrencyRateCommon(UpgradeCase, abstract=True):
             limit=1,
         )
 
-    def _fetch_rate(self, invoice):
+    def _fetch_rate(self, invoice, date=None):
         return self.env["res.currency"]._get_conversion_rate(
-            invoice.company_id.currency_id, invoice.currency_id, invoice.company_id or None, invoice.invoice_date
+            invoice.company_id.currency_id,
+            invoice.currency_id,
+            invoice.company_id or None,
+            date or invoice.invoice_date,
         )
 
     def _prepare_moves(self, company, currency2):
