@@ -164,3 +164,4 @@ def migrate(cr, version):
     )
 
     util.rename_xmlid(cr, "documents_project.documents_project_folder", "documents_project.document_project_folder")
+    util.if_unchanged(cr, "documents_project.document_project_folder", util.update_record_from_xml)
