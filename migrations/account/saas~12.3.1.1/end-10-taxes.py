@@ -245,8 +245,7 @@ def _migrate(cr, version):
     if not util.version_gte("saas~12.4"):
         # Assign repartition lines and tags to account.invoice.tax
         _logger.info("Migrating account.invoice.tax objects...")
-        cr.execute(
-            """
+        query = """
             UPDATE account_invoice_tax
                SET tax_repartition_line_id = tx_rep.id
               FROM account_tax_repartition_line tx_rep, account_invoice inv
@@ -256,7 +255,7 @@ def _migrate(cr, version):
                                              else tx_rep.invoice_tax_id end
                AND tx_rep.repartition_type = 'tax'
         """
-        )
+        util.explode_execute(cr, query, table="account_invoice_tax")
         env["account.invoice.tax"].invalidate_cache(fnames=["tax_repartition_line_id"])
 
         cr.execute(
