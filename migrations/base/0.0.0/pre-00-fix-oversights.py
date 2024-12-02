@@ -98,3 +98,6 @@ def migrate(cr, version):
         cr.execute(
             "UPDATE ir_filters SET sort = (%s::jsonb)->>(id::text) WHERE id IN %s", [Json(to_update), tuple(to_update)]
         )
+
+    if util.version_between("17.0", "18.0") and util.column_exists(cr, "res_partner", "credit_limit"):
+        util.remove_column(cr, "res_partner", "credit_limit")
