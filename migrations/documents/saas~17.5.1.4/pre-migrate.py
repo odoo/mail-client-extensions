@@ -1295,8 +1295,9 @@ def check_or_raise_large_groups(cr, internal_id):
         """,
             {"group_nobody": group_nobody_id, "large_write": many_members_folder_ids},
         )
+        return
 
-    elif large_groups_option == "SET_USER_SPECIFIC":
+    if large_groups_option == "SET_USER_SPECIFIC":
         execute_values(
             cr._obj,
             """
