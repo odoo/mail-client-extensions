@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -14,7 +13,9 @@ def migrate(cr, version):
         timesheet_cond = "AND (pp.timesheet_product_id IS NOT NULL OR pp.allow_timesheets=FALSE)"
     else:
         # Remove the constraint if uninstalled.
-        util.remove_constraint(cr, "project_project", "project_project_timesheet_product_required_if_billable_and_time")
+        util.remove_constraint(
+            cr, "project_project", "project_project_timesheet_product_required_if_billable_and_time", warn=False
+        )
 
     cr.execute(
         f"""
