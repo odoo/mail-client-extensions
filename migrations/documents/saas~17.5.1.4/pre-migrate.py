@@ -503,6 +503,7 @@ def migrate(cr, version):
 
                  WHERE NOT folder.write
                    AND (folder.company_id IS NULL OR comp_rel.cid IS NOT NULL)
+              GROUP BY document.id, u.partner_id
             )
                 ON CONFLICT (document_id, partner_id)  -- maybe has write access from group_ids
                 DO UPDATE SET _upg_added_from_group = FALSE
