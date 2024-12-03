@@ -163,5 +163,29 @@ def migrate(cr, version):
         alias="d",
     )
 
-    util.rename_xmlid(cr, "documents_project.documents_project_folder", "documents_project.document_project_folder")
+    f = util.rename_xmlid(cr, "documents_project.documents_project_folder", "documents_project.document_project_folder")
     util.if_unchanged(cr, "documents_project.document_project_folder", util.update_record_from_xml)
+
+    # Demo data will create new access in 18, but a matching record might have been created by the script
+    cr.execute("SELECT 1 FROM ir_module_module WHERE name = 'documents_project' AND demo")
+    if cr.rowcount:
+        if not f:
+            util.update_record_from_xml(cr, "documents_project.document_project_folder")
+        util.ensure_xmlid_match_record(
+            cr,
+            "documents_project.document_access_projects_admin",
+            "documents.access",
+            {
+                "document_id": util.ref(cr, "documents_project.document_project_folder"),
+                "partner_id": util.ref(cr, "base.partner_admin"),
+            },
+        )
+        util.ensure_xmlid_match_record(
+            cr,
+            "documents_project.document_access_projects_demo",
+            "documents.access",
+            {
+                "document_id": util.ref(cr, "documents_project.document_project_folder"),
+                "partner_id": util.ref(cr, "base.partner_demo"),
+            },
+        )
