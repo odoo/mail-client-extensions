@@ -1,6 +1,62 @@
 from odoo.upgrade import util
 
 
+def update_phone_and_log(cr, model_name):
+    """
+    Updates the phone field with the mobile field for the specified table
+    and logs the previous mobile number if applicable.
+    """
+    table_name = util.table_of_model(cr, model_name)
+    query = util.format_query(
+        cr,
+        """
+        WITH info AS (
+            SELECT t.id,
+                   t.phone,
+                   t.mobile
+              FROM {table_name} t
+             WHERE t.mobile IS NOT NULL
+               AND t.phone IS DISTINCT FROM t.mobile
+               AND {{parallel_filter}}
+        ), _upd AS (
+            UPDATE {table_name}
+               SET phone = info.mobile
+              FROM info
+             WHERE {table_name}.id = info.id
+               AND info.phone IS NULL
+         RETURNING {table_name}.id
+        )
+    """,
+        table_name=table_name,
+    )
+
+    if util.module_installed(cr, "mail"):
+        log_query = """
+            INSERT INTO mail_message (
+                        res_id, model, author_id, message_type,
+                        body, date)
+                 SELECT id, %s, %s, 'notification',
+                        'Previous Mobile: ' || mobile, NOW() at time zone 'UTC'
+                   FROM info
+                  WHERE phone IS NOT NULL
+        """
+        query += cr.mogrify(log_query, [model_name, util.ref(cr, "base.partner_root")]).decode()
+    elif table_name == "res_partner":
+        comment_query = """
+            UPDATE res_partner
+               SET comment = COALESCE(comment, '') || '\nPrevious Mobile: ' || info.mobile
+              FROM info
+             WHERE res_partner.id = info.id
+               AND info.phone IS NOT NULL
+        """
+        query += comment_query
+    else:
+        # Dummy query to ensure the CTEs are executed
+        query += "SELECT 1 FROM _upd JOIN info ON _upd.id = info.id LIMIT 1"
+
+    util.explode_execute(cr, query, table=table_name, alias="t")
+
+
 def migrate(cr, version):
     old_xmlids = [
         "l10n_pl.state_pl_ds",
@@ -106,3 +162,9 @@ def migrate(cr, version):
 
     for old, new in zip(old_xmlids, new_xmlids):
         util.rename_xmlid(cr, old, new, on_collision="merge")
+
+    update_phone_and_log(cr, "res.partner")
+    update_phone_and_log(cr, "res.company")
+
+    util.remove_field(cr, "res.company", "mobile")
+    util.remove_field(cr, "res.partner", "mobile")

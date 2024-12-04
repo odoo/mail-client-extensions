@@ -14,3 +14,5 @@ def migrate(cr, version):
             util.move_field_to_module(cr, "res.partner", fname, "sms", "phone_validation")
     else:
         util.create_column(cr, "res_partner", "phone_sanitized", "varchar")
+
+    util.remove_field(cr, "mail.thread.phone", "mobile_blacklisted")
