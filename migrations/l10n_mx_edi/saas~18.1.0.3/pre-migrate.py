@@ -44,3 +44,24 @@ def migrate(cr, version):
         [ppd_payment_term_ids],
     ).decode()
     util.explode_execute(cr, query, table="account_move", alias="move")
+
+    # --- l10n_mx_edi_addenda ---
+    # Create a new Many2many field on account_move and res_partner, `l10n_mx_edi_addenda_ids`
+    util.create_m2m(cr, "account_move_l10n_mx_edi_addenda_rel", "account_move", "l10n_mx_edi_addenda")
+    util.create_m2m(cr, "l10n_mx_edi_addenda_res_partner_rel", "res_partner", "l10n_mx_edi_addenda")
+    # Fill them with the current existing l10n_mx_edi_addenda_id
+    cr.execute("""
+        INSERT INTO account_move_l10n_mx_edi_addenda_rel (account_move_id, l10n_mx_edi_addenda_id)
+             SELECT move.id, move.l10n_mx_edi_addenda_id
+               FROM account_move as move
+              WHERE move.l10n_mx_edi_addenda_id IS NOT NULL
+    """)
+    cr.execute("""
+        INSERT INTO l10n_mx_edi_addenda_res_partner_rel (res_partner_id, l10n_mx_edi_addenda_id)
+             SELECT partner.id, partner.l10n_mx_edi_addenda_id
+               FROM res_partner as partner
+              WHERE partner.l10n_mx_edi_addenda_id IS NOT NULL
+    """)
+
+    util.remove_field(cr, "account.move", "l10n_mx_edi_addenda_id")
+    util.remove_field(cr, "res.partner", "l10n_mx_edi_addenda_id")
