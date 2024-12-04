@@ -1285,7 +1285,7 @@ def check_or_raise_large_groups(cr, internal_id):
               FROM (VALUES %s) AS fus (folder_id)
              WHERE fus.folder_id = f.id
         """,
-            many_members_folder_ids,
+            [(folder_id,) for folder_id in many_members_folder_ids],
         )
         return
 
