@@ -134,9 +134,41 @@ def migrate(cr, version):
              WHERE md.model = 'account.tax'
                AND md.res_id = t.id
                AND SUBSTRING(md.name, POSITION('_' in md.name) + 1) IN %s
+               AND t.active
+         RETURNING t.id, t.name->>'en_US'
         """,
         [DEACTIVATE_TAXES],
     )
+
+    if cr.rowcount:
+        util.add_to_migration_reports(
+            """
+                <details>
+                    <summary>
+                        Taxes will now align by default with a company-wide setting for tax-included or excluded prices.
+                        While most taxes will be adjusted automatically, some specific configurations may require review or manual adjustments.
+                        We recommend verifying the following:
+                        <ul>
+                            <li>Your default company tax setting (included or excluded).</li>
+                            <li>Any taxes with custom settings that may override the default.</li>
+                            <li>Impacted reports or documents relying on tax values.</li>
+                        </ul>
+                        Please review the detailed list below of the taxes concerned (disabled by the upgrade) to ensure a smooth transition:
+                    </summary>
+                    <ul>{}</ul>
+                </details>
+            """.format(
+                " ".join(
+                    [
+                        f"<li>{util.get_anchor_link_to_record('account.tax', id, name)}</li>"
+                        for id, name in cr.fetchall()
+                    ]
+                )
+            ),
+            category="Account tax",
+            format="html",
+        )
+
     util.explode_execute(
         cr,
         """
