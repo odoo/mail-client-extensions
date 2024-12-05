@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -178,15 +177,17 @@ def migrate(cr, version):
             SELECT quote_ident(c.COLUMN_NAME), c.data_type
               FROM information_schema.columns c
              WHERE table_name='l10n_lu_yearly_tax_report_manual'
-               AND c.COLUMN_NAME LIKE 'report\_section\_%%'
-               -- extra fields that don't match the regular report_section_% pattern
-                OR c.COLUMN_NAME IN (
-                    'book_records_documents',
-                    'phone_number',
-                    'avg_nb_employees_with_salary',
-                    'avg_nb_employees_with_no_salary',
-                    'submitted_rcs'
-                )
+               AND (
+                       c.COLUMN_NAME LIKE 'report\_section\_%%'
+                    -- extra fields that don't match the regular report_section_% pattern
+                    OR c.COLUMN_NAME IN (
+                        'book_records_documents',
+                        'phone_number',
+                        'avg_nb_employees_with_salary',
+                        'avg_nb_employees_with_no_salary',
+                        'submitted_rcs'
+                        )
+                   )
         """
     )
 
