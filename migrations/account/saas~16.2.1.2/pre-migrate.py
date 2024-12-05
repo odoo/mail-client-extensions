@@ -111,7 +111,8 @@ def migrate(cr, version):
 
     cte = " UNION ".join(
         f"""
-            SELECT {company_fk[table]} AS id
+            SELECT {company_fk[table]} AS id,
+                   {column} AS tg_id
               FROM {table}
              WHERE {company_fk[table]} IS NOT NULL
                AND {column} IS NOT NULL
@@ -125,8 +126,10 @@ def migrate(cr, version):
             {cte}
         )
         INSERT INTO account_tax_group ({', '.join(columns)}, company_id, _tmp_orig_id)
-             SELECT {', '.join('tg.%s' % f for f in columns)}, company.id, tg.id
-               FROM account_tax_group tg, company
+             SELECT {', '.join(f'tg.{f}' for f in columns)}, company.id, tg.id
+               FROM account_tax_group tg,
+                    company
+              WHERE company.tg_id = tg.id
     """
     )
     for table, column in tax_group_fks:
@@ -171,7 +174,7 @@ def migrate(cr, version):
         "tax_receivable_account_id",
         "advance_tax_payment_account_id",
     ]:
-        old_fname = "property_%s" % fname
+        old_fname = f"property_{fname}"
         util.rename_field(cr, "account.tax.group", old_fname, fname)
         util.create_column(cr, "account_tax_group", fname, "int")
         cr.execute(
