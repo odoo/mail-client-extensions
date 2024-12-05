@@ -1,5 +1,8 @@
 import contextlib
 import decimal
+import itertools
+import os
+import textwrap
 
 from odoo import models, release
 from odoo.tools import float_repr
@@ -11,6 +14,19 @@ from odoo.tools.parse_version import parse_version
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase, UpgradeCase
+
+ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK = os.getenv("ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK", ())  # noqa: PLW1508
+try:
+    # todo: maybe allow for "all" as a value, downside: if there is a new product with an issue the clients won't know
+    if ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK:
+        ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK = tuple(map(int, ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK.split(",")))
+except ValueError:
+    raise util.UpgradeError(
+        "Invalid value ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK={}".format(
+            os.getenv("ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK")
+        )
+    ) from None
+
 
 if util.version_gte("15.0"):
 
@@ -87,7 +103,49 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         after_version, after_results = self.invariant(
             ignore_kits=ignore_kits, only_product_ids=[i for i, _ in before_results], warehouses=warehouses
         )
-        self.assertEqual(before_results, self.convert_check(after_results), self.message)
+        after_results = self.convert_check(after_results)
+        if "mrp.bom" in self.env.registry and before_version < parse_version("16.0"):
+            wrong_products = {
+                pid_bef: (val_bef, val_aft)
+                for ([pid_bef, val_bef], [pid_aft, val_aft]) in zip(before_results, after_results)
+                if pid_bef == pid_aft and 0 < abs(float(val_bef) - float(val_aft)) <= 1.0
+            }
+            if wrong_products:
+                if len(wrong_products) < 10:
+                    message = textwrap.dedent(
+                        """
+                        In Odoo 16 some changes were done in the way real numbers are rounded when computing product quantities.
+                        This may introduce slight differences in the quantities before and after the upgrade. The affected products
+                        are:
+                        {}
+
+                        If the difference above can be ignored, in order to not fail the upgrade you could set the env variable:
+                        ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK={}
+                        You may contact support for it to be set as well.
+                        """
+                    ).format(
+                        "\n".join(
+                            " * Product (id={}) on-hand quantity before: {}, after: {}".format(pid, *vals)
+                            for pid, vals in wrong_products.items()
+                        ),
+                        ",".join(map(str, wrong_products)),
+                    )
+                else:
+                    message = textwrap.dedent(
+                        """
+                        {} products look like they have a slight rounding issue from Odoo 16. The first ones are:
+                        {}
+                        """
+                    ).format(
+                        len(wrong_products),
+                        "\n".join(
+                            " * Product (id={}) on-hand quantity before: {}, after: {}".format(pid, *vals)
+                            for pid, vals in itertools.islice(wrong_products.items(), 10)
+                        ),
+                    )
+                self.fail(message)
+
+        self.assertEqual(before_results, after_results, self.message)
 
     @util.no_selection_cache_validation
     def invariant(self, ignore_kits=False, only_product_ids=None, warehouses=None):
@@ -127,6 +185,10 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         if only_product_ids is not None:
             where_clause += ["pp.id = ANY(%s)"]
             where_params += [list(only_product_ids)]
+
+        if ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK:
+            where_clause.append("pp.id NOT IN %s")
+            where_params.append(ODOO_UPG_SKIP_WRONG_PRODUCTS_QTY_CHECK)
 
         query = query.format(
             sql_pt_join_clause=sql_pt_join_clause,
