@@ -117,3 +117,23 @@ def migrate(cr, version):
     util.explode_execute(cr, query_amount_untaxed, table="account_move")
 
     util.remove_field(cr, "account.move.line", "blocked")
+
+    # `code` is always 6 digits long, they get appended zeroes otherwise
+    # the fix must be done here, because by the time when l10n_in is loaded
+    # the xmlids would already be there:
+    # https://github.com/odoo/enterprise/blob/517983ae/account_accountant/__init__.py#L30
+    if util.module_installed(cr, "l10n_in"):
+        query = """
+          UPDATE ir_model_data d
+             SET name = concat(c.id, '_p10058')
+            FROM account_account a,
+                 res_company c
+            JOIN res_country n
+              ON n.id = c.account_fiscal_country_id
+           WHERE d.model = 'account.account'
+             AND d.res_id = a.id
+             AND d.name = concat(c.id, '_p10054')
+             AND n.code = 'IN'
+             AND a.code = '100580'
+        """
+        cr.execute(query)
