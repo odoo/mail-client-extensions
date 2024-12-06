@@ -9,6 +9,16 @@ def migrate(cr, version):
         util.PGRegexp(r"(</?)tree([ >])"),
         r"\1list\2",
     )
+
+    util.replace_in_all_jsonb_values(
+        cr,
+        "ir_ui_view",
+        "arch_db",
+        # replace: `/tree"`, `/tree'`, `/tree[`, or `/tree/`
+        util.PGRegexp(r"(<xpath .*expr=.+)/tree([\"'/\[])"),
+        r"\1/list\2",
+    )
+
     util.replace_in_all_jsonb_values(
         cr,
         "ir_ui_view",
