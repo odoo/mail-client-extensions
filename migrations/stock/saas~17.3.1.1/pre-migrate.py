@@ -1,3 +1,5 @@
+from odoo.tools.safe_eval import safe_eval
+
 from odoo.upgrade import util
 
 
@@ -121,3 +123,25 @@ def migrate(cr, version):
     """,
         [vendor_id],
     )
+
+    cr.execute(
+        """
+        SELECT aw.id, aw.context
+          FROM ir_model_data AS md
+          JOIN ir_act_window AS aw
+            ON md.model = 'ir.actions.act_window'
+           AND md.res_id = aw.id
+         WHERE md.module = 'stock'
+           AND md.name IN (
+                    'action_picking_tree_outgoing',
+                    'action_picking_tree_internal',
+                    'action_picking_tree_incoming'
+               )
+           AND md.noupdate
+        """
+    )
+    # Remove context key that is no longer valid
+    for id, raw_context in cr.fetchall():
+        context = safe_eval(raw_context, util.SelfPrintEvalContext(), nocopy=True)
+        if str(context.pop("default_company_id", "")) == "allowed_company_ids[0]":
+            cr.execute("UPDATE ir_act_window SET context = %s WHERE id = %s", [str(context), id])
