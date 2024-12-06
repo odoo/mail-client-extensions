@@ -20,7 +20,7 @@ def migrate(cr, version):
     util.delete_unused(cr, "l10n_lu_hr_payroll.l10n_lu_employees_transport_fees")
     util.delete_unused(cr, "l10n_lu_hr_payroll.l10n_lu_employees_total_deduction")
     util.rename_xmlid(cr, *eb("l10n_lu_hr_payroll.l10n_lu_employees{_employee,}_cis"))
-    util.rename_xmlid(cr, *eb("l10n_lu_hr_payroll.l10n_lu_employees{_employee,}_ci_co2"))
+    util.rename_xmlid(cr, *eb("l10n_lu_hr_payroll.l10n_lu_employees{_employee,_cis}_ci_co2"))
     util.delete_unused(cr, "l10n_lu_hr_payroll.l10n_lu_employees_total_tax_credit")
     util.delete_unused(cr, "l10n_lu_hr_payroll.l10n_lu_employees_employee_tax_credit")
     util.delete_unused(cr, "l10n_lu_hr_payroll.l10n_lu_employees_gratification")
