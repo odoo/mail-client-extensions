@@ -25,7 +25,7 @@ def migrate(cr, version):
 
 
 class IrModelData(models.Model):
-    _inherit = ["ir.model.data"]
+    _inherit = "ir.model.data"
     _module = "base"
 
     @api.model

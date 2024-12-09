@@ -10,7 +10,7 @@ def migrate(cr, version):
 
 
 class IrUiView(models.Model):
-    _inherit = ["ir.ui.view"]
+    _inherit = "ir.ui.view"
     _module = "web_gantt"
 
     if util.version_gte("saas~13.3"):

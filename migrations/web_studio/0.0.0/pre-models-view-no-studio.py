@@ -8,7 +8,7 @@ def migrate(cr, version):
 
 
 class IrUiView(models.Model):
-    _inherit = ["ir.ui.view"]
+    _inherit = "ir.ui.view"
     _module = "web_studio"
 
     def _is_studio_view(self):

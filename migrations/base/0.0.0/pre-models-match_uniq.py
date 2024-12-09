@@ -13,7 +13,7 @@ def migrate(cr, version):
 
 
 class Base(models.AbstractModel):
-    _inherit = ["base"]
+    _inherit = "base"
     _module = "base"
 
     if util.version_gte("12.0"):

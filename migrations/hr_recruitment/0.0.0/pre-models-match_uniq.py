@@ -12,6 +12,6 @@ def migrate(cr, version):
 
 
 class HrApplicantCategory(models.Model):
-    _inherit = ["hr.applicant.category"]
+    _inherit = "hr.applicant.category"
     _module = "hr_recruitment"
     _match_uniq = True

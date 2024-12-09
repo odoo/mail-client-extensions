@@ -8,7 +8,7 @@ def migrate(cr, version):
 
 
 class Base(models.AbstractModel):
-    _inherit = ["base"]
+    _inherit = "base"
     _module = "base"
 
     def load(self, fields, data):

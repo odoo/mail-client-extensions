@@ -18,7 +18,7 @@ def migrate(cr, version):
 if parse_version('10.0') <= parse_version(release.version) < parse_version('saas~11.5'):
 
     class IrModelData(models.Model):
-        _inherit = ['ir.model.data']
+        _inherit = 'ir.model.data'
         _module = 'base'
 
         # Force the update of `arch_fs` and the view validation even if the view has been set to noupdate.

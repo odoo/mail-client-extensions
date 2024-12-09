@@ -31,7 +31,7 @@ class Challenge(models.Model):
 
 
 class ResUsers(models.Model):
-    _inherit = ["res.users"]
+    _inherit = "res.users"
     _module = "gamification"
 
     def _rank_changed(self):
