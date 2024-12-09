@@ -124,15 +124,16 @@ def migrate(cr, version):
                 cr,
                 """
                 SELECT array_agg(t.id)
-                  FROM {} t
-                 WHERE ({})
+                  FROM {table} t
+                 WHERE ({model_filter})
+                   AND t.{column} IS NOT NULL
                    AND NOT EXISTS(
-                        SELECT 1 FROM ir_actions a WHERE a.id = t.{}
+                        SELECT 1 FROM ir_actions a WHERE a.id = t.{column}
                    )
                 """,
-                ir.table,
-                sql.SQL(ir.model_filter(prefix="t")),
-                ir.res_id,
+                table=ir.table,
+                model_filter=sql.SQL(ir.model_filter(prefix="t")),
+                column=ir.res_id,
             )
             ids = []
             for model in models:
