@@ -410,7 +410,7 @@ def _coupon_migrate(cr):
             -- Migration fields
             _upg_coupon_coupon_id,
             -- New fields
-            active, company_id,
+            company_id,
             points
         )
         SELECT c.code,
@@ -422,7 +422,7 @@ def _coupon_migrate(cr):
                c.partner_id, p.id,
                c.create_uid, c.create_date, c.write_uid, c.write_date,
                c.id,
-               TRUE, p.company_id,
+               p.company_id,
                CASE WHEN c.state in ('new', 'sent', 'reserved') THEN 1 ELSE 0 END
           FROM coupon_coupon c
           JOIN loyalty_program p
@@ -610,7 +610,7 @@ def _gift_card_migrate(cr):
             """
             INSERT INTO loyalty_card (
                 -- Existing fields
-                active, company_id,
+                company_id,
                 partner_id, points, code, expiration_date,
                 -- ORM fields
                 create_uid, create_date, write_uid, write_date,
@@ -619,7 +619,7 @@ def _gift_card_migrate(cr):
                 -- New fields
                 program_id
             )
-            SELECT TRUE, gc.company_id,
+            SELECT gc.company_id,
                    gc.partner_id, gc.initial_amount, gc.code, gc.expired_date,
                    gc.create_uid, gc.create_date, gc.write_uid, gc.write_date,
                    gc.id,
@@ -941,7 +941,6 @@ def _create_loyalty_tables(cr):
             _upg_coupon_coupon_id INTEGER,
             _upg_gift_card_id INTEGER,
             -- Logic fields
-            active BOOLEAN,
             program_id INTEGER,
             company_id INTEGER,
             partner_id INTEGER,
