@@ -272,30 +272,7 @@ def migrate(cr, version):
         # rename the first element
         util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}")
 
-    # Ensure those tags exists.
-    # We can't use `util.update_record_from_xml` as the `documents.tag` model is not known by the ORM
-    # at this point (we are in`pre`) and those records are needed for the parsing of the XML data files.
     cr.execute("ALTER TABLE documents_tag ALTER COLUMN facet_id DROP NOT NULL")
-    tags = {
-        "inbox": ("Inbox", 4),
-        "to_validate": ("To Validate", 6),
-        "validated": ("Validated", 8),
-        "bill": ("To Bill", 4),
-    }
-    for xid, (name, sequence) in tags.items():
-        if util.ref(cr, f"documents.documents_tag_{xid}"):
-            continue
-        query = """
-            WITH _tag AS (
-                INSERT INTO documents_tag(name, sequence)
-                     VALUES (jsonb_build_object('en_US', %s), %s)
-                  RETURNING id
-            )
-            INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
-                 SELECT 'documents', 'documents_tag_' || %s, 'documents.tag', id, true
-                   FROM _tag
-        """
-        cr.execute(query, [name, sequence, xid])
 
     ####################
     # DOCUMENTS.ACCESS #
