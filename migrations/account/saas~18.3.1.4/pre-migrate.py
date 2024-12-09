@@ -36,3 +36,6 @@ def migrate(cr, version):
     util.remove_field(cr, "res.partner", "invoice_warn_msg")
     util.remove_field(cr, "res.config.settings", "group_warning_account")
     util.remove_group(cr, "account.group_warning_account")
+    util.remove_field(cr, "res.config.settings", "module_account_bank_statement_import_ofx")
+    util.remove_field(cr, "res.config.settings", "module_account_bank_statement_import_csv")
+    util.remove_field(cr, "res.config.settings", "module_account_bank_statement_import_camt")
