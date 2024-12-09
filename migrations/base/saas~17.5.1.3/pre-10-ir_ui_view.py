@@ -15,7 +15,7 @@ def migrate(cr, version):
         "ir_ui_view",
         "arch_db",
         # replace: `/tree"`, `/tree'`, `/tree[`, or `/tree/`
-        util.PGRegexp(r"(<xpath .*expr=.+)/tree([\"'/\[])"),
+        util.PGRegexp(r"(<xpath .*?expr=.+)/tree([\"'/\[])"),
         r"\1/list\2",
     )
 
