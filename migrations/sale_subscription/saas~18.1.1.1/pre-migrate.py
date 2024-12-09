@@ -20,3 +20,15 @@ def migrate(cr, version):
     util.remove_field(cr, "sale.order", "health")
     util.remove_field(cr, "sale.order.log.report", "health")
     util.remove_field(cr, "sale.subscription.report", "health")
+
+    # Update effective date of logs. We don't care about the past.
+    util.create_column(cr, "sale_order_log", "effective_date", "date")
+    util.explode_execute(
+        cr,
+        """
+            UPDATE sale_order_log l
+               SET effective_date=event_date
+        """,
+        table="sale_order_log",
+        alias="l",
+    )
