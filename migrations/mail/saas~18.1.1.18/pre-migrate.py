@@ -17,3 +17,7 @@ def migrate(cr, version):
     """,
         table="discuss_channel",
     )
+    if util.module_installed(cr, "website_slides"):
+        util.move_field_to_module(cr, "mail.activity", "request_partner_id", "mail", "website_slides")
+    else:
+        util.remove_field(cr, "mail.activity", "request_partner_id")
