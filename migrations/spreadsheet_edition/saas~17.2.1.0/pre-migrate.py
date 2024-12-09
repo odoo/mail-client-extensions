@@ -62,6 +62,10 @@ def migrate(cr, version):
               FROM spreadsheet_revision sr
          LEFT JOIN spreadsheet_revision sr2
                 ON sr.parent_revision_id = sr2.revision_id
+                -- if there is a change of reference record
+                -- the revision can be considered as a head revision
+               AND sr.res_id = sr2.res_id
+               AND sr.res_model = sr2.res_model
           GROUP BY sr.res_id, sr.res_model
             -- restrict to cases with more than one revision with missing parent
             -- note: the head revision will always have a missing parent
@@ -85,6 +89,8 @@ def migrate(cr, version):
               FROM spreadsheet_revision t
               JOIN hierarchy h
                 ON t.parent_revision_id = h.revision_id
+               AND t.res_id = h.res_id
+               AND t.res_model = h.res_model
         ), grouped AS (
             SELECT res_id,
                    res_model,
