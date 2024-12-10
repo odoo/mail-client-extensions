@@ -40,6 +40,9 @@ def migrate(cr, version):
 
     payment_types = ["alipay", "payulatam", "payumoney"]
     if util.module_installed(cr, "payment"):
+        util.delete_unused(
+            cr, *[f"payment_{ptype}.payment_provider_{ptype}" for ptype in payment_types], keep_xmlids=False
+        )
         cr.execute(
             """
             UPDATE payment_provider
