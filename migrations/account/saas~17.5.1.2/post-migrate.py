@@ -25,7 +25,7 @@ def migrate(cr, version):
                      || COALESCE(
                             (SELECT jsonb_object_agg(key, pl.payment_method_line_id)
                                FROM pay_lines pl,
-                                    jsonb_each(p.property_payment_method_id)
+                                    jsonb_each_text(p.property_payment_method_id)
                               WHERE key = pl.company_id::text
                                 AND value::int4 = pl.payment_method_id
                             ),
