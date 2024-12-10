@@ -2,6 +2,16 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # Rename tags
+    documents_project_mapping = {
+        "documents_project_status_draft": "documents_tag_draft",
+        "documents_project_status_to_validate": "documents_tag_to_validate",
+        "documents_project_status_validated": "documents_tag_validated",
+        "documents_project_status_deprecated": "documents_tag_deprecated",
+    }
+    for old_name, new_name in documents_project_mapping.items():
+        util.rename_xmlid(cr, f"documents_project.{old_name}", f"documents.{new_name}", on_collision="merge")
+
     util.remove_view(cr, "documents_project.tag_view_form_inherit")
 
     util.remove_field(cr, "project.task", "shared_document_count")

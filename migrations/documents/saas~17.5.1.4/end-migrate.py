@@ -11,10 +11,6 @@ def migrate(cr, version):
     #################
     # DOCUMENTS.TAG #
     #################
-    util.remove_record(cr, "documents.documents_finance_status_inbox")
-    util.remove_record(cr, "documents.documents_finance_status_tc")
-    util.remove_record(cr, "documents.documents_finance_status_validated")
-    util.remove_record(cr, "documents.documents_finance_documents_Contracts")
 
     ############
     # OWNER ID #

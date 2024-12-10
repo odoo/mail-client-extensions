@@ -228,19 +228,42 @@ def migrate(cr, version):
 
     # Remove duplicated tags, and keep only one per name, in the English version.
     # Fill a table that will map the removed tag to the one we kept
+
+    # Ensure the xmlids used in the mapping below exist in the database
+    # That way the de-duplication keeps those instead since
+    # these tag names have many xmlids referencing them in 17.0
+    tags_values = {
+        "documents_internal_status_inbox": "Inbox",
+        "documents_internal_status_tc": "To Validate",
+        "documents_internal_status_validated": "Validated",
+        "documents_internal_status_deprecated": "Deprecated",
+        "documents_finance_documents_bill": "Bill",
+        "documents_finance_documents_Contracts": "Contracts",
+    }
+    for tag_xmlid, tag_name in tags_values.items():
+        util.ensure_xmlid_match_record(cr, f"documents.{tag_xmlid}", "documents.tag", {"name": tag_name})
     cr.execute(
         """
         WITH grouped_ids AS (
-            SELECT ARRAY_AGG(id ORDER BY id ASC) AS ids
-              FROM documents_tag
-          GROUP BY name->'en_US'
+            SELECT ARRAY_AGG(tag.id ORDER BY
+                    imd.module = 'documents' DESC NULLS LAST, -- documents xmlids first
+                    imd.name = ANY(%s) DESC NULLS LAST, -- prioritize this set of specific xmlids
+                    tag.id ASC
+                ) AS ids
+              FROM documents_tag AS tag
+         LEFT JOIN ir_model_data AS imd
+                ON imd.res_id = tag.id
+               AND imd.model = 'documents_tag'
+          GROUP BY tag.name->'en_US'
         )
         SELECT tag.id, grouped.ids[1]
           FROM documents_tag AS tag
           JOIN grouped_ids AS grouped
-           ON tag.id = ANY(grouped.ids)
-        """
+            ON tag.id = ANY(grouped.ids)
+        """,
+        [list(tags_values.keys())],
     )
+
     tags_mapping = dict(cr.fetchall())
     _tags_mapping = {src: dest for src, dest in tags_mapping.items() if src != dest}
     if _tags_mapping:
@@ -262,11 +285,15 @@ def migrate(cr, version):
         "documents_internal_template_contracts": "documents_tag_contracts",
         "documents_internal_template_project": "documents_tag_project",
         "documents_internal_template_text": "documents_tag_text",
+        "documents_finance_status_inbox": "documents_tag_inbox",
+        "documents_finance_status_tc": "documents_tag_to_validate",
+        "documents_finance_status_validated": "documents_tag_validated",
         "documents_finance_documents_bill": "documents_tag_bill",
         "documents_finance_documents_expense": "documents_tag_expense",
         "documents_finance_documents_vat": "documents_tag_vat",
         "documents_finance_documents_fiscal": "documents_tag_fiscal",
         "documents_finance_documents_financial": "documents_tag_financial",
+        "documents_finance_documents_Contracts": "documents_tag_contracts",
         "documents_finance_fiscal_year_2017": "documents_tag_year_previous",
         "documents_finance_fiscal_year_2018": "documents_tag_year_current",
         "documents_marketing_assets_ads": "documents_tag_ads",
@@ -277,7 +304,7 @@ def migrate(cr, version):
 
     for old_name, new_name in mapping.items():
         # rename the first element
-        util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}")
+        util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}", on_collision="merge")
 
     cr.execute("ALTER TABLE documents_tag ALTER COLUMN facet_id DROP NOT NULL")
 
