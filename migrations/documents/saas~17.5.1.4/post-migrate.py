@@ -26,8 +26,9 @@ def migrate(cr, version):
         if not util.ref(cr, f"documents.documents_tag_{tag}"):
             util.update_record_from_xml(cr, f"documents.documents_tag_{tag}")
 
-    if not util.ref(cr, "documents.document_internal_folder"):
-        util.update_record_from_xml(cr, "documents.document_internal_folder")
+    for folder in ["internal", "finance"]:
+        if not util.ref(cr, f"documents.document_{folder}_folder"):
+            util.update_record_from_xml(cr, f"documents.document_{folder}_folder")
 
     server_actions = [
         "create_activity",
