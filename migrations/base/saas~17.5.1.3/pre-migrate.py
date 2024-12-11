@@ -10,6 +10,13 @@ def migrate(cr, version):
        WHERE code = 'sr_RS'
         """
     )
+    cr.execute(
+        """
+        UPDATE res_partner
+           SET lang = 'sr@Cyrl'
+         WHERE lang = 'sr_RS'
+        """
+    )
     util.rename_xmlid(cr, "base.lang_sr_RS", "base.lang_sr@Cyrl")
     util.remove_view(cr, "base.res_users_identitycheck_view_form_revokedevices")
 
