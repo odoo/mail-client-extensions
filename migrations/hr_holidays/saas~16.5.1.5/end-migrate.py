@@ -1,3 +1,5 @@
+from odoo.tools import float_compare, float_round
+
 from odoo.upgrade import util
 
 
@@ -15,6 +17,16 @@ def migrate(cr, version):
     for leave in util.iter_browse(Leave, ids):
         days, hours = leave._get_duration(check_leave_type=False)
 
-        # compute the ratio between the chosen and the guessed number of days
-        ratio = leave.number_of_days / days if days else 1
-        leave.number_of_hours = round(hours * ratio)
+        ratio = (
+            # keep hours if the leave was less than one day
+            1
+            if not days
+            # if there is a mismatch in hours-per-day with the value in
+            # the calendar, use the computed days
+            else days
+            if float_compare(leave.resource_calendar_id.hours_per_day, hours / days, precision_digits=2) != 0
+            # when hours-per-day match, account for a possible mismatch with the
+            # number of days in the leave
+            else (leave.number_of_days / days)
+        )
+        leave.number_of_hours = float_round(hours * ratio, precision_digits=2)
