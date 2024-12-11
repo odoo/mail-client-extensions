@@ -6,6 +6,7 @@ def migrate(cr, version):
         """
       UPDATE res_lang
          SET code = 'sr@Cyrl',
+             url_code = 'sr@Cyrl',
              iso_code = 'sr@Cyrl'
        WHERE code = 'sr_RS'
         """
