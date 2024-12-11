@@ -86,3 +86,16 @@ def migrate(cr, version):
          WHERE report_name LIKE 'industry\_fsm.worksheet\_custom\_copy%'
         """,
     )
+
+    # demo stage uses an sms tempate with removed field planned_date_end
+    if util.column_exists(cr, "project_task_type", "sms_template_id"):
+        cr.execute(
+            """
+            UPDATE project_task_type
+               SET sms_template_id = null
+             WHERE id = %s
+            """,
+            [
+                util.ref(cr, "industry_fsm.planning_project_stage_1"),
+            ],
+        )
