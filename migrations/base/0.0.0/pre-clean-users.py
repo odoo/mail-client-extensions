@@ -12,3 +12,13 @@ def migrate(cr, version):
 
     if util.version_gte("10.0"):
         util.ensure_xmlid_match_record(cr, "base.default_user", "res.users", {"login": "default"})
+    if util.version_between("17.0", "saas~18.1"):
+        cr.execute(
+            """
+            INSERT INTO res_company_users_rel(cid, user_id)
+                 SELECT id, %s
+                   FROM res_company
+            ON CONFLICT DO NOTHING
+            """,
+            [util.ref(cr, "base.user_root")],
+        )
