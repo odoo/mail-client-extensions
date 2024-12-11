@@ -54,9 +54,22 @@ def migrate(cr, version):
         cr.execute("""UPDATE res_company SET quotation_validity_days = 0""")
 
     default_deposit_product_id = ICP.get_param("sale.default_deposit_product_id", default=False)
-    util.create_column(
-        cr, "res_company", "sale_down_payment_product_id", "int4", default=default_deposit_product_id or None
-    )
+    util.create_column(cr, "res_company", "sale_down_payment_product_id", "int4")
+    if default_deposit_product_id:
+        cr.execute(
+            """
+            UPDATE res_company rc
+               SET sale_down_payment_product_id = pp.id
+              FROM product_template pt
+              JOIN product_product pp
+                ON pp.product_tmpl_id = pt.id
+             WHERE pp.id = %s
+               AND COALESCE(pt.company_id, rc.id) = rc.id
+               AND pt.type = 'service'
+               AND pt.invoice_policy = 'order'
+            """,
+            [default_deposit_product_id],
+        )
     cr.execute(
         """
         DELETE FROM ir_config_parameter
