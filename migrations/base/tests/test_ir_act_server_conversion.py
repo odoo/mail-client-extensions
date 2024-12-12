@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 try:
     from odoo import Command
 except ImportError:
@@ -33,6 +31,13 @@ class Test_01_Convert_ObjectCreate_Action(UpgradeCase):
                             "value": '"TC"',
                         }
                     ),
+                    Command.create(
+                        {
+                            "col1": self.env.ref("base.field_res_currency__rate_ids").id,
+                            "evaluation_type": "reference",
+                            "value": "2",
+                        }
+                    ),
                 ],
             }
         )
@@ -53,7 +58,7 @@ class Test_01_Convert_ObjectCreate_Action(UpgradeCase):
                     "crud_model_id": None,
                     "link_field_id": None,
                     "code": """
-new_record = env["res.currency"].create({"name": 'Test Currency', "symbol": "TC"})
+new_record = env["res.currency"].create({"name": 'Test Currency', "symbol": "TC", "rate_ids": 2})
 # link the new record to the current record
 record.write({"currency_id": new_record.id})
 """,

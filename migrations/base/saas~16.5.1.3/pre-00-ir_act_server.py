@@ -217,10 +217,7 @@ def compile_code_snippet(same_actions):
     def get_update_field_value(a):
         if a["evaluation_type"] == "equation":
             return a["value"]
-        elif a["evaluation_type"] == "reference":
-            with suppress(ValueError):
-                return f"env['{a['update_field_relation']}'].browse({int(a['value'])})"
-        elif a["update_field_type"] in ("many2one", "integer"):
+        elif a["update_field_type"] in ("many2one", "integer") or a["evaluation_type"] == "reference":
             with suppress(ValueError):
                 return int(a["value"])
         return f"'{a['value']}'"
