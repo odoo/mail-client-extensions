@@ -158,6 +158,14 @@ def recycle(env, execute=None):
            ON p.state_id = cs.id
           AND pc.partner_id = p.id
         """
+    extra_nulls = ""
+    for column in [
+        "email_normalized",  # mail
+        "phone_sanitized",  # phone_validation
+        "contact_address_complete",  # web_map
+    ]:
+        if column in env["res.partner"]._fields:
+            extra_nulls += ", {} = NULL".format(column)
 
     empty_private_info_query = """
         UPDATE res_partner p
@@ -171,11 +179,13 @@ def recycle(env, execute=None):
                zip = NULL,
                country_id = NULL,
                phone = NULL,
-               email = NULL
+               email = NULL,
+               mobile = NULL
+               {}
           FROM res_partner_res_partner_category_rel pc
          WHERE pc.category_id = %s
            AND pc.partner_id = p.id
-        """
+        """.format(extra_nulls)
 
     delete_mail_messages_query = """
         DELETE FROM mail_message m
