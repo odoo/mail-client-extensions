@@ -16,3 +16,4 @@ def migrate(cr, version):
         util.merge_module(cr, "pos_urban_piper_zomato", "l10n_in_pos_urban_piper")
         util.merge_module(cr, "l10n_es_modelo130", "l10n_es")
         util.merge_module(cr, "l10n_es_reports_modelo130", "l10n_es_reports")
+        util.merge_module(cr, "l10n_ee_rounding", "l10n_ee_reports")
