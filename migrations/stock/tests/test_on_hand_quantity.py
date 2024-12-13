@@ -199,7 +199,8 @@ class TestOnHandQuantityUnchanged(IntegrityCase):
         results = []
         for sub_ids in util.chunks((row[0] for row in self.env.cr.fetchall()), 10000, list):
             util.invalidate(self.env["product.product"])
-            products = self.env["product.product"].with_context(warehouse=warehouses and warehouses.ids).browse(sub_ids)
+            context = {"warehouse_id" if util.version_gte("saas~17.3") else "warehouse": warehouses and warehouses.ids}
+            products = self.env["product.product"].with_context(**context).browse(sub_ids)
             # If a product is created or deleted, this can lead to an issue.
             # So, only compare products having quantities != 0
             results += [
