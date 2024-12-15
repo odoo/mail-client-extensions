@@ -2,9 +2,21 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    for module in ["l10n_in_gstin_status", "l10n_in_withholding", "l10n_in_reports_gstr", "l10n_in_enet_batch_payment"]:
+        util.ENVIRON[module] = util.module_installed(cr, module)
+
+    util.merge_module(cr, "l10n_in_gstin_status", "l10n_in")
+    util.merge_module(cr, "l10n_in_withholding", "l10n_in")
+
     if util.has_enterprise():
         util.rename_module(cr, "pos_l10n_se", "l10n_se_pos")
         util.merge_module(cr, "l10n_ke_hr_payroll_shif", "l10n_ke_hr_payroll")
+        util.remove_module(cr, "l10n_in_documents")
+        util.merge_module(cr, "l10n_in_asset", "l10n_in_reports")
+        util.merge_module(cr, "l10n_in_enet_batch_payment", "l10n_in_reports")
+        util.merge_module(cr, "l10n_in_qr_code_bill_scan", "l10n_in_reports")
+        util.merge_module(cr, "l10n_in_reports_gstr", "l10n_in_reports")
+        util.merge_module(cr, "l10n_in_reports_tds_tcs", "l10n_in_reports")
 
     if util.module_installed(cr, "pos_iot"):
         modules_to_install = set()
