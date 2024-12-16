@@ -46,6 +46,8 @@ def fix_image_attachment(cr, res_model, res_id, command):
     if path.startswith("/web/image/"):
         # path is /web/image/<attachment_id>?...
         path = path.split("?")[0]
+        if not path.split("/")[3].isdigit():
+            return False
         attachment_id = int(path.split("/")[3])
         cr.execute(
             """
