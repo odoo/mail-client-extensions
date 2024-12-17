@@ -253,7 +253,7 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
                     -- join the table already in the CTE to avoid computing
                     -- stuff we won't use in the update below
                   JOIN {table_name} t
-                    ON SPLIT_PART(prop.res_id, ',', 2)::int4 = t.id
+                    ON NULLIF(SPLIT_PART(prop.res_id, ',', 2), '')::int4 = t.id
                    AND prop.type = {field_type}
                    AND prop.company_id IS NOT NULL
                    AND prop.res_id IS NOT NULL
