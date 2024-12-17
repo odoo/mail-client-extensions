@@ -1,19 +1,27 @@
 from odoo.upgrade import util
 
 
+def rename_demo_company_xmlids(cr, code, from_module_suffix=""):
+    eb = util.expand_braces
+    util.rename_xmlid(
+        cr, *eb(f"{{l10n_{code}{from_module_suffix},base}}.partner_demo_company_{code}"), on_collision="merge"
+    )
+    util.rename_xmlid(cr, *eb(f"{{l10n_{code}{from_module_suffix},base}}.demo_company_{code}"), on_collision="merge")
+    util.rename_xmlid(cr, *eb(f"{{l10n_{code}{from_module_suffix},base}}.demo_bank_{code}"), on_collision="merge")
+
+
 def migrate(cr, version):
     accounting_country_codes = (
         "ae,ar,at,au,be,bg,bo,br,ca,ch,cl,cn,co,cr,cz,de,dk,do,dz,ec,ee,eg,"
         "es,et,fi,fr,gr,gt,hk,hn,hr,hu,id,ie,il,in,it,jp,ke,kz,lt,lu,lv,ma,"
         "mn,mx,my,mz,nl,no,nz,pa,pe,ph,pk,pl,pt,ro,rs,sa,se,sg,si,sk,th,tn,"
-        "tr,tw,ua,ug,uk,us,uy,ve,vn,za,syscohada".split(",")
+        "tr,tw,ua,ug,uk,us,uy,ve,vn,za,"
+        "syscohada,bf,bj,cd,cf,cg,ci,cm,ga,gn,gq,gw,km,ml,ne,sn,td,tg".split(",")
     )
 
     eb = util.expand_braces
     for cc in accounting_country_codes:
-        util.rename_xmlid(cr, *eb(f"{{l10n_{cc},base}}.partner_demo_company_{cc}"), on_collision="merge")
-        util.rename_xmlid(cr, *eb(f"{{l10n_{cc},base}}.demo_company_{cc}"), on_collision="merge")
-        util.rename_xmlid(cr, *eb(f"{{l10n_{cc},base}}.demo_bank_{cc}"), on_collision="merge")
+        rename_demo_company_xmlids(cr, cc)
 
     util.rename_xmlid(
         cr, "l10n_hr_kuna.partner_demo_company_hr", "base.partner_demo_company_hr_kuna", on_collision="merge"
