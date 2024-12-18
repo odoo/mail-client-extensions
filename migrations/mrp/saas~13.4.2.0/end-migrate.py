@@ -329,13 +329,19 @@ def migrate(cr, version):
     _logger.info("Clean and recompute some fields")
     if ids_mo:
         # Delete empty move coming from split in (4.)
-        cr.execute(
-            """
-            DELETE FROM stock_move
-             WHERE (stock_move.raw_material_production_id IN %(ids)s OR stock_move.production_id IN %(ids)s)
-               AND stock_move.product_uom_qty = 0.0
-            """,
-            {"ids": tuple(ids_mo)},
+        util.parallel_execute(
+            cr,
+            [
+                cr.mogrify(
+                    """
+                    DELETE FROM stock_move
+                     WHERE product_uom_qty = 0.0
+                       AND (raw_material_production_id IN %(ids)s OR production_id IN %(ids)s)
+                    """,
+                    {"ids": chunk},
+                ).decode()
+                for chunk in util.chunks(ids_mo, 100, fmt=tuple)
+            ],
         )
     # Clean working column, temporary table and invalidate cache for model used
     util.remove_column(cr, "mrp_production", "old_id")
