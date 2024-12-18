@@ -8,3 +8,4 @@ def migrate(cr, version):
         [util.ref(cr, "website_sale.product_custom_text")],
     )
     util.remove_view(cr, "website_sale.sale_order_view_form_cart_recovery")
+    util.remove_view(cr, "website_sale.cart_item_line_heading")
