@@ -17,3 +17,4 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_es_modelo130", "l10n_es")
         util.merge_module(cr, "l10n_es_reports_modelo130", "l10n_es_reports")
         util.merge_module(cr, "l10n_ee_rounding", "l10n_ee_reports")
+        util.remove_module(cr, "documents_account_peppol")
