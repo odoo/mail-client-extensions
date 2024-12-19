@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 
 from odoo.upgrade import util
@@ -143,18 +142,31 @@ def migrate(cr, version):
         partner = Partner.find_or_create(f"{employee_name} <{work_email}>", assert_valid_email=False)
         cr.execute("UPDATE hr_employee SET work_contact_id = %s WHERE id = %s", [partner.id, employee_id])
 
+    cr.execute("ALTER TABLE res_partner_bank DROP CONSTRAINT IF EXISTS res_partner_bank_unique_number")
+
+    cr.execute(
+        """
+        UPDATE res_partner_bank b
+           SET partner_id = e.work_contact_id
+          FROM hr_employee e
+         WHERE b.partner_id = e.address_home_id
+           AND e.work_contact_id IS NOT NULL
+           AND b.partner_id != e.work_contact_id
+        """
+    )
+
     # Move bank account from private contact to work contact
     cr.execute(
         """
-           WITH dups AS (
-                SELECT coalesce(hr_employee.work_contact_id, res_partner_bank.partner_id) as p_id,
-                       sanitized_acc_number,
-                       array_agg(res_partner_bank.id) as ids
-                  FROM res_partner_bank
-             LEFT JOIN hr_employee ON res_partner_bank.partner_id = hr_employee.address_home_id
-              group by 1, 2
-                having count(*)>1)
-           SELECT unnest(ids[2:]), ids[1] FROM dups
+        WITH dups AS (
+             SELECT partner_id,
+                    sanitized_acc_number,
+                    ARRAY_AGG(id) AS ids
+               FROM res_partner_bank
+           GROUP BY 1, 2
+             HAVING COUNT(*) > 1
+        )
+        SELECT UNNEST(ids[2:]), ids[1] FROM dups
         """
     )
     mapping = {bank_id[0]: bank_id[1] for bank_id in cr.fetchall() if bank_id[0] != bank_id[1]}
@@ -164,12 +176,5 @@ def migrate(cr, version):
         util.remove_records(cr, "res.partner.bank", mapping.keys())
 
     cr.execute(
-        """
-            UPDATE res_partner_bank
-               SET partner_id = hr_employee.work_contact_id
-              FROM hr_employee
-             WHERE res_partner_bank.partner_id = hr_employee.address_home_id
-               AND hr_employee.work_contact_id IS NOT NULL
-               AND res_partner_bank.partner_id != hr_employee.work_contact_id
-        """
+        "ALTER TABLE res_partner_bank ADD CONSTRAINT res_partner_bank_unique_number UNIQUE (sanitized_acc_number, partner_id)"
     )
