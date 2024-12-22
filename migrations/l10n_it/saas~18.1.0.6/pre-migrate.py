@@ -9,7 +9,7 @@ def migrate(cr, version):
             cr,
             """
             UPDATE account_tax
-               SET invoice_legal_notes = {}
+               SET invoice_legal_notes = jsonb_build_object('en_US', {})
              WHERE l10n_it_law_reference IS NOT NULL
                AND invoice_legal_notes IS NULL
             """,
