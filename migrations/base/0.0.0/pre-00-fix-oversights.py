@@ -9,8 +9,9 @@ from odoo.addons.base.maintenance.migrations.util import json
 
 
 def migrate(cr, version):
-    if util.version_gte("10.saas~18"):
+    if util.version_between("10.saas~18", "18.0"):
         # Should have been removed in saas~18...
+        # table does not exist after 18.1
         util.remove_constraint(cr, "res_partner_title", "res_partner_title_name_uniq", warn=False)
 
     # forgotten temporary table
