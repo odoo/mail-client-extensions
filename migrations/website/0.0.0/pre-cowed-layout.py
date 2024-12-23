@@ -86,6 +86,7 @@ def migrate(cr, version):
             See the full list below.
             </summary>
             <ul>{}</ul>
-            <details>
-            """.format("<li>{}</li>".format(m) for m in report_msgs),
+            </details>
+            """.format(" ".join("<li>{}</li>".format(m) for m in report_msgs)),
+            format="html",
         )
