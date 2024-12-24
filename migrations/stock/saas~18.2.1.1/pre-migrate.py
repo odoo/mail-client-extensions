@@ -11,3 +11,5 @@ def migrate(cr, version):
         WHERE inventory_quantity_set IS NOT TRUE
         """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="stock_quant", alias="sq"))
+    util.remove_model(cr, "stock.change.product.qty")
+    util.remove_view(cr, "stock.product_product_view_form_easy_inherit_stock")
