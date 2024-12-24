@@ -488,8 +488,12 @@ def migrate_workflow_rule(
             all_tag_ids_remove.update(tag_ids_to_remove)
             all_tag_ids_add.update(tag_ids_to_add)
             children += [
-                f"ir_actions_server_tag_add_{sanitize(tag_info[tag_id]['name'])}" for tag_id in tag_ids_to_add
-            ] + [f"ir_actions_server_tag_remove_{sanitize(tag_info[tag_id]['name'])}" for tag_id in tag_ids_to_remove]
+                f"ir_actions_server_tag_add_{sanitize(tag_info[tag_id]['name'])}_{tag_info[tag_id]}"
+                for tag_id in tag_ids_to_add
+            ] + [
+                f"ir_actions_server_tag_remove_{sanitize(tag_info[tag_id]['name'])}_{tag_info[tag_id]}"
+                for tag_id in tag_ids_to_remove
+            ]
 
         if workflow_rule["remove_activities"]:
             children.append("ir_actions_server_remove_activities")
@@ -602,11 +606,11 @@ def migrate_workflow_rule(
     for operation, tag_id in chain(zip(cycle(["remove"]), all_tag_ids_remove), zip(cycle(["add"]), all_tag_ids_add)):
         if operation == "remove":
             name = f"Remove Tag {tag_info[tag_id]['name']}"
-            upg_name = f"ir_actions_server_tag_remove_{sanitize(tag_info[tag_id]['name'])}"
+            upg_name = f"ir_actions_server_tag_remove_{sanitize(tag_info[tag_id]['name'])}_{tag_info[tag_id]}"
             sequence = 7
         else:  # add
             name = f"Add Tag {tag_info[tag_id]['name']}"
-            upg_name = f"ir_actions_server_tag_add_{sanitize(tag_info[tag_id]['name'])}"
+            upg_name = f"ir_actions_server_tag_add_{sanitize(tag_info[tag_id]['name'])}_{tag_info[tag_id]}"
             sequence = 10
         if upg_name in existing_server_act:
             continue
