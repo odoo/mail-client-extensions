@@ -3,6 +3,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.convert_field_to_translatable(cr, "hr.payroll.structure", "name")
+    util.remove_field(cr, "res.config.settings", "group_payslip_display")
 
     util.create_column(cr, "hr_payslip_worked_days", "date_from", "date")
     util.create_column(cr, "hr_payslip_worked_days", "employee_id", "int4")
