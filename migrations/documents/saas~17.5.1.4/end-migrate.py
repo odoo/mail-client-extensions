@@ -122,29 +122,44 @@ def migrate(cr, version):
         "SELECT id FROM ir_act_server WHERE _upg_name IS NOT NULL AND _upg_name NOT IN %s",
         [tuple(init_existing_server_act)],
     )
-    new_action_ids = [tuple_id[0] for tuple_id in cr.fetchall()]
-    util.recompute_fields(
-        cr,
-        "ir.actions.server",
-        (
-            "crud_model_id",
-            "link_field_id",
-            "update_field_id",
-            "update_related_model_id",
-            # mail
-            "template_id",
-            "mail_post_autofollow",
-            "mail_post_method",
-            "activity_summary",
-            "activity_note",
-            "activity_date_deadline_range",
-            "activity_date_deadline_range_type",
-            "activity_user_type",
-            "activity_user_id",
-            "activity_user_field_name",
-        ),
-        ids=new_action_ids,
-    )
+    if new_action_ids := [tuple_id[0] for tuple_id in cr.fetchall()]:
+        util.recompute_fields(
+            cr,
+            "ir.actions.server",
+            (
+                "crud_model_id",
+                "link_field_id",
+                "update_field_id",
+                "update_related_model_id",
+                # mail
+                "template_id",
+                "mail_post_autofollow",
+                "mail_post_method",
+                "activity_summary",
+                "activity_note",
+                "activity_date_deadline_range",
+                "activity_date_deadline_range_type",
+                "activity_user_type",
+                "activity_user_id",
+                "activity_user_field_name",
+            ),
+            ids=new_action_ids,
+        )
+        # migrated to code server actions should be excluded from the cloc for maintenance fees
+        cr.execute(
+            """
+            INSERT INTO ir_model_data (name, module, model, res_id, noupdate)
+                 SELECT 'document_workflow_migrated_to_server_action_' || id,
+                        '__cloc_exclude__',
+                        'ir.actions.server',
+                        id,
+                        TRUE
+                   FROM ir_act_server
+                  WHERE id = ANY(%s)
+                    AND state = 'code'
+            """,
+            [new_action_ids],
+        )
 
     ############
     # CLEAN DB #
