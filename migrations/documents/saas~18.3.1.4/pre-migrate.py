@@ -6,3 +6,7 @@ def migrate(cr, version):
         util.move_field_to_module(cr, "documents.document", "document_count", "documents", "documents_fsm")
     else:
         util.remove_field(cr, "documents.document", "document_count")
+
+    util.remove_field(cr, "documents.document", "is_locked")
+    util.remove_view(cr, "documents.document_view_form")
+    util.remove_view(cr, "documents.document_view_form_details")
