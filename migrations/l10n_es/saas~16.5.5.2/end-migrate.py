@@ -63,6 +63,10 @@ def migrate(cr, version):
         "mod_303_122": ("mod303[122]", "-", "base"),
         "mod_303_123": ("mod303[123]", "-", "base"),
         "mod_303_124": ("mod303[124]", "-", "base"),
+        "mod_303_167": ("mod303[167]", "-", "base"),
+        "mod_303_165": ("mod303[165]", "-", "base"),
+        "mod_303_168": ("mod303[168]", "-", "base"),
+        "mod_303_170": ("mod303[170]", "-", "base"),
     }
 
     old_tag_ids = tag_migration_utils.migrate_tags_to_tax_tags_engine(cr, "l10n_es", tax_tag_changes)
