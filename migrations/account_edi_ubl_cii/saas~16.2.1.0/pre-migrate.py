@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.addons.account_edi_ubl_cii.models.account_edi_common import EAS_MAPPING
 
 from odoo.upgrade import util
@@ -49,6 +47,5 @@ def migrate(cr, version):
     ).decode()
     util.explode_execute(cr, query, table="res_partner", alias="p")
 
-    util.remove_field(cr, "res.partner", "country_code")
     util.remove_field(cr, "res.partner", "l10n_lu_peppol_identifier")
     util.remove_view(cr, "account_edi_ubl_cii.res_partner_form_inherit_l10n_lu_peppol_id")
