@@ -13,6 +13,7 @@ def migrate(cr, version):
            AND imf.name = 'property_account_income_categ_id'
            AND imf.model = 'product.category'
          WHERE rc.id = d.company_id
+           AND d.json_value!='false'
     """)
     util.create_column(cr, "res_company", "expense_account_id", "int4")
     cr.execute("""
@@ -24,6 +25,7 @@ def migrate(cr, version):
            AND imf.name = 'property_account_expense_categ_id'
            AND imf.model = 'product.category'
          WHERE rc.id = d.company_id
+           AND d.json_value!='false'
     """)
     util.change_field_selection_values(cr, "account.report", "filter_multi_company", {"disabled": "selector"})
     util.rename_field(
