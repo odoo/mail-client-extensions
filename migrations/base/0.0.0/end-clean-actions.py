@@ -16,6 +16,7 @@ def migrate(cr, version):
     removable_refs = [
         ("ir_filters", "action_id"),
         ("studio_approval_rule", "action_id"),
+        ("ir_embedded_actions", "action_id"),
     ]
 
     cr.execute(
