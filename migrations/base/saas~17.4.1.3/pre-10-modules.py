@@ -12,6 +12,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_br_edi_services", "l10n_br_edi")
     util.merge_module(cr, "l10n_br_edi_sale_services", "l10n_br_edi_sale")
     util.merge_module(cr, "l10n_fr_invoice_addr", "l10n_fr_account")
+    util.merge_module(cr, "l10n_ro_efactura", "l10n_ro_edi")
 
     if util.has_enterprise():
         util.merge_module(cr, "l10n_ch_hr_payroll_elm", "l10n_ch_hr_payroll")
