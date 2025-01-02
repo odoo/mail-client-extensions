@@ -14,6 +14,8 @@ def migrate(cr, version):
                    FROM {} ip
                    JOIN product_template pt
                      ON (SPLIT_PART(ip.res_id, ',', 2)::integer) = pt.id
+                   JOIN helpdesk_sla hs
+                     ON (SPLIT_PART(ip.value_reference, ',', 2)::integer) = hs.id
                   WHERE ip.name = 'sla_id'
                     AND ip.value_reference LIKE 'helpdesk.sla,%'
                     AND ip.res_id LIKE 'product.template,%'
