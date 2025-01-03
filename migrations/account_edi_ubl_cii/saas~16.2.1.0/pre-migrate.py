@@ -41,7 +41,9 @@ def migrate(cr, version):
                END),
                peppol_eas = {subquery_eas},
                peppol_endpoint = {subquery_endpoint}
-          FROM res_country c WHERE c.id = p.country_id
+          FROM res_country c
+         WHERE c.id = p.country_id
+           AND p.parent_id IS NULL
     """,
         [tuple(set(EAS_MAPPING.keys()) - {"FR", "DE", "NL", "AU", "NZ", "SG"})],
     ).decode()
