@@ -59,8 +59,16 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, table="stock_move", alias="move")
 
+    query = """
+        DELETE FROM stock_package_level spl
+              USING stock_move_line sml
+              WHERE spl.id = sml.package_level_id
+                AND sml.picked IS NOT True
+    """
+    util.explode_execute(cr, query, table="stock_package_level", alias="spl")
+
     # remove reservation
-    util.explode_execute(cr, "DELETE FROM stock_move_line WHERE picked = false", table="stock_move_line")
+    util.explode_execute(cr, "DELETE FROM stock_move_line WHERE picked IS NOT True", table="stock_move_line")
 
     util.rename_field(cr, "stock.move", "quantity_done", "quantity")
     util.rename_field(cr, "stock.move.line", "qty_done", "quantity")
