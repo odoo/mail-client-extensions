@@ -247,8 +247,8 @@ class TestCrawler(IntegrityCase):
         failing = set()
         if menu["xmlid"] in self.skip_menus:
             _logger.info("Skip known failing menu %s", menu["xmlid"])
-        elif menu.get("action"):
-            action_id = int(menu["action"].split(",")[1])
+        elif menu.get("action") or menu.get("action_id"):
+            action_id = int(menu["action"].split(",")[1]) if menu.get("action") else menu["action_id"]
             action = self.env["ir.actions.actions"].sudo().browse(action_id)
             try:
                 action_typed = self.env[action.type].sudo().browse(action_id)
