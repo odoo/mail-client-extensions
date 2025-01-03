@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 from odoo.osv.expression import normalize_leaf
@@ -116,6 +115,8 @@ def migrate(cr, version):
             return internal_type_adapter(
                 (re.sub(r"\buser_type_id\.type\b", "account_type", left), operator, right), is_or, negated
             )
+        if "user_type_id.id" in left:
+            left = re.sub(r"\buser_type_id\.id\b", "account_type", left)
         right = (
             [types_mapping.get(t, t) for t in right]
             if isinstance(right, (tuple, list))
