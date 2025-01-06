@@ -201,7 +201,7 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
     elif field_type in ("char", "text", "html", "selection"):
         store_type = sql.SQL("text")
         property_value_field = sql.SQL("prop.value_text")
-    elif field_type == "date":
+    elif field_type in ("date", "datetime"):
         store_type = sql.SQL("text")
         property_value_field = sql.SQL("prop.value_datetime")
     elif field_type == "many2one":
