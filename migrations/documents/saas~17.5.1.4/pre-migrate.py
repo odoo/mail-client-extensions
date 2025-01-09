@@ -99,6 +99,7 @@ def migrate(cr, version):
     # In other words documents_document.folder_id will correctly point
     # to the new record in document_documents corresponding to the
     # former documents_folder
+    lang_code = util.env(cr)["res.company"]._get_main_company().partner_id.lang or "en_US"
     cr.execute(
         """
         WITH new_folder_ids AS (
@@ -106,9 +107,14 @@ def migrate(cr, version):
                     _upg_old_folder_id, name, type, res_id, res_model,
                     active, parent_path, company_id, folder_id
                  )
-                 SELECT id, name->>'en_US', 'folder', NULL, NULL,
-                        active, NULL, company_id, parent_folder_id
-                   FROM documents_folder
+                 SELECT folder.id, COALESCE(folder.name->>partner.lang, folder.name->>%s, folder.name->>'en_US'),
+                        'folder', NULL, NULL,
+                        folder.active, NULL, folder.company_id, folder.parent_folder_id
+                   FROM documents_folder folder
+              LEFT JOIN res_company company
+                     ON company.id = folder.company_id
+              LEFT JOIN res_partner partner
+                     ON partner.id = company.partner_id
               RETURNING id, _upg_old_folder_id
         )
         UPDATE documents_folder
@@ -117,7 +123,8 @@ def migrate(cr, version):
           JOIN new_folder_ids
             ON new_folder_ids._upg_old_folder_id = f.id
          WHERE documents_folder.id = f.id
-        """
+        """,
+        [lang_code],
     )
 
     # documents_share will be used during the upgrade, keep the reference to documents_folder
