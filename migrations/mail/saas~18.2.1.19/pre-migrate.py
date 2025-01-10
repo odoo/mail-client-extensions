@@ -5,3 +5,11 @@ def migrate(cr, version):
     util.remove_field(cr, "discuss.channel", "allow_public_upload")
     util.remove_field(cr, "discuss.channel.member", "fold_state")
     util.remove_model(cr, "mail.wizard.invite")
+    util.remove_field(cr, "res.config.settings", "tenor_content_filter")
+    util.remove_field(cr, "res.config.settings", "tenor_gif_limit")
+    cr.execute(
+        """
+        DELETE FROM ir_config_parameter
+              WHERE key IN ('discuss.tenor_content_filter', 'discuss.tenor_gif_limit')
+        """
+    )
