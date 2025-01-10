@@ -1,9 +1,10 @@
-# -*- coding: utf-8 -*-
+import unittest
 
-
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
 
 
+@unittest.skipIf(util.version_gte("saas~18.1"), "UoM categories are removed in 18.1")
 class TestUoMConsistencyChanges(IntegrityCase):
     def check(self, value):
         new = set(self.invariant()) - set(value)

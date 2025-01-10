@@ -298,7 +298,7 @@ def fix_inconsistencies_from_previous_migrations(cr):
 
 
 def migrate(cr, version):
-    if not util.version_gte("saas~12.3"):
+    if not util.version_between("saas~12.3", "18.0"):
         return
     if not util.version_gte("saas~15.2"):
         fix_inconsistencies_from_previous_migrations(cr)
