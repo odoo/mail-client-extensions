@@ -35,7 +35,7 @@ def migrate(cr, version):
         new_key = util.env(cr)["certificate.key"].create(
             {
                 "name": f"l10n_sa_edi_{company_id}",
-                "content": pkey_binary.tobytes(),
+                "content": base64.b64encode(pkey_binary.tobytes()),
                 "company_id": company_id,
             }
         )
