@@ -219,7 +219,8 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
             )
         )
     else:
-        raise util.MigrationError(f"unexpected field type {field_type} for {model_name}.{field_name}")
+        _logger.warning("Unexpected field type %s for %s.%s", field_type, model_name, field_name)
+        return
 
     table_name = util.table_of_model(cr, model_name)
     # it is possible in the old database the column was remained because a mistake of upgrade script
