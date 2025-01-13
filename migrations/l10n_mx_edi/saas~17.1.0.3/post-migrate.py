@@ -6,7 +6,7 @@ def migrate(cr, version):
     cr.execute(
         """
             INSERT INTO l10n_mx_edi_addenda (name, arch, _migration_view_id)
-                 SELECT view.name, view.arch_prev, view.id
+                 SELECT view.name, COALESCE(view.arch_prev, view.arch_db->>'en_US'), view.id
                    FROM ir_ui_view view
                   WHERE view.l10n_mx_edi_addenda_flag = TRUE
         """,
