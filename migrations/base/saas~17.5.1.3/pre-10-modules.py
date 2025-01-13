@@ -171,3 +171,15 @@ def migrate(cr, version):
         """)
         if cr.rowcount:
             util.force_install_module(cr, "l10n_in_withholding")
+
+    # Rename OCA module 'sale_commission' to 'sale_commission_oca'
+    cr.execute(
+        """
+        SELECT 1
+          FROM ir_module_module
+         WHERE name = 'sale_commission'
+           AND author ILIKE '%Odoo Community Association (OCA)%'
+        """
+    )
+    if cr.rowcount:
+        util.rename_module(cr, "sale_commission", "sale_commission_oca")
