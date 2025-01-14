@@ -20,12 +20,12 @@ class Base(models.AbstractModel):
         # because more than 64 savepoints can be created during the same transaction.
         # There is no reason data from CSV file are not treated as data from XML files
         # Since saas~18.3, a constant number of savepoints is used during loading.
-        if not self._context.get("install_module") or util.version_gte("saas~18.3"):
+        if not self.env.context.get("install_module") or util.version_gte("saas~18.3"):
             return super(Base, self).load(fields, data)
 
-        current_module = self._context.get("module", "__import__")
-        mode = self._context.get("mode", "init")
-        noupdate = self._context.get("noupdate", False)
+        current_module = self.env.context.get("module", "__import__")
+        mode = self.env.context.get("mode", "init")
+        noupdate = self.env.context.get("noupdate", False)
 
         fields = [fix_import_export_id_paths(f) for f in fields]
         # In case the xmlid for a many2one doesn't include its module in the xmlid

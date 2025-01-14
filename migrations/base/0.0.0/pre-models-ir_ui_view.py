@@ -601,8 +601,8 @@ def views_in_tree(view):
                )
         SELECT id FROM view_tree
         """
-    view._cr.execute(q, [tuple(ids)])
-    return [r[0] for r in view._cr.fetchall()]
+    view.env.cr.execute(q, [tuple(ids)])
+    return [r[0] for r in view.env.cr.fetchall()]
 
 
 def get_standard_ids(view):
@@ -617,8 +617,8 @@ def get_standard_ids(view):
                   AND md.res_id = v.id
                 WHERE v.active
             """
-        view._cr.execute(q, [tuple(get_standard_modules(view))])
-        get_standard_ids.res = res = {r[0] for r in view._cr.fetchall() if r[1]}
+        view.env.cr.execute(q, [tuple(get_standard_modules(view))])
+        get_standard_ids.res = res = {r[0] for r in view.env.cr.fetchall() if r[1]}
     return res
 
 
@@ -785,7 +785,7 @@ def _upgrade_fix_views(fix_view, root_view):
                 disable(fix_view, md, children, e)
                 return True
             arch_orig = fix_view.arch
-            if not heuristic_fixes(fix_view._cr, fix_view, check, e):
+            if not heuristic_fixes(fix_view.env.cr, fix_view, check, e):
                 # arch may have been changed by heuristic_fixes, restore it
                 last_e = check()  #  last error from heuristic_fixes, before resetting arch
                 fix_view.arch = arch_orig
@@ -884,8 +884,8 @@ class IrUiView(models.Model):
             origin_validators = dict(_validators)
             dummy_validators = dict.fromkeys(_validators, [lambda *args, **kwargs: True])  # noqa: RUF024 reason: we want same list
 
-            self._cr.execute("SELECT DISTINCT report_name FROM ir_act_report_xml")
-            report_views_xml_ids = {r[0] for r in self._cr.fetchall()}
+            self.env.cr.execute("SELECT DISTINCT report_name FROM ir_act_report_xml")
+            report_views_xml_ids = {r[0] for r in self.env.cr.fetchall()}
 
             def validate_view(view, is_custom_module):
                 _validators.update(dummy_validators if is_custom_module else origin_validators)
@@ -908,8 +908,8 @@ class IrUiView(models.Model):
                     _logger.exception("Invalid custom view %s for model %s", view.xml_id or view.id, view.model)
 
             standard_ids = get_standard_ids(self)
-            self._cr.execute("SELECT id FROM ir_ui_view WHERE active")
-            all_ids = {r[0] for r in self._cr.fetchall()}
+            self.env.cr.execute("SELECT id FROM ir_ui_view WHERE active")
+            all_ids = {r[0] for r in self.env.cr.fetchall()}
             with util.custom_module_field_as_manual(self.env, do_flush=True):
                 views_to_check = self.search([("id", "in", tuple(all_ids)), ("inherit_id", "=", False)])
                 children = views_to_check.mapped("inherit_children_ids")
@@ -927,7 +927,7 @@ class IrUiView(models.Model):
 
             _validators.update(origin_validators)
 
-            self._cr.execute("DROP TABLE ir_ui_view_data_backup")
+            self.env.cr.execute("DROP TABLE ir_ui_view_data_backup")
 
             if util.ENVIRON.get("IGNORED_IR_UI_VIEW_CHECK_GROUPS"):
                 views = util.ENVIRON["IGNORED_IR_UI_VIEW_CHECK_GROUPS"]
