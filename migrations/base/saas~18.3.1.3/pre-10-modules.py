@@ -17,3 +17,5 @@ def migrate(cr, version):
     util.remove_module(cr, "website_event_meet_quiz")
     util.remove_module(cr, "website_jitsi")
     util.remove_module(cr, "l10n_in_purchase")
+
+    util.rename_module(cr, "pos_viva_wallet", "pos_viva_com")
