@@ -50,11 +50,18 @@ class TestMoveInvoiceCurrencyRateCommon(UpgradeCase, abstract=True):
         expected_rate[move.id] = False
 
         # Ensure there is a rate for the company currency during the time of the created moves.
+        #   * It should not be used for the cases that the amount_total is not 0
+        #   * It should not interfere with rates for currency2 in case amount_toal is 0
         company_rate_start_date = datetime.datetime(
             year=2000, month=1, day=1, hour=0, minute=0, second=0, tzinfo=timezone("utc")
         )
         if not company.env["res.currency.rate"].search_count(
-            [("company_id", "=", company.root_id.id), ("name", "=", company_rate_start_date)], limit=1
+            [
+                ("company_id", "=", company.root_id.id),
+                ("name", "=", company_rate_start_date),
+                ("currency_id", "=", company.currency_id.id),
+            ],
+            limit=1,
         ):
             company.env["res.currency.rate"].create(
                 {
@@ -189,11 +196,13 @@ class TestMoveInvoiceCurrencyRateCommon(UpgradeCase, abstract=True):
         )
 
         # Check move before the first rate
+        # (In company currency s.t. it does not influence the first and last needed
+        # date for currency2)
         move_before_rates = company.env["account.move"].create(
             {
                 **invoice_vals_zero_total,
                 "invoice_date": fields.Datetime.add(company_rate_start_date, days=-1),
-                "currency_id": currency2.id,
+                "currency_id": company.currency_id.id,
             }
         )
 

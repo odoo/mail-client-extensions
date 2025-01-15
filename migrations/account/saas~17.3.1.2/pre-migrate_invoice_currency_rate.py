@@ -25,6 +25,7 @@ def _build_currency_table_query(cr, company_id, currency_id, first_rate_date, la
                FROM res_currency_rate
               WHERE name <= %(first_rate_date)s
                 AND {company_id_condition}
+                AND currency_id = %(currency_id)s
               ORDER BY name DESC
               LIMIT 1
          ), info AS (
