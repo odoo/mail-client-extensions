@@ -10,3 +10,4 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.sale_order_view_form_cart_recovery")
     util.remove_view(cr, "website_sale.cart_item_line_heading")
     util.remove_view(cr, "website_sale.add_grid_or_list_option")
+    util.remove_field(cr, "website", "prevent_zero_price_sale_text")
