@@ -7,6 +7,10 @@ def migrate(cr, version):
     util.remove_model(cr, "mail.wizard.invite")
     util.remove_field(cr, "res.config.settings", "tenor_content_filter")
     util.remove_field(cr, "res.config.settings", "tenor_gif_limit")
+
+    eb = util.expand_braces
+    util.rename_xmlid(cr, *eb("mail.account_security_{setting_update,alert}"))
+
     cr.execute(
         """
         DELETE FROM ir_config_parameter
