@@ -1,3 +1,4 @@
+from psycopg2 import sql
 from psycopg2.extras import Json
 
 from odoo.upgrade import util
@@ -99,37 +100,43 @@ def migrate(cr, version):
     if other_plan_ids:
         create_analytic_plan_fields(cr, "account.analytic.line", other_plan_ids)
         # Now move the value from the first column to the (new) correct one
-        distributed_plans = ", ".join(
-            f"CASE WHEN plan.parent_path LIKE '{id_}/%' THEN account.id ELSE NULL END AS plan{id_}_id"
-            for id_ in other_plan_ids
-        )
-        query = f"""
-            WITH updated_lines AS (
-                SELECT line.id,
-                       {distributed_plans},
-                       CASE WHEN plan.parent_path LIKE '{project_plan_id}/%' THEN account.id ELSE NULL END AS account_id
-                  FROM account_analytic_line line
-                  JOIN account_analytic_account account ON line.account_id = account.id
-                  JOIN account_analytic_plan plan ON line.plan_id = plan.id
-                 WHERE {{parallel_filter}}
+        distributed_plans = [
+            util.format_query(
+                cr,
+                "{} = CASE WHEN plan.parent_path LIKE %s THEN account.id ELSE NULL END",
+                f"x_plan{id_}_id",
             )
-            UPDATE account_analytic_line
-               SET {", ".join(f"x_plan{id_}_id = updated_lines.plan{id_}_id" for id_ in other_plan_ids)},
-                   account_id = updated_lines.account_id
-              FROM updated_lines
-             WHERE updated_lines.id = account_analytic_line.id
-        """
-        util.explode_execute(cr, query, "account_analytic_line", alias="line")
-        for id_ in other_plan_ids:
-            column = f"x_plan{id_}_id"
-            cr.execute(
+            for id_ in other_plan_ids
+        ]
+        query = cr.mogrify(
+            util.format_query(
+                cr,
+                """
+                UPDATE account_analytic_line line
+                   SET account_id = CASE WHEN plan.parent_path LIKE %s THEN account.id ELSE NULL END,
+                       {distributed_plans}
+                  FROM account_analytic_account account,
+                       account_analytic_plan plan
+                 WHERE account.id = line.account_id
+                   AND plan.id = line.plan_id
+                """,
+                distributed_plans=sql.SQL(", ").join(map(sql.SQL, distributed_plans)),
+            ),
+            [f"{id_}/%" for id_ in [project_plan_id, *other_plan_ids]],
+        ).decode()
+        util.explode_execute(cr, query, table="account_analytic_line", alias="line")
+        util.parallel_execute(
+            cr,
+            [
                 util.format_query(
                     cr,
                     "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
-                    indexname=util.fields.make_index_name("account_analytic_line", column),
-                    column=column,
+                    indexname=util.fields.make_index_name("account_analytic_line", f"x_plan{id_}_id"),
+                    column=f"x_plan{id_}_id",
                 )
-            )
+                for id_ in other_plan_ids
+            ],
+        )
     util.remove_field(cr, "account.analytic.line", "plan_id")
 
 
