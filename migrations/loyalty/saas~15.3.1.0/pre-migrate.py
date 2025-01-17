@@ -271,7 +271,11 @@ def _coupon_migrate(cr):
         )
         SELECT p.name, p.active, p.sequence,
                not p.maximum_use_number = 0, p.maximum_use_number,
-               CASE WHEN p.program_type = 'coupon_program' THEN 'coupons' ELSE 'promotion' END,
+               CASE
+                    WHEN p.program_type = 'coupon_program' THEN 'coupons'
+                    WHEN p.program_type = 'promotion_program' AND p.promo_code_usage = 'code_needed' THEN 'promo_code'
+                    ELSE 'promotion'
+               END,
                CASE
                    WHEN p.promo_code_usage = 'code_needed' THEN 'with_code'
                    WHEN p.promo_code_usage IS NULL AND p.program_type = 'coupon_program' THEN 'with_code'

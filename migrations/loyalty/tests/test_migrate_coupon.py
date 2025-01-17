@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
@@ -60,7 +58,7 @@ class TestMigrateCoupon(UpgradeCase):
         )
 
         # Check code discount program
-        self.assertEqual(code_discount_program.program_type, "promotion", "Invalid Program Type")
+        self.assertEqual(code_discount_program.program_type, "promo_code", "Invalid Program Type")
         self.assertEqual(code_discount_program.trigger, "with_code", "Invalid program trigger")
         self.assertEqual(code_discount_program.rule_ids.mode, "with_code", "Invalid trigger mode")
         self.assertEqual(code_discount_program.rule_ids.code, "UPGRADE_10pc", "Invalid trigger code")
