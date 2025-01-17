@@ -6,10 +6,10 @@ def compute_shipping_weight(cr):
     query = """
         WITH so AS (
             SELECT o.id,
-                   CASE WHEN l.product_uom = t.uom_id
+                   SUM (CASE WHEN l.product_uom = t.uom_id
                         THEN l.product_uom_qty
                         ELSE round(l.product_uom_qty / ul.factor * ut.factor, ceil(-log(ut.rounding))::integer)
-                    END * p.weight AS w
+                    END * p.weight) AS w
               FROM sale_order_line l
               JOIN sale_order o
                 ON o.id = l.order_id
@@ -26,6 +26,7 @@ def compute_shipping_weight(cr):
                AND l.display_type IS NULL
                AND l.product_uom_qty > 0
                AND {parallel_filter}
+          GROUP BY o.id
         )
         UPDATE sale_order o
            SET shipping_weight = so.w
