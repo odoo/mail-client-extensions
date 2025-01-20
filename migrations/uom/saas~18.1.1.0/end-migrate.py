@@ -7,7 +7,8 @@ def migrate(cr, version):
     env = util.env(cr)
     uom_hour = env.ref("uom.product_uom_hour", raise_if_not_found=False)
     if uom_hour:
-        uom_hour.write({"relative_uom_id": False, "relative_factor": 1.0})
+        if uom_hour.relative_factor != 1.0 or uom_hour.relative_uom_id:
+            uom_hour.write({"relative_uom_id": False, "relative_factor": 1.0})
         uom_day = env.ref("uom.product_uom_day", raise_if_not_found=False)
-        if uom_day:
+        if uom_day and uom_day.relative_factor != 8.0:
             uom_day.write({"relative_uom_id": uom_hour, "relative_factor": 8.0})
