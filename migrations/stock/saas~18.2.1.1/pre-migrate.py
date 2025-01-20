@@ -2,6 +2,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_model(cr, "stock.track.confirmation")
+    util.remove_model(cr, "stock.track.line")
     query = """
         UPDATE stock_quant sq
             SET inventory_diff_quantity = 0
