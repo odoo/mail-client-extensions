@@ -1,40 +1,5 @@
 from odoo.addons.base.maintenance.migrations import util
-
-
-def remove_salary_rule(cr, xmlid):
-    rid = util.ref(cr, xmlid)
-    cr.execute(
-        r"""
-        SELECT f.name
-          FROM ir_model_fields f,
-               hr_salary_rule r
-          JOIN hr_payroll_structure s
-            ON r.struct_id = s.id
-     LEFT JOIN res_country c
-            ON s.country_id = c.id
-         WHERE r.id = %s
-           AND f.model = 'hr.payroll.report'
-           AND f.name = regexp_replace(
-                            concat_ws(
-                                '_',
-                                'x_l10n',
-                                COALESCE(lower(c.code), 'xx'),
-                                lower(r.code)
-                            ),
-                            '[\.\- ]',
-                            '_'
-                        )
-        """,
-        [rid],
-    )
-    for (fname,) in cr.fetchall():
-        util._logger.info(
-            "Removing field %r from model 'hr.payroll.report' since salary rule %r is being removed",
-            fname,
-            xmlid,
-        )
-        util.remove_field(cr, "hr.payroll.report", fname)
-    util.delete_unused(cr, xmlid)
+from odoo.addons.base.maintenance.migrations.util.hr_payroll import remove_salary_rule
 
 
 def migrate(cr, version):
@@ -44,6 +9,7 @@ def migrate(cr, version):
 
     # l10n_ke_hr_payroll/data/hr_salary_rule_data.xml
     util.rename_xmlid(cr, *eb("l10n_ke_hr_payroll.l10n_ke_employees{_salary,}_insurance_relief"))
+
     remove_salary_rule(cr, "l10n_ke_hr_payroll.l10n_ke_employees_salary_mortgage_interest")
     remove_salary_rule(cr, "l10n_ke_hr_payroll.l10n_ke_employees_salary_nssf")
 
