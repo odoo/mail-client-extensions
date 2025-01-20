@@ -73,48 +73,19 @@ def migrate(cr, version):
     )
     if cr.rowcount:
         previous_mapping = json.loads(cr.fetchone()[0])
-        # The following mapping is already added in the sale.pdf.form.field data
-        DATA_MAPPING = {
-            "header_footer": {
-                "amount_total": "amount_total",
-                "amount_untaxed": "amount_untaxed",
-                "client_order_ref": "client_order_ref",
-                "delivery_date": "commitment_date",
-                "name": "name",
-                "partner_id__name": "partner_id.name",
-                "user_id__name": "user_id.name",
-                "validity_date": "validity_date",
-            },
-            "product_document": {
-                "amount_total": "order_id.amount_total",
-                "amount_untaxed": "order_id.amount_untaxed",
-                "client_order_ref": "order_id.client_order_ref",
-                "delivery_date": "order_id.commitment_date",
-                "description": "name",
-                "discount": "discount",
-                "name": "order_id.name",
-                "partner_id__name": "order_partner_id.name",
-                "price_unit": "price_unit",
-                "product_sale_price": "product_id.lst_price",
-                "quantity": "product_uom_qty",
-                "tax_excl_price": "price_subtotal",
-                "tax_incl_price": "price_total",
-                "taxes": "tax_ids",
-                "uom": "product_uom.name",
-                "user_id__name": "salesman_id.name",
-                "validity_date": "order_id.validity_date",
-            },
-        }
+
         mapping_to_add = []
         for document_type, mapping in previous_mapping.items():
             new_type = "quotation_document" if document_type == "header_footer" else "product_document"
             for name, path in mapping.items():
-                if name not in DATA_MAPPING[document_type]:
-                    mapping_to_add.append((name, new_type, path))
+                mapping_to_add.append((name, new_type, path))
         if mapping_to_add:
             execute_values(
                 cr._obj,
-                "INSERT INTO sale_pdf_form_field(name, document_type, path) VALUES %s",
+                """
+                INSERT INTO sale_pdf_form_field(name, document_type, path) VALUES %s
+                ON CONFLICT DO NOTHING;
+                """,
                 mapping_to_add,
             )
 
