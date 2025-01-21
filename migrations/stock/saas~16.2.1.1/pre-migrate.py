@@ -27,13 +27,3 @@ def migrate(cr, version):
     # `product_id` is required on packagings, deletes the ones without this
     # field as they shouldn't exist at the first place.
     util.explode_execute(cr, "DELETE FROM product_packaging WHERE product_id IS NULL", table="product_packaging")
-
-    # Set the right code for dropship's pickings.
-    query = """
-        UPDATE stock_picking_type ptype
-           SET code = 'dropship'
-          FROM ir_sequence seq
-         WHERE ptype.sequence_id = seq.id
-           AND seq.code = 'stock.dropshipping'
-    """
-    cr.execute(query)
