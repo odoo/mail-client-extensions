@@ -22,7 +22,7 @@ def migrate(cr, version):
             ):
                 t_value = node.get("t-value")
                 prefix, _, rest = t_value.partition(".")
-                if rest != "tax_totals":
+                if rest not in ["tax_totals", "tax_totals or {}"]:
                     continue
                 currency_value = f"{prefix}.currency_id"
                 newnode = et.Element("t", {"t-set": "currency", "t-value": currency_value})
