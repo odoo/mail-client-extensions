@@ -42,3 +42,5 @@ def migrate(cr, version):
     util.remove_module(cr, "pos_six")
     util.merge_module(cr, "payment_razorpay_oauth", "payment_razorpay")
     util.force_migration_of_fresh_module(cr, "stock_maintenance")
+
+    util.merge_module(cr, "l10n_it_edi_ndd", "l10n_it_edi")
