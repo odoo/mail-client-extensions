@@ -24,7 +24,7 @@ class TestAmountToInvoice(UpgradeCase):
 
         customer = self.env["res.partner"].create({"name": "Customer"})
 
-        product = self.env["product.template"].create(
+        product = self.env["product.product"].create(
             {
                 "name": "Product",
                 "taxes_id": False,
