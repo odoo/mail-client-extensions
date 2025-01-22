@@ -171,6 +171,36 @@ class TestFixViews(UpgradeCase):
             }
         )
 
+        create_view(
+            {
+                "name": "test_fix_views_extension_view_move",
+                "mode": "extension",
+                "inherit_id": base_id,
+                "arch_db": ts(
+                    E.xpath(
+                        E.xpath(expr="//div[@id='gone']", position="move"),
+                        expr="//field[@name='comment']",
+                        position="before",
+                    ),
+                ),
+            }
+        )
+
+        create_view(
+            {
+                "name": "test_fix_views_extension_view_move2",
+                "mode": "extension",
+                "inherit_id": base_id,
+                "arch_db": ts(
+                    E.xpath(
+                        E.xpath(expr="//field[@name='comment']", position="move"),
+                        expr="//field[@name='name']",
+                        position="before",
+                    ),
+                ),
+            }
+        )
+
         base_id = create_view(
             {
                 "name": "test_fix_views_standard_base_view2",

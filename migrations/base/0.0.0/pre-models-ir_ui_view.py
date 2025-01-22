@@ -122,10 +122,15 @@ def pp_xml_elem(elem):
 
 #################
 # xml utilities #
-def find_xpath_elem(arch, expr):
+def find_xpath_elem(arch, attrs):
+    assert attrs.get("expr")
+    if attrs.get("position") == "move":
+        # unescape str repr: \' -> ', \" -> ", and \\ -> \
+        attrs = {k: v.replace("\\'", "'").replace('\\"', '"').replace("\\\\", "\\") for k, v in attrs.items()}
     for elem in arch.xpath("//xpath[@expr]"):
-        elem_expr = elem.attrib["expr"]
-        if expr in (elem_expr, unescape(elem_expr)):
+        if all(
+            k in elem.attrib and {elem.attrib[k], unescape(elem.attrib[k])} & {v, unescape(v)} for k, v in attrs.items()
+        ):
             return elem
     return None
 
@@ -433,9 +438,13 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
         return heuristic_fixes(cr, view, check, check(), field_changes)
 
     # Element '<field name="name">' cannot be located in parent view
-    m = re.search("Element '<field name=.(.+).>' cannot be located in parent view", e)
+    # Up to Odoo 14 the printed error for position=move was a single-quoted binary string
+    # Example: `Element 'b'<xpath expr="//div[@id=\'gone\']" position="move"/>'' cannot be located in parent view`
+    # From Odoo 15 we either get a single quote or a weird double quote
+    m = re.search("Element .{1,3}(<field name=.+>).{1,2} cannot be located in parent view", e)
     if m:
-        name = m.group(1)
+        # Use recover=True parser to allow for open tag > vs />
+        name = etree.fromstring(m.group(1), etree.XMLParser(recover=True)).get("name")
         elems = arch.xpath("//field[@name='{}']".format(name))
         if elems:
             elem = elems[0]
@@ -462,17 +471,17 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
         return False
 
     # Handle xpaths that cannot be anchored
-    m = re.search("Element '<xpath expr=.(.+).>' cannot be located in parent view", e)
+    # Up to Odoo 15 the printed error for position=move was a single-quoted binary string
+    # Example: `Element 'b'<xpath expr="//div[@id=\'gone\']" position="move"/>'' cannot be located in parent view`
+    # From Odoo 15 we either get a single quote or a weird double quote
+    m = re.search("Element .{1,3}(<xpath expr=.+>).{1,2} cannot be located in parent view", e)
     if m:
-        expr = m.group(1)
-        for _expr in (expr, unescape(expr)):
-            xpath_elem = find_xpath_elem(arch, _expr)
-            if xpath_elem is not None:
-                break
-        else:
-            _logger.info("Couldn't find <xpath expr=%r> maybe it has some escaped characters.", m.group(1))
+        # Use recover parsers to allow for open tag > vs />
+        attrs = dict(etree.fromstring(m.group(1), etree.XMLParser(recover=True)).attrib)
+        xpath_elem = find_xpath_elem(arch, attrs)
+        if xpath_elem is None:
+            _logger.info("Couldn't find %r maybe it has some escaped characters.", m.group(1))
             return False
-        expr = unescape(expr)  # unescape needed for '<xpath expr="//field[@name=&#39;price&#39;]">'
         if xpath_elem.getparent() is None:
             # wrap arch in <data> to always have a parent
             old_arch = arch
@@ -480,14 +489,23 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
             arch.append(old_arch)
             assert xpath_elem.getparent().tag == "data"
 
-        # Extract the field name to know what happened to it
-        m = re.search(r"""@name=("|')([A-Za-z_]+)\1""", expr)
+        # Extract the **first** field name to know what happened to it
+        expr = unescape(attrs["expr"])  # unescape needed for '<xpath expr="//field[@name=&#39;price&#39;]">'
+        m = re.search(r"""field\[@name=("|')([A-Za-z_]+)\1""", expr)
         field_name = m.group(2) if m else None
         new_name = field_new_name(view, field_name)
         if new_name:
             new_expr = re.sub("@name=.{}.".format(field_name), "@name='{}'".format(new_name), expr)
             _logger.info("Field %r was renamed to %r", field_name, new_name)
             xpath_elem.set("expr", new_expr)
+            save_arch(view, arch)
+            return heuristic_fixes(cr, view, check, check(), field_changes)
+        elif xpath_elem.get("position") == "move":
+            # Remove the move xpath since there is no valid target found
+            _logger.info(
+                "Removing %s from the arch since expr=`%r` doesn't find a valid target", pp_xml_elem(xpath_elem), expr
+            )
+            xpath_elem.getparent().remove(xpath_elem)
             save_arch(view, arch)
             return heuristic_fixes(cr, view, check, check(), field_changes)
 
@@ -497,7 +515,7 @@ def heuristic_fixes(cr, view, check, e, field_changes=None, tried_anchors=None):
             xpath_elem.attrib["position"] == "replace" and len(xpath_elem) == 0
         ):
             _logger.info(
-                "Removing %s from the arch since it only replaces or change attributes from an invalid field.",
+                "Removing %s from the arch since it only replaces or changes attributes from an invalid field.",
                 pp_xml_elem(xpath_elem),
             )
             xpath_elem.getparent().remove(xpath_elem)
