@@ -247,3 +247,153 @@ class Test_02bis_Convert_ObjectWrite_Action(UpgradeCase):
                 }
             ],
         )
+
+
+@change_version("saas~18.2")
+class Test_03_Convert_Multi_Action(UpgradeCase):
+    def prepare(self):
+        A_values = {
+            "name": "[A_Test_03_Convert_Multi_Action] Add country group",
+            "model_id": self.env["ir.model"]._get("res.country").id,
+            "state": "object_create",
+            "crud_model_id": self.env["ir.model"]._get("res.country.group").id,
+            "link_field_id": self.env["ir.model.fields"]._get("res.country", "country_group_ids").id,
+            "value": "Test Group",
+            "evaluation_type": "value",
+        }
+        B_values = {
+            "name": "[B_Test_03_Convert_Multi_Action] Replace country currency with a new one",
+            "model_id": self.env["ir.model"]._get("res.country").id,
+            "state": "code",
+            "code": """
+new_record = env["res.currency"].create({"name": 'Test Currency', "symbol": "TC", "rate_ids": 2})
+# link the new record to the current record
+record.write({"currency_id": new_record.id})
+""",
+        }
+        action_A = self.env["ir.actions.server"].create(A_values)
+        action_B = self.env["ir.actions.server"].create(B_values)
+        multi_1 = self.env["ir.actions.server"].create(
+            {
+                "name": "Multiple: add country group",
+                "model_id": self.env["ir.model"]._get("res.country").id,
+                "state": "multi",
+                "child_ids": [Command.set([action_A.id])],
+            }
+        )
+        multi_2 = self.env["ir.actions.server"].create(
+            {
+                "name": "Multiple: add country group and replace country currency",
+                "model_id": self.env["ir.model"]._get("res.country").id,
+                "state": "multi",
+                "child_ids": [Command.set([action_A.id, action_B.id])],
+            }
+        )
+        multi_3 = self.env["ir.actions.server"].create(
+            {
+                "name": "Multiple: add country group (bis)",
+                "model_id": self.env["ir.model"]._get("res.country").id,
+                "state": "multi",
+                "child_ids": [Command.set([action_A.id])],
+            }
+        )
+
+        A_xmlids = [
+            {
+                "model": "ir.actions.server",
+                "module": "__testcase__",
+                "name": name,
+                "res_id": action_A.id,
+            }
+            for name in [
+                "A_Test_03_Convert_Multi_Action_1",
+                "A_Test_03_Convert_Multi_Action_2",
+            ]
+        ]
+        B_xmlids = [
+            {
+                "model": "ir.actions.server",
+                "module": "__testcase__",
+                "name": name,
+                "res_id": action_B.id,
+            }
+            for name in [
+                "B_Test_03_Convert_Multi_Action_1",
+                "B_Test_03_Convert_Multi_Action_2",
+            ]
+        ]
+        self.env["ir.model.data"].create(A_xmlids + B_xmlids)
+        return {
+            "A_values": A_values,
+            "B_values": B_values,
+            "action_A_id": action_A.id,
+            "action_B_id": action_B.id,
+            "multi_1_id": multi_1.id,
+            "multi_2_id": multi_2.id,
+            "multi_3_id": multi_3.id,
+        }
+
+    def check(self, check):
+        A_values = check["A_values"]
+        B_values = check["B_values"]
+        multi_1 = self.env["ir.actions.server"].browse(check["multi_1_id"])
+        multi_2 = self.env["ir.actions.server"].browse(check["multi_2_id"])
+        multi_3 = self.env["ir.actions.server"].browse(check["multi_3_id"])
+        A_actions = self.env["ir.actions.server"].search([("name", "=", A_values["name"])])
+        B_actions = self.env["ir.actions.server"].search([("name", "=", B_values["name"])])
+        A_actions = A_actions.sorted(lambda r: r.parent_id.id)
+
+        # "A" actions should have been duplicated
+        self.assertRecordValues(
+            A_actions,
+            [
+                {**A_values, "parent_id": False},
+                {**A_values, "parent_id": multi_1.id},
+                {**A_values, "parent_id": multi_2.id},
+                {**A_values, "parent_id": multi_3.id},
+            ],
+        )
+        # Orphan action is the original one
+        self.assertRecordValues(
+            A_actions[0],
+            [{**A_values, "parent_id": False, "id": check["action_A_id"]}],
+        )
+
+        # "B" actions should not have been duplicated
+        self.assertRecordValues(
+            B_actions,
+            [{**B_values, "parent_id": multi_2.id}],
+        )
+
+        A_xmlids = self.env["ir.model.data"].search(
+            [
+                ("model", "=", "ir.actions.server"),
+                ("res_id", "in", A_actions.ids),
+            ]
+        )
+        self.assertItemsEqual(
+            [f"{xmlid.module}.{xmlid.name}" for xmlid in A_xmlids],
+            [
+                "__testcase__.A_Test_03_Convert_Multi_Action_1",
+                "__testcase__.A_Test_03_Convert_Multi_Action_2",
+                f"__upgrade__.A_Test_03_Convert_Multi_Action_1__copy__{multi_1.id}__{A_actions[1].id}",
+                f"__upgrade__.A_Test_03_Convert_Multi_Action_2__copy__{multi_1.id}__{A_actions[1].id}",
+                f"__upgrade__.A_Test_03_Convert_Multi_Action_1__copy__{multi_2.id}__{A_actions[2].id}",
+                f"__upgrade__.A_Test_03_Convert_Multi_Action_2__copy__{multi_2.id}__{A_actions[2].id}",
+                f"__upgrade__.A_Test_03_Convert_Multi_Action_1__copy__{multi_3.id}__{A_actions[3].id}",
+                f"__upgrade__.A_Test_03_Convert_Multi_Action_2__copy__{multi_3.id}__{A_actions[3].id}",
+            ],
+        )
+        B_xmlids = self.env["ir.model.data"].search(
+            [
+                ("model", "=", "ir.actions.server"),
+                ("res_id", "in", B_actions.ids),
+            ]
+        )
+        self.assertItemsEqual(
+            [f"{xmlid.module}.{xmlid.name}" for xmlid in B_xmlids],
+            [
+                "__testcase__.B_Test_03_Convert_Multi_Action_1",
+                "__testcase__.B_Test_03_Convert_Multi_Action_2",
+            ],
+        )
