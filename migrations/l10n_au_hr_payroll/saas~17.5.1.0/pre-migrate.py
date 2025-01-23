@@ -1,4 +1,5 @@
 from odoo.upgrade import util
+from odoo.upgrade.util.hr_payroll import remove_salary_rule
 
 
 def migrate(cr, version):
@@ -73,6 +74,37 @@ def migrate(cr, version):
 
     # Finally delete all old salary struct, struct_type and rules
     records_to_delete = [
+        # Structures
+        "l10n_au_hr_payroll.hr_payroll_structure_au_horticulture",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_actor",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_actor_promotional",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_return_to_work",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_lumpsum",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_senior",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_whm",
+        "l10n_au_hr_payroll.hr_payroll_structure_au_no_tfn",
+        # Struct type
+        "l10n_au_hr_payroll.structure_type_schedule_2",
+        "l10n_au_hr_payroll.structure_type_schedule_3",
+        "l10n_au_hr_payroll.structure_type_schedule_4",
+        "l10n_au_hr_payroll.structure_type_schedule_5",
+        "l10n_au_hr_payroll.structure_type_schedule_9",
+        "l10n_au_hr_payroll.structure_type_schedule_15",
+        "l10n_au_hr_payroll.structure_type_no_tfn",
+        # Rule Parameters
+        "l10n_au_hr_payroll.rule_parameter_medicare_levy",
+        "l10n_au_hr_payroll.rule_parameter_underage_schedule_3",
+        "l10n_au_hr_payroll.rule_parameter_withholding_coefficients",
+        # Payslip input types
+        "l10n_au_hr_payroll.input_gross_bonuses_and_commissions",
+        "ll0n_au_hr_payroll.input_gross_cdep",
+        "ll0n_au_hr_payroll.input_extra_pay",
+        "ll0n_au_hr_payroll.input_cents_per_kilometer_4",
+        "ll0n_au_hr_payroll.input_overseas_accommodation_allowance_2",
+    ]
+    util.delete_unused(cr, *records_to_delete)
+
+    hr_salary_rule_to_delete = [
         # Rules
         "l10n_au_hr_payroll.l10n_au_ote_structure_3",
         "l10n_au_hr_payroll.l10n_au_termination_etp_gross_structure_3",
@@ -151,35 +183,9 @@ def migrate(cr, version):
         "l10n_au_hr_payroll_account.l10n_au_salary_expense_refund_structure_3_promo",
         "l10n_au_hr_payroll_account.l10n_au_salary_expense_refund_structure_9",
         "l10n_au_hr_payroll_account.l10n_au_salary_expense_refund_structure_15",
-        # Structures
-        "l10n_au_hr_payroll.hr_payroll_structure_au_horticulture",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_actor",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_actor_promotional",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_return_to_work",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_lumpsum",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_senior",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_whm",
-        "l10n_au_hr_payroll.hr_payroll_structure_au_no_tfn",
-        # Struct type
-        "l10n_au_hr_payroll.structure_type_schedule_2",
-        "l10n_au_hr_payroll.structure_type_schedule_3",
-        "l10n_au_hr_payroll.structure_type_schedule_4",
-        "l10n_au_hr_payroll.structure_type_schedule_5",
-        "l10n_au_hr_payroll.structure_type_schedule_9",
-        "l10n_au_hr_payroll.structure_type_schedule_15",
-        "l10n_au_hr_payroll.structure_type_no_tfn",
-        # Rule Parameters
-        "l10n_au_hr_payroll.rule_parameter_medicare_levy",
-        "l10n_au_hr_payroll.rule_parameter_underage_schedule_3",
-        "l10n_au_hr_payroll.rule_parameter_withholding_coefficients",
-        # Payslip input types
-        "l10n_au_hr_payroll.input_gross_bonuses_and_commissions",
-        "l10n_au_hr_payroll.input_gross_cdep",
-        "l10n_au_hr_payroll.input_extra_pay",
-        "l10n_au_hr_payroll.input_cents_per_kilometer_4",
-        "l10n_au_hr_payroll.input_overseas_accommodation_allowance_2",
     ]
-    util.delete_unused(cr, *records_to_delete)
+    for xmlid in hr_salary_rule_to_delete:
+        remove_salary_rule(cr, xmlid)
 
     util.rename_field(cr, "hr.employee", "l10n_au_previous_id_bms", "l10n_au_previous_payroll_id")
 
