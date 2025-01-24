@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -12,6 +11,8 @@ def migrate(cr, version):
     """
     )
 
-    util.recompute_fields(cr, "sale.subscription.line", ["price_subtotal"])
-    util.recompute_fields(cr, "sale.subscription", ["recurring_total", "recurring_tax", "recurring_total_incl"])
+    util.recompute_fields(cr, "sale.subscription.line", ["price_subtotal"], strategy="commit")
+    util.recompute_fields(
+        cr, "sale.subscription", ["recurring_total", "recurring_tax", "recurring_total_incl"], strategy="commit"
+    )
     util.recompute_fields(cr, "sale.subscription.log", ["amount_company_currency"])
