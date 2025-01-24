@@ -15,13 +15,22 @@ def migrate(cr, version):
     res_ids_per_res_model_per_account_ids = defaultdict(lambda: defaultdict(list))
 
     cr.execute("""
-        SELECT id,
-               STRING_TO_ARRAY(STRING_AGG(key, ','), ',')::integer[] AS account_ids
-          FROM mrp_production,
-               JSONB_EACH_TEXT(analytic_distribution)
-      GROUP BY id
-        HAVING COUNT(*) = 1
-           AND SUM(value::numeric) = 100
+        WITH prod_account AS (
+                SELECT id res_id,
+                       UNNEST(STRING_TO_ARRAY(STRING_AGG(key, ','), ',')::integer[]) AS account_id
+                  FROM mrp_production,
+                       JSONB_EACH_TEXT(analytic_distribution)
+              GROUP BY id
+                HAVING COUNT(*) = 1
+                   AND SUM(value::numeric) = 100
+        )
+        SELECT pd.res_id,
+               ARRAY_AGG(a.id)
+          FROM prod_account pd
+          -- join to filter out invalid ids
+          JOIN account_analytic_account a
+            ON pd.account_id = a.id
+      GROUP BY pd.res_id
     """)
     for res_id, account_ids in cr.fetchall():
         res_ids_per_res_model_per_account_ids[tuple(sorted(account_ids))]["mrp_production"].append(res_id)
@@ -34,14 +43,23 @@ def migrate(cr, version):
                  FROM _ir_property
                 WHERE name = 'analytic_distribution_text'
                   AND value_text != 'false'
-             )
-        SELECT id,
-               STRING_TO_ARRAY(STRING_AGG(key, ','), ',')::integer[] AS account_ids
-          FROM _mrp_bom,
-               JSONB_EACH_TEXT(analytic_distribution)
-      GROUP BY id
-        HAVING COUNT(*) = 1
-           AND SUM(value::numeric) = 100.0
+          ),
+          bom_account AS (
+               SELECT id res_id,
+                      UNNEST(STRING_TO_ARRAY(STRING_AGG(key, ','), ',')::integer[]) AS account_id
+                 FROM _mrp_bom,
+                      JSONB_EACH_TEXT(analytic_distribution)
+             GROUP BY id
+               HAVING COUNT(*) = 1
+                  AND SUM(value::numeric) = 100.0
+          )
+          SELECT bom.res_id,
+                 ARRAY_AGG(a.id)
+            FROM bom_account bom
+            -- join to filter out invalid ids
+            JOIN account_analytic_account a
+              ON bom.account_id = a.id
+        GROUP BY bom.res_id
     """)
     for res_id, account_ids in cr.fetchall():
         res_ids_per_res_model_per_account_ids[tuple(sorted(account_ids))]["mrp_bom"].append(res_id)
