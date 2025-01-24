@@ -13,3 +13,20 @@ rules:
           pattern-either:
             - pattern: odoo.addons.base.maintenance.migrations.util
             - pattern: odoo.upgrade.util
+  - id: format_query-dont-execute
+    languages: [python]
+    message: The `format_query` function don't execute the query.
+             Call `cr.execute` or `util.explode_execute` on the result.
+    severity: ERROR
+    patterns:
+      - pattern: $UPGRADE.format_query(...)
+      - pattern-not-inside: $X = <... $UPGRADE.format_query(...) ...>
+      - pattern-not-inside: $FUNC(..., <... $UPGRADE.format_query(...) ...>, ...)
+      - pattern-not-inside: return <... $UPGRADE.format_query(...) ...>
+      - metavariable-pattern:
+          metavariable: $UPGRADE
+          pattern-either:
+            - pattern: odoo.addons.base.maintenance.migrations.util
+            - pattern: odoo.upgrade.util
+            - pattern: odoo.addons.base.maintenance.migrations.util.pg
+            - pattern: odoo.upgrade.util.pg
