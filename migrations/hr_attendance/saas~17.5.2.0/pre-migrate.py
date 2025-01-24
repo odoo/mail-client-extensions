@@ -25,8 +25,7 @@ def migrate(cr, version):
            SET overtime_status = CASE
                 WHEN (c.hr_attendance_overtime IS TRUE AND a.check_in > c.overtime_start_date) THEN 'approved'
                 ELSE 'refused'
-               END,
-               validated_overtime_hours = a.overtime_hours
+               END -- validated_overtime_hours compute moves in post
         FROM hr_employee e
         JOIN res_company c
           ON c.id = e.company_id
