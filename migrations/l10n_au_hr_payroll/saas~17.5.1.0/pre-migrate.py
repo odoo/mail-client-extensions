@@ -174,10 +174,10 @@ def migrate(cr, version):
         "l10n_au_hr_payroll.rule_parameter_withholding_coefficients",
         # Payslip input types
         "l10n_au_hr_payroll.input_gross_bonuses_and_commissions",
-        "ll0n_au_hr_payroll.input_gross_cdep",
-        "ll0n_au_hr_payroll.input_extra_pay",
-        "ll0n_au_hr_payroll.input_cents_per_kilometer_4",
-        "ll0n_au_hr_payroll.input_overseas_accommodation_allowance_2",
+        "l10n_au_hr_payroll.input_gross_cdep",
+        "l10n_au_hr_payroll.input_extra_pay",
+        "l10n_au_hr_payroll.input_cents_per_kilometer_4",
+        "l10n_au_hr_payroll.input_overseas_accommodation_allowance_2",
     ]
     util.delete_unused(cr, *records_to_delete)
 
