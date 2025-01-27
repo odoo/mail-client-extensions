@@ -66,3 +66,5 @@ def migrate(cr, version):
         util.merge_module(cr, "product_images", "product_barcodelookup")
     else:
         util.remove_module(cr, "product_images")
+
+    util.merge_module(cr, "l10n_my_edi_extended", "l10n_my_edi")
