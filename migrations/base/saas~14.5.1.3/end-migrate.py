@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from markupsafe import Markup
 
 from odoo.addons.base.models.ir_qweb_fields import nl2br
@@ -8,6 +7,11 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     env = util.env(cr)
+
+    # Ensure multi-currency group is set if multiple currencies are active.
+    # This method is overriden in product, thus we toggle in end-
+    env["res.currency"]._toggle_group_multi_currency()
+
     to_report = []
 
     def set_details(company, ignore_keys=False):
