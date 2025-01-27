@@ -12,6 +12,10 @@ def migrate(cr, version):
         """,
         [util.ref(cr, "industry_fsm.project_task_action_fsm")],
     )
+    script = util.import_script("stock/saas~17.3.1.1/pre-migrate.py")
+    script.fix_context(
+        cr, "industry_fsm", ["project_task_action_fsm", "project_task_action_fsm_map"], "default_user_ids", "[(4, uid)]"
+    )
     if util.module_installed(cr, "industry_fsm_report"):
         util.rename_xmlid(cr, *eb("industry_fsm{_report,}.worksheet_custom"))
         util.rename_xmlid(cr, *eb("industry_fsm{_report,}.mail_template_data_task_report"))
