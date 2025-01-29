@@ -129,3 +129,8 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.l10n_mx{,_regular_pay}_social_security_total_employer"))
 
     util.remove_view(cr, "l10n_mx_hr_payroll.report_payslip_mx_temp")
+    util.delete_unused(
+        cr,
+        "l10n_mx_hr_payroll.l10n_mx_rule_parameter_subsidy_table_2024",
+        "l10n_mx_hr_payroll.l10n_mx_rule_parameter_subsidy_table",
+    )
