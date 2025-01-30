@@ -123,7 +123,11 @@ def migrate(cr, version):
     """,
         [vendor_id],
     )
+    actions = ["action_picking_tree_outgoing", "action_picking_tree_internal", "action_picking_tree_incoming"]
+    fix_context(cr, "stock", actions, "default_company_id", "allowed_company_ids[0]")
 
+
+def fix_context(cr, module, actions, key, value):
     cr.execute(
         """
         SELECT aw.id, aw.context
@@ -131,17 +135,14 @@ def migrate(cr, version):
           JOIN ir_act_window AS aw
             ON md.model = 'ir.actions.act_window'
            AND md.res_id = aw.id
-         WHERE md.module = 'stock'
-           AND md.name IN (
-                    'action_picking_tree_outgoing',
-                    'action_picking_tree_internal',
-                    'action_picking_tree_incoming'
-               )
+         WHERE md.module = %s
+           AND md.name IN %s
            AND md.noupdate
-        """
+        """,
+        [module, tuple(actions)],
     )
     # Remove context key that is no longer valid
     for id, raw_context in cr.fetchall():
         context = safe_eval(raw_context, util.SelfPrintEvalContext(), nocopy=True)
-        if str(context.pop("default_company_id", "")) == "allowed_company_ids[0]":
+        if str(context.pop(key, "")) == value:
             cr.execute("UPDATE ir_act_window SET context = %s WHERE id = %s", [str(context), id])
