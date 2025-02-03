@@ -15,3 +15,27 @@ def migrate(cr, version):
     util.remove_field(cr, "mrp.workorder", "operation_note")
     util.remove_field(cr, "mrp.production.split", "counter")
     util.remove_field(cr, "mrp.bom.line", "manual_consumption")
+    util.remove_constraint(cr, "mrp_workcenter_capacity", "mrp_workcenter_capacity_unique_product")
+    util.create_column(cr, "mrp_workcenter_capacity", "product_uom_id", "integer")
+    query = """
+        UPDATE mrp_workcenter_capacity wcc
+           SET product_uom_id = pt.uom_id
+          FROM product_template pt
+          JOIN product_product pp
+            ON pp.product_tmpl_id = pt.id
+         WHERE wcc.product_id = pp.id
+    """
+    util.explode_execute(cr, query, table="mrp_workcenter_capacity", alias="wcc")
+    unit = util.ref(cr, "uom.product_uom_unit")
+    cr.execute("ALTER TABLE mrp_workcenter_capacity ALTER COLUMN product_id DROP NOT NULL")
+    cr.execute(
+        """
+        INSERT INTO mrp_workcenter_capacity
+                    (workcenter_id, product_id, product_uom_id, capacity, time_start, time_stop)
+             SELECT id, NULL, %s, default_capacity, time_start, time_stop
+               FROM mrp_workcenter
+              WHERE default_capacity <> 1
+        """,
+        [unit],
+    )
+    util.remove_field(cr, "mrp.workcenter", "default_capacity")
