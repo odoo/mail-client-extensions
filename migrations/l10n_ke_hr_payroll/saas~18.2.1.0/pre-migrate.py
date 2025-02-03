@@ -8,3 +8,7 @@ def migrate(cr, version):
 
     remove_salary_rule(cr, "l10n_ke_hr_payroll.l10n_ke_employees_salary_shif_amount_hidden")
     remove_salary_rule(cr, "l10n_ke_hr_payroll.l10n_ke_employees_shif_relief")
+
+    util.remove_record(cr, "l10n_ke_hr_payroll.rule_parameter_shif_min_basic_amount_2021")
+    util.remove_record(cr, "l10n_ke_hr_payroll.rule_parameter_shif_min_basic_amount_2024")
+    util.remove_record(cr, "l10n_ke_hr_payroll.rule_parameter_shif_min_basic")
