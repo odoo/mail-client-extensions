@@ -6,6 +6,7 @@ def migrate(cr, version):
     util.remove_view(cr, "hr_payroll.view_resource_calendar_search_inherit_payroll")
     util.remove_view(cr, "hr_payroll.resource_calendar_view_tree")
     util.remove_view(cr, "hr_payroll.payroll_resource_calendar_view_form")
+    util.force_noupdate(cr, "hr_payroll.hr_work_entry_type_out_of_contract")
 
     """
     This script will archive all salary rules that have no reference
