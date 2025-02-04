@@ -43,5 +43,8 @@ def migrate(cr, version):
     util.remove_field(cr, "uom.uom", "rounding")
 
     util.rename_xmlid(cr, *eb("{product,uom}.decimal_product_uom"))
+    cr.execute(
+        "UPDATE decimal_precision SET name = 'Product Unit' WHERE id = %s", [util.ref(cr, "uom.decimal_product_uom")]
+    )
     util.rename_xmlid(cr, *eb("uom.{,product_}uom_square_foot"))
     util.rename_xmlid(cr, *eb("uom.{,product_}uom_square_meter"))
