@@ -88,3 +88,4 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.department", "employee_feedback_template")
     util.remove_field(cr, "hr.department", "manager_feedback_template")
     util.remove_field(cr, "hr.department", "custom_appraisal_templates")
+    util.recompute_fields(cr, "hr.appraisal", ["appraisal_template_id"])
