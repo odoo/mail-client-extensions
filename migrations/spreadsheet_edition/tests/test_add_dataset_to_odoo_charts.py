@@ -14,12 +14,14 @@ class TestAddDatasetToOdooChart(UpgradeCase):
             "commands": [
                 {
                     "type": "CREATE_CHART",
+                    "id": "uuid",
                     "definition": {
                         "type": "odoo_line",
                     },
                 },
                 {
                     "type": "UPDATE_CHART",
+                    "id": "uuid",
                     "definition": {
                         "type": "odoo_bar",
                         "trend": {"type": "exponential"},

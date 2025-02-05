@@ -24,7 +24,7 @@ class TestSpreadsheetImageAttachment(UpgradeCase):
         base_cmd = {
             "type": "CREATE_IMAGE",
             "figureId": "1",
-            "position": {"x": 0, "y": 0},
+            "position": {"x": 1, "y": 2},
             "size": {"width": 100, "height": 100},
             "definition": None,
         }
