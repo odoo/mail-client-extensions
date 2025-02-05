@@ -41,3 +41,12 @@ def migrate(cr, version):
          FROM filtered_salary_rule
         WHERE hr_salary_rule.id = filtered_salary_rule.id
     """)
+
+    util.remove_records(
+        cr,
+        "ir.actions.server",
+        [
+            util.ref(cr, f"hr_payroll.action_hr_payroll_{suffix}")
+            for suffix in ["draft", "compute_payroll", "confirm_payroll", "cancel_payroll", "recompute_whole_sheet"]
+        ],
+    )
