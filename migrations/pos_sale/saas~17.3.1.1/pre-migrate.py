@@ -22,6 +22,7 @@ def migrate(cr, version):
                AND move.state = 'done'
                AND pos.state IN ('paid', 'done', 'invoiced')
                AND move.product_id = line.product_id
+               AND {parallel_filter}
           GROUP BY line.id
         )
         UPDATE pos_order_line line
