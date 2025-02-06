@@ -1,5 +1,7 @@
 from psycopg2 import sql
 
+from odoo.addons.stock.models.product import UomUom
+
 from odoo.upgrade import util
 
 
@@ -100,3 +102,15 @@ def migrate(cr, version):
         table="stock_move",
         alias="sm",
     )
+
+
+class Uom(UomUom):
+    _name = "uom.uom"
+    _inherit = "uom.uom"
+    _module = "stock"
+
+    def write(self, vals):
+        # /uom/saas~18.1.1.0/end-migrate.py makes the hour the relative uom
+        if self.env.context.get("_upg_swap_time_uom_ref"):
+            return super(UomUom, self).write(vals)
+        return super().write(vals)
