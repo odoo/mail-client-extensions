@@ -98,3 +98,79 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, *eb("{l10n_be_hr_payroll_acerta.holiday,hr_holidays.l10n_be_leave}_type_small_unemployment_birth")
     )
+    util.remove_view(cr, "hr_holidays.hr_leave_view_kanban_approve_department")
+    util.remove_record(cr, "hr_holidays.action_manager_approval")
+    util.remove_record(cr, "hr_holidays.action_hr_approval")
+    util.replace_record_references_batch(
+        cr,
+        {
+            util.ref(cr, "hr_holidays.icon_9"): util.ref(cr, "hr_holidays.icon_4"),
+            util.ref(cr, "hr_holidays.icon_11"): util.ref(cr, "hr_holidays.icon_17"),
+            util.ref(cr, "hr_holidays.icon_22"): util.ref(cr, "hr_holidays.icon_21"),
+        },
+        "ir.attachment",
+    )
+    util.remove_field(cr, "hr.leave", "can_reset")
+    util.remove_field(cr, "hr.leave.accrual.plan", "carryover_day_display")
+    util.remove_field(cr, "hr.leave.accrual.level", "yearly_day_display")
+    util.remove_field(cr, "hr.leave.accrual.level", "first_day_display")
+    util.remove_field(cr, "hr.leave.accrual.level", "second_day_display")
+    util.remove_field(cr, "hr.leave.accrual.level", "first_month_day_display")
+    util.remove_field(cr, "hr.leave.accrual.level", "second_month_day_display")
+    util.remove_constraint(cr, "hr_leave_accrual_level", "hr_leave_accrual_level_check_dates")
+    util.alter_column_type(
+        cr, "hr_leave_accrual_plan", "carryover_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+    )
+    util.alter_column_type(
+        cr, "hr_leave_accrual_level", "first_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+    )
+    util.alter_column_type(
+        cr, "hr_leave_accrual_level", "second_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+    )
+    util.alter_column_type(
+        cr, "hr_leave_accrual_level", "first_month_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+    )
+    util.alter_column_type(
+        cr, "hr_leave_accrual_level", "second_month_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+    )
+    util.alter_column_type(
+        cr, "hr_leave_accrual_level", "yearly_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+    )
+    util.alter_column_type(cr, "hr_leave_type", "requires_allocation", "bool", using="{0} = 'yes'")
+    util.alter_column_type(cr, "hr_leave_type", "employee_requests", "bool", using="{0} = 'yes'")
+    util.invert_boolean_field(cr, "hr.leave.type", "show_on_dashboard", "hide_on_dashboard")
+
+    month_list = {
+        "jan": "1",
+        "feb": "2",
+        "mar": "3",
+        "apr": "4",
+        "may": "5",
+        "jun": "6",
+        "jul": "7",
+        "aug": "8",
+        "sep": "9",
+        "oct": "10",
+        "nov": "11",
+        "dec": "12",
+    }
+    util.change_field_selection_values(cr, "hr.leave.accrual.plan", "carryover_month", month_list)
+    util.change_field_selection_values(cr, "hr.leave.accrual.level", "yearly_month", month_list)
+    util.change_field_selection_values(
+        cr,
+        "hr.leave.accrual.level",
+        "first_month",
+        {"jan": "1", "feb": "2", "mar": "3", "apr": "4", "may": "5", "jun": "6"},
+    )
+    util.change_field_selection_values(
+        cr,
+        "hr.leave.accrual.level",
+        "second_month",
+        {"jul": "7", "aug": "8", "sep": "9", "oct": "10", "nov": "11", "dec": "12"},
+    )
+    util.change_field_selection_values(
+        cr,
+        "hr.leave.accrual.level",
+        "week_day",
+        {"mon": "0", "tue": "1", "wed": "2", "thu": "3", "fri": "4", "sat": "5", "sun": "6"},
+    )

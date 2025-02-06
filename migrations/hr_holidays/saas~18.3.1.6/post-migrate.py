@@ -13,3 +13,8 @@ def migrate(cr, version):
     util.if_unchanged(cr, "hr_holidays.l10n_sk_leave_type_maternity", util.update_record_from_xml)
 
     util.if_unchanged(cr, "hr_holidays.l10n_lu_leave_type_situational_unemployment", util.update_record_from_xml)
+
+    util.if_unchanged(cr, "hr_holidays.leave_type_sick_time_off", util.update_record_from_xml)
+    util.if_unchanged(cr, "hr_holidays.leave_type_unpaid", util.update_record_from_xml)
+    util.if_unchanged(cr, "hr_holidays.holiday_status_eto", util.update_record_from_xml)
+    util.if_unchanged(cr, "hr_holidays.holiday_status_extra_hours", util.update_record_from_xml)
