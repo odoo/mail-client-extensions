@@ -458,7 +458,7 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
 
     # For versions >= 9.0, the main partner needs to be in the country of the installed l10n module.
     # If we cannot determine the version name, we assume than we try to upgrade from a version >= 9.0.
-    if l10n_modules and (not options.source.name or options.source.ints >= (9, 0)):
+    if l10n_modules and (not options.source.name or ((9, 0) <= options.source.ints < (16, 0))):
         # create a `base` db and modify the non-demo partners country before installing the localization
         (module,) = l10n_modules
         odoo(["-i", "base"], **source, module="base")
