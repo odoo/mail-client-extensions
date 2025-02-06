@@ -17,6 +17,7 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_in_qr_code_bill_scan", "l10n_in_reports")
         util.merge_module(cr, "l10n_in_reports_gstr", "l10n_in_reports")
         util.merge_module(cr, "l10n_in_reports_tds_tcs", "l10n_in_reports")
+        util.merge_module(cr, "l10n_cz_reports_2025", "l10n_cz_reports")
 
     if util.module_installed(cr, "pos_iot"):
         modules_to_install = set()
