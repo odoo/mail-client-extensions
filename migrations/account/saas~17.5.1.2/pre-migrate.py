@@ -94,9 +94,9 @@ def migrate(cr, version):
     util.remove_column(cr, "account_account", "company_ids")
 
     # 3. Misc column/field changes
-    util.remove_column(cr, "account_account", "group_id")
-    util.remove_column(cr, "account_account", "root_id")
-    util.remove_column(cr, "account_move_line", "account_root_id")
+    util.make_field_non_stored(cr, "account.account", "group_id", selectable=False)
+    util.make_field_non_stored(cr, "account.account", "root_id", selectable=True)
+    util.make_field_non_stored(cr, "account.move.line", "account_root_id", selectable=True)
     cr.execute('DROP VIEW IF EXISTS "account_root" CASCADE')
     util.remove_field(cr, "account.root", "company_id")
     util.remove_record(cr, "account.account_root_comp_rule")
