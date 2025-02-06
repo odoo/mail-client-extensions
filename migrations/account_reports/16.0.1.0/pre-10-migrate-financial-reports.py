@@ -319,6 +319,7 @@ def migrate(cr, version):
                        ELSE NULL
                   END
           FROM account_report_line arl
+         WHERE arl.v15_fin_line_id IS NOT NULL
         """
     )
 
