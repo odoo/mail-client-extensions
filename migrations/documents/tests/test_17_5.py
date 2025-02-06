@@ -516,6 +516,20 @@ class TestShareMigration(UpgradeCase):
         )
         self.env["documents.workflow.rule"].create(create_workflow_rules)
 
+        self.env.cr.execute(
+            """
+            SELECT ARRAY_AGG(name)
+              FROM ir_module_module
+             WHERE state = 'installed'
+               AND name IN ('documents_hr_expense',
+                            'documents_hr_recruitment',
+                            'documents_product',
+                            'documents_project',
+                            'documents_sign')
+            """,
+        )
+        installed_modules = self.env.cr.fetchone()[0] or []
+
         return {
             "documents": documents.ids,
             "tags": tags.ids,
@@ -528,6 +542,7 @@ class TestShareMigration(UpgradeCase):
             "alias_ids": share_folders.alias_id.ids,
             "companies_ids": companies.ids,
             "journal_ids": journal_ids,
+            "installed_modules": installed_modules,
         }
 
     def check(self, init):
@@ -539,6 +554,7 @@ class TestShareMigration(UpgradeCase):
         users_admins = self.env["res.users"].browse(init["users_admins"])
         users_internals = self.env["res.users"].browse(init["users_internals"])
         activity_type_todo = self.env.ref("mail.mail_activity_data_todo")
+        installed_modules = set(init["installed_modules"])
 
         self.env["documents.access"].search(
             [("partner_id", "not in", (users_admins | users_internals).partner_id.ids)]
@@ -1197,7 +1213,7 @@ class TestShareMigration(UpgradeCase):
                     ],
                 ),
             ):
-                if util.module_installed(self.env.cr, module):
+                if module in installed_modules:
                     for create_model, method_name, parameters in create_infos:
                         doc_a = get_doc_a_copy()
                         act_server = get_server_action(f"MiGraTion18-Create-{create_model}")
