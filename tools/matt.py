@@ -558,7 +558,7 @@ def matt(options: Namespace) -> int:
         for loc in ["source", "target"]:
             version = getattr(options, loc)
             odoodir = workdir / "odoo" / version.odoo
-            if (odoodir / "odoo" / "__init__.py").is_file():
+            if any((odoodir / "odoo" / init).is_file() for init in ("init.py", "__init__.py")):
                 pkgdir[loc] = "odoo"
             elif (odoodir / "openerp" / "__init__.py").is_file():
                 pkgdir[loc] = "openerp"
