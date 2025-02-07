@@ -2,14 +2,18 @@
 from odoo.addons.base.maintenance.migrations import util
 
 try:
-    from odoo.addons.resource.models.utils import HOURS_PER_DAY
+    from odoo.tools.date_intervals import HOURS_PER_DAY
 except ImportError:
     try:
-        # < saas-16.1
-        from odoo.addons.resource.models.resource import HOURS_PER_DAY
+        # < saas-18.2
+        from odoo.addons.resource.models.utils import HOURS_PER_DAY
     except ImportError:
-        # < saas-11.2
-        from odoo.addons.hr_holidays.models.hr_holidays import HOURS_PER_DAY
+        try:
+            # < saas-16.1
+            from odoo.addons.resource.models.resource import HOURS_PER_DAY
+        except ImportError:
+            # < saas-11.2
+            from odoo.addons.hr_holidays.models.hr_holidays import HOURS_PER_DAY
 
 
 def migrate(cr, version):
