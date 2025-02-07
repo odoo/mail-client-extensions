@@ -1,3 +1,5 @@
+from psycopg2 import sql
+
 from odoo.upgrade import util
 
 
@@ -18,12 +20,18 @@ def migrate(cr, version):
         util.create_column(cr, "project_task", "partner_phone", "varchar")
         util.explode_execute(
             cr,
-            """
-            UPDATE project_task t
-               SET partner_phone = COALESCE(p.mobile, p.phone)
-              FROM res_partner p
-             WHERE t.partner_id = p.id
-            """,
+            util.format_query(
+                cr,
+                """
+                UPDATE project_task t
+                   SET partner_phone = {phone}
+                  FROM res_partner p
+                 WHERE t.partner_id = p.id
+                """,
+                phone=sql.SQL(
+                    "COALESCE(p.mobile, p.phone)" if util.column_exists(cr, "res_partner", "mobile") else "p.phone"
+                ),
+            ),
             table="project_task",
             alias="t",
         )
