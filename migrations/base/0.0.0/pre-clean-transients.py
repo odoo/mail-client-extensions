@@ -1,13 +1,7 @@
 import itertools
 from collections import defaultdict
 
-import psycopg2
 from psycopg2 import sql
-
-try:
-    from contextlib import suppress
-except ImportError:
-    from odoo.tools import ignore as suppress
 
 from odoo.addons.base.maintenance.migrations import util
 
@@ -62,9 +56,17 @@ def migrate(cr, version):
         if ir.company_dependent_comodel:
             # XXX: company dependent references to transient models are not handled
             continue
-        query = 'DELETE FROM "{}" WHERE {} AND "{}" IS NOT NULL'.format(ir.table, ir.model_filter(), ir.res_id)
-        with suppress(psycopg2.Error), util.savepoint(cr):
-            cr.executemany(query, models)
+        query = util.format_query(
+            cr, "DELETE FROM {} WHERE {} AND {} IS NOT NULL", ir.table, ir.model_filter(), ir.res_id
+        )
+        queries = []
+        for data in models:
+            queries.extend(
+                util.explode_query_range(cr, cr.mogrify(query, data).decode(), table=ir.table, bucket_size=50000)
+            )
+        if queries:  # ir.table could be empty
+            util._logger.info("Cleaning references to transient models from %s", ir.table)
+            util.parallel_execute(cr, queries)
 
 
 def get_tables_of_models(cr, models):
