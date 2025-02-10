@@ -7,6 +7,15 @@ def migrate(cr, version):
     util.remove_field(cr, "website", "picking_site_ids")
     util.remove_field(cr, "res.config.settings", "picking_site_ids")
 
+    cr.execute(
+        """
+        UPDATE delivery_carrier
+           SET is_published = FALSE
+         WHERE delivery_type = 'in_store'
+           AND warehouse_id IS NULL
+        """
+    )
+
     util.create_m2m(cr, "delivery_carrier_stock_warehouse_rel", "delivery_carrier", "stock_warehouse")
     cr.execute(
         """
