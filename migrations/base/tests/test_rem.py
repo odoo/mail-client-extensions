@@ -21,7 +21,8 @@ NON_STORED_FIELDS_EXCEPTIONS = {
 class TestStoredFields(UpgradeCase):
     query = """
         SELECT f.model,
-               f.name
+               f.name,
+               f.selectable
           FROM ir_model_fields f
           JOIN pg_class t
             ON t.relname = %s::jsonb->>f.model
@@ -39,9 +40,16 @@ class TestStoredFields(UpgradeCase):
     """
 
     def check(self, value):
-        value = set(map(tuple, value)) - NON_STORED_FIELDS_EXCEPTIONS
+        value = {tuple(x[:2]) for x in value} - NON_STORED_FIELDS_EXCEPTIONS
         self.env.cr.execute(self.query.format("IS NOT True"), [_model_tables(self), tuple(get_modules())])
-        wrong = [x for x in self.env.cr.fetchall() if x in value]
+        wrong = [x for x in self.env.cr.fetchall() if x[:2] in value]
+        for model, field, selectable in wrong:
+            _logger.critical(
+                '💥 It looks like you forgot to call `make_field_non_stored(cr, "%s", "%s", selectable=%s)`',
+                model,
+                field,
+                selectable,
+            )
         self.assertFalse(wrong, "Some fields became non-stored and their columns still remain")
 
     def prepare(self):
