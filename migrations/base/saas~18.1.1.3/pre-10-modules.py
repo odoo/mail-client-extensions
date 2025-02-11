@@ -17,4 +17,5 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_es_modelo130", "l10n_es")
         util.merge_module(cr, "l10n_es_reports_modelo130", "l10n_es_reports")
         util.merge_module(cr, "l10n_ee_rounding", "l10n_ee_reports")
-        util.remove_module(cr, "documents_account_peppol")
+        if not util.version_gte("saas~18.2"):  # module reintroduced in 18.2
+            util.remove_module(cr, "documents_account_peppol")
