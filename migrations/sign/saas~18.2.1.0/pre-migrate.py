@@ -12,3 +12,6 @@ def migrate(cr, version):
     util.remove_constraint(cr, "sign_item_role", "sign_item_role_name_uniq")
     util.remove_menus(cr, [util.ref(cr, "sign.sign_item_role_menu")])
     util.remove_record(cr, "sign.sign_item_role_action")
+
+    util.remove_field(cr, "sign.item.option", "available")
+    util.remove_view(cr, "sign.sign_item_option_view_tree")
