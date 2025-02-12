@@ -1,3 +1,5 @@
+from odoo.exceptions import UserError
+
 from odoo.upgrade import util
 
 
@@ -21,6 +23,7 @@ def migrate(cr, version):
     cr.execute("SELECT id, content, key, password, company_id FROM l10n_mx_edi_certificate")
     queries = []
 
+    incompatible_certificates = []
     for old_id, content, key, password, company_id in cr.fetchall():
         # Create certificates and keys using ORM to ensure all business logic and constraints are applied
         # This guarantees data integrity and triggers necessary compute methods
@@ -36,10 +39,18 @@ def migrate(cr, version):
             {
                 "name": f"l10n_mx_certificate_{old_id}_{company_id}",
                 "content": content,
-                "private_key_id": new_key.id,
                 "company_id": company_id,
             }
         )
+        try:
+            # Link certificate with key
+            new_crt.write({"private_key_id": new_key.id})
+        except UserError:
+            # Since they're not compatible, we do not link
+            # the records, and instead just notify the user.
+            cert_link = util.get_anchor_link_to_record("certificate.certificate", new_crt.id, new_crt.name)
+            key_link = util.get_anchor_link_to_record("certificate.key", new_key.id, new_key.name)
+            incompatible_certificates.append(f"""<li>Certificate "{cert_link}": {key_link}</li>""")
 
         # Use raw SQL for bulk updates to improve performance
         # The ORM can be slower for large-scale updates due to its overhead
@@ -56,6 +67,22 @@ def migrate(cr, version):
         )
 
     util.parallel_execute(cr, queries)
+
+    if incompatible_certificates:
+        util.add_to_migration_reports(
+            category="Incompatible CFDI certificates",
+            message=f"""
+                <details>
+                    <summary>
+                        Some of the CFDI certificates in the database are not compatible
+                        with their related private key. Please verify the configuration
+                        of the following certificate and key records:\n
+                    </summary>
+                    <ul>{"".join(incompatible_certificates)}</ul>
+                </details>
+            """,
+            format="html",
+        )
 
     util.remove_column(cr, "account_move", "_upg_l10n_mx_edi_certificate_id")
     util.remove_model(cr, "l10n_mx_edi.certificate")
