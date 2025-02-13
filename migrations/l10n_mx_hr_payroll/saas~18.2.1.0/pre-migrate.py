@@ -92,6 +92,7 @@ def migrate(cr, version):
 
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.l10n_mx_{employees_salary,regular_pay}_isr"))
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.l10n_mx_{employees_salary,regular_pay}_subsidy"))
+    util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.l10n_mx_{employees_salary,regular_pay}_imss_work_risk"))
     util.rename_xmlid(
         cr,
         *eb(
