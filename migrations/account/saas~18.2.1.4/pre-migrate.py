@@ -51,3 +51,5 @@ def migrate(cr, version):
        WHERE ir_sequence.prefix = 'BATCH/%(year)s/'
          AND c.batch_payment_sequence_id = ir_sequence.id
     """)
+
+    util.create_column(cr, "account_move_line", "deductible_amount", "float8", default=100.00)
