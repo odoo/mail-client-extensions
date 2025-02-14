@@ -107,7 +107,6 @@ def migrate(cr, version):
 
     util.remove_model(cr, "sale.pdf.quote.builder.dynamic.fields.wizard.line")
     util.remove_model(cr, "sale.pdf.quote.builder.dynamic.fields.wizard")
-    util.remove_view(cr, "sale_pdf_quote_builder.res_config_settings_view_form")
 
     # Trigger the cron to parse existing documents, to link them to the correct form fields
     cron_id = util.ref(cr, "sale_pdf_quote_builder.cron_post_upgrade_assign_missing_form_fields")
