@@ -26,10 +26,12 @@ def migrate(cr, version):
                         The following payment providers have been disabled:
                     </summary>
                 <ul>
-                    {"".join(
-                        f"<li>{util.get_anchor_link_to_record('payment.provider', provider_id, name)}</li>"
-                        for provider_id, name in provider_disabled
-                    )}
+                    {
+                "".join(
+                    f"<li>{util.get_anchor_link_to_record('payment.provider', provider_id, name)}</li>"
+                    for provider_id, name in provider_disabled
+                )
+            }
                 </ul>
                 </details>
             """,

@@ -52,7 +52,7 @@ def migrate(cr, version):
             )
 
             products_migration_failed = [
-                (id, "{}{}".format(default_code and f"[{default_code}] " or "", name), hazmat_code)
+                (id, "{}{}".format((default_code and f"[{default_code}] ") or "", name), hazmat_code)
                 for id, default_code, name, hazmat_code in products_migration_failed
             ]
 

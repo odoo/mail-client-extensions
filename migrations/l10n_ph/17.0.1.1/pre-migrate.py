@@ -57,14 +57,20 @@ def migrate(cr, version):
                         The following records have been updated and have now their fiscal country set to Philippines.
                     </summary>
                     <h4>Companies</h4>
-                    <ul>{"".join(f"<li>{util.get_anchor_link_to_record('res.company', id, name)}</li>"
-                                for id, name in companies)}</ul>
+                    <ul>{
+                "".join(f"<li>{util.get_anchor_link_to_record('res.company', id, name)}</li>" for id, name in companies)
+            }</ul>
                     <h4>Tax groups</h4>
-                    <ul>{"".join(f"<li>{util.get_anchor_link_to_record('account.tax.group', id, name)}</li>"
-                                for id, name in tax_groups)}</ul>
+                    <ul>{
+                "".join(
+                    f"<li>{util.get_anchor_link_to_record('account.tax.group', id, name)}</li>"
+                    for id, name in tax_groups
+                )
+            }</ul>
                     <h4>Taxes</h4>
-                    <ul>{"".join(f"<li>{util.get_anchor_link_to_record('account.tax', id, name)}</li>"
-                                for id, name in taxes)}</ul>
+                    <ul>{
+                "".join(f"<li>{util.get_anchor_link_to_record('account.tax', id, name)}</li>" for id, name in taxes)
+            }</ul>
                 </details>
             """,
             category="Philippines - Accounting",
