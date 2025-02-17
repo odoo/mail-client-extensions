@@ -20,6 +20,7 @@ def migrate(cr, version):
           FROM uom_uom ref
          WHERE uu.category_id = ref.category_id
            AND ref.uom_type = 'reference'
+           AND ref.active IS TRUE
            AND uu.id != ref.id
         """
     )
