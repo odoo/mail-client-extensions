@@ -397,3 +397,23 @@ record.write({"currency_id": new_record.id})
                 "__testcase__.B_Test_03_Convert_Multi_Action_2",
             ],
         )
+
+        # The following assertion is not *directly* related to the testing data.
+        # It is here to verify that there is no __upgrade__ xmlid left for
+        # duplicated standard actions. That way we are making sure that we are
+        # not leaving unmatched duplicates for standard stuff.
+        # If you read this, you should take a look at the following helper
+        # function: rematch_xmlids (in base/saas~18.2.1.3/pre-ir_act_server.py).
+        # Use it if needed with util.import_script
+        # Note that if assertion fails, it could be a false positive if you played with your dev db.
+        upgrade_xmlids = self.env["ir.model.data"].search(
+            [
+                ("model", "=", "ir.actions.server"),
+                ("module", "=", "__upgrade__"),
+                # ignore test xmlids
+                ("id", "not in", A_xmlids.ids),
+                # ignore upgrade crons (see util.create_cron)
+                ("name", "not =ilike", "cron_post_upgrade%"),
+            ]
+        )
+        self.assertFalse(upgrade_xmlids, "Extra xmlids: " + ", ".join(f"{r.module}.{r.name}" for r in upgrade_xmlids))
