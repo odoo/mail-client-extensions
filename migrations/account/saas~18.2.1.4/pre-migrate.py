@@ -2,6 +2,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.create_column(cr, "account_move_line", "deductible_amount", "float8", default=100)
+
     util.create_column(cr, "account_reconcile_model", "journal_id", "integer")
     cr.execute("""
         WITH subquery AS (
