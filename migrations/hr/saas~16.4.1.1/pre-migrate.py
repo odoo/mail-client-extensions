@@ -127,7 +127,7 @@ def migrate(cr, version):
     Partner = util.env(cr)["res.partner"]
     cr.execute(
         """
-            SELECT
+            SELECT active,
                    work_email,
                    name AS employee_name,
                    id AS employee_id
@@ -136,10 +136,12 @@ def migrate(cr, version):
                AND work_email IS NOT NULL
         """
     )
-    for work_email, employee_name, employee_id in util.log_progress(
+    for active, work_email, employee_name, employee_id in util.log_progress(
         cr.fetchall(), util._logger, qualifier="employees", size=cr.rowcount
     ):
-        partner = Partner.find_or_create(f"{employee_name} <{work_email}>", assert_valid_email=False)
+        partner = Partner.with_context(active_test=active, default_active=active).find_or_create(
+            f"{employee_name} <{work_email}>", assert_valid_email=False
+        )
         cr.execute("UPDATE hr_employee SET work_contact_id = %s WHERE id = %s", [partner.id, employee_id])
 
     cr.execute("ALTER TABLE res_partner_bank DROP CONSTRAINT IF EXISTS res_partner_bank_unique_number")
