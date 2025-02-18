@@ -52,15 +52,15 @@ def migrate(cr, version):
 
     cr.execute(
         """
-            UPDATE account_payment pmt
-            SET iso20022_uetr = gen_random_uuid()
-            FROM account_journal journal, account_move move
-            WHERE journal.id = pmt.journal_id
-            AND move.id = pmt.move_id
-            AND payment_method_id = %s
-            AND journal.sepa_pain_version = 'pain.001.001.03'
-            AND pmt.iso20022_uetr IS NULL
-            AND NOT COALESCE(move.is_move_sent, false)
+        UPDATE account_payment pmt
+           SET iso20022_uetr = gen_random_uuid()
+          FROM account_journal journal, account_move move
+         WHERE journal.id = pmt.journal_id
+           AND move.id = pmt.move_id
+           AND pmt.payment_method_id = %s
+           AND journal.sepa_pain_version = 'pain.001.001.03'
+           AND pmt.iso20022_uetr IS NULL
+           AND NOT COALESCE(move.is_move_sent, false)
         """,
         [sct_payment_method_id],
     )
