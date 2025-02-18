@@ -16,3 +16,18 @@ def migrate(cr, version):
            AND so.end_date <= so.next_invoice_date
     """
     util.explode_execute(cr, query, table="sale_order", alias="so")
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE sale_order_line sol
+           SET display_type = 'subscription_discount'
+          FROM sale_order so
+         WHERE sol.order_id = so.id
+           AND so.subscription_state = '7_upsell'
+           AND sol.display_type = 'line_note'
+           AND sol.name LIKE '(*)%'
+        """,
+        table="sale_order_line",
+        alias="sol",
+    )
