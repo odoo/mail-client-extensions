@@ -31,3 +31,8 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.partner", "debit_limit")
     util.remove_field(cr, "res.partner", "journal_item_count")
+
+    util.remove_field(cr, "res.partner", "invoice_warn")
+    util.remove_field(cr, "res.partner", "invoice_warn_msg")
+    util.remove_field(cr, "res.config.settings", "group_warning_account")
+    util.remove_group(cr, "account.group_warning_account")
