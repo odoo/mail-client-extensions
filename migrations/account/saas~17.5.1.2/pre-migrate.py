@@ -104,18 +104,6 @@ def migrate(cr, version):
 
     util.remove_model(cr, "account.unreconcile")
 
-    util.invert_boolean_field(cr, "account.move", "to_check", "checked")
-    cr.execute("ALTER INDEX IF EXISTS account_move_to_check_idx RENAME TO account_move_checked_idx")
-
-    util.create_column(cr, "account_move", "amount_untaxed_in_currency_signed", "numeric")
-    query_amount_untaxed = """
-        UPDATE account_move
-           SET amount_untaxed_in_currency_signed = amount_untaxed *
-     CASE WHEN move_type IN ('entry', 'in_invoice', 'out_refund', 'in_receipt')
-          THEN -1 ELSE 1 END
-    """
-    util.explode_execute(cr, query_amount_untaxed, table="account_move")
-
     util.remove_field(cr, "account.move.line", "blocked")
 
     # `code` is always 6 digits long, they get appended zeroes otherwise
@@ -137,3 +125,22 @@ def migrate(cr, version):
              AND a.code = '100580'
         """
         cr.execute(query)
+
+    # --- ⚠️ DO NOT ADD CODE BELOW THIS LINE ⚠️ ---
+    #
+    # for some reason, the create_column below was non-reproduceably failing requests, because
+    # PostgreSQL would raise a "deadlock detected" error in conflict with a Share lock held by autovacuum.
+    # As a temptative fix, we moved the `invert_boolean_field` (which performs a full table update) call last,
+    # hoping this will prevent the issue.
+    cr.execute("ALTER INDEX IF EXISTS account_move_to_check_idx RENAME TO account_move_checked_idx")
+
+    util.create_column(cr, "account_move", "amount_untaxed_in_currency_signed", "numeric")
+    query_amount_untaxed = """
+        UPDATE account_move
+           SET amount_untaxed_in_currency_signed = amount_untaxed *
+     CASE WHEN move_type IN ('entry', 'in_invoice', 'out_refund', 'in_receipt')
+          THEN -1 ELSE 1 END
+    """
+    util.explode_execute(cr, query_amount_untaxed, table="account_move")
+
+    util.invert_boolean_field(cr, "account.move", "to_check", "checked")
