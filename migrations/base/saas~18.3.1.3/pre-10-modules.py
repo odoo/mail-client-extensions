@@ -19,3 +19,6 @@ def migrate(cr, version):
     util.remove_module(cr, "l10n_in_purchase")
 
     util.rename_module(cr, "pos_viva_wallet", "pos_viva_com")
+
+    if util.has_enterprise():
+        util.remove_module(cr, "sale_renting_sign")
