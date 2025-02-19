@@ -22,25 +22,33 @@ def migrate(cr, version):
             "cancel": "refused",
         },
     )
+
+    query = """
+        UPDATE hr_expense
+           SET state = 'draft', approval_state = NULL
+         WHERE (
+            total_amount = 0 OR total_amount_currency = 0
+         )
+           AND {parallel_filter}
+    """
+    util.explode_execute(cr, query, table="hr_expense")
+
+    cr.execute("SELECT id FROM hr_expense WHERE state = 'done'")
+    expense_ids = tuple(expense_id for (expense_id,) in cr.fetchall())
     util.change_field_selection_values(
         cr,
         "hr.expense",
         "state",
         {
-            "draft": "draft",
             "reported": "draft",
-            "submitted": "submitted",
-            "refused": "refused",
             # Placeholder value, those will be recomputed later with the states 'approved', 'posted', 'in_payment', 'paid'
             "done": "approved",
-            "approved": "approved",
         },
     )
 
-    cr.execute("SELECT id FROM hr_expense WHERE hr_expense.state = 'approved'")
-    util.recompute_fields(cr, "hr.expense", ["state"], ids=tuple(expense_id for (expense_id,) in cr.fetchall()))
+    util.recompute_fields(cr, util.env(cr)["hr.expense"].with_context(mail_notrack=True), ["state"], ids=expense_ids)
 
-    cr.execute("SELECT id FROM hr_employee WHERE hr_employee.expense_manager_id IS NULL")
+    cr.execute("SELECT id FROM hr_employee WHERE expense_manager_id IS NULL")
     util.recompute_fields(
         cr, "hr.employee", ["expense_manager_id"], ids=tuple(employee_id for (employee_id,) in cr.fetchall())
     )

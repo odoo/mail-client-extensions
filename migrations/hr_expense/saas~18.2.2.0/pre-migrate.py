@@ -27,7 +27,7 @@ def migrate(cr, version):
     util.create_column(cr, "hr_expense", "former_sheet_id", "integer")
     util.create_column(cr, "hr_expense", "payment_method_line_id", "integer")
     util.create_column(cr, "hr_expense", "approval_date", "timestamp")
-    util.create_column(cr, "hr_expense", "untaxed_amount", "float8")
+    util.create_column(cr, "hr_expense", "untaxed_amount", "numeric")
     util.create_column(cr, "hr_expense", "approval_state", "varchar")
 
     util.explode_execute(
@@ -77,6 +77,17 @@ def migrate(cr, version):
         "hr_expense",
         alias="expense",
     )
+
+    cr.execute("""
+        SELECT former_sheet_id, max(id)
+          FROM hr_expense
+         WHERE former_sheet_id IS NOT NULL  -- is it possible?
+      GROUP BY former_sheet_id
+    """)
+    sheet_mapping = dict(cr.fetchall())
+    if sheet_mapping:
+        util.replace_record_references_batch(cr, sheet_mapping, model_src="hr.expense.sheet", model_dst="hr.expense")
+
     util.remove_field(cr, "account.move", "show_commercial_partner_warning")
     util.remove_field(cr, "hr.expense", "approved_by")
     util.remove_field(cr, "hr.expense", "approved_on")
