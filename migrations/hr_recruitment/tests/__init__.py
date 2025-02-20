@@ -1,1 +1,1 @@
-from . import test_blacklist_migration
+from . import test_blacklist_migration, test_candidate_to_talent_migration

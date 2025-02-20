@@ -10,3 +10,4 @@ def migrate(cr, version):
     util.delete_unused(cr, "hr_recruitment.hr_candidate_interviewer_rule")
     util.recompute_fields(cr, "hr.applicant", ["partner_phone_sanitized", "email_from", "partner_phone"])
     util.remove_column(cr, "hr_applicant", "_upg_orig_candidate_id")
+    util.remove_column(cr, "hr_applicant", "candidate_id")

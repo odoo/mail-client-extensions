@@ -1,0 +1,1 @@
+from . import test_candidate_to_talent_skill_migration

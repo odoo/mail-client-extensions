@@ -186,9 +186,15 @@ def migrate(cr, version):
             """,
             [cids],
         )
+        extra_columns, extra_values = "", ""
+        if util.column_exists(cr, "hr_applicant", "referral_state"):  # from `hr_referral`
+            extra_columns = ", referral_state"
+            extra_values = ", 'progress'"
         # For candidates with 0 or more than 1 application.
         cr.execute(
-            """
+            util.format_query(
+                cr,
+                """
             -- Create an applicant('talent') for each candidate with more or less than 1 applcation
             WITH inserted_applicants AS (
                 INSERT
@@ -198,12 +204,14 @@ def migrate(cr, version):
                            kanban_state, linkedin_profile, partner_id, partner_name,
                            partner_phone, partner_phone_sanitized, priority, type_id,
                            user_id
+                           {}
                        )
                 SELECT c.active, c.availability, c.id, c.color, c.company_id,
                        c.create_date, c.email_from, c.email_normalized,
                        c.employee_id, 'normal', c.linkedin_profile, c.partner_id,
                        c.partner_name, c.partner_phone, c.partner_phone_sanitized,
                        c.priority, c.type_id, c.user_id
+                       {}
                   FROM hr_candidate c
              LEFT JOIN hr_applicant a
                     ON c.id = a.candidate_id
@@ -233,7 +241,10 @@ def migrate(cr, version):
             )
             SELECT candidate_id, id
               FROM inserted_applicants
-            """
+            """,
+                util.SQLStr(extra_columns),
+                util.SQLStr(extra_values),
+            )
         )
         candidate_to_talent_mapping = dict(cr.fetchall())
         if candidate_to_applicant_mapping:
