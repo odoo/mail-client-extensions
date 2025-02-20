@@ -69,19 +69,20 @@ def migrate(cr, version):
                FROM crm_lead
                  -- notify if both are set and different
               WHERE phone != mobile
-                AND {parallel_filter};
+        """,
+        [util.ref(cr, "base.partner_root")],
+    ).decode()
 
+    util.explode_execute(cr, query, table="crm_lead")
+
+    query = """
         UPDATE crm_lead
             -- flag if mobile is different from phone, including null phone
            SET _upg_phone_updated = phone IS DISTINCT FROM mobile,
             -- set the value only if phone is null
                phone = COALESCE(phone, mobile)
          WHERE mobile IS NOT NULL
-           AND {parallel_filter}
-    """,
-        [util.ref(cr, "base.partner_root")],
-    ).decode()
-
+    """
     util.explode_execute(cr, query, table="crm_lead")
 
     # Sanitize and recalculate phone_state based on updated phone
