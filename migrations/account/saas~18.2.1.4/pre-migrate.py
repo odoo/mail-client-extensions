@@ -53,3 +53,4 @@ def migrate(cr, version):
     """)
 
     util.create_column(cr, "account_move_line", "deductible_amount", "float8", default=100.00)
+    util.remove_view(cr, "account.portal_my_details_fields")
