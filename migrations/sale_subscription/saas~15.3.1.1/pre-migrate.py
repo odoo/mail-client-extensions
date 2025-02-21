@@ -812,6 +812,23 @@ product_product_id)
             alias="so",
         ),
     )
+
+    # Set the recurrence_id when subscription_management is `create`
+    util.explode_execute(
+        cr,
+        """
+        UPDATE sale_order AS so
+           SET recurrence_id = parent_sub.recurrence_id
+          FROM sale_order AS parent_sub
+         WHERE so.subscription_id = parent_sub.id
+           AND so.subscription_management = 'create'
+           AND so.recurrence_id IS NULL
+           AND parent_sub.recurrence_id IS NOT NULL
+        """,
+        table="sale_order",
+        alias="so",
+    )
+
     util.parallel_execute(
         cr,
         util.explode_query_range(
