@@ -2,6 +2,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    if util.version_gte("saas~18.2"):
+        return
     for category, uom in [
         ("uom.product_uom_categ_unit", "uom.product_uom_unit"),
         ("uom.product_uom_categ_kgm", "uom.product_uom_kgm"),
