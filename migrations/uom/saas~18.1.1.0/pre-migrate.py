@@ -49,3 +49,9 @@ def migrate(cr, version):
     )
     util.rename_xmlid(cr, *eb("uom.{,product_}uom_square_foot"))
     util.rename_xmlid(cr, *eb("uom.{,product_}uom_square_meter"))
+    # this commit: 62faa32 can cause dup values
+    uom_hour = util.ref(cr, "uom.product_uom_hour")
+    if uom_hour is not None and uom_hour == util.ref(cr, "uom.product_uom_day"):
+        uom_day = util.ensure_xmlid_match_record(cr, "uom.product_uom_day", "uom.uom", {"name": "Days"})
+        if uom_day == uom_hour:
+            cr.execute("DELETE FROM ir_model_data WHERE module = 'uom' AND name = 'product_uom_day'")
