@@ -177,6 +177,7 @@ def migrate(cr, version):
         "l10n_au_hr_payroll.l10n_au_salary_sacrifice_other_structure_15",
         "l10n_au_hr_payroll.l10n_au_salary_sacrifice_structure_15",
         "l10n_au_hr_payroll.l10n_au_super_contribution_structure_15",
+        "l10n_au_hr_payroll.l10n_au_allowance_withholding_structure_1",
         # Expense rules for accounting module
         "l10n_au_hr_payroll_account.l10n_au_salary_expense_refund_structure_2",
         "l10n_au_hr_payroll_account.l10n_au_salary_expense_refund_structure_3",
