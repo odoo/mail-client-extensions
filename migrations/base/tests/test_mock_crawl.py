@@ -432,7 +432,10 @@ class TestCrawler(IntegrityCase):
                 mock_method(model, view, fields_list, domain, group_by)
 
     def mock_view_activity(self, model, view, fields_list, domain, group_by):
-        domain = expression.AND([domain, [("activity_ids", "!=", False)]])
+        if util.column_exists(self.env.cr, "mail_activity", "active"):
+            domain = expression.AND([domain, [("activity_ids.active", "in", [True, False])]])
+        else:
+            domain = expression.AND([domain, [("activity_ids", "!=", False)]])
         self.env["mail.activity"].get_activity_data(model._name, domain)
 
     def mock_view_calendar(self, model, view, fields_list, domain, group_by):
