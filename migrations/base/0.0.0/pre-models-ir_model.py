@@ -123,7 +123,7 @@ class Field(models.Model):
                                 The field %s.%s is deleted during the upgrade.
                                 Since this is a related field for which the related doesn't exist,
                                 this might be due to the bug of the mixins
-                                not marking the fields on their rightful module"
+                                not marking the fields on their rightful module
                             """,
                             field.model,
                             field.name,
