@@ -6,13 +6,15 @@ def migrate(cr, version):
     script._l10n_in_enable_feature(cr, "l10n_in_edi_feature")
     util.remove_field(cr, "account.move", "l10n_in_edi_show_cancel")
     util.create_column(cr, "account_move", "l10n_in_edi_status", "varchar")
+    util.create_column(cr, "account_move", "l10n_in_edi_error", "varchar")
     cr.execute(
         """
         UPDATE account_move AS move
            SET l10n_in_edi_status = CASE
                   WHEN aed.state = 'to_cancel' THEN 'sent'
                   ELSE aed.state
-               END
+               END,
+               l10n_in_edi_error = aed.error
           FROM account_edi_document AS aed
           JOIN account_edi_format AS aef
             ON aed.edi_format_id = aef.id
