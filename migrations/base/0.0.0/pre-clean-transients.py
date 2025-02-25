@@ -60,15 +60,7 @@ def migrate(cr, version):
             cr, "DELETE FROM {} WHERE {} AND {} IS NOT NULL", ir.table, ir.model_filter(), ir.res_id
         )
         util._logger.info("Cleaning references to transient models from %s", ir.table)
-        for queries in util.chunks(
-            itertools.chain.from_iterable(
-                util.explode_query_range(cr, cr.mogrify(query, data).decode(), table=ir.table, bucket_size=50000)
-                for data in models
-            ),
-            100000,
-            fmt=list,
-        ):
-            util.parallel_execute(cr, queries)
+        util.parallel_execute(cr, [cr.mogrify(query, data).decode() for data in models])
 
 
 def get_tables_of_models(cr, models):
