@@ -145,6 +145,21 @@ def migrate(cr, version):
             )
         )
 
+    # create missing indexes on indirect references
+    for i, ir in enumerate(util.indirect_references(cr)):
+        if ir.company_dependent_comodel:
+            continue
+        if not ir.res_model:
+            # only handle the indexes on `res_model` columns. Indexes on `res_model_id` (FK)
+            # are handled by the previous search on BIG tables.
+            continue
+        args = (ir.res_model, ir.res_id) if ir.res_id else (ir.res_model,)
+        if not util.get_index_on(cr, ir.table, *args):
+            index_name = "upgrade_ir_idx_{}".format(i)
+            util.ENVIRON["__created_fk_idx"].append(index_name)
+            query = "CREATE INDEX {} ON {}({})"
+            create_index_queries.append(util.format_query(cr, query, index_name, ir.table, util.ColumnList(args, args)))
+
     if create_index_queries:
         _logger.info("creating %s indexes (might be slow)", len(create_index_queries))
         util.parallel_execute(cr, create_index_queries)
