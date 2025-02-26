@@ -141,7 +141,7 @@ def migrate(cr, version):
 
 
 def _find_or_create_project_plan(cr):
-    cr.execute("SELECT id FROM account_analytic_plan ORDER BY id FETCH FIRST ROW ONLY")
+    cr.execute("SELECT id FROM account_analytic_plan WHERE parent_id IS NUll ORDER BY id FETCH FIRST ROW ONLY")
     [plan_id] = cr.fetchone() or [None]
     if not plan_id:
         cr.execute(
