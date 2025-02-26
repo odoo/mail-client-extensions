@@ -508,7 +508,8 @@ class TestCrawler(IntegrityCase):
                     domain = []
                     if node.get("domain"):
                         domain = safe_eval(node.get("domain"), dict(uid=self.env.user.id, **processed_data))
-                    self.env[field.comodel_name].name_search(args=domain)
+                    domain_arg = {"domain" if util.version_gte("saas~18.3") else "args": domain}
+                    self.env[field.comodel_name].name_search(**domain_arg)
 
             # Skip the calls related to the attachments and the discussion thread
             # because it reads the same models/fields for all records:
