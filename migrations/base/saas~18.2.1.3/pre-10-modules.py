@@ -31,7 +31,7 @@ def migrate(cr, version):
         if modules_to_install:
             util.modules_auto_discovery(cr, force_installs=modules_to_install)
 
-    if util.module_installed(cr, "pos_six") and not util.module_installed("pos_iot"):
+    if util.module_installed(cr, "pos_six") and not util.module_installed(cr, "pos_iot"):
         util.add_to_migration_reports(
             category="Point of Sale",
             message="""
