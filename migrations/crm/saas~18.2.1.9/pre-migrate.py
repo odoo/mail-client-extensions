@@ -11,17 +11,30 @@ def migrate(cr, version):
     # anyway force recompute as heuristic changed: force all won leads to 100%
     # probability, set status (won -> stage, lost -> archived with proba 0)
     query = """
-        UPDATE crm_lead lead
-           SET (probability, won_status) = (
-            CASE WHEN stage.is_won IS TRUE THEN 100
-                 ELSE lead.probability
-            END,
-            CASE WHEN stage.is_won IS TRUE THEN 'won'
-                 WHEN lead.active IS NOT True AND lead.probability = 0 THEN 'lost'
-                 ELSE 'pending'
-            END
-          )
-          FROM crm_stage stage
-         WHERE lead.stage_id = stage.id
+        UPDATE crm_lead l
+           SET probability = 100
+          FROM crm_stage s
+         WHERE s.id = l.stage_id
+           AND s.is_won IS TRUE
+           AND l.probability != 100
     """
-    util.explode_execute(cr, query, table="crm_lead", alias="lead")
+    util.explode_execute(cr, query, table="crm_lead", alias="l")
+    query = """
+        WITH won_status AS (
+            SELECT l.id,
+                   CASE WHEN s.is_won IS TRUE THEN 'won'
+                        WHEN l.active IS NOT True AND l.probability = 0 THEN 'lost'
+                        ELSE 'pending'
+                    END as value
+              FROM crm_lead l
+              JOIN crm_stage s
+                ON s.id = l.stage_id
+             WHERE {parallel_filter}
+        )
+        UPDATE crm_lead l
+           SET won_status = ws.value
+          FROM won_status ws
+         WHERE ws.id = l.id
+           AND l.won_status != ws.value
+    """
+    util.explode_execute(cr, query, table="crm_lead", alias="l")
