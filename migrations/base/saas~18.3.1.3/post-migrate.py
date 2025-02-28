@@ -19,3 +19,11 @@ def migrate(cr, version):
     util.update_record_from_xml(cr, "base.eurasian_economic_union", force_create=False, fields=["code"])
     util.update_record_from_xml(cr, "base.ch_and_li", force_create=False, fields=["code"])
     util.update_record_from_xml(cr, "base.dom-tom", force_create=False, fields=["code"])
+
+    # updating only sequence
+    util.update_record_from_xml(cr, "base.module_category_supply_chain", fields=["sequence"])
+    util.update_record_from_xml(cr, "base.module_category_hidden", fields=["sequence"])
+    util.update_record_from_xml(cr, "base.module_category_accounting", fields=["sequence"])
+    util.update_record_from_xml(cr, "base.module_category_website", fields=["sequence"])
+    util.update_record_from_xml(cr, "base.module_category_services", fields=["sequence"])
+    util.update_record_from_xml(cr, "base.module_category_productivity", fields=["sequence"])
