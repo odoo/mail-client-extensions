@@ -3,32 +3,29 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 from odoo.addons.base.maintenance.migrations.util import json
 
 
-@change_version("saas~18.1")
-class TestPivotSortedColumn(UpgradeCase):
+@change_version("saas~18.3")
+class TestPivotMissingSortedColumn(UpgradeCase):
     def prepare(self):
-        if not util.table_exists(self.env.cr, "spreadsheet_revision"):
+        if not util.table_exists(self.env.cr, "spreadsheet_revision") or not util.version_gte("saas~18.2"):
             return None
 
         pivot1 = {
             "type": "ODOO",
             "rows": [],
             "columns": [],
-            "measures": [{"id": "MEASURE", "fieldName": "MEASURE", "aggregator": "sum"}],
+            "measures": [],
             "model": "MODEL",
             "name": "MODEL",
             "sortedColumn": {
                 "order": "asc",
-                "measure": "MEASURE",
-                "groupId": [[], []],
+                "measure": "measure:sum",
+                "domain": [],
             },
         }
         pivot2 = {
             **pivot1,
-            "sortedColumn": {
-                "order": "asc",
-                "measure": "MEASURE",
-                "groupId": [[], [5]],
-            },
+            # same with the measure
+            "measures": [{"id": "measure:sum", "fieldName": "MEASURE", "aggregator": "sum"}],
         }
         commands = {
             "type": "REMOTE_REVISION",
@@ -56,15 +53,14 @@ class TestPivotSortedColumn(UpgradeCase):
             ],
         }
 
-        field_name = "revision_uuid" if util.version_gte("saas~17.2") else "revision_id"
         revision_id = self.env["spreadsheet.revision"].create(
             [
                 {
-                    "res_id": 40009,
+                    "res_id": 40019,
                     "res_model": "spreadsheet",
                     "commands": json.dumps(commands),
-                    field_name: "B",
-                    "parent_revision_id": False if util.version_gte("saas~17.2") else "START_REVISION",
+                    "revision_uuid": "B",
+                    "parent_revision_id": False,
                 },
             ]
         )
@@ -74,23 +70,24 @@ class TestPivotSortedColumn(UpgradeCase):
         if not revision_id:
             return
         revisions = self.env["spreadsheet.revision"].browse(revision_id)
-        # check the datasets were added to the odoo charts
         commands = json.loads(revisions[0].commands)["commands"]
+        self.assertEqual(commands[0]["pivot"].get("sortedColumn"), None)
+        self.assertEqual(commands[1]["pivot"].get("sortedColumn"), None)
+
+        # unchanged
         self.assertEqual(
-            commands[0]["pivot"]["sortedColumn"],
+            commands[2]["pivot"]["sortedColumn"],
             {
                 "order": "asc",
-                "measure": "MEASURE",
+                "measure": "measure:sum",
                 "domain": [],
             },
         )
         self.assertEqual(
-            commands[1]["pivot"]["sortedColumn"],
+            commands[3]["pivot"]["sortedColumn"],
             {
                 "order": "asc",
-                "measure": "MEASURE",
+                "measure": "measure:sum",
                 "domain": [],
             },
         )
-        self.assertEqual(commands[2]["pivot"].get("sortedColumn"), None)
-        self.assertEqual(commands[3]["pivot"].get("sortedColumn"), None)
