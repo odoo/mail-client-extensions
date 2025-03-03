@@ -9,3 +9,10 @@ def migrate(cr, version):
         cr, "website_sale_shiprocket.payment_provider_shiprocket_cod", deactivate=True, keep_xmlids=False
     )
     util.remove_module(cr, "website_sale_shiprocket")
+
+    # Remove jitsi related modules:
+    util.remove_inherit_from_model(cr, "event.sponsor", "chat.room.mixin")
+    util.remove_module(cr, "website_event_jitsi")
+    util.remove_module(cr, "website_event_meet")
+    util.remove_module(cr, "website_event_meet_quiz")
+    util.remove_module(cr, "website_jitsi")
