@@ -27,8 +27,31 @@ def migrate(cr, version):
     # Replace references to the duplicate partner banks
     if not dupes:
         return
+    util.remove_constraint(cr, "mail_followers", "mail_followers_mail_followers_res_partner_res_model_id_uniq")
     idmap = {o: id for id, others, _ in dupes for o in others}
     util.replace_record_references_batch(cr, idmap, "res.partner.bank")
+    if util.table_exists(cr, "mail_followers"):
+        cr.execute(
+            """
+            WITH duplicates AS (
+                SELECT unnest((array_agg(id))[2:]) as id
+                  FROM mail_followers
+                 WHERE res_model = 'res.partner.bank'
+              GROUP BY res_model, res_id, partner_id
+                HAVING count(id) > 1
+            )
+            DELETE FROM mail_followers f
+                  USING duplicates d
+                  WHERE f.id = d.id
+            """
+        )
+        cr.execute(
+            """
+            ALTER TABLE mail_followers
+         ADD CONSTRAINT mail_followers_mail_followers_res_partner_res_model_id_uniq
+                 UNIQUE (res_model, res_id, partner_id)
+            """
+        )
 
     # Remove the records
     util.remove_records(cr, "res.partner.bank", idmap.keys())
