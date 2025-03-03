@@ -31,3 +31,4 @@ def migrate(cr, version):
         table="sale_order_line",
         alias="sol",
     )
+    util.remove_view(cr, "sale_subscription.view_quotation_tree_subscription")

@@ -10,3 +10,4 @@ def migrate(cr, version):
         """
     )
     util.remove_field(cr, "sale.order.line", "route_id")
+    util.remove_view(cr, "sale_stock.view_order_form_inherit_sale_stock_qty")
