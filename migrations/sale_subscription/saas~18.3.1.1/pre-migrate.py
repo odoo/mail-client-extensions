@@ -32,3 +32,5 @@ def migrate(cr, version):
         alias="sol",
     )
     util.remove_view(cr, "sale_subscription.view_quotation_tree_subscription")
+
+    util.remove_record(cr, "sale_subscription.module_category_subscription_management")

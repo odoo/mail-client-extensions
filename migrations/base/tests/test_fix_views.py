@@ -70,7 +70,7 @@ class TestFixViews(UpgradeCase):
                         E.field(name="name"),  # gone after upgrade
                         Comment("Ensure this comment here doesn't fail the upgrade; __last_update"),
                         E.field(name="comment"),
-                        E.field(name="color"),  # gone after upgrade
+                        E.field(name="full_name"),  # gone after upgrade
                         E.field(name="share"),  # gone after upgrade
                         E.div("This will be gone during the upgrade", id="gone"),
                     ),
@@ -96,7 +96,7 @@ class TestFixViews(UpgradeCase):
                 "mode": "extension",
                 "inherit_id": base_id,
                 "arch_db": ts(
-                    E.xpath(E.div("After last field"), expr="//field[@name='color']", position="after"),
+                    E.xpath(E.div("After last field"), expr="//field[@name='full_name']", position="after"),
                 ),
             }
         )
@@ -140,7 +140,7 @@ class TestFixViews(UpgradeCase):
                 "mode": "extension",
                 "inherit_id": base_id,
                 "arch_db": ts(
-                    E.xpath(E.div("Before a field"), expr="//field[@name='color']", position="before"),
+                    E.xpath(E.div("Before a field"), expr="//field[@name='full_name']", position="before"),
                 ),
             }
         )
@@ -152,7 +152,7 @@ class TestFixViews(UpgradeCase):
                 "inherit_id": base_id,
                 "arch_db": ts(
                     E.data(
-                        E.xpath(E.div("Anchor is gone"), expr="//field[@name='color']", position="before"),
+                        E.xpath(E.div("Anchor is gone"), expr="//field[@name='full_name']", position="before"),
                         E.xpath(E.div("Double anchor is gone"), expr="//field[@name='name']", position="before"),
                         E.xpath(E.div("Remove anchor is gone"), expr="//field[@name='share']", position="replace"),
                     )
@@ -208,7 +208,7 @@ class TestFixViews(UpgradeCase):
                     E.form(
                         E.field(name="name"),
                         E.field(name="comment"),
-                        E.field(name="color"),
+                        E.field(name="full_name"),
                     ),
                 ),
                 "priority": 11,
@@ -282,7 +282,7 @@ class TestFixViews(UpgradeCase):
                 "arch_db": ts(
                     E.form(
                         E.field(name="comment"),
-                        E.field(name="color"),
+                        E.field(name="full_name"),
                     ),
                 ),
             },
@@ -311,7 +311,7 @@ class TestFixViews(UpgradeCase):
                 "mode": "primary",
                 "inherit_id": view_2_id,
                 "arch_db": ts(
-                    E.xpath(E.div("Remove field"), expr="//field[@name='color']", position="replace"),
+                    E.xpath(E.div("Remove field"), expr="//field[@name='full_name']", position="replace"),
                 ),
                 "priority": 12,
             },

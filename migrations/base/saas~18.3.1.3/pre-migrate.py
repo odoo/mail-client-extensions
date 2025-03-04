@@ -28,3 +28,12 @@ def migrate(cr, version):
     util.rename_xmlid(cr, "l10n_fr.dom-tom", "base.dom-tom")
 
     util.remove_column(cr, "res_users_identitycheck", "password")
+
+    util.remove_field(cr, "res.groups", "color")
+    util.remove_field(cr, "res.groups", "category_id")
+    util.remove_field(cr, "res.groups", "visible")
+    util.remove_field(cr, "ir.module.category", "group_ids")
+    util.remove_field(cr, "res.users", "view_show_technical_groups")
+    util.remove_field(cr, "res.users", "view_visible_implied_group_ids")
+    util.remove_field(cr, "res.users", "view_all_disjoint_group_ids")
+    util.remove_field(cr, "res.users", "view_disjoint_group_ids")

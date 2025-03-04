@@ -8,7 +8,7 @@
 				<form>
 					<field name="name"/>
 					<field name="comment"/>
-					<field name="color"/>
+					<field name="full_name"/>
 				</form>
 			</field>
 		</record>
@@ -29,7 +29,7 @@
 				<form>
 					<field name="name"/>
 					<field name="comment"/>
-					<field name="color"/>
+					<field name="full_name"/>
 				</form>
 			</field>
 		</record>
