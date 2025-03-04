@@ -68,9 +68,16 @@ def migrate(cr, version):
     query = util.format_query(
         cr,
         """
+        WITH applicability AS (
+            SELECT min(id) AS id
+              FROM account_analytic_applicability
+          GROUP BY applicability, business_domain, analytic_plan_id
+        )
         INSERT INTO account_analytic_applicability ({}, company_id)
              SELECT {}, company.id
-               FROM account_analytic_applicability aaa,
+               FROM account_analytic_applicability aaa
+               JOIN applicability a
+                 ON a.id = aaa.id,
                     res_company company;
 
         DELETE FROM account_analytic_applicability
