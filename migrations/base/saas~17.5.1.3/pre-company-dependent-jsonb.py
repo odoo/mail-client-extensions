@@ -213,7 +213,7 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
                 cr,
                 """
                 LEFT JOIN {} comodel
-                       ON SPLIT_PART(prop.value_reference, ',', 2)::int4 = comodel.id
+                       ON NULLIF(SPLIT_PART(prop.value_reference, ',', 2), '')::int4 = comodel.id
                 """,
                 util.table_of_model(cr, field_relation),
             )
