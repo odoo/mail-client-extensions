@@ -1332,11 +1332,11 @@ Several options are available, possibly in combination:
 
     2. Ask Odoo Support to enable one of the following settings (this can be done after 1 too) using
       the ODOO_UPG_18_DOCUMENTS_FOLDERS_LARGE_GROUPS_RIGHTS key with the following possible values:
-      * [SET_USER_SPECIFIC]: Set these folders groups configuration as USER_SPECIFIC for READ AND WRITE automatically
-      * [SET_NOBODY]: Set these folders as restricted access, only users with the new Documents group
+      * SET_USER_SPECIFIC: Set these folders groups configuration as USER_SPECIFIC for READ AND WRITE automatically
+      * SET_NOBODY: Set these folders as restricted access, only users with the new Documents group
         "System Administrator" will be able to view and edit these folders (including access rights)
         after the upgrade.
-      * [ACCEPT_AS_IS] Confirm that the current configuration is what you need and upgrade as-is.
+      * ACCEPT_AS_IS: Confirm that the current configuration is what you need and upgrade as-is.
 """)
 
 
