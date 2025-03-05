@@ -9,3 +9,7 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.partner", "sale_warn")
     util.remove_field(cr, "product.template", "sale_line_warn")
+
+    util.remove_field(cr, "res.config.settings", "module_delivery_fedex")
+    util.remove_field(cr, "res.config.settings", "module_delivery_ups")
+    util.remove_field(cr, "res.config.settings", "module_delivery_usps")
