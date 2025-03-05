@@ -145,3 +145,7 @@ def migrate(cr, version):
         cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_military_wt_hourly")
     )
     util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_interruption_wt"))
+
+    # also migrate demo to avoid errors on runbot upgrade builds with demo
+    util.rename_xmlid(cr, *eb("hr_work_entry{_contract,}.work_entry_type_extra_hours"))
+    util.rename_xmlid(cr, *eb("hr_work_entry{_contract,}.work_entry_type_long_leave"))
