@@ -101,3 +101,18 @@ def migrate(cr, version):
 
     if util.version_between("17.0", "18.0") and util.column_exists(cr, "res_partner", "credit_limit"):
         util.remove_column(cr, "res_partner", "credit_limit")
+
+    if util.version_between("15.0", "saas~18.1") and util.column_exists(cr, "sign_template", "attachment_id"):
+        util.explode_execute(
+            cr,
+            """
+            UPDATE ir_attachment a
+               SET res_model = 'sign.template'
+              FROM sign_template t
+             WHERE t.attachment_id = a.id
+               AND a.res_model = 'sign.duplicate.template.pdf'
+               AND a.res_id IS NOT NULL
+            """,
+            table="ir_attachment",
+            alias="a",
+        )
