@@ -6,7 +6,7 @@ _logger = logging.getLogger("odoo.upgrade.migrations.point_of_sale.18.1." + __na
 
 
 def migrate(cr, version):
-    cr.execute("SELECT id FROM pos_session WHERE state = 'opened'")
+    cr.execute("SELECT id FROM pos_session WHERE state IN ('opened', 'opening_control')")
     pos_ids = [r[0] for r in cr.fetchall()]
     if not pos_ids:
         return
