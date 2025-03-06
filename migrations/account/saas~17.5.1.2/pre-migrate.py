@@ -126,13 +126,9 @@ def migrate(cr, version):
         """
         cr.execute(query)
 
-    # --- ⚠️ DO NOT ADD CODE BELOW THIS LINE ⚠️ ---
-    #
-    # for some reason, the create_column below was non-reproduceably failing requests, because
-    # PostgreSQL would raise a "deadlock detected" error in conflict with a Share lock held by autovacuum.
-    # As a temptative fix, we moved the `invert_boolean_field` (which performs a full table update) call last,
-    # hoping this will prevent the issue.
     cr.execute("ALTER INDEX IF EXISTS account_move_to_check_idx RENAME TO account_move_checked_idx")
+    # avoid possible deadlock by releasing the lock acquired by ALTER INDEX.
+    cr.commit()
 
     util.create_column(cr, "account_move", "amount_untaxed_in_currency_signed", "numeric")
     query_amount_untaxed = """
