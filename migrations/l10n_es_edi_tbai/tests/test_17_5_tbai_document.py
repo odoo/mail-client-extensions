@@ -122,6 +122,7 @@ class TestEdiDocumentToTbaiDocument(TestAccountingSetupCommon):
                     "partner_id": self.partner.id,
                     "invoice_date": date.today() + relativedelta(days=1),
                     "invoice_line_ids": [(0, 0, {"product_id": self.product.id})],
+                    "ref": "INV111",
                 }
             )
         )
