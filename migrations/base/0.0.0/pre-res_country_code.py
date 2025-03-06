@@ -4,12 +4,17 @@ from odoo.addons.base.maintenance.migrations import util
 def migrate(cr, version):
     if util.version_between("17.0", "saas~18.1"):
         cr.execute(
-            """
-            WITH numbered_countries AS (
-                    SELECT id,
-                           LPAD(ROW_NUMBER() OVER (ORDER BY id)::TEXT, 2, '0') AS new_code
-                      FROM res_country
-                     WHERE code IS NULL
+            r"""
+            WITH max_integer_code AS (
+                SELECT COALESCE(MAX(code::INT), 0) AS max_code
+                  FROM res_country
+                 WHERE code ~ '^\d+$'
+            ),
+            numbered_countries AS (
+                SELECT id,
+                       LPAD((ROW_NUMBER() OVER (ORDER BY id) + (SELECT max_code FROM max_integer_code))::TEXT, 2, '0') AS new_code
+                  FROM res_country
+                 WHERE code IS NULL
             )
             UPDATE res_country rc
                SET code = nc.new_code
