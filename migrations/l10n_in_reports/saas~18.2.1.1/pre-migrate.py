@@ -7,6 +7,7 @@ def migrate(cr, version):
         script._l10n_in_enable_feature(cr, "l10n_in_gst_efiling_feature")
     else:
         util.create_column(cr, "account_move", "l10n_in_gstr2b_reconciliation_status", "varchar", default="pending")
+        util.create_column(cr, "res_company", "l10n_in_gstr_activate_einvoice_fetch", "varchar", default="manual")
 
     util.remove_field(cr, "account.journal", "l10n_in_gstr_activate_einvoice_fetch")
     util.remove_model(cr, "l10n_in_withholding.tds.tcs.report.handler")
