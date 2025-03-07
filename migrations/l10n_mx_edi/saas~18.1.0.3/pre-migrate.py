@@ -41,7 +41,7 @@ def migrate(cr, version):
            AND move.invoice_date IS NOT NULL
            AND {parallel_filter}
         """,
-        [ppd_payment_term_ids],
+        [ppd_payment_term_ids if ppd_payment_term_ids else (None,)],
     ).decode()
     util.explode_execute(cr, query, table="account_move", alias="move")
 
