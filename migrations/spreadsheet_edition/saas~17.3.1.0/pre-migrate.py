@@ -44,8 +44,12 @@ def migrate(cr, version):
     query = r"""
     SELECT id, commands
       FROM spreadsheet_revision
-     WHERE commands LIKE '%UPDATE\_CELL%'
-        OR commands LIKE '%\_PIVOT%'
+     WHERE commands LIKE '%UPDATE\_PIVOT%'
+        OR commands LIKE '%ADD\_PIVOT%'
+        OR (
+                commands LIKE '%UPDATE\_CELL%'
+            AND commands LIKE '%ODOO.PIVOT%'
+           )
     """
     with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor, util.named_cursor(cr, BATCH_SIZE) as ncr:
         ncr.execute(query)
