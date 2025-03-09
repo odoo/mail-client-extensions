@@ -15,13 +15,22 @@ type LeadSectionProps = {
 
 type SectionLeadsState = {
     leads: Lead[];
+    originalLeads: Lead[];
 };
 
 class SectionLeads extends React.Component<LeadSectionProps, SectionLeadsState> {
     constructor(props, context) {
         super(props, context);
-        this.state = { leads: this.props.partner.leads };
+        this.state = { leads: this.props.partner.leads, originalLeads: this.props.partner.leads };
     }
+
+    private updateLeads = (searchResults: Lead[]) => {
+        if (searchResults == null) {
+            this.setState({ leads: this.state.originalLeads });
+        } else {
+            this.setState({ leads: searchResults });
+        }
+    };
 
     private getLeadDescription = (lead: Lead): string => {
         const expectedRevenueString = _t(
@@ -56,6 +65,8 @@ class SectionLeads extends React.Component<LeadSectionProps, SectionLeadsState> 
                 msgNoRecord="No opportunities found for this contact."
                 msgLogEmail="Log Email Into Lead"
                 getRecordDescription={this.getLeadDescription}
+                searchType="lead"
+                updateRecords={this.updateLeads}
             />
         );
     }

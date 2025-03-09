@@ -13,14 +13,23 @@ type SectionTicketsProps = {
 
 type SectionTicketsState = {
     tickets: HelpdeskTicket[];
+    originalTickets: HelpdeskTicket[];
 };
 
 class SectionTickets extends React.Component<SectionTicketsProps, SectionTicketsState> {
     constructor(props, context) {
         super(props, context);
         const sortedTicket = this.props.partner.tickets.sort((t1, t2) => Number(t1.isClosed) - Number(t2.isClosed));
-        this.state = { tickets: sortedTicket };
+        this.state = { tickets: sortedTicket, originalTickets: sortedTicket };
     }
+
+    private updateTickets = (searchResults: HelpdeskTicket[]) => {
+        if (searchResults == null) {
+            this.setState({ tickets: this.state.originalTickets });
+        } else {
+            this.setState({ tickets: searchResults });
+        }
+    };
 
     render() {
         return (
@@ -39,6 +48,8 @@ class SectionTickets extends React.Component<SectionTicketsProps, SectionTickets
                 msgNoRecord="No tickets found for this contact."
                 msgLogEmail="Log Email Into Ticket"
                 getRecordDescription={(ticket) => ticket.isClosed && _t('Closed')}
+                searchType="ticket"
+                updateRecords={this.updateTickets}
             />
         );
     }
