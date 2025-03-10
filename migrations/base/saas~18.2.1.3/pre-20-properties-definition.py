@@ -16,7 +16,7 @@ def migrate(cr, version):
                    SET {field_name} = (
                             SELECT jsonb_agg(
                                 CASE
-                                    WHEN elem->>'type' = 'tag' THEN elem - ARRAY['comodel', 'domain', 'selection']
+                                    WHEN elem->>'type' = 'tags' THEN elem - ARRAY['comodel', 'domain', 'selection']
                                     WHEN elem->>'type' = 'selection' THEN elem - ARRAY['comodel', 'domain', 'tags']
                                     WHEN elem->>'type' IN ('many2one', 'many2many') THEN elem - ARRAY['selection', 'tags']
                                     ELSE elem - ARRAY['comodel', 'domain', 'tags', 'selection']
