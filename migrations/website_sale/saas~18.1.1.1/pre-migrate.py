@@ -2,8 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.if_unchanged(cr, "website_sale.mail_template_sale_cart_recovery", util.update_record_from_xml)
-
     util.create_column(cr, "product_template", "publish_date", "timestamp without time zone")
     query = "UPDATE product_template SET publish_date = create_date"
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="product_template"))
