@@ -14,6 +14,15 @@ class PickingType(models.Model):
         pass
 
 
+class StockWarehouse(models.Model):
+    _name = "stock.warehouse"
+    _inherit = ["stock.warehouse"]
+    _module = "stock"
+
+    def _check_company(self, fnames=None):
+        return super()._check_company(self.env.context.get("upgrade_check_company_write_vals", fnames))
+
+
 def migrate(cr, version):
     util.remove_column(cr, "stock_move_line", "product_category_name")
     util.remove_column(cr, "stock_warehouse_orderpoint", "qty_to_order")

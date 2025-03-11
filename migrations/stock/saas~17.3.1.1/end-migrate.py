@@ -15,7 +15,8 @@ def migrate(cr, version):
         # Will create all missing picking types and sequences for every existing warehouses
         new_types_vals = warehouse._create_or_update_sequences_and_picking_types()
         if new_types_vals:
-            warehouse.write(new_types_vals)
+            # avoid triggering company check for all fields if only some are written
+            warehouse.with_context(upgrade_check_company_write_vals=list(new_types_vals)).write(new_types_vals)
             env["stock.picking.type"].browse(new_types_vals.values()).write({"color": warehouse.in_type_id.color})
 
     # Update all rules from Input/Quality Control -> Stock to new 'Storage' picking type
