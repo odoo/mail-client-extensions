@@ -69,14 +69,20 @@ def migrate(cr, version):
         """
     )
 
-    query = """
-        UPDATE ir_attachment a
-           SET res_model = 'hr.candidate',
-               res_id = hr_candidate.id
-          FROM hr_candidate
-         WHERE a.res_model = 'hr.applicant'
-           AND a.res_id = hr_candidate.tmp_applicant_id
-    """
+    columns = util.get_columns(cr, "ir_attachment", ignore=("id", "res_model", "res_id"))
+    query = util.format_query(
+        cr,
+        """
+        INSERT INTO ir_attachment (res_model, res_id, {})
+             SELECT 'hr.candidate', hr_candidate.id, {}
+               FROM ir_attachment a
+               JOIN hr_candidate
+                 ON a.res_model = 'hr.applicant'
+                AND a.res_id = hr_candidate.tmp_applicant_id
+        """,
+        columns,
+        columns.using(alias="a"),
+    )
     util.explode_execute(cr, query, table="ir_attachment", alias="a")
 
     cr.execute("DROP INDEX _tmp_applicant_id_idx")
