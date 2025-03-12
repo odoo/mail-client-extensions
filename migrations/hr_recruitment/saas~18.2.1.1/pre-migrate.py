@@ -115,8 +115,6 @@ def migrate(cr, version):
         """
     )
     candidate_to_applicant_mapping = dict(cr.fetchall())
-    if candidate_to_applicant_mapping:
-        util.replace_record_references_batch(cr, candidate_to_applicant_mapping, "hr.candidate", "hr.applicant")
 
     # Collect all candidates that have no company_id set and add them to the report.
     cr.execute("""
@@ -246,9 +244,10 @@ def migrate(cr, version):
                 util.SQLStr(extra_values),
             )
         )
-        candidate_to_talent_mapping = dict(cr.fetchall())
-        if candidate_to_applicant_mapping:
-            util.replace_record_references_batch(cr, candidate_to_talent_mapping, "hr.candidate", "hr.applicant")
+        candidate_to_applicant_mapping.update(cr.fetchall())
+
+    if candidate_to_applicant_mapping:
+        util.replace_record_references_batch(cr, candidate_to_applicant_mapping, "hr.candidate", "hr.applicant")
 
     util.remove_field(cr, "calendar.event", "candidate_id")
     util.remove_field(cr, "res.company", "candidate_properties_definition")
