@@ -249,6 +249,22 @@ def migrate(cr, version):
     if candidate_to_applicant_mapping:
         util.replace_record_references_batch(cr, candidate_to_applicant_mapping, "hr.candidate", "hr.applicant")
 
+        cr.execute(
+            """
+            WITH duplicates AS (
+                SELECT unnest((array_agg(id ORDER BY id))[2:]) AS id
+                  FROM ir_attachment
+                 WHERE res_model = 'hr.applicant'
+              GROUP BY res_id,
+                       store_fname
+                HAVING count(*) > 1
+            )
+            DELETE FROM ir_attachment
+                  USING duplicates
+                  WHERE ir_attachment.id = duplicates.id
+            """
+        )
+
     util.remove_field(cr, "calendar.event", "candidate_id")
     util.remove_field(cr, "res.company", "candidate_properties_definition")
     util.remove_field(cr, "hr.employee", "candidate_id")
