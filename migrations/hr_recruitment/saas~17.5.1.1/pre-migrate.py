@@ -148,7 +148,7 @@ def migrate(cr, version):
                 c.id,
                 c.partner_name,
                 u.partner_id,
-                COALESCE(c.write_date, c.create_date),
+                NOW() at time zone 'UTC',
                 'comment',
                 CONCAT('Other phonenumber: ', a.partner_phone),
                 %s
