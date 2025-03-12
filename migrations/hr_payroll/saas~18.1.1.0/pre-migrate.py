@@ -1,4 +1,16 @@
+from odoo import models
+
+from odoo.addons.hr_payroll.models import hr_salary_rule_category as _ignore  # noqa
+
 from odoo.upgrade import util
+
+
+class HrSalaryRuleCategory(models.Model):
+    _inherit = "hr.salary.rule.category"
+    _module = "hr_payroll"
+
+    def _check_rule_category_country(self):
+        pass
 
 
 def migrate(cr, version):
