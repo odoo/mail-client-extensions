@@ -2,8 +2,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if not util.ref(cr, "documents.documents_tag_deprecated"):
-        util.update_record_from_xml(cr, "documents.documents_tag_deprecated", from_module="documents")
+    # The server actions need to be created but they are not loaded during the load of the module
+    # So they are created manually together with the referenced tags and folder.
+    for tag in ["deprecated", "draft"]:
+        if not util.ref(cr, f"documents.documents_tag_{tag}"):
+            util.update_record_from_xml(cr, f"documents.documents_tag_{tag}")
 
     server_actions = [
         "tag_remove_draft",
