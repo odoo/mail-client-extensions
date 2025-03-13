@@ -45,8 +45,7 @@ def migrate(cr, version):
 
     # Populate `reward_id`, `coupon_id`, `reward_identifier_code` and `points_cost` in `sale_order_lines`
     # Works for both `sale_coupon` and `sale_gift_card`
-    cr.execute(
-        """
+    query = """
         WITH helper AS (
              SELECT line.id as line_id, r.id as reward_id, c.id as coupon_id,
                     CONCAT(r.id, '_', c.id, '_', line.id) AS code,
@@ -66,7 +65,8 @@ def migrate(cr, version):
                  ON line.order_id = rel.sale_order_id AND c.id = rel.loyalty_card_id
           LEFT JOIN sale_order_coupon_points points
                  ON line.order_id = points.order_id AND c.id = points.coupon_id
-              WHERE points.id IS NOT NULL OR rel.sale_order_id IS NOT NULL
+              WHERE {parallel_filter}
+                AND (points.id IS NOT NULL OR rel.sale_order_id IS NOT NULL)
         )
         UPDATE sale_order_line line
            SET reward_id=h.reward_id, coupon_id=h.coupon_id,
@@ -74,7 +74,7 @@ def migrate(cr, version):
           FROM helper h
          WHERE h.line_id = line.id
         """
-    )
+    util.explode_execute(cr, query, table="sale_order_line", alias="line")
 
 
 def _migrate_sale_coupon(cr):
