@@ -25,3 +25,6 @@ def migrate(cr, version):
         table="pos_config",
         alias="c_up",
     )
+
+    util.remove_field(cr, "pos.config", "customer_display_type")
+    util.remove_field(cr, "res.config.settings", "pos_customer_display_type")
