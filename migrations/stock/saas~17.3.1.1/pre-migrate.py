@@ -1,6 +1,17 @@
+from odoo import api, models
 from odoo.tools.safe_eval import safe_eval
 
 from odoo.upgrade import util
+
+
+class PickingType(models.Model):
+    _name = "stock.picking.type"
+    _inherit = ["stock.picking.type"]
+    _module = "stock"
+
+    @api.constrains("default_location_dest_id")
+    def _check_default_location(self):
+        pass
 
 
 def migrate(cr, version):
