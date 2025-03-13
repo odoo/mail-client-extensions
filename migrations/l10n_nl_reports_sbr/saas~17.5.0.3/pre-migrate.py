@@ -30,13 +30,10 @@ def migrate(cr, version):
                    ia.res_field AS field,
                    rc.l10n_nl_reports_sbr_key_filename AS key_name,
                    rc.l10n_nl_reports_sbr_cert_filename AS crt_name,
-                   rcs.l10n_nl_reports_sbr_password AS password
+                   rc.l10n_nl_reports_sbr_password AS password
               FROM res_company AS rc
               JOIN ir_attachment AS ia
                 ON ia.res_id = rc.id
-              LEFT
-              JOIN res_config_settings AS rcs
-                ON rcs.company_id = rc.id
              WHERE ia.res_model = 'res.company'
                AND ia.res_field IN ('l10n_nl_reports_sbr_cert', 'l10n_nl_reports_sbr_key', 'l10n_nl_reports_sbr_server_root_cert')
         ), new_keys AS (
@@ -70,6 +67,7 @@ def migrate(cr, version):
                SET l10n_nl_reports_sbr_cert_id = nc.id,
                    l10n_nl_reports_sbr_server_root_cert_id = nrc.id
               FROM new_certificates nc
+              FULL
               JOIN new_root_certificates nrc
                 ON nrc.company_id = nc.company_id
              WHERE rc.id = nc.company_id
@@ -100,3 +98,4 @@ def migrate(cr, version):
     util.remove_field(cr, "res.company", "l10n_nl_reports_sbr_server_root_cert")
     util.remove_field(cr, "res.company", "l10n_nl_reports_sbr_cert_filename")
     util.remove_field(cr, "res.company", "l10n_nl_reports_sbr_key_filename")
+    util.remove_column(cr, "res_company", "l10n_nl_reports_sbr_password")
