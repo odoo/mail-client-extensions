@@ -21,7 +21,7 @@ def migrate(cr, version):
     util.create_column(
         cr,
         "res_company",
-        "l10n_es_edi_sii_certificate_id",
+        "l10n_es_sii_certificate_id",
         "int4",
         fk_table="certificate_certificate",
         on_delete_action="SET NULL",
@@ -58,7 +58,7 @@ def migrate(cr, version):
                AND res_field = 'content'
         )
         UPDATE res_company rc
-           SET l10n_es_edi_sii_certificate_id = nc.id
+           SET l10n_es_sii_certificate_id = nc.id
           FROM new_certificates nc
          WHERE l10n_es_edi_certificate_id = nc._upg_old_id
            AND rc.id = nc.company_id;
