@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def migrate(cr, version):
     """
     Convert all ir.asset records and ir.attachment records which are the result

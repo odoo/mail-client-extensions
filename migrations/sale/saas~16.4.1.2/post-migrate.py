@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # old-style import because this script is imported for tests
 from odoo.addons.base.maintenance.migrations import util
 

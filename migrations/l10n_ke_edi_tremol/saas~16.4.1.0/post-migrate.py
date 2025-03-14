@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.fields import Command
 
 from odoo.upgrade import util

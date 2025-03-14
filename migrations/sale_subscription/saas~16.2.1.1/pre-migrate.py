@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.osv import expression
 
 from odoo.upgrade import util

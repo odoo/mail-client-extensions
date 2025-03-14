@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 
 _logger = logging.getLogger("odoo.upgrade.sale_amazon.16.4.1.1." + __name__)

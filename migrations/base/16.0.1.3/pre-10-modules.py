@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo import tools
 
 from odoo.upgrade import util

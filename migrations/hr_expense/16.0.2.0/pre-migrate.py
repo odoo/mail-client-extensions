@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations.util.accounting import upgrade_analytic_distribution
 from odoo.upgrade import util
 

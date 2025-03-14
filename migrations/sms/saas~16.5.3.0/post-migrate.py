@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from uuid import uuid4
 
 from psycopg2.extras import execute_values

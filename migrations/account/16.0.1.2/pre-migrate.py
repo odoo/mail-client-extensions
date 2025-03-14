@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from xmlrpc.client import MAXINT, MININT
 
 from odoo.osv.expression import get_unaccent_wrapper

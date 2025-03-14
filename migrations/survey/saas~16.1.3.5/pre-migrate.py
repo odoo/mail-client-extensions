@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def migrate(cr, version):
     # Satisfy the newly added constraints `triggered_questions_have_triggering_answer`
     # and `conditional_questions_have_triggering_question`.

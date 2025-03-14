@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def migrate(cr, version):
     for deferred_type, xml_id in (["expense", "a490"], ["revenue", "a493"]):
         cr.execute(

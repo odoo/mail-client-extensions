@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import odoo.upgrade.util.snippets as snip
 
 

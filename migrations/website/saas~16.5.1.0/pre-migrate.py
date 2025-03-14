@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from lxml import etree
 
 from odoo.upgrade import util

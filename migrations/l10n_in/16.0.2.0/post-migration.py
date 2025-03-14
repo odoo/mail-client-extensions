@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def migrate(cr, version):
     tag_map = {
         "tax_report_line_sgst": "tax_tag_sgst",

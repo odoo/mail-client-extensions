@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 tag_migration_utils = util.import_script("l10n_mn/saas~16.5.1.1/pre-migrate.py")
