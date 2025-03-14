@@ -1,3 +1,4 @@
+required-version = ">=0.10.0"
 fix = true
 show-fixes = true
 line-length = 120
@@ -61,10 +62,11 @@ select = [
     "UP009",   # utf8-encoding-declaration
     "UP030",   # format-literals
     "UP031",   # printf-string-formatting
+    "S704",    # unsafe-markup-use
 ]
 
 [lint.flake8-builtins]
-builtins-ignorelist = ["format", "id", "type"]
+ignorelist = ["format", "id", "type"]
 
 [lint.isort]
 section-order = ["future", "standard-library", "third-party", "first-party", "odoo-addons", "local-folder"]
