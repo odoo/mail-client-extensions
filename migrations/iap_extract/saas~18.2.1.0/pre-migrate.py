@@ -2,7 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if util.module_installed(cr, "account_invoice_extract"):
+    if util.module_installed(cr, "account_invoice_extract") and util.table_exists(cr, "account_invoice_extract_words"):
         # Steal the model/fields from account_invoice_extract to move them in iap_extract
         util.move_model(cr, "account.invoice_extract.words", "account_invoice_extract", "iap_extract")
         util.rename_model(cr, "account.invoice_extract.words", "iap.extracted.words")
