@@ -79,7 +79,7 @@ UPDATE sale_order so
 
     # Delete alert with action removed
     cr.execute("SELECT id FROM sale_order_alert WHERE action IN ('set_stage', 'set_to_renew')")
-    util.remove_records(cr, "sale.order.alert", [aid for aid, in cr.fetchall()])
+    util.remove_records(cr, "sale.order.alert", [aid for (aid,) in cr.fetchall()])
 
     util.remove_view(cr, "sale_subscription.sale_order_view_tree_subscription")
     eb = util.expand_braces

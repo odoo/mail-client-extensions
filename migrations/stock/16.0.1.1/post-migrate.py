@@ -11,5 +11,5 @@ def migrate(cr, version):
         ncr.execute("SELECT id FROM stock_move")
         chunk = ncr.fetchmany(100000)  # avoid getting millions of ids
         while chunk:
-            util.recompute_fields(cr, "stock.move", ["quantity_done"], ids=[i for i, in chunk], strategy="commit")
+            util.recompute_fields(cr, "stock.move", ["quantity_done"], ids=[i for (i,) in chunk], strategy="commit")
             chunk = ncr.fetchmany(100000)

@@ -2,7 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     util.create_column(cr, "res_users_settings", "onsip_auth_username", "varchar")
 
     cr.execute(

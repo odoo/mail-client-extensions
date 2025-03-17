@@ -68,4 +68,4 @@ def migrate(cr, version):
 
     cr.execute("SELECT id FROM sale_order WHERE amount_to_invoice IS NULL")
     _logger.info("Update remaining %s orders", cr.rowcount)
-    util.recompute_fields(cr, "sale.order", ["amount_to_invoice"], ids=[o for o, in cr.fetchall()])
+    util.recompute_fields(cr, "sale.order", ["amount_to_invoice"], ids=[o for (o,) in cr.fetchall()])

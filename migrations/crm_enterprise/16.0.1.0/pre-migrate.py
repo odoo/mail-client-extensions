@@ -3,7 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     # removed record
     util.remove_record(cr, "crm_enterprise.action_report_crm_lead_salesteam_view_dashboard")
     util.remove_record(cr, "crm_enterprise.crm_opportunity_action_dashboard_dashboard")

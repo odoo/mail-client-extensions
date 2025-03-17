@@ -2,7 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     cr.execute(
         """
             UPDATE payment_provider

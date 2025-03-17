@@ -66,8 +66,8 @@ def migrate(cr, version):
         # >>> var, w = 'xy', 7
         # >>> f"{var:c<{w}}"
         # 'xyccccc
-        left = [common + p for p in conv_to_prefixes(zip_from[i:], f"{zip_from[i]:{max_digit}<{N-i}}")]
-        right = [common + p for p in conv_to_prefixes(f"{zip_to[i]:0<{N-i}}", zip_to[i:])]
+        left = [common + p for p in conv_to_prefixes(zip_from[i:], f"{zip_from[i]:{max_digit}<{N - i}}")]
+        right = [common + p for p in conv_to_prefixes(f"{zip_to[i]:0<{N - i}}", zip_to[i:])]
 
         return left + middle + right
 
@@ -128,7 +128,7 @@ def migrate(cr, version):
         if seps:
             new_prefixes_sep = []
             for n in new_prefixes:
-                for (c, idx) in seps:
+                for c, idx in seps:
                     if idx >= len(n):
                         break
                     n = n[:idx] + c + n[idx:]
@@ -157,9 +157,7 @@ def migrate(cr, version):
             {}
             </ul>
             </details>
-        """.format(
-            "\n".join("<li>{}: {} - {}. Reason: {}</li>".format(*t) for t in failed_conversions)
-        )
+        """.format("\n".join("<li>{}: {} - {}. Reason: {}</li>".format(*t) for t in failed_conversions))
 
         util.add_to_migration_reports(msg, "Delivery", format="html")
 

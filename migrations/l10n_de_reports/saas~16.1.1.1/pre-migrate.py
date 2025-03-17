@@ -3,7 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     if not util.column_exists(cr, "res_partner", "l10n_de_datev_identifier_customer"):
         util.create_column(cr, "res_partner", "l10n_de_datev_identifier_customer", "int4")
 

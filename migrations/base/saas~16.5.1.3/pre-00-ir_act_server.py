@@ -239,13 +239,13 @@ def compile_code_snippet(same_actions):
             link_snippet = "# link the new record to the current record\n"
             if first_action["link_field_type"] in ("one2many", "many2many"):
                 link_snippet += (
-                    f"""record.write({'{"' + first_action['link_field_name'] + '": [Command.link(new_record.id)]}'})"""
+                    f"""record.write({'{"' + first_action["link_field_name"] + '": [Command.link(new_record.id)]}'})"""
                 )
             else:
-                link_snippet += f"""record.write({'{"' + first_action['link_field_name'] + '": new_record.id}'})"""
+                link_snippet += f"""record.write({'{"' + first_action["link_field_name"] + '": new_record.id}'})"""
 
         return f"""
-new_record = env["{first_action['crud_model_name']}"].create({values_snippet})
+new_record = env["{first_action["crud_model_name"]}"].create({values_snippet})
 {link_snippet}
 """
     return None

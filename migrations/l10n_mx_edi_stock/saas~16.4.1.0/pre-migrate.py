@@ -33,7 +33,7 @@ def migrate(cr, version):
     )
     util.rename_field(cr, "stock.picking", "l10n_mx_edi_sat_status", "l10n_mx_edi_cfdi_sat_state")
 
-    util.create_column(cr, 'stock_picking', 'l10n_mx_edi_is_cfdi_needed', 'bool')
+    util.create_column(cr, "stock_picking", "l10n_mx_edi_is_cfdi_needed", "bool")
 
     query = """
         UPDATE stock_picking
@@ -50,4 +50,3 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, "l10n_mx_edi_stock.view_picking_edi_form", "l10n_mx_edi_stock.stock_picking_form_inherit_l10n_mx_edi_stock"
     )
-

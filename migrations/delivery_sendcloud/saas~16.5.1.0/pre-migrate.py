@@ -48,9 +48,7 @@ def migrate(cr, version):
             {}
             </ul>
             </details>
-        """.format(
-            "\n".join(sc_carriers)
-        ),
+        """.format("\n".join(sc_carriers)),
         format="html",
     )
     # Theoretically not optimal but practically more than : fetching & nulling references, deleting FK; truncate table; recreating FK

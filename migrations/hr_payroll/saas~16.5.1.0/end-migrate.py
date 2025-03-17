@@ -39,7 +39,5 @@ def migrate(cr, version):
               </summary>
               <ul>%s</ul>
             </details>
-        """ % "".join(
-            f'<li>{util.get_anchor_link_to_record("hr.salary.rule", *rule)}</li>' for rule in cr.fetchall()
-        )
+        """ % "".join(f"<li>{util.get_anchor_link_to_record('hr.salary.rule', *rule)}</li>" for rule in cr.fetchall())
         util.add_to_migration_reports(msg, "Payroll", format="html")

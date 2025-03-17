@@ -238,10 +238,13 @@ def _get_steps_data_query(onboarding_params):
     return "UNION ALL".join(
         f"""
         SELECT id company_id,
-               {onboarding_data['id'] or "NULL"} onboarding_id,
+               {onboarding_data["id"] or "NULL"} onboarding_id,
                {step_id} step_id,
-               {field_name if field_name.endswith("state")
-                else f"CASE WHEN {field_name} = TRUE THEN 'done' ELSE 'not_done' END"} step_state
+               {
+            field_name
+            if field_name.endswith("state")
+            else f"CASE WHEN {field_name} = TRUE THEN 'done' ELSE 'not_done' END"
+        } step_state
           FROM res_company
         """
         for onboarding_data in onboarding_params.values()

@@ -3,7 +3,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     group_id = util.ref(cr, "mail.group_mail_notification_type_inbox")
     cr.execute(
         """

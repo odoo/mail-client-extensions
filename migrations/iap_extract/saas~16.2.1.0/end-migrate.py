@@ -38,9 +38,7 @@ def migrate_status_code(cr, model_name):
                 UPDATE {table}
                    SET extract_status = %s
                  WHERE extract_status_code = %s
-            """.format(
-                table=table
-            ),
+            """.format(table=table),
             [status, status_code],
         ).decode()
         queries.extend(

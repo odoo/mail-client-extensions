@@ -4,7 +4,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     cr.execute(
         """
         INSERT INTO ir_property(name, fields_id, company_id, type, value_reference)

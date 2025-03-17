@@ -125,8 +125,8 @@ def migrate(cr, version):
         WITH company AS (
             {cte}
         )
-        INSERT INTO account_tax_group ({', '.join(columns)}, company_id, _tmp_orig_id)
-             SELECT {', '.join(f'tg.{f}' for f in columns)}, company.id, tg.id
+        INSERT INTO account_tax_group ({", ".join(columns)}, company_id, _tmp_orig_id)
+             SELECT {", ".join(f"tg.{f}" for f in columns)}, company.id, tg.id
                FROM account_tax_group tg,
                     company
               WHERE company.tg_id = tg.id

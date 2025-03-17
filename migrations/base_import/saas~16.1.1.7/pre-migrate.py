@@ -4,7 +4,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     util.remove_model(cr, "base_import.tests.models.char")
     util.remove_model(cr, "base_import.tests.models.char.required")
     util.remove_model(cr, "base_import.tests.models.char.readonly")

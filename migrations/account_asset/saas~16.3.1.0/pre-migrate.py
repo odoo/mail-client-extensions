@@ -93,7 +93,7 @@ def migrate(cr, version):
              WHERE asset_type in ('sale', 'expense')
         """
     )
-    util.remove_records(cr, "account_asset", [cid for cid, in cr.fetchall()])
+    util.remove_records(cr, "account_asset", [cid for (cid,) in cr.fetchall()])
 
     util.remove_field(cr, "account.asset", "asset_type")
     util.remove_field(cr, "account.account", "asset_type")

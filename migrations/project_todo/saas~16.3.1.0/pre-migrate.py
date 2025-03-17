@@ -118,7 +118,7 @@ def migrate(cr, version):
     cr.execute(
         f"""
         INSERT INTO project_task (name, company_id, description, sequence, color, create_uid,
-                                  write_uid, create_date, write_date, active, state, {'is_closed,' if is_closed_column_exists else ''} _upg_note_id)
+                                  write_uid, create_date, write_date, active, state, {"is_closed," if is_closed_column_exists else ""} _upg_note_id)
              SELECT COALESCE(n.name, 'Note '|| n.id), COALESCE(n.company_id, cuid.company_id, {main_company}), n.memo, n.sequence, n.color, n.create_uid,
                     n.write_uid, n.create_date, n.write_date, TRUE, (
                     CASE
@@ -127,7 +127,7 @@ def migrate(cr, version):
                         ELSE '1_done'
                     END
                     ),
-                    {'NOT(n.open),' if is_closed_column_exists else ''}
+                    {"NOT(n.open)," if is_closed_column_exists else ""}
                     n.id
                FROM note_note AS n
           LEFT JOIN res_users AS cuid
