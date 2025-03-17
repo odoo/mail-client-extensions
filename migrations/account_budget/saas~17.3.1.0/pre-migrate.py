@@ -60,7 +60,8 @@ def migrate(cr, version):
 
         # Then move the value from the first column to the (new) correct one
         distributed_plans = ", ".join(
-            f"CASE WHEN account.plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id" for id_ in other_plan_ids
+            f"CASE WHEN account.root_plan_id = {id_} THEN account.id ELSE NULL END AS plan{id_}_id"
+            for id_ in other_plan_ids
         )
         query = f"""
             WITH updated_lines AS (
