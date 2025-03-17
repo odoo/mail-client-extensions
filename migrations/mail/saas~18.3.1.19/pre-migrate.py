@@ -41,3 +41,13 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.link.preview", "is_hidden")
     util.remove_field(cr, "mail.link.preview", "message_id")
     util.remove_field(cr, "mail.message", "link_preview_ids")
+
+    util.move_field_to_module(cr, "res.users", "is_in_call", "im_livechat", "mail")
+    util.create_column(cr, "discuss_channel_rtc_session", "partner_id", "integer")
+    query = """
+        UPDATE discuss_channel_rtc_session
+           SET partner_id = m.partner_id
+          FROM discuss_channel_member m
+         WHERE channel_member_id = m.id
+    """
+    util.explode_execute(cr, query, "discuss_channel_rtc_session")
