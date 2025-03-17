@@ -13,6 +13,7 @@ def migrate(cr, version):
         "to_validate",
         "validated",
         "bill",
+        "draft",
     ]
     for tag in tags:
         if not util.ref(cr, f"documents.documents_tag_{tag}"):

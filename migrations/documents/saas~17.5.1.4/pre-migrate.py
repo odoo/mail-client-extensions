@@ -305,6 +305,8 @@ def migrate(cr, version):
     for old_name, new_name in mapping.items():
         # rename the first element
         util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}", on_collision="merge")
+    # Try to steal the tag from documents_project if available.
+    util.rename_xmlid(cr, "documents_project.documents_project_status_draft", "documents.documents_tag_draft")
 
     cr.execute("ALTER TABLE documents_tag ALTER COLUMN facet_id DROP NOT NULL")
 
