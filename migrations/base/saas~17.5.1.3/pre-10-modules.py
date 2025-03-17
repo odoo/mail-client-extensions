@@ -136,7 +136,7 @@ def migrate(cr, version):
             cr,
             "payment.provider",
             "code",
-            {payment: "none" for payment in payment_types},
+            dict.fromkeys(payment_types, "none"),
         )
 
     modules_to_remove = [(f"payment_{payment}", "") for payment in payment_types]
