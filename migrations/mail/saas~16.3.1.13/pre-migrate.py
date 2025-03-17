@@ -21,7 +21,7 @@ def migrate(cr, version):
             # (this update being a no-op as we just updates `mail_message` above)
             "CREATE INDEX _tmp_upg_mm_mc ON mail_message(id) WHERE model='mail.channel'",
         ],
-    ),
+    )
 
     # Rename mail.channel to discuss.channel
     model_names = """
