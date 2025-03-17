@@ -219,7 +219,7 @@ def _remove_onboarding_state_fields(cr, onboarding_params):
 
 
 def _convert_refs_to_ids(cr, onboarding_params):
-    converted_params = {
+    return {
         onboarding_alias: {
             "state_field": onboarding_data["state_field"],
             "id": onboarding_data["id"] and util.ref(cr, onboarding_data["id"]),
@@ -229,7 +229,6 @@ def _convert_refs_to_ids(cr, onboarding_params):
         }
         for onboarding_alias, onboarding_data in onboarding_params.items()
     }
-    return converted_params
 
 
 def _get_steps_data_query(onboarding_params):

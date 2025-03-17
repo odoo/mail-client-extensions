@@ -129,12 +129,12 @@ def migrate(cr, version):
                 for c, idx in seps:
                     if idx >= len(n):
                         break
-                    n = n[:idx] + c + n[idx:]
+                    n = n[:idx] + c + n[idx:]  # noqa: PLW2901
                 new_prefixes_sep.append(n)
             new_prefixes = new_prefixes_sep
         carrier_to_prefixes[carrier_id] = new_prefixes
 
-    all_prefixes = sorted(set(prefix for prefixes in carrier_to_prefixes.values() for prefix in prefixes))
+    all_prefixes = sorted({prefix for prefixes in carrier_to_prefixes.values() for prefix in prefixes})
     prefixes = env["delivery.zip.prefix"].create([{"name": prefix} for prefix in all_prefixes])
     prefix_to_id = {prefix.name: prefix.id for prefix in prefixes}
     for carrier_id, prefixes in carrier_to_prefixes.items():

@@ -2,7 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.force_noupdate(cr, "hr_payroll_account.hr_salaries_account_journal", True)
+    util.force_noupdate(cr, "hr_payroll_account.hr_salaries_account_journal", noupdate=True)
     util.ensure_xmlid_match_record(
         cr,
         "hr_payroll_account.hr_payroll_account_journal",

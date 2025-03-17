@@ -52,8 +52,8 @@ def migrate(cr, version):
     for so in util.iter_browse(util.env(cr)["sale.order"], values.keys()):
         so.message_post(
             body=Markup(
-                f"This SO has been split from <a href=# data-oe-model='sale.order' data-oe-id='{values[so.id][0]}'>{values[so.id][1]}</a> based on the rental period."
-            )
+                "This SO has been split from <a href=# data-oe-model='sale.order' data-oe-id='{so[0]:d}'>{so[1]}</a> based on the rental period."
+            ).format(so=values[so.id])
         )
 
     cr.execute(

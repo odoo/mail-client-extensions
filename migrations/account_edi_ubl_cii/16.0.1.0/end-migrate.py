@@ -39,7 +39,7 @@ def migrate(cr, version):
     # the PDF/A3 system parameter (on their FR/DE journals). Keeping the Factur-X edi format option will validate the invoice and
     # show warnings and create a PDF/A-3 such that it works with Chorus Pro.
     cr.execute("SELECT value FROM ir_config_parameter WHERE key = 'edi.use_pdfa'")
-    if cr.rowcount and util.str2bool(cr.fetchone()[0], False):
+    if cr.rowcount and util.str2bool(cr.fetchone()[0], default=False):
         # Uncheck Factur-X for all except on FR/DE journals
         cr.execute(
             """

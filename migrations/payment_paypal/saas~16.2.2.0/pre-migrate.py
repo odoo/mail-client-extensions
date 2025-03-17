@@ -19,19 +19,19 @@ def migrate(cr, version):
 
     provider_disabled = cr.fetchall()
     if provider_disabled:
+        li = "\n".join(
+            f"<li>{util.get_anchor_link_to_record('payment.provider', provider_id, name)}</li>"
+            for provider_id, name in provider_disabled
+        )
         util.add_to_migration_reports(
-            """
+            f"""
                 <details>
                 <summary>
                     The following paypal provider have been disabled due to missing PDT Identity Token
                 </summary>
-                <ul>%s</ul>
+                <ul>{li}</ul>
                 </details>
-            """
-            % "\n".join(
-                f"<li>{util.get_anchor_link_to_record('payment.provider', provider_id, name)}</li>"
-                for provider_id, name in provider_disabled
-            ),
+            """,
             category="Payment",
             format="html",
         )

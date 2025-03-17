@@ -23,7 +23,7 @@ def migrate(cr, version):
     util.remove_field(cr, "payment.link.wizard", "access_token")
 
     eb = util.expand_braces
-    for provider in {"alipay", "ogone", "payulatam", "payumoney"}:
+    for provider in ("alipay", "ogone", "payulatam", "payumoney"):
         if util.module_installed(cr, f"payment_{provider}"):
             util.rename_xmlid(
                 cr, f"payment.payment_acquirer_{provider}", f"payment_{provider}.payment_provider_{provider}"

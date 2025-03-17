@@ -13,8 +13,7 @@ def migrate(cr, version):
             "signed_on",
         ],
     }
-    for model in fields_to_remove:
-        fields = fields_to_remove[model]
+    for model, fields in fields_to_remove.items():
         for field in fields:
             util.remove_field(cr, model, field)
 

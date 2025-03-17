@@ -94,8 +94,8 @@ def remove_and_get_popup(cr):
     website_popups = {}
     for view_id, arch_db, website_id, view_active in cr.fetchall():
         popups_html = {}
-        for lang, arch_db_localized in arch_db.items():
-            arch_db_localized = html.fromstring(arch_db_localized, parser=utf8_parser)
+        for lang, arch_db_localized_str in arch_db.items():
+            arch_db_localized = html.fromstring(arch_db_localized_str, parser=utf8_parser)
             popups_html_localized = ""
             for popup in arch_db_localized.xpath('.//div[@id="footer"]//div[@data-snippet="s_popup"]'):
                 popups_html_localized += etree.tostring(popup, encoding="unicode")

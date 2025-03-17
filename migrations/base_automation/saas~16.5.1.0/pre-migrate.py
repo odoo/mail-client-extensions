@@ -34,9 +34,16 @@ def migrate(cr, version):
             RETURNING data.*
         """
     )
-    results = cr.dictfetchall()
-    util.add_to_migration_reports(
-        """
+    if cr.rowcount:
+        results = cr.dictfetchall()
+        li = "\n".join(
+            "<li>The converted automation rule {} has a deprecated trigger and has been archived.</li>".format(
+                util.get_anchor_link_to_record("base.automation", automation["id"], automation["name"]["en_US"])
+            )
+            for automation in filter(lambda a: a["trigger"] in ["on_create", "on_write"], results)
+        )
+        util.add_to_migration_reports(
+            f"""
             <details>
             <summary>
                 Automated actions are now automation rules supporting multiple actions.
@@ -49,19 +56,12 @@ def migrate(cr, version):
                 This new trigger corresponds to the previous `On Creation and Update` trigger.
                 So you need to make sure you set the proper triggering fields and conditions.
             </summary>
-            <ul>%s</ul>
+            <ul>{li}</ul>
             </details>
-        """
-        % (
-            "\n".join(
-                "<li>The converted automation rule %s has a deprecated trigger and has been archived.</li>"
-                % (util.get_anchor_link_to_record("base.automation", automation["id"], automation["name"]["en_US"]),)
-                for automation in filter(lambda a: a["trigger"] in ["on_create", "on_write"], results)
-            ),
-        ),
-        "Automation Rules",
-        format="html",
-    )
+            """,
+            "Automation Rules",
+            format="html",
+        )
 
     util.create_column(cr, "ir_act_server", "base_automation_id", "integer")
     cr.execute(

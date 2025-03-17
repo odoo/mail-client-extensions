@@ -44,7 +44,7 @@ def update_template_fs(cr, model):
                 # Skip the process if a template is already found previously (in another file)
                 if xml_id in processed_templates:
                     continue
-                if doc.xpath("//record[@id='%s' or @id='%s.%s']" % (xml_id, module, xml_id)):
+                if doc.xpath(f"//record[@id='{xml_id}' or @id='{module}.{xml_id}']"):
                     cr.execute(
                         "UPDATE {} SET template_fs = %s WHERE id = %s".format(util.table_of_model(cr, model)),
                         [os.path.join(module, file), template_id],

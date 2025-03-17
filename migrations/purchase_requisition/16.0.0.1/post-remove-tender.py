@@ -47,4 +47,4 @@ def migrate(cr, version):
     )
 
     cr.execute("UPDATE purchase_requisition_type SET active='f' WHERE id = %s", [tender_id])
-    util.force_noupdate(cr, "purchase_requisition.type_multi", True)
+    util.force_noupdate(cr, "purchase_requisition.type_multi", noupdate=True)

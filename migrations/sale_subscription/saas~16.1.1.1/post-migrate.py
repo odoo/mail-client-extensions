@@ -45,7 +45,7 @@ def migrate(cr, version):
         if bad_domain != "[]":
             alert_create_vals.append(
                 {
-                    "name": "Bad health upgraded domain for plan(s) %s %s" % (name, plan_template_ids),
+                    "name": f"Bad health upgraded domain for plan(s) {name} {plan_template_ids}",
                     "company_id": company_id,
                     f_name_alert: [(6, 0, plan_template_ids)],
                     "trigger_condition": "on_create_or_write",
@@ -57,7 +57,7 @@ def migrate(cr, version):
         if good_domain != "[]":
             alert_create_vals.append(
                 {
-                    "name": "Good health upgraded domain for plan(s) %s %s" % (name, plan_template_ids),
+                    "name": f"Good health upgraded domain for plan(s) {name} {plan_template_ids}",
                     "company_id": company_id,
                     f_name_alert: [(6, 0, plan_template_ids)],
                     "trigger_condition": "on_create_or_write",

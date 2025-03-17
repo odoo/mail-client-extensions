@@ -14,8 +14,7 @@ def migrate(cr, version):
         for ieps_rate in ("8", "25", "26_5", "30", "53"):
             group_to_val[util.ref(cr, f"account.{cid}_tax_group_ieps_{ieps_rate}")] = "ieps"
 
-    if None in group_to_val:
-        del group_to_val[None]  # in case one of the groups had a removed xmlid
+    group_to_val.pop(None, None)  # in case one of the groups had a removed xmlid
 
     group_to_val = json.dumps(group_to_val)
     queries = [

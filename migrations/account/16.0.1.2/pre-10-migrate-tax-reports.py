@@ -36,10 +36,9 @@ def migrate(cr, version):
                         based on your specific case.
                         The custom tax reports that are being lost in this migration are the following ones:
                     </summary>
-                    <ul>%s</ul>
+                    <ul>{}</ul>
                 </details>
-            """
-            % " ".join([f"<li>{name} (id: {id})</li>" for id, name in custom_tax_reports]),
+            """.format(" ".join(f"<li>{name} (id: {id})</li>" for id, name in custom_tax_reports)),
             category="Tax Reports",
             format="html",
         )

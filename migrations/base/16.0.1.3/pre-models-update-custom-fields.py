@@ -7,7 +7,7 @@ def ignore_manual(self, model, columns):
     if self.manual:
         # for manual one2many we always skip update_db since it only checks the comodel
         # which may not be loaded yet
-        return
+        return None
     return orig_update_db(self, model, columns)
 
 

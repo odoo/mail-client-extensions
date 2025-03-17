@@ -28,11 +28,13 @@ def migrate(cr, version):
                         settings. Therefore the parent company is removed from the
                         following:
                     </summary>
-                    <ul>%s</ul>
-                </details>"""
-            % "".join(
-                f"<li>{name} (id={id}), had as parent company {p_name} (id={p_id})</li>"
-                for id, name, p_id, p_name in cr.fetchall()
+                    <ul>{}</ul>
+                </details>
+            """.format(
+                "".join(
+                    f"<li>{name} (id={id}), had as parent company {p_name} (id={p_id})</li>"
+                    for id, name, p_id, p_name in cr.fetchall()
+                )
             ),
             format="html",
         )

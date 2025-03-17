@@ -15,12 +15,11 @@ def migrate(cr, version):
                 """
                 INSERT INTO loyalty_program_pos_config_rel (pos_config_id, loyalty_program_id)
                      SELECT pos_config_id, loyalty_program_id
-                       FROM %s
+                       FROM {}
                 ON CONFLICT DO NOTHING
-                """
-                % m2m_relation_table
+                """.format(m2m_relation_table)
             )
-            cr.execute("DROP TABLE %s" % m2m_relation_table)
+            cr.execute("DROP TABLE {}".format(m2m_relation_table))
 
     # Migrate `loyalty_program_id`, `gift_card_program_id`
     for field_name in ["loyalty_program_id", "gift_card_program_id"]:
@@ -28,12 +27,11 @@ def migrate(cr, version):
             cr.execute(
                 """
                 INSERT INTO loyalty_program_pos_config_rel (pos_config_id, loyalty_program_id)
-                     SELECT id, %s
+                     SELECT id, {0}
                        FROM pos_config
-                      WHERE %s IS NOT NULL
+                      WHERE {0} IS NOT NULL
                 ON CONFLICT DO NOTHING
-                """
-                % (field_name, field_name)
+                """.format(field_name)
             )
 
     util.remove_field(cr, "pos.config", "use_coupon_programs")

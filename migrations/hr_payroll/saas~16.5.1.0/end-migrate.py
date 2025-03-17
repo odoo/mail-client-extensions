@@ -35,7 +35,9 @@ def migrate(cr, version):
                 no longer exist. For instance "result = inputs.SALARY and inputs.SALARY.amount"
                 would become "result = 'SALARY' in inputs and inputs['SALARY'].amount".
               </summary>
-              <ul>%s</ul>
+              <ul>{}</ul>
             </details>
-        """ % "".join(f"<li>{util.get_anchor_link_to_record('hr.salary.rule', *rule)}</li>" for rule in cr.fetchall())
+        """.format(
+            "".join(f"<li>{util.get_anchor_link_to_record('hr.salary.rule', *rule)}</li>" for rule in cr.fetchall())
+        )
         util.add_to_migration_reports(msg, "Payroll", format="html")
