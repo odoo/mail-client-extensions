@@ -22,15 +22,20 @@ def migrate(cr, version):
     # Create a temporary column to store and retrieve the att ID from the new key/certificate
     util.create_column(cr, "certificate_key", "_upg_att_id", "int4")
     util.create_column(cr, "certificate_certificate", "_upg_att_id", "int4")
-
-    cr.execute("""
+    l10n_nl_reports_sbr_password = util.SQLStr("NULL")
+    if util.column_exists(cr, "res_company", "l10n_nl_reports_sbr_password"):
+        l10n_nl_reports_sbr_password = util.SQLStr("rc.l10n_nl_reports_sbr_password")
+    cr.execute(
+        util.format_query(
+            cr,
+            """
         WITH old_certificates AS (
             SELECT rc.id AS company_id,
                    ia.id AS _upg_att_id,
                    ia.res_field AS field,
                    rc.l10n_nl_reports_sbr_key_filename AS key_name,
                    rc.l10n_nl_reports_sbr_cert_filename AS crt_name,
-                   rc.l10n_nl_reports_sbr_password AS password
+                   {} AS password
               FROM res_company AS rc
               JOIN ir_attachment AS ia
                 ON ia.res_id = rc.id
@@ -84,7 +89,10 @@ def migrate(cr, version):
                SELECT * FROM new_root_certificates
           ) AS t(company_id, new_id, _upg_att_id, model)
          WHERE ia.id = t._upg_att_id;
-        """)
+        """,
+            l10n_nl_reports_sbr_password,
+        )
+    )
 
     util.remove_column(cr, "certificate_key", "_upg_att_id")
     util.remove_column(cr, "certificate_certificate", "_upg_att_id")
@@ -98,4 +106,3 @@ def migrate(cr, version):
     util.remove_field(cr, "res.company", "l10n_nl_reports_sbr_server_root_cert")
     util.remove_field(cr, "res.company", "l10n_nl_reports_sbr_cert_filename")
     util.remove_field(cr, "res.company", "l10n_nl_reports_sbr_key_filename")
-    util.remove_column(cr, "res_company", "l10n_nl_reports_sbr_password")
