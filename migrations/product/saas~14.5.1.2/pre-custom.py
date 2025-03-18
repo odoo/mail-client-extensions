@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import logging
 
 from odoo.upgrade import util
 
-_logger = logging.getLogger("odoo.upgrade.saas-14.5.1.2." + __name__)
+_logger = logging.getLogger("odoo.upgrade." + __name__)
 
 
 def migrate(cr, version):
