@@ -32,7 +32,7 @@ def migrate(cr, version):
                 </details>
             """.format(
                 "".join(
-                    f"<li>{name} (id={id}), had as parent company {p_name} (id={p_id})</li>"
+                    f"<li>{util.html_escape(name)} (id={id:d}), had as parent company {util.html_escape(p_name)} (id={p_id:d})</li>"
                     for id, name, p_id, p_name in cr.fetchall()
                 )
             ),

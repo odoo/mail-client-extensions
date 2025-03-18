@@ -22,9 +22,9 @@ def migrate(cr, version):
         if shipping_method or return_method:
             str_list.append("<ul>")
             if shipping_method:
-                str_list.append("<li>Shipping: {}</li>".format(shipping_method))
+                str_list.append("<li>Shipping: {}</li>".format(util.html_escape(shipping_method)))
             if return_method:
-                str_list.append("<li>Return: {}</li>".format(return_method))
+                str_list.append("<li>Return: {}</li>".format(util.html_escape(return_method)))
             str_list.append("</ul>")
         str_list.append("</li>")
         sc_carriers.append("".join(str_list))

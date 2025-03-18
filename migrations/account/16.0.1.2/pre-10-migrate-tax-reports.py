@@ -38,7 +38,7 @@ def migrate(cr, version):
                     </summary>
                     <ul>{}</ul>
                 </details>
-            """.format(" ".join(f"<li>{name} (id: {id})</li>" for id, name in custom_tax_reports)),
+            """.format(" ".join(f"<li>{util.html_escape(name)} (id: {id:d})</li>" for id, name in custom_tax_reports)),
             category="Tax Reports",
             format="html",
         )
