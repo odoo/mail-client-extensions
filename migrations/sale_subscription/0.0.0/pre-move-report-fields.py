@@ -2,7 +2,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_between("saas~16.3", "18.0"):
+    if not util.version_gte("saas~16.3"):
         return
 
     for field in ["is_abandoned_cart", "website_id"]:
