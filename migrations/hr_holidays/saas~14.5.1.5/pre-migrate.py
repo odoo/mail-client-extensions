@@ -205,7 +205,7 @@ def migrate(cr, version):
                 allocation_type,
                 _tmp_leave_id
             )
-            SELECT CONCAT('Correction: Missing Allocation for', employee.name),
+            SELECT CONCAT('Correction: Missing Allocation for ', employee.name),
                     employee.id, date_trunc('year', leave.date_to),
                     (date_trunc('year', leave.date_from) + INTERVAL '1 year' - INTERVAL '1 day'),
                     leave.number_of_days, leave.holiday_status_id, 'validate', 'employee',
@@ -218,13 +218,13 @@ def migrate(cr, version):
                 ON leave_type.id = leave.holiday_status_id
              WHERE leave.holiday_allocation_id IS NULL
                AND leave_type.requires_allocation = 'yes'
-         RETURNING id, _tmp_leave_id
+         RETURNING id, _tmp_leave_id, private_name
         )
         UPDATE hr_leave leave
            SET holiday_allocation_id = h.id
           FROM helper h
          WHERE h._tmp_leave_id = leave.id
-     RETURNING holiday_allocation_id
+     RETURNING leave.holiday_allocation_id, h.private_name
         """
     )
     if cr.rowcount:
@@ -233,12 +233,14 @@ def migrate(cr, version):
             <summary>
             Due to an invalid configuration of leaves the following allocations had to be created.
             </summary>
-            <ul>%s</ul>
-        <details>
-        """ % (
-            "<li>{}</li>".format(
-                util.get_anchor_link_to_record(
-                    "hr.leave.allocation", row["holiday_allocation_id"], "Correction: Missing Allocation"
+            <ul>{}</ul>
+        </details>
+        """.format(
+            "\n".join(
+                "<li>{}</li>".format(
+                    util.get_anchor_link_to_record(
+                        "hr.leave.allocation", row["holiday_allocation_id"], row["private_name"]
+                    )
                 )
                 for row in cr.dictfetchall()
             ),
