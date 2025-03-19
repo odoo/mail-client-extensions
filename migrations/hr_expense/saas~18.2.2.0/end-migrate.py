@@ -9,7 +9,6 @@ def migrate(cr, version):
         fields_mapping={
             "user_id": "manager_id",
         },
-        drop_table=False,
     )
 
     util.change_field_selection_values(
@@ -62,5 +61,3 @@ def migrate(cr, version):
     util.if_unchanged(cr, "hr_expense.mt_expense_entry_delete", util.update_record_from_xml)
     util.if_unchanged(cr, "hr_expense.mt_expense_entry_draft", util.update_record_from_xml)
     util.if_unchanged(cr, "hr_expense.hr_expense_template_refuse_reason", util.update_record_from_xml)
-
-    cr.execute("DROP TABLE hr_expense_sheet")
