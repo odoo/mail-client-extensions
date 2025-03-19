@@ -39,4 +39,4 @@ def migrate(cr, version):
               WHERE aef.code = 'in_einvoice_1_03'
                 AND aef.id = aed.edi_format_id
     """)
-    util.delete_unused(cr, "l10n_in.edi_in_einvoice_json_1_03")
+    util.delete_unused(cr, "l10n_in_edi.edi_in_einvoice_json_1_03")
