@@ -32,6 +32,8 @@ def migrate(cr, version):
         util.remove_module(cr, "test_l10n_ch_hr_payroll_account")
         util.remove_module(cr, "l10n_be_reports_post_wizard")
         util.remove_module(cr, "l10n_nl_reports_vat_pay_wizard")
+        # partially merged, some other data moved to l10n_be_hr_payroll see pre- script there
+        util.merge_module(cr, "l10n_be_hr_contract_salary_mobility_budget", "l10n_be_hr_contract_salary")
 
         if util.module_installed(cr, "l10n_in_reports"):
             util.force_install_module(cr, "l10n_in_asset")
