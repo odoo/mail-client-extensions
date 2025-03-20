@@ -2,7 +2,7 @@ import os
 
 from odoo.upgrade import util
 
-ODOO_MIG_18_REMOVE_CONSOLIDATION = util.str2bool(os.getenv("ODOO_MIG_18_REMOVE_CONSOLIDATION"), "")
+ODOO_MIG_18_REMOVE_CONSOLIDATION = util.str2bool(os.getenv("ODOO_MIG_18_REMOVE_CONSOLIDATION"), "1")
 
 
 def migrate(cr, version):
@@ -11,29 +11,100 @@ def migrate(cr, version):
     util.remove_module(cr, "l10n_bg_reports")
 
     if util.module_installed(cr, "account_consolidation"):
-        if not ODOO_MIG_18_REMOVE_CONSOLIDATION:
-            cr.execute("""
-                SELECT 1
-                FROM consolidation_period
-                LIMIT 1
-            """)
-
-            if cr.rowcount:
+        cr.execute("""
+            SELECT 1
+              FROM consolidation_period
+             LIMIT 1
+        """)
+        if not cr.rowcount:
+            util.add_to_migration_reports(
+                """
+                <p>
+                The Consolidation app has been removed. It is now replaced by the possibility
+                to share accounts between companies, and directly consolidate them into your accounting reports.
+                For more information on how account consolidations work in the new version, please refer to the
+                <a href="https://www.odoo.com/documentation/18.0/applications/finance/accounting/get_started/consolidation.html">
+                online documentation</a>.
+                </p>
+                """,
+                category="Accounting",
+                format="html",
+            )
+        else:
+            if not ODOO_MIG_18_REMOVE_CONSOLIDATION:
                 raise util.UpgradeError("""
                     The Consolidation app is removed in Odoo 18.0, in favour of the shared accounts feature.
                     Your database contains data for this app that cannot be migrated automatically.
                     All existing consolidation data will be lost ; you will be required to create a new configuration using the new feature.
-                    Please contact us to proceed, or for additional information.
+                    Please set ODOO_MIG_18_REMOVE_CONSOLIDATION to 1 to proceed.
+                    There is extra information about how to do account consolidation in Odoo 18.0 at
+                    https://www.odoo.com/documentation/18.0/applications/finance/accounting/get_started/consolidation.html
                 """)
 
-        util.add_to_migration_reports(
-            """
-            The Consolidation app has been removed. It is now replaced by the possibility
-            to share accounts between companies, and directly consolidate them into your accounting reports.
-            """,
-            category="Accounting",
-        )
-        # TODO: Add a link to the doc once it is written
+            util.add_to_migration_reports(
+                """
+                <details>
+                    <summary><strong class="text-danger">CONSOLIDATION APP REMOVED</strong> as of 18.0 - Transitioning to the New Shared Accounts Feature
+                    in Odoo 18.0 <span class="text-info">(click to expand details)</span></summary>
+                    <p>
+                    Since the <strong>Consolidation</strong> app has been completely redesigned and no longer exists in Odoo <strong>18.0</strong>,
+                    it is not possible to migrate the associated data. As a result, we have <string>uninstalled the application by default</strong>
+                    in the new version.
+                    <br/>
+                    However, <strong>you might need to save key financial data before the upgrade and reconfigure your post-upgrade setup</strong>.
+                    Below, you'll find a <strong>step-by-step</strong> guide on what to retain before upgrading:
+                    </p>
+                    <h3>1. Before the Upgrade</h3>
+                    <p>Before proceeding with the upgrade, ensure you export the necessary data to avoid data loss. <i>Should the upgrade have
+                    already been performed in production before the export, you can still request a backup within three months post-upgrade.
+                    No rollback is allowed, the backup is for reference purposes only.</i></p>
+                    <h4>1.1. Export Consolidation Mappings</h4>
+                    <p>In Odoo 18.0, account mapping will still be essential, but the approach will be different. Retaining your previous mappings
+                    will help you restructure your setup.</p>
+                    <ul>
+                        <li>Activate the developer mode then Go to Consolidation > Configuration > Consolidation account.</li>
+                        <li>Export your Account Mappings, including all fields (! Field 'Accounts (account_ids)' should be part of the export)</li>
+                        <li>Save this data in a structured format (CSV/XLSX).</li>
+                    </ul>
+                    <h4>1.2. Export Consolidated Financial Reports</h4>
+                    <p>This will serve as a reference when reconfiguring reports post-upgrade.</p>
+                    <ul>
+                        <li>Download the latest consolidated Balance Sheet and P&L Statement in Excel/PDF format.</li>
+                        <li>From your consolidation dashboard, download all your consolidated reports on specific dates (in pdf or in xlsx format)
+                        [<a href="https://drive.google.com/file/d/11J-GdltYXJL_V1SsSc1OFgvRLzhc-2Q6/view">demo</a>]</li>
+                        <li>Take note of key figures and structures for comparison after the reconfiguration.</li>
+                    </ul>
+                    <h3>2. Post-upgrade: Reconfigure</h3>
+                    <h4>2.1. Configure Account Mapping</h4>
+                    <p>Since Odoo 18.0, you must manually reconfigure mappings:</p>
+                    <ul>
+                        <li>Go to Accounting > Configuration > Chart of Accounts.</li>
+                        <li>Click on view > in the tab 'mapping', mention the account code from your other company  </li>
+                        <li>Select the account of your chart of accounts and go to the 'mapping' tab.
+                        [<a href="https://drive.google.com/file/d/12NLAR-ytRcmiPoQ5s9k2jONuDsaa1qq8/view">demo</a>]</li>
+                        <li>Based on the mapping you exported (1.1) add the code linked to the other companies. Refer to our
+                        <a href="https://www.odoo.com/documentation/18.0/applications/finance/accounting/get_started/consolidation.html#import-a-mapping">
+                        online documentation</a></li>
+                    </ul>
+                    <h4>2.2. (Re)-create Multi-Ledgers for Consolidation</h4>
+                    <h4>2.3. Enable horizontal group on 'company' in the accounting reports</h4>
+                    <h4>2.4. Reapply Currency Conversion for Consolidation</h4>
+                    <p>Refer to our <a href="https://www.odoo.com/documentation/18.0/applications/finance/accounting/get_started/consolidation.html">
+                    online documentation</a></p>
+                    <h4>2.5 Consolidation reports</h4>
+                    <p>As from Odoo 18, the consolidation reports will be made through the accounting application > reporting > Balance sheet or Profit and Loss.
+                    <br/>If you were using other reportings within your consolidation app, you need to recreate it via the menu configuration > Accounting Reports
+                    (activate first the debug mode).</p>
+                    <h3>3. Final Validation & Best Practices</h3>
+                    <ul>
+                        <li>Compare pre-upgrade and post-upgrade reports to ensure accuracy.</li>
+                        <li>Keep an archived copy of your exported mappings and reports in case reconfiguration is needed.</li>
+                    </ul>
+                </details>
+                """,
+                category="Accounting",
+                format="html",
+            )
 
     util.remove_module(cr, "account_consolidation")
     util.remove_module(cr, "l10n_be_us_consolidation_demo")
