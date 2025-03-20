@@ -30,3 +30,23 @@ rules:
             - pattern: odoo.upgrade.util
             - pattern: odoo.addons.base.maintenance.migrations.util.pg
             - pattern: odoo.upgrade.util.pg
+
+  - id: dont-execute-format-query
+    languages: [python]
+    message: Don't call `str.format` on queries. Don't f-string queries. Use `util.format_query`.
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - pattern: cr.execute($BAD, ...)
+          - pattern: cr.mogrify($BAD, ...)
+          - pattern: $UTIL.format_query(cr, $BAD, ...)
+          - pattern: $UTIL.explode_execute(cr, $BAD, ...)
+          - pattern: $UTIL.explode_query(cr, $BAD, ...)
+          - pattern: $UTIL.explode_query_range(cr, $BAD, ...)
+          - pattern: $UTIL.parallel_execute(cr, [..., $BAD, ...], ...)
+      - metavariable-pattern:
+          metavariable: $BAD
+          pattern-either:
+            - pattern: |
+                "...".format(...)
+            - pattern: f"..."
