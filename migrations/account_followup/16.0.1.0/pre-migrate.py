@@ -51,18 +51,20 @@ def migrate(cr, version):
         inline_items += [(old, "{{" + new + "}}")]
         qweb_items += [(old, f'<t t-out="{new}"/>')]
 
-    replace_string_1 = util.pg_replace("sms_description", inline_items)
-    replace_string_2 = util.pg_replace("email_subject", inline_items)
-    replace_string_3 = util.pg_replace(util.pg_text2html("description"), qweb_items)
-    cr.execute(
-        f"""
-        UPDATE account_followup_followup_line
-        SET sms_description = {replace_string_1},
-            email_subject = {replace_string_2},
-            description = {replace_string_3}
-        WHERE send_sms OR send_email
-    """
+    query = util.format_query(
+        cr,
+        """
+            UPDATE account_followup_followup_line
+               SET sms_description = {},
+                   email_subject = {},
+                   description = {}
+             WHERE send_sms OR send_email
+        """,
+        util.pg_replace("sms_description", inline_items),
+        util.pg_replace("email_subject", inline_items),
+        util.pg_replace(util.pg_text2html("description"), qweb_items),
     )
+    cr.execute(query)
 
     # - Migration of followup lines into mail template
     cr.execute(
@@ -168,9 +170,9 @@ def migrate(cr, version):
 
     # copy name translations to mail_template and sms_template
     columns = util.get_columns(cr, "ir_translation", ("id", "name", "res_id"))
-    t_columns = ["t." + c for c in columns]
     for model in ["mail.template", "sms.template"]:
-        cr.execute(
+        query = util.format_query(
+            cr,
             """
                INSERT INTO ir_translation(name, res_id, {columns})
                SELECT %s,
@@ -180,13 +182,12 @@ def migrate(cr, version):
                  JOIN {model_table} m
                    ON t.res_id = m._tmp_followup_line_id
                 WHERE t.name = 'account_followup.followup.line,name'
-        """.format(
-                columns=", ".join(columns),
-                t_columns=", ".join(t_columns),
-                model_table=util.table_of_model(cr, model),
-            ),
-            [model + ",name"],
+            """,
+            columns=columns,
+            t_columns=columns.using(alias="t"),
+            model_table=util.table_of_model(cr, model),
         )
+        cr.execute(query, [model + ",name"])
 
     # - Remove temporary column
     util.remove_column(cr, "mail_template", "_tmp_followup_line_id")

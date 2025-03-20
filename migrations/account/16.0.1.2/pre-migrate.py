@@ -108,7 +108,8 @@ def migrate(cr, version):
 
     # Catch possible duplicates before the replacement and update them to avoid constraint errors.
     unaccent = get_unaccent_wrapper(cr)
-    cr.execute(
+    query = util.format_query(
+        cr,
         r"""WITH data AS (
                 SELECT id,
                        company_id,
@@ -139,8 +140,10 @@ def migrate(cr, version):
                 WHERE id = ANY(r.ids)
                 AND r.any_update
             RETURNING id, name, code
-         """.format(code=unaccent("code"))
+        """,
+        code=util.SQLStr(unaccent("code")),
     )
+    cr.execute(query)
 
     updated_accounts = cr.fetchall()
     if updated_accounts:

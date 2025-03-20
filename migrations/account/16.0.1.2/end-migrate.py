@@ -1,3 +1,6 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
     cr.execute(
         """
@@ -55,4 +58,4 @@ def migrate(cr, version):
         "account_tax_report",
         "account_tax_report_line_tags_rel_backup",
     ):
-        cr.execute(f"DROP TABLE {table} CASCADE")
+        cr.execute(util.format_query(cr, "DROP TABLE {} CASCADE", table))

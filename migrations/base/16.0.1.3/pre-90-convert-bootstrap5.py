@@ -36,7 +36,7 @@ def convert_views(cr):
     # views to convert must have `website_id` set and not come from standard modules
     standard_modules = set(modules.get_modules()) - {"studio_customization", "__export__", "__cloc_exclude__"}
 
-    is_bs = get_bs5_where_clause(cr, "v.arch_db")
+    is_bs = get_bs5_where_clause(cr, util.SQLStr("v.arch_db"))
 
     # Search for custom/cow'ed views (they have no external ID)... but also
     # search for views with external ID that have a related COW'ed view. Indeed,
@@ -54,8 +54,9 @@ def convert_views(cr):
     #   version of eCommerce categories... but if the COW'ed view was migrated
     #   to BS5 while the generic was not, they won't be considered the same
     #   anymore and only the generic view will get the 16.0 update.
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         WITH keys AS (
               SELECT key
                 FROM ir_ui_view
@@ -80,8 +81,9 @@ def convert_views(cr):
                   )
               )
         """,
-        [tuple(standard_modules)],
+        is_bs=util.SQLStr(is_bs),
     )
+    cr.execute(query, [tuple(standard_modules)])
     views_ids = [view_id for (view_id,) in cr.fetchall()]
     if views_ids:
         convert_views_bootstrap(cr, "4.0", "5.0", views_ids)
@@ -128,8 +130,13 @@ def get_bs5_where_clause(cr, column):
         return keyword  # noqa RET504
 
     classes, other_kwds = get_keyword_list()
+    query = util.format_query(
+        cr,
+        r"(({column} ~ '\mclass\M\s*=' AND {column} ~ %(classes)s) OR {column} ~ %(others)s)",
+        column=column,
+    )
     return cr.mogrify(
-        rf"(({column} ~ '\mclass\M\s*=' AND {column} ~ %(classes)s) OR {column} ~ %(others)s)",
+        query,
         {
             "classes": "|".join(add_word_delimiters(cls) for cls in classes),
             "others": "|".join(add_word_delimiters(kw) for kw in other_kwds),

@@ -1,9 +1,13 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
     for deferred_type, xml_id in (["expense", "a490"], ["revenue", "a493"]):
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
             UPDATE res_company company
-               SET deferred_{deferred_type}_account_id  = (
+               SET {}  = (
                     SELECT account.id
                       FROM account_account account
                       JOIN ir_model_data imd
@@ -14,5 +18,6 @@ def migrate(cr, version):
             )
              WHERE company.chart_template = 'be'
             """,
-            (xml_id,),
+            f"deferred_{deferred_type}_account_id",
         )
+        cr.execute(query, [xml_id])

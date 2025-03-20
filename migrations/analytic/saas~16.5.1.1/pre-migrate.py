@@ -65,17 +65,21 @@ def migrate(cr, version):
     util.create_column(
         cr, "account_analytic_applicability", "company_id", "int4", fk_table="res_company", on_delete_action="SET NULL"
     )
-    cr.execute(
-        f"""
-        INSERT INTO account_analytic_applicability ({", ".join(columns)}, company_id)
-             SELECT {", ".join("aaa.{}".format(column) for column in columns)}, company.id
+    query = util.format_query(
+        cr,
+        """
+        INSERT INTO account_analytic_applicability ({}, company_id)
+             SELECT {}, company.id
                FROM account_analytic_applicability aaa,
                     res_company company;
 
         DELETE FROM account_analytic_applicability
               WHERE company_id IS NULL;
-    """
+        """,
+        columns,
+        columns.using(alias="aaa"),
     )
+    cr.execute(query)
 
     util.remove_field(cr, "account.analytic.plan", "company_id")
 
@@ -170,13 +174,14 @@ def create_analytic_plan_fields(cr, model, other_plan_ids):
     # Create the new fields/columns
     table = util.table_of_model(cr, model)
     if other_plan_ids:
-        plan_name = (
+        plan_name = util.SQLStr(
             "plan.name"
             if util.column_type(cr, "account_analytic_plan", "name") == "jsonb"
             else "jsonb_build_object('en_US', plan.name)"
         )
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
                 INSERT INTO ir_model_fields(name, model, model_id, field_description,
                                             state, store, ttype, relation)
                      SELECT 'x_plan' || plan.id ||'_id', model, m.id, {plan_name},
@@ -184,10 +189,12 @@ def create_analytic_plan_fields(cr, model, other_plan_ids):
                        FROM account_analytic_plan plan,
                             ir_model m
                       WHERE plan.id = ANY(%s)
-                        AND m.model = '{model}'
-        """,
-            [other_plan_ids],
+                        AND m.model = %s
+            """,
+            plan_name=plan_name,
         )
+        cr.execute(query, [other_plan_ids, model])
+
         for id_ in other_plan_ids:
             util.create_column(
                 cr,

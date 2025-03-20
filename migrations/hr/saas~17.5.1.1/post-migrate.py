@@ -28,12 +28,12 @@ def migrate(cr, version):
     if keys_to_update:
         set_clause = ", ".join(
             [
-                f"{column} = {'TRUE' if keys_to_update.get(key) else 'FALSE'}"
+                cr.mogrify(util.format_query(cr, "{} = %s", column), [bool(keys_to_update.get(key))]).decode()
                 for key, column in presence_parameters.items()
             ]
         )
 
-        cr.execute(f"UPDATE res_company SET {set_clause}")
+        cr.execute(util.format_query(cr, "UPDATE res_company SET {}", util.SQLStr(set_clause)))
 
     # explicitly remove the xmlid.
     util.remove_record(cr, "hr.hr_presence_control_login")

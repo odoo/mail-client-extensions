@@ -75,36 +75,45 @@ def migrate_option_dyn_text_element(cr, new_field_name, role_name, with_color=Fa
     if with_color:
         util.create_column(cr, "card_campaign", f"content_{new_field_name}_color", "varchar")
 
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         UPDATE card_campaign camp
-           SET content_{new_field_name}_dyn = TRUE,
-               content_{new_field_name}_path = el.field_path
+           SET {} = TRUE,
+               {} = el.field_path
           FROM card_campaign_element el
          WHERE el.campaign_id = camp.id
-           AND el.card_element_role = %(role_name)s
+           AND el.card_element_role = %s
            AND el.value_type = 'field'
-    """,
-        {"role_name": role_name},
+        """,
+        f"content_{new_field_name}_dyn",
+        f"content_{new_field_name}_path",
     )
-    cr.execute(
-        f"""
+    cr.execute(query, [role_name])
+
+    query = util.format_query(
+        cr,
+        """
         UPDATE card_campaign camp
-           SET content_{new_field_name} = el.card_element_text
+           SET {} = el.card_element_text
           FROM card_campaign_element el
          WHERE el.campaign_id = camp.id
-           AND el.card_element_role = %(role_name)s
+           AND el.card_element_role = %s
            AND el.value_type = 'static'
-    """,
-        {"role_name": role_name},
-    )
-    if with_color:
-        cr.execute(
-            f"""
-            UPDATE card_campaign camp
-               SET content_{new_field_name}_color = el.text_color
-              FROM card_campaign_element el
-             WHERE el.campaign_id = camp.id AND el.card_element_role = %(role_name)s
         """,
-            {"role_name": role_name},
+        f"content_{new_field_name}",
+    )
+    cr.execute(query, [role_name])
+
+    if with_color:
+        query = util.format_query(
+            cr,
+            """
+            UPDATE card_campaign camp
+               SET {} = el.text_color
+              FROM card_campaign_element el
+             WHERE el.campaign_id = camp.id AND el.card_element_role = %s
+            """,
+            f"content_{new_field_name}_color",
         )
+        cr.execute(query, [role_name])

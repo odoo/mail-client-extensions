@@ -31,15 +31,16 @@ def migrate(cr, version):
     )
     util.create_column(cr, "mail_activity_plan", "_old_id", "int4")
     cr.execute(
-        f"""
+        """
     INSERT INTO mail_activity_plan (
                 _old_id, company_id, department_id, create_uid, write_uid, name,
                 res_model_id, res_model, active, create_date, write_date)
          SELECT id, company_id, department_id, create_uid, write_uid, name,
-                {model_id}, 'hr.employee', active, create_date, write_date
+                %s, 'hr.employee', active, create_date, write_date
            FROM hr_plan
       RETURNING _old_id, id
-        """
+        """,
+        [model_id],
     )
     id_map = dict(cr.fetchall())
     if id_map:
@@ -63,26 +64,27 @@ def migrate(cr, version):
             fk_table="sign_item_role",
             on_delete_action="SET NULL",
         )
-        add_columns = ["sign_template_id", "employee_role_id"]
-        add_column_insert = ", " + ", ".join(add_columns)
-        add_column_select = ", " + ", ".join(f"old.{col}" for col in add_columns)
+        add_columns = util.ColumnList.from_unquoted(cr, ["sign_template_id", "employee_role_id"])
     else:
-        add_column_insert = ""
-        add_column_select = ""
+        add_columns = util.ColumnList()
 
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
     INSERT INTO mail_activity_plan_template (
                 _old_id, activity_type_id, responsible_id, plan_id, create_uid, write_uid,
-                summary, responsible_type, note, create_date, write_date{add_column_insert}
+                summary, responsible_type, note, create_date, write_date {}
                 )
          SELECT old.id, old.activity_type_id, old.responsible_id, new_plan.id, old.create_uid, old.write_uid,
-                old.summary, old.responsible, old.note, old.create_date, old.write_date{add_column_select}
+                old.summary, old.responsible, old.note, old.create_date, old.write_date {}
            FROM hr_plan_activity_type AS old
            JOIN mail_activity_plan AS new_plan ON new_plan._old_id = old.plan_id
       RETURNING _old_id, id
-            """
+            """,
+        add_columns.using(leading_comma=True),
+        add_columns.using(leading_comma=True, alias="old"),
     )
+    cr.execute(query)
     id_map = dict(cr.fetchall())
     if id_map:
         util.replace_record_references_batch(

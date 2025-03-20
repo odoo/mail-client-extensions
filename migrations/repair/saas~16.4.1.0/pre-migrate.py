@@ -117,9 +117,9 @@ def migrate(cr, version):
 
     # invoice_id -> Field deleted, now done through a sale.order, set reference in Internal Notes
     # fees_lines -> Model and field deleted, now done through sale_order, backup infos in Internal Notes
-    util.explode_execute(
+    query = util.format_query(
         cr,
-        f"""
+        """
         WITH repair_fee_taxes AS (
              SELECT m2m.repair_fee_line_id as fee_id,
                     string_agg(t.name->>'en_US', ',') as taxes
@@ -152,11 +152,11 @@ def migrate(cr, version):
                           string_agg(
                                     CONCAT(
                                           '<tr>',
-                                          '<td>', {util.pg_html_escape("pt.name->>'en_US'")}, '</td>',
-                                          '<td>', {util.pg_html_escape("f.name")}, '</td>',
+                                          '<td>', {}, '</td>',
+                                          '<td>', {}, '</td>',
                                           '<td>', f.product_uom_qty, '</td>',
                                           '<td>', f.price_unit, '</td>',
-                                          '<td>', {util.pg_html_escape("ft.taxes")}, '</td>',
+                                          '<td>', {}, '</td>',
                                           '<td>', f.price_subtotal, '</td>',
                                           '<td>', f.price_total, '</td>',
                                           '<td>',
@@ -189,7 +189,7 @@ def migrate(cr, version):
                                     WHEN acc.id IS NOT NULL THEN
                                      CONCAT(
                                         '<h2>Invoice reference</h2>',
-                                        '<p>Name: ', {util.pg_html_escape("acc.name")}, '</p>',
+                                        '<p>Name: ', {}, '</p>',
                                         '<p>Id: ', acc.id, '</p><hr>'
                                      )
                                     ELSE ''
@@ -208,9 +208,12 @@ def migrate(cr, version):
        WHERE r.id = ro.id
              AND {{parallel_filter}}
         """,
-        alias="ro",
-        table="repair_order",
+        util.pg_html_escape("pt.name->>'en_US'"),
+        util.pg_html_escape("f.name"),
+        util.pg_html_escape("ft.taxes"),
+        util.pg_html_escape("acc.name"),
     )
+    util.explode_execute(cr, query, alias="ro", table="repair_order")
 
     # For repair_line already linked to a move_id, set the repair_line_type and price_unit on the move
     util.create_column(cr, "stock_move", "repair_line_type", "varchar")
@@ -420,32 +423,34 @@ def migrate(cr, version):
     )
     new_seq_ids = [res[0] for res in cr.fetchall()]
 
-    cr.execute(
-        ";\n".join(f"CREATE SEQUENCE ir_sequence_{seq_id:03} INCREMENT BY 1 START WITH 1" for seq_id in new_seq_ids)
+    util.parallel_execute(
+        cr,
+        [
+            util.format_query(cr, "CREATE SEQUENCE {} INCREMENT BY 1 START WITH 1", f"ir_sequence_{seq_id:03}")
+            for seq_id in new_seq_ids
+        ],
     )
 
     # If enterprise/stock_barcode is installed, also set << restrict_put_in_pack = 'optional' >> into stock_picking_type
     # values are used by formating rather than by using cr.execute's parameter as we want to avoid cast of blank string
-    values = ["", ""]
     if util.column_exists(cr, "stock_picking_type", "restrict_put_in_pack"):
-        values = [
-            """,
-                restrict_put_in_pack,
-                restrict_scan_tracking_number,
-                restrict_scan_source_location,
-                restrict_scan_dest_location
-            """,
-            """,
-                'optional',
-                'optional',
-                'no',
-                'optional'
-            """,
-        ]
+        columns = util.ColumnList.from_unquoted(
+            cr,
+            [
+                "restrict_put_in_pack",
+                "restrict_scan_tracking_number",
+                "restrict_scan_source_location",
+                "restrict_scan_dest_location",
+            ],
+        ).using(leading_comma=True)
+        static_values = util.SQLStr(", 'optional', 'optional', 'no', 'optional'")
+    else:
+        columns = static_values = util.SQLStr("")
 
     # Create repair picking_type for each warehouse
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         WITH new_pt AS (
              INSERT INTO stock_picking_type
                          (name, code, default_location_src_id, default_location_dest_id,
@@ -455,16 +460,16 @@ def migrate(cr, version):
                          reservation_method, create_backorder, show_operations, create_uid, write_uid,
                          use_create_lots, use_existing_lots, show_reserved, is_repairable,
                          create_date, write_date
-                         {values[0]})
+                         {})
                   SELECT DISTINCT ON(wh.id)
                          jsonb_build_object('en_US', 'Repairs'), 'repair_operation', wh.lot_stock_id, loc.id,
                          sloc.id, wh.lot_stock_id, 'RO', wh.id,
                          wh.company_id, wh.active,
                          UPPER(REPLACE(wh.code, ' ', '')) || '-RO',
-                         'at_confirm', 'ask', TRUE, {odoo.SUPERUSER_ID}, {odoo.SUPERUSER_ID},
+                         'at_confirm', 'ask', TRUE, %(uid)s, %(uid)s,
                          TRUE, TRUE, TRUE, FALSE,
                          NOW()::TIMESTAMP, NOW()::TIMESTAMP
-                         {values[1]}
+                         {}
                     FROM stock_warehouse wh
                LEFT JOIN stock_location loc
                       ON loc.company_id = wh.company_id
@@ -480,8 +485,11 @@ def migrate(cr, version):
              FROM new_pt
             WHERE new_pt.warehouse_id = wh.id
         RETURNING repair_type_id
-        """
+        """,
+        columns,
+        static_values,
     )
+    cr.execute(query, {"uid": odoo.SUPERUSER_ID})
     new_pt_ids = [res[0] for res in cr.fetchall()]
 
     # Update sequence and seq_id on new picking_type

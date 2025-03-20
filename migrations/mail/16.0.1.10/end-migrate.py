@@ -46,7 +46,9 @@ def update_template_fs(cr, model):
                     continue
                 if doc.xpath(f"//record[@id='{xml_id}' or @id='{module}.{xml_id}']"):
                     cr.execute(
-                        "UPDATE {} SET template_fs = %s WHERE id = %s".format(util.table_of_model(cr, model)),
+                        util.format_query(
+                            cr, "UPDATE {} SET template_fs = %s WHERE id = %s", util.table_of_model(cr, model)
+                        ),
                         [os.path.join(module, file), template_id],
                     )
                     processed_templates.add(xml_id)

@@ -66,4 +66,4 @@ def migrate(cr, version):
         cr.execute("DROP TABLE IF EXISTS product_pricing_product_product_rel")
         for model in ["sale.temporal.recurrence", "product.pricing"]:
             table = util.table_of_model(cr, model)
-            cr.execute('DROP TABLE IF EXISTS "{}" CASCADE'.format(table))
+            cr.execute(util.format_query(cr, "DROP TABLE IF EXISTS {} CASCADE", table))

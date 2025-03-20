@@ -61,8 +61,9 @@ def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None)
         custom_mode_filter = "o.custom_mode = %(custom_mode)s"
         args["custom_mode"] = custom_mode
 
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         SELECT ARRAY_AGG(o.id)
           FROM payment_provider p
           JOIN payment_provider o
@@ -73,10 +74,11 @@ def copy_payment_methods_to_duplicated_providers(cr, xmlid, *, custom_mode=None)
                )
            AND o.id != p.id
          WHERE p.id = %(provider)s
-           AND {custom_mode_filter}
+           AND {}
         """,
-        args,
+        util.SQLStr(custom_mode_filter),
     )
+    cr.execute(query, args)
     dup_ids = cr.fetchone()[0]
     if not dup_ids:
         return

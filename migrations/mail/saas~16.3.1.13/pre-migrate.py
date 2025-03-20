@@ -70,6 +70,6 @@ def migrate(cr, version):
         {mail,discuss}_channel_member_guest_unique
     """
     for rename in util.splitlines(index_names):
-        cr.execute("ALTER INDEX IF EXISTS {} RENAME TO {}".format(*eb(rename)))
+        cr.execute(util.format_query(cr, "ALTER INDEX IF EXISTS {0} RENAME TO {1}", *eb(rename)))
 
     cr.execute("DROP INDEX _tmp_upg_mm_mc")

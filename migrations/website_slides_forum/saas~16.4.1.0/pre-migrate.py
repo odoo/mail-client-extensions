@@ -6,7 +6,8 @@ def migrate(cr, version):
 
     # Populating new Image field with cloned values from related courses.
     columns = util.get_columns(cr, "ir_attachment", ignore=("id", "res_id", "res_model"))
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
        INSERT INTO ir_attachment (res_id, res_model, {insert_cols})
             SELECT f.id AS res_id, 'forum.forum' AS res_model, {select_cols}
@@ -23,8 +24,8 @@ def migrate(cr, version):
                AND forum_att.res_model = 'forum.forum'
                AND forum_att.res_field = att.res_field
              WHERE forum_att.id IS NULL
-    """.format(
-            insert_cols=", ".join(columns),
-            select_cols=", ".join(f"att.{col} AS {col}" for col in columns),
-        )
+        """,
+        insert_cols=columns,
+        select_cols=columns.using(alias="att"),
     )
+    cr.execute(query)

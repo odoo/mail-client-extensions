@@ -145,12 +145,11 @@ def migrate(cr, version):
     util.create_column(cr, "account_report_line", "v15_domain", "varchar")
 
     # constant regexes
-    TERM_CODE_REGEX = r"\w+"
     DOMAIN_EXPR_REGEX = r"-?sum(?:_if_(?:pos|neg)(?:_groupby)?)?"
 
     # migrate custom reports' lines from account_financial_html_report_line to account_report_line
     cr.execute(
-        rf"""
+        r"""
         WITH mapping AS (
             SELECT ar.id AS report_id,
                    afhrl.id AS line_id
@@ -173,12 +172,12 @@ def migrate(cr, version):
                m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
                1, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
                CASE
-                    WHEN afhrl.formulas ~ '^{DOMAIN_EXPR_REGEX}$' THEN afhrl.groupby
+                    WHEN afhrl.formulas ~ %s THEN afhrl.groupby
                     ELSE NULL
                END,
                afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
                afhrl.green_on_positive, afhrl.special_date_changer, afhrl.id,
-               REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),
+               REGEXP_REPLACE(afhrl.formulas, '(\w+)', '\1.balance', 'g'),
                CASE
                     WHEN afhrl.figure_type = 'float' THEN NULL
                     WHEN afhrl.figure_type = 'percents' THEN 'percentage'
@@ -188,13 +187,14 @@ def migrate(cr, version):
           FROM mapping m
           JOIN account_financial_html_report_line afhrl
             ON afhrl.id = m.line_id
-        """
+        """,
+        [f"^{DOMAIN_EXPR_REGEX}$"],
     )
 
     # migrate custom reports' lines, that were children of other migrated lines (for which financial_report_id was not set in v15)
     while cr.rowcount:
         cr.execute(
-            rf"""
+            r"""
             WITH mapping AS (
                 SELECT arl.report_id,
                        arl.id AS parent_id,
@@ -219,12 +219,12 @@ def migrate(cr, version):
                    m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
                    m.parent_id, m.parent_hierarchy_level + 2, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
                    CASE
-                        WHEN afhrl.formulas ~ '^{DOMAIN_EXPR_REGEX}$' THEN afhrl.groupby
+                        WHEN afhrl.formulas ~ %s THEN afhrl.groupby
                         ELSE NULL
                    END,
                    afhrl.groupby IS NOT NULL AND afhrl.show_domain = 'foldable', afhrl.domain,
                    afhrl.green_on_positive, afhrl.special_date_changer, afhrl.id,
-                   REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g'),
+                   REGEXP_REPLACE(afhrl.formulas, '(\w+)', '\1.balance', 'g'),
                    CASE
                         WHEN afhrl.figure_type = 'float' THEN NULL
                         WHEN afhrl.figure_type = 'percents' THEN 'percentage'
@@ -234,7 +234,8 @@ def migrate(cr, version):
               FROM mapping m
               JOIN account_financial_html_report_line afhrl
                 ON afhrl.id = m.line_id
-            """
+            """,
+            [f"^{DOMAIN_EXPR_REGEX}$"],
         )
 
     # v15_fin_report_id no longer needed
@@ -286,7 +287,7 @@ def migrate(cr, version):
 
     # populate account_report_expression with formulas and other fields from report lines
     cr.execute(
-        rf"""
+        """
         INSERT INTO account_report_expression (
             create_uid, write_uid, create_date, write_date,
             report_line_id, label,
@@ -303,24 +304,25 @@ def migrate(cr, version):
                -- engine
                -- note that some formulas might contain both domain and aggregation terms. Those will be labelled as 'aggregation'
                -- and split in the end-10-migrate_financial_reports.py script.
-                  CASE WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN 'domain'
+                  CASE WHEN arl.v15_formulas ~ %(re)s THEN 'domain'
                        ELSE 'aggregation'
                   END,
 
                -- formula
                   CASE
-                       WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN COALESCE(arl.v15_domain, '[]')
+                       WHEN arl.v15_formulas ~ %(re)s THEN COALESCE(arl.v15_domain, '[]')
                        ELSE COALESCE(arl.v15_formulas, 'sum_children')
                   END,
 
                -- subformula
                   CASE
-                       WHEN arl.v15_formulas ~ ('^{DOMAIN_EXPR_REGEX}\.balance$') THEN REPLACE(arl.v15_formulas, '.balance', '')
+                       WHEN arl.v15_formulas ~ %(re)s THEN REPLACE(arl.v15_formulas, '.balance', '')
                        ELSE NULL
                   END
           FROM account_report_line arl
          WHERE arl.v15_fin_line_id IS NOT NULL
-        """
+        """,
+        {"re": rf"^{DOMAIN_EXPR_REGEX}\.balance$"},
     )
 
     # account.report.line v15 temporary columns are no longer needed

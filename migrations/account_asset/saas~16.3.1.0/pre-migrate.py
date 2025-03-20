@@ -70,18 +70,18 @@ def migrate(cr, version):
     """
     if util.column_exists(cr, "res_company", "generate_deferred_entries_method"):
         cr.execute(
-            deferred_entries_method_query.format("generate_deferred_entries_method"),
+            util.format_query(cr, deferred_entries_method_query, "generate_deferred_entries_method"),
             [("sale", "expense")],
         )
     elif util.column_exists(cr, "res_company", "generate_deferred_expense_entries_method") and util.column_exists(
         cr, "res_company", "generate_deferred_revenue_entries_method"
     ):
         cr.execute(
-            deferred_entries_method_query.format("generate_deferred_expense_entries_method"),
+            util.format_query(cr, deferred_entries_method_query, "generate_deferred_expense_entries_method"),
             [("expense",)],
         )
         cr.execute(
-            deferred_entries_method_query.format("generate_deferred_revenue_entries_method"),
+            util.format_query(cr, deferred_entries_method_query, "generate_deferred_revenue_entries_method"),
             [("sale",)],
         )
 

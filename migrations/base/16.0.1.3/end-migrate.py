@@ -85,9 +85,9 @@ def migrate(cr, version):
                 """,
                 [tuple(row[0] for row in expected)],
             )
-            indexes_to_delete = [f'"{index_name}"' for (index_name,) in cr.fetchall()]
+            indexes_to_delete = util.ColumnList.from_unquoted(cr, [index_name for (index_name,) in cr.fetchall()])
             if indexes_to_delete:
-                cr.execute(f"DROP INDEX {', '.join(indexes_to_delete)}")
+                cr.execute(util.format_query(cr, "DROP INDEX {}", indexes_to_delete))
                 _logger.info(
                     "Drop %d unusable trigram indexes (missing unaccent) and try to recreate it with unaccent",
                     len(indexes_to_delete),

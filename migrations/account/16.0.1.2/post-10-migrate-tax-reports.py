@@ -288,11 +288,11 @@ def migrate(cr, version):
     util.remove_column(cr, "account_report_line", "v15_tax_line_id")
 
     # should match words made up of letters, digits and _, with at least one letter/underscore (no pure number).
-    TERM_CODE_REGEX = r"\m\w+\M(?<!\m\d+)"
+    TERM_CODE_REGEX = r"(\m\w+\M(?<!\m\d+))"
 
     # populate account_report_expression with report lines formula and tag_name fields
     cr.execute(
-        rf"""
+        r"""
         INSERT INTO account_report_expression (
             create_uid, write_uid, create_date, write_date,
             report_line_id, label, auditable, date_scope,
@@ -309,11 +309,12 @@ def migrate(cr, version):
                -- formula
                   CASE
                        WHEN arl.v15_tag_name IS NOT NULL THEN arl.v15_tag_name
-                       WHEN arl.v15_formula IS NOT NULL THEN REGEXP_REPLACE(arl.v15_formula, '({TERM_CODE_REGEX})', '\1.balance', 'g')
+                       WHEN arl.v15_formula IS NOT NULL THEN REGEXP_REPLACE(arl.v15_formula, %s, '\1.balance', 'g')
                   END
           FROM account_report_line arl
          WHERE COALESCE(arl.v15_tag_name, arl.v15_formula) IS NOT NULL
-        """
+        """,
+        [TERM_CODE_REGEX],
     )
 
     # account.report.line temporary columns are no longer needed

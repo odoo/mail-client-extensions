@@ -32,11 +32,15 @@ def migrate_status_code(cr, model_name):
     queries = []
     for status_code, status in status_code_mapping.items():
         query = cr.mogrify(
-            """
+            util.format_query(
+                cr,
+                """
                 UPDATE {table}
                    SET extract_status = %s
                  WHERE extract_status_code = %s
-            """.format(table=table),
+                """,
+                table=table,
+            ),
             [status, status_code],
         ).decode()
         queries.extend(
@@ -58,9 +62,15 @@ def migrate_document_uuid(cr, model_name):
         cr,
         util.explode_query_range(
             cr,
-            f"UPDATE {table} SET extract_remote_id = NULL WHERE extract_remote_id = -1",
+            util.format_query(
+                cr,
+                "UPDATE {table} SET extract_remote_id = NULL WHERE extract_remote_id = -1",
+                table=table,
+            ),
             table=table,
         ),
     )
     util.rename_field(cr, model_name, "extract_remote_id", "extract_document_uuid")
-    cr.execute(f"ALTER TABLE {table} ALTER COLUMN extract_document_uuid TYPE varchar")
+    cr.execute(
+        util.format_query(cr, "ALTER TABLE {table} ALTER COLUMN extract_document_uuid TYPE varchar", table=table)
+    )

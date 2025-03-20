@@ -31,4 +31,4 @@ def migrate(cr, version):
         mail_channel_rtc_session_channel_{partner,member}_unique
     """
     for old, new in map(eb, util.splitlines(indexes)):
-        cr.execute(f"ALTER INDEX IF EXISTS {old} RENAME TO {new}")
+        cr.execute(util.format_query(cr, "ALTER INDEX IF EXISTS {} RENAME TO {}", old, new))

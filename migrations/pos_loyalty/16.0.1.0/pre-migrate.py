@@ -11,28 +11,34 @@ def migrate(cr, version):
     tables = ["pos_config_coupon_program_rel", "pos_config_promo_program_rel"]
     for m2m_relation_table in tables:
         if util.table_exists(cr, m2m_relation_table):
-            cr.execute(
+            query = util.format_query(
+                cr,
                 """
                 INSERT INTO loyalty_program_pos_config_rel (pos_config_id, loyalty_program_id)
                      SELECT pos_config_id, loyalty_program_id
                        FROM {}
                 ON CONFLICT DO NOTHING
-                """.format(m2m_relation_table)
+                """,
+                m2m_relation_table,
             )
-            cr.execute("DROP TABLE {}".format(m2m_relation_table))
+            cr.execute(query)
+            cr.execute(util.format_query(cr, "DROP TABLE {}", m2m_relation_table))
 
     # Migrate `loyalty_program_id`, `gift_card_program_id`
     for field_name in ["loyalty_program_id", "gift_card_program_id"]:
         if util.column_exists(cr, "pos_config", field_name):
-            cr.execute(
+            query = util.format_query(
+                cr,
                 """
                 INSERT INTO loyalty_program_pos_config_rel (pos_config_id, loyalty_program_id)
                      SELECT id, {0}
                        FROM pos_config
                       WHERE {0} IS NOT NULL
                 ON CONFLICT DO NOTHING
-                """.format(field_name)
+                """,
+                field_name,
             )
+            cr.execute(query)
 
     util.remove_field(cr, "pos.config", "use_coupon_programs")
     util.remove_field(cr, "pos.config", "use_gift_card")

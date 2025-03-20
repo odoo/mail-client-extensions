@@ -12,7 +12,8 @@ def _build_currency_table_query(cr, company_id, currency_id, first_rate_date, la
     else:
         company_id_condition = "company_id = %(company_id)s"
         rate_fallback = None  # NULL since we will first try to search for a rate (of currency_id) without company_id
-    return cr.mogrify(
+    query = util.format_query(
+        cr,
         # On CTE `info` below:
         # Each rate is valid for a date range (from_day to to_day).
         # But res_currency_rate only associates the start date with each rate.
@@ -21,7 +22,7 @@ def _build_currency_table_query(cr, company_id, currency_id, first_rate_date, la
         # We are only interested in the rates inside the conversion window (first_rate_date to last_rate_date).
         # Thus the first / last rate in the conversion window require some additional care (see comments in the query);
         # the problem is that they start / end (respectively) outside the conversion window.
-        f"""
+        """
          WITH start_rate AS (
              SELECT rate
                FROM res_currency_rate
@@ -57,6 +58,10 @@ def _build_currency_table_query(cr, company_id, currency_id, first_rate_date, la
                     )::date
                FROM info
         """,
+        company_id_condition=util.SQLStr(company_id_condition),
+    )
+    return cr.mogrify(
+        query,
         {
             "currency_id": currency_id,
             "company_id": company_id,

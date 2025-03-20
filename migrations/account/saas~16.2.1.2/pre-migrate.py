@@ -29,19 +29,22 @@ def migrate(cr, version):
     for model in ("res.company", "account.report"):
         table = util.table_of_model(cr, model)
         util.create_column(cr, table, "chart_template", "varchar")
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
         SELECT record.id,
                data.module || '.' || data.name AS template_xml_id
           FROM {table} record
           JOIN ir_model_data data ON data.res_id = record.chart_template_id
                                  AND data.model = 'account.chart.template'
-        """
+            """,
+            table=table,
         )
+        cr.execute(query)
         for record_id, template_xml_id in cr.fetchall():
-            cr.execute(
-                f"UPDATE {table} SET chart_template = %s WHERE id = %s", [chart_mapper(template_xml_id), record_id]
-            )
+            query = util.format_query(cr, "UPDATE {} SET chart_template = %s WHERE id = %s", table)
+            cr.execute(query, [chart_mapper(template_xml_id), record_id])
+
         util.remove_field(cr, model, "chart_template_id")
     util.remove_field(cr, "res.config.settings", "chart_template_id")
 
@@ -81,8 +84,9 @@ def migrate(cr, version):
         "property_stock_account_output_categ_id",
         "property_stock_valuation_account_id",
     ]:
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
             INSERT INTO ir_property (name, company_id, fields_id, value_reference, type)
                   SELECT f.name, c.id, f.id, concat('account.account,', c.{fname}), 'many2one'
                     FROM res_company c
@@ -91,9 +95,10 @@ def migrate(cr, version):
                      AND f.name = %s
                    WHERE c.{fname} IS NOT NULL
             ON CONFLICT DO NOTHING
-        """,
-            [fname],
+            """,
+            fname=fname,
         )
+        cr.execute(query, [fname])
         util.remove_field(cr, "res.company", fname)
 
     # Make property fields on account.tax.group real fields
@@ -110,36 +115,54 @@ def migrate(cr, version):
     ]
 
     cte = " UNION ".join(
-        f"""
-            SELECT {company_fk[table]} AS id,
+        util.format_query(
+            cr,
+            """
+            SELECT {fk} AS id,
                    {column} AS tg_id
               FROM {table}
-             WHERE {company_fk[table]} IS NOT NULL
+             WHERE {fk} IS NOT NULL
                AND {column} IS NOT NULL
-        """
+            """,
+            fk=company_fk[table],
+            table=table,
+            column=column,
+        )
         for table, column in tax_group_fks
     )
 
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         WITH company AS (
             {cte}
         )
-        INSERT INTO account_tax_group ({", ".join(columns)}, company_id, _tmp_orig_id)
-             SELECT {", ".join(f"tg.{f}" for f in columns)}, company.id, tg.id
+        INSERT INTO account_tax_group ({columns}, company_id, _tmp_orig_id)
+             SELECT {tg_columns}, company.id, tg.id
                FROM account_tax_group tg,
                     company
               WHERE company.tg_id = tg.id
-    """
+        """,
+        cte=util.SQLStr(cte),
+        columns=columns,
+        tg_columns=columns.using(alias="tg"),
     )
+    cr.execute(query)
+
     for table, column in tax_group_fks:
-        query = f"""
+        query = util.format_query(
+            cr,
+            """
             UPDATE {table} relation
                SET {column} = new.id
               FROM account_tax_group new
              WHERE relation.{column} = new._tmp_orig_id
-               AND relation.{company_fk[table]} = new.company_id
-            """
+               AND relation.{fk} = new.company_id
+            """,
+            table=table,
+            column=column,
+            fk=company_fk[table],
+        )
         if util.column_exists(cr, table, "id"):
             util.explode_execute(cr, query, table=table, alias="relation")
         else:
@@ -177,13 +200,14 @@ def migrate(cr, version):
         old_fname = f"property_{fname}"
         util.rename_field(cr, "account.tax.group", old_fname, fname)
         util.create_column(cr, "account_tax_group", fname, "int")
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
               WITH to_update AS (
                 SELECT tg.id,
                        SPLIT_PART(COALESCE(prop.value_reference, default_prop.value_reference), ',', 2)::int AS account_id
                   FROM account_tax_group tg
-                  JOIN ir_model_fields field ON field.name = %(fname)s
+                  JOIN ir_model_fields field ON field.name = %s
                                             AND field.model = 'account.tax.group'
              LEFT JOIN ir_property default_prop ON default_prop.fields_id = field.id
                                                AND default_prop.company_id = tg.company_id
@@ -193,12 +217,14 @@ def migrate(cr, version):
                                        AND prop.res_id = 'account.tax.group,' || tg._tmp_orig_id
                    )
             UPDATE account_tax_group
-               SET {fname} = to_update.account_id
+               SET {} = to_update.account_id
               FROM to_update
              WHERE account_tax_group.id = to_update.id
-        """,
-            {"fname": fname},
+            """,
+            fname,
         )
+        cr.execute(query, [fname])
+
         cr.execute(
             """
             DELETE FROM ir_property p

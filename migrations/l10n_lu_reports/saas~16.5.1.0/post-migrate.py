@@ -174,7 +174,7 @@ def migrate(cr, version):
     # this table has many many columns, so it's easier to fetch them along with their data type
     cr.execute(
         r"""
-            SELECT quote_ident(c.COLUMN_NAME), c.data_type
+            SELECT c.COLUMN_NAME, c.data_type
               FROM information_schema.columns c
              WHERE table_name='l10n_lu_yearly_tax_report_manual'
                AND (
@@ -244,12 +244,15 @@ def migrate(cr, version):
                 fields_mapping[field]["code"] if field in fields_mapping else f"L10N_LU_TAX_{field.split('_')[-1]}"
             )
             column = "value" if data_type in {"integer", "boolean", "double precision"} else "text_value"
-            # boolean fields became float fields in account.report, where 1.00 is True
-            field_expression = f"{field}::int::double precision" if data_type == "boolean" else field
+            if data_type == "boolean":
+                # boolean fields became float fields in account.report, where 1.00 is True
+                field_expression = util.format_query(cr, "{}::int::double precision", field)
+            else:
+                field_expression = field
 
-            queries.append(
-                cr.mogrify(
-                    f"""
+            query = util.format_query(
+                cr,
+                """
                     WITH expr AS (
                         SELECT e.id
                           FROM account_report_expression e
@@ -265,6 +268,12 @@ def migrate(cr, version):
                                 l10n_lu_yearly_tax_report_manual report
                           WHERE report.id=%(report_id)s
                 """,
+                column=column,
+                field_expression=field_expression,
+            )
+            queries.append(
+                cr.mogrify(
+                    query,
                     {
                         **params_dict,
                         "label": label,

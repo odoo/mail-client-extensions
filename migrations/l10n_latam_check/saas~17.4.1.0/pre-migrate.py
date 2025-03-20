@@ -47,7 +47,8 @@ def migrate(cr, version):
     payment_field = "payment_id"
     if util.version_gte("saas~17.5"):
         payment_field = "origin_payment_id"
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         INSERT INTO l10n_latam_check
                    (company_id, payment_id, name,
@@ -73,8 +74,10 @@ def migrate(cr, version):
                 AND account.account_type NOT IN ('asset_receivable', 'liability_payable')
                 AND apm.code = 'own_checks'
            ORDER BY aml.id
-      """.format(payment_field)
+        """,
+        payment_field,
     )
+    cr.execute(query)
 
     # Migrate new 3rd party checks from payments to the separate table
     cr.execute(

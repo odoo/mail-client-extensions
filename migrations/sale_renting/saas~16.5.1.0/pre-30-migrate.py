@@ -17,7 +17,9 @@ def migrate(cr, version):
     util.create_column(cr, "sale_order", "_upg_rental_parent_so_id", "integer")
     util.create_column(cr, "sale_order", "_upg_rental_linked_sol_ids", "integer[]")
 
-    cr.execute(  # create new SO if different rental periods
+    # create new SO if different rental periods
+    query = util.format_query(
+        cr,
         """
         WITH rental_lines AS (
             -- generate groups per sale order of pairs of start/return date
@@ -52,11 +54,11 @@ def migrate(cr, version):
            SET order_id = new_ids.id
           FROM new_ids
          WHERE sale_order_line.id = ANY(new_ids._upg_rental_linked_sol_ids)
-        """.format(
-            original_columns=",".join(columns),
-            so_columns=",".join(f"so.{col}" for col in columns),
-        )
+        """,
+        original_columns=columns,
+        so_columns=columns.using(alias="so"),
     )
+    cr.execute(query)
 
     if cr.rowcount:
         util.add_to_migration_reports(

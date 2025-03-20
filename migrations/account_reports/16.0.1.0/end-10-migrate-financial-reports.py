@@ -18,7 +18,6 @@ def migrate(cr, version):
     _logger = logging.getLogger(__name__)
 
     # constant regexes
-    TERM_CODE_REGEX = r"\w+"
     DOMAIN_EXPR_REGEX = r"-?sum(?:_if_(?:pos|neg)(?:_groupby)?)?"
 
     # There are 2 cases under which we need to migrate extra lines:
@@ -26,13 +25,13 @@ def migrate(cr, version):
     #   2. Migrated aggregation formulas make use of lines with report_id = NULL
     # In both cases, they are detected with the following query and migrated later on
     cr.execute(
-        rf"""
+        r"""
         WITH codes_by_id AS (
             SELECT
                 REGEXP_SPLIT_TO_TABLE(
                     REGEXP_REPLACE(
                         are.formula,
-                        '(?:^-|\.balance|\(|\)|{DOMAIN_EXPR_REGEX}|sum_children)',
+                        %s,
                         ' ',
                         'g'
                     ),
@@ -54,7 +53,8 @@ def migrate(cr, version):
         SELECT report_line_id, ARRAY_AGG(code)
           FROM codes_to_migrate_by_id
          GROUP BY report_line_id
-        """
+        """,
+        [rf"(?:^-|\.balance|\(|\)|{DOMAIN_EXPR_REGEX}|sum_children)"],
     )
 
     for report_line_id, codes_to_migrate in cr.fetchall():
@@ -65,7 +65,7 @@ def migrate(cr, version):
 
             # migrate term's formula to a subexpression of the faulty expression
             cr.execute(
-                rf"""
+                r"""
                 INSERT INTO account_report_expression (
                     create_uid, write_uid, create_date, write_date, report_line_id,
                     label, date_scope, figure_type, green_on_positive, auditable,
@@ -73,27 +73,28 @@ def migrate(cr, version):
                     formula,
                     subformula
                 )
-                SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(), %s,
+                SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(), %(report_line_id)s,
                        LOWER(afhrl.code), afhrl.special_date_changer, afhrl.figure_type, afhrl.green_on_positive, True,
                        -- engine
                           CASE
-                                WHEN afhrl.formulas ~ ('^{DOMAIN_EXPR_REGEX}$') THEN 'domain'
+                                WHEN afhrl.formulas ~ %(re)s THEN 'domain'
                                 ELSE 'aggregation'
                           END,
                        -- formula
                           CASE
-                                WHEN afhrl.formulas ~ ('^{DOMAIN_EXPR_REGEX}$') THEN afhrl.domain
-                                ELSE REGEXP_REPLACE(afhrl.formulas, '({TERM_CODE_REGEX})', '\1.balance', 'g')
+                                WHEN afhrl.formulas ~ %(re)s THEN afhrl.domain
+                                ELSE REGEXP_REPLACE(afhrl.formulas, '(\w+)', '\1.balance', 'g')
                           END,
                        -- subformula
                           CASE
-                                WHEN afhrl.formulas ~ ('^{DOMAIN_EXPR_REGEX}$') THEN afhrl.formulas
+                                WHEN afhrl.formulas ~ %(re)s THEN afhrl.formulas
                                 ELSE 'cross_report'
                           END
                   FROM ___upgrade_afhrl afhrl
-                 WHERE afhrl.code = %s
+                 WHERE afhrl.code = %(code)s
              RETURNING id
                 """,
+                {"report_line_id": report_line_id, "code": code, "re": f"^{DOMAIN_EXPR_REGEX}$"},
                 [report_line_id, code],
             )
 
@@ -127,13 +128,13 @@ def migrate(cr, version):
 
             # migrated code's formula might contain more codes to migrate separately
             cr.execute(
-                rf"""
+                r"""
                 WITH new_codes AS (
                     SELECT
                         REGEXP_SPLIT_TO_TABLE(
                             REGEXP_REPLACE(
                                 are.formula,
-                                '(?:^-|\.balance|\(|\)|{DOMAIN_EXPR_REGEX})',
+                                %s,
                                 '',
                                 'g'
                             ),
@@ -149,7 +150,7 @@ def migrate(cr, version):
                    AND code IS NOT NULL
                  GROUP BY code
                 """,
-                [subexp_id],
+                [rf"(?:^-|\.balance|\(|\)|{DOMAIN_EXPR_REGEX})", subexp_id],
             )
 
             # keep track of already migrated codes for the current expression…
@@ -163,34 +164,36 @@ def migrate(cr, version):
     # some terms may include both aggregators and term codes - split them into different subexpressions
     # also be aware that, in such mixed formulas, the aggregators will have an extra '.balance' that needs to be discarded
     cr.execute(
-        rf"""
+        """
         INSERT INTO account_report_expression (
             create_uid, write_uid, create_date, write_date, report_line_id,
             label, engine, formula, subformula,
             date_scope, figure_type, green_on_positive, auditable
         )
         SELECT are.create_uid, are.write_uid, are.create_date, NOW(), arl.id,
-               'agg', 'domain', arl.v15_domain, SUBSTRING(are.formula FROM '({DOMAIN_EXPR_REGEX})'),
+               'agg', 'domain', arl.v15_domain, SUBSTRING(are.formula FROM %s),
                are.date_scope, are.figure_type, are.green_on_positive, are.auditable
           FROM account_report_expression are
           JOIN account_report_line arl
             ON arl.id = are.report_line_id
          WHERE engine = 'aggregation'
-           AND formula ~ '(?<=\W|^){DOMAIN_EXPR_REGEX}\.balance(?=\W|$)'
-        """
+           AND formula ~ %s
+        """,
+        [f"({DOMAIN_EXPR_REGEX})", rf"(?<=\W|^){DOMAIN_EXPR_REGEX}\.balance(?=\W|$)"],
     )
 
     util.remove_column(cr, "account_report_line", "v15_domain")
 
     cr.execute(
-        rf"""
+        """
         UPDATE account_report_expression are
-           SET formula = REGEXP_REPLACE(are.formula, '{DOMAIN_EXPR_REGEX}\.balance', arl.code || '.agg')
+           SET formula = REGEXP_REPLACE(are.formula, %s, arl.code || '.agg')
           FROM account_report_line arl
          WHERE are.engine = 'aggregation'
-           AND are.formula ~ '(?<=\W|^){DOMAIN_EXPR_REGEX}\.balance(?=\W|$)'
+           AND are.formula ~ %s
            AND are.report_line_id = arl.id
-        """
+        """,
+        [rf"{DOMAIN_EXPR_REGEX}\.balance", rf"(?<=\W|^){DOMAIN_EXPR_REGEX}\.balance(?=\W|$)"],
     )
 
     # Given that Odoo 16 no longer supports sum_if_(pos|neg)_groupby, expressions relying on them must have their domain adapted

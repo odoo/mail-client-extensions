@@ -22,13 +22,17 @@ def migrate(cr, version):
             subquery_eas += cr.mogrify("WHEN c.code = %s THEN %s ", [country_code, eas_code]).decode()
             # Mimick _compute_peppol_endpoint: get the corresponding field and set it
             if field and util.column_exists(cr, "res_partner", field):
-                subquery_endpoint += cr.mogrify(f"WHEN c.code = %s THEN p.{field} ", [country_code]).decode()
+                subquery_endpoint += cr.mogrify(
+                    util.format_query(cr, "WHEN c.code = %s THEN p.{} ", field),
+                    [country_code],
+                ).decode()
 
     subquery_eas += "END"
     subquery_endpoint += "END"
 
-    query = cr.mogrify(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         UPDATE res_partner p
            SET ubl_cii_format = (
                CASE
@@ -39,12 +43,17 @@ def migrate(cr, version):
                     WHEN c.code = 'SG' THEN 'ubl_sg'
                     WHEN c.code IN %s THEN 'ubl_bis3'
                END),
-               peppol_eas = {subquery_eas},
-               peppol_endpoint = {subquery_endpoint}
+               peppol_eas = {},
+               peppol_endpoint = {}
           FROM res_country c
          WHERE c.id = p.country_id
            AND p.parent_id IS NULL
-    """,
+        """,
+        util.SQLStr(subquery_eas),
+        util.SQLStr(subquery_endpoint),
+    )
+    query = cr.mogrify(
+        query,
         [tuple(set(EAS_MAPPING.keys()) - {"FR", "DE", "NL", "AU", "NZ", "SG"})],
     ).decode()
     util.explode_execute(cr, query, table="res_partner", alias="p")

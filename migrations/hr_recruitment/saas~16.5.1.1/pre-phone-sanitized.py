@@ -8,19 +8,20 @@ from odoo.upgrade import util
 
 
 def sanitize_fields(cr, san, phone_to_sanitize, phone_sanitized):
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         WITH applicant AS (
            SELECT a.id,
-        trim(a.{phone_to_sanitize}) as phone,
+        trim(a.{0}) as phone,
         COALESCE( r_a.country_id , r.country_id) AS country_id,
         a.company_id AS company_id
       FROM hr_applicant a
       JOIN res_company comp ON comp.id = a.company_id
       JOIN res_partner r ON comp.partner_id = r.id
       JOIN res_partner r_a ON a.partner_id = r_a.id
-     WHERE a.{phone_sanitized} IS NULL
-       AND length(trim(a.{phone_to_sanitize})) > 3
+     WHERE a.{1} IS NULL
+       AND length(trim(a.{0})) > 3
     )
     SELECT a.id,
         a.phone,
@@ -28,14 +29,17 @@ def sanitize_fields(cr, san, phone_to_sanitize, phone_sanitized):
         c.phone_code
     FROM applicant a
         JOIN res_country c ON a.country_id = c.id
-    """
+        """,
+        phone_to_sanitize,
+        phone_sanitized,
     )
+    cr.execute(query)
 
     with ProcessPoolExecutor() as executor:
         chunksize = 1024
         execute_batch(
             cr._obj,
-            f"UPDATE hr_applicant SET {phone_sanitized} = %s WHERE id = %s",
+            util.format_query(cr, "UPDATE hr_applicant SET {} = %s WHERE id = %s", phone_sanitized),
             executor.map(san.sanitize, *zip(*cr.fetchall()), chunksize=chunksize),
             page_size=chunksize,
         )

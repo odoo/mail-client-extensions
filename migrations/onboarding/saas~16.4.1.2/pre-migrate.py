@@ -81,6 +81,7 @@ def migrate_onboarding(cr, onboarding_params: dict, remove_step_fields_for_modul
     converted_onboarding_params = _convert_refs_to_ids(cr, onboarding_params)
     steps_data_query = _get_steps_data_query(converted_onboarding_params)
 
+    # nosemgrep dont-execute-format-query
     cr.execute(
         """
         WITH steps_data AS (
@@ -182,6 +183,7 @@ def migrate_standalone_onboarding_steps(cr, onboarding_params: dict, remove_step
     converted_onboarding_params = _convert_refs_to_ids(cr, onboarding_params)
     steps_data_query = _get_steps_data_query(converted_onboarding_params)
 
+    # nosemgrep dont-execute-format-query
     cr.execute(
         f"""
         WITH steps_data AS (

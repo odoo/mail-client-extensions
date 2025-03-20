@@ -17,19 +17,24 @@ def migrate(cr, version):
             cr, "project_project", "project_project_timesheet_product_required_if_billable_and_time", warn=False
         )
 
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
       UPDATE project_project pp
          SET allow_billable = TRUE
        WHERE pp.partner_id IS NOT NULL
          AND pp.allow_billable IS FALSE
-         {additional_where_cond}
-         {timesheet_cond}
-      """
+         {}
+         {}
+      """,
+        util.SQLStr(additional_where_cond),
+        util.SQLStr(timesheet_cond),
     )
+    cr.execute(query)
 
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         WITH project_task_with_partner AS (
               SELECT project_id
                 FROM project_task
@@ -42,7 +47,10 @@ def migrate(cr, version):
           FROM project_task_with_partner pt
          WHERE pt.project_id = pp.id
            AND pp.allow_billable IS FALSE
-           {additional_where_cond}
-           {timesheet_cond}
-        """
+         {}
+         {}
+      """,
+        util.SQLStr(additional_where_cond),
+        util.SQLStr(timesheet_cond),
     )
+    cr.execute(query)

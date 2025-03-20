@@ -70,7 +70,8 @@ def migrate(cr, version):
     util.create_column(cr, "hr_payslip_input_type", "l10n_au_superannuation_treatment", "varchar")
 
     ote_col = util.column_exists(cr, "hr_payslip_input_type", "l10n_au_is_ote")
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
             UPDATE hr_payslip_input_type
                SET l10n_au_payment_type = CASE
@@ -82,14 +83,15 @@ def migrate(cr, version):
                AND (  hr_payslip_input_type.l10n_au_is_etp
                    OR hr_payslip_input_type.l10n_au_is_allowance
                    {})
-        """.format(
+        """,
+        util.SQLStr(
             ", l10n_au_superannuation_treatment = CASE WHEN hr_payslip_input_type.l10n_au_is_ote THEN 'ote' END"
             if ote_col
-            else "",
-            "OR hr_payslip_input_type.l10n_au_is_ote" if ote_col else "",
+            else ""
         ),
-        [util.ref(cr, "base.au")],
+        util.SQLStr("OR hr_payslip_input_type.l10n_au_is_ote" if ote_col else ""),
     )
+    cr.execute(query, [util.ref(cr, "base.au")])
 
     util.remove_field(cr, "hr.payslip.input.type", "l10n_au_is_allowance")
     util.remove_field(cr, "hr.payslip.input.type", "l10n_au_is_etp")

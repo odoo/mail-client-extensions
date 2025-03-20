@@ -146,11 +146,13 @@ def migrate(cr, version):
             for chunk in util.chunks(shared_blocks_new_arch_db, size=100, fmt=list)
         )
 
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
                 UPDATE ir_ui_view
                    SET arch_db = {json_object}
                  WHERE id = %s
             """,
-            (*shared_blocks_new_arch_db, shared_blocks_view_id),
+            json_object=util.SQLStr(json_object),
         )
+        cr.execute(query, [*shared_blocks_new_arch_db, shared_blocks_view_id])

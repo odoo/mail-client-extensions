@@ -73,10 +73,11 @@ def fix_image_attachment(cr, res_model, res_id, command):
 
 def copy_attachment(cr, attachment_id, new_res_model, new_res_id):
     """Copy an attachment and link it to a new record."""
-    columns = ", ".join(util.get_columns(cr, "ir_attachment", ignore=("id", "res_model", "res_id", "access_token")))
+    columns = util.get_columns(cr, "ir_attachment", ignore=("id", "res_model", "res_id", "access_token"))
     access_token = str(uuid.uuid4())
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
         INSERT INTO ir_attachment (
             res_model,
             res_id,
@@ -91,6 +92,8 @@ def copy_attachment(cr, attachment_id, new_res_model, new_res_id):
             WHERE id=%s
         RETURNING id, access_token
         """,
-        [new_res_model, new_res_id, access_token, attachment_id],
+        columns=columns,
     )
+
+    cr.execute(query, [new_res_model, new_res_id, access_token, attachment_id])
     return cr.fetchone()

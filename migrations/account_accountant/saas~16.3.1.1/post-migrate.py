@@ -1,3 +1,6 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
     cr.execute(
         """
@@ -15,10 +18,11 @@ def migrate(cr, version):
     )
 
     for deferred_type, account_type in (["expense", "asset_current"], ["revenue", "liability_current"]):
-        cr.execute(
-            f"""
+        query = util.format_query(
+            cr,
+            """
             UPDATE res_company company
-               SET deferred_{deferred_type}_account_id = (
+               SET {} = (
                     SELECT id
                       FROM account_account
                      WHERE company_id = company.id
@@ -27,5 +31,6 @@ def migrate(cr, version):
                      LIMIT 1
             )
             """,
-            (account_type,),
+            f"deferred_{deferred_type}_account_id",
         )
+        cr.execute(query, [account_type])

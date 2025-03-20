@@ -50,13 +50,16 @@ def migrate(cr, version):
     )
 
     tracking_fname = "field_id" if util.column_exists(cr, "mail_tracking_value", "field_id") else "field"
-    cr.execute(
-        f"""
+    query = util.format_query(
+        cr,
+        """
             UPDATE mail_tracking_value v
                SET {tracking_fname} = (select id from ir_model_fields where model='project.task' and name='kanban_state')
              WHERE v.{tracking_fname} = (select id from ir_model_fields where model='project.task' and name='kanban_state_label')
-        """
+        """,
+        tracking_fname=tracking_fname,
     )
+    cr.execute(query)
 
     def adapter(leaf, _is_or, _negated):
         left, operator, value = leaf

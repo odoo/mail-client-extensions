@@ -33,16 +33,20 @@ def migrate(cr, version):
     query_filter = ""
     if payroll_tag_id:
         query_filter = cr.mogrify("WHERE id != %s", [payroll_tag_id]).decode()
-    cr.execute(
-        f"""
+
+    query = util.format_query(
+        cr,
+        """
         INSERT INTO project_tags (_upg_note_tag_id, name, color)
         SELECT id, name, color
           FROM note_tag
           {query_filter}
    ON CONFLICT (name) DO UPDATE
            SET _upg_note_tag_id = EXCLUDED._upg_note_tag_id
-        """
+        """,
+        query_filter=util.SQLStr(query_filter),
     )
+    cr.execute(query)
 
     # -------- 3. Converting note.stage -> project.task.type -----------
 
@@ -114,12 +118,18 @@ def migrate(cr, version):
         extra_query = cr.mogrify(
             "WHERE NOT EXISTS (SELECT 1 FROM note_tags_rel WHERE tag_id = %s AND note_id = n.id)", [payroll_tag_id]
         ).decode()
-    is_closed_column_exists = not util.version_gte("saas~16.4")
-    cr.execute(
-        f"""
+    if not util.version_gte("saas~16.4"):
+        cols = util.ColumnList.from_unquoted(cr, ["is_closed"]).using(trailing_comma=True)
+        vals = util.SQLStr("NOT(n.open), ")
+    else:
+        cols = vals = util.SQLStr("")
+
+    query = util.format_query(
+        cr,
+        """
         INSERT INTO project_task (name, company_id, description, sequence, color, create_uid,
-                                  write_uid, create_date, write_date, active, state, {"is_closed," if is_closed_column_exists else ""} _upg_note_id)
-             SELECT COALESCE(n.name, 'Note '|| n.id), COALESCE(n.company_id, cuid.company_id, {main_company}), n.memo, n.sequence, n.color, n.create_uid,
+                                  write_uid, create_date, write_date, active, state, {} _upg_note_id)
+             SELECT COALESCE(n.name, 'Note '|| n.id), COALESCE(n.company_id, cuid.company_id, %s), n.memo, n.sequence, n.color, n.create_uid,
                     n.write_uid, n.create_date, n.write_date, TRUE, (
                     CASE
                         WHEN n.open
@@ -127,14 +137,18 @@ def migrate(cr, version):
                         ELSE '1_done'
                     END
                     ),
-                    {"NOT(n.open)," if is_closed_column_exists else ""}
+                    {}
                     n.id
                FROM note_note AS n
           LEFT JOIN res_users AS cuid
                  ON cuid.id = n.create_uid
-        """
-        + extra_query
+                 {}
+        """,
+        cols,
+        vals,
+        util.SQLStr(extra_query),
     )
+    cr.execute(query, [main_company])
 
     # Stop migration if no notes need to be converted
     if not cr.rowcount:
