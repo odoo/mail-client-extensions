@@ -15,3 +15,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, "sign.item.option", "available")
     util.remove_view(cr, "sign.sign_item_option_view_tree")
+
+    cr.execute("ALTER TABLE sign_item_sign_item_option_rel RENAME TO sign_item_option_rel")
