@@ -92,3 +92,6 @@ def migrate(cr, version):
     util.rename_xmlid(
         cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_holidays}.l10n_ch_swissdec_interruption_of_work_lt")
     )
+    util.rename_xmlid(
+        cr, *eb("{l10n_be_hr_payroll_acerta.holiday,hr_holidays.l10n_be_leave}_type_small_unemployment_birth")
+    )
