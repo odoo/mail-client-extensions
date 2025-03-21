@@ -1,7 +1,24 @@
+from odoo import modules
+
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # rename popular custom model
+    cr.execute(
+        """
+        SELECT 1
+          FROM ir_model m
+          JOIN ir_model_data md
+            ON md.res_id = m.id
+           AND md.model = 'ir.model'
+         WHERE m.model = %s
+           AND md.module NOT IN %s
+        """,
+        ["payment.method", tuple(modules.get_modules())],
+    )
+    if cr.rowcount:
+        util.rename_custom_model(cr, "payment.method", "payment.method.custom")
     util.rename_model(cr, "payment.icon", "payment.method")
 
     util.rename_field(cr, "payment.provider", "payment_icon_ids", "payment_method_ids")
