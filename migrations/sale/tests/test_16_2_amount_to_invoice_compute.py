@@ -16,6 +16,13 @@ from odoo.addons.base.maintenance.migrations.util import module_installed
 @change_version("saas~16.2")
 class TestAmountToInvoice(UpgradeCase):
     def prepare(self):
+        # a CoA is needed to be able to create an invoice
+        # Since odoo/odoo@d0342c86f68075fc322b2ede26d4fcb2bad8a75e, the main company doesn't have one anymore.
+        company = self.env["res.company"].search([("chart_template_id", "!=", False)], order="id", limit=1)
+        if not company:
+            self.skipTest("No CoA installed")
+        self.env = self.env["base"].with_company(company.id).env
+
         price = 500.0
         downpayment_amount = 100.0
 
@@ -77,9 +84,10 @@ class TestAmountToInvoice(UpgradeCase):
 
             invoice.action_post()
 
-        return sale_order.id
+        return (company.id, sale_order.id)
 
-    def check(self, sale_order_id):
-        sale_order = self.env["sale.order"].browse(sale_order_id)
+    def check(self, data):
+        company_id, sale_order_id = data
+        sale_order = self.env["sale.order"].with_company(company_id).browse(sale_order_id)
 
         self.assertEqual(sale_order.amount_to_invoice, 400.0)

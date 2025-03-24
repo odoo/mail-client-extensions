@@ -16,6 +16,13 @@ from odoo.addons.base.maintenance.migrations.util import module_installed
 @change_version("saas~16.5")
 class TestAnalyticPlan(UpgradeCase):
     def prepare(self):
+        # a CoA is needed to be able to create an invoice
+        # Since odoo/odoo@d0342c86f68075fc322b2ede26d4fcb2bad8a75e, the main company doesn't have one anymore.
+        company = self.env["res.company"].search([("chart_template_id", "!=", False)], order="id", limit=1)
+        if not company:
+            self.skipTest("No CoA installed")
+        self.env = self.env["base"].with_company(company.id).env
+
         root_analytic_plan = self.env["account.analytic.plan"].create(
             {
                 "name": "Root plan",
@@ -78,6 +85,7 @@ class TestAnalyticPlan(UpgradeCase):
         analytic_line = invoice.invoice_line_ids.analytic_line_ids
 
         return {
+            "company_id": company.id,
             "analytic_line_id": analytic_line.id,
             "analytic_account_id": analytic_account.id,
             "child_analytic_plan_id": child_analytic_plan.id,
@@ -85,6 +93,7 @@ class TestAnalyticPlan(UpgradeCase):
         }
 
     def check(self, values):
+        self.env = self.env["base"].with_company(values["company_id"]).env
         analytic_line = self.env["account.analytic.line"].browse(values["analytic_line_id"])
         analytic_account = self.env["account.analytic.account"].browse(values["analytic_account_id"])
 
