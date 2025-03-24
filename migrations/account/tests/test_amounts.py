@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import namedtuple
 
 from odoo import fields
@@ -51,13 +49,16 @@ class TestAccountAmountsUnchanged(IntegrityCase):
             )
 
     def invariant(self, date=None):
+        cr = self.env.cr
         # In CI, new demo and test data can be added. We should ignore them.
         filter_ = "true"
         if util.on_CI():
             date = date or fields.Datetime.now()
-            filter_ = self.env.cr.mogrify("l.create_date <= %s", [date]).decode()
+            filter_ = cr.mogrify("l.create_date <= %s", [date]).decode()
 
-        query = f"""
+        query = util.format_query(
+            cr,
+            """
             SELECT l.company_id cid,
                    l.account_id aid,
                    sum(round(l.balance, c.decimal_places)),
@@ -78,9 +79,11 @@ class TestAccountAmountsUnchanged(IntegrityCase):
                       dec
             HAVING sum(round(l.balance, c.decimal_places)) <> 0
              ORDER BY cid,
-                      aid;
-        """
-        self.env.cr.execute(query)
-        value = self.env.cr.fetchall()
+                      aid
+            """,
+            filter_=util.SQLStr(filter_),
+        )
+        cr.execute(query)
+        value = cr.fetchall()
 
         return self.Data(value, str(date))
