@@ -35,6 +35,6 @@ def migrate(cr, version):
            SET won_status = ws.value
           FROM won_status ws
          WHERE ws.id = l.id
-           AND l.won_status != ws.value
+           AND l.won_status IS DISTINCT FROM ws.value
     """
     util.explode_execute(cr, query, table="crm_lead", alias="l")
