@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.create_column(cr, "quality_alert", 'email_cc', 'varchar')
-    util.create_column(cr, "quality_check", 'test_type_id', 'integer')
+    util.create_column(cr, "quality_alert", "email_cc", "varchar")
+    util.create_column(cr, "quality_check", "test_type_id", "integer")
     cr.execute(
         """
         UPDATE quality_check qc
