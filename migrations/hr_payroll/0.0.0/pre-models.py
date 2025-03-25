@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 from odoo.addons.base.maintenance.migrations import util
 
 if util.version_gte("saas~12.5"):
@@ -26,9 +28,17 @@ if util.version_gte("16.0"):
         _module = "hr_payroll"
 
         def unlink(self):
+            ignored_rules = {
+                e[len("salary_rule:") :]
+                for e in os.environ.get("suppress_upgrade_warnings", "").split(",")  # noqa: SIM112
+                if e.startswith("salary_rule:")
+            }
             external_ids = self.get_external_id()
             for rule in self:
                 info = external_ids.get(rule.id) or "{} (code={})".format(rule.name, rule.code)
+                if info in ignored_rules:
+                    util._logger.info("Unlink of rule `%s` explicitly allowed", info)
+                    continue
                 util._logger.warning(
                     "The hr.salary.rule record `%s` should be explicitly removed using `util.hr_payroll.remove_salary_rule`",
                     info,
