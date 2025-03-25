@@ -107,6 +107,15 @@ def migrate(cr, version):
             )
 
     util.remove_module(cr, "account_consolidation")
+    if util.module_installed(cr, "l10n_be_us_consolidation_demo"):
+        cr.execute(
+            """
+            UPDATE ir_model_data
+               SET module = '__export__'
+             WHERE module = 'l10n_be_us_consolidation_demo'
+               AND model IN ('account.account', 'account.move','mail.activity')
+            """
+        )
     util.remove_module(cr, "l10n_be_us_consolidation_demo")
 
     payment_types = ["alipay", "payulatam", "payumoney"]
