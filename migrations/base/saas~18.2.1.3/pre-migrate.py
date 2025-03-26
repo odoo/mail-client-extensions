@@ -168,3 +168,18 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.company", "mobile")
     util.remove_field(cr, "res.partner", "mobile")
+
+    # Remove `--` in signature for following pattern(when it's at the start of the line):
+    # `<p>--<br>Demo Signature 1</p>` to `<p>Demo Signature 1<p>`
+    # `<div>-- <br>Demo Signature 2</div>` to `<div>Demo Signature 2</div>`
+    # `<span>--<br>User</span>` to `<span>User</span>`
+    sign_re = r"^((?:<[^>]*>)*)--\s*<br[^>]*>\s*"
+    sign_query = cr.mogrify(
+        r"""
+        UPDATE res_users
+           SET signature = REGEXP_REPLACE(ltrim(signature), %(re)s, '\1', 'm')
+         WHERE ltrim(signature) ~ %(re)s
+    """,
+        {"re": sign_re},
+    ).decode()
+    util.explode_execute(cr, sign_query, table="res_users")
