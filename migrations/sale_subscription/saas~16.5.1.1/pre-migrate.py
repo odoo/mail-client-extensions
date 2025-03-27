@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -195,11 +193,13 @@ def migrate(cr, version):
                 <summary>
                     The following subscriptions have been paused because their recurrence was hourly/daily which is not supported anymore.
                 </summary>
-                <ul>%s</ul>
+                <ul>{}</ul>
             </details>
-            """
-            % ["\n".join(f"<li>{util.get_anchor_link_to_record('sale.order', id, name)}</li>" for id, name in so_ids)],
+            """.format(
+                " ".join(f"<li>{util.get_anchor_link_to_record('sale.order', id, name)}</li>" for id, name in so_ids)
+            ),
             category="Subscription",
+            format="html",
         )
 
     # Update reference on company
