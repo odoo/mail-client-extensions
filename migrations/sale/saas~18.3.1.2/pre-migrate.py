@@ -13,3 +13,6 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_delivery_fedex")
     util.remove_field(cr, "res.config.settings", "module_delivery_ups")
     util.remove_field(cr, "res.config.settings", "module_delivery_usps")
+    util.remove_field(cr, "crm.team", "quotations_count")
+    util.remove_field(cr, "crm.team", "quotations_amount")
+    util.remove_field(cr, "crm.team", "sales_to_invoice_count")

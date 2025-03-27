@@ -38,3 +38,4 @@ def migrate(cr, version):
     util.remove_field(cr, "sale.commission.achievement", "team_id")
     util.remove_field(cr, "sale.commission.achievement", "amount")
     util.remove_view(cr, "sale_commission.sale_commission_achievement_link_view_list")
+    util.remove_view(cr, "sale_commission.crm_team_view_kanban_dashboard_hide")
