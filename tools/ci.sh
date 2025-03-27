@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${DOCKER_IMAGE:=upgrade-ci:1}"
+: "${DOCKER_IMAGE:=upgrade-ci:25.03}"
 
 HERE=$(dirname "$0")
 UPGRADEDIR=$(realpath "$HERE/..")
@@ -42,4 +42,5 @@ docker run --rm --tty --network=none \
     -v "$UUDIR:/upgrade-util" \
     -v "$MATTDIR:/matt" \
     -e TMPDIR=/tmp -v "$TMPDIR/q:/tmp/q" \
+    -e MATT_PGCLUSTER="${MATT_PGCLUSTER:-}" \
     "$DOCKER_IMAGE" /run-matt.sh "$@"
