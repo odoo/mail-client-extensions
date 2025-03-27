@@ -24,4 +24,5 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.remove_module(cr, "sale_renting_sign")
+        util.rename_module(cr, "pos_restaurant_appointment", "pos_appointment")
         util.merge_module(cr, "sale_commission_linked_achievement", "sale_commission")
