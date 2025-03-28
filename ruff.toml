@@ -85,6 +85,7 @@ odoo-addons = ["odoo.addons", "openerp.addons"]
 # - B905 zip-without-explicit-strict
 # - RUF005 collection-literal-concatenation
 # - UP009 utf8-encoding-declaration
+# - SIM105 supressible-exception
 
 # <= 9.0 scripts
 "migrations/*/[789].*/*.py" = [
@@ -92,6 +93,7 @@ odoo-addons = ["odoo.addons", "openerp.addons"]
     "B905",
     "RUF005",
     "UP009",
+    "SIM105",
 ]
 # <= 10.saas~16 script; python3 support has been implemented in 10.saas~17
 "migrations/*/10.{0,saas~14,saas~15,saas~16}.*/*.py" = [
@@ -99,6 +101,7 @@ odoo-addons = ["odoo.addons", "openerp.addons"]
     "B905",
     "RUF005",
     "UP009",
+    "SIM105",
 ]
 # as 0.0.0 scripts should support Odoo 10.0, we cannot use python2 incompatible rules
 "migrations/*/0.0.0/*.py" = [
@@ -106,4 +109,5 @@ odoo-addons = ["odoo.addons", "openerp.addons"]
     "B905",
     "RUF005",
     "UP009",
+    "SIM105",
 ]
