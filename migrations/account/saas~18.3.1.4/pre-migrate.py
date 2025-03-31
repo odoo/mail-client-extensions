@@ -11,3 +11,20 @@ def migrate(cr, version):
          WHERE c.id = j.company_id;
         """
     )
+
+    util.create_column(cr, "account_bank_statement", "currency_id", "integer")
+    util.explode_execute(
+        cr,
+        """
+         UPDATE account_bank_statement AS s_up
+           SET currency_id = COALESCE(j.currency_id, c.currency_id)
+          FROM account_bank_statement AS s
+     LEFT JOIN account_journal AS j
+            ON (s.journal_id = j.id)
+     LEFT JOIN res_company AS c
+            ON (j.company_id = c.id)
+         WHERE s_up.id = s.id
+        """,
+        table="account_bank_statement",
+        alias="s_up",
+    )
