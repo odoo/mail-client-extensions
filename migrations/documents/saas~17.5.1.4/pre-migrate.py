@@ -190,7 +190,8 @@ def migrate(cr, version):
     # replace all remaining references, mostly relevant for indirect references
     cr.execute("SELECT _upg_old_folder_id, id FROM documents_document WHERE _upg_old_folder_id IS NOT NULL")
     folder_mapping = dict(cr.fetchall())
-    util.replace_record_references_batch(cr, folder_mapping, "documents.folder", "documents.document")
+    if folder_mapping:
+        util.replace_record_references_batch(cr, folder_mapping, "documents.folder", "documents.document")
 
     util.merge_model(cr, "documents.folder", "documents.document", drop_table=False, ignore_m2m="*")
 
