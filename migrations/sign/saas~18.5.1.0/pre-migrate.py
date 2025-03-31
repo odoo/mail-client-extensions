@@ -20,3 +20,12 @@ def migrate(cr, version):
 
     util.make_field_non_stored(cr, "sign.item.type", "default_width", selectable=False)
     util.make_field_non_stored(cr, "sign.item.type", "default_height", selectable=False)
+
+    util.delete_unused(cr, "sign.sign_item_role_user", keep_xmlids=False)
+
+    if util.module_installed(cr, "hr_sign"):
+        util.rename_xmlid(cr, "sign.sign_item_role_customer", "hr_sign.sign_item_role_default")
+        util.rename_xmlid(cr, "sign.sign_item_role_employee", "hr_sign.sign_item_role_employee_signatory")
+    else:
+        util.delete_unused(cr, "sign.sign_item_role_customer", keep_xmlids=False)
+        util.delete_unused(cr, "sign.sign_item_role_employee", keep_xmlids=False)
