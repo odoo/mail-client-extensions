@@ -13,3 +13,4 @@ def migrate(cr, version):
         "im_livechat.ir_rule_discuss_channel_member_im_livechat_group_user",
     )
     util.remove_field(cr, "im_livechat.report.channel", "technical_name")
+    util.remove_field(cr, "im_livechat.report.channel", "is_without_answer")
