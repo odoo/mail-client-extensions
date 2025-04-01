@@ -2,6 +2,9 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_field(cr, "hr.employee.base", "remaining_leaves")
+    util.remove_field(cr, "hr.employee.base", "leaves_count")
+
     util.create_column(cr, "hr_leave_type", "country_id", "int4")
 
     cr.execute(
