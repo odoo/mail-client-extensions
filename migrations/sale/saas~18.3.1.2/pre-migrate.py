@@ -16,3 +16,4 @@ def migrate(cr, version):
     util.remove_field(cr, "crm.team", "quotations_count")
     util.remove_field(cr, "crm.team", "quotations_amount")
     util.remove_field(cr, "crm.team", "sales_to_invoice_count")
+    util.remove_view(cr, "sale.crm_lead_partner_kanban_view")

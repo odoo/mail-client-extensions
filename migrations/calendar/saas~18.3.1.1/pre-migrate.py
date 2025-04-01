@@ -5,3 +5,4 @@ def migrate(cr, version):
     if util.module_installed(cr, "hr_calendar"):
         util.move_field_to_module(cr, "calendar.event", "unavailable_partner_ids", "hr_calendar", "calendar")
     util.rename_field(cr, "calendar.popover.delete.wizard", "record", "calendar_event_id")
+    util.remove_view(cr, "calendar.res_partner_kanban_view")

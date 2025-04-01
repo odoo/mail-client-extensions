@@ -6,3 +6,4 @@ def migrate(cr, version):
     util.remove_field(cr, "crm.team", "opportunities_amount")
     util.remove_field(cr, "crm.team", "opportunities_overdue_count")
     util.remove_field(cr, "crm.team", "opportunities_overdue_amount")
+    util.remove_view(cr, "crm.crm_lead_partner_kanban_view")
