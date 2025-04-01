@@ -9,8 +9,9 @@ def migrate(cr, version):
     if util.column_exists(cr, "res_users_settings", "calendar_default_privacy"):
         privacy = util.format_query(cr, ", {}", "calendar_default_privacy")
         value = util.SQLStr(", 'public'")
+        excluded = util.format_query(cr, ", {0} = EXCLUDED.{0}", "calendar_default_privacy")
     else:
-        privacy = value = util.SQLStr("")
+        privacy = value = excluded = util.SQLStr("")
 
     query = util.format_query(
         cr,
@@ -35,9 +36,11 @@ def migrate(cr, version):
                     microsoft_calendar_sync_token = EXCLUDED.microsoft_calendar_sync_token,
                     microsoft_synchronization_stopped = EXCLUDED.microsoft_synchronization_stopped,
                     microsoft_last_sync_date = EXCLUDED.microsoft_last_sync_date
+                    {}
         """,
         privacy,
         value,
+        excluded,
     )
     cr.execute(query)
 

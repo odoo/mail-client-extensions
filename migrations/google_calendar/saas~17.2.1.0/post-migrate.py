@@ -9,8 +9,9 @@ def migrate(cr, version):
     if util.column_exists(cr, "res_users_settings", "calendar_default_privacy"):
         privacy = util.format_query(cr, ", {}", "calendar_default_privacy")
         value = util.SQLStr(", 'public'")
+        excluded = util.format_query(cr, ", {0} = EXCLUDED.{0}", "calendar_default_privacy")
     else:
-        privacy = value = util.SQLStr("")
+        privacy = value = excluded = util.SQLStr("")
 
     query = util.format_query(
         cr,
@@ -44,9 +45,11 @@ def migrate(cr, version):
                     google_synchronization_stopped = EXCLUDED.google_synchronization_stopped,
                     google_calendar_token_validity = EXCLUDED.google_calendar_token_validity,
                     google_calendar_cal_id = EXCLUDED.google_calendar_cal_id
+                    {}
         """,
         privacy,
         value,
+        excluded,
     )
     cr.execute(query)
 
