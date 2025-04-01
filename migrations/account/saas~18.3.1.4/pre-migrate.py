@@ -28,3 +28,6 @@ def migrate(cr, version):
         table="account_bank_statement",
         alias="s_up",
     )
+
+    util.remove_field(cr, "res.partner", "debit_limit")
+    util.remove_field(cr, "res.partner", "journal_item_count")
