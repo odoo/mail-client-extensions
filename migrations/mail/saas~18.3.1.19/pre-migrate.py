@@ -53,5 +53,6 @@ def migrate(cr, version):
     util.explode_execute(cr, query, "discuss_channel_rtc_session")
 
     util.remove_constraint(cr, "mail_activity", "mail_activity_check_res_id_is_set")
+    util.remove_field(cr, "mail.activity.type", "keep_done")
 
     util.remove_record(cr, "mail.module_category_canned_response")

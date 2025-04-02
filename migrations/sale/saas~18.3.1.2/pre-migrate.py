@@ -17,3 +17,11 @@ def migrate(cr, version):
     util.remove_field(cr, "crm.team", "quotations_amount")
     util.remove_field(cr, "crm.team", "sales_to_invoice_count")
     util.remove_view(cr, "sale.crm_lead_partner_kanban_view")
+
+    util.replace_record_references(
+        cr,
+        ("mail.activity.type", util.ref(cr, "sale.mail_act_sale_upsell")),
+        ("mail.activity.type", util.ref(cr, "mail.mail_activity_data_todo")),
+        replace_xmlid=False,
+    )
+    util.delete_unused(cr, "sale.mail_act_sale_upsell")
