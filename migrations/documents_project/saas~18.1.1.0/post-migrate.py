@@ -86,11 +86,13 @@ def migrate(cr, version):
     util.remove_column(cr, "documents_document", "_upg_181_outside_project_folder_tag_name")
     cr.execute(
         """
-        SELECT _upg_181_opf_project_folder_id,
-               ARRAY_AGG(id) as doc_ids
-          FROM documents_document
-         WHERE _upg_181_opf_project_folder_id IS NOT NULL
-      GROUP BY _upg_181_opf_project_folder_id
+        SELECT d._upg_181_opf_project_folder_id,
+               ARRAY_AGG(d.id) as doc_ids
+          FROM documents_document d
+          JOIN documents_document pf
+            ON d._upg_181_opf_project_folder_id = pf.id
+         WHERE pf.active
+      GROUP BY d._upg_181_opf_project_folder_id
         """
     )
     res = cr.fetchall()
