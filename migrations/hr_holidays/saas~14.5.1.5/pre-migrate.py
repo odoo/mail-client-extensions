@@ -147,9 +147,8 @@ def migrate(cr, version):
     cr.execute(
         """
             UPDATE hr_leave_allocation
-               SET
-                    date_from=COALESCE(type.validity_start, '01/01/1970'),
-                    date_to=type.validity_stop
+               SET date_from = COALESCE(type.validity_start, hr_leave_allocation.date_from, '1970-01-01'),
+                   date_to = COALESCE(type.validity_stop, hr_leave_allocation.date_to)
               FROM hr_leave_type AS type
              WHERE type.id = hr_leave_allocation.holiday_status_id
         """
