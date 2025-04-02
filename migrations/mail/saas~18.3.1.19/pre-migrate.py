@@ -56,3 +56,4 @@ def migrate(cr, version):
     util.remove_field(cr, "mail.activity.type", "keep_done")
 
     util.remove_record(cr, "mail.module_category_canned_response")
+    util.remove_field(cr, "mail.activity.schedule", "plan_summary")
