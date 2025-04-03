@@ -13,13 +13,17 @@ def migrate(cr, version):
     for table in tables:
         if not util.column_exists(cr, table, "report_id"):
             continue
-        cr.execute(
-            f"""
-            ALTER TABLE {table}
-             DROP CONSTRAINT IF EXISTS {table}_report_id_fkey,
-              ADD CONSTRAINT {table}_report_id_fkey
-                  FOREIGN KEY (report_id) REFERENCES ir_act_report_xml(id)
-                       ON DELETE CASCADE;
+        query = util.format_query(
+            cr,
             """
+            ALTER TABLE {table}
+             DROP CONSTRAINT IF EXISTS {fk},
+              ADD CONSTRAINT {fk}
+                  FOREIGN KEY (report_id) REFERENCES ir_act_report_xml(id)
+                       ON DELETE CASCADE
+            """,
+            table=table,
+            fk=f"{table}_report_id_fkey",
         )
+        cr.execute(query)
         _logger.info("Change FK of %s.report_id to be `ON DELETE CASCADE`", table)
