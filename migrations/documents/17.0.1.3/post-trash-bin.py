@@ -65,7 +65,8 @@ def migrate(cr, version):
         )
 
         if how_many:
-            trash_url = "/web#model=documents.document&view_type=kanban&folder_id=TRASH"
+            menu_id = util.ref(cr, "documents.menu_root")
+            trash_url = f"/web#model=documents.document&view_type=kanban&menu_id={menu_id}&folder_id=TRASH"
             util.add_to_migration_reports(
                 f"""
                     In Odoo 17, the archived documents are deleted after 30 days. This delay can be changed in the settings.
