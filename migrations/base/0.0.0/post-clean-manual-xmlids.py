@@ -10,7 +10,8 @@ def migrate(cr, version):
     included_modules = {"__export__"}
     modules_that_should_not_have_manual_fields_xmlid = set(standard_modules) - excluded_modules | included_modules
 
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         DELETE
           FROM ir_model_data d
@@ -23,8 +24,7 @@ def migrate(cr, version):
            AND m.state = 'base'
            AND d.module IN %s
             {}
-    """.format(
-            "AND d.studio IS NOT TRUE" if util.column_exists(cr, "ir_model_data", "studio") else ""
-        ),
-        [tuple(modules_that_should_not_have_manual_fields_xmlid)],
+        """,
+        util.SQLStr("AND d.studio IS NOT TRUE" if util.column_exists(cr, "ir_model_data", "studio") else ""),
     )
+    cr.execute(query, [tuple(modules_that_should_not_have_manual_fields_xmlid)])

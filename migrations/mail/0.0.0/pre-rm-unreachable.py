@@ -32,22 +32,26 @@ def migrate(cr, version):
         if not util.get_index_on(cr, table, "alias_id"):
             alias_indexes[table] = "upgrade_fk_alias_idx_{mid}".format(mid=mid)
 
-        alias_queries.append(
-            cr.mogrify(
-                """
-                    UPDATE mail_alias a
-                       SET alias_parent_thread_id = t.id
-                      FROM {table} t
-                     WHERE t.alias_id = a.id
-                       AND a.alias_parent_model_id = %s
-                       AND a.alias_parent_thread_id != t.id
-                """.format(table=table),
-                [mid],
-            )
+        query = util.format_query(
+            cr,
+            """
+                UPDATE mail_alias a
+                   SET alias_parent_thread_id = t.id
+                  FROM {} t
+                 WHERE t.alias_id = a.id
+                   AND a.alias_parent_model_id = %s
+                   AND a.alias_parent_thread_id != t.id
+            """,
+            table,
         )
+        alias_queries.append(cr.mogrify(query, [mid]))
 
     util.parallel_execute(
-        cr, ["CREATE INDEX {idx} ON {tbl}(alias_id)".format(tbl=tbl, idx=idx) for tbl, idx in alias_indexes.items()]
+        cr,
+        [
+            util.format_query(cr, "CREATE INDEX {idx} ON {tbl}(alias_id)", tbl=tbl, idx=idx)
+            for tbl, idx in alias_indexes.items()
+        ],
     )
     util.ENVIRON["__created_fk_idx"].extend(alias_indexes.values())
 
@@ -57,13 +61,13 @@ def migrate(cr, version):
     for ir in util.indirect_references(cr, bound_only=True):
         if ir.table == "mail_alias":
             assert not ir.company_dependent_comodel
-            util.parallel_execute(
-                cr,
-                [
-                    "{query} AND {ir.res_id} IS NOT NULL AND {ir.res_id} != 0".format(query=query, ir=ir)
-                    for query in util.generate_indirect_reference_cleaning_queries(cr, ir)
-                ],
-            )
+            queries = [
+                util.format_query(
+                    cr, "{query} AND {res_id} IS NOT NULL AND {res_id} != 0", query=util.SQLStr(query), res_id=ir.res_id
+                )
+                for query in util.generate_indirect_reference_cleaning_queries(cr, ir)
+            ]
+            util.parallel_execute(cr, queries)
         elif ir.table in ["mail_mail_statistics", "mailing_trace"]:
             assert not ir.company_dependent_comodel
             # statistics table (renamed in saas~12.5) has a NULLABLE m2o to `mail_mail`.

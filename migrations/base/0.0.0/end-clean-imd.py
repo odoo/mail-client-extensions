@@ -17,7 +17,7 @@ def migrate(cr, version):
         if util.column_exists(cr, table, "active"):
             queries.append(
                 cr.mogrify(
-                    "UPDATE {} SET active = false WHERE id IN %s".format(table),
+                    util.format_query(cr, "UPDATE {} SET active = false WHERE id IN %s", table),
                     [tuple(ids)],
                 ).decode()
             )

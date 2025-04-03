@@ -17,7 +17,10 @@ def migrate(cr, version):
     # Here we simulate standard views that change during the upgrade
     if not DATA_TABLE or not util.table_exists(cr, DATA_TABLE):
         return
-    cr.execute("SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1".format(DATA_TABLE))
+    query = util.format_query(
+        cr, "SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1", DATA_TABLE
+    )
+    cr.execute(query)
     if not cr.rowcount:
         return
 

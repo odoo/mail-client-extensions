@@ -43,13 +43,13 @@ def migrate(cr, version):
             util.create_id_sequence(cr, table=table_name)
             continue
 
-        cr.execute('SELECT max(id) FROM "{}"'.format(table_name))
+        cr.execute(util.format_query(cr, "SELECT max(id) FROM {}", table_name))
         max_id = cr.fetchone()[0]
 
         if not max_id:
             continue
 
-        cr.execute('SELECT last_value FROM "{}"'.format(seq_name))
+        cr.execute(util.format_query(cr, "SELECT last_value FROM {}", seq_name))
         last_val = cr.fetchone()[0]
 
         if last_val >= max_id:
@@ -60,4 +60,4 @@ def migrate(cr, version):
             seq_name,
             table_name,
         )
-        cr.execute("SELECT setval('{}',%s)".format(seq_name), [max_id])
+        cr.execute("SELECT setval(%s, %s)", [seq_name, max_id])

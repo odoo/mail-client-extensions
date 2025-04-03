@@ -9,7 +9,8 @@ def migrate(cr, version):
         ("uom_uom", "uom_category") if util.table_exists(cr, "uom_uom") else ("product_uom", "product_uom_categ")
     )
 
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         WITH cats_single_ref AS (
             SELECT category_id as id
@@ -27,13 +28,13 @@ def migrate(cr, version):
            AND u.uom_type = 'reference'
            AND u.active = False
      RETURNING u.{uom_col}, c.{categ_col}
-    """.format(
-            uom_table=uom_table,
-            category_table=category_table,
-            uom_col=util.get_value_or_en_translation(cr, uom_table, "name"),
-            categ_col=util.get_value_or_en_translation(cr, category_table, "name"),
-        )
+        """,
+        uom_table=uom_table,
+        category_table=category_table,
+        uom_col=util.get_value_or_en_translation(cr, uom_table, "name"),
+        categ_col=util.get_value_or_en_translation(cr, category_table, "name"),
     )
+    cr.execute(query)
     activated_uoms = cr.fetchall()
     if activated_uoms:
         util.add_to_migration_reports(

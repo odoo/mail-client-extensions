@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
@@ -23,4 +24,4 @@ def migrate(cr, version):
         """
     )
     for table, column in cr.fetchall():
-        cr.execute('ALTER TABLE "{}" ALTER COLUMN "{}" DROP DEFAULT'.format(table, column))
+        cr.execute(util.format_query(cr, "ALTER TABLE {} ALTER COLUMN {} DROP DEFAULT", table, column))

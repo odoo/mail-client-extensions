@@ -68,11 +68,18 @@ def migrate(cr, version):
     global ODOO_MIG_TRY_FIX_VIEWS  # noqa: PLW0603
 
     if DATA_TABLE and util.table_exists(cr, DATA_TABLE):
-        cr.execute("SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1".format(DATA_TABLE))
+        cr.execute(
+            util.format_query(
+                cr, "SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1", DATA_TABLE
+            )
+        )
         ODOO_MIG_TRY_FIX_VIEWS |= bool(cr.rowcount)  # force fixing views whenever TestFixViews.test_prepare was run
 
-    cast = "->>'en_US' as arch_db" if util.column_type(cr, "ir_ui_view", "arch_db") == "jsonb" else ""
-    cr.execute("SELECT id,model,arch_db{} INTO UNLOGGED ir_ui_view_data_backup FROM ir_ui_view".format(cast))
+    arch_db = util.get_value_or_en_translation(cr, "ir_ui_view", "arch_db")
+    query = util.format_query(
+        cr, "SELECT id,model,{} as arch_db INTO UNLOGGED ir_ui_view_data_backup FROM ir_ui_view", arch_db
+    )
+    cr.execute(query)
     cr.execute("ALTER TABLE ir_ui_view_data_backup ADD PRIMARY KEY(id)")
 
     # The ORM always use views set via search_view_id column or ir_act_window_view table.

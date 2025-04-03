@@ -35,7 +35,8 @@ def recompute_is_anglo_saxon_flag_for_all_aml(cr, move_type):
     # 5. get sure that for all candidate, there is an exact opposite one that isn't it-self (the balance = 0 corner case)
     # 6. compute the flag for all amls
 
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         WITH property_stock_account AS (
             -- ir_property.value_reference contains data like this "account.account,1020" which is "model,model.id"
@@ -124,5 +125,7 @@ def recompute_is_anglo_saxon_flag_for_all_aml(cr, move_type):
           FROM all_aml
          WHERE aml.id = all_aml.id
            AND aml.is_anglo_saxon_line IS DISTINCT FROM all_aml.computed_is_anglo_saxon_line
-    """.format(move_type=move_type)
+        """,
+        move_type=move_type,
     )
+    cr.execute(query)

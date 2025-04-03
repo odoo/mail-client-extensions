@@ -16,7 +16,8 @@ def migrate(cr, version):
         prop_label = "split_part(a.account_type, '_', 2)"
 
     # ensure each company have a defaults partner properties set
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         INSERT INTO ir_property(name, company_id, type, fields_id, value_reference)
         SELECT f.name, a.company_id, 'many2one', f.id, CONCAT('account.account,', (array_agg(a.id ORDER BY a.code))[1])
@@ -27,8 +28,12 @@ def migrate(cr, version):
          WHERE {}
            AND p.id IS NULL
       GROUP BY f.name, a.company_id, f.id
-        """.format(join, prop_label, condition)
+        """,
+        util.SQLStr(join),
+        util.SQLStr(prop_label),
+        util.SQLStr(condition),
     )
+    cr.execute(query)
 
     # If you didn't understand the previous query, here is the equivalent in human readable code
     """

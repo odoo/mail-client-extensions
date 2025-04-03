@@ -15,7 +15,8 @@ def migrate(cr, version):
     if util.version_gte("saas~17.5"):
         payment_field = "origin_payment_id"
 
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         SELECT ap.payment_type,
                array_agg(ap.id)
@@ -29,8 +30,12 @@ def migrate(cr, version):
            AND ap.is_reconciled IS False
            {}
          GROUP BY ap.payment_type
-        """.format(payment_field, extra_join, extra_where)
+        """,
+        payment_field,
+        util.SQLStr(extra_join),
+        util.SQLStr(extra_where),
     )
+    cr.execute(query)
     for payment_type, payment_ids in cr.fetchall():
         if not payment_ids:
             continue

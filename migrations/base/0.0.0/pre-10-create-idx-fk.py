@@ -92,7 +92,8 @@ def migrate(cr, version):
 
     # Return all FK columns from BIG tables
     _logger.info("Search for foreign keys in big tables.")
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         SELECT quote_ident(cl1.relname) AS big_table,
                quote_ident(att1.attname) AS big_table_column,
@@ -128,9 +129,10 @@ def migrate(cr, version):
            AND array_lower(con.confkey, 1) = 1
            AND con.confkey[1] = att2.attnum
            AND con.contype = 'f'
-        """.format("indnkeyatts" if cr._cnx.server_version >= 110000 else "indnatts"),
-        [util.BIG_TABLE_THRESHOLD],
+        """,
+        "indnkeyatts" if cr._cnx.server_version >= 110000 else "indnatts",
     )
+    cr.execute(query, [util.BIG_TABLE_THRESHOLD])
     for i, (big_table, big_table_column, partial) in enumerate(cr.fetchall(), start=1):
         index_name = "upgrade_fk_related_idx_{}".format(i)
         util.ENVIRON["__created_fk_idx"].append(index_name)

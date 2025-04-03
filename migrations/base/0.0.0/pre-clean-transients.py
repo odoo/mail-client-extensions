@@ -23,21 +23,26 @@ def migrate(cr, version):
                 fks_to_drop[fk_table].append(fk_constraint)
 
     if columns_to_set_null:
-        util.parallel_execute(
-            cr,
-            [
-                "ALTER TABLE {} {}".format(t, ", ".join("ALTER COLUMN {} DROP NOT NULL".format(c) for c in columns))
-                for t, columns in columns_to_set_null.items()
-            ],
-        )
+        queries = [
+            util.format_query(
+                cr,
+                "ALTER TABLE {} {}",
+                t,
+                sql.SQL(", ").join(sql.SQL(util.format_query(cr, "ALTER COLUMN {} DROP NOT NULL", c)) for c in columns),
+            )
+            for t, columns in columns_to_set_null.items()
+        ]
+        util.parallel_execute(cr, queries)
         update_set_null_queries = list(
             itertools.chain.from_iterable(
                 util.explode_query_range(
                     cr,
-                    "UPDATE {} SET {} WHERE ({}) AND {{parallel_filter}}".format(
+                    util.format_query(
+                        cr,
+                        "UPDATE {} SET {} WHERE ({}) AND {{parallel_filter}}",
                         t,
-                        ", ".join("{} = NULL".format(c) for c in q),
-                        " OR ".join("{} IS NOT NULL".format(c) for c in q),
+                        sql.SQL(", ").join(sql.SQL(util.format_query(cr, "{} = NULL", c)) for c in q),
+                        sql.SQL(" OR ").join(sql.SQL(util.format_query(cr, "{} IS NOT NULL", c)) for c in q),
                     ),
                     table=t,
                 )
@@ -47,9 +52,13 @@ def migrate(cr, version):
         util.parallel_execute(cr, update_set_null_queries)
 
     for table_name, constraints in fks_to_drop.items():
-        cr.execute(
-            "ALTER TABLE {} {}".format(table_name, ", ".join("DROP CONSTRAINT {}".format(c) for c in constraints))
+        query = util.format_query(
+            cr,
+            "ALTER TABLE {} {}",
+            table_name,
+            sql.SQL(", ").join(sql.SQL(util.format_query(cr, "DROP CONSTRAINT {}", c)) for c in constraints),
         )
+        cr.execute(query)
     cr.execute(util.format_query(cr, "TRUNCATE {} CASCADE", sql.SQL(", ").join(map(sql.Identifier, tables))))
 
     for ir in util.indirect_references(cr, bound_only=True):

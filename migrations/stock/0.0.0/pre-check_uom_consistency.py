@@ -59,7 +59,8 @@ def fix_moves(cr):
 
     # we need to ensure that the moves have compatible UoM
     # on the same category as their product's UoM
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         WITH bad_moves AS (
             SELECT m.id mid, pu.id uid
@@ -79,8 +80,10 @@ def fix_moves(cr):
              FROM bad_moves b
             WHERE m.id = b.mid
         RETURNING m.id, m.name
-        """.format("true" if update_uom_for_archived_product else "p.active")
+        """,
+        util.SQLStr("true" if update_uom_for_archived_product else "p.active"),
     )
+    cr.execute(query)
     data.update(cr.fetchall())
     data.pop(None, None)
 
@@ -110,7 +113,8 @@ def fix_with_most_used_method(cr, additional_conditions):
     """
     Fix stock move lines and product templates using the most used UoM category.
     """
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         -- select product templates where stock move line UoM category differs from product UoM category
         WITH product_templates AS (
@@ -150,8 +154,10 @@ def fix_with_most_used_method(cr, additional_conditions):
                 GROUP BY mc.tmpl_id,  uom.category_id, sml.product_uom_id
                 ORDER BY mc.tmpl_id, uom.category_id, COUNT(sml.product_uom_id) DESC, sml.product_uom_id
         ) as rows
-    """.format(additional_conditions)
+        """,
+        additional_conditions,
     )
+    cr.execute(query)
     moves = fix_moves(cr)
     templates = fix_product_templates(cr)
     log_customer_report(
@@ -171,7 +177,8 @@ def fix_with_from_product_method(cr, additional_conditions):
     """
     Fix stock move lines using the UoM of the corresponding product.
     """
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         SELECT distinct pt.id AS tmpl_id, pt.uom_id AS main_uom_id, uom2.category_id AS main_categ_id
           INTO TEMPORARY main_uoms
@@ -182,8 +189,10 @@ def fix_with_from_product_method(cr, additional_conditions):
           JOIN uom_uom uom2 ON uom2.id = pt.uom_id
          WHERE uom1.category_id != uom2.category_id
            AND {}
-        """.format(additional_conditions)
+        """,
+        additional_conditions,
     )
+    cr.execute(query)
     moves = fix_moves(cr)
     log_customer_report(
         cr,
@@ -240,7 +249,8 @@ def log_faulty_objects(cr, additional_conditions):
     In case no fixing method has been chosen, stop the migration with the
     list of faulty moves to inform the customer.
     """
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
           SELECT sml.move_id, array_agg(sml.id)
             FROM stock_move_line sml
@@ -251,8 +261,10 @@ def log_faulty_objects(cr, additional_conditions):
            WHERE uom1.category_id != uom2.category_id
              AND {}
         GROUP BY sml.move_id
-        """.format(additional_conditions)
+        """,
+        additional_conditions,
     )
+    cr.execute(query)
     if not cr.rowcount:
         return
     msg = """
@@ -308,7 +320,7 @@ def migrate(cr, version):
     if not util.version_gte("saas~15.2"):
         fix_inconsistencies_from_previous_migrations(cr)
 
-    additional_conditions = "true" if update_uom_for_archived_product else "pp.active = true"
+    additional_conditions = util.SQLStr("true" if update_uom_for_archived_product else "pp.active = true")
 
     if fix_inconsistencies_method == "MOST_USED":
         fix_with_most_used_method(cr, additional_conditions)
