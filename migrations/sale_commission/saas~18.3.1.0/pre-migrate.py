@@ -12,26 +12,18 @@ def migrate(cr, version):
         query = """
             WITH achievement_commission_lines AS (
                 SELECT
-                    sca.id AS sca_id,
-                    scpu.id AS scpu_id,
-                    sca.user_id,
-                    sca.team_id,
-                    scp.id AS plan_id,
-                    sca.currency_rate * sca.amount * scpa.rate AS achieved,
-                    sca.currency_id AS currency_id,
-                    sca.date,
-                    scp.company_id
-                FROM sale_commission_achievement sca
-                JOIN sale_commission_plan scp ON scp.company_id = sca.company_id
-                JOIN sale_commission_plan_achievement scpa ON scpa.plan_id = scp.id
-                JOIN sale_commission_plan_user scpu ON scpu.plan_id = scp.id
-            WHERE scp.active
-                AND scp.state = 'approved'
-                AND sca.type = scpa.type
-                AND CASE
-                    WHEN scp.user_type = 'person' THEN sca.user_id = scpu.user_id
-                    ELSE sca.team_id = scp.team_id
-                END
+                        sca.id AS sca_id,
+                        scpu.id AS scpu_id,
+                        sca.currency_rate * sca.amount * scpa.rate AS achieved
+                  FROM sale_commission_achievement sca
+                  JOIN sale_commission_plan scp ON scp.company_id = sca.company_id
+                  JOIN sale_commission_plan_achievement scpa ON scpa.plan_id = scp.id
+                  JOIN sale_commission_plan_user scpu ON scpu.plan_id = scp.id
+                 WHERE sca.type = scpa.type
+                   AND CASE
+                       WHEN scp.user_type = 'person' THEN sca.user_id = scpu.user_id
+                       ELSE sca.team_id = scp.team_id
+                   END
             )
             UPDATE sale_commission_achievement a
                SET add_user_id=l.scpu_id,
@@ -40,20 +32,6 @@ def migrate(cr, version):
              WHERE a.id=l.sca_id
         """
         cr.execute(query)
-
-        util.add_to_migration_reports(
-            message="""
-                    <details>
-                    <summary>
-                        The Sale Commission Adjustments have been migrated.
-                        Before the upgrade, a single adjustment could create several achievements if the user was active in several commission plan.
-                    </summary>
-                    </details>
-                """,
-            format="html",
-            category="Sale Commission",
-        )
-
     util.remove_field(cr, "sale.commission.report", "team_id")
     util.remove_field(cr, "sale.commission.achievement", "type")
     util.remove_field(cr, "sale.commission.achievement", "user_id")
