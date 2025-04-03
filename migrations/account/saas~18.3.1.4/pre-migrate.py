@@ -56,7 +56,6 @@ def migrate(cr, version):
     )
     account_ids = [row[0] for row in cr.fetchall()]
     if account_ids:
-
         # Copy paste of account.account _toggle_reconcile_to_true
         query = cr.mogrify(
             """
@@ -233,3 +232,7 @@ def migrate(cr, version):
         using="CASE {0} WHEN True THEN 'auto_reconcile' ELSE 'manual' END",
     )
     util.rename_field(cr, "account.reconcile.model", "auto_reconcile", "trigger")
+
+    util.rename_field(cr, "res.company", "check_account_audit_trail", "restrictive_audit_trail")
+    util.rename_field(cr, "res.config.settings", "check_account_audit_trail", "restrictive_audit_trail")
+    util.rename_field(cr, "mail.message", "account_audit_log_activated", "account_audit_log_restricted")
