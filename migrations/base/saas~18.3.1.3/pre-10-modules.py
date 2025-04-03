@@ -22,6 +22,9 @@ def migrate(cr, version):
 
     util.rename_module(cr, "pos_viva_wallet", "pos_viva_com")
 
+    util.merge_module(cr, "pos_preparation_display", "pos_enterprise")
+    util.remove_module(cr, "pos_hr_preparation_display")
+
     if util.has_enterprise():
         util.remove_module(cr, "sale_renting_sign")
         util.rename_module(cr, "pos_restaurant_appointment", "pos_appointment")
