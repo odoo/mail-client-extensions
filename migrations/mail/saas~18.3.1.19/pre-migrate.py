@@ -51,3 +51,5 @@ def migrate(cr, version):
          WHERE channel_member_id = m.id
     """
     util.explode_execute(cr, query, "discuss_channel_rtc_session")
+
+    util.remove_constraint(cr, "mail_activity", "mail_activity_check_res_id_is_set")
