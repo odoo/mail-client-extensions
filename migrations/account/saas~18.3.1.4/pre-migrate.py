@@ -132,3 +132,104 @@ def migrate(cr, version):
 
     util.remove_field(cr, "account.report.external.value", "foreign_vat_fiscal_position_id")
     util.rename_field(cr, "account.report", "filter_fiscal_position", "allow_foreign_vat")
+
+    # -= bank reco widget revamped =-
+    util.remove_field(cr, "account.reconcile.model.line", "rule_type")
+    util.remove_field(cr, "account.reconcile.model.line", "journal_id")
+    util.remove_field(cr, "account.reconcile.model.line", "allow_payment_tolerance")
+    util.remove_field(cr, "account.reconcile.model.line", "payment_tolerance_param")
+    util.remove_field(cr, "account.reconcile.model", "matching_order")
+    util.remove_field(cr, "account.reconcile.model", "match_note")
+    util.remove_field(cr, "account.reconcile.model", "match_note_param")
+    util.remove_field(cr, "account.reconcile.model", "match_transaction_details")
+    util.remove_field(cr, "account.reconcile.model", "match_transaction_details_param")
+    util.remove_field(cr, "account.reconcile.model", "match_text_location_label")
+    util.remove_field(cr, "account.reconcile.model", "match_text_location_note")
+    util.remove_field(cr, "account.reconcile.model", "match_text_location_reference")
+    util.remove_field(cr, "account.reconcile.model", "match_same_currency")
+    util.remove_field(cr, "account.reconcile.model", "match_partner_category_ids")
+    util.remove_field(cr, "account.reconcile.model", "match_partner")
+    util.remove_field(cr, "account.reconcile.model", "allow_payment_tolerance")
+    util.remove_field(cr, "account.reconcile.model", "payment_tolerance_param")
+    util.remove_field(cr, "account.reconcile.model", "payment_tolerance_type")
+    util.remove_field(cr, "account.reconcile.model", "counterpart_type")
+
+    # each of the partner_mapping lines should be a dedicated reco model
+    util.explode_execute(
+        cr,
+        r"""
+        INSERT INTO account_reconcile_model(
+                    sequence, company_id, journal_id, auto_reconcile,
+                    match_label, match_label_param,
+                    name, rule_type, active
+                    )
+             SELECT 100, model.company_id, model.journal_id, 't',
+                    'contains', COALESCE(map.payment_ref_regex, map.narration_regex),
+                    jsonb_build_object('en_US', 'partner\_mapping\_' || map.id), 'writeoff_button', 't'
+               FROM account_reconcile_model_partner_mapping map
+               JOIN account_reconcile_model model
+                 ON map.model_id = model.id
+              WHERE model.rule_type != 'writeoff_button'
+        """,
+        table="account_reconcile_model",
+        alias="model",
+    )
+    # assign matching_journal_ids
+    cr.execute(
+        r"""
+        INSERT INTO account_journal_account_reconcile_model_rel(account_reconcile_model_id, account_journal_id)
+             SELECT new_model.id, m2m.account_journal_id
+               FROM account_journal_account_reconcile_model_rel m2m
+               JOIN account_reconcile_model parent_model
+                 ON m2m.account_reconcile_model_id = parent_model.id
+               JOIN account_reconcile_model_partner_mapping map
+                 ON map.model_id = parent_model.id
+               JOIN account_reconcile_model new_model
+                 ON (new_model.name::TEXT like '%' || 'partner\_mapping\_' || map.id::TEXT || '%')
+        ON CONFLICT DO NOTHING
+        """
+    )
+    # assign the right partner by creating a counterpart line with map.partner_id and no account
+    util.create_column(cr, "account_reconcile_model_line", "partner_id", "int")
+    util.explode_execute(
+        cr,
+        r"""
+        INSERT INTO account_reconcile_model_line(model_id, partner_id, sequence, amount_type, amount_string, company_id)
+             SELECT model.id, map.partner_id, 10, 'percentage', '100', model.company_id
+               FROM account_reconcile_model model
+               JOIN account_reconcile_model_partner_mapping map
+                 ON (model.name::TEXT like '%' || 'partner\_mapping\_' || map.id::TEXT || '%')
+              WHERE model.name::TEXT like '%' || 'partner\_mapping\_' || '%'
+        """,
+        table="account_reconcile_model",
+        alias="model",
+    )
+
+    # invoice_matching ("pure" or with counterpart suggestion) is now hardcoded
+    util.explode_execute(
+        cr,
+        """
+         DELETE FROM account_reconcile_model
+         WHERE rule_type IN ('invoice_matching', 'writeoff_suggestion')
+        """,
+        table="account_reconcile_model",
+    )
+
+    util.remove_field(cr, "account.reconcile.model", "rule_type")
+    util.remove_field(cr, "account.reconcile.model", "journal_id")
+    util.remove_field(cr, "account.reconcile.model", "number_entries")
+    util.remove_field(cr, "account.reconcile.model", "past_months_limit")
+    util.remove_field(cr, "account.reconcile.model", "number_entries")
+    util.remove_field(cr, "account.reconcile.model", "decimal_separator")
+    util.remove_field(cr, "account.reconcile.model", "show_decimal_separator")
+    util.remove_field(cr, "account.reconcile.model", "partner_mapping_line_ids")
+    util.remove_field(cr, "account.reconcile.model", "to_check")
+    util.remove_model(cr, "account.reconcile.model.partner.mapping")
+    util.alter_column_type(
+        cr,
+        "account_reconcile_model",
+        "auto_reconcile",
+        "varchar",
+        using="CASE {0} WHEN True THEN 'auto_reconcile' ELSE 'manual' END",
+    )
+    util.rename_field(cr, "account.reconcile.model", "auto_reconcile", "trigger")
