@@ -22,3 +22,5 @@ def migrate(cr, version):
     util.remove_constraint(cr, "ir_filters", "ir_filters_name_model_uid_unique")
     cr.execute("DROP INDEX IF EXISTS ir_filters_name_model_uid_unique_action_index")
     util.rename_xmlid(cr, "l10n_fr.dom-tom", "base.dom-tom")
+
+    util.remove_column(cr, "res_users_identitycheck", "password")
