@@ -28,3 +28,38 @@ def migrate(cr, version):
         util.merge_module(cr, "sale_commission_linked_achievement", "sale_commission")
 
     util.remove_module(cr, "l10n_br_test_avatax_sale")
+
+    if util.modules_installed(cr, "membership", "website_crm_partner_assign"):
+        cr.execute("""
+            SELECT id, name
+              FROM res_partner r
+             WHERE COALESCE(r.membership_stop > NOW() at time zone 'UTC', true)
+               AND COALESCE(r.membership_start < NOW() at time zone 'UTC', true)
+               AND r.membership_state NOT IN ('none', 'canceled', 'old')
+               AND r.grade_id IS NOT NULL
+        """)
+        total = cr.rowcount
+        rows = cr.fetchmany(20)
+        if rows:
+            util.add_to_migration_reports(
+                category="Membership",
+                message="""
+                    <details>
+                        <summary>
+                            In Odoo 19, the "Membership" module has dramatically changed.
+                            Members are now handled via grades/levels assigned from the contact form or by selling a membership product.
+                            The following list show {}partners that already had an assigned grade before upgrade that is not linked to their current membership:
+                        </summary>
+                        <ul>{}</ul>
+                    </details>
+                """.format(
+                    "(first 20 out of {}) ".format(total) if total > 20 else " ",
+                    "".join(
+                        "<li>{}</li>".format(util.get_anchor_link_to_record("res.partner", id, name))
+                        for id, name in rows
+                    ),
+                ),
+            )
+
+    util.rename_module(cr, "membership", "partnership")
+    util.remove_module(cr, "website_membership")
