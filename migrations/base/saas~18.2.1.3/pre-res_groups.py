@@ -67,3 +67,26 @@ def migrate(cr, version):
     # remove dynamic fields and related view
     util.remove_view(cr, "base.user_groups_view")
     util.remove_field(cr, "res.users", "user_group_warning")
+
+    # Remove users from implied groups, now handled by computed m2m
+    cr.execute(
+        """
+        WITH RECURSIVE all_implied AS (
+            SELECT users.uid,
+                   implied.hid
+              FROM res_groups_users_rel users
+              JOIN res_groups_implied_rel implied
+                ON users.gid = implied.gid
+             UNION
+            SELECT result.uid,
+                   implied.hid
+              FROM res_groups_implied_rel implied
+              JOIN all_implied result
+                ON implied.gid = result.hid
+        )
+        DELETE FROM res_groups_users_rel users
+         USING all_implied result
+         WHERE users.uid = result.uid
+           AND users.gid = result.hid
+        """
+    )
