@@ -1,3 +1,5 @@
+import textwrap
+
 from odoo.upgrade import util
 
 
@@ -68,3 +70,65 @@ def migrate(cr, version):
             [tuple(account_ids)],
         ).decode()
         util.explode_execute(cr, query, table="account_move_line")
+
+    """
+    This case was mechanically supported, but we know the use case
+    we implemented it for actually ended up not being covered by this,
+    and now makes use of branches for that.
+    So, we have very good reasons to believe no one is using this.
+    This check in the script is just there to ensure we can be directly
+    aware if this assumption proves incorrect.
+    Then, we'll see case by case (=> contact oco).
+    It should anyway touch very very few people.
+    """
+    cr.execute(
+        """
+        SELECT c.code,
+               ARRAY_AGG(fp.name ORDER BY fp.id),
+               ARRAY_AGG(fp.foreign_vat ORDER BY fp.id)
+          FROM account_fiscal_position fp
+          JOIN res_country c
+            ON fp.country_id = c.id
+         WHERE fp.foreign_vat IS NOT NULL
+      GROUP BY c.id
+        HAVING COUNT(DISTINCT fp.foreign_vat) > 1
+        """
+    )
+
+    if cr.rowcount:
+        fps_by_country = "\n".join(
+            f"- {country_code}: " + ", ".join(f"{name} (VAT: {vat})" for name, vat in zip(names, vats))
+            for country_code, names, vats in cr.fetchall()
+        )
+        raise util.UpgradeError(
+            textwrap.dedent(
+                f"""
+                Multiple fiscal positions with different foreign VAT numbers exist for the same country in your database.
+                This configuration is not supported anymore.
+                Fiscal positions by country:
+                {fps_by_country}
+                """
+            )
+        )
+
+    util.change_field_selection_values(
+        cr,
+        "account.report",
+        "default_opening_date_filter",
+        {
+            "this_tax_period": "this_return_period",
+            "previous_tax_period": "previous_return_period",
+        },
+    )
+
+    util.change_field_selection_values(
+        cr,
+        "account.report.expression",
+        "date_scope",
+        {
+            "previous_tax_period": "previous_return_period",
+        },
+    )
+
+    util.remove_field(cr, "account.report.external.value", "foreign_vat_fiscal_position_id")
+    util.rename_field(cr, "account.report", "filter_fiscal_position", "allow_foreign_vat")
