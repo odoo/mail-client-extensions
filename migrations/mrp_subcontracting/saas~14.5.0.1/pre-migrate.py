@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -23,4 +22,10 @@ def migrate(cr, version):
     )
 
     util.create_column(cr, "stock_warehouse", "subcontracting_resupply_type_id", "int4")
-    cr.execute("UPDATE stock_warehouse SET subcontracting_resupply_type_id = out_type_id")
+    cr.execute(
+        """
+        UPDATE stock_warehouse
+           SET subcontracting_resupply_type_id = out_type_id
+         WHERE subcontracting_to_resupply = True
+        """
+    )
