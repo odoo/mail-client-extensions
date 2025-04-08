@@ -60,9 +60,6 @@ def migrate(cr, version):
         util.remove_column(cr, "documents_document", "_upg_181_opf_project_folder_id")
         return
 
-    if cr.rowcount > 100:
-        raise util.MigrationError("Documents [Project]: Too many shortcuts to create, further investigation required.")
-
     cr.execute(
         """
         INSERT INTO documents_tag (name, color, sequence)
@@ -87,19 +84,43 @@ def migrate(cr, version):
     cr.execute(
         """
         SELECT d._upg_181_opf_project_folder_id,
-               ARRAY_AGG(d.id) as doc_ids
+               ARRAY_AGG(d.id) AS doc_ids,
+               pf.name,
+               pf.owner_id
           FROM documents_document d
           JOIN documents_document pf
             ON d._upg_181_opf_project_folder_id = pf.id
          WHERE pf.active
-      GROUP BY d._upg_181_opf_project_folder_id
+      GROUP BY d._upg_181_opf_project_folder_id,
+               pf.name,
+               pf.owner_id
         """
     )
     res = cr.fetchall()
     util.remove_column(cr, "documents_document", "_upg_181_opf_project_folder_id")
 
     # 2. Create shortcut inside the project folder for each document linked but located outside it.
-    for destination_id, document_ids in res:
+    #    If more than 30 (arbitrary number) shortcuts are to be created for a project,
+    #    they will be created in a new subfolder instead.
+    subfolders_map = {}
+    subfolder_vals = []
+    for folder_id, document_ids, name, owner_id in res:
+        if len(document_ids) > 30:
+            subfolder_vals.append(
+                {
+                    "folder_id": folder_id,
+                    "name": f"{name} (shortcuts)",
+                    "owner_id": owner_id,
+                    "type": "folder",
+                }
+            )
+
+    if subfolder_vals:
+        subfolders = util.env(cr)["documents.document"].create(subfolder_vals)
+        subfolders_map = dict(zip([vals["folder_id"] for vals in subfolder_vals], subfolders.ids))
+
+    for folder_id, document_ids, _, _ in res:
+        destination_id = subfolders_map.get(folder_id, folder_id)
         for docs in util.iter_browse(util.env(cr)["documents.document"], document_ids, strategy="commit"):
             docs.action_create_shortcut(location_folder_id=destination_id)
 
