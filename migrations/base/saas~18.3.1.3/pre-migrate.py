@@ -10,6 +10,8 @@ def migrate(cr, version):
     util.remove_field(cr, "base.module.uninstall", "module_id")
     util.rename_field(cr, "base.module.uninstall", "module_ids", "impacted_module_ids")
 
+    util.remove_view(cr, "base.res_partner_view_form_private")
+
     # replace ir.filters user_id many2one by user_ids (many2many)
     util.create_m2m(cr, "ir_filters_res_users_rel", "ir_filters", "res_users")
     cr.execute("""
