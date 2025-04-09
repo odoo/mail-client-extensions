@@ -2,6 +2,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    util.remove_field(cr, "add.iot.box", "token")
+    util.remove_field(cr, "add.iot.box", "use_token")
     util.remove_field(cr, "iot.box", "is_websocket_active")
 
     util.create_column(cr, "iot_device", "connected_status", "varchar")
