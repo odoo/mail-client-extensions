@@ -1,0 +1,135 @@
+from odoo.upgrade import util
+
+documents_18_pre_migrate = util.import_script("documents/saas~17.5.1.4/pre-migrate.py")
+
+
+def migrate(cr, version):
+    util.create_column(cr, "res_config_settings", "documents_employee_folder_id", "int4", fk_table="documents_document")
+    util.create_column(cr, "res_company", "documents_employee_folder_id", "int4", fk_table="documents_document")
+    util.create_column(cr, "hr_employee", "hr_employee_folder_id", "int4", fk_table="documents_document")
+
+    util.remove_field(cr, "hr.departure.wizard", "send_hr_documents_access_link")
+    util.remove_field(cr, "hr.departure.wizard", "send_documents_enabled")
+    util.remove_field(cr, "hr.departure.wizard", "warning_message")
+    util.remove_view(cr, "documents_hr.hr_departure_wizard_view_form")
+    util.remove_record(cr, "documents_hr.hr_departure_wizard_action")
+    util.delete_unused(cr, "documents_hr.mail_template_document_folder_link")
+    util.delete_unused(cr, "documents_hr.ir_actions_server_send_access_link")
+
+    util.create_column(cr, "documents_document", "_upg_employee_id", "int4")
+
+    with documents_18_pre_migrate.create_documents_without_alias_and_token(cr):
+        group_hr_user_id = util.ref(cr, "hr.group_hr_user")
+
+        # Create an Employees folder under "HR" for each company
+        cr.execute(
+            """
+            WITH company_employee_folders AS (
+                INSERT INTO documents_document (
+                    name, company_id, "type",
+                    folder_id, owner_id,
+                    access_internal, access_via_link, is_access_via_link_hidden
+                )
+                SELECT jsonb_build_object('en_US', 'Employees'), c.id, 'folder',
+                        c.documents_hr_folder, NULL,
+                       'none', 'none', TRUE
+                  FROM res_company c
+                 WHERE documents_hr_settings
+             RETURNING id AS did, company_id AS cid
+            ),
+            parent_path_update AS (
+                UPDATE documents_document d
+                   SET parent_path = f.parent_path || cef.did || '/'
+                  FROM company_employee_folders cef
+                  JOIN documents_document f
+                    ON cef.did = f.id
+                 WHERE d.id = cef.did
+            ),
+            hr_members_access AS (
+                INSERT INTO documents_access (document_id, partner_id, role)
+                     SELECT cef.did,
+                            u.partner_id,
+                           'edit'
+                       FROM company_employee_folders cef
+                       JOIN res_company_users_rel rcu
+                         ON rcu.cid = cef.cid
+                       JOIN res_groups_users_rel gu
+                         ON rcu.user_id = gu.uid
+                       JOIN res_users u
+                         ON u.id = gu.uid
+                        AND rcu.user_id = u.id
+                      WHERE gu.gid = %s
+                        AND u.active
+           )
+           UPDATE res_company c
+              SET documents_employee_folder_id = company_employee_folders.did
+             FROM company_employee_folders
+            WHERE company_employee_folders.cid = c.id
+            """,
+            [group_hr_user_id],
+        )
+
+        # Create a folder for each employee in the new "Employees" folders.
+        # Second query as must be parallelized per employee.
+        util.explode_execute(
+            cr,
+            cr.mogrify(
+                """
+                WITH employees_folders AS (
+                    INSERT INTO documents_document (
+                            _upg_employee_id, type, name, company_id, folder_id,
+                            access_internal, access_via_link, is_access_via_link_hidden
+                        )
+                         SELECT e.id,
+                                'folder',
+                                jsonb_build_object('en_US', e.name),
+                                e.company_id AS company_id,
+                                c.documents_employee_folder_id AS folder_id,
+                                'none',
+                                'none',
+                                TRUE
+                           FROM hr_employee e
+                           JOIN res_company c
+                             ON c.id = e.company_id
+                          WHERE e.active
+                            AND c.documents_employee_folder_id IS NOT NULL
+                            AND {parallel_filter}
+                      RETURNING id as did,
+                                folder_id as fid,
+                                company_id as cid,
+                                _upg_employee_id as eid
+                ),
+                parent_path_update AS (
+                    UPDATE documents_document d
+                       SET parent_path = f.parent_path || ef.did || '/'
+                      FROM employees_folders ef
+                      JOIN documents_document f
+                        ON ef.fid = f.id
+                     WHERE d.id = ef.did
+                ),
+                hr_members_access AS (
+                    INSERT INTO documents_access (document_id, partner_id, role)
+                         SELECT ef.did,
+                                u.partner_id,
+                                'edit'
+                           FROM employees_folders ef
+                           JOIN res_company_users_rel rcu
+                             ON rcu.cid = ef.cid
+                           JOIN res_groups_users_rel gu
+                             ON rcu.user_id = gu.uid
+                           JOIN res_users u
+                             ON u.id = gu.uid
+                            AND rcu.user_id = u.id
+                          WHERE gu.gid = %s
+                            AND u.active
+                )
+                UPDATE hr_employee e
+                   SET hr_employee_folder_id = ef.did
+                  FROM employees_folders ef
+                 WHERE e.id = ef.eid
+                """,
+                [group_hr_user_id],
+            ).decode(),
+            table="hr_employee",
+            alias="e",
+        )

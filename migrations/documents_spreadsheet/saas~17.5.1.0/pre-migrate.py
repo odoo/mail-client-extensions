@@ -119,34 +119,7 @@ def migrate(cr, version):
     )
 
     # Create an alias for the newly created documents
-    document_model_id = util.ref(cr, "documents.model_documents_document")
-    util.explode_execute(
-        cr,
-        # FIXME is it `alias_parent_*` or `alias_force_*` columns that should be filled?
-        cr.mogrify(
-            """
-            WITH _aliases AS (
-                INSERT INTO mail_alias(alias_name, alias_model_id, alias_force_thread_id,
-                                       alias_defaults,
-                                       alias_contact, alias_status)
-                   SELECT NULL, %s, d.id,
-                          jsonb_build_object('folder_id', d.folder_id)::text,
-                          'followers', 'invalid'
-                     FROM documents_document d
-                    WHERE d.alias_id IS NULL
-                      AND {parallel_filter}
-                RETURNING id, alias_force_thread_id
-            )
-            UPDATE documents_document d
-               SET alias_id = a.id
-              FROM _aliases a
-             WHERE a.alias_force_thread_id = d.id
-            """,
-            [document_model_id],
-        ).decode(),
-        table="documents_document",
-        alias="d",
-    )
+    documents_pre_migrate.fix_missing_alias_ids(cr)
 
     # move excel_export, datas, ... from <documents.shared.spreadsheet> to <documents.document>
     util.explode_execute(
