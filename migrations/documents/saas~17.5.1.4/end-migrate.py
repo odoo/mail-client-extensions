@@ -512,7 +512,7 @@ def migrate_workflow_rule(
                     state="next_activity",
                     activity_type_id=workflow_rule["activity_type_id"],
                     activity_summary=workflow_rule["activity_summary"],
-                    activity_date_deadline_range=workflow_rule["activity_date_deadline_range"],
+                    activity_date_deadline_range=max(0, workflow_rule["activity_date_deadline_range"] or 0),
                     activity_date_deadline_range_type=workflow_rule["activity_date_deadline_range_type"],
                     activity_note=workflow_rule["activity_note"],
                     activity_user_type="generic" if workflow_rule["has_owner_activity"] else "specific",
