@@ -37,23 +37,31 @@ def migrate(cr, version):
             )
         )
 
+    def gen_adapter(old, new):
+        def adapter(leaf, _or, _neg):
+            left, op, right = leaf
+            path = left.split(".")
+            if path[-2:] == [old, "id"] and op in ("=", "!="):
+                op = "in" if op == "=" else "not in"
+                path[-2:] = [new]
+                right = [right]
+            path = [new if part == old else part for part in path]
+            leaf = (".".join(path), op, right)
+            return [leaf]
+
+        return adapter
+
     # Additions are always made on `user_ids`.
     # For domains it is the computed field `all_user_ids` (users having this
     # group or being inside from implied groups).
-    def adapter_user_ids(leaf, _or, _neg):
-        left, op, right = leaf
-        return [("all_user_ids", op, right)]
-
-    util.rename_field(cr, "res.groups", "users", "user_ids", domain_adapter=adapter_user_ids)
+    util.rename_field(cr, "res.groups", "users", "user_ids", domain_adapter=gen_adapter("users", "all_users_ids"))
     util.rename_field(cr, "res.groups", "trans_implied_ids", "all_implied_ids")
 
     # Additions are always made on `group_ids`.
     # For domains it is the computed field `all_group_ids`.
-    def adapter_group_ids(leaf, _or, _neg):
-        left, op, right = leaf
-        return [("all_group_ids", op, right)]
-
-    util.rename_field(cr, "res.users", "groups_id", "group_ids", domain_adapter=adapter_group_ids)
+    util.rename_field(
+        cr, "res.users", "groups_id", "group_ids", domain_adapter=gen_adapter("groups_id", "all_group_ids")
+    )
 
     # The fields below do not have an all_group_ids variant. There are no cases
     # where implied groups are used by these models.
