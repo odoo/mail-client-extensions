@@ -7,6 +7,8 @@ def migrate(cr, version):
     # explicit removal for databases without odoo/odoo#199109
     util.remove_field(cr, "ir.cron", "binding_invisible")
     util.rename_xmlid(cr, "base.state_id_pp", "base.state_id_pe", on_collision="merge")
+    util.remove_field(cr, "base.module.uninstall", "module_id")
+    util.rename_field(cr, "base.module.uninstall", "module_ids", "impacted_module_ids")
 
     # replace ir.filters user_id many2one by user_ids (many2many)
     util.create_m2m(cr, "ir_filters_res_users_rel", "ir_filters", "res_users")
