@@ -109,9 +109,11 @@ def migrate(cr, version):
     util.create_column(cr, "account_tax_group", "_tmp_orig_id", "int")
 
     # determine for which companies we should duplicate the tax groups
-    company_fk = {table: column for table, column, _, _ in util.get_fk(cr, "res_company")}
+    company_fk = {table: column for table, column, _, _ in util.get_fk(cr, "res_company", quote_ident=False)}
     tax_group_fks = [
-        (table, column) for table, column, _, _ in util.get_fk(cr, "account_tax_group") if table in company_fk
+        (table, column)
+        for table, column, _, _ in util.get_fk(cr, "account_tax_group", quote_ident=False)
+        if table in company_fk
     ]
 
     cte = " UNION ".join(
