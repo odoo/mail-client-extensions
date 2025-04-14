@@ -18,31 +18,43 @@ def migrate(cr, version):
         "l10n_ch_accident_insurance",
     ]
     for insurance_table in insurance_tables:
-        util.create_column(cr, insurance_table, "insurance_code", "varchar")
-        cr.execute(
-            util.format_query(
-                cr,
-                "UPDATE {insurance_table} SET insurance_code=insurance_company",
-                insurance_table=insurance_table,
+        if not util.column_exists(cr, insurance_table, "insurance_code"):
+            util.create_column(cr, insurance_table, "insurance_code", "varchar")
+            cr.execute(
+                util.format_query(
+                    cr,
+                    "UPDATE {insurance_table} SET insurance_code=insurance_company",
+                    insurance_table=insurance_table,
+                )
             )
-        )
         insurance_model = util.model_of_table(cr, insurance_table)
         cr.execute(
-            util.format_query(
-                cr,
-                """
-                    UPDATE {insurance_table} i
-                    SET insurance_company = s.name->>'en_US'
-                    FROM ir_model_fields_selection s
-                    JOIN ir_model_fields f ON s.field_id = f.id
-                    WHERE i.insurance_company = s.value
-                      AND f.name = 'insurance_company'
-                      AND f.model = %(insurance_model)s
-                """,
-                insurance_table=insurance_table,
-            ),
+            """
+            SELECT 1
+              FROM ir_model_fields
+             WHERE name = 'insurance_company'
+               AND model = %(insurance_model)s
+               AND ttype = 'selection'
+            """,
             {"insurance_model": insurance_model},
         )
+        if cr.rowcount:
+            cr.execute(
+                util.format_query(
+                    cr,
+                    """
+                        UPDATE {insurance_table} i
+                           SET insurance_company = s.name->>'en_US'
+                          FROM ir_model_fields_selection s
+                          JOIN ir_model_fields f ON s.field_id = f.id
+                         WHERE i.insurance_company = s.value
+                           AND f.name = 'insurance_company'
+                           AND f.model = %(insurance_model)s
+                    """,
+                    insurance_table=insurance_table,
+                ),
+                {"insurance_model": insurance_model},
+            )
         cr.execute(
             """
                 DELETE FROM ir_model_fields_selection s
