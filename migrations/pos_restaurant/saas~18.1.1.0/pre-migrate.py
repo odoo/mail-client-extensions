@@ -9,32 +9,41 @@ def migrate(cr, version):
     # in the backend data is loaded in init mode, thus info is updated always
     # https://github.com/odoo/odoo/blob/8b2cf67e32c6584ce36acf952ad298072d863b43/addons/pos_restaurant/models/pos_config.py#L77
     # we insert here the minimal mandatory info
-    cr.execute(
+    name_value = util.SQLStr(
+        "jsonb_build_object('en_US', %s)" if util.version_gte("saas~18.3") else "%s",
+    )
+
+    query = util.format_query(
+        cr,
         """
         WITH _preset AS (
             INSERT INTO pos_preset(
                     name, identification, color, slots_per_interval, interval_time
                     )
-              VALUES ('Eat In', 'none', '4', '5', '20')
+              VALUES ({name_value}, 'none', '4', '5', '20')
             RETURNING id
         )
         INSERT INTO ir_model_data (module, name, model, noupdate, res_id)
            SELECT 'pos_restaurant', 'pos_takein_preset', 'pos.preset', TRUE,id
              FROM _preset
         RETURNING res_id
-        """
+        """,
+        name_value=name_value,
     )
+    cr.execute(query, ["Eat In"])
     eat_in_preset_id = cr.fetchone()[0]
 
     if util.column_exists(cr, "pos_config", "self_ordering_takeaway"):
         cr.execute("UPDATE pos_config SET takeaway = true WHERE self_ordering_takeaway IS true")
 
-    query = """
+    query = util.format_query(
+        cr,
+        """
         WITH _presets AS (
            INSERT INTO pos_preset(name, identification,
                                   color, slots_per_interval, interval_time,
                                   fiscal_position_id)
-             SELECT 'Takeout', 'name',
+             SELECT {name_value}, 'name',
                     0, 5, 20,
                     takeaway_fp_id
                FROM pos_config
@@ -42,7 +51,7 @@ def migrate(cr, version):
                 AND takeaway_fp_id IS NOT NULL
               GROUP BY takeaway_fp_id
                 UNION
-              SELECT 'Takeout', 'name',
+              SELECT {name_value}, 'name',
                     0, 5, 20,
                     fiscal_position_id
                 FROM pos_order
@@ -62,24 +71,29 @@ def migrate(cr, version):
         INSERT INTO pos_config_pos_preset_rel(pos_config_id, pos_preset_id)
              SELECT id, unnest(ARRAY[default_preset_id, %s])
                FROM _upd_config
-    """
-    cr.execute(query, [eat_in_preset_id])
+    """,
+        name_value=name_value,
+    )
+    cr.execute(query, ["Takeout", "Takeout", eat_in_preset_id])
 
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         WITH _preset AS (
             INSERT INTO pos_preset(
                     name, identification, color, slots_per_interval, interval_time
                     )
-              VALUES ('Takeout', 'none', '3', '5', '20')
+              VALUES ({name_value}, 'none', '3', '5', '20')
             RETURNING id
         )
         INSERT INTO ir_model_data (module, name, model, noupdate, res_id)
            SELECT 'pos_restaurant', 'pos_takeout_preset', 'pos.preset', TRUE, id
              FROM _preset
         RETURNING res_id
-        """
+        """,
+        name_value=name_value,
     )
+    cr.execute(query, ["Takeout"])
     takeout_preset_id = cr.fetchone()[0]
 
     query = """
@@ -96,16 +110,19 @@ def migrate(cr, version):
                FROM _upd
     """
     cr.execute(query, [takeout_preset_id, eat_in_preset_id])
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         UPDATE pos_order o
             SET preset_id = p.id
           FROM pos_preset p
         WHERE o.takeaway IS true
-          AND p.name = 'Takeout'
+          AND p.name = {name_value}
           AND o.fiscal_position_id IS NOT DISTINCT FROM p.fiscal_position_id
-       """
+        """,
+        name_value=name_value,
     )
+    cr.execute(query, ["Takeout"])
 
     util.remove_field(cr, "res.config.settings", "pos_takeaway")
     util.remove_field(cr, "res.config.settings", "pos_takeaway_fp_id")

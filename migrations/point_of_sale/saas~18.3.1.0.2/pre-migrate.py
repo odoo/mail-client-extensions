@@ -10,3 +10,6 @@ def migrate(cr, version):
     util.remove_field(cr, "pos.config", "orderlines_sequence_in_cart_by_category")
     util.remove_field(cr, "res.config.settings", "module_pos_preparation_display")
     util.remove_field(cr, "res.config.settings", "pos_orderlines_sequence_in_cart_by_category")
+
+    if util.column_exists(cr, "pos_preset", "name"):
+        util.convert_field_to_translatable(cr, "pos.preset", "name")
