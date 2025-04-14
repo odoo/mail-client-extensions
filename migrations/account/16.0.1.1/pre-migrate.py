@@ -57,16 +57,6 @@ def migrate(cr, version):
     ]
     util.parallel_execute(cr, queries)
 
-    # populate account_type on account_move_line as well
-    util.create_column(cr, "account_move_line", "account_type", "varchar")
-    query = """
-        UPDATE account_move_line aml
-           SET account_type = aa.account_type
-          FROM account_account aa
-         WHERE aml.account_id = aa.id
-    """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move_line", alias="aml"))
-
     # move include_initial_balance data from account.account.type to account.account
     util.create_column(cr, "account_account", "include_initial_balance", "boolean")
     query = """
