@@ -15,3 +15,4 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.crm_team_view_kanban_dashboard")
     util.rename_xmlid(cr, "website_sale.o_wsale_offcanvas_color_attribute", "website_sale.filter_color_attributes")
     util.rename_xmlid(cr, "website_sale.address_on_payment", "website_sale.address_on_checkout")
+    util.remove_view(cr, "website_sale.product_tag_tree_view_inherit_website_sale")
