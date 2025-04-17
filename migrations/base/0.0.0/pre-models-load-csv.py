@@ -2,6 +2,8 @@
 from odoo import models
 from odoo.models import fix_import_export_id_paths
 
+from odoo.addons.base.maintenance.migrations import util
+
 
 def migrate(cr, version):
     pass
@@ -17,7 +19,8 @@ class Base(models.AbstractModel):
         # for the load of module's CSV file, and cause performance issue
         # because more than 64 savepoints can be created during the same transaction.
         # There is no reason data from CSV file are not treated as data from XML files
-        if not self._context.get("install_module"):
+        # Since saas~18.3, a constant number of savepoints is used during loading.
+        if not self._context.get("install_module") or util.version_gte("saas~18.3"):
             return super(Base, self).load(fields, data)
 
         current_module = self._context.get("module", "__import__")
@@ -28,7 +31,7 @@ class Base(models.AbstractModel):
         # In case the xmlid for a many2one doesn't include its module in the xmlid
         data = [
             [
-                "%s.%s" % (current_module, value)
+                "{}.{}".format(current_module, value)
                 if value and len(field) == 2 and field[1] == "id" and "." not in value
                 else value
                 for field, value in zip(fields, d)
@@ -41,7 +44,7 @@ class Base(models.AbstractModel):
         if hasattr(self, "_load_records"):
             data_list = [
                 {
-                    "xml_id": xid if "." in xid else "%s.%s" % (current_module, xid),
+                    "xml_id": xid if "." in xid else "{}.{}".format(current_module, xid),
                     "values": vals,
                     "info": info,
                     "noupdate": noupdate,
