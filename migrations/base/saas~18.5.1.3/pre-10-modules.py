@@ -7,3 +7,5 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_be_reports_prorata", "l10n_be_reports")
     util.merge_module(cr, "account_edi_ubl_cii_tax_extension", "account_edi_ubl_cii")
     util.merge_module(cr, "l10n_be_hr_payroll_dmfa_sftp", "l10n_be_hr_payroll")
+    util.merge_module(cr, "l10n_id_efaktur", "l10n_id_efaktur_coretax")
+    util.force_upgrade_of_fresh_module(cr, "l10n_id_efaktur_coretax")
