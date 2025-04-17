@@ -296,13 +296,16 @@ def init_repos(options: Namespace) -> bool:
         log_handlers = ":WARNING,py.warnings:ERROR," + ",".join(
             itertools.chain.from_iterable(
                 [f"openerp.{ll}", f"odoo.{ll}"]
-                for ll in """
-            osv.orm.schema:INFO models.schema:INFO
-            tools.misc:INFO
-            modules.loading:DEBUG modules.graph:CRITICAL
-            modules.migration:DEBUG
-            addons.base.maintenance.migrations:DEBUG upgrade:DEBUG
-        """.split()
+                for ll in [
+                    "osv.orm.schema:INFO",
+                    "models.schema:INFO",
+                    "tools.misc:INFO",
+                    "modules.loading:DEBUG",
+                    "modules.graph:CRITICAL",
+                    "modules.migration:DEBUG",
+                    "addons.base.maintenance.migrations:DEBUG",
+                    "upgrade:DEBUG",
+                ]
             )
         )
         conffile.write_text(
@@ -380,7 +383,7 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
         modhash = hashlib.sha3_224(module_plus.encode()).hexdigest()
         dbname = f"matt-__{modhash}"
 
-    l10n_modules = [m for m in modules if "l10n_" in m]
+    l10n_modules = {m[m.index("l10n_") :].split("_")[1].lower(): m for m in modules if "l10n_" in m}
     if len(l10n_modules) > 1:
         raise ValueError("installing multiple `l10n_` modules is not yet supported")
 
@@ -459,10 +462,9 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
     # For versions >= 9.0, the main partner needs to be in the country of the installed l10n module.
     # If we cannot determine the version name, we assume than we try to upgrade from a version >= 9.0.
     if l10n_modules and (not options.source.name or ((9, 0) <= options.source.ints < (16, 0))):
+        cc, module = l10n_modules.popitem()
         # create a `base` db and modify the non-demo partners country before installing the localization
-        (module,) = l10n_modules
         odoo(["-i", "base"], **source, module="base")
-        cc = module[slice(module.index("l10n_"), None)].split("_")[1].lower()
 
         # 3 cases:
         # - `module` should not be changed. Just the country code is different (uk, generic, syscohada)
