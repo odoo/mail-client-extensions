@@ -29,6 +29,7 @@ def migrate(cr, version):
         util.remove_module(cr, "sale_renting_sign")
         util.rename_module(cr, "pos_restaurant_appointment", "pos_appointment")
         util.merge_module(cr, "sale_commission_linked_achievement", "sale_commission")
+        util.remove_module(cr, "test_l10n_ch_hr_payroll_account")
 
     util.remove_module(cr, "l10n_br_test_avatax_sale")
 
