@@ -13,3 +13,4 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.add_grid_or_list_option")
     util.remove_field(cr, "website", "prevent_zero_price_sale_text")
     util.remove_view(cr, "website_sale.crm_team_view_kanban_dashboard")
+    util.rename_xmlid(cr, "website_sale.o_wsale_offcanvas_color_attribute", "website_sale.filter_color_attributes")
