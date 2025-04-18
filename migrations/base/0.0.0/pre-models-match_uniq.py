@@ -82,6 +82,10 @@ class Base(models.AbstractModel):
 
                     match_warning = getattr(self, "_match_uniq_warning", False)
                     if match_warning:
+                        _logger.log(
+                            util.NEARLYWARN if util.on_CI() else logging.WARNING,
+                            match_warning.format(xmlid=xmlid, **vals),
+                        )
                         util.add_to_migration_reports(
                             message=match_warning.format(xmlid=xmlid, **vals), category="Merged Records"
                         )
@@ -151,6 +155,10 @@ class Base(models.AbstractModel):
 
                     match_warning = getattr(self, "_match_uniq_warning", False)
                     if match_warning:
+                        _logger.log(
+                            util.NEARLYWARN if util.on_CI() else logging.WARNING,
+                            match_warning.format(xmlid=xmlid, **values),
+                        )
                         util.add_to_migration_reports(
                             message=match_warning.format(xmlid=xmlid, **values), category="Merged Records"
                         )
