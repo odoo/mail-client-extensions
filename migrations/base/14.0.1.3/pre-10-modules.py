@@ -73,7 +73,7 @@ def migrate(cr, version):
     util.new_module(cr, "l10n_gcc_pos", deps={"point_of_sale", "l10n_gcc_invoice"}, auto_install=True)
 
     # https://github.com/odoo/odoo/pull/81280
-    util.new_module(cr, "l10n_ph", deps={"account", "base_vat", "l10n_multilang"}, auto_install=True)
+    util.new_module(cr, "l10n_ph", deps={"account", "base_vat", "l10n_multilang"})
 
     # https://github.com/odoo/odoo/pull/92954
     util.new_module(cr, "l10n_fr_facturx_chorus_pro", deps={"account", "account_edi_facturx", "l10n_fr"})
