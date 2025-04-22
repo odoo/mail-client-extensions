@@ -377,11 +377,17 @@ record.write({"currency_id": new_record.id})
                 "__testcase__.A_Test_03_Convert_Multi_Action_1",
                 "__testcase__.A_Test_03_Convert_Multi_Action_2",
                 f"__upgrade__.A_Test_03_Convert_Multi_Action_1__copy__{multi_1.id}__{A_actions[1].id}",
+                f"__cloc_exclude__.A_Test_03_Convert_Multi_Action_1__copy__{multi_1.id}__{A_actions[1].id}",
                 f"__upgrade__.A_Test_03_Convert_Multi_Action_2__copy__{multi_1.id}__{A_actions[1].id}",
+                f"__cloc_exclude__.A_Test_03_Convert_Multi_Action_2__copy__{multi_1.id}__{A_actions[1].id}",
                 f"__upgrade__.A_Test_03_Convert_Multi_Action_1__copy__{multi_2.id}__{A_actions[2].id}",
+                f"__cloc_exclude__.A_Test_03_Convert_Multi_Action_1__copy__{multi_2.id}__{A_actions[2].id}",
                 f"__upgrade__.A_Test_03_Convert_Multi_Action_2__copy__{multi_2.id}__{A_actions[2].id}",
+                f"__cloc_exclude__.A_Test_03_Convert_Multi_Action_2__copy__{multi_2.id}__{A_actions[2].id}",
                 f"__upgrade__.A_Test_03_Convert_Multi_Action_1__copy__{multi_3.id}__{A_actions[3].id}",
+                f"__cloc_exclude__.A_Test_03_Convert_Multi_Action_1__copy__{multi_3.id}__{A_actions[3].id}",
                 f"__upgrade__.A_Test_03_Convert_Multi_Action_2__copy__{multi_3.id}__{A_actions[3].id}",
+                f"__cloc_exclude__.A_Test_03_Convert_Multi_Action_2__copy__{multi_3.id}__{A_actions[3].id}",
             ],
         )
         B_xmlids = self.env["ir.model.data"].search(

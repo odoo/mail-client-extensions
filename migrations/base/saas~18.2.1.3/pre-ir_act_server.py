@@ -73,7 +73,7 @@ def migrate(cr, version):
                             {studio_col}
                           )
                      SELECT ins.id,
-                            '__upgrade__',
+                            unnest(ARRAY['__upgrade__', '__cloc_exclude__']),
                             CONCAT_WS('__', imd.name, 'copy', ins.parent_id, ins.id),
                             imd.model,
                             imd.noupdate
@@ -163,7 +163,7 @@ def rematch_xmlids(cr, child_xmlids_changes_by_parent, mute_missing_child=False)
             cr.execute(
                 r"""
                 DELETE FROM ir_model_data
-                      WHERE module = '__upgrade__'
+                      WHERE module IN ('__upgrade__', '__cloc_exclude__')
                         AND model = 'ir.actions.server'
                         AND name LIKE '%%\_\_copy\_\_%s\_\_%s'
                 """,
