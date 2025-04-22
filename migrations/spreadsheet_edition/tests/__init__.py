@@ -11,6 +11,7 @@ from . import (
     test_locale,
     test_missing_pivot_sorted_column,
     test_pivot_sorted_column,
+    test_rename_cf_dv,
     test_rename_pivot_functions,
     test_set_cumulated_start_odoo_chart,
     test_set_formatting_change,
