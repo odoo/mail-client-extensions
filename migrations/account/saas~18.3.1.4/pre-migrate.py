@@ -132,6 +132,46 @@ def migrate(cr, version):
     util.remove_field(cr, "account.report.external.value", "foreign_vat_fiscal_position_id")
     util.rename_field(cr, "account.report", "filter_fiscal_position", "allow_foreign_vat")
 
+    util.invert_boolean_field(cr, "account.account", "deprecated", "active")
+    util.remove_field(cr, "account.account", "allowed_journal_ids")
+
+    # Fiscal Position Tax mapping
+    util.create_m2m(cr, "account_fiscal_position_account_tax_rel", "account_tax", "account_fiscal_position")
+    cr.execute(
+        """
+               WITH domestic_fiscal_positions AS (
+                    SELECT DISTINCT ON (fp.company_id)
+                           fp.company_id,
+                           fp.id as position_id
+                      FROM account_fiscal_position fp
+                INNER JOIN res_company c
+                        ON fp.company_id = c.id
+                     WHERE fp.country_id = c.account_fiscal_country_id
+                  ORDER BY fp.company_id, fp.sequence ASC, fp.id ASC
+               )
+        INSERT INTO account_fiscal_position_account_tax_rel(account_tax_id, account_fiscal_position_id)
+             SELECT tax_dest_id, position_id
+               FROM account_fiscal_position_tax
+              UNION
+             SELECT tax_src_id, domestic_fiscal_positions.position_id
+               FROM account_fiscal_position_tax afpt
+               JOIN domestic_fiscal_positions
+                 ON afpt.company_id = domestic_fiscal_positions.company_id
+        """
+    )
+
+    util.create_m2m(cr, "account_tax_alternatives", "account_tax", "account_tax", "dest_tax_id", "src_tax_id")
+    cr.execute(
+        """
+        INSERT INTO account_tax_alternatives(dest_tax_id, src_tax_id)
+             SELECT DISTINCT tax_dest_id, tax_src_id
+               FROM account_fiscal_position_tax
+              WHERE tax_dest_id IS NOT NULL
+        """
+    )
+
+    util.remove_model(cr, "account.fiscal.position.tax")
+
     # -= bank reco widget revamped =-
     util.remove_field(cr, "account.reconcile.model.line", "rule_type")
     util.remove_field(cr, "account.reconcile.model.line", "journal_id")
