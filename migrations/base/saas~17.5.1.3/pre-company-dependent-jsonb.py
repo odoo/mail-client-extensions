@@ -208,6 +208,11 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
         store_type = sql.SQL("numeric")
         property_value_field = sql.SQL("comodel.id")
         # join comodel for many2one which SET NULL for references to deleted records
+        if field_relation == "_unknown":
+            _logger.warning(
+                "Skipping many2one company dependent field %s.%s pointing to removed model", model_name, field_name
+            )
+            return
         join_comodel = sql.SQL(
             util.format_query(
                 cr,
