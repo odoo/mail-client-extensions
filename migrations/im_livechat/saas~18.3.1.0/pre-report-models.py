@@ -8,3 +8,4 @@ def migrate(cr, version):
     util.remove_view(cr, "im_livechat.im_livechat_report_operator_view_graph")
     util.remove_view(cr, "im_livechat.im_livechat_report_operator_view_pivot")
     util.remove_view(cr, "im_livechat.im_livechat_report_operator_view_search")
+    cr.execute("DROP VIEW IF EXISTS im_livechat_report_channel")
