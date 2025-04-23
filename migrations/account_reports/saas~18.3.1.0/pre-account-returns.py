@@ -3,6 +3,8 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_view(cr, "account_reports.account_report_tree_configure_start_dates")
+    util.remove_view(cr, "account_reports.account_activity_view_form_popup")
+    util.remove_view(cr, "account_reports.mail_activity_schedule_view_form")
 
     util.remove_field(cr, "account.report.annotation", "fiscal_position_id")
 
