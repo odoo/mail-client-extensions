@@ -50,7 +50,7 @@ def migrate(cr, version):
         </summary>
         <ul>{}</ul>
         </details>
-        """.format("\n".join("<li>Id=%s, company_id=%s, year=%s, month=%s, quarter=%s</li>".format(*r) for r in data))
+        """.format("\n".join("<li>Id={}, company_id={}, year={}, month={}, quarter={}</li>".format(*r) for r in data))
         util.add_to_migration_reports(msg, category="IN Accounting", format="html")
         _logger.warning("Removed duplicated GST return periods: %s", data)
 
