@@ -7,7 +7,7 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.payroll.declaration.mixin", "documents_enabled")
     util.create_column(cr, "res_company", "worker_payroll_folder_id", "int4", fk_table="documents_document")
 
-    with documents_18_pre_migrate.create_documents_without_alias_and_token(cr):
+    with documents_18_pre_migrate.create_documents_fix_token_and_alias(cr):
         # Add a folder to store the payroll documents for workers without a user.
         # It doesn't need to be accessed directly by anyone but admins.
         cr.execute(

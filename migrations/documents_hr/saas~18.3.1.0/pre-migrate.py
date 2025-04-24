@@ -18,7 +18,7 @@ def migrate(cr, version):
 
     util.create_column(cr, "documents_document", "_upg_employee_id", "int4")
 
-    with documents_18_pre_migrate.create_documents_without_alias_and_token(cr):
+    with documents_18_pre_migrate.create_documents_fix_token_and_alias(cr):
         group_hr_user_id = util.ref(cr, "hr.group_hr_user")
 
         # Create an Employees folder under "HR" for each company

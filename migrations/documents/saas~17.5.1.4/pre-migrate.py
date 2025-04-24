@@ -1123,14 +1123,17 @@ def fix_missing_alias_ids(cr, document_model_id=False):
 
     util.explode_execute(
         cr,
-        # FIXME is it `alias_parent_*` or `alias_force_*` columns that should be filled?
         cr.mogrify(
             """
             WITH _aliases AS (
-                INSERT INTO mail_alias (alias_name, alias_model_id, alias_force_thread_id,
+                INSERT INTO mail_alias (alias_name,
+                                        alias_model_id, alias_parent_model_id,
+                                        alias_parent_thread_id, alias_force_thread_id,
                                         alias_defaults,
                                         alias_contact, alias_status)
-                     SELECT NULL, %s, d.id,
+                     SELECT NULL,
+                            %s, %s,
+                            d.id, d.id,
                             jsonb_build_object('folder_id', d.id)::text,
                             'followers', 'invalid'
                        FROM documents_document d
@@ -1142,7 +1145,7 @@ def fix_missing_alias_ids(cr, document_model_id=False):
               FROM _aliases a
              WHERE a.alias_force_thread_id = d.id
             """,
-            [document_model_id],
+            [document_model_id, document_model_id],
         ).decode(),
         table="documents_document",
         alias="d",
@@ -1398,16 +1401,47 @@ def check_or_raise_many_members(cr):
 
 
 @contextlib.contextmanager
-def create_documents_without_alias_and_token(cr):
-    cr.execute("ALTER TABLE documents_document ALTER COLUMN alias_id DROP NOT NULL")
+def create_documents_fix_token_and_alias(cr):
+    """Create documents and fix document_token and alias_id (for folders) columns."""
+
     cr.execute("ALTER TABLE documents_document ALTER COLUMN document_token DROP NOT NULL")
 
     try:
         yield
 
     finally:
-        fix_missing_alias_ids(cr)
-        cr.execute("ALTER TABLE documents_document ALTER COLUMN alias_id SET NOT NULL")
+        document_model_id = util.ref(cr, "documents.model_documents_document")
+
+        util.explode_execute(
+            cr,
+            cr.mogrify(
+                """
+                WITH _aliases AS (
+                    INSERT INTO mail_alias (alias_name,
+                                            alias_model_id, alias_parent_model_id,
+                                            alias_parent_thread_id, alias_force_thread_id,
+                                            alias_defaults,
+                                            alias_contact, alias_status)
+                         SELECT NULL,
+                                %s, %s,
+                                d.id, d.id,
+                                jsonb_build_object('folder_id', d.id)::text,
+                                'followers', 'invalid'
+                           FROM documents_document d
+                          WHERE d.alias_id IS NULL
+                            AND type = 'folder'
+                            AND {parallel_filter}
+                      RETURNING id, alias_force_thread_id)
+                UPDATE documents_document d
+                   SET alias_id = a.id
+                  FROM _aliases a
+                 WHERE a.alias_force_thread_id = d.id
+                """,
+                [document_model_id, document_model_id],
+            ).decode(),
+            table="documents_document",
+            alias="d",
+        )
 
         fix_missing_document_tokens(cr)
         cr.execute("ALTER TABLE documents_document ALTER COLUMN document_token SET NOT NULL")
