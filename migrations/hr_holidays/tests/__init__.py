@@ -1,3 +1,1 @@
-# -*- coding: utf-8 -*-
-
-from . import test_link_allocation
+from . import test_accrual_level, test_leave_type, test_link_allocation

@@ -118,26 +118,38 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.leave.accrual.level", "first_month_day_display")
     util.remove_field(cr, "hr.leave.accrual.level", "second_month_day_display")
     util.remove_constraint(cr, "hr_leave_accrual_level", "hr_leave_accrual_level_check_dates")
+
+    def day_adapter(leaf, _or, _neg):
+        left, op, right = leaf
+        if isinstance(right, int):
+            right = str(right)
+        elif isinstance(right, list):
+            right = list(map(str, right))
+        return [(left, op, right)]
+
+    def bool_adapter(leaf, _or, _neg):
+        left, op, right = leaf
+        if isinstance(right, str):
+            right = right == "yes"
+        elif isinstance(right, list):
+            right = [val == "yes" for val in right]
+        return [(left, op, right)]
+
     util.alter_column_type(
         cr, "hr_leave_accrual_plan", "carryover_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
     )
-    util.alter_column_type(
-        cr, "hr_leave_accrual_level", "first_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
-    )
-    util.alter_column_type(
-        cr, "hr_leave_accrual_level", "second_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
-    )
-    util.alter_column_type(
-        cr, "hr_leave_accrual_level", "first_month_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
-    )
-    util.alter_column_type(
-        cr, "hr_leave_accrual_level", "second_month_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
-    )
-    util.alter_column_type(
-        cr, "hr_leave_accrual_level", "yearly_day", "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
-    )
-    util.alter_column_type(cr, "hr_leave_type", "requires_allocation", "bool", using="{0} = 'yes'")
-    util.alter_column_type(cr, "hr_leave_type", "employee_requests", "bool", using="{0} = 'yes'")
+    util.adapt_domains(cr, "hr.leave.accrual.plan", "carryover_day", "carryover_day", adapter=day_adapter)
+
+    for field in ["first_day", "second_day", "first_month_day", "second_month_day", "yearly_day"]:
+        util.alter_column_type(
+            cr, "hr_leave_accrual_level", field, "varchar", using="LEAST(GREATEST(1, {0}), 31)::varchar"
+        )
+        util.adapt_domains(cr, "hr.leave.accrual.level", field, field, adapter=day_adapter)
+
+    for field in ["requires_allocation", "employee_requests"]:
+        util.alter_column_type(cr, "hr_leave_type", field, "bool", using="{0} = 'yes'")
+        util.adapt_domains(cr, "hr.leave.type", field, field, adapter=bool_adapter)
+
     util.invert_boolean_field(cr, "hr.leave.type", "show_on_dashboard", "hide_on_dashboard")
 
     month_list = {
