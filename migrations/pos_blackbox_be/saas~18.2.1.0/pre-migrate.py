@@ -5,3 +5,5 @@ def migrate(cr, version):
     util.delete_unused(cr, "pos_blackbox_be.sale_report_sequenceZUser")
     util.delete_unused(cr, "pos_blackbox_be.sale_report_sequenceXUser")
     util.remove_field(cr, "pos.order.line", "vat_letter")
+    if util.table_exists(cr, "pos_blackbox_log_ip"):
+        cr.execute("ALTER TABLE pos_blackbox_log_ip ADD COLUMN id serial PRIMARY KEY")
