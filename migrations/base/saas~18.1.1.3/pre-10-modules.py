@@ -21,3 +21,4 @@ def migrate(cr, version):
             util.remove_module(cr, "documents_account_peppol")
         util.merge_module(cr, "account_intrastat_services", "account_intrastat")
         util.merge_module(cr, "l10n_be_intrastat_services", "l10n_be_intrastat")
+        util.merge_module(cr, "l10n_fr_intrastat_services", "l10n_fr_intrastat")
