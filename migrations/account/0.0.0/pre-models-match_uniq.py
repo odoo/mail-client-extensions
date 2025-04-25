@@ -34,6 +34,13 @@ class AccountPaymentMethod(models.Model):
     _match_uniq = True
 
 
+class AccountFiscalPositionAccount(models.Model):
+    _name = "account.fiscal.position.account"
+    _inherit = ["account.fiscal.position.account"]
+    _module = "account"
+    _match_uniq = True
+
+
 if util.version_gte("16.0"):
     from odoo.addons.account.models import account_report  # noqa
 
