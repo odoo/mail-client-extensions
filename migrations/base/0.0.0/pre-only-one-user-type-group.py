@@ -17,7 +17,7 @@ if util.version_gte("12.0"):
 
 def migrate(cr, version):
     if util.version_gte("12.0"):
-        one_user_type_group(cr, {1} | admin_ids(cr))
+        one_user_type_group(cr, {1} | admin_ids(cr), version)
 
 
 def admin_ids(cr):
@@ -36,7 +36,7 @@ def admin_ids(cr):
     return {u[0] for u in cr.fetchall()}
 
 
-def one_user_type_group(cr, admin_ids):
+def one_user_type_group(cr, admin_ids, version):
     admin_ids = tuple(admin_ids)
     user = util.ref(cr, "base.group_user")
     portal = util.ref(cr, "base.group_portal")
@@ -45,29 +45,38 @@ def one_user_type_group(cr, admin_ids):
     accessrights = util.ref(cr, "base.group_erp_manager")
     account_user = util.ref(cr, "account.group_account_user")
     usability = (util.ref(cr, "base.module_category_usability"), util.ref(cr, "base.module_category_hidden"))
+
+    if util.parse_version(version) >= util.parse_version("saas~18.3"):
+        usability_clause = "SELECT id FROM res_groups WHERE privilege_id IS NULL"
+    else:
+        usability_clause = "SELECT id FROM res_groups WHERE category_id IN %(usability)s"
     # remove public users from all other non usability groups
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         DELETE FROM res_groups_users_rel
               WHERE gid != %(public)s
-                AND gid NOT IN (SELECT id FROM res_groups WHERE category_id IN %(usability)s)
+                AND gid NOT IN ({usability_clause})
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %(public)s)
                 AND uid NOT IN %(admin_ids)s
-    """,
-        locals(),
+        """,
+        usability_clause=util.SQLStr(usability_clause),
     )
+    cr.execute(query, locals())
 
     # remove portal users from all other non usability group
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         DELETE FROM res_groups_users_rel
               WHERE gid != %(portal)s
-                AND gid NOT IN (SELECT id FROM res_groups WHERE category_id IN  %(usability)s)
+                AND gid NOT IN ({usability_clause})
                 AND uid IN (SELECT uid FROM res_groups_users_rel WHERE gid = %(portal)s)
                 AND uid NOT IN %(admin_ids)s
-    """,
-        locals(),
+        """,
+        usability_clause=util.SQLStr(usability_clause),
     )
+    cr.execute(query, locals())
 
     if account_user:
         # remove group_account_user from all public/portal users
