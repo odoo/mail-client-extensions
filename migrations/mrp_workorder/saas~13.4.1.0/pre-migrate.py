@@ -16,11 +16,11 @@ def migrate(cr, version):
                FROM quality_point quality_point_by_new_op
                     JOIN temp_new_mrp_operation ON quality_point_by_new_op.operation_id = temp_new_mrp_operation.old_id
                     JOIN mrp_bom bom ON temp_new_mrp_operation.bom_id = bom.id
-                    JOIN product_product_quality_point_rel rel ON rel.quality_point_id = quality_point_by_new_op.id
-                    JOIN product_product pp ON pp.id = rel.product_product_id
-               WHERE rel.product_product_id = bom.product_id
-               OR pp.product_tmpl_id = bom.product_tmpl_id
-
+               LEFT JOIN product_product_quality_point_rel rel ON rel.quality_point_id = quality_point_by_new_op.id
+                     AND rel.product_product_id = bom.product_id
+                   WHERE rel IS NOT NULL
+                      OR bom.product_id IS NULL
+                GROUP BY quality_point_by_new_op.id, temp_new_mrp_operation.id
         ),
         inserted_quality_point AS (
             INSERT INTO quality_point ({column_qua}, old_id, operation_id)
