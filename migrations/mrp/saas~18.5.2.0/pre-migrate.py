@@ -21,3 +21,5 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "manufacturing_lead")
     util.remove_field(cr, "res.config.settings", "use_manufacturing_lead")
     cr.execute("DELETE FROM ir_config_parameter WHERE key='mrp.use_manufacturing_lead'")
+    util.create_column(cr, "mrp_bom", "enable_batch_size", "boolean", default=False)
+    util.create_column(cr, "mrp_bom", "batch_size", "numeric", default=1.0)
