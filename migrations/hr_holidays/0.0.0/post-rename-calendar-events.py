@@ -28,7 +28,7 @@ def migrate(cr, version):
     if pv(version) < pv("saas~14.1") and util.version_gte("11.0"):
         env = util.env(cr)
         # base.user_admin exists only since 12.0
-        user_admin = env.ref("base.user_admin", False) or env.ref("base.user_root")
+        user_admin = env.ref("base.user_admin", raise_if_not_found=False) or env.ref("base.user_root")
 
         # hr.leave was hr.holidays before saas-11.3
         HrLeave = env.get("hr.leave", env.get("hr.holidays"))
@@ -36,15 +36,17 @@ def migrate(cr, version):
 
         # Before 11.0, hr.leaves could be duplicated, and the link to the meeting_id was copied too
         # Therefore we need to create new calendar.events for hr.leaves that share the same meeting_id
-        env.cr.execute(
+        query = util.format_query(
+            cr,
             """SELECT ce.id
                  FROM calendar_event ce
                  JOIN {hr_leave} hl on ce.id = hl.meeting_id
              GROUP BY ce.id
-               HAVING COUNT(*) > 1""".format(
-                hr_leave=hr_leave_name
-            )
+               HAVING COUNT(*) > 1
+            """,
+            hr_leave=hr_leave_name,
         )
+        cr.execute(query)
         shared_event_ids = tuple(i[0] for i in env.cr.fetchall())
 
         if shared_event_ids:
