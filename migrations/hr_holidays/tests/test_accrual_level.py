@@ -1,7 +1,9 @@
 import ast
+import contextlib
 import re
 
-from odoo import Command
+with contextlib.suppress(ImportError):
+    from odoo import Command
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
