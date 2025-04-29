@@ -1,4 +1,5 @@
 from odoo import fields
+
 from odoo.upgrade import util
 
 
