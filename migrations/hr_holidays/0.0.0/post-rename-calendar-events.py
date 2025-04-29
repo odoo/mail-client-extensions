@@ -2,11 +2,11 @@
 from odoo.addons.base.maintenance.migrations import util
 
 try:
-    from odoo.tools.date_intervals import HOURS_PER_DAY
+    from odoo.addons.resource.models.utils import HOURS_PER_DAY
 except ImportError:
     try:
-        # < saas-18.2
-        from odoo.addons.resource.models.utils import HOURS_PER_DAY
+        # == saas-18.3
+        from odoo.tools.date_intervals import HOURS_PER_DAY
     except ImportError:
         try:
             # < saas-16.1
