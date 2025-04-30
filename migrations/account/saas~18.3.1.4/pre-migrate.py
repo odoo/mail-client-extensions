@@ -1,6 +1,9 @@
+import logging
 import textwrap
 
 from odoo.upgrade import util
+
+_logger = logging.getLogger("odoo.upgrade.account/saas~18.3")
 
 
 def migrate(cr, version):
@@ -15,6 +18,7 @@ def migrate(cr, version):
         """
     )
 
+    _logger.info("Updating account_bank_statement.currency_id")
     util.create_column(cr, "account_bank_statement", "currency_id", "integer")
     util.explode_execute(
         cr,
@@ -44,6 +48,7 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_account_bank_statement_import_camt")
     util.remove_field(cr, "account.full.reconcile", "exchange_move_id")
 
+    _logger.info("Updating account_account.reconcile")
     cr.execute(
         """
         UPDATE account_account
@@ -110,6 +115,7 @@ def migrate(cr, version):
             )
         )
 
+    _logger.info("Updating account.report default_opening_date_filter")
     util.change_field_selection_values(
         cr,
         "account.report",
@@ -136,6 +142,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.account", "allowed_journal_ids")
 
     # Fiscal Position Tax mapping
+    _logger.info("Fiscal position tax mapping")
     util.create_m2m(cr, "account_fiscal_position_account_tax_rel", "account_tax", "account_fiscal_position")
     cr.execute(
         """
@@ -152,11 +159,15 @@ def migrate(cr, version):
         INSERT INTO account_fiscal_position_account_tax_rel(account_tax_id, account_fiscal_position_id)
              SELECT tax_dest_id, position_id
                FROM account_fiscal_position_tax
+              WHERE tax_dest_id IS NOT NULL
+                AND position_id IS NOT NULL
               UNION
              SELECT tax_src_id, domestic_fiscal_positions.position_id
                FROM account_fiscal_position_tax afpt
                JOIN domestic_fiscal_positions
                  ON afpt.company_id = domestic_fiscal_positions.company_id
+              WHERE tax_src_id IS NOT NULL
+                AND domestic_fiscal_positions.position_id IS NOT NULL
         """
     )
 
@@ -193,7 +204,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.reconcile.model", "payment_tolerance_type")
     util.remove_field(cr, "account.reconcile.model", "counterpart_type")
 
-    # each of the partner_mapping lines should be a dedicated reco model
+    _logger.info("Each of the partner_mapping lines should be a dedicated reco model")
     util.explode_execute(
         cr,
         r"""
@@ -213,7 +224,7 @@ def migrate(cr, version):
         table="account_reconcile_model",
         alias="model",
     )
-    # assign matching_journal_ids
+    _logger.info("assign matching_journal_ids")
     cr.execute(
         r"""
         INSERT INTO account_journal_account_reconcile_model_rel(account_reconcile_model_id, account_journal_id)
@@ -228,7 +239,7 @@ def migrate(cr, version):
         ON CONFLICT DO NOTHING
         """
     )
-    # assign the right partner by creating a counterpart line with map.partner_id and no account
+    _logger.info("assign the right partner by creating a counterpart line with map.partner_id and no account")
     util.create_column(cr, "account_reconcile_model_line", "partner_id", "int")
     util.explode_execute(
         cr,
@@ -244,7 +255,9 @@ def migrate(cr, version):
         alias="model",
     )
 
-    # invoice_matching ("pure" or with counterpart suggestion) is now hardcoded
+    _logger.info("invoice_matching (pure or with counterpart suggestion) is now hardcoded")
+    cr.execute("CREATE INDEX ON account_move_line(reconcile_model_id) WHERE reconcile_model_id IS NOT NULL")
+    cr.commit()
     util.explode_execute(
         cr,
         """
