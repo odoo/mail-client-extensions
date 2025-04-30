@@ -12,7 +12,7 @@ def migrate(cr, version):
 def set_product_manager(cr, from_group):
     cr.execute(
         """
-        INSERT INTO res_groups_users_rel
+        INSERT INTO res_groups_users_rel(gid, uid)
              SELECT %s AS gid, uid
                FROM res_groups_users_rel
               WHERE gid = %s
