@@ -26,6 +26,8 @@ def migrate(cr, version):
     util.delete_unused(cr, "documents.mail_documents_activity_data_tv", "documents.mail_documents_activity_data_md")
 
     cr.execute("ALTER TABLE documents_document ALTER COLUMN alias_id DROP NOT NULL")
+    cr.execute("CREATE INDEX ON documents_document(alias_id) WHERE alias_id IS NOT NULL")
+    cr.commit()
     util.explode_execute(
         cr,
         """
@@ -36,14 +38,21 @@ def migrate(cr, version):
                AND {parallel_filter}
         ),
         clear_alias_ids AS (
-            UPDATE documents_document
+            UPDATE documents_document d
                SET alias_id = NULL
-             WHERE id IN (SELECT id FROM non_folders)
+              FROM non_folders f
+             WHERE d.id = f.id
         ),
         delete_aliases AS (
-            DELETE FROM mail_alias WHERE id IN (SELECT alias_id FROM non_folders)
+            DELETE
+              FROM mail_alias a
+             USING non_folders f
+            WHERE a.id  = f.alias_id
         )
-        DELETE FROM document_alias_tag_rel WHERE documents_document_id IN (SELECT id FROM non_folders)
+        DELETE
+          FROM document_alias_tag_rel r
+         USING non_folders f
+         WHERE r.documents_document_id = f.id
     """,
         alias="d",
         table="documents_document",
