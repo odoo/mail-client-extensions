@@ -11,7 +11,7 @@ def migrate(cr, version):
     # add context to skip the constraint in stock module
     if uom_hour:
         if uom_day and uom_day == uom_hour.relative_uom_id:
-            day_hour_factor = round(1 / uom_hour.relative_factor, 1)
+            day_hour_factor = round(1 / uom_hour.relative_factor, 5)
         if uom_hour.relative_factor != 1.0 or uom_hour.relative_uom_id:
             uom_hour.with_context(_upg_swap_time_uom_ref=True).write({"relative_uom_id": False, "relative_factor": 1.0})
         if uom_day and not uom_day.relative_uom_id:
