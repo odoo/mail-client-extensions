@@ -964,20 +964,27 @@ def migrate(cr, version):
     # Update the `folder_id` key in `alias_defaults`
     query = cr.mogrify(
         r"""
-         UPDATE mail_alias a
-            SET alias_defaults = REGEXP_REPLACE(
-                    alias_defaults,
-                    '''folder_id'':\s*([0-9]+)',
-                    '''folder_id'': ' || document.id
-                )
-           FROM documents_document AS document
-          WHERE a.alias_model_id = %s
-            AND a.alias_defaults ~ ('''folder_id'':\s*' || (document._upg_old_folder_id::text) || '\D')
-            AND document._upg_old_folder_id IS NOT NULL
+        WITH cte AS (
+            SELECT id,
+                   substring(alias_defaults FROM '["'']folder_id["'']:\s*([0-9]+)')::int AS _upg_old_folder_id
+              FROM mail_alias
+             WHERE alias_model_id = %s
+               AND {parallel_filter}
+        )
+        UPDATE mail_alias a
+           SET alias_defaults = REGEXP_REPLACE(
+                   alias_defaults,
+                   '(["''])folder_id\1:\s*' || document._upg_old_folder_id,
+                   '\1folder_id\1: ' || document.id
+               )
+          FROM documents_document AS document
+          JOIN cte
+            ON cte._upg_old_folder_id = document._upg_old_folder_id
+         WHERE a.id = cte.id
         """,
         [document_model_id],
     ).decode()
-    util.explode_execute(cr, query, table="mail_alias", alias="a")
+    util.explode_execute(cr, query, table="mail_alias")
 
     # Update alias_defaults for creating activity on secondary alias
     # Note that the document created with the alias_defaults is used as a template for creating all the document for all the
