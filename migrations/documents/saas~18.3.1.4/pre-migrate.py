@@ -11,20 +11,6 @@ def migrate(cr, version):
     util.remove_view(cr, "documents.document_view_form")
     util.remove_view(cr, "documents.document_view_form_details")
 
-    mapping = {
-        util.ref(cr, "documents.mail_documents_activity_data_tv"): util.ref(cr, "mail.mail_activity_data_todo"),
-        util.ref(cr, "documents.mail_documents_activity_data_md"): util.ref(
-            cr, "mail.mail_activity_data_upload_document"
-        ),
-    }
-    util.replace_record_references_batch(
-        cr,
-        mapping,
-        "mail.activity.type",
-        replace_xmlid=False,
-    )
-    util.delete_unused(cr, "documents.mail_documents_activity_data_tv", "documents.mail_documents_activity_data_md")
-
     cr.execute("ALTER TABLE documents_document ALTER COLUMN alias_id DROP NOT NULL")
     cr.execute("CREATE INDEX ON documents_document(alias_id) WHERE alias_id IS NOT NULL")
     cr.commit()
