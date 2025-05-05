@@ -5,5 +5,6 @@ from . import (
     test_migrate_is_blocked,
     test_migrate_kanban_state_tracking_values,
     test_migrate_note_in_todo,
+    test_migrate_project_customer_rating,
     test_migrate_user_ids,
 )

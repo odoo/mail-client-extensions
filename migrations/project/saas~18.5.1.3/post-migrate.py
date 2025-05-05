@@ -15,3 +15,5 @@ def migrate(cr, version):
     util.update_record_from_xml(cr, "project.burndown_chart_project_user_rule")
     util.update_record_from_xml(cr, "project.milestone_visibility_rule")
     util.update_record_from_xml(cr, "project.project_milestone_rule_portal_project_sharing")
+    util.if_unchanged(cr, "project.rating_project_request_email_template", util.update_record_from_xml)
+    util.update_record_from_xml(cr, "project.ir_cron_rating_project")
