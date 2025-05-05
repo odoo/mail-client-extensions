@@ -139,6 +139,7 @@ def migrate(cr, version):
             "SECU",
             "other_totals",
         ],
+        "fr": ["TOTAL", "C_IMP", "RETENUES", "SALC", "PREV", "SECU", "other_totals"],
         "hk": ["AUTOPAY", "MPF", "EEMPF", "ERMPF"],
         "id": [
             "PPH21",
