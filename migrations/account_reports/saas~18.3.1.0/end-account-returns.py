@@ -114,7 +114,7 @@ def migrate(cr, version):
         }
         delta = relativedelta(date_to, date_from + relativedelta(days=-1))
         months_periodicity = delta.years * 12 + delta.months
-        periodicity = periodicities_mapping[months_periodicity]
+        periodicity = periodicities_mapping.get(months_periodicity, "other")
         if periodicity == "year":
             period_suffix = f"{date_from.year}"
         elif periodicity == "trimester":
