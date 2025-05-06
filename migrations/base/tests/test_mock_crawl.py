@@ -2,6 +2,7 @@ import contextlib
 import inspect
 import logging
 import math
+import re
 from ast import literal_eval
 from traceback import format_exception
 from unittest.mock import patch
@@ -494,7 +495,8 @@ class TestCrawler(IntegrityCase):
 
                     fields_to_read = ["id"]
                     if node.get("options"):
-                        options = literal_eval(node.get("options"))
+                        opts = re.sub(r"\b(true|false)\b", lambda x: x.group().title(), node.get("options"))
+                        options = literal_eval(opts)
                         if options.get("fold_field"):
                             fields_to_read.append(options["fold_field"])
 
