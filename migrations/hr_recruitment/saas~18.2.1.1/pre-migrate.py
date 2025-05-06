@@ -271,8 +271,3 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.applicant", "other_applications_count")
     util.remove_field(cr, "hr.applicant", "candidate_id", drop_column=False)
     util.remove_model(cr, "candidate.send.mail")
-
-    if util.module_installed(cr, "hr_recruitment_sms"):
-        util.rename_xmlid(cr, *eb("hr_recruitment{,_sms}.action_hr_applicant_mass_sms"))
-    else:
-        util.delete_unused(cr, "hr_recruitment.action_hr_applicant_mass_sms")
