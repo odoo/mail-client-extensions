@@ -5,8 +5,8 @@ def migrate(cr, version):
     """
     Try to infer the value of the fields peppol_endpoint and peppol_eas.
     Copy the value of:
-    * l10n_nl_oin on the field peppol_endpoint and set peppol_eas to '0106' if it's set
-    * l10n_nl_kvk on the field peppol_endpoint and set peppol_eas to '0190' if it's set
+    * l10n_nl_oin on the field peppol_endpoint and set peppol_eas to '0190' if it's set
+    * l10n_nl_kvk on the field peppol_endpoint and set peppol_eas to '0106' if it's set
     * vat on the field peppol_endpoint and set peppol_eas to '9944' if it's set
     """
     query = """
@@ -14,8 +14,8 @@ def migrate(cr, version):
            SET peppol_endpoint = COALESCE(l10n_nl_kvk, l10n_nl_oin, vat),
                peppol_eas = (
                CASE
-                    WHEN l10n_nl_kvk IS NOT NULL THEN '0190'
-                    WHEN l10n_nl_oin IS NOT NULL THEN '0106'
+                    WHEN l10n_nl_kvk IS NOT NULL THEN '0106'
+                    WHEN l10n_nl_oin IS NOT NULL THEN '0190'
                     WHEN vat IS NOT NULL THEN '9944'
                END)
           FROM res_country c
