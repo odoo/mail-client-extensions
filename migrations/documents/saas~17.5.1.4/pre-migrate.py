@@ -833,9 +833,6 @@ def migrate(cr, version):
         alias="document",
     )
 
-    # Create an alias for the other documents (column is required)
-    fix_missing_alias_ids(cr, document_model_id=document_model_id)
-
     # Fix `alias_parent_model_id` and `alias_parent_thread_id`
     util.explode_execute(
         cr,
@@ -1037,6 +1034,9 @@ def migrate(cr, version):
                 )
             )
     util.parallel_execute(cr, alias_update_queries)
+
+    # Create an alias for the other documents (column is required)
+    fix_missing_alias_ids(cr, document_model_id=document_model_id)
 
     #########################
     # PROPAGATE THE COMPANY #
