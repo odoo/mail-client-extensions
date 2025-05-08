@@ -35,7 +35,7 @@ def migrate(cr, version):
             ("purchase_stock", "purchase_line_id", "purchase_order_line", "product_qty"),
             ("mrp", "production_id", "mrp_production", "product_qty"),
         ]
-        if util.module_installed(cr, module)
+        if util.module_installed(cr, module) and util.column_exists(cr, "stock_move", join_column)
     ]
     packaging_cases = sql.SQL(
         "\n".join(
