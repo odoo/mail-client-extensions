@@ -127,14 +127,15 @@ def migrate(cr, version):
     util.create_column(cr, "res_company", "account_price_include", "varchar", default="tax_excluded")
     util.create_column(cr, "account_tax", "price_include_override", "varchar")
     cr.execute(
-        """
+        r"""
             UPDATE account_tax t
                SET active = FALSE
               FROM ir_model_data md
              WHERE md.model = 'account.tax'
                AND md.res_id = t.id
-               AND SUBSTRING(md.name, POSITION('_' in md.name) + 1) IN %s
+               AND REGEXP_REPLACE(md.name, '^\d+_', '') IN %s
                AND t.active
+               AND md.module = 'account'
          RETURNING t.id, t.name->>'en_US'
         """,
         [DEACTIVATE_TAXES],
