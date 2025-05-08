@@ -22,9 +22,12 @@ ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE = util.str2bool(os.getenv("ODOO_UPG_FORCE
 
 
 def migrate(cr, version):
+    source = os.getenv("ODOO_UPG_DB_SOURCE_VERSION")
+    target = os.getenv("ODOO_UPG_DB_TARGET_VERSION")
+    if util.on_CI() and source is None and target is None:
+        source = os.environ["ODOO_UPG_DB_SOURCE_VERSION"] = ".".join(version.split(".")[:2])
+        target = os.environ["ODOO_UPG_DB_TARGET_VERSION"] = series
     if not ODOO_UPG_FORCE_POS_BLACKBOX_BE_UPGRADE and util.module_installed(cr, "pos_blackbox_be"):
-        source = os.getenv("ODOO_UPG_DB_SOURCE_VERSION")
-        target = os.getenv("ODOO_UPG_DB_TARGET_VERSION")
         cr.execute("SELECT COUNT(*)>1 FROM res_company")
         is_multi_company = cr.fetchone()[0]
 
