@@ -60,7 +60,6 @@ def migrate(cr, version):
         INSERT INTO project_task_type (name, sequence, user_id, fold, active, create_uid, write_uid, create_date, write_date, _upg_note_stage_id)
              SELECT name, sequence, user_id, fold, true, create_uid, write_uid, create_date, write_date, id
                FROM note_stage s
-              WHERE NOT EXISTS (SELECT 1 FROM project_task_type ptt WHERE ptt.user_id = s.user_id)
         """
     )
 

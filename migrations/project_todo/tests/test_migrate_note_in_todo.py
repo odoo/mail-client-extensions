@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import contextlib
 from datetime import date
 
@@ -70,15 +68,24 @@ class TestMigrateNoteInTodo(UpgradeCase):
         )
 
         current_user_personal_stages = self.env["project.task.type"].browse(personal_stage_ids)
+        for stage in current_user_personal_stages:
+            self.assertTrue(
+                self.env["project.task.type"].search_count(
+                    [
+                        ("user_id", "=", self.env.uid),
+                        ("name", "=", stage.name),
+                        ("sequence", "=", stage.sequence),
+                        ("fold", "=", stage.fold),
+                    ]
+                ),
+                f"Expected original stage '{stage.name}' for current user to be preserved after migration",
+            )
+
+        stage_names = self.env["project.task.type"].search([("user_id", "=", self.env.uid)]).mapped("name")
         self.assertEqual(
-            self.env["project.task.type"].search_count([("user_id", "=", self.env.uid)]),
-            len(current_user_personal_stages),
-            "No personal stages should be generated for the current user since he have already got",
+            len(stage_names), len(set(stage_names)), "Duplicate stage names found for the current user after migration"
         )
-        self.assertFalse(
-            self.env["project.task.type"].search_count([("name", "=ilike", f"{key}_%"), ("user_id", "!=", user_id)]),
-            "Note stage should only be migrated for user with no personal stages existing in Project",
-        )
+
         self.assertEqual(
             self.env["project.task.type"].search_count([("name", "=ilike", f"{key}_%"), ("user_id", "=", user_id)]),
             len(user2_stage_ids),
@@ -92,20 +99,6 @@ class TestMigrateNoteInTodo(UpgradeCase):
             len(user_personal_stages),
             f"The personal stages of User, user {key} 2, should be generated and he should have the same number of personal stages than the current user",
         )
-
-        personal_stage_read_group = self.env["project.task.stage.personal"]._read_group(
-            [("task_id", "in", todos.ids)], ["user_id"], ["stage_id:recordset"]
-        )
-        for user, stages in personal_stage_read_group:
-            if user.id != user_id:
-                self.assertEqual(
-                    len(stages), 1, f"All the notes migrated for {user.name} should be in the same personal stage"
-                )
-                self.assertEqual(
-                    stages.name,
-                    "Inbox",
-                    f"All the notes migrated for {user.name} should be in the same personal stage ('Inbox')",
-                )
 
         project_tags = self.env["project.tags"].search([("name", "=ilike", f"{key}_%")])
         test_project_tags = project_tags.filtered(lambda tag: tag.name == f"{key}_test")
