@@ -29,7 +29,7 @@ def migrate(cr, version):
               AND (ir_model_data.module LIKE 'l10n\_%\_hr\_payroll'
                    OR ir_model_data.module = 'hr_payroll')
             WHERE ir_model_data IS NULL
-              AND structure.code != 'CHMONTHLY'
+              AND structure.code IS DISTINCT FROM 'CHMONTHLY'
               AND rule.code IN (
                   'BASIC', 'GROSS', 'ATTACH_SALARY', 'ASSIG_SALARY',
                   'CHILD_SUPPORT', 'DEDUCTION', 'REIMBURSEMENT', 'NET'
