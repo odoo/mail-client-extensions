@@ -5,3 +5,12 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.location", "posx")
     util.remove_field(cr, "stock.location", "posy")
     util.remove_field(cr, "stock.location", "posz")
+    util.create_column(cr, "stock_move", "inventory_name", "varchar")
+    query = """
+        UPDATE stock_move sm
+           SET inventory_name = name
+         WHERE is_inventory
+           AND name NOT IN ('Product Quantity Updated', 'Product Quantity Confirmed')
+    """
+    util.explode_execute(cr, query, table="stock_move", alias="sm")
+    util.remove_field(cr, "stock.move", "name")
