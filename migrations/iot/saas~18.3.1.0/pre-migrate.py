@@ -17,4 +17,3 @@ def migrate(cr, version):
         """
     )
     util.remove_field(cr, "iot.device", "connected")
-    util.remove_field(cr, "iot.device", "manual_measurement")
