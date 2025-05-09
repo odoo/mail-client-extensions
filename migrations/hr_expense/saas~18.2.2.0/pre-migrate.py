@@ -5,11 +5,11 @@ def migrate(cr, version):
     eb = util.expand_braces
 
     # Removing expense sheet records (as we don't just remove_model)
-    util.remove_record(cr, "hr.expense.ir_rule_hr_expense_sheet_manager")
-    util.remove_record(cr, "hr.expense.ir_rule_hr_expense_sheet_approver")
-    util.remove_record(cr, "hr.expense.ir_rule_hr_expense_sheet_employee")
-    util.remove_record(cr, "hr.expense.ir_rule_hr_expense_sheet_employee_not_draft")
-    util.remove_record(cr, "hr.expense.hr_expense_report_comp_rule")
+    util.remove_record(cr, "hr_expense.ir_rule_hr_expense_sheet_manager")
+    util.remove_record(cr, "hr_expense.ir_rule_hr_expense_sheet_approver")
+    util.remove_record(cr, "hr_expense.ir_rule_hr_expense_sheet_employee")
+    util.remove_record(cr, "hr_expense.ir_rule_hr_expense_sheet_employee_not_draft")
+    util.remove_record(cr, "hr_expense.hr_expense_report_comp_rule")
     util.remove_view(cr, "hr_expense.hr_expense_sheet_view_activity")
     util.remove_view(cr, "hr_expense.hr_expense_sheet_view_search")
     util.remove_view(cr, "hr_expense.view_hr_expense_sheet_graph")
