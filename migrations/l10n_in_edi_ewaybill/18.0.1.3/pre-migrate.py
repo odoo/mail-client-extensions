@@ -1,0 +1,1 @@
+../../l10n_in_edi_ewaybill/17.0.1.3/pre-migrate.py
