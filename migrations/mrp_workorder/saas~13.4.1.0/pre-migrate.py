@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
     util.create_column(cr, "quality_point", "old_id", "int4")  # Working column
     column_qua = util.get_columns(cr, "quality_point", ignore=("id", "old_id", "operation_id"))
-    column_qua_pre = [f"quality_point_by_new_op.{c}" for c in column_qua]
     # A quality point was link to a operation, then we need to duplicate also quality point for each operation
     # duplicate (for each operation) related to ...
     # => point_id of quality_point update via production_id.bom_id
     cr.execute(
-        """
+        util.format_query(
+            cr,
+            """
         WITH quality_point_by_new_op AS (
             SELECT {column_qua_pre}, quality_point_by_new_op.id AS old_id, temp_new_mrp_operation.id AS operation_id
                FROM quality_point quality_point_by_new_op
@@ -52,8 +52,9 @@ def migrate(cr, version):
           FROM inserted_quality_point
                JOIN quality_point_stock_picking_type_rel
                     ON inserted_quality_point.old_id = quality_point_stock_picking_type_rel.quality_point_id
-        """.format(
-            column_qua=", ".join(column_qua), column_qua_pre=", ".join(column_qua_pre)
+        """,
+            column_qua=column_qua,
+            column_qua_pre=column_qua.using(alias="quality_point_by_new_op"),
         )
     )
 
