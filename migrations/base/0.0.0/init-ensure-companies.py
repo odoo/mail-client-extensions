@@ -4,12 +4,7 @@ import os
 def prepare_migration(cr):
     source = os.getenv("ODOO_UPG_DB_SOURCE_VERSION", "")
     target = os.getenv("ODOO_UPG_DB_TARGET_VERSION")
-    if source.startswith(("15.0", "16.0", "17.0", "saas~17", "18.0")) and target in (
-        "17.0",
-        "saas~17.4",
-        "18.0",
-        "saas~18.1",
-    ):
+    if source.startswith(("15.0", "16.0", "17.0", "saas~17", "18.0")) and target != "16.0":
         cr.execute(
             """
             INSERT INTO res_company_users_rel(cid, user_id)
