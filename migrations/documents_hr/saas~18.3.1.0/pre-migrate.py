@@ -27,23 +27,15 @@ def migrate(cr, version):
             WITH company_employee_folders AS (
                 INSERT INTO documents_document (
                     name, company_id, "type",
-                    folder_id, owner_id,
+                    folder_id, owner_id, active,
                     access_internal, access_via_link, is_access_via_link_hidden
                 )
                 SELECT jsonb_build_object('en_US', 'Employees'), c.id, 'folder',
-                        c.documents_hr_folder, NULL,
+                        c.documents_hr_folder, NULL, TRUE,
                        'none', 'none', TRUE
                   FROM res_company c
                  WHERE documents_hr_settings
              RETURNING id AS did, company_id AS cid
-            ),
-            parent_path_update AS (
-                UPDATE documents_document d
-                   SET parent_path = f.parent_path || cef.did || '/'
-                  FROM company_employee_folders cef
-                  JOIN documents_document f
-                    ON cef.did = f.id
-                 WHERE d.id = cef.did
             ),
             hr_members_access AS (
                 INSERT INTO documents_access (document_id, partner_id, role)
@@ -78,7 +70,8 @@ def migrate(cr, version):
                 WITH employees_folders AS (
                     INSERT INTO documents_document (
                             _upg_employee_id, type, name, company_id, folder_id,
-                            access_internal, access_via_link, is_access_via_link_hidden
+                            access_internal, access_via_link, is_access_via_link_hidden,
+                            active
                         )
                          SELECT e.id,
                                 'folder',
@@ -87,6 +80,7 @@ def migrate(cr, version):
                                 c.documents_employee_folder_id AS folder_id,
                                 'none',
                                 'none',
+                                TRUE,
                                 TRUE
                            FROM hr_employee e
                            JOIN res_company c
@@ -98,14 +92,6 @@ def migrate(cr, version):
                                 folder_id as fid,
                                 company_id as cid,
                                 _upg_employee_id as eid
-                ),
-                parent_path_update AS (
-                    UPDATE documents_document d
-                       SET parent_path = f.parent_path || ef.did || '/'
-                      FROM employees_folders ef
-                      JOIN documents_document f
-                        ON ef.fid = f.id
-                     WHERE d.id = ef.did
                 ),
                 hr_members_access AS (
                     INSERT INTO documents_access (document_id, partner_id, role)
@@ -133,3 +119,30 @@ def migrate(cr, version):
             table="hr_employee",
             alias="e",
         )
+
+        # recompute `parent_path` on newly created folders, assuming that their parent folder has a correct `parent_path` value.
+        query = """
+            WITH _new_folders AS (
+                   SELECT c.documents_employee_folder_id AS fid
+                     FROM res_company c
+                    WHERE c.documents_employee_folder_id IS NOT NULL
+                    UNION
+                   SELECT e.hr_employee_folder_id AS fid
+                     FROM hr_employee e
+                    WHERE e.hr_employee_folder_id IS NOT NULL
+            ),
+            _compute_parent_path AS (
+                SELECT d.id, CONCAT(f.parent_path, d.id, '/') as path
+                  FROM documents_document d
+                  JOIN _new_folders n
+                    ON n.fid = d.id
+             LEFT JOIN documents_document f
+                    ON f.id = d.folder_id
+            )
+            UPDATE documents_document d
+               SET parent_path = c.path
+              FROM _compute_parent_path c
+             WHERE c.id = d.id
+        """
+        # no need to explode the query as there shouldn't have millions of company or employee records.
+        cr.execute(query)
