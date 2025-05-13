@@ -374,6 +374,27 @@ def extract_warnings(dbname, log):
         yield log[slice(warn.start(), end)]
 
 
+def parse_release(workdir: Path, version: Version):
+    for subdir in ["odoo", "openerp"]:
+        release = workdir / "odoo" / version.odoo / subdir / "release.py"
+        if release.is_file():
+            break
+    else:
+        raise ValueError("Cannot find `release.py` file")
+
+    # strict minimal builtins. `__import__` is not defined, so no import is possible.
+    builtins = {
+        "str": str,
+        "map": map,
+    }
+    global_dict = {"__builtins__": builtins}
+    local_dict = {}
+
+    code = compile(release.read_text(), "", mode="exec")
+    eval(code, global_dict, local_dict)
+    return local_dict.get("series", local_dict.get("serie", version.name.replace("-", "~")))
+
+
 @result
 def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -> None:
     config_logger(options)
@@ -418,8 +439,8 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
     env = dict(
         os.environ,
         MATT="1",
-        ODOO_UPG_DB_SOURCE_VERSION=options.source.name,
-        ODOO_UPG_DB_TARGET_VERSION=options.target.name,
+        ODOO_UPG_DB_SOURCE_VERSION=parse_release(workdir, options.source),
+        ODOO_UPG_DB_TARGET_VERSION=parse_release(workdir, options.target),
     )
 
     def odoo(cmd: List[str], *, version: Version, python: Optional[Path], module: str = module_plus) -> bool:
