@@ -14,3 +14,6 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, table="stock_move", alias="sm")
     util.remove_field(cr, "stock.move", "name")
+    cr.execute("ALTER TABLE stock_move RENAME COLUMN description_picking TO description_picking_manual")
+    util.make_field_non_stored(cr, "stock.move", "description_picking", selectable=False)
+    util.make_field_non_stored(cr, "stock.move.line", "description_picking", selectable=False)
