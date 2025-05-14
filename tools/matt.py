@@ -419,6 +419,8 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
     issuper = subprocess.check_output(["psql", "--no-psqlrc", "--quiet", "--tuples-only", "-d", dbname, "-c", query])
     if issuper.decode().strip() == "t":
         extensions.append("pg_trgm")
+        if options.target.ints >= (18, 3):
+            extensions.append("vector")  # for `ai` module
 
     for ext in extensions:
         query = f"CREATE EXTENSION IF NOT EXISTS {ext}"
