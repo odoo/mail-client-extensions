@@ -109,6 +109,14 @@ class TestCrawler(IntegrityCase):
         if util.module_installed(cr, "l10n_fr_pos_cert"):
             self.skip_menus.append("l10n_fr_pos_cert.menu_check_move_integrity_reporting")
 
+        if util.version_gte("18.0"):
+            # These two menus commit the cursor because they reuse code meant for a cron
+            # TODO: if the menus ever get fixed remove this.
+            if util.module_installed(cr, "stock"):
+                self.skip_menus.append("stock.menu_procurement_compute")
+            if util.module_installed(cr, "mrp"):
+                self.skip_menus.append("mrp.menu_procurement_compute_mrp")
+
     def check(self, value):
         """
         @Extend
