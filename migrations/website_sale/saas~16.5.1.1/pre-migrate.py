@@ -31,14 +31,20 @@ def migrate(cr, version):
                 INSERT INTO ir_ui_view (
                             name, key, active,
                             priority, mode, type, website_id)
-                     SELECT %s, %s, active,
+                     SELECT %(cowed_name)s, %(cowed_key)s, active,
                             16, 'primary', 'qweb', website_id
-                       FROM ir_ui_view
-                      WHERE key = %s
-                        AND website_id IS NOT NULL
-                        AND active
+                       FROM ir_ui_view v
+                      WHERE v.key = %(option_key)s
+                        AND v.website_id IS NOT NULL
+                        AND v.active
+                        AND NOT EXISTS (
+                              SELECT 1
+                                FROM ir_ui_view AS iv
+                               WHERE iv.website_id = v.website_id
+                                 AND iv.key = %(cowed_key)s
+                        )
                 """,
-                [cowed_name, cowed_key, option_key],
+                {"cowed_name": cowed_name, "cowed_key": cowed_key, "option_key": option_key},
             )
 
     util.remove_field(cr, "res.config.settings", "module_website_sale_digital")
