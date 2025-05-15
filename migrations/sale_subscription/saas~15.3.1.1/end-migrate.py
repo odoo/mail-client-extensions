@@ -1,4 +1,5 @@
 from odoo.upgrade import util
+from odoo.upgrade.util import inconsistencies
 
 
 def migrate(cr, version):
@@ -94,6 +95,8 @@ def migrate(cr, version):
     """
     )
     sol_ids = [sol_id[0] for sol_id in cr.fetchall()]
+
+    inconsistencies.verify_uoms(cr, "sale.order.line", uom_field="product_uom", ids=sol_ids)
 
     util.recompute_fields(
         cr, "sale.order.line", ["tax_id", "price_tax", "price_total", "qty_invoiced"], ids=sol_ids, strategy="commit"
