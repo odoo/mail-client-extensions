@@ -18,7 +18,10 @@ _logger = logging.getLogger(NS + __name__)
 IDX_AUTO = 0b01
 IDX_ANALYZE = 0b10
 
-UPG_AUTO_INDEXING = int(os.getenv("UPG_AUTO_INDEXING", IDX_AUTO | IDX_ANALYZE))
+_DEFAULT_INDEXING = (
+    IDX_AUTO if util.str2bool(os.getenv("IS_FIRST_UPGRADE_STEP"), default=False) else IDX_AUTO | IDX_ANALYZE
+)
+UPG_AUTO_INDEXING = int(os.getenv("UPG_AUTO_INDEXING", _DEFAULT_INDEXING))
 
 
 def migrate(cr, version):
