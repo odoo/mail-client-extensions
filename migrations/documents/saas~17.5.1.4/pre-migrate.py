@@ -201,13 +201,11 @@ def migrate(cr, version):
         """
         WITH RECURSIVE parent_paths AS (
             SELECT id,
-                   folder_id,
                    id::text || '/' AS parent_path
               FROM documents_document
              WHERE type = 'folder'
                AND folder_id is NULL  -- root folders
       UNION SELECT d.id,
-                   d.folder_id,
                    p.parent_path || d.id || '/' AS parent_path
               FROM documents_document AS d
               JOIN parent_paths AS p

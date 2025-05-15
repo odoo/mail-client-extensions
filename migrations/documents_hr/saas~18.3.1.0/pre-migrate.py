@@ -146,3 +146,49 @@ def migrate(cr, version):
         """
         # no need to explode the query as there shouldn't have millions of company or employee records.
         cr.execute(query)
+
+        # Move all employee documents to their new specific folder
+        # (without changing existing access rights)
+        util.explode_execute(
+            cr,
+            """
+            UPDATE documents_document d
+               SET folder_id = e.hr_employee_folder_id,
+                   parent_path = f.parent_path || d.id::text || '/'
+              FROM res_company c
+              JOIN hr_employee e
+                ON e.company_id = c.id
+              JOIN documents_document f
+                ON e.hr_employee_folder_id = f.id
+             WHERE d.folder_id = c.documents_hr_folder
+               AND e.work_contact_id = d.partner_id
+               AND {parallel_filter}
+            """,
+            alias="d",
+            table="documents_document",
+        )
+
+        # fix parent paths of employee folders' folder children's children,
+        # i.e., documents whose parent is a child of an employee folder.
+        cr.execute(
+            """
+            WITH RECURSIVE parent_paths AS (
+                SELECT f.id,
+                       f.parent_path
+                  FROM documents_document f
+                  JOIN hr_employee e
+                    ON e.hr_employee_folder_id = f.id
+                 WHERE type = 'folder'
+                 UNION
+                SELECT d.id,
+                       p.parent_path || d.id || '/' AS parent_path
+                  FROM documents_document AS d
+                  JOIN parent_paths AS p
+                    ON d.folder_id = p.id
+            )
+            UPDATE documents_document
+               SET parent_path = parent_paths.parent_path
+              FROM parent_paths
+             WHERE parent_paths.id = documents_document.id
+            """
+        )
