@@ -1,10 +1,33 @@
+import collections
+import itertools
 import logging
+import math
+import os
+import sys
+import uuid
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+
+from odoo import sql_db
 
 from odoo.upgrade import util
 from odoo.upgrade.util import inconsistencies
 
+ODOO_UPG_14_PARALLEL_WORKORDER_CREATION = util.str2bool(os.environ.get("ODOO_UPG_14_PARALLEL_WORKORDER_CREATION", "0"))
+
 _logger = logging.getLogger("odoo.upgrade.mrp.134" + __name__)
+
+
+# cannot be defined locally, because it needs to be serializable through "pickle" for ProcessPoolExecutor
+def _create_workorder_cb(mp_ids):
+    # init upon first call. Done here instead of initializer callback, becaue py3.6 doesn't have it
+    if not hasattr(_create_workorder_cb, "env"):
+        sql_db._Pool = None  # children cannot borrow from copies of the same pool, it will cause protocol error
+        _create_workorder_cb.env = util.env(sql_db.db_connect(_create_workorder_cb.dbname).cursor())
+        _create_workorder_cb.env.clear()
+    # process
+    _create_workorder_cb.env["mrp.production"].browse(mp_ids)._create_workorder()
+    _create_workorder_cb.env.cr.commit()
 
 
 def migrate(cr, version):
@@ -375,12 +398,53 @@ def migrate(cr, version):
         util.recompute_fields(cr, "stock.move", ["product_qty"], ids=ids_move)
 
     # Before workorders were created with plan button, now it is done with the bom onchange, then simulate it when needed.
-    production_ids = (
-        env["mrp.production"]
-        .search([("state", "in", ("draft", "confirmed")), ("bom_id", "!=", False), ("workorder_ids", "=", False)])
-        .ids
+    cr.commit()
+    cr.execute(
+        """
+           SELECT p.id
+             FROM mrp_production p
+        LEFT JOIN mrp_workorder o
+               ON o.production_id = p.id
+            WHERE p.state IN ('draft', 'confirmed')
+              AND p.bom_id IS NOT NULL
+              AND o.id IS NULL
+        """
     )
-    util.iter_browse(env["mrp.production"], production_ids, chunk_size=10000, strategy="commit")._create_workorder()
+
+    if not ODOO_UPG_14_PARALLEL_WORKORDER_CREATION:
+        if cr.rowcount > 100000:
+            _logger.warning(
+                "Creating workorders for %d mrp.production, which takes a long time. "
+                "This can be sped up by setting the env variable ODOO_UPG_14_PARALLEL_WORKORDER_CREATION to 1. "
+                "If you do, be sure to examine the results carefully.",
+                cr.rowcount,
+            )
+        util.iter_browse(
+            env["mrp.production"], [r[0] for r in cr.fetchall()], chunk_size=10000, strategy="commit"
+        )._create_workorder()
+    else:
+        # needed to make worker callback _create_workorder_cb pickleable
+        name = f"_upgrade_{uuid.uuid4().hex}"
+        mod = sys.modules[name] = util.import_script(__file__, name=name)
+        mod._create_workorder_cb.dbname = cr.dbname
+        # use two-staged chunking to avoid MemoryError in parent by executor.map's eager future creation
+        num_task = util.get_max_workers() * 100
+        task_size = 1000
+        chunk_size = task_size * num_task
+        chunks = util.log_progress(
+            itertools.takewhile(bool, ([r[0] for r in cr.fetchmany(chunk_size)] for _ in itertools.repeat(None))),
+            logger=_logger,
+            qualifier=f"mrp.production[:{chunk_size}]",
+            size=math.ceil(cr.rowcount / chunk_size),
+            log_hundred_percent=True,
+        )
+        with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor:
+            for chunk in chunks:
+                collections.deque(
+                    executor.map(mod._create_workorder_cb, util.chunks(chunk, task_size, fmt=tuple)),
+                    maxlen=0,
+                )
+        cr.commit()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
     ncr = util.named_cursor(cr)
