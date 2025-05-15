@@ -2,6 +2,22 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # Remove duplicate attachments before merging models
+    cr.execute(
+        """
+        DELETE FROM ir_attachment AS sheet_att
+              USING hr_expense_sheet sheet
+               JOIN hr_expense exp
+                 ON exp.former_sheet_id = sheet.id
+               JOIN ir_attachment exp_att
+                 ON exp_att.res_model = 'hr.expense'
+                AND exp_att.res_id = exp.id
+              WHERE sheet_att.res_model = 'hr.expense.sheet'
+                AND sheet_att.res_id = sheet.id
+                AND sheet_att.checksum = exp_att.checksum
+        """
+    )
+
     util.merge_model(
         cr,
         "hr.expense.sheet",
