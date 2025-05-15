@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.upgrade import util
 
 
@@ -11,11 +10,14 @@ def migrate(cr, version):
     util.remove_column(cr, "mrp_routing_workcenter", "company_id")
     util.remove_column(cr, "mrp_workorder", "consumption")
 
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE stock_move AS sm
            SET picking_type_id = mp.picking_type_id
           FROM mrp_production AS mp
          WHERE COALESCE(sm.raw_material_production_id, sm.production_id) = mp.id
-        """
+        """,
+        table="stock_move",
+        alias="sm",
     )
