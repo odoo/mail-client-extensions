@@ -223,7 +223,7 @@ class TestCrawler(IntegrityCase):
 
         return [list(failing), now]
 
-    def _safe_eval(self, value):
+    def _safe_eval(self, value, extra_ctx=None):
         eval_context = {
             "uid": self.env.user.id,
             "tz": self.env.user.tz,
@@ -234,8 +234,10 @@ class TestCrawler(IntegrityCase):
             "relativedelta": relativedelta,
             "current_date": time.strftime("%Y-%m-%d"),
             "allowed_company_ids": [self.env.user.company_id.id],
+            "current_company_id": self.env.company.id,
             "context": {},
         }
+        eval_context.update(extra_ctx or {})
         # JS Framework added a non standard `to_utc` method on datetime
         # e.g. `datetime.datetime.combine(context_today(), datetime.time(0,0,0)).to_utc()`
         # Can't directly patch `to_utc` to existing `datetime.datetime`:
@@ -478,7 +480,7 @@ class TestCrawler(IntegrityCase):
                     if node.get("domain"):
                         domain = [("id", "=", processed_data[fname])] if processed_data[fname] else []
                         domain = expression.OR(
-                            [domain, safe_eval(node.get("domain"), dict(uid=self.env.user.id, **processed_data))]
+                            [domain, self._safe_eval(node.get("domain"), extra_ctx=dict(**processed_data))]
                         )
 
                     fields_to_read = ["id"]
@@ -507,7 +509,7 @@ class TestCrawler(IntegrityCase):
                 if field.comodel_name:
                     domain = []
                     if node.get("domain"):
-                        domain = safe_eval(node.get("domain"), dict(uid=self.env.user.id, **processed_data))
+                        domain = self._safe_eval(node.get("domain"), extra_ctx=dict(**processed_data))
                     domain_arg = {"domain" if util.version_gte("saas~18.3") else "args": domain}
                     self.env[field.comodel_name].name_search(**domain_arg)
 
