@@ -14,5 +14,6 @@ from . import (
     test_rename_pivot_functions,
     test_set_cumulated_start_odoo_chart,
     test_set_formatting_change,
+    test_text_filter_default_value,
     test_update_figure_commands,
 )
