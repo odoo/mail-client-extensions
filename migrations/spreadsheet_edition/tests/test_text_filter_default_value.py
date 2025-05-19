@@ -2,6 +2,8 @@ from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 from odoo.addons.base.maintenance.migrations.util import json
 
+RANGE_DATA = {"_sheetId": "abc", "_zone": {"top": 1, "left": 1, "bottom": 2, "right": 2}}
+
 
 @change_version("saas~18.4")
 class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
@@ -16,6 +18,7 @@ class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
                 "type": "text",
                 "label": "my filter",
                 "defaultValue": "hello",
+                "rangeOfAllowedValues": RANGE_DATA,
             },
         }
         edit_command = {
@@ -52,3 +55,8 @@ class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
 
         self.assertEqual(add_command["filter"]["defaultValue"], ["hello"])
         self.assertEqual(edit_command["filter"]["defaultValue"], ["hello"])
+
+        self.assertEqual(add_command["filter"]["rangesOfAllowedValues"], [RANGE_DATA])
+        self.assertEqual(edit_command["filter"]["rangesOfAllowedValues"], [RANGE_DATA])
+        self.assertFalse("rangeOfAllowedValues" in add_command["filter"])
+        self.assertFalse("rangeOfAllowedValues" in edit_command["filter"])
