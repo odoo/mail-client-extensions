@@ -10,5 +10,5 @@ def migrate(cr, version):
         if user_id:
             util.force_noupdate(cr, "base.user_admin")
 
-    if util.version_gte("10.0"):
+    if util.version_between("10.0", "saas~18.2"):
         util.ensure_xmlid_match_record(cr, "base.default_user", "res.users", {"login": "default"})
