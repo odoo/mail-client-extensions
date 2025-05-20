@@ -1,4 +1,1 @@
-from . import (
-    test_migrate_note_in_payroll_note,
-    test_pr3445,
-)
+from . import test_migrate_note_in_payroll_note, test_payslips_integrity_18_4, test_pr3445

@@ -1,0 +1,28 @@
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_income_stream_type")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tfn_declaration")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tfn")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_nat_3093_amount")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_extra_pay")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_training_loan")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_medicare_exemption")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_medicare_surcharge")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_medicare_reduction")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tax_free_threshold")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_child_support_deduction")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_child_support_garnishee_amount")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_employment_basis_code")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tax_treatment_category")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tax_treatment_option_actor")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_less_than_3_performance")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tax_treatment_option_voluntary")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tax_treatment_option_seniors")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_comissioners_installment_rate")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_tax_treatment_code")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_work_country_id")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_withholding_variation")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_withholding_variation_amount")
+    util.make_field_non_stored(cr, "hr.employee", "l10n_au_additional_withholding_amount")

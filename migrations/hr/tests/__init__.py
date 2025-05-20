@@ -1,3 +1,1 @@
-# -*- coding: utf-8 -*-
-
-from . import test_migrate_activity_plan_16_5
+from . import test_migrate_activity_plan_16_5, test_migrate_employee_18_4, test_migrate_employee_with_contract_18_4

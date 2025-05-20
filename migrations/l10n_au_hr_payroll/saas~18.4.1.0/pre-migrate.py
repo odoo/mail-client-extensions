@@ -1,6 +1,34 @@
 from odoo.upgrade import util
 
 
+def move_columns(cr, employee_columns):
+    valid_columns = []
+    for col in employee_columns:
+        ctype = util.column_type(cr, "hr_employee", col)
+        if ctype is None:
+            util._logger.error(
+                "Cannot move the column `%s` from `hr_employee` to `hr_version` since it doesn't exist", col
+            )
+            continue
+        valid_columns.append(col)
+        if not util.create_column(cr, "hr_version", col, ctype):
+            util._logger.warning("The column `%s` in `hr_employee` table already exists")
+
+    columns = util.ColumnList.from_unquoted(cr, valid_columns)
+    query = util.format_query(
+        cr,
+        """
+        UPDATE hr_version v
+           SET ({}) = ROW ({})
+          FROM hr_employee e
+         WHERE v.employee_id = e.id
+        """,
+        columns,
+        columns.using(alias="e"),
+    )
+    cr.execute(query)
+
+
 def migrate(cr, version):
     eb = util.expand_braces
     util.rename_xmlid(cr, "l10n_au_hr_payroll_account.hr_department_rdau", "l10n_au_hr_payroll.au_hr_department_rd")
@@ -20,3 +48,34 @@ def migrate(cr, version):
 
     util.remove_record(cr, "l10n_au_hr_payroll.l10n_au_payslip_employee_bank_account")
     util.remove_record(cr, "l10n_au_hr_payroll.res_partner_employee_au")
+
+    util.remove_view(cr, "l10n_au_hr_payroll.view_employee_form")
+    util.rename_field(cr, "l10n_au.termination.payment", "contract_id", "version_id")
+
+    columns = [
+        "l10n_au_tfn_declaration",
+        "l10n_au_tfn",
+        "l10n_au_nat_3093_amount",
+        "l10n_au_extra_pay",
+        "l10n_au_training_loan",
+        "l10n_au_medicare_exemption",
+        "l10n_au_medicare_surcharge",
+        "l10n_au_medicare_reduction",
+        "l10n_au_tax_free_threshold",
+        "l10n_au_child_support_deduction",
+        "l10n_au_child_support_garnishee_amount",
+        "l10n_au_employment_basis_code",
+        "l10n_au_tax_treatment_category",
+        "l10n_au_income_stream_type",
+        "l10n_au_tax_treatment_option_actor",
+        "l10n_au_less_than_3_performance",
+        "l10n_au_tax_treatment_option_voluntary",
+        "l10n_au_tax_treatment_option_seniors",
+        "l10n_au_comissioners_installment_rate",
+        "l10n_au_tax_treatment_code",
+        "l10n_au_work_country_id",
+        "l10n_au_withholding_variation",
+        "l10n_au_withholding_variation_amount",
+        "l10n_au_additional_withholding_amount",
+    ]
+    move_columns(cr, columns)

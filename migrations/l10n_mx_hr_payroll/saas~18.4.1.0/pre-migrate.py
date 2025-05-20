@@ -13,10 +13,8 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.hr_contract_{cdi_,}karla"))
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.hr_contract_{cdi_xochilt,xochitl}"))
 
-    util.rename_xmlid(cr, *eb("{base,l10n_mx_hr_payroll}.hr_employee_cecilia"))
-    util.rename_xmlid(cr, *eb("{base,l10n_mx_hr_payroll}.hr_employee_cesar"))
-    util.rename_xmlid(cr, *eb("{base,l10n_mx_hr_payroll}.hr_employee_karla"))
-    util.rename_xmlid(cr, "base.hr_employee_xochilt", "l10n_mx_hr_payroll.hr_employee_xochitl")
-
     util.remove_record(cr, "l10n_mx_hr_payroll.res_partner_cecilia_work_address")
     util.remove_record(cr, "l10n_mx_hr_payroll.res_partner_cecilia_private_address")
+
+    util.rename_field(cr, "l10n.mx.hr.fonacot", "contract_id", "version_id")
+    util.rename_field(cr, "l10n.mx.hr.infonavit", "contract_id", "version_id")

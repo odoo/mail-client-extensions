@@ -122,29 +122,30 @@ def migrate(cr, version):
             new_xmlid = f"hr_work_entry.{new}"
             util.rename_xmlid(cr, old_xmlid, new_xmlid)
 
+    # Module l10n_ch_hr_payroll_elm_transmission has been merged into l10n_ch_hr_payroll in 18.4
+    # Could break on upgrade 18.0 -> 18.4
+    if util.module_installed(cr, "l10n_ch_hr_payroll_elm_transmission"):
+        transmission_module_name = "l10n_ch_hr_payroll_elm_transmission"
+    else:
+        transmission_module_name = "l10n_ch_hr_payroll"
+
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("{hr_payroll,hr_work_entry}.hr_work_entry_type_out_of_contract"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_monthly_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_hourly_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_lesson_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_overtime_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_overtime_125_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_unpaid_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_illness_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_accident_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_maternity_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_military_wt"))
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_illness_wt_hourly"))
-    util.rename_xmlid(
-        cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_accident_wt_hourly")
-    )
-    util.rename_xmlid(
-        cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_maternity_wt_hourly")
-    )
-    util.rename_xmlid(
-        cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_military_wt_hourly")
-    )
-    util.rename_xmlid(cr, *eb("{l10n_ch_hr_payroll_elm_transmission,hr_work_entry}.l10n_ch_swissdec_interruption_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_monthly_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_hourly_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_lesson_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_overtime_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_overtime_125_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_unpaid_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_illness_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_accident_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_maternity_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_military_wt"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_illness_wt_hourly"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_accident_wt_hourly"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_maternity_wt_hourly"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_military_wt_hourly"))
+    util.rename_xmlid(cr, *eb(f"{{{transmission_module_name},hr_work_entry}}.l10n_ch_swissdec_interruption_wt"))
     util.rename_xmlid(
         cr, *eb("{l10n_be_hr_payroll_acerta.,hr_work_entry.l10n_be_}work_entry_type_small_unemployment_birth")
     )

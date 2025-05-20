@@ -9,3 +9,9 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("l10n_lt_hr_payroll.hr_contract_{cdi_,}norberta"))
 
     util.remove_record(cr, "l10n_lt_hr_payroll.res_partner_norberta_private_address")
+
+    columns = [
+        "l10n_lt_working_capacity",
+    ]
+    move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
+    move_columns(cr, employee_columns=columns)

@@ -2,11 +2,15 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_field(cr, "hr.contract", "l10n_mx_holidays_count")
-    util.remove_field(cr, "hr.contract", "l10n_mx_christmas_bonus")
-    util.remove_field(cr, "hr.contract", "l10n_mx_risk_bonus_rate")
-    util.remove_field(cr, "hr.contract", "l10n_mx_schedule_pay")
-    util.rename_field(cr, "hr.contract", "l10n_mx_schedule_pay_temp", "l10n_mx_schedule_pay")
+    if util.table_exists(cr, "hr_version"):
+        target_model = "hr.version"
+    else:
+        target_model = "hr.contract"
+    util.remove_field(cr, target_model, "l10n_mx_holidays_count")
+    util.remove_field(cr, target_model, "l10n_mx_christmas_bonus")
+    util.remove_field(cr, target_model, "l10n_mx_risk_bonus_rate")
+    util.remove_field(cr, target_model, "l10n_mx_schedule_pay")
+    util.rename_field(cr, target_model, "l10n_mx_schedule_pay_temp", "l10n_mx_schedule_pay")
 
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.{holiday,l10n_mx_leave}_type_work_risk_imss"))

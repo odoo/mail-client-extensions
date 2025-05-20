@@ -1,0 +1,1 @@
+../../hr_work_entry_contract/saas~18.3.1.0/pre-migrate.py
