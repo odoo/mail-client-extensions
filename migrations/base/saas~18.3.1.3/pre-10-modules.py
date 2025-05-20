@@ -72,8 +72,11 @@ def migrate(cr, version):
                     ),
                 ),
             )
-
     util.rename_module(cr, "membership", "partnership")
     util.remove_module(cr, "website_membership")
+    if util.module_installed(cr, "website_crm_partner_assign") and not util.module_installed(cr, "partnership"):
+        # partnership is a new dependency of website_crm_partner_assign
+        util.force_upgrade_of_fresh_module(cr, "partnership")
+
     if util.modules_installed(cr, "l10n_in_ewaybill", "l10n_in_edi"):
         util.force_upgrade_of_fresh_module(cr, "l10n_in_ewaybill_irn")
