@@ -26,3 +26,14 @@ if util.version_gte("saas~16.5"):
 def migrate(cr, version):
     if util.version_between("17.0", "18.0"):
         util.delete_unused(cr, "payment.payment_method_acss_debit")
+
+    if util.version_between("saas~11.4", "19.0"):
+        util.change_field_selection_values(
+            cr,
+            "payment.transaction",
+            "state",
+            {
+                "refunding": "pending",
+                "refunded": "done",
+            },
+        )
