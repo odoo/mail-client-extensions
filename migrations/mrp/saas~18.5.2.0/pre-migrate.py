@@ -11,3 +11,4 @@ def migrate(cr, version):
 
     util.update_field_usage(cr, "stock.move", "is_done", "state", domain_adapter=is_done_adapter)
     util.remove_field(cr, "stock.move", "is_done")
+    util.remove_field(cr, "mrp.bom.line", "allowed_uom_ids")
