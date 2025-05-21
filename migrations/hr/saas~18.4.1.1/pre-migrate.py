@@ -202,3 +202,4 @@ def migrate(cr, version):
     util.remove_view(cr, "hr.hr_contract_view_tree")
     util.remove_view(cr, "hr.hr_contract_view_form")
     util.remove_view(cr, "hr.hr_contract_view_search")
+    util.remove_menus(cr, [util.ref(cr, "hr.menu_hr_reporting_timesheet")])

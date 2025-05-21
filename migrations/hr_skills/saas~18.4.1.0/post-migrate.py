@@ -1,0 +1,47 @@
+from odoo.upgrade import util
+
+
+def migrate(cr, version):
+    util.recompute_fields(cr, "hr.skill.type", ["levels_count"])
+    records_to_update = [
+        "hr_skills.hr_skill_type_lang",
+        "hr_skills.hr_skill_type_softskill",
+        "hr_skills.hr_skill_french",
+        "hr_skills.hr_skill_spanish",
+        "hr_skills.hr_skill_english",
+        "hr_skills.hr_skill_german",
+        "hr_skills.hr_skill_filipino",
+        "hr_skills.hr_skill_arabic",
+        "hr_skills.hr_skill_bengali",
+        "hr_skills.hr_skill_mandarin_chinese",
+        "hr_skills.hr_skill_wu_chinese",
+        "hr_skills.hr_skill_hindi",
+        "hr_skills.hr_skill_russian",
+        "hr_skills.hr_skill_portuguese",
+        "hr_skills.hr_skill_indonesian",
+        "hr_skills.hr_skill_urdu",
+        "hr_skills.hr_skill_japanese",
+        "hr_skills.hr_skill_punjabi",
+        "hr_skills.hr_skill_javanese",
+        "hr_skills.hr_skill_telugu",
+        "hr_skills.hr_skill_turkish",
+        "hr_skills.hr_skill_korean",
+        "hr_skills.hr_skill_marathi",
+        "hr_skills.hr_skill_communication",
+        "hr_skills.hr_skill_teamwork",
+        "hr_skills.hr_skill_problem_solving",
+        "hr_skills.hr_skill_time_management",
+        "hr_skills.hr_skill_critical_thinking",
+        "hr_skills.hr_skill_decision_making",
+        "hr_skills.hr_skill_organizational",
+        "hr_skills.hr_skill_stress_management",
+        "hr_skills.hr_skill_adaptability",
+        "hr_skills.hr_skill_conflict_management",
+        "hr_skills.hr_skill_leadership",
+        "hr_skills.hr_skill_creativity",
+        "hr_skills.hr_skill_resourcefulness",
+        "hr_skills.hr_skill_persuasion",
+        "hr_skills.hr_skill_openness_to_criticism",
+    ]
+    for record in records_to_update:
+        util.update_record_from_xml(cr, record, force_create=False, fields=["sequence"])
