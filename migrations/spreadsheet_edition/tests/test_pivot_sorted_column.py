@@ -13,7 +13,7 @@ class TestPivotSortedColumn(UpgradeCase):
             "type": "ODOO",
             "rows": [],
             "columns": [],
-            "measures": [{"id": "MEASURE", "fieldName": "MEASURE", "aggregator": "sum"}],
+            "measures": [{"id": "MEASURE:sum", "fieldName": "MEASURE", "aggregator": "sum"}],
             "model": "MODEL",
             "name": "MODEL",
             "sortedColumn": {
@@ -80,7 +80,7 @@ class TestPivotSortedColumn(UpgradeCase):
             commands[0]["pivot"]["sortedColumn"],
             {
                 "order": "asc",
-                "measure": "MEASURE",
+                "measure": "MEASURE:sum",
                 "domain": [],
             },
         )
@@ -88,7 +88,7 @@ class TestPivotSortedColumn(UpgradeCase):
             commands[1]["pivot"]["sortedColumn"],
             {
                 "order": "asc",
-                "measure": "MEASURE",
+                "measure": "MEASURE:sum",
                 "domain": [],
             },
         )

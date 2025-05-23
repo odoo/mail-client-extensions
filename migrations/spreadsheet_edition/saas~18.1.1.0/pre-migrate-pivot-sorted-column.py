@@ -11,9 +11,10 @@ def migrate(cr, version):
             if not sortedColumn:
                 continue
             groupId = sortedColumn.get("groupId")
-            if groupId and len(groupId) == 2 and len(groupId[1]) == 0:
+            measure = next((m for m in pivot["measures"] if m["fieldName"] == sortedColumn["measure"]), None)
+            if measure and groupId and len(groupId) == 2 and len(groupId[1]) == 0:
                 pivot["sortedColumn"] = {
-                    "measure": sortedColumn.get("measure"),
+                    "measure": measure["id"],
                     "order": sortedColumn.get("order"),
                     "domain": [],
                 }
