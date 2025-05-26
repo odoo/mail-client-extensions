@@ -21,6 +21,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_ch_hr_payroll_elm_transmission", "l10n_ch_hr_payroll")
     util.merge_module(cr, "l10n_ch_hr_payroll_elm_transmission_account", "l10n_ch_hr_payroll_account")
     util.merge_module(cr, "l10n_jo_edi_extended", "l10n_jo_edi")
+    util.merge_module(cr, "l10n_ae_corporate_tax_report", "l10n_ae_reports")
 
     util.remove_module(cr, "test_hr_contract_calendar")
     util.remove_module(cr, "spreadsheet_dashboard_hr_contract")
