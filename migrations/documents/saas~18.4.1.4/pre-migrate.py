@@ -12,3 +12,14 @@ def migrate(cr, version):
         """,
         table="documents_document",
     )
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE documents_document
+           SET lock_uid = NULL
+         WHERE type = 'folder'
+           AND lock_uid IS NOT NULL
+        """,
+        table="documents_document",
+    )
