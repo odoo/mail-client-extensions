@@ -292,7 +292,7 @@ def init_repos(options: Namespace) -> bool:
             subprocess.check_call(["git", "fetch", "-q"], cwd=str(p))
 
     conffile = options.cache_path / "odoo.conf"
-    if not conffile.exists():
+    if not conffile.exists() or conffile.stat().st_size == 0:
         log_handlers = ":WARNING,py.warnings:ERROR," + ",".join(
             itertools.chain.from_iterable(
                 [f"openerp.{ll}", f"odoo.{ll}"]
