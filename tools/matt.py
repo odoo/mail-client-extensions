@@ -299,6 +299,7 @@ def init_repos(options: Namespace) -> bool:
                 for ll in [
                     "osv.orm.schema:INFO",
                     "models.schema:INFO",
+                    "tools.config:ERROR",
                     "tools.misc:INFO",
                     "modules.loading:DEBUG",
                     "modules.graph:CRITICAL",
