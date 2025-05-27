@@ -402,6 +402,18 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
         query = f"CREATE EXTENSION IF NOT EXISTS {ext}"
         subprocess.run(["psql", "--no-psqlrc", "--quiet", "-d", dbname, "-c", query], check=False)  # may fail
 
+    # now mark `unaccent` as IMMUTABLE, if possible. Needed for some indexes
+    query = r"""
+    DO $$
+        BEGIN
+            ALTER FUNCTION unaccent(text) IMMUTABLE;
+        EXCEPTION
+           WHEN insufficient_privilege THEN
+        END;
+    $$;
+    """
+    subprocess.run(["psql", "--no-psqlrc", "--quiet", "-d", dbname, "-c", query], check=True)
+
     env = dict(
         os.environ,
         MATT="1",
