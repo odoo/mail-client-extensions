@@ -1,14 +1,15 @@
-# -*- coding: utf-8 -*-
-
 import requests
 
 from odoo.tools import config
 
-from odoo.addons.website.tools import MockRequest
+try:
+    from odoo.addons.http_routing.tests.common import MockRequest
+except ImportError:
+    from odoo.addons.website.tools import MockRequest
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
-BASE_URL = "http://127.0.0.1:%s" % (config["http_port"],)
+BASE_URL = "http://127.0.0.1:{}".format(config["http_port"])
 
 
 @change_version("saas~13.5")
@@ -46,9 +47,11 @@ class TestThemesLoading(UpgradeCase):
         session = requests.Session()
         for website in Website.browse(init.values()):
             # 2.1 Public rendering
-            res = session.get(BASE_URL + "/?fw=%s&debug=assets" % website.id)
+            res = session.get("{}/?fw={}&debug=assets".format(BASE_URL, website.id))
             self.assertEqual(res.status_code, 200, "Ensure rendering went fine as public user")
-            self.assertTrue("/%s/static/src" % website.theme_id.name in res.text, "Ensure correct website was loaded")
+            self.assertTrue(
+                "/{}/static/src".format(website.theme_id.name) in res.text, "Ensure correct website was loaded"
+            )
             self.assertTrue("error" not in res.text, "Ensure there is no error (css compilation or xpath)")
 
             with MockRequest(self.env, website=website):
