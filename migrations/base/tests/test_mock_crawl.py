@@ -242,9 +242,10 @@ class TestCrawler(IntegrityCase):
             "relativedelta": relativedelta,
             "current_date": time.strftime("%Y-%m-%d"),
             "allowed_company_ids": [self.env.user.company_id.id],
-            "current_company_id": self.env.company.id,
             "context": {},
         }
+        if util.version_gte("13.0"):
+            eval_context["current_company_id"] = self.env.company.id
         eval_context.update(extra_ctx or {})
         # JS Framework added a non standard `to_utc` method on datetime
         # e.g. `datetime.datetime.combine(context_today(), datetime.time(0,0,0)).to_utc()`
