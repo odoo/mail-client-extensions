@@ -24,7 +24,7 @@ def _migrate(cr, version):
 
     cr.execute("UPDATE account_account SET create_asset='no'")
 
-    util.rename_model(cr, "account.asset.asset", "account.asset")
+    util.rename_model(cr, "account.asset.asset", "account.asset", ignored_m2ms=())
 
     util.create_column(cr, "account_asset", "value_residual", "numeric")
     util.create_column(cr, "account_asset", "prorata_date", "date")
@@ -314,8 +314,8 @@ def _migrate(cr, version):
                        JOIN account_asset asset ON asset.id = line.asset_id
                        JOIN account_move move ON move._upg_depreciation_line_id = line.id
                        JOIN account_move_line move_line ON move_line.move_id = move.id
-                       JOIN account_analytic_tag_account_asset_asset_rel tag
-                         ON tag.account_asset_asset_id = asset.id
+                       JOIN account_analytic_tag_account_asset_rel tag
+                         ON tag.account_asset_id = asset.id
     """
     )
 
