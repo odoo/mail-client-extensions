@@ -62,3 +62,15 @@ def migrate(cr, version):
         r"name=\1card\1",
         extra_filter="t.type IN ('kanban', 'form')",
     )
+
+    cr.execute(
+        r"""
+        UPDATE ir_act_server
+           SET code = regexp_replace(
+                        replace(replace(code, 'Tree', 'List'), 'TREE', 'LIST'),
+                        '\ytree\y','list','g'
+                    )
+         WHERE id = %s;
+        """,
+        [util.ref(cr, "base.ir_action_activate_private_address_recycling")],
+    )
