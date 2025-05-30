@@ -96,6 +96,24 @@ def migrate(cr, version):
         imd__studio_col=util.SQLStr(", imd.studio" if has_studio else ""),
     )
     cr.execute(query)
+    # Any action must have *at least* the same groups its parent has
+    cr.execute(
+        """
+        WITH RECURSIVE action_tree AS (
+             SELECT act_id, gid
+               FROM ir_act_server_group_rel
+              UNION
+             SELECT a.id as act_id, r.gid
+               FROM action_tree r
+               JOIN ir_act_server a
+                 ON r.act_id = a.parent_id
+        )
+        INSERT INTO ir_act_server_group_rel(act_id, gid)
+             SELECT act_id, gid
+               FROM action_tree
+        ON CONFLICT DO NOTHING
+        """
+    )
 
     # When the same field is changed from m2m to o2m,
     # the relation is not automatically dropped.

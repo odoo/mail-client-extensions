@@ -85,3 +85,12 @@ def migrate(cr, version):
         },
     }
     util.import_script("base/saas~18.2.1.3/pre-ir_act_server.py").rematch_xmlids(cr, child_xmlids_changes_by_parent)
+    cr.execute(
+        """
+        DELETE
+          FROM ir_act_server_group_rel
+         WHERE gid = %s
+           AND act_id = %s
+         """,
+        [util.ref(cr, "base.group_user"), util.ref(cr, "documents_account.ir_actions_server_create_vendor_bill_code")],
+    )
