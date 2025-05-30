@@ -37,6 +37,7 @@ def migrate(cr, version):
 
     util.merge_module(cr, "l10n_it_edi_withholding_reports", "l10n_it_reports")
     util.merge_module(cr, "l10n_in_reports_gstr_document_summary", "l10n_in_reports")
+    util.remove_module(cr, "website_payment_authorize")
     util.remove_module(cr, "ai_calendar")
 
     if util.modules_installed(cr, "ai"):

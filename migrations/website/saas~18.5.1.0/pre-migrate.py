@@ -40,3 +40,5 @@ def migrate(cr, version):
     util.remove_view(cr, "website.snippet_options_carousel")
     util.remove_view(cr, "website.snippet_options_tabs")
     util.remove_view(cr, "website.snippet_options_background_options")
+
+    util.remove_field(cr, "res.config.settings", "module_marketing_automation")

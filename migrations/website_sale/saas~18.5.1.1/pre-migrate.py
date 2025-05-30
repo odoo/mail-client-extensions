@@ -80,6 +80,14 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.variants_separator")
     util.remove_view(cr, "website_sale.shop_fullwidth")
 
+    util.remove_field(cr, "res.config.settings", "enabled_buy_now_button")
+    util.remove_field(cr, "res.config.settings", "enabled_extra_checkout_step")
+    util.remove_field(cr, "res.config.settings", "module_account")
+    util.remove_field(cr, "res.config.settings", "module_website_sale_wishlist")
+    util.remove_field(cr, "res.config.settings", "module_website_sale_comparison")
+    util.remove_field(cr, "res.config.settings", "module_delivery_mondialrelay")
+    util.change_field_selection_values(cr, "website", "add_to_cart_action", {"force_dialog": "stay"})
+
     click_view = env.ref("website_sale.product_picture_magnify_click")
     cr.execute(
         r"""
