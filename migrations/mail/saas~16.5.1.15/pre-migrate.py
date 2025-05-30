@@ -161,6 +161,7 @@ def migrate(cr, version):
 
     # activities
     util.create_column(cr, "mail_activity", "active", "boolean", default=True)
+    util.create_column(cr, "mail_activity", "date_done", "date")
 
     # archive livechat with public users since guest should be used now
     public_group_id = util.ref(cr, "base.group_public")
