@@ -150,8 +150,21 @@ def migrate(cr, version):
         analytic_fnames=sql.SQL(", ").join(map(sql.Identifier, project_analytic_fnames)),
     )
     new_project_vals_list = execute_values(cr._obj, project_query, project_fvals_list, fetch=True)
-
     project_ids = [v[0] for v in new_project_vals_list]
+
+    odoobot = util.ref(cr, "base.user_root")
+    cr.execute(
+        """
+        UPDATE project_project
+           SET create_date = NOW() AT TIME ZONE 'UTC',
+               create_uid = %s,
+               write_date = NOW() AT TIME ZONE 'UTC',
+               write_uid = %s
+         WHERE id in %s
+    """,
+        [odoobot, odoobot, tuple(project_ids)],
+    )
+
     query = """
        WITH _to_update AS (
           SELECT id, alias_id FROM project_project WHERE id IN %s
