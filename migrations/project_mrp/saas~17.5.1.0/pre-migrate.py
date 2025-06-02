@@ -121,11 +121,24 @@ def migrate(cr, version):
     if util.module_installed(cr, "sale_timesheet"):
         project_fnames["billing_type"] = "not_billable"
     project_fvals_list = []
+
+    cr.execute(
+        """
+        SELECT account.id,
+               account.name->>'en_US'
+          FROM account_analytic_account account
+         WHERE account.id = ANY(%s)
+        """,
+        [list(all_account_ids)],
+    )
+    account_name_per_account_id = dict(cr.fetchall())
+
     for account_ids, (new_mail_alias_id,) in zip(res_ids_per_res_model_per_account_ids, new_mail_alias_ids):
+        account_names = " | ".join([account_name_per_account_id[account_id] for account_id in account_ids])
         project_fvalues = tuple(
             {
                 **project_fnames,
-                "name": '{{"en_US": "Analytic Project {}"}}'.format(account_ids),
+                "name": '{{"en_US": "Analytic Project ({})"}}'.format(account_names),
                 "alias_id": new_mail_alias_id,
                 **{get_col_name(plan_id_per_account_id[account_id]): account_id for account_id in account_ids},
             }.values()
