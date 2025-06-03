@@ -2,6 +2,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    if not util.table_exists(cr, "pos_preparation_display_order_stage"):
+        return
     cr.execute(
         """
         WITH ranked_stages AS (
