@@ -33,6 +33,10 @@ def migrate(cr, version):
             task = env["project.task"].browse(t.res_id).exists()
             if not task.project_id.account_id:
                 continue
+            if task.project_id.company_id and not any(
+                e.company_id.id == task.project_id.company_id.id for e in t.user_id.employee_ids
+            ):
+                continue
             minutes_spent = t._get_minutes_spent()
             timesheet_vals_list.append(
                 {
