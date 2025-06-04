@@ -184,6 +184,25 @@ def migrate(cr, version):
     util.remove_model(cr, "account.fiscal.position.tax")
 
     # -= bank reco widget revamped =-
+    _logger.info("Migrate the (Rule to suggest counterpart entry) models.")
+    cr.execute(
+        util.format_query(
+            cr,
+            """
+             UPDATE account_reconcile_model
+                SET match_label = COALESCE(match_label, match_note, {match_transaction_details}),
+                    match_label_param = COALESCE(match_label_param, match_note_param, {match_transaction_details_param})
+              WHERE rule_type = 'writeoff_suggestion'
+            """,
+            match_transaction_details="match_transaction_details"
+            if util.column_exists(cr, "account_reconcile_model", "match_transaction_details")
+            else util.SQLStr("NULL"),
+            match_transaction_details_param="match_transaction_details_param"
+            if util.column_exists(cr, "account_reconcile_model", "match_transaction_details_param")
+            else util.SQLStr("NULL"),
+        )
+    )
+
     util.remove_field(cr, "account.reconcile.model.line", "rule_type")
     util.remove_field(cr, "account.reconcile.model.line", "journal_id")
     util.remove_field(cr, "account.reconcile.model.line", "allow_payment_tolerance")
@@ -255,14 +274,14 @@ def migrate(cr, version):
         alias="model",
     )
 
-    _logger.info("invoice_matching (pure or with counterpart suggestion) is now hardcoded")
+    _logger.info("invoice_matching is now hardcoded")
     cr.execute("CREATE INDEX ON account_move_line(reconcile_model_id) WHERE reconcile_model_id IS NOT NULL")
     cr.commit()
     util.explode_execute(
         cr,
         """
          DELETE FROM account_reconcile_model
-         WHERE rule_type IN ('invoice_matching', 'writeoff_suggestion')
+         WHERE rule_type IN ('invoice_matching')
         """,
         table="account_reconcile_model",
     )
