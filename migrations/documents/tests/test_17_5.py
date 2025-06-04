@@ -1,5 +1,6 @@
 import ast
 import base64
+import itertools
 from datetime import date, timedelta
 from unittest.mock import patch
 
@@ -11,6 +12,8 @@ from odoo.exceptions import AccessError
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
+
+ACCOUNT_MOVE_TYPES = ("in_invoice", "out_invoice", "in_refund", "out_refund", "entry", "in_receipt")
 
 
 @change_version("saas~17.5")
@@ -470,7 +473,7 @@ class TestShareMigration(UpgradeCase):
                     "create_model": f"account.move.{move_type}",
                     "journal_id": journal_ids[0],
                 }
-                for move_type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "entry", "in_receipt")
+                for move_type in ACCOUNT_MOVE_TYPES
             )
             create_workflow_rules.append(
                 {
@@ -515,6 +518,22 @@ class TestShareMigration(UpgradeCase):
             ]
         )
         self.env["documents.workflow.rule"].create(create_workflow_rules)
+
+        if util.module_installed(self.env.cr, "documents_account"):
+            self.env.cr.execute(
+                "SELECT id FROM ir_model_fields WHERE name = 'journal_id' AND model = 'documents.workflow.rule'"
+            )
+            journal_id_field = self.env.cr.fetchone()[0]
+            properties = self.env["ir.property"].search(
+                [
+                    ("fields_id", "=", journal_id_field),
+                    ("value_reference", "=", f"account.journal,{journal_ids[0]}"),
+                    ("res_id", "like", "documents.workflow.rule,%"),
+                ]
+            )
+            # There should be one property for each rule (and only for env company)
+            self.assertEqual(properties.company_id, self.env.company)
+            self.assertEqual(len(properties), len(ACCOUNT_MOVE_TYPES) + 1)
 
         self.env.cr.execute(
             """
@@ -1180,24 +1199,30 @@ class TestShareMigration(UpgradeCase):
             # Check workflow rules of submodules that create specific records.
             if util.module_installed(self.env.cr, "documents_account") and init["journal_ids"]:
                 journal_id = init["journal_ids"][0]
-                for move_type in ("in_invoice", "out_invoice", "in_refund", "out_refund", "entry", "in_receipt"):
-                    act_server = get_server_action(f"MiGraTion18-Create-account.move-{move_type}")
+                companies = [(False, False), (self.env.company.id, self.env.company.name)]
+                for move_type, (company_id, company_name) in itertools.product(ACCOUNT_MOVE_TYPES, companies):
+                    act_server = get_server_action(
+                        f"MiGraTion18-Create-account.move-{move_type}{f' ({company_name})' if company_name else ''}"
+                    )
                     embedded_action = get_embedded_action(act_server)
                     doc_a = get_doc_a_copy()
                     with patch.object(
                         type(self.env["documents.document"]), "account_create_account_move", autospec=True
                     ) as mock_create:
                         doc_a.action_execute_embedded_action(embedded_action.id)
-                    mock_create.assert_called_once_with(doc_a, move_type, journal_id)
+                    mock_create.assert_called_once_with(doc_a, move_type, *([journal_id] if company_id else []))
                     check_base(doc_a.activity_ids)
-                act_server = get_server_action("MiGraTion18-Create-account.bank.statement")
-                embedded_action = get_embedded_action(act_server)
-                doc_a = get_doc_a_copy()
-                with patch.object(
-                    type(self.env["documents.document"]), "account_create_account_bank_statement", autospec=True
-                ) as mock_create:
-                    doc_a.action_execute_embedded_action(embedded_action.id)
-                mock_create.assert_called_once_with(doc_a, journal_id)
+                for company_id, company_name in companies:
+                    act_server = get_server_action(
+                        f"MiGraTion18-Create-account.bank.statement{f' ({company_name})' if company_name else ''}"
+                    )
+                    embedded_action = get_embedded_action(act_server)
+                    doc_a = get_doc_a_copy()
+                    with patch.object(
+                        type(self.env["documents.document"]), "account_create_account_bank_statement", autospec=True
+                    ) as mock_create:
+                        doc_a.action_execute_embedded_action(embedded_action.id)
+                    mock_create.assert_called_once_with(doc_a, *((journal_id,) if company_id else ()))
                 check_base(doc_a.activity_ids)
 
             for module, create_infos in (
@@ -1236,7 +1261,7 @@ class TestShareMigration(UpgradeCase):
                         mock_create.assert_called_once_with(*[doc_a, *parameters])
                         check_base(doc_a.activity_ids)
 
-            # Check that no embedded action are created for workflow rule with criterion (as we can ensure those criterion)
+            # Check that no embedded actions are created for workflow rule with criteria (as we can ensure those criteria)
             for criteria in (
                 "domain",
                 "criteria_partner_id",

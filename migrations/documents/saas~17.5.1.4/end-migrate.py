@@ -374,12 +374,12 @@ def migrate_workflow_rule(
                wr.activity_option, wr.activity_type_id, wr.activity_summary, wr.activity_date_deadline_range,
                wr.activity_date_deadline_range_type, wr.activity_note, wr.has_owner_activity, wr.activity_user_id,
                wr.domain_folder_id, wr.create_model, wr.link_model,
-               wr.condition_type, wr.criteria_partner_id, wr.criteria_owner_id, wr.domain
+               wr.condition_type, wr.criteria_partner_id, wr.criteria_owner_id, wr.domain,
+               imd.module || '.' || imd.name AS xmlid
           FROM documents_workflow_rule wr
      LEFT JOIN ir_model_data imd
             ON imd.res_id = wr.id
            AND imd.model = 'documents.workflow.rule'
-         WHERE imd.id IS NULL;
         """
     )
     workflow_rules = cr.dictfetchall()
@@ -389,18 +389,35 @@ def migrate_workflow_rule(
 
     cr.execute("SELECT id, model FROM ir_model")
     model_by_id = {row["id"]: row["model"] for row in cr.dictfetchall()}
-    journal_by_workflow_rule_id = {}
+    account_rule_company_journal_list = []
     if util.module_installed(cr, "documents_account"):
         cr.execute("SELECT id FROM ir_model_fields WHERE name = 'journal_id' AND model = 'documents.workflow.rule'")
         journal_id_field = cr.fetchone()
         if journal_id_field:
             journal_id_field = journal_id_field[0]
-            cr.execute("SELECT res_id, value_reference FROM _ir_property WHERE fields_id = %s;", (journal_id_field,))
-            journal_by_workflow_rule_id = {
-                int(record["res_id"].split(",")[1]): int(record["value_reference"].split(",")[1])
-                for record in cr.dictfetchall()
-                if record["value_reference"]
-            }
+            cr.execute(
+                """
+               SELECT p.res_id as rid,
+                      p.value_reference as jid,
+                      p.company_id as cid,
+                      c.name as cname
+                 FROM _ir_property p
+                 JOIN res_company c
+                   ON p.company_id = c.id
+                WHERE fields_id = %s
+                  AND value_reference IS NOT NULL
+                """,
+                [journal_id_field],
+            )
+            for record in cr.dictfetchall():
+                rule_id, journal_id, company_id, company_name = (
+                    int(record["rid"].split(",")[1]),
+                    int(record["jid"].split(",")[1]),
+                    record["cid"],
+                    record["cname"],
+                )
+                account_rule_company_journal_list.append((rule_id, journal_id, company_id, company_name))
+
     method_by_create_model = {
         "hr.expense": ("document_hr_expense_create_hr_expense", []),
         "hr.applicant": ("document_hr_recruitment_create_hr_candidate", []),
@@ -461,8 +478,16 @@ def migrate_workflow_rule(
         internal_id,
         document_model_id,
     )
-    for workflow_rule in workflow_rules:
-        workflow_rule_id = workflow_rule["id"]
+    workflow_rule_by_id = {wr["id"]: wr for wr in workflow_rules}
+    for workflow_rule_id, journal_id, company_id, company_name in chain(
+        (
+            (wr["id"], False, False, False)
+            for wr in workflow_rules
+            if not wr["xmlid"] or util.is_changed(cr, wr["xmlid"])
+        ),  # custom non-company-specific rules
+        account_rule_company_journal_list,  # company-specific account rules
+    ):
+        workflow_rule = workflow_rule_by_id[workflow_rule_id]
         workflow_rule_name = workflow_rule["name"]["en_US"]
         code = []
         children = []
@@ -554,9 +579,7 @@ def migrate_workflow_rule(
             children.append(upg_name)
         elif create_model in method_by_create_model:
             method_name, parameters = method_by_create_model[create_model]
-            if create_model.startswith("account.") and (
-                journal_id := journal_by_workflow_rule_id.get(workflow_rule_id)
-            ):
+            if create_model.startswith("account.") and journal_id:
                 parameters = [*parameters, str(journal_id)]
             name = f"ir_actions_server_{method_name}"
             if parameters:
@@ -594,8 +617,8 @@ def migrate_workflow_rule(
 
         server_actions.append(
             {
-                "name": workflow_rule_name,
-                "upg_name": f"{workflow_rule_id}_{workflow_rule_name}",
+                "name": workflow_rule_name + (f" ({company_name})" if company_name else ""),
+                "upg_name": f"{workflow_rule_id}_{workflow_rule_name}{f'_{company_id}' if company_id else ''}",
                 "code": "\n".join(code),
                 "children": children,
                 # If there are criteria not supported by the new version, don't pin the action to the folder
