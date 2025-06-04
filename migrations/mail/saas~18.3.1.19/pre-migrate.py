@@ -21,6 +21,7 @@ def migrate(cr, version):
         SELECT MAX(id) AS link_preview_id,
                source_url
           FROM mail_link_preview
+         WHERE message_id IS NOT NULL
       GROUP BY source_url
     ), _insert AS (
     INSERT INTO mail_message_link_preview (link_preview_id, message_id, is_hidden, create_uid, write_uid, create_date, write_date)
