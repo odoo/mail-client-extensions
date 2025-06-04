@@ -242,6 +242,18 @@ def migrate(cr, version):
     }
     for tag_xmlid, tag_name in tags_values.items():
         util.ensure_xmlid_match_record(cr, f"documents.{tag_xmlid}", "documents.tag", {"name": tag_name})
+
+    # Keep a link between kept tags and all facets containing their homonyms so they can be used
+    # in workflows' migration
+    cr.execute(
+        """
+           CREATE TABLE _upg_facets_new_tags_rel (
+               fid integer REFERENCES documents_facet(id),
+               tid integer REFERENCES documents_tag(id),
+               PRIMARY KEY (fid, tid)
+           )
+        """
+    )
     cr.execute(
         """
         WITH grouped_ids AS (
@@ -255,6 +267,16 @@ def migrate(cr, version):
                 ON imd.res_id = tag.id
                AND imd.model = 'documents_tag'
           GROUP BY tag.name->'en_US'
+        ),
+        facets_expansion AS (
+            INSERT INTO _upg_facets_new_tags_rel (fid, tid)
+                 SELECT f.id, g.ids[1]
+                   FROM documents_tag t
+                   JOIN grouped_ids g
+                     ON t.id = ANY(g.ids)
+                   JOIN documents_facet f
+                     ON t.facet_id = f.id
+               GROUP BY f.id, g.ids[1]
         )
         SELECT tag.id, grouped.ids[1]
           FROM documents_tag AS tag
@@ -307,8 +329,6 @@ def migrate(cr, version):
         util.rename_xmlid(cr, f"documents.{old_name}", f"documents.{new_name}", on_collision="merge")
     # Try to steal the tag from documents_project if available.
     util.rename_xmlid(cr, "documents_project.documents_project_status_draft", "documents.documents_tag_draft")
-
-    cr.execute("ALTER TABLE documents_tag ALTER COLUMN facet_id DROP NOT NULL")
 
     ####################
     # DOCUMENTS.ACCESS #

@@ -1,5 +1,6 @@
 import re
 from collections import defaultdict
+from functools import partial
 from itertools import chain, cycle
 
 from psycopg2 import sql
@@ -8,10 +9,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    #################
-    # DOCUMENTS.TAG #
-    #################
-
     ############
     # OWNER ID #
     ############
@@ -439,19 +436,31 @@ def migrate_workflow_rule(
         """
         SELECT tag.id,
                tag.name->>'en_US' AS name,
-               tag.facet_id
+               f.fid AS facet_id
           FROM documents_tag tag
+          JOIN _upg_facets_new_tags_rel f
+            ON tag.id = f.tid
         """
     )
-    tag_info = {r["id"]: r for r in cr.dictfetchall()}
-    tags_by_facet = {
-        grouped_key: [grouped_value["id"] for grouped_value in grouped_values]
-        for grouped_key, grouped_values in groupby(tag_info.values(), lambda r: r["facet_id"])
-    }
+    tags_and_facets = cr.dictfetchall()
+    tag_info = {}
+    tags_by_facet = defaultdict(list)
+    for r in tags_and_facets:
+        tag_info[r["id"]] = r
+        tags_by_facet[r["facet_id"]].append(r["id"])
+
+    cr.execute("DROP TABLE _upg_facets_new_tags_rel")
+
     all_tag_ids_remove = set()
     all_tag_ids_add = set()
     server_actions = []
     queries_step_1 = []
+    workflow_build_insert_ir_act_server = partial(
+        build_insert_ir_act_server,
+        cr,
+        internal_id,
+        document_model_id,
+    )
     for workflow_rule in workflow_rules:
         workflow_rule_id = workflow_rule["id"]
         workflow_rule_name = workflow_rule["name"]["en_US"]
@@ -501,25 +510,26 @@ def migrate_workflow_rule(
             activity_type_name = activity_type_name_by_id[workflow_rule["activity_type_id"]]
             name = f"Create Activity {activity_type_name}"
             upg_name = f"{workflow_rule['id']}_{name}"
-            queries_step_1.append(
-                build_insert_ir_act_server(
-                    cr=cr,
-                    internal_id=internal_id,
-                    model_id=document_model_id,
-                    name=name,
-                    upg_name=upg_name,
-                    sequence=15,
-                    state="next_activity",
-                    activity_type_id=workflow_rule["activity_type_id"],
-                    activity_summary=workflow_rule["activity_summary"],
-                    activity_date_deadline_range=max(0, workflow_rule["activity_date_deadline_range"] or 0),
-                    activity_date_deadline_range_type=workflow_rule["activity_date_deadline_range_type"],
-                    activity_note=workflow_rule["activity_note"],
-                    activity_user_type="generic" if workflow_rule["has_owner_activity"] else "specific",
-                    activity_user_field_name="owner_id" if workflow_rule["has_owner_activity"] else None,
-                    activity_user_id=None if workflow_rule["has_owner_activity"] else workflow_rule["activity_user_id"],
+            if upg_name not in existing_server_act:
+                queries_step_1.append(
+                    workflow_build_insert_ir_act_server(
+                        name=name,
+                        upg_name=upg_name,
+                        sequence=15,
+                        state="next_activity",
+                        activity_type_id=workflow_rule["activity_type_id"],
+                        activity_summary=workflow_rule["activity_summary"],
+                        activity_date_deadline_range=max(0, workflow_rule["activity_date_deadline_range"] or 0),
+                        activity_date_deadline_range_type=workflow_rule["activity_date_deadline_range_type"],
+                        activity_note=workflow_rule["activity_note"],
+                        activity_user_type="generic" if workflow_rule["has_owner_activity"] else "specific",
+                        activity_user_field_name="owner_id" if workflow_rule["has_owner_activity"] else None,
+                        activity_user_id=None
+                        if workflow_rule["has_owner_activity"]
+                        else workflow_rule["activity_user_id"],
+                    )
                 )
-            )
+                existing_server_act.add(upg_name)
             children.append(upg_name)
 
         create_model = workflow_rule["create_model"]
@@ -530,10 +540,7 @@ def migrate_workflow_rule(
             upg_name = name
             if upg_name not in existing_server_act:
                 queries_step_1.append(
-                    build_insert_ir_act_server(
-                        cr=cr,
-                        internal_id=internal_id,
-                        model_id=document_model_id,
+                    workflow_build_insert_ir_act_server(
                         name=name,
                         upg_name=upg_name,
                         sequence=100,
@@ -558,10 +565,7 @@ def migrate_workflow_rule(
             upg_name = name
             if upg_name not in existing_server_act:
                 queries_step_1.append(
-                    build_insert_ir_act_server(
-                        cr=cr,
-                        internal_id=internal_id,
-                        model_id=document_model_id,
+                    workflow_build_insert_ir_act_server(
                         name=name,
                         upg_name=upg_name,
                         sequence=100,
@@ -594,7 +598,7 @@ def migrate_workflow_rule(
                 "upg_name": f"{workflow_rule_id}_{workflow_rule_name}",
                 "code": "\n".join(code),
                 "children": children,
-                # If there are criterion not supported by the new version, don't pin the action to the folder
+                # If there are criteria not supported by the new version, don't pin the action to the folder
                 "folder_id": workflow_rule["domain_folder_id"] if not has_criterion else False,
             }
         )
@@ -611,10 +615,7 @@ def migrate_workflow_rule(
         if upg_name in existing_server_act:
             continue
         queries_step_1.append(
-            build_insert_ir_act_server(
-                cr=cr,
-                internal_id=internal_id,
-                model_id=document_model_id,
+            workflow_build_insert_ir_act_server(
                 name=name,
                 upg_name=upg_name,
                 sequence=sequence,
@@ -640,10 +641,7 @@ def migrate_workflow_rule(
         suffix_code = "_custom_code" if server_action["children"] else ""
         if server_action["code"]:
             queries_step_1.append(
-                build_insert_ir_act_server(
-                    cr=cr,
-                    internal_id=internal_id,
-                    model_id=document_model_id,
+                workflow_build_insert_ir_act_server(
                     name=f"{name}{suffix_code}",
                     upg_name=f"{upg_name}{suffix_code}",
                     sequence=20,
@@ -653,10 +651,7 @@ def migrate_workflow_rule(
             )
         if server_action["children"]:
             queries_step_2.append(
-                build_insert_ir_act_server(
-                    cr=cr,
-                    internal_id=internal_id,
-                    model_id=document_model_id,
+                workflow_build_insert_ir_act_server(
                     name=name,
                     upg_name=upg_name,
                     sequence=20,
