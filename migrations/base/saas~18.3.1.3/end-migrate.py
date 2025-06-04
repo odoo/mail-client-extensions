@@ -2,7 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.remove_record(cr, "base.default_user")
+    util.delete_unused(cr, "base.default_user", keep_xmlids=False)
 
     mapping = {
         "base.module_category_inventory": "base.module_category_supply_chain",
