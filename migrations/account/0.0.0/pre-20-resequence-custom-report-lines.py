@@ -15,7 +15,13 @@ def migrate(cr, version):
         # Resequencing has been well tested for NL localization. This localization
         # is the one with support tickets, due to changes in the standard reports.
         # More localizations can be added here if we detect them failing as well.
-        report_std_modules = ("l10n_nl", "l10n_nl_reports", "test_upg")
+        report_std_modules = (
+            "l10n_ch",
+            "l10n_ch_reports",
+            "l10n_nl",
+            "l10n_nl_reports",
+            "test_upg",
+        )
         cr.execute(
             """
             CREATE TEMPORARY VIEW ___std_reports_with_custom_lines AS (
