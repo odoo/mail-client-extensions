@@ -30,6 +30,11 @@ def migrate(cr, version):
         util.rename_module(cr, "pos_restaurant_appointment", "pos_appointment")
         util.merge_module(cr, "sale_commission_linked_achievement", "sale_commission")
         util.remove_module(cr, "test_l10n_ch_hr_payroll_account")
+        eb = util.expand_braces
+        util.rename_xmlid(cr, *eb("l10n_be_reports{_post_wizard,}.partner_fps_belgium"))
+        util.rename_xmlid(cr, *eb("l10n_be_reports{_post_wizard,}.fps_vat_current_account"))
+        util.rename_xmlid(cr, *eb("l10n_nl_reports{_vat_pay_wizard,}.partner_belastingdienst_netherlands"))
+        util.rename_xmlid(cr, *eb("l10n_nl_reports{_vat_pay_wizard,}.belastingdienst_current_account"))
         util.remove_module(cr, "l10n_be_reports_post_wizard")
         util.remove_module(cr, "l10n_nl_reports_vat_pay_wizard")
         # partially merged, some other data moved to l10n_be_hr_payroll see pre- script there
