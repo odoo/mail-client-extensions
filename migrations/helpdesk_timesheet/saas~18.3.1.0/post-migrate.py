@@ -11,7 +11,18 @@ def migrate(cr, version):
     # because a existing timer could be existed in timesheet for a same user
     # and so to be sure only one timer in same model for a same user exists
     # those existing timers will be stopped.
-    cr.execute("SELECT id FROM timer_timer WHERE res_model='helpdesk.ticket'")
+    cr.execute("SELECT id FROM res_company")
+    all_companies = [cid for (cid,) in cr.fetchall()]
+    cr.execute(
+        """
+        SELECT t.id
+          FROM timer_timer t
+          JOIN hr_employee h
+         USING (user_id)
+         WHERE t.res_model='helpdesk.ticket'
+           AND h.active = true
+         """
+    )
     timer_ids = [tid for (tid,) in cr.fetchall()]
     if timer_ids:
         timesheet_vals_list = []
@@ -19,17 +30,26 @@ def migrate(cr, version):
         rounding = max(1, int(env["ir.config_parameter"].get_param("timesheet_grid.timesheet_rounding", 1)))
 
         for t in util.iter_browse(env["timer.timer"], timer_ids):
-            ticket = env["helpdesk.ticket"].browse(t.res_id)
+            ticket = env["helpdesk.ticket"].browse(t.res_id).exists()
+            if not ticket.project_id.account_id.active:
+                continue
+            if ticket.project_id.company_id and not any(
+                e.company_id.id == ticket.project_id.company_id.id for e in t.user_id.employee_ids
+            ):
+                continue
             minutes_spent = t._get_minutes_spent()
             timesheet_vals_list.append(
                 {
                     "helpdesk_ticket_id": ticket.id,
                     "project_id": ticket.project_id.id,
+                    "account_id": ticket.project_id.account_id.id,
                     "date": t.timer_start.date(),
                     "name": "/",
                     "user_id": t.user_id.id,
                     "unit_amount": round_time_spent(minutes_spent, minimum_duration, rounding) / 60,
                 }
             )
-        util.iter_browse(env["account.analytic.line"], []).create(timesheet_vals_list)
+        AAL = env["account.analytic.line"].with_context(allowed_company_ids=all_companies)
+        if timesheet_vals_list:
+            util.iter_browse(AAL, []).create(timesheet_vals_list)
         util.iter_browse(env["timer.timer"], timer_ids).unlink()
