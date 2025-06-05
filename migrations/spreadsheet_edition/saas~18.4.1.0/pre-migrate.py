@@ -7,6 +7,9 @@ def migrate(cr, version):
             if command["type"] not in ("ADD_GLOBAL_FILTER", "EDIT_GLOBAL_FILTER"):
                 continue
             global_filter = command["filter"]
+            # If the defaultValue is an empty value, we remove it
+            if "defaultValue" in global_filter and not global_filter["defaultValue"]:
+                del global_filter["defaultValue"]
             if global_filter["type"] == "text" and "defaultValue" in global_filter:
                 global_filter["defaultValue"] = [global_filter["defaultValue"]]
             if global_filter["type"] == "text" and "rangeOfAllowedValues" in global_filter:

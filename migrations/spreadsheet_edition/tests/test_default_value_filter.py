@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations.util import json
 
 
 @change_version("saas~18.4")
-class TestSpreadsheetFixedPeriod(UpgradeCase):
+class TestDefaultValueFilter(UpgradeCase):
     def prepare(self):
         if not util.table_exists(self.env.cr, "spreadsheet_revision") or not util.version_gte("saas~18.3"):
             self.skipTest("Spreadsheet fixedPeriod test is skipped for source versions < saas~18.3")
@@ -13,12 +13,9 @@ class TestSpreadsheetFixedPeriod(UpgradeCase):
             "type": "ADD_GLOBAL_FILTER",
             "filter": {
                 "id": "42",
-                "type": "date",
-                "rangeType": "fixedPeriod",
+                "type": "text",
                 "label": "my filter",
-                "defaultValue": {
-                    "yearOffset": -2,
-                },
+                "defaultValue": [],
             },
         }
         edit_command = {
@@ -34,11 +31,11 @@ class TestSpreadsheetFixedPeriod(UpgradeCase):
         revision = self.env["spreadsheet.revision"].create(
             [
                 {
-                    "res_id": 49,
+                    "res_id": 422,
                     "res_model": "spreadsheet",
                     "commands": json.dumps(revision_commands),
                     "parent_revision_id": False,
-                    "revision_uuid": "abcdefghijklmnop",
+                    "revision_uuid": "abcdefgh",
                 },
             ]
         )
