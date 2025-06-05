@@ -124,7 +124,7 @@ def migrate(cr, version):
     )
 
 
-def rematch_xmlids(cr, child_xmlids_changes_by_parent):
+def rematch_xmlids(cr, child_xmlids_changes_by_parent, mute_missing_child=False):
     """
     Now that there is no more the possibility to link a single server action to
     multiple parents, you must have adapted your module's server actions' data.
@@ -132,6 +132,7 @@ def rematch_xmlids(cr, child_xmlids_changes_by_parent):
 
     :param dict child_xmlids_changes_by_parent: shape of dict is the following
         { parent_xlmid: { actual_child_xmlid: original_child_xmlid } }
+    :param bool mute_missing_child: if True, skip missing child actions without warning
     """
     for parent_xmlid, child_xmlids_changes in child_xmlids_changes_by_parent.items():
         parent_id = util.ref(cr, parent_xmlid)
@@ -151,7 +152,8 @@ def rematch_xmlids(cr, child_xmlids_changes_by_parent):
             )
 
             if not child_id:
-                util._logger.warning("Coulnd't find a match for child action %s (parent=%s)", xmlid, parent_xmlid)
+                if not mute_missing_child:
+                    util._logger.warning("Couldn't find a match for child action %s (parent=%s)", xmlid, parent_xmlid)
                 continue
 
             # Making sure we do not match again the same child action, as a precaution.

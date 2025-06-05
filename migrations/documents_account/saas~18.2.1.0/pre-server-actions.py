@@ -84,7 +84,9 @@ def migrate(cr, version):
             "documents_account.ir_actions_server_bank_statement_tag_remove_to_validate": "documents.ir_actions_server_tag_remove_to_validate",
         },
     }
-    util.import_script("base/saas~18.2.1.3/pre-ir_act_server.py").rematch_xmlids(cr, child_xmlids_changes_by_parent)
+    util.import_script("base/saas~18.2.1.3/pre-ir_act_server.py").rematch_xmlids(
+        cr, child_xmlids_changes_by_parent, mute_missing_child=True
+    )
     cr.execute(
         """
         DELETE

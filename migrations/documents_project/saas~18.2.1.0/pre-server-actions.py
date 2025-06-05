@@ -77,7 +77,9 @@ def migrate(cr, version):
             "documents_project.ir_actions_server_create_project_deprecate_remove_activities": "documents.ir_actions_server_remove_activities",
         },
     }
-    util.import_script("base/saas~18.2.1.3/pre-ir_act_server.py").rematch_xmlids(cr, child_xmlids_changes_by_parent)
+    util.import_script("base/saas~18.2.1.3/pre-ir_act_server.py").rematch_xmlids(
+        cr, child_xmlids_changes_by_parent, mute_missing_child=True
+    )
 
     # Those xmlids no longer exist,
     # they should have been renamed above unless they are unused.
