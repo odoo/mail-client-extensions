@@ -180,7 +180,12 @@ class TestMigrateRecruitment(UpgradeCase):
         # Talent Pool creations
         # ---
 
-        main_comp_talent_pool = self.env["hr.talent.pool"].search([("company_id", "=", init["main_company_id"])])
+        main_comp_talent_pool = self.env["hr.talent.pool"].search(
+            [
+                ("company_id", "=", init["main_company_id"]),
+                ("name", "=", f"Candidates for company {init['main_company_name']}"),
+            ]
+        )
         other_comp_talent_pool = self.env["hr.talent.pool"].search([("company_id", "=", init["other_company_id"])])
         no_comp_talent_pool = self.env["hr.talent.pool"].search([("company_id", "=", False)])
 
@@ -188,7 +193,6 @@ class TestMigrateRecruitment(UpgradeCase):
         self.assertTrue(other_comp_talent_pool, "A talent pool should be created for the other company")
         self.assertFalse(no_comp_talent_pool, "A talent pool should NOT be created for the other company")
 
-        self.assertEqual(main_comp_talent_pool.name, f"Candidates for company {init['main_company_name']}")
         self.assertEqual(other_comp_talent_pool.name, "Candidates for company Other Company")
         self.assertTrue(
             {"NoAppCandidate", "MultiAppCandidate"}.issubset(
