@@ -7,7 +7,12 @@ def migrate(cr, version):
         ChartTemplate = env["account.chart.template"].with_company(company)
         ChartTemplate._load_data(
             {
-                "account.reconcile.model": ChartTemplate._get_account_reconcile_model(company.chart_template),
+                "account.reconcile.model": {
+                    # Load only the newly introduced reconcile models in 18.0
+                    k: v
+                    for k, v in ChartTemplate._get_account_reconcile_model(company.chart_template).items()
+                    if k in {"reconcile_bill", "internal_transfer_reco"}
+                }
             },
             ignore_duplicates=True,
         )
