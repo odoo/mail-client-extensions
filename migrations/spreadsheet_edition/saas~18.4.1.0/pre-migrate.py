@@ -1,5 +1,12 @@
 from odoo.upgrade.util.spreadsheet import iter_commands
 
+DEFAULT_VALUE_MAP = {
+    "last_week": "last_7_days",
+    "last_month": "last_30_days",
+    "last_three_months": "last_90_days",
+    "last_year": "last_12_months",
+}
+
 
 def migrate(cr, version):
     for commands in iter_commands(cr, like_any=[r"%ADD\_GLOBAL\_FILTER%", r"%EDIT\_GLOBAL\_FILTER%"]):
@@ -25,3 +32,8 @@ def migrate(cr, version):
                 # See migration2to3(antepenultimate_year for example)
                 # from migration.js in odoo.
                 del global_filter["defaultValue"]
+            if global_filter["type"] == "date" and "defaultValue" in global_filter:
+                if global_filter["defaultValue"] in ("last_six_month", "last_three_years"):
+                    del global_filter["defaultValue"]
+                elif global_filter["defaultValue"] in DEFAULT_VALUE_MAP:
+                    global_filter["defaultValue"] = DEFAULT_VALUE_MAP[global_filter["defaultValue"]]
