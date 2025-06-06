@@ -2,7 +2,21 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.delete_unused(cr, "base.default_user", keep_xmlids=False)
+    rm = True
+    if util.table_exists(cr, "hr_employee"):
+        # The `default_user` may be linked to an employee record. (see https://upgrade.odoo.com/odoo/action-178/2028)
+        query = """
+            DELETE
+              FROM ir_model_data d
+             WHERE d.module = 'base'
+               AND d.name = 'default_user'
+               AND EXISTS(SELECT 1 FROM hr_employee e WHERE e.user_id = d.res_id)
+        """
+        cr.execute(query)
+        rm = not bool(cr.rowcount)
+
+    if rm:
+        util.remove_record(cr, "base.default_user")
 
     mapping = {
         "base.module_category_inventory": "base.module_category_supply_chain",
