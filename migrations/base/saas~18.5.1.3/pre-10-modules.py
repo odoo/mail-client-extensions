@@ -69,3 +69,9 @@ def migrate(cr, version):
                 format="html",
             )
         util.remove_module(cr, "l10n_mx_hr")
+
+    if util.has_enterprise():
+        util.rename_module(cr, "account_disallowed_expenses", "account_fiscal_categories")
+        util.rename_module(cr, "account_disallowed_expenses_fleet", "account_fiscal_categories_fleet")
+        util.rename_module(cr, "l10n_be_disallowed_expenses", "l10n_be_fiscal_categories")
+        util.rename_module(cr, "l10n_be_account_disallowed_expenses_fleet", "l10n_be_fiscal_categories_fleet")
