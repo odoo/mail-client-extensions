@@ -26,3 +26,5 @@ def migrate(cr, version):
     util.remove_module(cr, "test_hr_contract_calendar")
     util.remove_module(cr, "spreadsheet_dashboard_hr_contract")
     util.remove_module(cr, "hr_contract_reports")
+
+    util.merge_module(cr, "l10n_it_edi_ndd_account_dn", "l10n_it_edi")
