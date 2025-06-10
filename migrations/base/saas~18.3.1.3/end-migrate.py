@@ -1,4 +1,10 @@
+import logging
+
+import odoo
+
 from odoo.upgrade import util
+
+_logger = logging.getLogger("odoo.upgrade.base/saas~18.3")
 
 
 def migrate(cr, version):
@@ -43,3 +49,21 @@ def migrate(cr, version):
     id_map.pop(None, None)
     util.replace_record_references_batch(cr, id_map, "ir.module.category", replace_xmlid=False)
     util.delete_unused(cr, *list(mapping))
+
+    # force updating new privilege field for existing groups
+    cr.execute(
+        """
+        SELECT imd.module || '.' || imd.name
+          FROM ir_model_data AS imd
+          JOIN res_groups AS g
+            ON imd.model = 'res.groups'
+           AND imd.res_id = g.id
+         WHERE imd.module IN %s
+        """,
+        [tuple(odoo.modules.get_modules())],
+    )
+    for (xmlid,) in cr.fetchall():
+        try:
+            util.update_record_from_xml(cr, xmlid, fields=["privilege_id"])
+        except ValueError:
+            _logger.info("unable to update group privilege info of '%s', record not found in xml", xmlid)
