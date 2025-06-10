@@ -53,7 +53,7 @@ def migrate(cr, version):
                            ON aml.account_id = rel.account_id
                          JOIN analytic_accounts aa
                            ON aa._budget_post = rel.budget_id
-                   CROSS JOIN JSONB_EACH_TEXT(aml.analytic_distribution) AS distribution(accounts, percent)
+                   CROSS JOIN JSONB_EACH(aml.analytic_distribution) AS distribution(accounts, percent)
                      GROUP BY aml.id
                    ),
                    update_move_line AS (
