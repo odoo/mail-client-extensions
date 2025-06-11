@@ -16,6 +16,7 @@ class TestSpreadsheetFixedPeriod(UpgradeCase):
                 "type": "date",
                 "rangeType": "fixedPeriod",
                 "label": "my filter",
+                "disabledPeriods": ["quarter", "month"],
                 "defaultValue": {
                     "yearOffset": -2,
                 },
@@ -53,3 +54,7 @@ class TestSpreadsheetFixedPeriod(UpgradeCase):
 
         self.assertFalse("defaultValue" in add_command["filter"])
         self.assertFalse("defaultValue" in edit_command["filter"])
+        self.assertFalse("rangeType" in add_command["filter"])
+        self.assertFalse("rangeType" in edit_command["filter"])
+        self.assertFalse("disabledPeriods" in add_command["filter"])
+        self.assertFalse("disabledPeriods" in edit_command["filter"])

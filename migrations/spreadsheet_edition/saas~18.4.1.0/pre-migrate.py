@@ -37,3 +37,7 @@ def migrate(cr, version):
                     del global_filter["defaultValue"]
                 elif global_filter["defaultValue"] in DEFAULT_VALUE_MAP:
                     global_filter["defaultValue"] = DEFAULT_VALUE_MAP[global_filter["defaultValue"]]
+            if "rangeType" in global_filter:
+                del global_filter["rangeType"]
+            if "disabledPeriods" in global_filter:
+                del global_filter["disabledPeriods"]
