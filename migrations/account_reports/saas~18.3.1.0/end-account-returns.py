@@ -86,7 +86,7 @@ def migrate(cr, version):
                move.date AS date_to,
                move.company_id,
                move.return_type_id,
-               move.return_name,
+               COALESCE(move.return_name ->> %s, move.return_name ->> 'en_US') AS return_name,
                CASE
                    WHEN move.has_to_pay_activity THEN 'submitted'
                    ELSE 'paid'
@@ -97,7 +97,7 @@ def migrate(cr, version):
             ON move.move_id = amounts_by_move.move_id
          ORDER BY move.company_id, move.date
         """,
-        [util.ref(cr, "account_reports.mail_activity_type_tax_report_to_pay")],
+        [util.ref(cr, "account_reports.mail_activity_type_tax_report_to_pay"), env.user.lang],
     )
 
     query_res = cr.fetchall()
