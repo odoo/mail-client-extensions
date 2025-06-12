@@ -1,1 +1,1 @@
-from . import test_candidate_to_talent_skill_migration
+from . import test_candidate_to_talent_skill_migration, test_skill_ids_to_hr_job_skills

@@ -4,6 +4,9 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_hr_contract")
 
+    util.create_column(cr, "hr_job", "user_id", "int4")
+    util.move_field_to_module(cr, "hr.job", "user_id", "hr_recruitment", "hr")
+
     util.remove_menus(
         cr,
         [
