@@ -64,6 +64,6 @@ def migrate(cr, version):
     )
     for (xmlid,) in cr.fetchall():
         try:
-            util.update_record_from_xml(cr, xmlid, fields=["privilege_id"])
+            util.update_record_from_xml(cr, xmlid, fields=["privilege_id"], ensure_references=True)
         except ValueError:
             _logger.info("unable to update group privilege info of '%s', record not found in xml", xmlid)
