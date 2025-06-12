@@ -17,7 +17,7 @@ def migrate(cr, version):
     columns_to_set_null = defaultdict(list)
     fks_to_drop = defaultdict(list)
     for table in tables:
-        for fk_table, fk_column, fk_constraint, deltype in util.get_fk(cr, table):
+        for fk_table, fk_column, fk_constraint, deltype in util.get_fk(cr, table, quote_ident=False):
             if deltype != "c":
                 columns_to_set_null[fk_table].append(fk_column)
                 fks_to_drop[fk_table].append(fk_constraint)
