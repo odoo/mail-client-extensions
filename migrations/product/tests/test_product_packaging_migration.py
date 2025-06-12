@@ -1,3 +1,4 @@
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
@@ -26,39 +27,59 @@ class TestProductPackagingMigration(UpgradeCase):
                 for name in ["Product A", "Product B", "Product C", "Product D", "Product E"]
             ]
         )
+        packaging_1_vals = {
+            "qty": 6,
+            "name": "Test Pack of 6",
+        }
+        if util.module_installed(self.env.cr, "sale"):
+            packaging_1_vals["sales"] = True
         self.env["product.packaging"].create(
             [
                 {
                     "product_id": product.id,
-                    "qty": 6,
-                    "name": "Test Pack of 6",
                     "barcode": barcode,
+                    **packaging_1_vals,
                 }
-                for (product, barcode) in zip([product_a, product_b], ["test_barcode_a", "test_barcode_b"])
+                for product, barcode in zip([product_a, product_b], ["test_barcode_a", "test_barcode_b"])
             ]
         )
+        packaging_2_vals = {
+            "qty": 6,
+            "name": "Test 6 Pack",
+            "barcode": "test_barcode_c",
+        }
+        if util.module_installed(self.env.cr, "sale"):
+            packaging_2_vals["sales"] = True
         self.env["product.packaging"].create(
             {
                 "product_id": product_c.id,
-                "qty": 6,
-                "name": "Test 6 Pack",
-                "barcode": "test_barcode_c",
+                **packaging_2_vals,
             }
         )
+        packaging_3_vals = {
+            "qty": 10,
+            "name": "Test Pack of 10",
+            "barcode": "test_barcode_d",
+        }
+        if util.module_installed(self.env.cr, "sale"):
+            packaging_3_vals["sales"] = True
         self.env["product.packaging"].create(
             {
                 "product_id": product_d.id,
-                "qty": 10,
-                "name": "Test Pack of 10",
-                "barcode": "test_barcode_d",
+                **packaging_3_vals,
             }
         )
+        packaging_4_vals = {
+            "qty": 10,
+            "name": "Test Box of 10",
+            "barcode": "test_barcode_e",
+        }
+        if util.module_installed(self.env.cr, "sale"):
+            packaging_4_vals["sales"] = False
         self.env["product.packaging"].create(
             {
                 "product_id": product_e.id,
-                "qty": 10,
-                "name": "Test Box of 10",
-                "barcode": "test_barcode_e",
+                **packaging_4_vals,
             }
         )
         return product_a.id, product_b.id, product_c.id, product_d.id, product_e.id
@@ -73,14 +94,20 @@ class TestProductPackagingMigration(UpgradeCase):
         self.assertEqual(set(packagings.mapped("name")), {"Test Pack of 6", "Pack 10.00"})
         self.assertEqual(set(packagings.mapped("relative_factor")), {6, 10})
         self.assertEqual(
-            product_a.uom_ids, packagings.filtered(lambda p: p.relative_factor == 6 and p.name == "Test Pack of 6")
+            product_a.uom_ids,
+            packagings.filtered(lambda p: p.relative_factor == 6 and p.name == "Test Pack of 6")
+            if util.module_installed(self.env.cr, "sale")
+            else self.env["uom.uom"],
         )
         self.assertEqual(product_a.uom_ids, product_b.uom_ids)
         self.assertEqual(product_a.uom_ids, product_c.uom_ids)
         self.assertEqual(
-            product_d.uom_ids, packagings.filtered(lambda p: p.relative_factor == 10 and p.name == "Pack 10.00")
+            product_d.uom_ids,
+            packagings.filtered(lambda p: p.relative_factor == 10 and p.name == "Pack 10.00")
+            if util.module_installed(self.env.cr, "sale")
+            else self.env["uom.uom"],
         )
-        self.assertEqual(product_d.uom_ids, product_e.uom_ids)
+        self.assertEqual(product_e.uom_ids, self.env["uom.uom"])
         self.assertEqual(product_a.product_uom_ids.barcode, "test_barcode_a", "Barcode is not correctly set")
         self.assertEqual(product_b.product_uom_ids.barcode, "test_barcode_b", "Barcode is not correctly set")
         self.assertEqual(product_c.product_uom_ids.barcode, "test_barcode_c", "Barcode is not correctly set")

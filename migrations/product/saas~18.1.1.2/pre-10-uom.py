@@ -4,20 +4,6 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.create_m2m(cr, "product_template_uom_uom_rel", "product_template", "uom_uom")
 
-    # Add units that were in the same category as packaging units to the product
-    cr.execute(
-        """
-        INSERT INTO product_template_uom_uom_rel (product_template_id, uom_uom_id)
-        SELECT pt.id, uom2.id
-          FROM product_template pt
-          JOIN uom_uom uom
-            ON pt.uom_id = uom.id
-          JOIN uom_uom uom2
-            ON uom2.relative_uom_id = uom.id
-        ON CONFLICT DO NOTHING
-        """
-    )
-
     # Create a temporary column to store the new uom_id
     util.create_column(cr, "product_packaging", "_upg_temp_uom_id", "int4")
     # Squash all the packagings that share the same quantity and base unit into one `uom_uom` record
@@ -87,15 +73,17 @@ def migrate(cr, version):
          WHERE product_packaging.id = pud.packaging_id
         """
     )
-    # Set the new uom_id as a packaging unit for the product(s) that had packaging(s) with the same quantity and base unit
-    cr.execute("""
-        INSERT INTO product_template_uom_uom_rel (product_template_id, uom_uom_id)
-             SELECT product.product_tmpl_id AS product_template_id, packaging._upg_temp_uom_id AS uom_id
-               FROM product_packaging packaging
-               JOIN product_product product
-                 ON packaging.product_id = product.id
-           GROUP BY product.product_tmpl_id, packaging._upg_temp_uom_id
-    """)
+    # Set the new uom_id as a packaging unit for the product(s) that had packaging(s) with the same quantity and base unit, only for packagings that were used for sales
+    if util.module_installed(cr, "sale"):
+        cr.execute("""
+            INSERT INTO product_template_uom_uom_rel (product_template_id, uom_uom_id)
+                SELECT product.product_tmpl_id AS product_template_id, packaging._upg_temp_uom_id AS uom_id
+                FROM product_packaging packaging
+                JOIN product_product product
+                    ON packaging.product_id = product.id
+                WHERE packaging.sales = TRUE
+            GROUP BY product.product_tmpl_id, packaging._upg_temp_uom_id
+        """)
     # Create a temporary table to store barcodes
     cr.execute("""
         CREATE TABLE _upg_product_packaging_barcode (
