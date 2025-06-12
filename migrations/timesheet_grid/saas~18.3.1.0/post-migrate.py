@@ -50,5 +50,6 @@ def migrate(cr, version):
                 }
             )
         AAL = env["account.analytic.line"].with_context(allowed_company_ids=all_companies)
-        util.iter_browse(AAL, []).create(timesheet_vals_list)
+        if timesheet_vals_list:
+            util.iter_browse(AAL, []).create(timesheet_vals_list)
         util.iter_browse(env["timer.timer"], timer_ids).unlink()
