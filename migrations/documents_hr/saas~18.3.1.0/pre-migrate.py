@@ -85,8 +85,7 @@ def migrate(cr, version):
                            FROM hr_employee e
                            JOIN res_company c
                              ON c.id = e.company_id
-                          WHERE e.active
-                            AND c.documents_employee_folder_id IS NOT NULL
+                          WHERE c.documents_employee_folder_id IS NOT NULL
                             AND {parallel_filter}
                       RETURNING id as did,
                                 folder_id as fid,
