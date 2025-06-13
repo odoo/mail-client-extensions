@@ -31,6 +31,8 @@ def migrate(cr, version):
     util.remove_view(cr, "hr_payroll.hr_payroll_employee_tree_inherit")
     util.remove_view(cr, "hr_payroll.view_hr_payslip_by_employees")
 
+    util.remove_record(cr, "hr_payroll.action_hr_contract_repository")
+
     util.remove_model(cr, "hr.payslip.employees")
 
     state_mapping = {

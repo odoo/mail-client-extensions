@@ -88,6 +88,8 @@ def migrate(cr, version):
     util.make_field_non_stored(cr, "hr.employee", "job_id", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "address_id", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "work_location_id", selectable=True)
+    util.make_field_non_stored(cr, "hr.employee", "is_flexible", selectable=True)
+    util.make_field_non_stored(cr, "hr.employee", "is_fully_flexible", selectable=True)
 
     util.make_field_non_stored(cr, "hr.employee", "version_id")
 

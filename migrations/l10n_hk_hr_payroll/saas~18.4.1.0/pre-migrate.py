@@ -11,3 +11,5 @@ def migrate(cr, version):
     move_columns(cr, employee_columns=columns)
 
     util.remove_view(cr, "l10n_hk_hr_payroll.hr_employee_view_form")
+    eb = util.expand_braces
+    util.rename_xmlid(cr, *eb("l10n_hk_hr_payroll.hr_contract{,_template}_view_form"))

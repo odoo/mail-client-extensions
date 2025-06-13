@@ -52,3 +52,5 @@ def migrate(cr, version):
     ]
     move_columns = util.import_script("hr/saas~18.4.1.1/post-migrate.py").move_columns
     move_columns(cr, columns)
+
+    util.remove_constraint(cr, "hr_employee", "hr_employee_l10n_au_child_support_garnishee_amount_span")

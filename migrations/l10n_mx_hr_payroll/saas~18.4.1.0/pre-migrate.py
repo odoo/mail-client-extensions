@@ -12,6 +12,7 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.hr_contract_{cdi_,}cesar"))
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.hr_contract_{cdi_,}karla"))
     util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.hr_contract_{cdi_xochilt,xochitl}"))
+    util.rename_xmlid(cr, *eb("l10n_mx_hr_payroll.hr_contract_{,template_}view_form"))
 
     util.remove_record(cr, "l10n_mx_hr_payroll.res_partner_cecilia_work_address")
     util.remove_record(cr, "l10n_mx_hr_payroll.res_partner_cecilia_private_address")

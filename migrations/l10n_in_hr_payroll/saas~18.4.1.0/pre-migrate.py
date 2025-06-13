@@ -9,3 +9,5 @@ def migrate(cr, version):
     move_columns(cr, employee_columns=columns)
 
     util.rename_field(cr, "l10n.in.tds.computation.wizard", "contract_id", "version_id")
+    eb = util.expand_braces
+    util.rename_xmlid(cr, *eb("l10n_in_hr_payroll.hr_contract_{form_in_inherit,template_view_form}"))

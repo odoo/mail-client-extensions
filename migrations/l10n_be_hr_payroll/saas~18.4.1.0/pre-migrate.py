@@ -23,6 +23,7 @@ def migrate(cr, version):
     # Field doesn't exist in 18.0 and thus is treated separately
     if util.column_exists(cr, "hr_employee", "fiscal_voluntarism"):
         columns.append("fiscal_voluntarism")
+        util.remove_constraint(cr, "hr_employee", "hr_employee_positive_fiscal_voluntarism")
 
     move_columns = util.import_script("hr/saas~18.4.1.1/post-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)

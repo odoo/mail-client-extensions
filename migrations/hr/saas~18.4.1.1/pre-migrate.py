@@ -73,53 +73,39 @@ def migrate(cr, version):
     )
 
     keep_employee_fields = [
-        # hr
         "active",
         "color",
         "company_id",
+        "address_id",
         "mobile_phone",
         "name",
         "resource_id",
         "user_id",
+        "share",
         "work_contact_id",
         "work_phone",
         "work_email",
-        # hr_homeworking
-        "monday_location_id",
-        "tuesday_location_id",
-        "wednesday_location_id",
-        "thursday_location_id",
-        "friday_location_id",
-        "saturday_location_id",
-        "sunday_location_id",
-        "today_location_name",
-        "billable_time_target",
-        # hr_holidays
-        "leave_manager_id",
-        # hr_gamification
-        "direct_badge_ids",
-        # hr_presense
-        "email_sent",
-        "hr_presence_state_display",
-        "ip_connected",
-        "manually_set_presence",
-        "manually_set_present",
-        # hr_appraisal
-        "parent_user_id",
-        "last_appraisal_id",
-        "last_appraisal_state",
-        "coach_id",
-        "parent_id",
-        "resource_calendar_id",
         "department_id",
         "job_id",
-        "address_id",
+        "email",
         "work_location_id",
+        "resource_calendar_id",
+        "is_flexible",
+        "is_fully_flexible",
+        "coach_id",
+        "parent_id",
+        "tz",
+        "hr_presence_state",
+        "last_activity",
+        "last_activity_time",
+        "hr_icon_display",
+        "show_hr_icon_display",
+        "im_status",
+        "newly_hired",
+        "member_of_department",
     ]
 
-    util.remove_inherit_from_model(cr, "hr.employee", "hr.employee.base", keep=keep_employee_fields)
     keep_employee_public_fields = [
-        # hr
         "active",
         "address_id",
         "color",
@@ -137,30 +123,135 @@ def migrate(cr, version):
         "work_email",
         "work_location_id",
         "work_phone",
-        # hr_homeworking
-        "monday_location_id",
-        "tuesday_location_id",
-        "wednesday_location_id",
-        "thursday_location_id",
-        "friday_location_id",
-        "saturday_location_id",
-        "sunday_location_id",
-        "today_location_name",
-        # hr_holidays
-        "leave_manager_id",
-        # hr_gamification
-        "badge_ids",
-        # hr_presense
-        "email_sent",
-        "hr_presence_state_display",
-        "ip_connected",
-        "manually_set_presence",
-        "manually_set_present",
-        # hr_appraisal
-        "parent_user_id",
-        "last_appraisal_id",
-        "last_appraisal_state",
+        "tz",
+        "last_activity",
+        "last_activity_time",
+        "hr_icon_display",
+        "show_hr_icon_display",
+        "member_of_department",
     ]
+
+    if util.module_installed(cr, "hr_homeworking"):
+        keep_employee_fields += [
+            "monday_location_id",
+            "tuesday_location_id",
+            "wednesday_location_id",
+            "thursday_location_id",
+            "friday_location_id",
+            "saturday_location_id",
+            "sunday_location_id",
+            "exceptional_location_id",
+            "today_location_name",
+        ]
+        keep_employee_public_fields += [
+            "monday_location_id",
+            "tuesday_location_id",
+            "wednesday_location_id",
+            "thursday_location_id",
+            "friday_location_id",
+            "saturday_location_id",
+            "sunday_location_id",
+            "today_location_name",
+        ]
+
+    if util.module_installed(cr, "hr_holidays"):
+        keep_employee_fields += [
+            "leave_manager_id",
+            "current_leave_state",
+            "leave_date_from",
+            "leave_date_to",
+            "allocation_count",
+            "allocations_count",
+            "show_leaves",
+            "is_absent",
+            "allocation_display",
+            "allocation_remaining_display",
+        ]
+        keep_employee_public_fields += [
+            "leave_manager_id",
+            "leave_date_to",
+            "show_leaves",
+            "is_absent",
+            "allocation_display",
+        ]
+
+    if util.module_installed(cr, "hr_gamification"):
+        keep_employee_fields += [
+            "goal_ids",
+            "badge_ids",
+            "direct_badge_ids",
+        ]
+        keep_employee_public_fields += [
+            "badge_ids",
+        ]
+
+    if util.module_installed(cr, "hr_presence"):
+        keep_employee_fields += [
+            "email_sent",
+            "hr_presence_state_display",
+            "ip_connected",
+            "manually_set_presence",
+            "manually_set_present",
+        ]
+        keep_employee_public_fields += [
+            "email_sent",
+            "hr_presence_state_display",
+            "ip_connected",
+            "manually_set_presence",
+            "manually_set_present",
+        ]
+
+    if util.module_installed(cr, "hr_appraisal"):
+        keep_employee_fields += [
+            "parent_user_id",
+            "last_appraisal_id",
+            "last_appraisal_state",
+        ]
+        keep_employee_public_fields += [
+            "parent_user_id",
+            "last_appraisal_id",
+            "last_appraisal_state",
+        ]
+
+    if util.module_installed(cr, "hr_expense"):
+        keep_employee_fields += [
+            "filter_for_expense",
+        ]
+        keep_employee_public_fields += [
+            "filter_for_expense",
+        ]
+
+    if util.module_installed(cr, "hr_org_chart"):
+        keep_employee_fields += [
+            "child_all_count",
+            "department_color",
+            "child_count",
+        ]
+        keep_employee_public_fields += [
+            "child_all_count",
+            "department_color",
+            "child_count",
+        ]
+
+    if util.module_installed(cr, "sale_timesheet_enterprise"):
+        keep_employee_fields += [
+            "billable_time_target",
+            "show_billable_time_target",
+        ]
+        keep_employee_public_fields += [
+            "billable_time_target",
+            "show_billable_time_target",
+        ]
+
+    if util.module_installed(cr, "planning"):
+        keep_employee_fields += [
+            "has_slots",
+        ]
+        keep_employee_public_fields += [
+            "has_slots",
+        ]
+
+    util.remove_inherit_from_model(cr, "hr.employee", "hr.employee.base", keep=keep_employee_fields)
     util.remove_inherit_from_model(cr, "hr.employee.public", "hr.employee.base", keep=keep_employee_public_fields)
     util.remove_model(cr, "hr.employee.base")
 
