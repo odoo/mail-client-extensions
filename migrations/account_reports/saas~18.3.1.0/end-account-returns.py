@@ -197,10 +197,12 @@ def migrate(cr, version):
     """
     cr.execute(
         """
-        DELETE FROM account_move move
-         WHERE move.state='draft'
-           AND move.tax_closing_report_id IS NOT NULL
+        SELECT id
+          FROM account_move
+         WHERE state = 'draft'
+           AND tax_closing_report_id IS NOT NULL
         """
     )
-
+    move_ids = [mid for (mid,) in cr.fetchall()]
+    util.remove_records(cr, "account.move", move_ids)
     util.remove_field(cr, "account.move", "tax_closing_report_id")
