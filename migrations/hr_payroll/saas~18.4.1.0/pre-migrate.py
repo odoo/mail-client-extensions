@@ -27,6 +27,19 @@ def migrate(cr, version):
     util.remove_view(cr, "hr_payroll.hr_contract_view_kanban")
     util.remove_view(cr, "hr_payroll.hr_contract_search_inherit")
     util.remove_view(cr, "hr_payroll.hr_contract_form_inherit")
+    util.remove_view(cr, "hr_payroll.hr_payslip_run_tree")
+    util.remove_view(cr, "hr_payroll.hr_payroll_employee_tree_inherit")
+    util.remove_view(cr, "hr_payroll.view_hr_payslip_by_employees")
+
+    util.remove_model(cr, "hr.payslip.employees")
+
+    state_mapping = {
+        "draft": "01_draft",
+        "verify": "02_verify",
+        "close": "03_close",
+        "paid": "04_paid",
+    }
+    util.change_field_selection_values(cr, "hr.payslip.run", "state", state_mapping)
 
     columns = [
         "is_non_resident",
@@ -35,4 +48,33 @@ def migrate(cr, version):
     move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)
 
-    util.remove_menus(cr, [util.ref(cr, "hr_payroll.menu_hr_work_entry_report")])
+    util.create_column(cr, "hr_payslip_run", "payslip_count", "integer")
+    util.create_column(cr, "hr_payslip_run", "gross_sum", "numeric")
+    util.create_column(cr, "hr_payslip_run", "net_sum", "numeric")
+
+    cr.execute(r"""
+        UPDATE hr_payslip_run AS payrun
+        SET
+            payslip_count = temp.count,
+            gross_sum = temp.gross_sum,
+            net_sum = temp.net_sum
+        FROM (
+            SELECT
+                payslip_run_id AS payrun_id,
+                COUNT(*) AS count,
+                SUM(gross_wage) AS gross_sum,
+                SUM(net_wage) AS net_sum
+            FROM hr_payslip
+            WHERE payslip_run_id IS NOT NULL
+            GROUP BY payslip_run_id
+        ) AS temp
+        WHERE payrun.id = temp.payrun_id;
+    """)
+
+    util.remove_menus(
+        cr,
+        [
+            util.ref(cr, "hr_payroll.menu_hr_work_entry_report"),
+            util.ref(cr, "hr_payroll.menu_hr_payroll_employee_payslips_to_pay"),
+        ],
+    )
