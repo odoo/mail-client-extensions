@@ -10,16 +10,64 @@ def migrate(cr, version):
 
     tags_to_migrate = [
         ("tag_diot_16", "+DIOT: 16%"),
-        ("tag_diot_8", "+DIOT: 8%"),
         ("tag_diot_0", "+DIOT: 0%"),
         ("tag_diot_16_non_cre", "+DIOT: 16% NO ACREDITABLE"),
-        ("tag_diot_8_non_cre", "+DIOT: 8% NO ACREDITABLE"),
         ("tag_diot_16_imp", "+DIOT: 16% IMP"),
         ("tag_diot_exento", "+DIOT: Exento"),
         (None, "+DIOT: Refunds"),
         (None, "+DIOT: Retención"),
         (None, "-DIOT: Retención"),
     ]
+    if env["account.account.tag"].search_count([("name", "=", "+DIOT: 8%")], limit=1):
+        # This branch is only here until the FW port of the 2025 DIOT rework to 17.0 is merged
+        tags_to_migrate += [
+            ("tag_diot_8", "+DIOT: 8%"),
+            ("tag_diot_8_non_cre", "+DIOT: 8% NO ACREDITABLE"),
+        ]
+        cr.execute(
+            """
+            SELECT xmlid
+            FROM l10n_mx_aml_with_tags_to_replace
+            WHERE xmlid in %s
+            LIMIT 1
+            """,
+            [
+                (
+                    "tag_diot_8_south",
+                    "tag_diot_8_south_non_cre",
+                    "tag_diot_16_imp_non_cre",
+                    "tag_diot_16_imp_int",
+                    "tag_diot_16_imp_int_non_cre",
+                    "tag_diot_8_refund",
+                    "tag_diot_8_south_refund",
+                    "tag_diot_16_refund",
+                    "tag_diot_16_imp_refund",
+                    "tag_diot_16_imp_int_refund",
+                    "tag_diot_exento_imp",
+                    "tag_diot_no_obj",
+                )
+            ],
+        )
+        if cr.fetchone():
+            raise NotImplementedError("DIOT 2025 rework is not implemented yet in 17.0")
+    else:
+        tags_to_migrate += [
+            ("tag_diot_8", "+DIOT: 8% N."),  # After 2025 DIOT rework, this is now 8% Northern tag
+            ("tag_diot_8_non_cre", "+DIOT: 8% N. NO ACREDITABLE"),  # 8% Northern non-cred
+            # DIOT 2025 rework new tags
+            ("tag_diot_8_south", "+DIOT: 8% S."),
+            ("tag_diot_8_south_non_cre", "+DIOT: 8% S. NO ACREDITABLE"),
+            ("tag_diot_16_imp_non_cre", "+DIOT: 16% IMP NO ACREDITABLE"),
+            ("tag_diot_16_imp_int", "+DIOT: 16% IMP INT"),
+            ("tag_diot_16_imp_int_non_cre", "+DIOT: 16% IMP INT NO ACREDITABLE"),
+            ("tag_diot_8_refund", "+DIOT: Refunds 8% N."),
+            ("tag_diot_8_south_refund", "+DIOT: Refunds 8% S."),
+            ("tag_diot_16_refund", "+DIOT: Refunds 16%"),
+            ("tag_diot_16_imp_refund", "+DIOT: Refunds 16% IMP"),
+            ("tag_diot_16_imp_int_refund", "+DIOT: Refunds 16% IMP INT"),
+            ("tag_diot_exento_imp", "+DIOT: Exento Imports"),
+            ("tag_diot_no_obj", "+DIOT: No Tax Object"),
+        ]
 
     # Migrate tag_diot_16_non_cre, tag_diot_8_non_cre, tag_diot_16_imp,
     # tag_diot_exento, tag_diot_16, tag_diot_8, tag_diot_0:

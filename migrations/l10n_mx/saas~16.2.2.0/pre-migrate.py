@@ -11,6 +11,19 @@ def migrate(cr, version):
         "tag_diot_0",  # tax_report_mx_diot_paid_0_tag
         "tag_diot_exento",  # tax_report_mx_diot_exempt_tag
         "tag_diot_ret",  # tax_report_mx_diot_withheld_tag
+        # DIOT 2025 rework new tags
+        "tag_diot_8_south",
+        "tag_diot_8_south_non_cre",
+        "tag_diot_16_imp_non_cre",
+        "tag_diot_16_imp_int",
+        "tag_diot_16_imp_int_non_cre",
+        "tag_diot_8_refund",
+        "tag_diot_8_south_refund",
+        "tag_diot_16_refund",
+        "tag_diot_16_imp_refund",
+        "tag_diot_16_imp_int_refund",
+        "tag_diot_exento_imp",
+        "tag_diot_no_obj",
     )
 
     # Fetch (tax) tags to migrate.
