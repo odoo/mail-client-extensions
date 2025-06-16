@@ -456,6 +456,18 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
 
         odoo_bin = "./odoo-bin" if (cwd / "odoo-bin").is_file() else "./openerp-server"
         py_bin = [str(python)] if python else []
+
+        # `demo` option not read from config file; should be on command line
+        support_with_demo = subprocess.run(
+            ["git", "grep", "-q", "with-demo", "--", "odoo/tools/config.py"],
+            cwd=(workdir / "odoo" / version.odoo),
+            check=False,
+        )
+        if support_with_demo.returncode == 0:
+            demo_flag = ["--with-demo"] if options.demo else []
+        else:
+            demo_flag = ["--without-demo", "" if options.demo else "1"]
+
         cmd = [
             *py_bin,
             odoo_bin,
@@ -465,8 +477,7 @@ def process_module(modules: FrozenSet[str], workdir: Path, options: Namespace) -
             ad_path,
             "-d",
             dbname,
-            "--without-demo",
-            "" if options.demo else "1",  # option not read from config file; should be on command line
+            *demo_flag,
             "--stop-after-init",
             *cmd,
         ]
