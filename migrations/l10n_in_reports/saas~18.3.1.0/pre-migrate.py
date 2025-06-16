@@ -6,6 +6,8 @@ _logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
+    if not util.table_exists(cr, "l10n_in_gst_return_period"):
+        return
     cr.execute(
         """
         WITH duplicates AS (
