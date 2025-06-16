@@ -206,3 +206,14 @@ def migrate(cr, version):
     move_ids = [mid for (mid,) in cr.fetchall()]
     util.remove_records(cr, "account.move", move_ids)
     util.remove_field(cr, "account.move", "tax_closing_report_id")
+
+    # Create a cron trigger to generate returns when the upgraded db is started.
+    cron_id = util.ref(cr, "account_reports.ir_cron_generate_account_return")
+    if cron_id:
+        cr.execute(
+            """
+            INSERT INTO ir_cron_trigger(cron_id, call_at)
+                 VALUES (%s, now() at time zone 'UTC')
+            """,
+            [cron_id],
+        )
