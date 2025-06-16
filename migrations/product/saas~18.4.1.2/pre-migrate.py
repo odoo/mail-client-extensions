@@ -37,3 +37,5 @@ def migrate(cr, version):
         table="product_supplierinfo",
         alias="psi",
     )
+
+    util.remove_field(cr, "product.template", "pricelist_item_count")
