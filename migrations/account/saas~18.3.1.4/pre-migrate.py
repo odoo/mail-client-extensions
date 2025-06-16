@@ -155,6 +155,25 @@ def migrate(cr, version):
                         ON fp.company_id = c.id
                      WHERE fp.country_id = c.account_fiscal_country_id
                   ORDER BY fp.company_id, fp.sequence ASC, fp.id ASC
+               ),
+               empty_fiscal_positions AS (
+                    SELECT fp.id as position_id,
+                           fp.company_id
+                      FROM account_fiscal_position fp
+                 LEFT JOIN account_fiscal_position_tax afpt
+                        ON afpt.position_id = fp.id
+                     WHERE afpt.position_id IS NULL
+               ),
+               domestic_taxes AS (
+                    -- all src taxes that are not used as dest tax from a different tax
+                    SELECT tax_src_id,
+                           company_id
+                      FROM account_fiscal_position_tax
+                    EXCEPT
+                    SELECT tax_dest_id,
+                           company_id
+                      FROM account_fiscal_position_tax
+                     WHERE tax_src_id != tax_dest_id
                )
         INSERT INTO account_fiscal_position_account_tax_rel(account_tax_id, account_fiscal_position_id)
              SELECT tax_dest_id, position_id
@@ -162,12 +181,19 @@ def migrate(cr, version):
               WHERE tax_dest_id IS NOT NULL
                 AND position_id IS NOT NULL
               UNION
-             SELECT tax_src_id, domestic_fiscal_positions.position_id
-               FROM account_fiscal_position_tax afpt
+             SELECT dt.tax_src_id, domestic_fiscal_positions.position_id
+               FROM domestic_taxes dt
                JOIN domestic_fiscal_positions
-                 ON afpt.company_id = domestic_fiscal_positions.company_id
-              WHERE tax_src_id IS NOT NULL
+                 ON dt.company_id = domestic_fiscal_positions.company_id
+              WHERE dt.tax_src_id IS NOT NULL
                 AND domestic_fiscal_positions.position_id IS NOT NULL
+              UNION
+             SELECT dt.tax_src_id, empty_fiscal_positions.position_id
+               FROM domestic_taxes dt
+               JOIN empty_fiscal_positions
+                 ON dt.company_id = empty_fiscal_positions.company_id
+              WHERE dt.tax_src_id IS NOT NULL
+                AND empty_fiscal_positions.position_id IS NOT NULL
         """
     )
 
