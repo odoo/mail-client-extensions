@@ -36,13 +36,11 @@ def migrate(cr, version):
     wrong_models = [
         m
         for m in models
-        # fmt: off
         if "_" in m
         if "." not in m
         if not m.startswith("x_")
         if m not in util.helpers._VALID_MODELS
-        # fmt: on
-    ]
+    ]  # fmt: skip
     if wrong_models:
         _logger.warning("There appear to be some invalid model names %s", wrong_models)
         orig_valid_models = util.helpers._VALID_MODELS

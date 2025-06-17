@@ -16,7 +16,7 @@ def migrate(cr, version):
         if op not in ["=", "!=", "in", "not in"]:
             return [leaf]
 
-        new_left = ".".join(left.split(".")[:-1] + ["account_move"])
+        new_left = ".".join([*left.split(".")[:-1], "account_move"])
         new_op = "!=" if op in ["=", "in"] else "="
 
         if isinstance(right, (list, tuple)) and "invoiced" in right:

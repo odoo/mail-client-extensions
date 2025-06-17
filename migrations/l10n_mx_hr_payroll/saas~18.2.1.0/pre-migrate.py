@@ -2,10 +2,8 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if util.table_exists(cr, "hr_version"):
-        target_model = "hr.version"
-    else:
-        target_model = "hr.contract"
+    target_model = "hr.version" if util.table_exists(cr, "hr_version") else "hr.contract"
+
     util.remove_field(cr, target_model, "l10n_mx_holidays_count")
     util.remove_field(cr, target_model, "l10n_mx_christmas_bonus")
     util.remove_field(cr, target_model, "l10n_mx_risk_bonus_rate")
