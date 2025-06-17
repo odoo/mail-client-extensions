@@ -37,7 +37,7 @@ def migrate(cr, version):
               FROM hr_job j
              WHERE v.job_id = j.id
         """
-        util.explode_execute(cr, query, table="hr_version")
+        util.explode_execute(cr, query, table="hr_version", alias="v")
 
     cr.execute(
         """
