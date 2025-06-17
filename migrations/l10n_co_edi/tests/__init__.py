@@ -1,3 +1,1 @@
-# -*- encoding: utf-8 -*-
-
-from . import test_refactoring_edi
+from . import test_18_4_precompute_operation_type, test_refactoring_edi
