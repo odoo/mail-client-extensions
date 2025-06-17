@@ -35,11 +35,15 @@ def migrate(cr, version):
             create_uid, create_date, write_uid, write_date,
             sign_request_id, document_id
         )
-        SELECT req.create_uid, req.create_date, req.write_uid,
-                req.write_date, req.id, doc.id
+        SELECT ira.create_uid, ira.create_date, ira.write_uid,
+                ira.write_date, req.id, doc.id
           FROM sign_request AS req
           JOIN sign_document AS doc
             ON req.template_id = doc.template_id
+          JOIN ir_attachment AS ira
+            ON ira.res_model = 'sign.request'
+           AND ira.res_id = req.id
+           AND ira.name = 'completed_document'
         """
     )
 
