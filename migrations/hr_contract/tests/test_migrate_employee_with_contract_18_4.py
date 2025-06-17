@@ -130,6 +130,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "hr_responsible_id": self.env.user.id,
                     "employee_id": employee3.id,
                     "kanban_state": "done",
+                    "contract_type_id": None,
                 },
                 {
                     "name": "Contract employee 4",
@@ -143,6 +144,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "hr_responsible_id": self.env.user.id,
                     "employee_id": employee4.id,
                     "state": "close",
+                    "contract_type_id": None,
                 },
                 {
                     "name": "Contract employee 5",
@@ -200,6 +202,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "hr_responsible_id": self.env.user.id,
                     "employee_id": employee6.id,
                     "kanban_state": "done",
+                    "contract_type_id": None,
                 },
                 {
                     "name": "Contract employee 7",
@@ -213,6 +216,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "hr_responsible_id": self.env.user.id,
                     "employee_id": employee7.id,
                     "state": "close",
+                    "contract_type_id": None,
                 },
                 {
                     "name": "Contract employee 7",
@@ -241,6 +245,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "hr_responsible_id": self.env.user.id,
                     "employee_id": employee8.id,
                     "state": "close",
+                    "contract_type_id": None,
                 },
                 {
                     "name": "Contract employee 8",
@@ -282,6 +287,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "hr_responsible_id": self.env.user.id,
                     "employee_id": employee8.id,
                     "kanban_state": "done",
+                    "contract_type_id": None,
                 },
             ]
         )
