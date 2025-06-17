@@ -80,7 +80,6 @@ def migrate(cr, version):
     util.make_field_non_stored(cr, "hr.employee", "km_home_work", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "distance_home_work_unit", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "employee_type", selectable=True)
-    util.make_field_non_stored(cr, "hr.employee", "notes", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "departure_reason_id", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "departure_description", selectable=True)
     util.make_field_non_stored(cr, "hr.employee", "departure_date", selectable=True)

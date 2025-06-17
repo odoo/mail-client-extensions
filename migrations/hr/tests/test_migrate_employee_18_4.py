@@ -69,7 +69,6 @@ class TestMigrateEmployee(UpgradeCase):
                     "emergency_contact": "Georges",
                     "emergency_phone": "7777",
                     "distance_home_work": "20",
-                    "notes": "Note",
                     "barcode": "8888",
                     "pin": "9999",
                     "private_car_plate": "1-AAA-123",
@@ -171,7 +170,6 @@ class TestMigrateEmployee(UpgradeCase):
         self.assertEqual(employee_version.work_location_id.id, work_location_id)
         self.assertFalse(employee_version.is_flexible)
         self.assertFalse(employee_version.is_fully_flexible)
-        self.assertEqual(employee_version.notes, "Note")
 
         self.assertTrue(archived_employee.version_id, "A version should exist for that employee")
         self.assertEqual(len(archived_employee.version_ids), 1)

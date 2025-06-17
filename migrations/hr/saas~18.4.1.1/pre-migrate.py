@@ -28,6 +28,35 @@ def migrate(cr, version):
         util.create_column(cr, "hr_version", "date_version", "date")
         cr.execute("UPDATE hr_version SET date_version = contract_date_start")
 
+        # job_title is now stored computed, after renaming hr_contract -> hr_version
+        # create the column and prefill the values to avoid compute by ORM
+        util.create_column(cr, "hr_version", "job_title", "varchar")
+        query = """
+            UPDATE hr_version v
+               SET job_title = j.name
+              FROM hr_job j
+             WHERE v.job_id = j.id
+        """
+        util.explode_execute(cr, query, table="hr_version")
+
+    cr.execute(
+        """
+            INSERT INTO mail_message(
+                model, res_id, record_name, author_id, message_type, body, subtype_id
+            )
+                 SELECT 'hr.employee',
+                        e.id,
+                        e.name,
+                        %s,
+                        'comment',
+                        e.notes,
+                        %s
+                   FROM hr_employee e
+                  WHERE e.notes IS NOT NULL
+        """,
+        [util.ref(cr, "base.partner_root"), util.ref(cr, "mail.mt_note")],
+    )
+
     keep_employee_fields = [
         # hr
         "active",
@@ -126,6 +155,7 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.employee", "contract_warning")
     util.remove_field(cr, "hr.employee", "calendar_mismatch")
     util.remove_field(cr, "hr.employee", "contracts_count")
+    util.remove_field(cr, "hr.employee", "notes")
 
     util.remove_field(cr, "hr.employee.public", "first_contract_date")
 
@@ -136,6 +166,7 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.version", "state")
     util.remove_field(cr, "hr.version", "kanban_state")
     util.remove_field(cr, "hr.version", "contracts_count")
+    util.remove_field(cr, "hr.version", "notes")
     util.rename_field(cr, "hr.version", "default_contract_id", "contract_template_id")
 
     util.remove_model(cr, "hr.contract.history")
