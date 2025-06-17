@@ -34,3 +34,5 @@ def migrate(cr, version):
     ]
     move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)
+
+    util.remove_menus(cr, [util.ref(cr, "hr_payroll.menu_hr_work_entry_report")])
