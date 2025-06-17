@@ -138,7 +138,7 @@ def migrate(cr, version):
         project_fvalues = tuple(
             {
                 **project_fnames,
-                "name": '{{"en_US": "Analytic Project ({})"}}'.format(account_names),
+                "name": util.json.dumps({"en_US": "Analytic Project ({})".format(account_names)}),
                 "alias_id": new_mail_alias_id,
                 **{get_col_name(plan_id_per_account_id[account_id]): account_id for account_id in account_ids},
             }.values()
