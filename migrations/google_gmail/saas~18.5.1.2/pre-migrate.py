@@ -1,0 +1,2 @@
+def migrate(cr, version):
+    cr.execute("UPDATE fetchmail_server SET is_ssl = TRUE WHERE server_type = 'gmail' AND is_ssl IS NOT TRUE")
