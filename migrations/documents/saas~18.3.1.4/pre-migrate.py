@@ -54,3 +54,7 @@ def migrate(cr, version):
     util.remove_field(cr, "documents.document", "alias_force_thread_id")
     util.remove_field(cr, "documents.document", "alias_model_id")
     util.remove_field(cr, "documents.document", "alias_full_name")
+    util.force_noupdate(cr, "documents.document_internal_folder")
+    util.force_noupdate(cr, "documents.document_internal_folder_mail_alias")
+    util.force_noupdate(cr, "documents.document_finance_folder")
+    util.force_noupdate(cr, "documents.document_finance_folder_mail_alias")
