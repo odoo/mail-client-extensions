@@ -7,59 +7,43 @@ def migrate(cr, version):
     util.create_column(cr, "hr_skill_type", "levels_count", "integer")
     util.remove_constraint(cr, "hr_employee_skill", "hr_employee_skill__unique_skill", warn=False)
     util.remove_constraint(cr, "hr_employee_skill", "hr_employee_skill_HrEmployeeSkill__unique_skill", warn=False)
+    cr.execute("DELETE FROM hr_employee_skill")
     cr.execute(
         """
-        DELETE
-        FROM hr_employee_skill
-        """
-    )
-    cr.execute(
-        """
-        WITH
-            distinct_employee_skill as (
-                SELECT DISTINCT ON (employee_id, skill_id, skill_level_id)
-                    employee_id,
-                    skill_id,
-                    skill_type_id,
-                    skill_level_id,
-                    date
-                FROM hr_employee_skill_log
-                ORDER BY employee_id, skill_id, skill_level_id, date ASC
-            ),
-            lag_date_table as (
-                SELECT
-                    employee_id,
-                    skill_id,
-                    skill_level_id,
-                    skill_type_id,
-                    date,
-                    LAG(date) OVER (PARTITION BY employee_id, skill_id ORDER BY date DESC) AS lag_date
-                FROM distinct_employee_skill
-            ),
-            employee_skill_new as (
-                SELECT
-                    employee_id,
-                    skill_id,
-                    skill_level_id,
-                    skill_type_id,
-                    date AS valid_from,
-                    CASE
-                        WHEN lag_date_table.lag_date IS NOT NULL
-                        THEN lag_date_table.lag_date - INTERVAL '1 day'
-                        ELSE NULL
-                    END AS valid_to
-                FROM lag_date_table
-            )
-        INSERT INTO hr_employee_skill (
-            employee_id,
-            skill_id,
-            skill_level_id,
-            skill_type_id,
-            valid_from,
-            valid_to
+        WITH relevant_employee_skill AS (
+            SELECT employee_id,
+                   skill_id,
+                   skill_level_id,
+                   skill_type_id,
+                   date AS valid_from,
+                   skill_level_id IS DISTINCT FROM (LAG(skill_level_id) OVER (PARTITION BY employee_id, skill_id ORDER BY date)) AS is_changed
+              FROM hr_employee_skill_log
         )
-        SELECT *
-        FROM employee_skill_new
+        INSERT INTO hr_employee_skill (
+                    employee_id, skill_id, skill_level_id, skill_type_id, valid_from, valid_to
+        )
+             SELECT employee_id,
+                    skill_id,
+                    skill_level_id,
+                    skill_type_id,
+                    valid_from,
+                    LEAD(valid_from) OVER (PARTITION BY employee_id, skill_id ORDER BY valid_from) - INTERVAL '1 day' valid_to
+               FROM relevant_employee_skill
+              WHERE is_changed
     """
     )
     util.remove_model(cr, "hr.employee.skill.log")
+    cr.execute(
+        """
+        WITH levels AS (
+            SELECT skill_type_id AS type_id,
+                   count(*) AS total
+              FROM hr_skill_level
+          GROUP BY skill_type_id
+        )
+        UPDATE hr_skill_type t
+           SET levels_count = levels.total
+          FROM levels
+         WHERE t.id = levels.type_id
+    """
+    )

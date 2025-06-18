@@ -2,7 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    util.recompute_fields(cr, "hr.skill.type", ["levels_count"])
     records_to_update = [
         "hr_skills.hr_skill_type_lang",
         "hr_skills.hr_skill_type_softskill",

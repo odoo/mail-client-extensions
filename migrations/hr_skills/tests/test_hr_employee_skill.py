@@ -1,14 +1,13 @@
 from freezegun import freeze_time
 
 from odoo import fields
-from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
-
 from odoo.tests import Form
+
+from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
 @change_version("saas~18.4")
-class TestAccrualLevel(UpgradeCase):
-
+class TestHrEmployeeSkill(UpgradeCase):
     def _create_skill_types(self, vals_list):
         skill_types = self.env["hr.skill.type"]
         for vals in vals_list:
@@ -25,10 +24,11 @@ class TestAccrualLevel(UpgradeCase):
         return skill_types
 
     def prepare(self):
-        employee1, employee2 = self.env["hr.employee"].create(
+        employee1, employee2, employee3 = self.env["hr.employee"].create(
             [
                 {"name": "Test Employee 1"},
                 {"name": "Test Employee 2"},
+                {"name": "Test Employee 3"},
             ]
         )
 
@@ -53,7 +53,7 @@ class TestAccrualLevel(UpgradeCase):
             ]
         )
         with freeze_time("2025-01-01"):
-            emp1_arabic_a1, emp1_english_a1, emp2_english_a1 = self.env["hr.employee.skill"].create(
+            emp1_arabic_a1, emp1_english_a1, emp2_english_a1, emp3_english_a1 = self.env["hr.employee.skill"].create(
                 [
                     {
                         "employee_id": employee1.id,
@@ -73,14 +73,23 @@ class TestAccrualLevel(UpgradeCase):
                         "skill_level_id": language.skill_level_ids[5].id,
                         "skill_type_id": language.id,
                     },
+                    {
+                        "employee_id": employee3.id,
+                        "skill_id": language.skill_ids[1].id,
+                        "skill_level_id": language.skill_level_ids[5].id,
+                        "skill_type_id": language.id,
+                    },
                 ]
             )
 
         with freeze_time("2025-02-01"):
-            (emp1_arabic_a1 + emp2_english_a1).write({"skill_level_id": language.skill_level_ids[4].id})
+            (emp1_arabic_a1 + emp2_english_a1 + emp3_english_a1).write(
+                {"skill_level_id": language.skill_level_ids[4].id}
+            )
 
         with freeze_time("2025-03-01"):
             emp1_english_a1.write({"skill_level_id": language.skill_level_ids[4].id})
+            emp3_english_a1.write({"skill_level_id": language.skill_level_ids[5].id})
             self.env["hr.employee.skill"].create(
                 [
                     {
@@ -92,11 +101,11 @@ class TestAccrualLevel(UpgradeCase):
                 ]
             )
 
-        return employee1.id, employee2.id
+        return employee1.id, employee2.id, employee3.id
 
     def check(self, init):
-        employee1_id, employee2_id = init
-        employee1, employee2 = self.env["hr.employee"].browse([employee1_id, employee2_id])
+        employee1_id, employee2_id, employee3_id = init
+        employee1, employee2, employee3 = self.env["hr.employee"].browse([employee1_id, employee2_id, employee3_id])
 
         employee1_employee_skills = employee1.employee_skill_ids
         employee1_current_employee_skills = employee1.current_employee_skill_ids
@@ -144,3 +153,23 @@ class TestAccrualLevel(UpgradeCase):
         self.assertEqual(emp2_french_a2.valid_from, fields.Date.from_string("2025-03-01"))
         self.assertFalse(emp2_french_a2.valid_to)
 
+        employee3_employee_skills = employee3.employee_skill_ids
+        employee3_current_employee_skills = employee3.current_employee_skill_ids
+        self.assertEqual(len(employee3_employee_skills.ids), 3)
+        self.assertEqual(len(employee3_current_employee_skills.ids), 1)
+
+        names_array = employee3_employee_skills.mapped("display_name")
+        expected_display_names = ["English: A1", "English: A2", "English: A1"]
+        self.assertCountEqual(names_array, expected_display_names)
+
+        names_array = employee3_current_employee_skills.mapped("display_name")
+        expected_display_names = ["English: A1"]
+        self.assertCountEqual(names_array, expected_display_names)
+
+        emp3_english_a1_1, emp3_english_a2, emp3_english_a1_2 = employee3_employee_skills.sorted("id")
+        self.assertEqual(emp3_english_a1_1.valid_from, fields.Date.from_string("2025-01-01"))
+        self.assertEqual(emp3_english_a1_1.valid_to, fields.Date.from_string("2025-01-31"))
+        self.assertEqual(emp3_english_a2.valid_from, fields.Date.from_string("2025-02-01"))
+        self.assertEqual(emp3_english_a2.valid_to, fields.Date.from_string("2025-02-28"))
+        self.assertEqual(emp3_english_a1_2.valid_from, fields.Date.from_string("2025-03-01"))
+        self.assertFalse(emp3_english_a1_2.valid_to)
