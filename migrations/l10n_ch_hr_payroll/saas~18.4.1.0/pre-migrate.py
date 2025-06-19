@@ -262,3 +262,12 @@ def migrate(cr, version):
     remove_salary_rule(cr, "l10n_ch_hr_payroll.l10n_ch_employees_worked_days")
     remove_salary_rule(cr, "l10n_ch_hr_payroll.l10n_ch_employees_as_days")
     util.delete_unused(cr, "l10n_ch_hr_payroll.hr_payroll_structure_ch_employee_salary")
+
+    util.remove_model(cr, "l10n.ch.hr.payslip.montlhy.wizard")
+    util.remove_menus(
+        cr,
+        [
+            util.ref(cr, "l10n_ch_hr_payroll.menu_l10n_ch_hr_payslip_monthly_wizard"),
+            util.ref(cr, "l10n_ch_hr_payroll.menu_hr_payroll_employees_swissdec_root"),
+        ],
+    )
