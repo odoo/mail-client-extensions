@@ -254,14 +254,16 @@ def upgrade_company_dependent_field(cr, model_name, field_name, field_id, field_
             """
             WITH jsonb_property AS (
                 SELECT t.id AS res_id,
-                       jsonb_object_agg(prop.company_id::text, ({property_value_field})::{store_type}) AS value
+                       jsonb_object_agg(COALESCE(prop.company_id, ac.id)::text, ({property_value_field})::{store_type}) AS value
                   FROM _ir_property prop
                     -- join the table already in the CTE to avoid computing
                     -- stuff we won't use in the update below
+             LEFT JOIN res_company ac
+                    ON prop.company_id IS NULL
+                   AND ac.active
                   JOIN {table_name} t
                     ON NULLIF(SPLIT_PART(prop.res_id, ',', 2), '')::int4 = t.id
                    AND prop.type = {field_type}
-                   AND prop.company_id IS NOT NULL
                    AND prop.res_id IS NOT NULL
                    AND prop.fields_id = {field_id}
                    AND {{parallel_filter}}
