@@ -107,6 +107,13 @@ def migrate(cr, version):
            AND n.company_id IS NULL
         """
     )
+    cr.execute(
+        """
+        UPDATE mail_activity_type
+           SET res_model = 'project.task'
+         WHERE res_model = 'note.note'
+        """
+    )
     # while converting note to task, mapping boolean value of 'open' to selection field 'state'
     # and performing the computation of is_closed
     # open = True  -> state = '01_in_progress', is_closed = False
