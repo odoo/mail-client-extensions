@@ -9,6 +9,7 @@ def migrate(cr, version):
     util.remove_field(cr, "mrp.routing.workcenter", "note")
     util.remove_field(cr, "mrp.routing.workcenter", "worksheet", keep_as_attachments=True)
     util.remove_field(cr, "mrp.routing.workcenter", "worksheet_google_slide")
+    util.remove_field(cr, "mrp.workorder", "has_worksheet")
     util.remove_field(cr, "mrp.workorder", "worksheet")
     util.remove_field(cr, "mrp.workorder", "worksheet_type")
     util.remove_field(cr, "mrp.workorder", "worksheet_google_slide")
