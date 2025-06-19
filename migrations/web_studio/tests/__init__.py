@@ -1,1 +1,2 @@
+import test_migrate_activity_type_approval
 import test_migrate_approval_rule
