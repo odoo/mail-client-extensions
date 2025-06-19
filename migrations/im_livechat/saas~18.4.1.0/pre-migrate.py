@@ -35,3 +35,31 @@ def migrate(cr, version):
            WHERE last_history.id = dups.ids[ARRAY_LENGTH(dups.ids, 1)]
         """
         util.explode_execute(cr, query, "discuss_channel")
+
+    def domain_adapter(leaf, _, __):
+        _, operator, right = leaf
+        right = (operator == "=" and not right) or (operator == "!=" and right)
+        return [("livechat_end_dt", "!=" if right else "=", False)]
+
+    util.update_field_usage(cr, "discuss.channel", "livechat_active", "livechat_end_dt", domain_adapter=domain_adapter)
+    util.create_column(cr, "discuss_channel", "livechat_end_dt", "timestamp without time zone")
+    query = """
+        WITH end_dt_by_channel AS (
+          SELECT discuss_channel.id as channel_id,
+                 COALESCE(max(mail_message.create_date), discuss_channel.write_date) AS end_dt
+            FROM discuss_channel
+       LEFT JOIN mail_message
+              ON mail_message.model = 'discuss.channel'
+             AND mail_message.res_id = discuss_channel.id
+           WHERE {parallel_filter}
+             AND discuss_channel.channel_type = 'livechat'
+             AND discuss_channel.livechat_active IS NOT TRUE
+        GROUP BY discuss_channel.id
+        )
+        UPDATE discuss_channel
+           SET livechat_end_dt = end_dt_by_channel.end_dt
+          FROM end_dt_by_channel
+         WHERE discuss_channel.id = end_dt_by_channel.channel_id
+    """
+    util.explode_execute(cr, query, "discuss_channel")
+    util.remove_field(cr, "discuss.channel", "livechat_active")
