@@ -116,3 +116,4 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.config.settings", "website_sale_enabled_portal_reorder_button")
     util.remove_field(cr, "website", "enabled_portal_reorder_button")
+    util.remove_view(cr, "website_sale.product_tag_form_view_inherit_website_sale")
