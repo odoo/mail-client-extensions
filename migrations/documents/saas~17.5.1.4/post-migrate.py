@@ -22,6 +22,8 @@ def migrate(cr, version):
     for folder in ["internal", "finance"]:
         if not util.ref(cr, f"documents.document_{folder}_folder"):
             util.update_record_from_xml(cr, f"documents.document_{folder}_folder")
+            util.force_noupdate(cr, f"documents.document_{folder}_folder")
+            util.force_noupdate(cr, f"documents.document_{folder}_folder_mail_alias")
 
     server_actions = [
         "create_activity",
