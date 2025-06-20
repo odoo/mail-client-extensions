@@ -1,11 +1,13 @@
 import base64
+import contextlib
 from contextlib import contextmanager
 from unittest.mock import patch
 
 from freezegun import freeze_time
 from lxml import etree
 
-from odoo import Command
+with contextlib.suppress(ImportError):
+    from odoo import Command
 from odoo.tools import misc
 
 from odoo.addons.base.maintenance.migrations import util
