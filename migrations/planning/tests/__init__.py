@@ -1,1 +1,1 @@
-from . import test_migrate_planning_slot_template_duration
+from . import test_migrate_planning_slot_template_duration, test_migrate_planning_slot_template_name
