@@ -63,3 +63,7 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, "discuss_channel")
     util.remove_field(cr, "discuss.channel", "livechat_active")
+    util.rename_xmlid(cr, "im_livechat.menu_reporting_livechat_operator", "im_livechat.menu_reporting_livechat_agent")
+    util.rename_xmlid(
+        cr, "im_livechat.im_livechat_report_operator_action", "im_livechat.im_livechat_agent_history_action"
+    )
