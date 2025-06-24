@@ -151,6 +151,32 @@ class TestSpreadsheetCumulatedStartOdooChart(UpgradeCase):
                     },
                     "type": "UPDATE_CHART",
                 },
+                {
+                    "sheetId": "sheet1",
+                    "id": "fig1",
+                    "definition": {
+                        "metaData": {
+                            "groupBy": ["stage_id", "user_id"],
+                            "measure": "__count",
+                            "order": None,
+                            "resModel": "crm.lead",
+                        },
+                        "searchParams": {
+                            "context": {"default_type": "opportunity"},
+                            "domain": "[]",
+                            "groupBy": [],
+                            "orderBy": [],
+                        },
+                        "stacked": True,
+                        "fillArea": False,
+                        "cumulative": True,
+                        "title": {"text": "Opportunities"},
+                        "background": "#FFFFFF",
+                        "dataSourceId": "ds1",
+                        "id": "fig1",
+                    },
+                    "type": "UPDATE_CHART",
+                },
             ],
         }
         field_name = "revision_uuid" if util.version_gte("saas~17.2") else "revision_id"

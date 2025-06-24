@@ -7,7 +7,7 @@ def migrate(cr, version):
             if command["type"] not in ("CREATE_CHART", "UPDATE_CHART"):
                 continue
             definition = command["definition"]
-            if not definition["type"].startswith("odoo_"):
+            if not definition.get("type", "").startswith("odoo_"):
                 continue
             cumulated_start = definition.get("cumulatedStart", definition.get("cumulative", False))
             definition["cumulatedStart"] = cumulated_start
