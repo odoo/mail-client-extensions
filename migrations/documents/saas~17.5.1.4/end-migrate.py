@@ -397,25 +397,34 @@ def migrate_workflow_rule(
             journal_id_field = journal_id_field[0]
             cr.execute(
                 """
-               SELECT p.res_id as rid,
-                      p.value_reference as jid,
-                      p.company_id as cid,
-                      c.name as cname
+                 WITH props AS (
+               SELECT NULLIF(SPLIT_PART(p.res_id, ',', 2), '')::int4 as rid,
+                      NULLIF(SPLIT_PART(p.value_reference, ',', 2), '')::int4 as jid,
+                      p.company_id as cid
                  FROM _ir_property p
-                 JOIN res_company c
-                   ON p.company_id = c.id
                 WHERE fields_id = %s
                   AND value_reference IS NOT NULL
+                )
+               SELECT props.rid,
+                      props.jid,
+                      props.cid,
+                      c.name as cname
+                 FROM props
+                 JOIN res_company c
+                   ON props.cid = c.id
+                 JOIN documents_workflow_rule r
+                   ON props.rid = r.id
+                 JOIN account_journal j
+                   ON props.jid = j.id
                 """,
                 [journal_id_field],
             )
-            for record in cr.dictfetchall():
-                rule_id, journal_id, company_id, company_name = (
-                    int(record["rid"].split(",")[1]),
-                    int(record["jid"].split(",")[1]),
-                    record["cid"],
-                    record["cname"],
-                )
+            for (
+                rule_id,
+                journal_id,
+                company_id,
+                company_name,
+            ) in cr.fetchall():
                 account_rule_company_journal_list.append((rule_id, journal_id, company_id, company_name))
 
     method_by_create_model = {
