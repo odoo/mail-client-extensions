@@ -79,3 +79,4 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_es_website_sale", "l10n_es")
     util.merge_module(cr, "l10n_it_edi_website_sale", "l10n_it_edi")
     util.merge_module(cr, "l10n_pe_website_sale", "l10n_pe")
+    util.remove_module(cr, "l10n_uy_website_sale")
