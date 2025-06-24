@@ -6,8 +6,8 @@ def migrate(cr, version):
 
     cr.execute("SELECT 4 FROM event_event WHERE badge_format = '96x82' LIMIT 1")
     if cr.rowcount:
-        util.force_module_install(cr, "event_iot")
+        util.force_install_module(cr, "event_iot")
         if util.module_installed(cr, "event_sale"):
-            util.force_module_install(cr, "event_sale_iot")
+            util.force_install_module(cr, "event_sale_iot")
         if util.module_installed(cr, "pos_event"):
-            util.force_module_install(cr, "pos_event_iot")
+            util.force_install_module(cr, "pos_event_iot")
