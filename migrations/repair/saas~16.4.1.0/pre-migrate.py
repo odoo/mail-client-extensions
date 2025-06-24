@@ -608,12 +608,9 @@ def migrate(cr, version):
                           FROM repair_order r
                           JOIN stock_warehouse wh
                             ON r.company_id = wh.company_id
-                     LEFT JOIN stock_move m
-                            ON m.repair_id = r.id
-                           AND m.repair_line_type IS NOT NULL
-                         WHERE m.id IS NULL
-                           AND wh.active = TRUE
+                         WHERE wh.active = TRUE
                            AND {parallel_filter}
+                           AND r.picking_type_id IS NULL
                          GROUP BY r_id
                )
           UPDATE repair_order r
