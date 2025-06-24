@@ -120,31 +120,7 @@ def migrate(cr, version):
         )
 
         # recompute `parent_path` on newly created folders, assuming that their parent folder has a correct `parent_path` value.
-        query = """
-            WITH _new_folders AS (
-                   SELECT c.documents_employee_folder_id AS fid
-                     FROM res_company c
-                    WHERE c.documents_employee_folder_id IS NOT NULL
-                    UNION
-                   SELECT e.hr_employee_folder_id AS fid
-                     FROM hr_employee e
-                    WHERE e.hr_employee_folder_id IS NOT NULL
-            ),
-            _compute_parent_path AS (
-                SELECT d.id, CONCAT(f.parent_path, d.id, '/') as path
-                  FROM documents_document d
-                  JOIN _new_folders n
-                    ON n.fid = d.id
-             LEFT JOIN documents_document f
-                    ON f.id = d.folder_id
-            )
-            UPDATE documents_document d
-               SET parent_path = c.path
-              FROM _compute_parent_path c
-             WHERE c.id = d.id
-        """
-        # no need to explode the query as there shouldn't have millions of company or employee records.
-        cr.execute(query)
+        util.update_parent_path(cr, "documents.document", parent_field="folder_id")
 
         # Move all employee documents to their new specific folder
         # (without changing existing access rights)
