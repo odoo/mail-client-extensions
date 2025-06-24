@@ -15,12 +15,12 @@ def migrate(cr, version):
     # Insert appointment booking lines for existing appointments with users.
     cr.execute(
         """
-            INSERT INTO appointment_booking_line (
-                            calendar_event_id, capacity_reserved, capacity_used
-                        )
-                 SELECT ce.id, 1, 1
-                   FROM calendar_event ce
-                  WHERE user_id IS NOT NULL
-                    AND appointment_type_id IS NOT NULL
+        INSERT INTO appointment_booking_line (
+                    calendar_event_id, appointment_type_id, event_start, event_stop, capacity_reserved, capacity_used
+                )
+             SELECT ce.id, ce.appointment_type_id, ce.start, ce.stop, 1, 1
+               FROM calendar_event ce
+              WHERE user_id IS NOT NULL
+                AND appointment_type_id IS NOT NULL
         """
     )
