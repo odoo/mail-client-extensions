@@ -29,7 +29,19 @@ class BankStatementLinePartner(UpgradeCase):
         return [{"payment_ref": f"l{i:02}", "amount": 20, **d} for i, d in enumerate(data)]
 
     def prepare(self):
-        companies = {"c0": self.env.ref("base.main_company")}
+        companies = {"c0": self.env["res.company"].create({"name": "Parent Company Test BSLP"})}
+        sus_account = self.env["account.account"].create(
+            {"name": "Account", "code": "1", "account_type": "asset_current", "company_ids": [companies["c0"].id]}
+        )
+        self.env["account.journal"].create(
+            {
+                "name": "Default Journal",
+                "code": "cash",
+                "type": "cash",
+                "company_id": companies["c0"].id,
+                "suspense_account_id": sus_account.id,
+            }
+        )
         company_to_parent = [
             ("c1", "c0"),
             ("c2", "c0"),
@@ -76,7 +88,7 @@ class BankStatementLinePartner(UpgradeCase):
         )
 
         # reconciled lines (with amount = 0)
-        self.env["account.bank.statement.line"].create(
+        self.env["account.bank.statement.line"].with_company(companies["c0"]).create(
             [
                 {"partner_name": "CBC", "partner_id": partners["p8"].id, "company_id": partners["p8"].company_id.id},
                 {"partner_name": "CBC", "partner_id": partners["p8"].id, "company_id": partners["p8"].company_id.id},
@@ -97,7 +109,7 @@ class BankStatementLinePartner(UpgradeCase):
         companies_ids = {company_name: company.id for company_name, company in companies.items()}
         partners_ids = {partner_name: partner.id for partner_name, partner in partners.items()}
         lines_ids = {
-            f"l{i}": self.env["account.bank.statement.line"].create(line_data).id
+            f"l{i}": self.env["account.bank.statement.line"].with_company(companies["c0"]).create(line_data).id
             for i, line_data in enumerate(self._get_lines_data(companies_ids, partners_ids))
         }
 
@@ -109,7 +121,7 @@ class BankStatementLinePartner(UpgradeCase):
         lines_sql = init["lines"]
         # these lines get their partner_id computed through python logic of _retrieve_partner in account_bank_statement
         lines_python = {
-            f"l{i}": self.env["account.bank.statement.line"].create(line_data)
+            f"l{i}": self.env["account.bank.statement.line"].with_company(companies["c0"]).create(line_data)
             for i, line_data in enumerate(self._get_lines_data(companies, partners))
         }
         for line_name in lines_sql:
