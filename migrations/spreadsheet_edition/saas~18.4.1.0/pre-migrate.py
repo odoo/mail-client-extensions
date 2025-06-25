@@ -24,7 +24,8 @@ def migrate(cr, version):
                     global_filter["rangesOfAllowedValues"] = [global_filter["rangeOfAllowedValues"]]
                     del global_filter["rangeOfAllowedValues"]
                 if (
-                    global_filter["type"] == "date"
+                    "defaultValue" in global_filter
+                    and global_filter["type"] == "date"
                     and global_filter["rangeType"] == "fixedPeriod"
                     and not isinstance(global_filter["defaultValue"], str)
                 ):
