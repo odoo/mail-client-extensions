@@ -13,6 +13,7 @@ def migrate(cr, version):
         util.merge_module(cr, "website_sale_renting_product_configurator", "website_sale_renting")
         util.new_module(cr, "accountant", deps={"account_accountant"})
         util.force_install_module(cr, "accountant", if_installed=["account_accountant"])
+        util.force_upgrade_of_fresh_module(cr, "account_accountant")
         util.remove_module(cr, "stock_barcode_account_barcodelookup")
     util.force_upgrade_of_fresh_module(cr, "hr_homeworking_calendar")
 

@@ -5,11 +5,14 @@ def migrate(cr, version):
     util.remove_field(cr, "bank.rec.widget", "st_line_narration")
 
     # Deferred
+    util.create_column(cr, "account_move_line", "deferred_start_date", "date")  # for new install
     for deferred_type in ("expense", "revenue"):
         method_col = f"deferred_{deferred_type}_amount_computation_method"
         util.create_column(cr, "res_company", method_col, "varchar")
         journal_col = f"deferred_{deferred_type}_journal_id"
         util.create_column(cr, "res_company", journal_col, "int4")
+        if not util.column_exists(cr, "res_company", "deferred_journal_id"):
+            continue
         query = util.format_query(
             cr,
             """
