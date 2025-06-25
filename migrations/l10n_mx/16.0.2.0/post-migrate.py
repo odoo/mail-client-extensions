@@ -7,6 +7,7 @@ def migrate(cr, version):
     CoA = env.ref("l10n_mx.mx_coa")
     for company in env["res.company"].search([("chart_template_id", "=", CoA.id)]):
         CoA.generate_account_groups(company=company)
+    cr.execute("DROP INDEX _upg_mx_account_groups")
 
     tax_debit_id = util.ref(cr, "l10n_mx.tag_debit_balance_account")
     tax_credit_id = util.ref(cr, "l10n_mx.tag_credit_balance_account")

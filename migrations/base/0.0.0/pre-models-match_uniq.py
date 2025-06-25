@@ -84,10 +84,10 @@ class Base(models.AbstractModel):
                     if match_warning:
                         _logger.log(
                             util.NEARLYWARN if util.on_CI() else logging.WARNING,
-                            match_warning.format(xmlid=xmlid, **vals),
+                            match_warning.format(xmlid=xmlid, id=record.id, **vals),
                         )
                         util.add_to_migration_reports(
-                            message=match_warning.format(xmlid=xmlid, **vals), category="Merged Records"
+                            message=match_warning.format(xmlid=xmlid, id=record.id, **vals), category="Merged Records"
                         )
                     record_ids[idx] = record.id
                     break
