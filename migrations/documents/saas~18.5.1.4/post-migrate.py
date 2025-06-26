@@ -43,3 +43,5 @@ def migrate(cr, version):
         "documents.documents_tag_images",
         "documents.documents_tag_videos",
     )
+
+    util.update_record_from_xml(cr, "documents.mail_template_document_share")

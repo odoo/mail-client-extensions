@@ -50,6 +50,8 @@ def migrate(cr, version):
             [alias_id],
         )
 
+    util.remove_model(cr, "documents.access.invite")
+
 
 def wrap_documents_server_action(cr, xmlid, suffix="_code"):
     """Create a "multi" server action to wrap an action as child with the provided suffix.
