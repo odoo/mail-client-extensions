@@ -14,7 +14,19 @@ from odoo.addons.base.maintenance.migrations import util
 # enterprise/16.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/17.0:pos_blackbox_be/__manifest__.py:    'installable': True,
 # enterprise/18.0:pos_blackbox_be/__manifest__.py:    'installable': True,
-MULTI_COMPANY_CERTIFIED_BLACKBOX = {"9.0", "11.0", "13.0", "14.0", "15.0", "16.0", "17.0", "18.0", "saas~18.2"}
+MULTI_COMPANY_CERTIFIED_BLACKBOX = {
+    "9.0",
+    "11.0",
+    "13.0",
+    "14.0",
+    "15.0",
+    "16.0",
+    "17.0",
+    "18.0",
+    "saas~18.2",
+    "saas~18.3",
+    "saas~18.4",
+}
 SINGLE_COMPANY_CERTIFIED_BLACKBOX = {"saas~17.2", "saas~17.4"}
 
 
