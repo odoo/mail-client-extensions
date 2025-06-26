@@ -68,9 +68,9 @@ def migrate(cr, version):
             "holiday_status_situational_unemployment": "l10n_lu_leave_type_situational_unemployment",
         },
         "mx": {
-            "holiday_type_work_risk_imss": "l10n_mx_leave_type_work_risk_imss",
-            "holiday_type_maternity_imss": "l10n_mx_leave_type_maternity_imss",
-            "holiday_type_disability_due_to_illness_imss": "l10n_mx_leave_type_disability_due_to_illness_imss",
+            "l10n_mx_leave_type_work_risk_imss": "l10n_mx_leave_type_work_risk_imss",
+            "l10n_mx_leave_type_maternity_imss": "l10n_mx_leave_type_maternity_imss",
+            "l10n_mx_leave_type_disability_due_to_illness_imss": "l10n_mx_leave_type_disability_due_to_illness_imss",
         },
         "sk": {
             "hr_leave_type_maternity": "l10n_sk_leave_type_maternity",
