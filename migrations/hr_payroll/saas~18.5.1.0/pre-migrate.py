@@ -166,3 +166,32 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.salary.rule", "condition_range_max")
     util.remove_field(cr, "hr.salary.rule", "condition_range_min")
     util.remove_field(cr, "hr.salary.rule", "condition_range")
+
+    util.change_field_selection_values(
+        cr,
+        "hr.payslip",
+        "state",
+        {
+            "verify": "draft",
+            "done": "validated",
+        },
+    )
+    util.change_field_selection_values(
+        cr,
+        "hr.payslip.run",
+        "state",
+        {
+            "01_draft": "01_ready",
+            "02_verify": "01_ready",
+            "03_close": "02_close",
+            "04_paid": "03_paid",
+            "05_cancel": "04_cancel",
+        },
+    )
+    util.remove_field(cr, "hr.payslip", "warning_message")
+    util.remove_view(cr, "hr_payroll_holidays.hr_payslip_view_form")
+
+    util.create_column(cr, "hr_payslip", "error_count", "integer")
+    util.create_column(cr, "hr_payslip", "warning_count", "integer")
+    util.create_column(cr, "hr_payslip", "issues", "jsonb")
+    util.create_column(cr, "hr_payslip", "state_display", "varchar")
