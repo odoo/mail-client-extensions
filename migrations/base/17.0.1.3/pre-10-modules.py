@@ -7,3 +7,4 @@ def migrate(cr, version):
     util.force_upgrade_of_fresh_module(cr, "l10n_ke_edi_oscu")
     util.force_upgrade_of_fresh_module(cr, "l10n_ke_edi_oscu_stock")
     util.force_upgrade_of_fresh_module(cr, "l10n_dk_bookkeeping")
+    util.force_upgrade_of_fresh_module(cr, "l10n_cz_reports_2025")
