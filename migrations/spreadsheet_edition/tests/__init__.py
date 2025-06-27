@@ -8,6 +8,7 @@ from . import (
     test_create_table_command_change,
     test_default_value_date_rename,
     test_default_value_filter,
+    test_filters_add_operators,
     test_fixed_period_migration,
     test_image_attachment,
     test_insert_pivot,

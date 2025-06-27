@@ -61,8 +61,9 @@ class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
         commands = json.loads(revision.commands)["commands"]
         add_command, edit_command, add_command_2 = commands
 
-        self.assertEqual(add_command["filter"]["defaultValue"], ["hello"])
-        self.assertEqual(edit_command["filter"]["defaultValue"], ["hello"])
+        expected_value = {"operator": "ilike", "strings": ["hello"]} if util.version_gte("saas~18.5") else ["hello"]
+        self.assertEqual(add_command["filter"]["defaultValue"], expected_value)
+        self.assertEqual(edit_command["filter"]["defaultValue"], expected_value)
         self.assertFalse("defaultValue" in add_command_2["filter"])
 
         self.assertEqual(add_command["filter"]["rangesOfAllowedValues"], [RANGE_DATA])
