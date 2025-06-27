@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 from lxml import etree
 
 from odoo import fields
-from odoo.exceptions import RedirectWarning, UserError
+from odoo.exceptions import AccessError, RedirectWarning, UserError
 from odoo.osv import expression
 from odoo.tools import OrderedSet, mute_logger
 from odoo.tools.safe_eval import safe_eval
@@ -472,7 +472,21 @@ class TestCrawler(IntegrityCase):
             # `for record in records` would prefetch the fields of all the records
             # and not one by one as a form view would do.
             record = records[i]
-            [data] = record.read(fields_list)
+            if util.version_gte("18.0"):
+                try:
+                    [data] = record.read(fields_list)
+                except AccessError as e:
+                    ctx = dict(self.env.context)
+                    allowed_company_ids = list(ctx.get("allowed_company_ids", []))
+                    suggested_id = getattr(e, "context", {}).get("suggested_company", {}).get("id")
+                    if suggested_id and suggested_id not in allowed_company_ids:
+                        allowed_company_ids.append(suggested_id)
+                        [data] = record.with_context(allowed_company_ids=allowed_company_ids).read(fields_list)
+                    else:
+                        raise
+            else:
+                [data] = record.read(fields_list)
+
             for fname in relation_fields_to_read:
                 read_display_name(model.env[model._fields[fname].comodel_name].browse(data[fname]).sudo())
 
