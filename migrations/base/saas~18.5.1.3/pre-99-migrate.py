@@ -1,3 +1,6 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
     cr.execute("""
         CREATE TABLE ir_actions_server_history (
@@ -28,3 +31,5 @@ def migrate(cr, version):
                FROM ir_act_server a
               WHERE a.state = 'code'
     """)
+
+    util.remove_field(cr, "ir.model.fields", "complete_name")
