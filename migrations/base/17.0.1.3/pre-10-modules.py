@@ -6,3 +6,4 @@ def migrate(cr, version):
     util.force_upgrade_of_fresh_module(cr, "web_map")
     util.force_upgrade_of_fresh_module(cr, "l10n_ke_edi_oscu")
     util.force_upgrade_of_fresh_module(cr, "l10n_ke_edi_oscu_stock")
+    util.force_upgrade_of_fresh_module(cr, "l10n_dk_bookkeeping")
