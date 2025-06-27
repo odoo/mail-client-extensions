@@ -64,3 +64,5 @@ def migrate(cr, version):
 
     if util.modules_installed(cr, "hr_holidays", "l10n_fr"):
         util.force_upgrade_of_fresh_module(cr, "l10n_fr_hr_holidays")
+
+    util.force_upgrade_of_fresh_module(cr, "l10n_es_edi_facturae")
