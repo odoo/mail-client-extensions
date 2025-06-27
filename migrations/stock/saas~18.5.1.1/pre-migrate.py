@@ -129,3 +129,6 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.warehouse.orderpoint", "visibility_days")
     util.rename_field(cr, "stock.warehouse.orderpoint", "lead_days_date", "lead_horizon_date")
     util.rename_field(cr, "stock.replenishment.info", "json_replenishment_history", "json_replenishment_graph")
+
+    util.remove_field(cr, "stock.request.count", "set_count")
+    util.remove_view(cr, "stock.duplicated_sn_warning")

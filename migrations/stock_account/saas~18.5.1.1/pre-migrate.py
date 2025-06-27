@@ -38,3 +38,6 @@ def migrate(cr, version):
     util.remove_view(cr, "stock_account.stock_valuation_layer_picking")
     util.remove_view(cr, "stock_account.view_company_form")
     util.remove_view(cr, "stock_account.view_move_form_inherit")
+
+    util.remove_field(cr, "stock.request.count", "accounting_date")
+    util.remove_view(cr, "stock_account.stock_inventory_request_count_form_view_inherit_stock_account")
