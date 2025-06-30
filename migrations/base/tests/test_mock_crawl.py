@@ -661,7 +661,7 @@ class TestCrawler(IntegrityCase):
             # take samples at regular intervals
             # e.g. for a limit_group of 3 and a list of 10 elements, take indexes 0, 5, and 9
             chunk = math.ceil(len(data) / (limit_group - 1))
-            data = data[0:-1:chunk] + [data[-1]]
+            data = data[0:-1:chunk] + [data[-1]]  # noqa: RUF005
 
         if not util.version_gte("saas~16.3"):
             # Get the display name of all groups explicitly for version before the saas~16.3
