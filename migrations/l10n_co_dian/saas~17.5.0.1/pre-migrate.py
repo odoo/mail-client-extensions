@@ -2,6 +2,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    if util.table_exists(cr, "l10n_co_dian_certificate"):
+        _convert_certificates(cr)
+
+
+def _convert_certificates(cr):
     # Create a temporary column to store and retrieve the old certificate ID from the new certificate
     util.create_column(
         cr,
