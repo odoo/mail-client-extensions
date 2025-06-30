@@ -10,3 +10,4 @@ def migrate(cr, version):
     util.force_upgrade_of_fresh_module(cr, "l10n_cz_reports_2025")
     util.force_upgrade_of_fresh_module(cr, "l10n_ro_efactura")
     util.force_upgrade_of_fresh_module(cr, "l10n_in_ewaybill_stock")
+    util.force_upgrade_of_fresh_module(cr, "l10n_rs_edi")
