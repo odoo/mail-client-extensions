@@ -1,3 +1,5 @@
+import datetime
+
 from dateutil.relativedelta import relativedelta
 
 from odoo import Command
@@ -207,13 +209,18 @@ def migrate(cr, version):
     util.remove_records(cr, "account.move", move_ids)
     util.remove_field(cr, "account.move", "tax_closing_report_id")
 
-    # Create a cron trigger to generate returns when the upgraded db is started.
-    cron_id = util.ref(cr, "account_reports.ir_cron_generate_account_return")
-    if cron_id:
-        cr.execute(
-            """
-            INSERT INTO ir_cron_trigger(cron_id, call_at)
-                 VALUES (%s, now() at time zone 'UTC')
-            """,
-            [cron_id],
-        )
+    generate_or_refresh_all_returns = env["account.return.type"]._generate_or_refresh_all_returns
+    cr.execute(
+        """
+        SELECT id
+          FROM res_company
+         WHERE parent_id IS NULL
+           AND account_opening_date IS NOT NULL
+           AND active
+      ORDER BY id
+        """
+    )
+    ids = [id for (id,) in cr.fetchall()]
+    for company in util.iter_browse(env["res.company"], ids, strategy="commit", chunk_size=1):
+        generate_or_refresh_all_returns(company)
+        company.account_last_return_cron_refresh = datetime.datetime.now()
