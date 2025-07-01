@@ -12,3 +12,4 @@ def migrate(cr, version):
     util.force_upgrade_of_fresh_module(cr, "l10n_in_ewaybill_stock")
     util.force_upgrade_of_fresh_module(cr, "l10n_rs_edi")
     util.force_upgrade_of_fresh_module(cr, "l10n_br_avatax_services")
+    util.force_upgrade_of_fresh_module(cr, "website_documents")
