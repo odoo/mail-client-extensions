@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -117,7 +116,7 @@ def migrate(cr, version):
     for field, key in params:
         param_value = ICP.get_param(key)
         if param_value:
-            cr.execute("UPDATE website set {}=%s".format(field), (param_value,))
+            cr.execute(util.format_query(cr, "UPDATE website set {}=%s", field), (param_value,))
 
     cr.execute(
         """
