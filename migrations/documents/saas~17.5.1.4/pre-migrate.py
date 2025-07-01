@@ -58,7 +58,7 @@ def migrate(cr, version):
     util.create_column(cr, "documents_document", "create_activity_summary", "varchar")
     util.create_column(cr, "documents_document", "create_activity_date_deadline_range", "int4")
     util.create_column(cr, "documents_document", "create_activity_date_deadline_range_type", "varchar")
-    util.create_column(cr, "documents_document", "create_activity_note", "varchar")
+    util.create_column(cr, "documents_document", "create_activity_note", "text")
     util.create_column(cr, "documents_document", "create_activity_user_id", "int4")
 
     util.create_column(cr, "documents_document", "_upg_was_shared", "boolean")
