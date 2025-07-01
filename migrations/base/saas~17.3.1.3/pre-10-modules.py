@@ -14,6 +14,7 @@ def migrate(cr, version):
         util.new_module(cr, "accountant", deps={"account_accountant"})
         util.force_install_module(cr, "accountant", if_installed=["account_accountant"])
         util.force_upgrade_of_fresh_module(cr, "account_accountant")
+        util.force_upgrade_of_fresh_module(cr, "account_online_synchronization")
         util.force_upgrade_of_fresh_module(cr, "l10n_co_dian")
         util.remove_module(cr, "stock_barcode_account_barcodelookup")
     util.force_upgrade_of_fresh_module(cr, "hr_homeworking_calendar")
