@@ -26,26 +26,30 @@ def migrate(cr, version):
     util.create_column(cr, "website", "specific_user_account", "boolean")
     util.create_column(cr, "website", "auth_signup_uninvited", "varchar")
 
-    for model in [
-        "res.partner",
-        "res.partner.grade",
-        "res.partner.tag",
-        "website.page",
-        "blog.post",
-        "event.event",
-        "event.track",
-        "hr.employee",
-        "hr.job",
-        "im_livechat.channel",
-        "product.template",
-        "delivery.carrier",
-        "slide.channel",
-        "slide.slide",
-        "calendar.appointment.type",
-        "helpdesk.team",
-        "website.twitter.wall",
-    ]:
-        util.rename_field(cr, model, "website_published", "is_published")
+    util.rename_field(cr, "website.published.mixin", "website_published", "is_published")
+
+    # In 12 the ORM doesn't create an xmlid for is_published, renamed from website_published
+    # In 11 the xmlids are created some in website, some in the actual modules where the inherit is added
+    # To avoid the warnings about removing a loaded field we wipe out the xmlids
+    cr.execute(
+        """
+        DELETE FROM ir_model_data
+              WHERE module='website'
+                AND name IN (
+                        'field_product_template__is_published',
+                        'field_res_partner__is_published',
+                        'field_im_livechat_channel__is_published',
+                        'field_hr_job__is_published',
+                        'field_hr_employee__is_published',
+                        'field_helpdesk_team__is_published'
+                    )
+        """
+    )
+    cr.execute("DELETE FROM ir_model_data WHERE module='website_sale' AND name='field_product_product__is_published'")
+    cr.execute("DELETE FROM ir_model_data WHERE module='website_partner' AND name='field_res_users__is_published'")
+    cr.execute(
+        "DELETE FROM ir_model_data WHERE module='website_sale_delivery' AND name='field_delivery_carrier__is_published'"
+    )
 
     cr.execute(
         """
