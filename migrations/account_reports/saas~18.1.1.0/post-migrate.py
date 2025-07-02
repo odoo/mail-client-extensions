@@ -2,8 +2,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    trial_balance_xml_id = "account_reports.trial_balance_report"
-    migrate_report_annotations(cr, trial_balance_xml_id)
+    if not util.version_gte("saas~18.5"):
+        # Annnotations are moved to mail_messages in saas~18.5, to migrate those we only need the last part of the
+        # line_id, here we add more to the line_id but nothing to the end so we don't need to do this beyond saas~18.4
+        trial_balance_xml_id = "account_reports.trial_balance_report"
+        migrate_report_annotations(cr, trial_balance_xml_id)
 
 
 def migrate_report_annotations(cr, report_xml_id):
