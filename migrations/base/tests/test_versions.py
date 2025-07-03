@@ -13,7 +13,7 @@ ROOT = Path(__file__).parent.parent.parent
 class TestEnsureVersion(UnitTestCase):
     def test_fs(self):
         for path in ROOT.glob("*/*"):
-            if not path.is_dir():
+            if not path.is_dir() or path.is_relative_to(ROOT / "util"):
                 continue
             version = path.name
 
@@ -21,4 +21,4 @@ class TestEnsureVersion(UnitTestCase):
                 continue
 
             with self.subTest():
-                self.assertRegex(version, migration.VERSION_RE, f"Invalid version {path.relative_to(ROOT)}")
+                self.assertIsNotNone(migration.VERSION_RE.match(version), f"Invalid version {path.relative_to(ROOT)}")
