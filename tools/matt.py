@@ -103,7 +103,7 @@ UPGRADE_UTIL_REPO = Repo("upgrade-util")
 # Mypy doesn't like namedtuple with non-static field list. See:
 # https://github.com/python/mypy/issues/848
 # https://github.com/python/mypy/issues/4128#issuecomment-598206548
-class Version(namedtuple("Version", "odoo enterprise themes")):
+class Version(namedtuple("Version", "name odoo enterprise themes")):
     def __str__(self):
         result = []
         main = None
@@ -116,13 +116,6 @@ class Version(namedtuple("Version", "odoo enterprise themes")):
         if main is not None:
             result.insert(0, main)
         return ":".join(result)
-
-    @property
-    def name(self):
-        main = str(self).split(":")[0]
-        if "#" in main:
-            return None
-        return main
 
     @property
     def ints(self):
