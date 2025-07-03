@@ -24,7 +24,7 @@ def migrate(cr, version):
     if util.column_exists(cr, "hr_employee", "fiscal_voluntarism"):
         columns.append("fiscal_voluntarism")
 
-    move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
+    move_columns = util.import_script("hr/saas~18.4.1.1/post-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)
 
     util.remove_view(cr, "l10n_be_hr_payroll.res_users_view_form")

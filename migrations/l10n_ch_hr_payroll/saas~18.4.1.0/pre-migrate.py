@@ -56,7 +56,7 @@ def migrate(cr, version):
                 "l10n_ch_flex_profiling",
             ]
         )
-    move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
+    move_columns = util.import_script("hr/saas~18.4.1.1/post-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)
 
     if util.table_exists(cr, "l10n_ch_lpp_insurance_line"):

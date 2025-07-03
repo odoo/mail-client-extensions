@@ -3,6 +3,9 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     cr.execute("UPDATE hr_employee SET gender = NULL WHERE gender = 'other'")
+    cr.execute("SELECT 1 FROM ir_module_module WHERE name='base' AND demo")
+    if bool(cr.rowcount):
+        util.create_column(cr, "hr_employee", "_upg_existing", "bool", default=True)
     util.rename_field(cr, "hr.employee", "gender", "sex")
     util.rename_field(cr, "res.users", "gender", "sex")
     util.create_column(cr, "hr_employee", "current_version_id", "int4")

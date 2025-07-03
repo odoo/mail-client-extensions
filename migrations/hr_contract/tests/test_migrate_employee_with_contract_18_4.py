@@ -26,6 +26,8 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
                     "resource_calendar_id": calendar.id,
                     "notes": "Coucou",
                     "job_id": developer_job.id,
+                    "children": 1,
+                    "marital": "married",
                 },
                 {"name": "Employee with one draft contract", "resource_calendar_id": calendar.id, "notes": "Coucou"},
                 {

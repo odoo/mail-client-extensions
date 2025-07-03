@@ -90,3 +90,5 @@ def migrate(cr, version):
     util.make_field_non_stored(cr, "hr.employee", "work_location_id", selectable=True)
 
     util.make_field_non_stored(cr, "hr.employee", "version_id")
+
+    util.remove_column(cr, "hr_employee", "_upg_existing")

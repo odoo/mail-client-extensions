@@ -45,7 +45,7 @@ def migrate(cr, version):
         "is_non_resident",
         "disabled",
     ]
-    move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
+    move_columns = util.import_script("hr/saas~18.4.1.1/post-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)
 
     util.create_column(cr, "hr_payslip_run", "payslip_count", "integer")

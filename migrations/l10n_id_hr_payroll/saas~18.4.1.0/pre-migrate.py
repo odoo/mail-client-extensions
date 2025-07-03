@@ -5,5 +5,5 @@ def migrate(cr, version):
     columns = [
         "l10n_id_kode_ptkp",
     ]
-    move_columns = util.import_script("l10n_au_hr_payroll/saas~18.4.1.0/pre-migrate.py").move_columns
+    move_columns = util.import_script("hr/saas~18.4.1.1/post-migrate.py").move_columns
     move_columns(cr, employee_columns=columns)

@@ -76,6 +76,8 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
         self.assertFalse(employee_version.resource_calendar_id)
         self.assertEqual(employee_version.trial_date_end, date(2023, 1, 10))
         self.assertFalse(employee_version.contract_date_end)
+        self.assertEqual(employee_version.children, 1)
+        self.assertEqual(employee_version.marital, "married")
 
         self.assertTrue(employee2.version_id, "A version should exist for that employee")
         self.assertEqual(len(employee2.with_context(active_test=False).version_ids), 2)
