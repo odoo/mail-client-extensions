@@ -194,65 +194,6 @@ index 995d10ec5148..0421abaf8e45 100644
      @property
 """
 
-ODOO11_PY38_PATCH = b"""\
-diff --git a/odoo/addons/base/ir/ir_qweb/ir_qweb.py b/odoo/addons/base/ir/ir_qweb/ir_qweb.py
-index 80535c57dff7..49b234e05413 100644
---- odoo/addons/base/ir/ir_qweb/ir_qweb.py
-+++ odoo/addons/base/ir/ir_qweb/ir_qweb.py
-@@ -422,10 +422,10 @@ class IrQWeb(models.AbstractModel, QWeb):
-     def _get_attr_bool(self, attr, default=False):
-         if attr:
-             if attr is True:
--                return ast.Name(id='True', ctx=ast.Load())
-+                return ast.Constant(True)
-             attr = attr.lower()
-             if attr in ('false', '0'):
--                return ast.Name(id='False', ctx=ast.Load())
-+                return ast.Constant(False)
-             elif attr in ('true', '1'):
--                return ast.Name(id='True', ctx=ast.Load())
--        return ast.Name(id=str(attr if attr is False else default), ctx=ast.Load())
-+                return ast.Constant(True)
-+        return ast.Constant(attr if attr is False else bool(default))
-diff --git a/odoo/addons/base/ir/ir_qweb/qweb.py b/odoo/addons/base/ir/ir_qweb/qweb.py
-index 59ce3c1936ca..cb7fa90e1b12 100644
---- odoo/addons/base/ir/ir_qweb/qweb.py
-+++ odoo/addons/base/ir/ir_qweb/qweb.py
-@@ -613,12 +613,12 @@ class QWeb(object):
-                         ast.Compare(
-                             left=ast.Name(id='content', ctx=ast.Load()),
-                             ops=[ast.IsNot()],
--                            comparators=[ast.Name(id='None', ctx=ast.Load())]
-+                            comparators=[ast.Constant(None)]
-                         ),
-                         ast.Compare(
-                             left=ast.Name(id='content', ctx=ast.Load()),
-                             ops=[ast.IsNot()],
--                            comparators=[ast.Name(id='False', ctx=ast.Load())]
-+                            comparators=[ast.Constant(False)]
-                         )
-                     ]
-                 ),
-@@ -1247,7 +1247,7 @@ class QWeb(object):
-                         keywords=[], starargs=None, kwargs=None
-                     ),
-                     self._compile_expr0(expression),
--                    ast.Name(id='None', ctx=ast.Load()),
-+                    ast.Constant(None),
-                 ], ctx=ast.Load())
-             )
-         ]
-@@ -1536,7 +1536,7 @@ class QWeb(object):
-                     if isinstance(key, pycompat.string_types):
-                         keys.append(ast.Str(s=key))
-                     elif key is None:
--                        keys.append(ast.Name(id='None', ctx=ast.Load()))
-+                        keys.append(ast.Constant(None))
-                     values.append(ast.Str(s=value))
-
-                 # {'nsmap': {None: 'xmlns def'}}
-"""
-
 
 def config_logger(options: Namespace) -> None:
     level = logging.INFO + (10 * options.quiet) - (10 * options.verbose)
@@ -641,23 +582,6 @@ def matt(options: Namespace) -> int:
                     version.odoo,
                 )
                 return 2
-
-            if sys.version_info >= (3, 8) and (version.name == "11.0" or version.name.startswith("saas~11.")):
-                # Patch version 11 to be compatible with python 3.8
-                # Backport of odoo/odoo@d73b44a46ffbf3de0ec3ad6b6ec6d3f161bd9474
-                patched = subprocess.run(
-                    ["git", "apply", "-p0", "-"],
-                    input=ODOO11_PY38_PATCH,
-                    check=False,
-                    cwd=odoodir,
-                    capture_output=True,
-                )
-                if patched.returncode == 0:
-                    logger.info(
-                        "qweb compilation code patched in %s version (%s) to be compatible with python >= 3.8",
-                        loc,
-                        version.name,
-                    )
 
         # Patch YAML import to allow creation of new records during update.
         # This is a long standing bug present since the start (yeah, even in 6.0).
