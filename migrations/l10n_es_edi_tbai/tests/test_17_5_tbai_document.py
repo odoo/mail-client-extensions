@@ -16,18 +16,15 @@ from odoo.addons.base.maintenance.migrations.testing import change_version
 @change_version("saas~17.5")
 class TestEdiDocumentToTbaiDocument(TestAccountingSetupCommon):
     def _mock_invoice_process_edi(self, invoice, blocking_level=None):
-        with (
-            patch.object(
-                type(self.env["account.edi.format"]),
-                "_l10n_es_tbai_send_request_to_agency",
-                return_value=None,
-                side_effect=requests.RequestException("Connection error") if blocking_level == "warning" else None,
-            ),
-            patch.object(
-                type(self.env["account.edi.format"]),
-                "_l10n_es_tbai_process_post_response_bi",
-                return_value=(True, "Success", None) if not blocking_level else (False, "Error", None),
-            ),
+        with patch.object(
+            type(self.env["account.edi.format"]),
+            "_l10n_es_tbai_send_request_to_agency",
+            return_value=None,
+            side_effect=requests.RequestException("Connection error") if blocking_level == "warning" else None,
+        ), patch.object(
+            type(self.env["account.edi.format"]),
+            "_l10n_es_tbai_process_post_response_bi",
+            return_value=(True, "Success", None) if not blocking_level else (False, "Error", None),
         ):
             invoice.button_process_edi_web_services()
 
@@ -62,9 +59,9 @@ class TestEdiDocumentToTbaiDocument(TestAccountingSetupCommon):
         self.env["l10n_es_edi.certificate"].create(
             {
                 "content": base64.encodebytes(
-                    misc.file_open("l10n_es_edi_tbai/demo/certificates/Bizkaia-IZDesa2021.p12", "rb").read()
+                    misc.file_open("l10n_es_edi_tbai/demo/certificates/Bizkaia-IZDesa2025.p12", "rb").read()
                 ),
-                "password": "IZDesa2021",
+                "password": "IZDesa2025",
             }
         )
         self.company.l10n_es_tbai_tax_agency = "bizkaia"
