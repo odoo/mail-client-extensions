@@ -120,30 +120,35 @@ class Logger extends React.Component<LoggerProps, LoggerState> {
                     }
                 }
             });
-            // a counter is needed to map img tags with attachments, as outlook does not provide
+            // attempt to map img tags with attachments by index, as outlook does not provide
             // an id that enables us to match an img with an attachment.
-            let j = 0;
-            const imageElements = doc.getElementsByTagName('img');
+            // iterate in reverse order since some attachments may be from the deleted history
+            const imageElements = Array.from(doc.getElementsByTagName('img')).filter((img) =>
+                img.getAttribute('src')?.startsWith('cid:'),
+            );
 
-            inlineAttachments.forEach((inlineAttachment) => {
-                if (inlineAttachment != null && inlineAttachment.error == undefined) {
-                    if (inlineAttachment.oversize) {
+            let j = imageElements.length - 1;
+            let k = inlineAttachments.length - 1;
+            while (j >= 0 && k >= 0) {
+                if (inlineAttachments[k] != null && inlineAttachments[k].error == undefined) {
+                    if (inlineAttachments[k].oversize) {
                         imageElements[j].setAttribute(
                             'alt',
                             _t('Could not display image %(attachmentName)s, size is over limit', {
-                                attachmentName: inlineAttachment.name,
+                                attachmentName: inlineAttachments[k].name,
                             }),
                         );
                     } else {
-                        const fileExtension = inlineAttachment.name.split('.')[1];
+                        const fileExtension = inlineAttachments[k].name.split('.')[1];
                         imageElements[j].setAttribute(
                             'src',
-                            `data:image/${fileExtension};base64, ${inlineAttachment.content}`,
+                            `data:image/${fileExtension};base64, ${inlineAttachments[k].content}`,
                         );
                     }
-                    j++;
                 }
-            });
+                j--;
+                k--;
+            }
 
             if (oversizeAttachments.length > 0) {
                 const attachmentNames = oversizeAttachments.map((attachment) => `"${attachment.name}"`).join(', ');
