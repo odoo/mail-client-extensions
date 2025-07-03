@@ -74,7 +74,7 @@ def migrate(cr, version):
         """
     )
     # Set the new uom_id as a packaging unit for the product(s) that had packaging(s) with the same quantity and base unit, only for packagings that were used for sales
-    if util.module_installed(cr, "sale"):
+    if util.column_exists(cr, "product_packaging", "sales"):
         cr.execute("""
             INSERT INTO product_template_uom_uom_rel (product_template_id, uom_uom_id)
                 SELECT product.product_tmpl_id AS product_template_id, packaging._upg_temp_uom_id AS uom_id

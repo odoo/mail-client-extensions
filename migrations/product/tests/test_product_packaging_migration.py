@@ -31,7 +31,8 @@ class TestProductPackagingMigration(UpgradeCase):
             "qty": 6,
             "name": "Test Pack of 6",
         }
-        if util.module_installed(self.env.cr, "sale"):
+        sale_installed = util.module_installed(self.env.cr, "sale")
+        if sale_installed:
             packaging_1_vals["sales"] = True
         self.env["product.packaging"].create(
             [
@@ -48,7 +49,7 @@ class TestProductPackagingMigration(UpgradeCase):
             "name": "Test 6 Pack",
             "barcode": "test_barcode_c",
         }
-        if util.module_installed(self.env.cr, "sale"):
+        if sale_installed:
             packaging_2_vals["sales"] = True
         self.env["product.packaging"].create(
             {
@@ -61,7 +62,7 @@ class TestProductPackagingMigration(UpgradeCase):
             "name": "Test Pack of 10",
             "barcode": "test_barcode_d",
         }
-        if util.module_installed(self.env.cr, "sale"):
+        if sale_installed:
             packaging_3_vals["sales"] = True
         self.env["product.packaging"].create(
             {
@@ -74,7 +75,7 @@ class TestProductPackagingMigration(UpgradeCase):
             "name": "Test Box of 10",
             "barcode": "test_barcode_e",
         }
-        if util.module_installed(self.env.cr, "sale"):
+        if sale_installed:
             packaging_4_vals["sales"] = False
         self.env["product.packaging"].create(
             {
@@ -82,10 +83,10 @@ class TestProductPackagingMigration(UpgradeCase):
                 **packaging_4_vals,
             }
         )
-        return product_a.id, product_b.id, product_c.id, product_d.id, product_e.id
+        return product_a.id, product_b.id, product_c.id, product_d.id, product_e.id, sale_installed
 
     def check(self, init):
-        product_a_id, product_b_id, product_c_id, product_d_id, product_e_id = init
+        product_a_id, product_b_id, product_c_id, product_d_id, product_e_id, sale_was_installed = init
         product_a, product_b, product_c, product_d, product_e = self.env["product.product"].browse(
             [product_a_id, product_b_id, product_c_id, product_d_id, product_e_id]
         )
@@ -96,7 +97,7 @@ class TestProductPackagingMigration(UpgradeCase):
         self.assertEqual(
             product_a.uom_ids,
             packagings.filtered(lambda p: p.relative_factor == 6 and p.name == "Test Pack of 6")
-            if util.module_installed(self.env.cr, "sale")
+            if sale_was_installed
             else self.env["uom.uom"],
         )
         self.assertEqual(product_a.uom_ids, product_b.uom_ids)
@@ -104,7 +105,7 @@ class TestProductPackagingMigration(UpgradeCase):
         self.assertEqual(
             product_d.uom_ids,
             packagings.filtered(lambda p: p.relative_factor == 10 and p.name == "Pack 10.00")
-            if util.module_installed(self.env.cr, "sale")
+            if sale_was_installed
             else self.env["uom.uom"],
         )
         self.assertEqual(product_e.uom_ids, self.env["uom.uom"])
