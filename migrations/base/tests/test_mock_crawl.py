@@ -12,13 +12,19 @@ from lxml import etree
 
 from odoo import fields
 from odoo.exceptions import AccessError, RedirectWarning, UserError
-from odoo.osv import expression
 from odoo.tools import OrderedSet, mute_logger
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.sql import table_kind
 
 from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import IntegrityCase
+
+try:
+    from odoo.fields import Domain
+
+    AND, OR = Domain.AND, Domain.OR
+except ImportError:
+    from odoo.osv.expression import AND, OR
 
 try:
     # v14+ forbids raw modules in eval context, use the wrapped ones instead
@@ -445,9 +451,9 @@ class TestCrawler(IntegrityCase):
 
     def mock_view_activity(self, model, view, fields_list, domain, group_by):
         if util.column_exists(self.env.cr, "mail_activity", "active"):
-            domain = expression.AND([domain, [("activity_ids.active", "in", [True, False])]])
+            domain = AND([domain, [("activity_ids.active", "in", [True, False])]])
         else:
-            domain = expression.AND([domain, [("activity_ids", "!=", False)]])
+            domain = AND([domain, [("activity_ids", "!=", False)]])
         self.env["mail.activity"].get_activity_data(model._name, domain)
 
     def mock_view_calendar(self, model, view, fields_list, domain, group_by):
@@ -503,9 +509,7 @@ class TestCrawler(IntegrityCase):
                     domain = []
                     if node.get("domain"):
                         domain = [("id", "=", processed_data[fname])] if processed_data[fname] else []
-                        domain = expression.OR(
-                            [domain, self._safe_eval(node.get("domain"), extra_ctx=dict(**processed_data))]
-                        )
+                        domain = OR([domain, self._safe_eval(node.get("domain"), extra_ctx=dict(**processed_data))])
 
                     fields_to_read = ["id"]
                     if node.get("options"):
@@ -620,7 +624,7 @@ class TestCrawler(IntegrityCase):
         if action_domain:
             domains = [self._safe_eval(action_domain) if isinstance(action_domain, str) else action_domain, *domains]
         domains = [domain for domain in domains if domain]
-        return expression.AND(domains) if domains else [], group_bys
+        return AND(domains) if domains else [], group_bys
 
     def mock_web_search_read(self, model, view, domains, fields_list, limit=80):
         _logger.info("search_read, %s, %s", model, domains)
@@ -675,7 +679,7 @@ class TestCrawler(IntegrityCase):
 
         # Get the data in each group
         for group in data:
-            domain = group["__domain"] if "__domain" in group else expression.AND([group["__extra_domain"], domain])
+            domain = group["__domain"] if "__domain" in group else AND([group["__extra_domain"], domain])
             if len(group_by) > 1:
                 self.mock_web_read_group(
                     model,

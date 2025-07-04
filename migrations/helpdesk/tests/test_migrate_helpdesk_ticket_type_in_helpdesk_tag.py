@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import ast
 import re
-
-from odoo.osv.expression import TRUE_DOMAIN
 
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
@@ -197,7 +193,7 @@ class TestMigrateHelpdeskTicketTypeInHelpdeskTag(UpgradeCase):
             [("tag_ids", "in", ticket_type_tags.ids)],
             [("tag_ids", "ilike", "UPG:saas~17.1 %")],
             [("tag_ids", "in", tag_3.ids)],
-            TRUE_DOMAIN,
+            [(1, "=", 1)],  # TRUE
         ]
         for domain_str, expected_domain in zip(ticket_search_view_domains, expected_ticket_search_view_domains):
             domain = ast.literal_eval(domain_str)
@@ -220,7 +216,7 @@ class TestMigrateHelpdeskTicketTypeInHelpdeskTag(UpgradeCase):
             [("tag_ids", "in", tag_3.ids)],
             [("tag_ids.name", "ilike", "UPG:saas~17.1 %")],
             [("tag_ids", "in", helpdesk_ticket_type1_tag.ids)],
-            TRUE_DOMAIN,
+            [(1, "=", 1)],  # TRUE
         ]
         for domain_str, expected_domain in zip(sla_search_view_domains, expected_sla_search_view_domains):
             domain = ast.literal_eval(domain_str)
