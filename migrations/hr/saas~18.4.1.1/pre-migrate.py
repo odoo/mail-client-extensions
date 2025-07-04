@@ -34,10 +34,20 @@ def migrate(cr, version):
         # create the column and prefill the values to avoid compute by ORM
         util.create_column(cr, "hr_version", "job_title", "varchar")
         query = """
+           WITH _job_title AS (
+                SELECT v.id,
+                       COALESCE(j.name->>e.lang, j.name->>'en_US') as title
+                  FROM hr_version v
+                  JOIN hr_job j
+                    ON j.id = v.job_id
+             LEFT JOIN hr_employee e
+                    ON e.id = v.employee_id
+                 WHERE {parallel_filter}
+           )
             UPDATE hr_version v
-               SET job_title = j.name
-              FROM hr_job j
-             WHERE v.job_id = j.id
+               SET job_title = j.title
+              FROM _job_title j
+             WHERE v.id = j.id
         """
         util.explode_execute(cr, query, table="hr_version", alias="v")
 
