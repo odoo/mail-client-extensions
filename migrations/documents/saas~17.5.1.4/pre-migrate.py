@@ -1158,7 +1158,7 @@ def fix_missing_alias_ids(cr, document_model_id=False):
                                         alias_contact, alias_status)
                      SELECT NULL,
                             %s, %s,
-                            d.id, d.id,
+                            d.id, NULL,
                             jsonb_build_object('folder_id', d.id)::text,
                             'followers', 'invalid'
                        FROM documents_document d
@@ -1449,7 +1449,7 @@ def create_documents_fix_token_and_alias(cr):
                                             alias_contact, alias_status)
                          SELECT NULL,
                                 %s, %s,
-                                d.id, d.id,
+                                d.id, NULL,
                                 jsonb_build_object('folder_id', d.id)::text,
                                 'followers', 'invalid'
                            FROM documents_document d
