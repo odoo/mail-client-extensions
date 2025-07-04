@@ -2,6 +2,7 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    eb = util.expand_braces
     cr.execute("UPDATE hr_employee SET gender = NULL WHERE gender = 'other'")
     cr.execute("SELECT 1 FROM ir_module_module WHERE name='base' AND demo")
     if bool(cr.rowcount):
@@ -11,6 +12,9 @@ def migrate(cr, version):
     util.create_column(cr, "hr_employee", "current_version_id", "int4")
 
     if util.table_exists(cr, "hr_contract"):
+        util.rename_xmlid(cr, *eb("hr.group_hr_{contract_,}manager"), on_collision="merge")
+        util.remove_record(cr, "hr.res_groups_privilege_contracts")
+        util.remove_record(cr, "hr.ir_rule_hr_contract_history_multi_company")
         cr.execute(
             """
             UPDATE hr_contract

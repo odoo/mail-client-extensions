@@ -33,6 +33,7 @@ def move_columns(cr, employee_columns, create_columns=True):
 
 def migrate(cr, version):
     util.update_record_from_xml(cr, "hr.ir_rule_hr_contract_manager")
+    util.update_record_from_xml(cr, "hr.ir_rule_hr_contract_multi_company")
 
     columns = [
         "private_street",
