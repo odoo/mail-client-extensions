@@ -13,8 +13,10 @@ def migrate(cr, version):
             UPDATE hr_contract
                SET active = False
              WHERE employee_id IS NOT NULL
-               AND state IN ('cancel', 'draft')
-               AND kanban_state != 'done'
+               AND (
+                    state='cancel'
+                    OR (state='draft' AND kanban_state != 'done')
+                   )
             """
         )
         util.rename_model(cr, "hr.contract", "hr.version")
