@@ -86,3 +86,52 @@ def migrate(cr, version):
         "appointment.appointment_answer_input_action_from_question",
         "appointment.appointment_answer_input_action",
     )
+
+    util.create_column(cr, "appointment_type", "auto_confirm", "bool")
+    util.create_column(cr, "appointment_type", "is_auto_assign", "bool")
+    util.create_column(cr, "appointment_type", "is_date_first", "bool")
+    util.create_column(cr, "appointment_type", "show_avatars", "bool")
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE appointment_type
+           SET auto_confirm = NOT (appointment_manual_confirmation IS TRUE AND manage_capacity IS NOT TRUE),
+               is_auto_assign = (assign_method = 'time_auto_assign'),
+               is_date_first = (assign_method != 'resource_time'),
+               manual_confirmation_percentage = CASE
+                   WHEN appointment_manual_confirmation IS TRUE AND manage_capacity IS TRUE THEN manual_confirmation_percentage
+                   ELSE 1.0 END,
+               show_avatars = (avatars_display = 'show')
+        """,
+        table="appointment_type",
+    )
+
+    def adapter_assign_method(leaf, _or, _neg):
+        left, op, right = leaf
+        if op not in ["=", "!="]:
+            return [leaf]
+
+        path_split = left.rsplit(".", maxsplit=1)
+        path = f"{path_split[0]}." if len(path_split) > 1 else ""
+        auto_assign = path + "is_auto_assign"
+        date_first = path + "is_date_first"
+
+        if right == "time_auto_assign":
+            return [(auto_assign, op, True)]
+        elif right == "resource_time":
+            if op == "=":
+                return ["&", (auto_assign, "=", False), (date_first, "=", False)]
+            return ["|", (auto_assign, "!=", False), (date_first, "!=", False)]
+        elif right == "time_resource":
+            if op == "=":
+                return ["&", (auto_assign, "=", False), (date_first, "=", True)]
+            return ["|", (auto_assign, "!=", False), (date_first, "!=", True)]
+
+        return [leaf]
+
+    util.adapt_domains(cr, "appointment.type", "assign_method", "assign_method", adapter=adapter_assign_method)
+
+    util.remove_field(cr, "appointment.type", "assign_method")
+    util.remove_field(cr, "appointment.type", "appointment_manual_confirmation")
+    util.remove_field(cr, "appointment.type", "avatars_display")
