@@ -37,8 +37,8 @@ def migrate(cr, version):
     # During the install, it will try to update the `account.account` of the Belgian CoA, including new accounts. Force creation of
     # those new accounts.
     env = util.env(cr)
-    domain = [("chart_template", "in", ["be", "be_comp", "be_asso"])]
-    for company in env["res.company"].search(domain, order="parent_path"):
+    domain = [("chart_template", "in", ["be", "be_comp", "be_asso"]), ("parent_id", "=", False)]
+    for company in env["res.company"].search(domain, order="id"):
         ChartTemplate = env["account.chart.template"].with_company(company)
         taxes = {k: v for k, v in ChartTemplate._get_account_tax(company.chart_template).items() if k in NEW_TAXES}
         accounts = {
