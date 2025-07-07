@@ -280,7 +280,7 @@ def migrate(cr, version):
                JOIN account_reconcile_model_partner_mapping map
                  ON map.model_id = parent_model.id
                JOIN account_reconcile_model new_model
-                 ON (new_model.name::TEXT like '%' || 'partner\_mapping\_' || map.id::TEXT || '%')
+                 ON (new_model.name->>'en_US' = 'partner\_mapping\_' || map.id::TEXT)
         ON CONFLICT DO NOTHING
         """
     )
@@ -293,8 +293,8 @@ def migrate(cr, version):
              SELECT model.id, map.partner_id, 10, 'percentage', '100', model.company_id
                FROM account_reconcile_model model
                JOIN account_reconcile_model_partner_mapping map
-                 ON (model.name::TEXT like '%' || 'partner\_mapping\_' || map.id::TEXT || '%')
-              WHERE model.name::TEXT like '%' || 'partner\_mapping\_' || '%'
+                 ON (model.name->>'en_US' = 'partner\_mapping\_' || map.id::TEXT)
+              WHERE model.name->>'en_US' LIKE '%' || 'partner\\\_mapping\\\_' || '%'
         """,
         table="account_reconcile_model",
         alias="model",
