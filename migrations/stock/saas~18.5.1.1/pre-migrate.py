@@ -53,3 +53,47 @@ def migrate(cr, version):
            SET complete_name = sp.name
     """
     util.explode_execute(cr, query, table="stock_package", alias="sp")
+
+    cr.execute(
+        """
+        SELECT spi.name,
+               string_agg(spa.name, ', ' ORDER BY spa.name)
+          FROM stock_package_level spl
+          JOIN stock_picking spi
+            ON spl.picking_id = spi.id
+          JOIN stock_package spa
+            ON spl.package_id = spa.id
+     LEFT JOIN stock_move_line sml
+            ON spl.id = sml.package_level_id
+         WHERE sml.id IS NULL
+           AND spi.state NOT IN ('cancel', 'done')
+      GROUP BY spi.name
+    """
+    )
+    if cr.rowcount:
+        li = " ".join(
+            f"<li>{util.html_escape(pick_name)}: {util.html_escape(pack_names)}</li>"
+            for (pick_name, pack_names) in cr.fetchall()
+        )
+        util.add_to_migration_reports(
+            f"""
+            <details>
+                <summary>
+                    The following transfers had some entire packages assigned to them but still in a Draft state.
+                    As this is no longer a valid state, these have been removed from their transfer.
+                </summary>
+                <ul>{li}</ul>
+            </details>
+            """,
+            category="Inventory",
+            format="html",
+        )
+    util.remove_field(cr, "stock.move", "package_level_id")
+    util.remove_field(cr, "stock.move.line", "package_level_id")
+    util.update_field_usage(cr, "stock.picking", "move_ids_without_package", "move_ids")
+    util.remove_field(cr, "stock.picking", "move_ids_without_package")
+    util.update_field_usage(cr, "stock.picking", "move_line_ids_without_package", "move_line_ids")
+    util.remove_field(cr, "stock.picking", "move_line_ids_without_package")
+    util.remove_field(cr, "stock.picking", "package_level_ids")
+    util.remove_field(cr, "stock.picking", "package_level_ids_details")
+    util.remove_model(cr, "stock.package_level")
