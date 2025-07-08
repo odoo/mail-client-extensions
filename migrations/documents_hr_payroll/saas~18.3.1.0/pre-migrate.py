@@ -15,11 +15,11 @@ def migrate(cr, version):
             WITH workers_paroll_folder_ids AS (
                 INSERT INTO documents_document(
                     name, "type",
-                    owner_id, company_id,
+                    owner_id, company_id, active,
                     access_internal, access_via_link, is_access_via_link_hidden
                 )
                      SELECT '{"en_US": "Workers Payroll"}'::jsonb, 'folder',
-                            NULL, c.id,
+                            NULL, c.id, TRUE,
                             'none', 'none', TRUE
                        FROM res_company c
                       WHERE documents_hr_settings
