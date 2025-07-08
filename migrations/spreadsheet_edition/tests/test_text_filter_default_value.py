@@ -21,6 +21,14 @@ class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
                 "rangeOfAllowedValues": RANGE_DATA,
             },
         }
+        add_command_2 = {
+            "type": "ADD_GLOBAL_FILTER",
+            "filter": {
+                "id": "43",
+                "type": "text",
+                "defaultValue": "",
+            },
+        }
         edit_command = {
             "filter": add_command["filter"],
             "type": "EDIT_GLOBAL_FILTER",
@@ -28,7 +36,7 @@ class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
 
         revision_commands = {
             "type": "REMOTE_REVISION",
-            "commands": [add_command, edit_command],
+            "commands": [add_command, edit_command, add_command_2],
         }
 
         revision = self.env["spreadsheet.revision"].create(
@@ -51,10 +59,11 @@ class TestSpreadsheetChangeMoveConditionalFormatCommand(UpgradeCase):
         revision = self.env["spreadsheet.revision"].browse(revision_id)
 
         commands = json.loads(revision.commands)["commands"]
-        add_command, edit_command = commands
+        add_command, edit_command, add_command_2 = commands
 
         self.assertEqual(add_command["filter"]["defaultValue"], ["hello"])
         self.assertEqual(edit_command["filter"]["defaultValue"], ["hello"])
+        self.assertFalse("defaultValue" in add_command_2["filter"])
 
         self.assertEqual(add_command["filter"]["rangesOfAllowedValues"], [RANGE_DATA])
         self.assertEqual(edit_command["filter"]["rangesOfAllowedValues"], [RANGE_DATA])

@@ -19,7 +19,10 @@ def migrate(cr, version):
                 if "defaultValue" in global_filter and not global_filter["defaultValue"]:
                     del global_filter["defaultValue"]
                 if global_filter["type"] == "text" and "defaultValue" in global_filter:
-                    global_filter["defaultValue"] = [global_filter["defaultValue"]]
+                    if global_filter["defaultValue"]:
+                        global_filter["defaultValue"] = [global_filter["defaultValue"]]
+                    else:
+                        del global_filter["defaultValue"]
                 if global_filter["type"] == "text" and "rangeOfAllowedValues" in global_filter:
                     global_filter["rangesOfAllowedValues"] = [global_filter["rangeOfAllowedValues"]]
                     del global_filter["rangeOfAllowedValues"]
