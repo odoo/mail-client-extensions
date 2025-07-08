@@ -136,18 +136,8 @@ def migrate(cr, version):
             [f"{id_}/%" for id_ in [project_plan_id, *other_plan_ids]],
         ).decode()
         util.explode_execute(cr, query, table="account_analytic_line", alias="line")
-        util.parallel_execute(
-            cr,
-            [
-                util.format_query(
-                    cr,
-                    "CREATE INDEX {indexname} ON account_analytic_line USING btree ({column}) WHERE {column} IS NOT NULL",
-                    indexname=util.fields.make_index_name("account_analytic_line", f"x_plan{id_}_id"),
-                    column=f"x_plan{id_}_id",
-                )
-                for id_ in other_plan_ids
-            ],
-        )
+        create_analytic_plan_indexes(cr, "account.analytic.line", other_plan_ids)
+
     util.remove_field(cr, "account.analytic.line", "plan_id")
 
 
@@ -211,3 +201,21 @@ def create_analytic_plan_fields(cr, model, other_plan_ids):
                 fk_table="account_analytic_account",
                 on_delete_action="SET NULL",
             )
+
+
+def create_analytic_plan_indexes(cr, model, other_plan_ids):
+    """Create the indexes on the plan fields"""
+    table = util.table_of_model(cr, model)
+    util.parallel_execute(
+        cr,
+        [
+            util.format_query(
+                cr,
+                "CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} USING btree ({column}) WHERE {column} IS NOT NULL",
+                index_name=util.fields.make_index_name(table, f"x_plan{id_}_id"),
+                table_name=table,
+                column=f"x_plan{id_}_id",
+            )
+            for id_ in other_plan_ids
+        ],
+    )

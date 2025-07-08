@@ -101,3 +101,5 @@ def migrate(cr, version):
         """,
             [model_id, other_plan_ids],
         )
+
+        analytic_util.create_analytic_plan_indexes(cr, "budget.line", other_plan_ids)
