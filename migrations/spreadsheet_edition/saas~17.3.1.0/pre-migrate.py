@@ -1,7 +1,5 @@
 import collections
 import re
-import sys
-import uuid
 from concurrent.futures import ProcessPoolExecutor
 
 from odoo.sql_db import db_connect
@@ -46,8 +44,6 @@ def init_worker(dbname):
 
 
 def migrate(cr, version):
-    name = f"_upgrade_{uuid.uuid4().hex}"
-    mod = sys.modules[name] = util.import_script(__file__, name=name)
     cr.commit()
     cr.execute(
         r"""
@@ -62,9 +58,11 @@ def migrate(cr, version):
         """
     )
     with ProcessPoolExecutor(
-        max_workers=util.get_max_workers(), initializer=mod.init_worker, initargs=[cr.dbname]
+        max_workers=util.get_max_workers(), initializer=util.make_pickleable_callback(init_worker), initargs=[cr.dbname]
     ) as executor:
         while ids := cr.fetchmany(50000):
             # consume results to propagate workers' exceptions
-            collections.deque(executor.map(mod.update_command, (id for (id,) in ids)), maxlen=0)
+            collections.deque(
+                executor.map(util.make_pickleable_callback(update_command), (id for (id,) in ids)), maxlen=0
+            )
     cr.commit()

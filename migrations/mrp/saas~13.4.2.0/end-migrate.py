@@ -3,8 +3,6 @@ import itertools
 import logging
 import math
 import os
-import sys
-import uuid
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 
@@ -423,10 +421,6 @@ def migrate(cr, version):
             env["mrp.production"], [r[0] for r in cr.fetchall()], chunk_size=10000, strategy="commit"
         )._create_workorder()
     else:
-        # needed to make worker callback _create_workorder_cb pickleable
-        name = f"_upgrade_{uuid.uuid4().hex}"
-        mod = sys.modules[name] = util.import_script(__file__, name=name)
-        mod._create_workorder_cb.dbname = cr.dbname
         # use two-staged chunking to avoid MemoryError in parent by executor.map's eager future creation
         num_task = util.get_max_workers() * 100
         task_size = 1000
@@ -441,7 +435,9 @@ def migrate(cr, version):
         with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor:
             for chunk in chunks:
                 collections.deque(
-                    executor.map(mod._create_workorder_cb, util.chunks(chunk, task_size, fmt=tuple)),
+                    executor.map(
+                        util.make_pickleable_callback(_create_workorder_cb), util.chunks(chunk, task_size, fmt=tuple)
+                    ),
                     maxlen=0,
                 )
         cr.commit()

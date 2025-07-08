@@ -1,6 +1,4 @@
 import mimetypes
-import sys
-import uuid
 from concurrent.futures import ProcessPoolExecutor
 
 from psycopg2.extras import execute_batch
@@ -31,14 +29,6 @@ def migrate(cr, version):
 
     util.create_column(cr, "documents_document", "file_extension", "varchar")
 
-    # NOTE
-    # `ProcessPoolExecutor.map` arguments needs to be pickleable
-    # Functions can only be pickle if they are importable.
-    # However, the current file is not importable due to the dash in the filename.
-    # We should then put the executed function in its own importable file.
-    name = f"_upgrade_{uuid.uuid4().hex}"
-    mod = sys.modules[name] = util.import_script(__file__, name=name)
-
     with ProcessPoolExecutor() as executor, util.named_cursor(cr) as ncr:
         ncr.execute(
             """
@@ -53,6 +43,6 @@ def migrate(cr, version):
             execute_batch(
                 cr._obj,
                 "UPDATE documents_document SET file_extension = %s WHERE id = %s",
-                executor.map(mod.extract_extension, chunk, chunksize=chunksize),
+                executor.map(util.make_pickleable_callback(extract_extension), chunk, chunksize=chunksize),
                 page_size=chunksize,
             )

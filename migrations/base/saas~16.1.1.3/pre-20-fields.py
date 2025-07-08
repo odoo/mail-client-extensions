@@ -1,6 +1,4 @@
 import logging
-import sys
-import uuid
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
 
@@ -49,20 +47,12 @@ def migrate(cr, version):
 
     cr.commit()  # Avoid deadlock as the processes will remove the `ir_model_fields` records
 
-    # NOTE
-    # `ProcessPoolExecutor.map` arguments needs to be pickleable
-    # Functions can only be pickle if they are importable.
-    # However, the current file is not importable due to the dash in the filename.
-    # We should then put the executed function in its own importable file.
-    name = f"_upgrade_{uuid.uuid4().hex}"
-    mod = sys.modules[name] = util.import_script(__file__, name=name)
-
     # We cannot use Threads as `remove_field` call (directly and indirectly) `parallel_execute`,
     # which itself spawn threads, leading to the exhaustion of the ConnectionPool.
     with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor:
         list(
             util.log_progress(
-                executor.map(mod.rm_last_update, repeat(cr.dbname), models, chunksize=32),
+                executor.map(util.make_pickleable_callback(rm_last_update), repeat(cr.dbname), models, chunksize=32),
                 _logger,
                 qualifier="models",
                 size=len(models),
