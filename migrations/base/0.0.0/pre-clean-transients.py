@@ -65,9 +65,10 @@ def migrate(cr, version):
         if ir.company_dependent_comodel:
             # XXX: company dependent references to transient models are not handled
             continue
-        query = util.format_query(
-            cr, "DELETE FROM {} WHERE {} AND {} IS NOT NULL", ir.table, ir.model_filter(), ir.res_id
-        )
+        # The frontend may create attachments via oe-bordered-editor on new records with res_id=0
+        # those attachments are referenced directly from html fields inline from their value
+        res_id = util.format_query(cr, "NULLIF({}, 0)", ir.res_id) if ir.table == "ir_attachment" else ir.res_id
+        query = util.format_query(cr, "DELETE FROM {} WHERE {} AND {} IS NOT NULL", ir.table, ir.model_filter(), res_id)
         util._logger.info("Cleaning references to transient models from %s", ir.table)
         util.parallel_execute(cr, [cr.mogrify(query, data).decode() for data in models])
 
