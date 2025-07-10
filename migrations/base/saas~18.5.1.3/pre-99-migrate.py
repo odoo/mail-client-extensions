@@ -34,3 +34,6 @@ def migrate(cr, version):
 
     util.remove_field(cr, "ir.model.fields", "complete_name")
     cr.execute("DROP INDEX IF EXISTS ir_model_constraint__type_index")
+
+    util.remove_field(cr, "res.lang", "short_time_format")
+    util.remove_field(cr, "res.lang", "short_date_format")
