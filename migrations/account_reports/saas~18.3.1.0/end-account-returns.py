@@ -88,6 +88,7 @@ def migrate(cr, version):
                move.date AS date_to,
                move.company_id,
                move.return_type_id,
+               ir_model_data.module || '.' || ir_model_data.name AS return_type_external_id,
                COALESCE(move.return_name ->> %s, move.return_name ->> 'en_US') AS return_name,
                CASE
                    WHEN move.has_to_pay_activity THEN 'submitted'
@@ -97,6 +98,9 @@ def migrate(cr, version):
           FROM closing_moves move
           JOIN amounts_by_move
             ON move.move_id = amounts_by_move.move_id
+          JOIN ir_model_data
+            ON ir_model_data.res_id = move.return_type_id
+           AND ir_model_data.model = 'account.return.type'
          ORDER BY move.company_id, move.date
         """,
         [util.ref(cr, "account_reports.mail_activity_type_tax_report_to_pay"), env.user.lang],
@@ -105,7 +109,17 @@ def migrate(cr, version):
     query_res = cr.fetchall()
     return_create_vals = []
     for res in query_res:
-        move_id, date_from, date_to, company_id, return_type_id, return_type_name, state, amount = res
+        (
+            move_id,
+            date_from,
+            date_to,
+            company_id,
+            return_type_id,
+            return_type_external_id,
+            return_type_name,
+            state,
+            amount,
+        ) = res
         periodicities_mapping = {
             12: "year",
             6: "semester",
@@ -126,6 +140,20 @@ def migrate(cr, version):
         else:
             period_suffix = f"{format_date(env, date_from)} - {format_date(env, date_to)}"
         name = f"{return_type_name} {period_suffix}"
+        state_field = "state"
+        if util.version_gte("saas~18.5"):
+            if return_type_external_id in {
+                "account_reports.annual_corporate_tax_return_type",
+                "l10n_be_intrastat.be_intrastat_goods_return_type",
+                "l10n_be_reports.be_vat_listing_return_type",
+                "l10n_be_reports.be_ec_sales_list_return_type",
+            }:
+                state_field = "generic_state_review_submit"
+            elif return_type_external_id == "l10n_be_reports.be_isoc_prepayment_return_type":
+                state_field = "generic_state_only_pay"
+            else:
+                state_field = "generic_state_tax_report"
+
         return_create_vals.append(
             {
                 "name": name,
@@ -135,7 +163,7 @@ def migrate(cr, version):
                 "date_to": date_to,
                 "date_submission": date_to,
                 "is_completed": state == "paid",
-                "state": state,
+                state_field: state,
                 "closing_move_ids": [Command.link(move_id)],
                 "amount_to_pay": amount,
             }
