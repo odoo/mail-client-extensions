@@ -14,9 +14,6 @@ def move_columns(cr, employee_columns, create_columns=True):
         if create_columns and not util.create_column(cr, "hr_version", col, ctype):
             util._logger.warning("The column `%s` in `hr_version` table already exists", col)
 
-    cr.execute("SELECT 1 FROM ir_module_module WHERE name='base' AND demo")
-    has_demo = bool(cr.rowcount)
-
     columns = util.ColumnList.from_unquoted(cr, valid_columns)
     query = util.format_query(
         cr,
@@ -29,7 +26,7 @@ def move_columns(cr, employee_columns, create_columns=True):
         """,
         columns,
         columns.using(alias="e"),
-        util.SQLStr("e._upg_existing" if has_demo else "True"),
+        util.SQLStr("e._upg_existing" if util.column_exists(cr, "hr_employee", "_upg_existing") else "True"),
     )
     cr.execute(query)
 
