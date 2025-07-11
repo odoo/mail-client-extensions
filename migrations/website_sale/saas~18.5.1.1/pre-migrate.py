@@ -79,3 +79,37 @@ def migrate(cr, version):
     util.remove_view(cr, "website_sale.snippets_options_web_editor")
     util.remove_view(cr, "website_sale.variants_separator")
     util.remove_view(cr, "website_sale.shop_fullwidth")
+
+    click_view = env.ref("website_sale.product_picture_magnify_click")
+    cr.execute(
+        r"""
+        SELECT hover_view.website_id
+          FROM ir_ui_view hover_view
+     LEFT JOIN ir_ui_view other_magnify_view
+            ON other_magnify_view.website_id IS NOT DISTINCT FROM hover_view.website_id
+           AND other_magnify_view.key LIKE 'website\_sale.product\_picture\_magnify%'
+           AND other_magnify_view.key != 'website_sale.product_picture_magnify_hover'
+           AND other_magnify_view.active
+         WHERE hover_view.key = 'website_sale.product_picture_magnify_hover'
+           AND hover_view.active IS NOT TRUE
+           AND other_magnify_view IS NULL
+        """
+    )
+
+    for none_website_id in cr.fetchall():
+        click_view.with_context(website_id=none_website_id[0]).active = False
+
+    util.remove_view(cr, "website_sale.product_picture_magnify_hover")
+    util.remove_view(cr, "website_sale.product_picture_magnify_both")
+
+    cr.execute(
+        """
+        UPDATE ir_ui_view v
+           SET active = True
+          FROM ir_model_data d
+         WHERE v.id = d.res_id
+           AND d.module = 'website_sale'
+           AND d.name = 'product_picture_magnify_click'
+           AND v.active IS NOT TRUE
+        """
+    )
