@@ -5,3 +5,4 @@ def migrate(cr, version):
     if util.modules_installed(cr, "account_budget"):
         util.force_install_module(cr, "account_budget_purchase")
     util.merge_module(cr, "l10n_be_reports_prorata", "l10n_be_reports")
+    util.merge_module(cr, "account_edi_ubl_cii_tax_extension", "account_edi_ubl_cii")
