@@ -40,3 +40,16 @@ def migrate(cr, version):
         [unit],
     )
     util.remove_field(cr, "mrp.workcenter", "default_capacity")
+
+    # unlink workorder for the component moves that are not consumed in any operation
+    # See https://github.com/odoo/odoo/commit/13939fb793a78f13670ea861037ad7d25098ded1
+    util.explode_execute(
+        cr,
+        """
+        UPDATE stock_move
+           SET workorder_id = NULL
+         WHERE workorder_id IS NOT NULL
+           AND operation_id IS NULL
+        """,
+        table="stock_move",
+    )
