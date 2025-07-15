@@ -95,5 +95,5 @@ class TestDefaultValueFilter(UpgradeCase):
         self.assertEqual(commands[1]["filter"]["defaultValue"], {"operator": "in", "ids": [1, 2]})
         self.assertEqual(commands[2]["filter"]["defaultValue"], {"operator": "child_of", "ids": [3, 4]})
         self.assertEqual(commands[3]["filter"]["defaultValue"], {"operator": "set"})
-        self.assertEqual(commands[4]["filter"]["defaultValue"], {"operator": "not_set"})
+        self.assertEqual(commands[4]["filter"]["defaultValue"], {"operator": "not set"})
         self.assertFalse("defaultValue" in commands[5]["filter"])

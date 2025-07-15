@@ -23,5 +23,5 @@ def migrate(cr, version):
                         # it's equivalent to no filter (except for 'active' field)
                         del global_filter["defaultValue"]
                     else:
-                        operator = "set" if global_filter["defaultValue"][0] else "not_set"
+                        operator = "set" if global_filter["defaultValue"][0] else "not set"
                         global_filter["defaultValue"] = {"operator": operator}
