@@ -87,3 +87,4 @@ def migrate(cr, version):
 
     for column in ["condition_range", "condition_python", "amount_python_compute"]:
         cr.execute(util.format_query(cr, query, column))
+    util.convert_field_to_translatable(cr, "hr.payslip.input.type", "name")
