@@ -37,3 +37,33 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.lang", "short_time_format")
     util.remove_field(cr, "res.lang", "short_date_format")
+
+    # convert column ir_model_fields.translate
+    # the below code is the best effort to convert and fill the translate column
+    # the result could be incorrect in some cases
+    # 1. fields.Html(translate=True, sanitize=False)
+    #     should be 'default' but is filled with 'html_translate'
+    #     (we don't have this use case, and this field is not recommended)
+    # 2. fields.Text(translate=xml_translate)
+    #     should be 'xml_translate' but is filled with 'default'
+    # The filled data is mainly used by registry._database_translated_fields to
+    # avoid converting the column type from jsonb to varchar and losing translations
+    # when the translate attribute is overridden. The incorrect data is acceptable.
+    # Also, the data will be corrected during installing modules
+    cr.execute("""
+        ALTER TABLE ir_model_fields
+          ALTER COLUMN translate TYPE VARCHAR
+            USING (
+              CASE
+                WHEN translate IS NOT TRUE THEN NULL
+                WHEN model = 'ir.ui.view' AND name = 'arch_db' THEN 'xml_translate'
+                WHEN model = 'theme.ir.ui.view' AND name = 'arch' THEN 'xml_translate'
+                WHEN ttype = 'html' THEN 'html_translate'
+                ELSE 'standard'
+              END
+            )
+    """)
+    registry = util.env(cr).registry
+    # refill registry._database_translated_fields with new translate data
+    cr.execute("SELECT model || '.' || name, translate FROM ir_model_fields WHERE translate IS NOT NULL")
+    registry._database_translated_fields = dict(cr.fetchall())
