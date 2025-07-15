@@ -6,3 +6,4 @@ def migrate(cr, version):
         util.force_install_module(cr, "account_budget_purchase")
     util.merge_module(cr, "l10n_be_reports_prorata", "l10n_be_reports")
     util.merge_module(cr, "account_edi_ubl_cii_tax_extension", "account_edi_ubl_cii")
+    util.merge_module(cr, "l10n_be_hr_payroll_dmfa_sftp", "l10n_be_hr_payroll")
