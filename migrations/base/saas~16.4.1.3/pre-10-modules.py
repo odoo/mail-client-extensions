@@ -26,3 +26,6 @@ def migrate(cr, version):
     # https://github.com/odoo/enterprise/pull/52580
     if util.module_installed(cr, "l10n_mx_edi_stock"):
         util.force_upgrade_of_fresh_module(cr, "l10n_mx_edi_stock_30")
+
+    if util.has_enterprise():
+        util.force_upgrade_of_fresh_module(cr, "account_online_synchronization")
