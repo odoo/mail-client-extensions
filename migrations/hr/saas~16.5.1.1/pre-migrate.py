@@ -68,6 +68,17 @@ def migrate(cr, version):
     else:
         add_columns = util.ColumnList()
 
+    # Set missing activity_type_id to default (mail.mail_activity_data_todo)
+    # to match NOT NULL constraint in mail_activity_plan_template.
+    cr.execute(
+        """
+            UPDATE hr_plan_activity_type
+               SET activity_type_id = %s
+             WHERE activity_type_id IS NULL
+        """,
+        [util.ref(cr, "mail.mail_activity_data_todo")],
+    )
+
     query = util.format_query(
         cr,
         """
