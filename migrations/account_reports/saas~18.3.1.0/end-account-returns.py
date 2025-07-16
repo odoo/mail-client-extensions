@@ -2,7 +2,6 @@ import datetime
 
 from dateutil.relativedelta import relativedelta
 
-from odoo import Command
 from odoo.tools.misc import format_date
 
 from odoo.upgrade import util
@@ -127,6 +126,7 @@ def migrate(cr, version):
 
     query_res = cr.fetchall()
     return_create_vals = []
+    move_ids = []
     for res in query_res:
         (
             move_id,
@@ -189,14 +189,15 @@ def migrate(cr, version):
                 "date_submission": date_to,
                 "is_completed": state == "paid",
                 state_field: state,
-                "closing_move_ids": [Command.link(move_id)],
                 total_amount_field: total_amount_to_pay,
                 **extra_fields,
             }
         )
+        move_ids.append(move_id)
 
-    env["account.return"].create(return_create_vals)
+    return_ids = env["account.return"].create(return_create_vals).ids
     cr.commit()
+    util.bulk_update_table(cr, "account_move", "closing_return_id", dict(zip(move_ids, return_ids)))
 
     # Move attachments from moves to returns
     util.explode_execute(
