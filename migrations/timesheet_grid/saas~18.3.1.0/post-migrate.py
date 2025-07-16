@@ -31,7 +31,7 @@ def migrate(cr, version):
 
         for t in util.iter_browse(env["timer.timer"], timer_ids):
             task = env["project.task"].browse(t.res_id).exists()
-            if not task.project_id.account_id.active:
+            if not task.project_id.account_id.active or not t.user_id.employee_ids:
                 continue
             if task.project_id.company_id and not any(
                 e.company_id.id == task.project_id.company_id.id for e in t.user_id.employee_ids
@@ -46,6 +46,7 @@ def migrate(cr, version):
                     "date": t.timer_start.date(),
                     "name": "/",
                     "user_id": t.user_id.id,
+                    "company_id": task.project_id.company_id.id or t.user_id.employee_ids[0].company_id.id,
                     "unit_amount": round_time_spent(minutes_spent, minimum_duration, rounding) / 60,
                 }
             )
