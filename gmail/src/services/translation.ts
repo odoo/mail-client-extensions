@@ -4,7 +4,7 @@ import { getAccessToken } from "./odoo_auth";
 import { getOdooServerUrl } from "./app_properties";
 
 /**
- * Object which fetchs the translations on the Odoo database, puts them in cache.
+ * Object which fetch the translations on the Odoo database, puts them in cache.
  *
  * Done in a class and not in a simple function so we read only once the cache for all
  * translations.
@@ -32,7 +32,7 @@ export class Translate {
             );
 
             if (this.translations) {
-                // Put in the cacher for 6 hours (maximum cache life time)
+                // Put in the cache for 6 hours (maximum cache lifetime)
                 cache.put(cacheKey, JSON.stringify(this.translations), 21600);
             }
         }
@@ -69,7 +69,10 @@ export class Translate {
                     .join("|"),
                 "gi",
             );
-            return translated.replace(re, (key) => parameters[key.substring(2, key.length - 2)] || "");
+            return translated.replace(
+                re,
+                (key) => parameters[key.substring(2, key.length - 2)] || "",
+            );
         }
     }
 }
