@@ -89,7 +89,7 @@ def migrate(cr, version):
         CREATE TABLE _upg_product_packaging_barcode (
             product_id INT4 NOT NULL REFERENCES product_product(id) ON DELETE CASCADE,
                 uom_id INT4 NOT NULL REFERENCES uom_uom(id) ON DELETE CASCADE,
-               barcode VARCHAR(64) NOT NULL,
+               barcode VARCHAR NOT NULL,
             PRIMARY KEY (product_id, uom_id, barcode)
         );
         INSERT INTO _upg_product_packaging_barcode (product_id, uom_id, barcode)
