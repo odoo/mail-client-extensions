@@ -5,7 +5,7 @@ class HelpdeskTicket {
 
     static fromJSON(o: Object): HelpdeskTicket {
         const ticket = new HelpdeskTicket();
-        ticket.id = o['ticket_id'];
+        ticket.id = o['id'];
         ticket.name = o['name'];
         ticket.isClosed = o['is_closed'];
         return ticket;
