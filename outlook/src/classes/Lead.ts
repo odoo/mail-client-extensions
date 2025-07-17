@@ -8,7 +8,7 @@ class Lead {
 
     static fromJSON(o: Object): Lead {
         const lead = new Lead();
-        lead.id = o['lead_id'];
+        lead.id = o['id'];
         lead.name = o['name'];
         lead.probability = o['probability'];
 
