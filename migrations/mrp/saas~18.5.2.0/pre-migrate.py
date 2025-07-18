@@ -69,3 +69,4 @@ def migrate(cr, version):
         col1="production_id",
         col2="reference_id",
     )
+    util.make_field_non_stored(cr, "stock.warehouse", "manufacture_to_resupply")

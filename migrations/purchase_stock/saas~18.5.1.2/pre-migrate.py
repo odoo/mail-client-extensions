@@ -29,3 +29,4 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.reference", "purchase_line_ids")
     util.create_column(cr, "res_partner", "group_rfq", "varchar", default="default")
     util.create_column(cr, "res_partner", "group_on", "varchar", default="default")
+    util.make_field_non_stored(cr, "stock.warehouse", "buy_to_resupply")
