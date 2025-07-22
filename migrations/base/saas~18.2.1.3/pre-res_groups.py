@@ -54,7 +54,7 @@ def migrate(cr, version):
     # Additions are always made on `user_ids`.
     # For domains it is the computed field `all_user_ids` (users having this
     # group or being inside from implied groups).
-    util.rename_field(cr, "res.groups", "users", "user_ids", domain_adapter=gen_adapter("users", "all_users_ids"))
+    util.rename_field(cr, "res.groups", "users", "user_ids", domain_adapter=gen_adapter("users", "all_user_ids"))
     util.rename_field(cr, "res.groups", "trans_implied_ids", "all_implied_ids")
 
     # Additions are always made on `group_ids`.
