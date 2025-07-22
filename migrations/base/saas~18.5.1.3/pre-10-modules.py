@@ -9,3 +9,4 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_be_hr_payroll_dmfa_sftp", "l10n_be_hr_payroll")
     util.merge_module(cr, "l10n_id_efaktur", "l10n_id_efaktur_coretax")
     util.force_upgrade_of_fresh_module(cr, "l10n_id_efaktur_coretax")
+    util.remove_module(cr, "test_ai")
