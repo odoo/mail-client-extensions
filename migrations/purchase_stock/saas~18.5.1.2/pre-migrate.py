@@ -9,3 +9,7 @@ def migrate(cr, version):
     util.remove_view(cr, "purchase_stock.purchase_order_suggest_view_form")
     util.remove_field(cr, "stock.warehouse.orderpoint", "vendor_id")
     util.remove_field(cr, "stock.warehouse.orderpoint", "purchase_visibility_days")
+    util.remove_model(cr, "purchase.order.suggest")
+    util.create_column(cr, "res_partner", "suggest_based_on", "varchar", default="30_days")
+    util.create_column(cr, "res_partner", "suggest_days", "int4", default=7)
+    util.create_column(cr, "res_partner", "suggest_percent", "int4", default=100)
