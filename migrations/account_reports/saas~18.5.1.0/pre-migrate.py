@@ -31,8 +31,9 @@ def migrate(cr, version):
     # | Only non-admins exist   | Set to any approver   | Remains NULL            |
     # | No approver_ids at all  | Not updated           | Not updated             |
 
-    # Return check model was introduced in 18.3
-    if not util.table_exists(cr, "account_return_check"):
+    # Return check model was introduced in saas~18.3
+    # The m2m on res_users has been added in saas~18.4
+    if not util.table_exists(cr, "account_return_check_res_users_rel"):
         return
 
     util.create_column(cr, "account_return_check", "approver_id", "int4")
