@@ -2,6 +2,23 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    if util.module_installed(cr, "pos_paytm"):
+        cr.execute("SELECT 1 FROM pos_payment_method WHERE payment_method_type = 'paytm' LIMIT 1")
+        if cr.rowcount:
+            util.add_to_migration_reports(
+                """
+                    <p><strong>REMOVED MODULE: POS PayTM</strong></p>
+                    <p>
+                        The <code>pos_paytm</code> module has been removed during the upgrade, as it is no longer supported.
+                        <br/>
+                        Please refer to <a href="https://www.odoo.com/documentation/19.0/applications/sales/point_of_sale/payment_methods/terminals.html">
+                        the latest POS terminal integration options</a> to reconfigure supported payment terminals.
+                    </p>
+                """,
+                category="Point Of Sale",
+                format="html",
+            )
+    util.remove_module(cr, "pos_paytm")
     if util.modules_installed(cr, "account_budget"):
         util.force_install_module(cr, "account_budget_purchase")
     util.merge_module(cr, "l10n_be_reports_prorata", "l10n_be_reports")
