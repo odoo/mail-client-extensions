@@ -12,6 +12,8 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("hr_contract_salary.hr_contract_salary_personal_info_{gender,sex}_male"))
     util.rename_xmlid(cr, *eb("hr_contract_salary.hr_contract_salary_personal_info_{gender,sex}_female"))
     util.rename_xmlid(cr, *eb("hr_contract_salary.hr_contract_salary_personal_info_{gender,sex}_other"))
+    # demo data
+    util.rename_xmlid(cr, *eb("hr_contract_salary.{hr_contract,contract_template}_cdi_experienced_developer"))
 
     util.remove_record(cr, "hr_contract_salary.ir_cron_clean_redundant_salary_data")
     util.remove_view(cr, "hr_contract_salary.contract_employee_report_view_pivot_inherit")
