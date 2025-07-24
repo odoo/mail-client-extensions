@@ -78,3 +78,12 @@ def migrate(cr, version):
             util.ref(cr, "hr_payroll.menu_hr_payroll_employee_payslips_to_pay"),
         ],
     )
+
+    query = r"""
+        UPDATE hr_salary_rule
+           SET {0} = regexp_replace({0}, '\ycontract\y', 'version', 'g')
+         WHERE {0} ~ '\ycontract\y'
+    """
+
+    for column in ["condition_range", "condition_python", "amount_python_compute"]:
+        cr.execute(util.format_query(cr, query, column))
