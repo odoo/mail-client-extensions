@@ -12,6 +12,7 @@ def migrate(cr, version):
 
     util.update_record_from_xml(cr, "hr_payroll.group_hr_payroll_user")
     util.update_record_from_xml(cr, "hr_payroll.group_hr_payroll_manager")
+    util.update_record_from_xml(cr, "hr_payroll.hr_payroll_rule_officer", fields=["domain_force"])
 
     util.make_field_non_stored(cr, "hr.employee", "is_non_resident")
     util.make_field_non_stored(cr, "hr.employee", "disabled")
