@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { OdooTheme } from '../../../utils/Themes';
 import { _t } from '../../../utils/Translator';
+import PostalMime from 'postal-mime';
 
 //total attachments size threshold in megabytes
 const SIZE_THRESHOLD_TOTAL = 40;
@@ -33,132 +34,115 @@ class Logger extends React.Component<LoggerProps, LoggerState> {
         };
     }
 
-    private fetchAttachmentContent(attachment, index): Promise<any> {
-        return new Promise<any>((resolve) => {
-            if (attachment.size > SIZE_THRESHOLD_SINGLE_ELEMENT * 1024 * 1024) {
-                resolve({
-                    name: attachment.name,
-                    inline: attachment.isInline && attachment.contentType.indexOf('image') >= 0,
-                    oversize: true,
-                    index: index,
-                });
-            }
-            Office.context.mailbox.item.getAttachmentContentAsync(attachment.id, (asyncResult) => {
-                resolve({
-                    name: attachment.name,
-                    content: asyncResult.value.content,
-                    inline: attachment.isInline && attachment.contentType.indexOf('image') >= 0,
-                    oversize: false,
-                    index: index,
-                });
-            });
-        });
+    private arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 0x8000; // 32KB
+        let binary = '';
+
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+        }
+
+        return btoa(binary);
     }
 
     private logRequest = async (event): Promise<any> => {
         event.stopPropagation();
 
         this.setState({ logged: 1 });
-        Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, async (result) => {
+        Office.context.mailbox.item.getAsFileAsync(async (result) => {
+            if (!result.value && result.error) {
+                this.context.showHttpErrorMessage(result.error);
+                this.setState({ logged: 0 });
+                return;
+            }
+
+            const parser = new PostalMime();
+            const email = await parser.parse(atob(result.value));
+            const doc = new DOMParser().parseFromString(email.html, 'text/html');
+
+            let node: Element = doc.getElementById('appendonsend');
+            // Remove the history and only log the most recent message.
+            while (node) {
+                const next = node.nextElementSibling;
+                node.parentNode.removeChild(node);
+                node = next;
+            }
             const msgHeader = `<div>${_t('From : %(email)s', {
-                email: Office.context.mailbox.item.sender.emailAddress,
+                email: email.from.address,
             })}</div>`;
+            doc.body.insertAdjacentHTML('afterbegin', msgHeader);
             const msgFooter = `<br/><div class="text-muted font-italic">${_t(
                 'Logged from',
             )} <a href="https://www.odoo.com/documentation/master/applications/productivity/mail_plugins.html" target="_blank">${_t(
                 'Outlook Inbox',
             )}</a></div>`;
-            const body = result.value.split('<div id="x_appendonsend"></div>')[0]; // Remove the history and only log the most recent message.
-            const message = msgHeader + body + msgFooter;
-            const doc = new DOMParser().parseFromString(message, 'text/html');
-            const officeAttachmentDetails = Office.context.mailbox.item.attachments;
-            let totalSize = 0;
-            const promises: any[] = [];
-            const requestJson = {
-                res_id: this.props.resId,
-                model: this.props.model,
-                message: message,
-                attachments: [],
-            };
+            doc.body.insertAdjacentHTML('beforeend', msgFooter);
 
-            //check if attachment size is bigger then the threshold
-            officeAttachmentDetails.forEach((officeAttachment) => {
-                totalSize += officeAttachment.size;
-            });
-
+            const totalSize = email.attachments.reduce((sum, attachment) => sum + attachment.content.byteLength, 0);
             if (totalSize > SIZE_THRESHOLD_TOTAL * 1024 * 1024) {
                 const warningMessage = _t(
                     'Warning: Attachments could not be logged in Odoo because their total size' +
                         ' exceeded the allowed maximum.',
                     {
-                        size: SIZE_THRESHOLD_SINGLE_ELEMENT,
-                    },
-                );
-                doc.body.innerHTML += `<div class="text-danger">${warningMessage}</div>`;
-            } else {
-                officeAttachmentDetails.forEach((attachment, index) => {
-                    promises.push(this.fetchAttachmentContent(attachment, index));
-                });
-            }
-
-            const results = await Promise.all(promises);
-
-            let attachments = [];
-            let oversizeAttachments = [];
-            let inlineAttachments = [];
-
-            results.forEach((result) => {
-                if (result.inline) {
-                    inlineAttachments[result.index] = result;
-                } else {
-                    if (result.oversize) {
-                        oversizeAttachments.push({
-                            name: result.name,
-                        });
-                    } else {
-                        attachments.push([result.name, result.content]);
-                    }
-                }
-            });
-            // a counter is needed to map img tags with attachments, as outlook does not provide
-            // an id that enables us to match an img with an attachment.
-            let j = 0;
-            const imageElements = doc.getElementsByTagName('img');
-
-            inlineAttachments.forEach((inlineAttachment) => {
-                if (inlineAttachment != null && inlineAttachment.error == undefined) {
-                    if (inlineAttachment.oversize) {
-                        imageElements[j].setAttribute(
-                            'alt',
-                            _t('Could not display image %(attachmentName)s, size is over limit', {
-                                attachmentName: inlineAttachment.name,
-                            }),
-                        );
-                    } else {
-                        const fileExtension = inlineAttachment.name.split('.')[1];
-                        imageElements[j].setAttribute(
-                            'src',
-                            `data:image/${fileExtension};base64, ${inlineAttachment.content}`,
-                        );
-                    }
-                    j++;
-                }
-            });
-
-            if (oversizeAttachments.length > 0) {
-                const attachmentNames = oversizeAttachments.map((attachment) => `"${attachment.name}"`).join(', ');
-                const warningMessage = _t(
-                    'Warning: Could not fetch the attachments %(attachments)s as their sizes are bigger then the maximum size of %(size)sMB per each attachment.',
-                    {
-                        attachments: attachmentNames,
                         size: SIZE_THRESHOLD_TOTAL,
                     },
                 );
                 doc.body.innerHTML += `<div class="text-danger">${warningMessage}</div>`;
+                email.attachments = [];
             }
 
-            requestJson.message = doc.body.innerHTML;
-            requestJson.attachments = attachments;
+            const standardAttachments = [];
+            const oversizedAttachments = [];
+            const inlineAttachments = {};
+            email.attachments.forEach((attachment) => {
+                if (attachment.disposition === 'inline') {
+                    inlineAttachments[attachment.contentId] = attachment;
+                } else if (attachment.content.byteLength > SIZE_THRESHOLD_SINGLE_ELEMENT * 1024 * 1024) {
+                    oversizedAttachments.push(attachment.filename);
+                } else {
+                    standardAttachments.push([attachment.filename, this.arrayBufferToBase64(attachment.content)]);
+                }
+            });
+
+            if (oversizedAttachments.length > 0) {
+                const warningMessage = _t(
+                    'Warning: Could not fetch the attachments %(attachments)s as their sizes are bigger then the maximum size of %(size)sMB per each attachment.',
+                    {
+                        attachments: oversizedAttachments.join(', '),
+                        size: SIZE_THRESHOLD_SINGLE_ELEMENT,
+                    },
+                );
+                doc.body.innerHTML += `<div class="text-danger">${warningMessage}</div>`;
+            }
+
+            const imageElements = Array.from(doc.getElementsByTagName('img')).filter((img) =>
+                img.getAttribute('src')?.startsWith('cid:'),
+            );
+            imageElements.forEach((element) => {
+                const attachment = inlineAttachments[`<${element.src.replace(/^cid:/, '')}>`];
+                if (attachment?.content.byteLength > SIZE_THRESHOLD_SINGLE_ELEMENT * 1024 * 1024) {
+                    element.setAttribute(
+                        'alt',
+                        _t('Could not display image %(attachmentName)s, size is over limit', {
+                            attachmentName: attachment.filename,
+                        }),
+                    );
+                } else if (attachment) {
+                    const fileExtension = attachment.filename.split('.')[1];
+                    element.setAttribute(
+                        'src',
+                        `data:image/${fileExtension};base64, ${this.arrayBufferToBase64(attachment.content)}`,
+                    );
+                }
+            });
+
+            const requestJson = {
+                res_id: this.props.resId,
+                model: this.props.model,
+                message: doc.documentElement.outerHTML,
+                attachments: standardAttachments,
+            };
 
             const logRequest = sendHttpRequest(
                 HttpVerb.POST,
