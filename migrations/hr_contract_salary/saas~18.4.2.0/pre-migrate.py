@@ -16,4 +16,4 @@ def migrate(cr, version):
     util.remove_record(cr, "hr_contract_salary.ir_cron_clean_redundant_salary_data")
     util.remove_view(cr, "hr_contract_salary.contract_employee_report_view_pivot_inherit")
 
-    util.change_field_selection_values(cr, "hr.contract.salary.resume.category", "value_type", {"contract": "version"})
+    util.change_field_selection_values(cr, "hr.contract.salary.resume", "value_type", {"contract": "version"})
