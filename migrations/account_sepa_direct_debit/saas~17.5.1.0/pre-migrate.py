@@ -6,6 +6,7 @@ def migrate(cr, version):
     util.remove_field(cr, model="sdd.mandate", fieldname="suitable_journal_ids")
     util.create_column(cr, table="sdd_mandate", column="is_sent", definition="boolean")
     util.create_column(cr, table="account_payment", column="sdd_mandate_id", definition="int4")
+    util.create_column(cr, "sdd_mandate", "expiration_warning_already_sent", "boolean")
 
     util.explode_execute(
         cr,
