@@ -24,3 +24,10 @@ def migrate(cr, version):
     util.force_noupdate(cr, "l10n_in_reports.hdfc_bank_selection", noupdate=False)
     util.remove_field(cr, "account.journal", "enet_template_field_ids")
     util.remove_model(cr, "enet.template")
+
+    util.remove_model(
+        cr,
+        "l10n_in.gst.return.period",
+        drop_table=False,
+        ignore_m2m=("ir_attachment_l10n_in_gst_return_period_rel", "irn_attachment_portal_json"),
+    )
