@@ -73,6 +73,22 @@ def migrate(cr, version):
         """
     )
 
+    # update sale_order_template_id for subscription-related sale orders
+    util.explode_execute(
+        cr,
+        """
+        UPDATE sale_order AS so
+           SET sale_order_template_id = parent_sub.sale_order_template_id
+          FROM sale_order AS parent_sub
+         WHERE so.subscription_id = parent_sub.id
+           AND so.sale_order_template_id IS NULL
+           AND so.subscription_state = '7_upsell'
+           AND parent_sub.sale_order_template_id IS NOT NULL
+        """,
+        table="sale_order",
+        alias="so",
+    )
+
     cr.execute(
         """
     CREATE TABLE sale_subscription_plan (

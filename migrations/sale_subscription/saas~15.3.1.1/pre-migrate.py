@@ -821,7 +821,7 @@ product_product_id)
            SET recurrence_id = parent_sub.recurrence_id
           FROM sale_order AS parent_sub
          WHERE so.subscription_id = parent_sub.id
-           AND so.subscription_management = 'create'
+           AND so.subscription_management IN ('create', 'upsell')
            AND so.recurrence_id IS NULL
            AND parent_sub.recurrence_id IS NOT NULL
         """,
