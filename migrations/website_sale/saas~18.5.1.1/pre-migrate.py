@@ -53,3 +53,5 @@ def migrate(cr, version):
         util.remove_view(cr, f"website_sale.products_{view}")
     for view in views_to_remove:
         util.remove_view(cr, f"website_sale.dynamic_filter_template_product_product_{view}")
+
+    util.remove_view(cr, "website_sale.snippets_options_web_editor")

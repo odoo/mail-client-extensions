@@ -20,3 +20,23 @@ def migrate(cr, version):
         snippets.html_converter(fix_data_shape, selector="//img[@data-shape]"),
         where_column=r"~ '\ydata-shape=\"'",
     )
+
+    util.remove_view(cr, "website.dynamic_snippet_carousel_options_template")
+    util.remove_view(cr, "website.s_dynamic_snippet_options_template")
+    util.remove_view(cr, "website.s_blockquote_options")
+    util.remove_view(cr, "website.s_pricelist_cafe_add_product_widget")
+    util.remove_view(cr, "website.s_pricelist_boxed_add_product_widget")
+    util.remove_view(cr, "website.s_product_catalog_add_product_widget")
+    util.remove_view(cr, "website.s_card_options")
+    util.remove_view(cr, "website.snippet_options")
+    util.remove_view(cr, "website.vertical_alignment_option")
+    util.remove_view(cr, "website.grid_layout_options")
+    util.remove_view(cr, "website.column_count_option")
+    util.remove_view(cr, "website.snippet_options_conditional_visibility")
+    util.remove_view(cr, "website.snippet_options_header_box")
+    util.remove_view(cr, "website.snippet_options_shadow_widgets")
+    util.remove_view(cr, "website.snippet_options_border_widgets")
+    util.remove_view(cr, "website.snippet_options_border_line_widgets")
+    util.remove_view(cr, "website.snippet_options_carousel")
+    util.remove_view(cr, "website.snippet_options_tabs")
+    util.remove_view(cr, "website.snippet_options_background_options")
