@@ -44,6 +44,9 @@ def migrate(cr, version):
             util.force_install_module(cr, "l10n_in_asset")
             util.force_upgrade_of_fresh_module(cr, "l10n_in_asset")
 
+        if util.module_installed(cr, "l10n_be_account_disallowed_expenses_fleet"):
+            util.force_upgrade_of_fresh_module(cr, "l10n_be", init=False)
+
     util.remove_module(cr, "l10n_br_test_avatax_sale")
 
     if util.modules_installed(cr, "membership", "website_crm_partner_assign"):
