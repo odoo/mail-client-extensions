@@ -18,6 +18,8 @@ def migrate(cr, version):
         """
     )
 
+    prefix = "holiday" if util.parse_version(version) < util.parse_version("saas~18.2") else "l10n_mx_leave"
+
     # Move leave types
     leave_type_by_country = {
         "none": {
@@ -68,9 +70,9 @@ def migrate(cr, version):
             "holiday_status_situational_unemployment": "l10n_lu_leave_type_situational_unemployment",
         },
         "mx": {
-            "l10n_mx_leave_type_work_risk_imss": "l10n_mx_leave_type_work_risk_imss",
-            "l10n_mx_leave_type_maternity_imss": "l10n_mx_leave_type_maternity_imss",
-            "l10n_mx_leave_type_disability_due_to_illness_imss": "l10n_mx_leave_type_disability_due_to_illness_imss",
+            f"{prefix}_type_work_risk_imss": "l10n_mx_leave_type_work_risk_imss",
+            f"{prefix}_type_maternity_imss": "l10n_mx_leave_type_maternity_imss",
+            f"{prefix}_type_disability_due_to_illness_imss": "l10n_mx_leave_type_disability_due_to_illness_imss",
         },
         "sk": {
             "hr_leave_type_maternity": "l10n_sk_leave_type_maternity",
