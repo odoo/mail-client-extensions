@@ -151,12 +151,15 @@ def recycle(env, execute=None):
             'Email', COALESCE(p.email, ''))
          FROM res_partner p
          JOIN res_partner_res_partner_category_rel pc
-           ON pc.category_id = %s
-         JOIN res_country c
+           ON pc.partner_id = p.id
+    LEFT JOIN res_country c
            ON p.country_id = c.id
-         JOIN res_country_state cs
+    LEFT JOIN res_country_state cs
            ON p.state_id = cs.id
-          AND pc.partner_id = p.id
+        WHERE pc.category_id = %s
+          AND COALESCE(
+                p.street, p.street2, p.city, p.zip, p.phone, p.email, c.name->>'en_US', cs.name
+              ) IS NOT NULL
         """
     extra_nulls = ""
     for column in [
