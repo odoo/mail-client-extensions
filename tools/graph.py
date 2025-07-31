@@ -84,7 +84,7 @@ def get_nodes(G, init_nodes):
 def main(args):
     path = pathlib.Path(args.src).expanduser() / "odoo" / args.version
     if not path.is_dir():
-        raise ValueError(f"Invalid Odoo version '{args.sversion}'")
+        raise ValueError(f"Invalid Odoo version '{args.version}'")
 
     G = build_graph(path)
     modules = [module for module in args.modules if module in G]
@@ -106,7 +106,7 @@ def main(args):
     for node in modules:
         PG.get_node(node)[0].set_color("blue")
 
-    with tempfile.NamedTemporaryFile(prefix="modules_graph_", delete=False) as g_file:
+    with tempfile.NamedTemporaryFile(prefix="modules_graph_", suffix=".svg", delete=False) as g_file:
         PG.write_svg(g_file.name)
 
     webbrowser.open("file://{}".format(g_file.name))
