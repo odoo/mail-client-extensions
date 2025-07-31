@@ -10,3 +10,4 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_id_efaktur", "l10n_id_efaktur_coretax")
     util.force_upgrade_of_fresh_module(cr, "l10n_id_efaktur_coretax")
     util.remove_module(cr, "test_ai")
+    util.merge_module(cr, "l10n_it_edi_withholding", "l10n_it_edi")
