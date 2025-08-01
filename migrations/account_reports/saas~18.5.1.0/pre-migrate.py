@@ -1,6 +1,38 @@
 from odoo.upgrade import util
 
 
+def _setup_return_type_company_dependent_field(cr, field):
+    """
+    Similar to 'make_field_company_dependent' but does not require a field company_id as there is none on return types
+    """
+    if not util.column_exists(cr, "account_return_type", field):
+        return
+
+    old_field_new_name = f"default_{field}"
+    util.rename_field(cr, "account.return.type", field, old_field_new_name, update_references=False)
+    util.create_column(cr, "account_return_type", field, "jsonb")
+
+    query = util.format_query(
+        cr,
+        """
+        WITH _data AS (
+             SELECT t.id,
+                    jsonb_object_agg(c.id, t.{old_field_new_name}) as j
+               FROM account_return_type t,
+                    res_company c
+           GROUP BY t.id
+        )
+        UPDATE account_return_type t
+           SET {field} = d.j
+          FROM _data d
+         WHERE d.id = t.id
+        """,
+        old_field_new_name=old_field_new_name,
+        field=field,
+    )
+    cr.execute(query)
+
+
 def migrate(cr, version):
     util.remove_record(cr, "account_reports.action_open_view_account_return")
 
@@ -22,6 +54,11 @@ def migrate(cr, version):
                AND amount_to_pay IS NOT NULL
             """
         )
+
+    util.remove_field(cr, "account.return.check", "notes")
+    util.remove_field(cr, "account.return.creation.wizard", "show_warning_existing_return")
+    _setup_return_type_company_dependent_field(cr, "deadline_periodicity")
+    _setup_return_type_company_dependent_field(cr, "deadline_start_date")
 
     # Removes approver_ids and dispatch values in new fields approver_id and supervisor_id
 

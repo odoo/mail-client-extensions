@@ -10,15 +10,19 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     env = util.env(cr)
-    cr.execute(
-        """
+    if util.version_gte("saas~18.5"):
+        return_periodicity_select = "COALESCE(rtrn_type.deadline_periodicity::jsonb->>(company.id::text), rtrn_type.default_deadline_periodicity)"
+    else:
+        return_periodicity_select = "rtrn_type.deadline_periodicity"
+
+    query = """
         WITH closing_moves AS (
             SELECT move.id AS move_id,
                    move.date,
                    company.id AS company_id,
                    rtrn_type.id AS return_type_id,
                    rtrn_type.name AS return_name,
-                   COALESCE(rtrn_type.deadline_periodicity, company.account_return_periodicity) AS periodicity,
+                   COALESCE({0}, company.account_return_periodicity) AS periodicity,
                    LAG(move.date) OVER (
                        PARTITION BY move.company_id
                        ORDER BY move.date
@@ -102,8 +106,13 @@ def migrate(cr, version):
             ON ir_model_data.res_id = move.return_type_id
            AND ir_model_data.model = 'account.return.type'
          ORDER BY move.company_id, move.date
-        """,
-        [util.ref(cr, "account_reports.mail_activity_type_tax_report_to_pay"), env.user.lang],
+    """
+    cr.execute(
+        util.format_query(cr, query, util.SQLStr(return_periodicity_select)),
+        [
+            util.ref(cr, "account_reports.mail_activity_type_tax_report_to_pay"),
+            env.user.lang,
+        ],
     )
 
     query_res = cr.fetchall()
