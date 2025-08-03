@@ -6,14 +6,36 @@ def migrate(cr, version):
     if not cr.rowcount:
         return
 
-    eb = util.expand_braces
-    util.rename_xmlid(cr, *eb("product.{product_product_5_product_template,product_template_5}"))
-    util.rename_xmlid(cr, *eb("product.{product_product_8_product_template,product_template_8}"))
-    util.rename_xmlid(cr, *eb("product.{product_product_13_product_template,product_template_13}"))
-    util.rename_xmlid(cr, *eb("product.{consu_delivery_01_product_template,sofa_product_template}"))
+    dup_xmlid = """
+    INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
+         SELECT module, %s, model, res_id, true
+           FROM ir_model_data
+          WHERE module = 'product'
+            AND name = %s
+    """
+    cr.execute(dup_xmlid, ["product_template_5", "product_product_5_product_template"])
+    cr.execute(dup_xmlid, ["product_template_8", "product_product_8_product_template"])
+    cr.execute(dup_xmlid, ["product_template_13", "product_product_13_product_template"])
+    cr.execute(dup_xmlid, ["sofa_product_template", "consu_delivery_01_product_template"])
 
-    # create 2 product variants
+    # create product attribute line to keep product_product_8
     attribute_id = util.ref(cr, "product.fabric_attribute")
+    template_id = util.ref(cr, "product.product_template_8")
+    cr.execute(
+        """
+        INSERT INTO product_template_attribute_line (product_tmpl_id, attribute_id)
+        VALUES (%(template_id)s, %(att_id)s)
+        """,
+        {"att_id": attribute_id, "template_id": template_id},
+    )
+    util.ensure_xmlid_match_record(
+        cr,
+        "product.product_8_fabric_attribute_line",
+        "product.template.attribute.line",
+        {"product_tmpl_id": template_id, "attribute_id": attribute_id},
+    )
+
+    # create product variants for consu_delivery_01
     template_id = util.ref(cr, "product.sofa_product_template")
     cr.execute(
         """
