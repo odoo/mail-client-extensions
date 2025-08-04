@@ -26,3 +26,5 @@ def migrate(cr, version):
     # Update amount_rate field for HK-specific work entry types
     util.update_record_from_xml(cr, "hr_work_entry.l10n_hk_work_entry_type_sick_leave_80", fields=["amount_rate"])
     util.update_record_from_xml(cr, "hr_work_entry.l10n_hk_work_entry_type_maternity_leave_80", fields=["amount_rate"])
+
+    util.update_record_from_xml(cr, "hr_work_entry.l10n_be_work_entry_type_partial_incapacity", fields=["is_leave"])

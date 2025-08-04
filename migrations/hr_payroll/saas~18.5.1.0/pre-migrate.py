@@ -212,3 +212,9 @@ def migrate(cr, version):
     util.change_field_selection_values(cr, "hr.salary.attachment", "state", state_mapping)
 
     util.remove_view(cr, "hr_payroll.res_users_view_form")
+
+    util.remove_field(cr, "hr.payslip.worked_days", "is_credit_time")
+    util.remove_field(cr, "hr.version", "calendar_changed")
+    util.remove_field(cr, "hr.work.entry", "is_credit_time")
+    util.remove_field(cr, "hr.version", "time_credit", drop_column=False)
+    util.remove_field(cr, "hr.version", "time_credit_type_id", drop_column=False)
