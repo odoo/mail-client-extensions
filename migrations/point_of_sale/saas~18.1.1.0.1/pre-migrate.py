@@ -19,3 +19,13 @@ def migrate(cr, version):
         """
     )
     util.remove_field(cr, "pos.bill", "for_all_config")
+
+    util.create_column(cr, "pos_order", "tracking_number", "varchar")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE pos_order
+           SET tracking_number = LPAD(((session_id % 10) * 100 + (sequence_number % 100))::varchar, 3, '0')
+        """,
+        table="pos_order",
+    )
