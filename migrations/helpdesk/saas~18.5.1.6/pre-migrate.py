@@ -8,3 +8,5 @@ def migrate(cr, version):
                 SET ticket_ref = lpad(ticket_ref, 5, '0')
         """
         util.explode_execute(cr, query, table="helpdesk_ticket")
+
+    util.remove_record(cr, "helpdesk.helpdesk_ratings_server_action")
