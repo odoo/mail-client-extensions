@@ -22,3 +22,7 @@ def migrate(cr, version):
         util.update_record_from_xml(cr, xmlid, fields=["amount_rate"])
 
     util.remove_field(cr, "hr.work.entry.regeneration.wizard", "validated_work_entry_ids")
+
+    # Update amount_rate field for HK-specific work entry types
+    util.update_record_from_xml(cr, "hr_work_entry.l10n_hk_work_entry_type_sick_leave_80", fields=["amount_rate"])
+    util.update_record_from_xml(cr, "hr_work_entry.l10n_hk_work_entry_type_maternity_leave_80", fields=["amount_rate"])
