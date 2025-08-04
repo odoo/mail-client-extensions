@@ -4,7 +4,7 @@ ai_fields_18_pre_migrate = util.import_script("ai_fields/saas~18.5.0.1/pre-migra
 
 
 def migrate(cr, version):
-    util.convert_field_to_html(cr, "ir.actions.server ", "ai_prompt")
+    util.convert_field_to_html(cr, "ir.actions.server", "ai_prompt")
 
     cr.execute(
         """
@@ -19,3 +19,5 @@ def migrate(cr, version):
             "UPDATE ir_act_server SET ai_prompt = %s WHERE id = %s",
             (ai_fields_18_pre_migrate.migrate_ai_prompt(line["ai_prompt"]), line["id"]),
         )
+
+    util.rename_field(cr, "ir.actions.server", "ai_prompt", "ai_update_prompt")

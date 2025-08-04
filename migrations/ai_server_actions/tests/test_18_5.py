@@ -6,7 +6,7 @@ from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_
 class TestAiServerActionMigration(UpgradeCase):
     def prepare(self):
         if not util.version_gte("saas~18.4"):
-            return None
+            self.skipTest("This test is only valid from saas~18.4+")
 
         actions = self.env["ir.actions.server"].create(
             [
@@ -34,10 +34,10 @@ class TestAiServerActionMigration(UpgradeCase):
         actions = self.env["ir.actions.server"].browse(init["actions"]).exists()
         self.assertEqual(len(actions), 2)
         self.assertEqual(
-            actions[0].ai_prompt,
+            actions[0].ai_update_prompt,
             '<span data-oe-protected="true" class="o_ai_field" contenteditable="false"><span data-oe-t-inline="true" data-oe-protected="true" contenteditable="false" data-ai-field="name">Name</span></span>',
         )
         self.assertEqual(
-            actions[1].ai_prompt,
+            actions[1].ai_update_prompt,
             '<span><span data-ai-record-id="12"/>{12: Name}</span>',
         )

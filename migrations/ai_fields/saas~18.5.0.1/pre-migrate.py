@@ -1,3 +1,4 @@
+import ast
 import re
 
 import lxml.html
@@ -73,24 +74,42 @@ def migrate(cr, version):
 def migrate_ai_prompt(prompt):
     root = lxml.html.fromstring(prompt)
 
-    # Remove data-ai-fields that could have been added by non-privileged users
+    # Only the `t-out` was checked, not `data-ai-field` so for the migration,
+    # we only trust the `t-out` attribute and we remove all existing `data-ai-field`
     for el in root.xpath("//*[@data-ai-field]"):
-        parent = el.getparent()
-        if el.tag == "t" or (parent is not None and "t-out" in parent.attrib):
-            continue
-        el.drop_tree()
+        el.attrib.pop("data-ai-field")
 
     # Migrate inserted fields to `<span data-ai-field="partner_id.name">Partner > Name</span>`
     for el in root.xpath("//t"):
         # Now `data-ai-field` is only on a `<span/>` (and we will do normal sanitization)
         el.tag = "span"
 
-    for el in root.xpath("//*[@t-out][not(@data-ai-field)]"):
+    for el in root.xpath("//*[@t-out]"):
         field_chain = el.attrib.pop("t-out")
+        field_chain = field_chain.removesuffix("._ai_format_mail_messages()")
 
         if re.fullmatch(r"[a-z_.]+", field_chain):
             # When we didn't call `ai_read`, the field chain was simply in `t-out`
             el.attrib["data-ai-field"] = field_chain.split("object.", 1)[-1]
+            continue
+
+        if field_chain.startswith("object._ai_read"):
+            # AI read the field
+            field_list = field_chain[len("object._ai_read") :]
+            try:
+                field_list = ast.literal_eval(field_list)
+            except Exception:
+                field_list = ()
+
+            # Remove all child and rebuild the XML
+            for child_el in el:
+                child_el.drop_tree()
+
+            # Re-add the child from the field we read with `object._ai_read`
+            for field in field_list:
+                child_el = lxml.html.Element("span")
+                child_el.attrib["data-ai-field"] = field
+                el.append(child_el)
 
     for el in root.xpath("//*[@t-out]"):
         el.attrib.pop("t-out")
@@ -111,7 +130,7 @@ def migrate_ai_prompt(prompt):
         el.attrib.pop("class", None)
         el.tag = "span"
 
-    for el in root.xpath("//*[@data-ai-record-id]//*"):
+    for el in root.xpath("//*[@data-ai-record-id]/*"):
         el.drop_tree()
 
     for el in root.xpath("//*[contains(@class, 'd-none')]"):
