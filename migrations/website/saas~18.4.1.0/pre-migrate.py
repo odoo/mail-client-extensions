@@ -21,3 +21,13 @@ def migrate(cr, version):
 
     if queries:
         util.parallel_execute(cr, queries)
+
+    cr.execute(
+        """
+        UPDATE ir_ui_view
+           SET inherit_id = NULL,
+               mode = 'primary'
+         WHERE id = %s
+        """,
+        [util.ref(cr, "website.s_blockquote_options")],
+    )
