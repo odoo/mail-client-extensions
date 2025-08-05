@@ -70,7 +70,7 @@ def migrate(cr, version):
                 am.company_id AS company_id,
                 am.partner_id AS partner_bill_to_id,
                 rc.partner_id AS partner_bill_from_id,
-                am.partner_shipping_id AS partner_ship_to_id,
+                COALESCE(am.l10n_in_ewaybill_port_partner_id, am.partner_shipping_id) AS partner_ship_to_id,
                 COALESCE(sdt.warehouse_address_id, pdt.warehouse_address_id, rc.partner_id) AS partner_ship_from_id,
                 am.l10n_in_type_id AS type_id,
                 am.l10n_in_distance AS distance,
@@ -132,6 +132,7 @@ def migrate(cr, version):
         l10n_in_vehicle_no
         l10n_in_vehicle_type
         l10n_in_distance
+        l10n_in_ewaybill_port_partner_id
         """
     )
     for f in fields:

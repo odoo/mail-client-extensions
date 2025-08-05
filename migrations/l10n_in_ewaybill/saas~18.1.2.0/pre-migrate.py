@@ -33,3 +33,7 @@ def migrate(cr, version):
         util.rename_xmlid(cr, *eb("l10n_in_ewaybill{_stock,}.paperformat_ewaybill"))
         util.rename_xmlid(cr, *eb("l10n_in_ewaybill{_stock,}.report_ewaybill"))
         util.rename_xmlid(cr, *eb("l10n_in_ewaybill{_stock,}.action_report_ewaybill"))
+
+    util.remove_view(cr, "l10n_in_ewaybill.invoice_form_inherit_l10n_in_ewaybill_port")
+    # This avoids errors if the `l10n_in_ewaybill_port` module is not already installed.
+    util.create_column(cr, "account_move", "l10n_in_ewaybill_port_partner_id", "int4")

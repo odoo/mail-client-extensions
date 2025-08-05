@@ -8,6 +8,7 @@ def migrate(cr, version):
     util.merge_module(cr, "auth_totp_mail_enforce", "auth_totp_mail")
     util.merge_module(cr, "l10n_es_modelo130", "l10n_es")
     util.rename_module(cr, "l10n_in_edi_ewaybill", "l10n_in_ewaybill")
+    util.merge_module(cr, "l10n_in_ewaybill_port", "l10n_in_ewaybill")
     if util.has_enterprise():
         util.merge_module(cr, "l10n_nl_reports_sbr", "l10n_nl_reports")
         util.merge_module(cr, "l10n_nl_reports_sbr_ob_nummer", "l10n_nl_reports")
