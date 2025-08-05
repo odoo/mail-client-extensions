@@ -301,6 +301,7 @@ class TestMigrateEmployeeWithContract(UpgradeCase):
             (developer_job + team_leader_job).ids,
             structure_type.id,
             (contract_type_cdi + contract_type_cdd).ids,
+            date.today(),
         ]
 
     def check(self, init):
