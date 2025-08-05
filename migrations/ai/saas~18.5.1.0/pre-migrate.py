@@ -28,3 +28,15 @@ def migrate(cr, version):
                 ELSE 'composer_ai_button'
             END
     """)
+
+    # Delete records without embedding_vector. No assigned vector means the embedding
+    # record hasn't been sent to the OpenAI API yet. These records can be deleted.
+    delete_query = """
+        DELETE FROM ai_embedding
+              WHERE embedding_vector IS NULL
+    """
+    util.explode_execute(cr, delete_query, table="ai_embedding")
+
+    # Each ai.embedding record prior to https://github.com/odoo/enterprise/pull/84756
+    # was created via the OpenAI embedding model "text-embedding-3-small".
+    util.create_column(cr, "ai_embedding", "embedding_model", "varchar", default="text-embedding-3-small")
