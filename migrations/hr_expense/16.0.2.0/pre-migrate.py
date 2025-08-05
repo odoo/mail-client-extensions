@@ -30,15 +30,3 @@ def migrate(cr, version):
     )
 
     upgrade_analytic_distribution(cr, model="hr.expense")
-
-    # setting invoice_date, else when users update previous moves,
-    #  'The Bill/Refund date is required to validate this document.'
-    query = """
-        UPDATE account_move move
-           SET invoice_date = move.date
-          FROM hr_expense_sheet as exp
-         WHERE move.id = exp.account_move_id
-           AND move.move_type = 'entry'
-           AND move.invoice_date IS NULL
-    """
-    util.parallel_execute(cr, util.explode_query_range(cr, query, table="account_move", alias="move"))

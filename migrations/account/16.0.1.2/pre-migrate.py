@@ -17,13 +17,18 @@ def migrate(cr, version):
     if util.module_installed(cr, "hr_expense"):
         query = """
             UPDATE account_move move
-               SET move_type = 'in_invoice'
+               SET invoice_date = COALESCE(invoice_date, move.date),
+                   move_type = CASE
+                        WHEN he.payment_mode = 'own_account' THEN 'in_invoice'
+                        ELSE move.move_type
+                   END
               FROM hr_expense_sheet hes
               JOIN hr_expense he
                 ON he.sheet_id = hes.id
              WHERE move.id = hes.account_move_id
                AND move.move_type = 'entry'
-               AND he.payment_mode = 'own_account'
+               AND (move.invoice_date IS NULL OR he.payment_mode = 'own_account')
+               AND {parallel_filter}
         """
         util.explode_execute(cr, query, table="account_move", alias="move")
 
