@@ -3,6 +3,16 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.rename_xmlid(cr, "website_sale.product_custom_text", "website_sale.product_terms_and_conditions")
+    cr.execute(
+        """
+        UPDATE ir_ui_view
+           SET inherit_id = NULL,
+               mode = 'primary'
+         WHERE id = %s
+        """,
+        [util.ref(cr, "website_sale.product_terms_and_conditions")],
+    )
+
     util.remove_field(cr, "res.config.settings", "group_delivery_invoice_address")
     hid = util.ref(cr, "account.group_delivery_invoice_address")
     if not hid:
