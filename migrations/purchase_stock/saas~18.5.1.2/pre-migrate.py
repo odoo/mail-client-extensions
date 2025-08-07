@@ -7,3 +7,5 @@ def migrate(cr, version):
     util.remove_field(cr, "product.template", "property_account_creditor_price_difference")
     util.remove_field(cr, "product.category", "property_account_creditor_price_difference_categ")
     util.remove_view(cr, "purchase_stock.purchase_order_suggest_view_form")
+    util.remove_field(cr, "stock.warehouse.orderpoint", "vendor_id")
+    util.remove_field(cr, "stock.warehouse.orderpoint", "purchase_visibility_days")

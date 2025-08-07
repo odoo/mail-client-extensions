@@ -16,3 +16,8 @@ def migrate(cr, version):
     util.rename_field(cr, "mrp.workorder", "finished_lot_id", "finished_lot_ids")
     util.remove_field(cr, "stock.move", "order_finished_lot_id")
     util.remove_model(cr, "mrp.batch.produce")
+    util.remove_field(cr, "stock.warehouse.orderpoint", "manufacturing_visibility_days")
+    util.remove_field(cr, "res.company", "manufacturing_lead")
+    util.remove_field(cr, "res.config.settings", "manufacturing_lead")
+    util.remove_field(cr, "res.config.settings", "use_manufacturing_lead")
+    cr.execute("DELETE FROM ir_config_parameter WHERE key='mrp.use_manufacturing_lead'")

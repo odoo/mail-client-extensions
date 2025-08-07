@@ -97,3 +97,35 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.picking", "package_level_ids")
     util.remove_field(cr, "stock.picking", "package_level_ids_details")
     util.remove_model(cr, "stock.package_level")
+
+    util.create_column(cr, "res_company", "horizon_days", "float8")
+    cr.execute("DELETE FROM ir_config_parameter WHERE key='stock.visibility_days' RETURNING CAST(value AS FLOAT)")
+    visibility_days = cr.fetchone()[0] if cr.rowcount == 1 else 0
+    if visibility_days > 0:
+        util.create_column(cr, "res_company", "horizon_days", "float8", default=visibility_days)
+    else:
+        util.create_column(cr, "res_company", "horizon_days", "float8")
+        po_lead = util.column_exists(cr, "res_company", "po_lead")
+        manufacturing_lead = util.column_exists(cr, "res_company", "manufacturing_lead")
+        cr.execute(
+            util.format_query(
+                cr,
+                """
+                UPDATE res_company
+                    SET horizon_days = COALESCE(NULLIF({col}, 0), 365)
+                """,
+                col=util.SQLStr(
+                    "GREATEST(po_lead, manufacturing_lead)"
+                    if po_lead and manufacturing_lead
+                    else "po_lead"
+                    if po_lead
+                    else "manufacturing_lead"
+                    if manufacturing_lead
+                    else "NULL"
+                ),
+            )
+        )
+    util.create_column(cr, "stock_warehouse_orderpoint", "deadline_date", "date")
+    util.remove_field(cr, "stock.warehouse.orderpoint", "visibility_days")
+    util.rename_field(cr, "stock.warehouse.orderpoint", "lead_days_date", "lead_horizon_date")
+    util.rename_field(cr, "stock.replenishment.info", "json_replenishment_history", "json_replenishment_graph")
