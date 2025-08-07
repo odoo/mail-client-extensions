@@ -38,6 +38,8 @@ def migrate(cr, version):
     util.remove_field(cr, "res.lang", "short_time_format")
     util.remove_field(cr, "res.lang", "short_date_format")
 
+    util.rename_xmlid(cr, "account_intrastat.xi", "base.xi")
+
     # convert column ir_model_fields.translate
     # the below code is the best effort to convert and fill the translate column
     # the result could be incorrect in some cases
