@@ -8,7 +8,7 @@ _logger = logging.getLogger("odoo.upgrade.migrations.point_of_sale.18.1." + __na
 def migrate(cr, version):
     cr.execute("SELECT id FROM pos_session WHERE state IN ('opened', 'opening_control')")
     pos_ids = [r[0] for r in cr.fetchall()]
-    if pos_ids:
+    if pos_ids and not util.version_gte("saas~18.5"):
         _logger.log(
             util.NEARLYWARN if util.on_CI() else logging.WARNING,
             "%s PoS sessions were already open, generating its sequences",
