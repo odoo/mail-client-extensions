@@ -184,7 +184,7 @@ def migrate(cr, version):
               ON company.account_fiscal_country_id = country.id
            WHERE move.move_type <> 'entry'
              AND move.invoice_currency_rate IS NULL
-        GROUP BY root_company_id, currency
+        GROUP BY 1, 2
         """,
         move_invoice_rate_date_expression=move_invoice_rate_date_expression,
     )
