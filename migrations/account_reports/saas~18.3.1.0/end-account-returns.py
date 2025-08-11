@@ -67,7 +67,16 @@ def migrate(cr, version):
                                ELSE 0
                            END
                        ), 0
-                   ) AS amount
+                   ) AS total_amount,
+                   COALESCE(
+                       -SUM(
+                           CASE
+                               WHEN aml.account_id = ANY(account.payable_accounts || account.receivable_accounts)
+                               THEN aml.balance
+                               ELSE 0
+                           END
+                       ), 0
+                   ) AS period_amount
               FROM closing_moves move
               JOIN account_move_line aml
                 ON aml.move_id = move.move_id
@@ -98,7 +107,8 @@ def migrate(cr, version):
                    WHEN move.has_to_pay_activity THEN 'submitted'
                    ELSE 'paid'
                END AS state,
-               amounts_by_move.amount
+               amounts_by_move.total_amount,
+               amounts_by_move.period_amount
           FROM closing_moves move
           JOIN amounts_by_move
             ON move.move_id = amounts_by_move.move_id
@@ -127,7 +137,8 @@ def migrate(cr, version):
             return_type_external_id,
             return_type_name,
             state,
-            amount,
+            total_amount_to_pay,
+            period_amount_to_pay,
         ) = res
         periodicities_mapping = {
             12: "year",
@@ -150,6 +161,8 @@ def migrate(cr, version):
             period_suffix = f"{format_date(env, date_from)} - {format_date(env, date_to)}"
         name = f"{return_type_name} {period_suffix}"
         state_field = "state"
+        total_amount_field = "amount_to_pay"
+        extra_fields = {}
         if util.version_gte("saas~18.5"):
             if return_type_external_id in {
                 "account_reports.annual_corporate_tax_return_type",
@@ -163,6 +176,9 @@ def migrate(cr, version):
             else:
                 state_field = "generic_state_tax_report"
 
+            total_amount_field = "total_amount_to_pay"
+            extra_fields = {"period_amount_to_pay": period_amount_to_pay}
+
         return_create_vals.append(
             {
                 "name": name,
@@ -174,7 +190,8 @@ def migrate(cr, version):
                 "is_completed": state == "paid",
                 state_field: state,
                 "closing_move_ids": [Command.link(move_id)],
-                "amount_to_pay": amount,
+                total_amount_field: total_amount_to_pay,
+                **extra_fields,
             }
         )
 
