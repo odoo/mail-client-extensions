@@ -31,6 +31,11 @@ def migrate(cr, version):
         required_default_values.append(("l10n_mx_schedule_pay", "monthly"))
     if util.column_exists(cr, "hr_version", "l10n_mx_payment_period_vouchers"):
         required_default_values.append(("l10n_mx_payment_period_vouchers", "last_day_of_month"))
+    # l10n_ke_hr_payroll
+    if util.column_exists(cr, "hr_version", "l10n_ke_tier_2_remit"):
+        required_default_values.append(("l10n_ke_tier_2_remit", "nssf"))
+    if util.column_exists(cr, "hr_version", "l10n_ke_pension_remit"):
+        required_default_values.append(("l10n_ke_pension_remit", "nssf"))
 
     required_fields = util.ColumnList.from_unquoted(cr, [e[0] for e in required_default_values])
     required_values = util.SQLStr(", ".join(["%s" for _ in required_default_values]))
