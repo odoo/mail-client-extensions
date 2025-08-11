@@ -31,3 +31,6 @@ def migrate(cr, version):
     else:
         util.delete_unused(cr, "sign.sign_item_role_customer", keep_xmlids=False)
         util.delete_unused(cr, "sign.sign_item_role_employee", keep_xmlids=False)
+
+    util.remove_view(cr, "sign.res_users_view_form")
+    util.remove_view(cr, "sign.view_users_form_simple_modif")

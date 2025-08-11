@@ -40,7 +40,7 @@ def migrate(cr, version):
         util.explode_execute(
             cr,
             cr.mogrify(
-            """
+                """
             INSERT INTO documents_document (
                 name, company_id, "type",
                 folder_id, owner_id, active,
@@ -56,7 +56,7 @@ def migrate(cr, version):
                AND e.hr_employee_folder_id IS NOT NULL
                AND {parallel_filter}
             """,
-        ).decode(),
+            ).decode(),
             table="hr_employee",
             alias="e",
         )
@@ -66,3 +66,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, "res.config.settings", "documents_hr_folder")
     util.remove_field(cr, "res.company", "documents_hr_folder")
+
+    util.remove_view(cr, "documents_hr.res_users_view_form")

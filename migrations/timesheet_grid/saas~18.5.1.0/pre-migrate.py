@@ -19,3 +19,6 @@ def migrate(cr, version):
         cr, "timesheets.analytic.report", "is_timesheet", "project_id", adapter=is_timesheet_to_project_id_adapter
     )
     util.remove_field(cr, "timesheets.analysis.report", "is_timesheet")
+    util.remove_field(cr, "res.users", "timesheet_manager_id")
+
+    util.remove_view(cr, "timesheet_grid.res_users_view_form")

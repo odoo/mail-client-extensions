@@ -8,6 +8,7 @@ def migrate(cr, version):
     util.remove_model(cr, "hr.payroll.report")
     util.remove_field(cr, "hr.payslip", "has_refund_slip")
     util.remove_field(cr, "hr.rule.parameter", "current_value")
+    util.remove_field(cr, "res.users", "is_non_resident")
 
     util.create_column(cr, "hr_payslip", "done_date", "timestamp without time zone")
     util.create_column(cr, "hr_payslip", "is_refunded", "bool", default=False)
@@ -209,3 +210,5 @@ def migrate(cr, version):
     }
 
     util.change_field_selection_values(cr, "hr.salary.attachment", "state", state_mapping)
+
+    util.remove_view(cr, "hr_payroll.res_users_view_form")

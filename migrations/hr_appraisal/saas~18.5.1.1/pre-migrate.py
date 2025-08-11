@@ -16,6 +16,9 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.appraisal", "manager_user_ids")
     util.remove_field(cr, "hr.department", "custom_appraisal_template_id")
     util.remove_field(cr, "res.users", "next_appraisal_date")
+    util.remove_field(cr, "res.users", "ongoing_appraisal_count")
+    util.remove_field(cr, "res.users", "last_appraisal_date")
+    util.remove_field(cr, "res.users", "last_appraisal_id")
 
     # Copy the value of hr_appraisal.employee_id.current_version_id.job_id to hr_appraisal.job_id for all records
     util.create_column(cr, "hr_appraisal", "job_id", "int4")
@@ -28,3 +31,5 @@ def migrate(cr, version):
         WHERE a.employee_id = e.id
     """
     util.explode_execute(cr, query, table="hr_appraisal", alias="a")
+
+    util.remove_view(cr, "hr_appraisal.res_users_view_form")
