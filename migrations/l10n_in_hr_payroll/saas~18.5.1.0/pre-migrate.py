@@ -22,3 +22,9 @@ def migrate(cr, version):
     remove_salary_rule(cr, "l10n_in_hr_payroll.hr_salary_rule_driver")
     remove_salary_rule(cr, "l10n_in_hr_payroll.l10n_in_hr_salary_rule_leave")
     util.remove_field(cr, "hr.version", "l10n_in_leave_allowance")
+
+    util.rename_xmlid(
+        cr,
+        "l10n_in_hr_payroll.res_users_view_form_profile_in_inherit",
+        "l10n_in_hr_payroll.res_users_view_form_preferences_in_inherit",
+    )

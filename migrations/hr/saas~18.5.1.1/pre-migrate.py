@@ -91,3 +91,5 @@ def migrate(cr, version):
             "hr_payroll_account_iso20022",
             "hr",
         )
+
+    util.rename_xmlid(cr, "hr.res_users_view_form_profile", "hr.res_users_view_form_preferences")
