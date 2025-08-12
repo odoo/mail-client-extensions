@@ -23,3 +23,5 @@ def migrate(cr, version):
         """,
         table="documents_document",
     )
+
+    util.remove_view(cr, "documents.mail_template_document_share")
