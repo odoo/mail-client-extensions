@@ -18,3 +18,27 @@ def migrate(cr, version):
     util.remove_field(cr, "event.event", "legend_done")
     util.remove_field(cr, "event.event", "legend_blocked")
     util.remove_field(cr, "event.event", "kanban_state_label")
+
+    util.create_m2m(cr, "event_event_event_question_rel", "event_event", "event_question")
+    cr.execute(
+        """
+        INSERT INTO event_event_event_question_rel (event_question_id, event_event_id)
+             SELECT id, event_id
+               FROM event_question
+              WHERE event_id IS NOT NULL
+        """
+    )
+    util.remove_column(cr, "event_question", "event_id")
+    util.rename_field(cr, "event.question", "event_id", "event_ids")
+
+    util.create_m2m(cr, "event_question_event_type_rel", "event_question", "event_type")
+    cr.execute(
+        """
+        INSERT INTO event_question_event_type_rel (event_question_id, event_type_id)
+             SELECT id, event_type_id
+               FROM event_question
+              WHERE event_type_id IS NOT NULL
+        """
+    )
+    util.remove_column(cr, "event_question", "event_type_id")
+    util.rename_field(cr, "event.question", "event_type_id", "event_type_ids")
