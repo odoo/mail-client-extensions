@@ -20,3 +20,5 @@ def migrate(cr, version):
     ]
     for xmlid in sk_work_entry_types:
         util.update_record_from_xml(cr, xmlid, fields=["amount_rate"])
+
+    util.remove_field(cr, "hr.work.entry.regeneration.wizard", "validated_work_entry_ids")
