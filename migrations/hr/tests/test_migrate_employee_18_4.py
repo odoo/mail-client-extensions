@@ -104,7 +104,6 @@ class TestMigrateEmployee(UpgradeCase):
             work_location.id,
             be_country.id,
             bank.id,
-            date.today(),
         ]
 
     def check(self, init):
@@ -118,7 +117,6 @@ class TestMigrateEmployee(UpgradeCase):
             work_location_id,
             be_country_id,
             bank_id,
-            today,
         ) = init
         employee, archived_employee = self.env["hr.employee"].browse(employee_ids)
         self.assertTrue((employee + archived_employee).exists(), "Both employees should still exist after migration")
@@ -131,7 +129,7 @@ class TestMigrateEmployee(UpgradeCase):
         self.assertEqual(employee.bank_account_id.id, bank_id)
         self.assertEqual(employee.permit_no, "5555")
         self.assertEqual(employee.visa_no, "6666")
-        self.assertEqual(employee.visa_expire, today + relativedelta(years=1))
+        self.assertEqual(employee.visa_expire, date.today() + relativedelta(years=1))
         self.assertEqual(employee.additional_note, "Additional note")
         self.assertEqual(employee.certificate, "master")
         self.assertEqual(employee.study_field, "Computer Science")
