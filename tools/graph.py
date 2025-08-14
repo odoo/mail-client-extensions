@@ -24,6 +24,7 @@ import networkx
 # Legend
 legend = r"\l".join(
     """\
+Generated for Odoo {}
 Legend
  - round = community/themes/industry
  - rectangular = enterprise
@@ -82,9 +83,11 @@ def get_nodes(G, init_nodes):
 
 
 def main(args):
+    global legend  # noqa: PLW0603
     path = pathlib.Path(args.src).expanduser() / "odoo" / args.version
     if not path.is_dir():
         raise ValueError(f"Invalid Odoo version '{args.version}'")
+    legend = legend.format(args.version)
 
     G = build_graph(path)
     modules = [module for module in args.modules if module in G]
