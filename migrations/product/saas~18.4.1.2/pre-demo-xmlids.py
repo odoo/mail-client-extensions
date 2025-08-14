@@ -17,62 +17,48 @@ def migrate(cr, version):
     cr.execute(dup_xmlid, ["product_template_8", "product_product_8_product_template"])
     cr.execute(dup_xmlid, ["product_template_13", "product_product_13_product_template"])
     cr.execute(dup_xmlid, ["sofa_product_template", "consu_delivery_01_product_template"])
+    cr.execute(dup_xmlid, ["pa_fabric", "fabric_attribute"])
+    cr.execute(dup_xmlid, ["pa_legs", "product_attribute_1"])
+    cr.execute(dup_xmlid, ["pav_legs_steel", "product_attribute_value_1"])
+    cr.execute(dup_xmlid, ["pav_legs_aluminium", "product_attribute_value_2"])
+    cr.execute(dup_xmlid, ["pa_color", "product_attribute_2"])
+    cr.execute(dup_xmlid, ["pav_color_white", "product_attribute_value_3"])
+    cr.execute(dup_xmlid, ["pav_color_black", "product_attribute_value_4"])
 
-    # create product attribute line to keep product_product_8
-    attribute_id = util.ref(cr, "product.fabric_attribute")
-    template_id = util.ref(cr, "product.product_template_8")
-    cr.execute(
-        """
-        INSERT INTO product_template_attribute_line (product_tmpl_id, attribute_id)
-        VALUES (%(template_id)s, %(att_id)s)
-        """,
-        {"att_id": attribute_id, "template_id": template_id},
-    )
-    util.ensure_xmlid_match_record(
-        cr,
-        "product.product_8_fabric_attribute_line",
-        "product.template.attribute.line",
-        {"product_tmpl_id": template_id, "attribute_id": attribute_id},
-    )
-
-    # create product variants for consu_delivery_01
-    template_id = util.ref(cr, "product.sofa_product_template")
-    cr.execute(
-        """
-        WITH prod_att_value AS (
-             INSERT INTO product_attribute_value (attribute_id, name, active)
-             VALUES (%(att_id)s, '{"en_US": "Linen"}', TRUE),
-                    (%(att_id)s, '{"en_US": "Velvet"}', TRUE),
-                    (%(att_id)s, '{"en_US": "Leather"}', TRUE)
-             RETURNING id
-            ),
-            prod_temp_att_line AS (
-             INSERT INTO product_template_attribute_line (product_tmpl_id, attribute_id)
-             VALUES (%(template_id)s, %(att_id)s)
-             RETURNING id
+    # create product attributes
+    fabric_attribute_id = util.ref(cr, "product.pa_fabric")
+    leg_attribute_id = util.ref(cr, "product.pa_legs")
+    attributes = [
+        {
+            "type": "fabric",
+            "values": ["Linen", "Velvet", "Leather", "Wood", "Glass", "Metal"],
+            "attribute_id": fabric_attribute_id,
+        },
+        {
+            "type": "legs",
+            "values": ["Wood", "Custom"],
+            "attribute_id": leg_attribute_id,
+        },
+    ]
+    for attribute in attributes:
+        for val in attribute["values"]:
+            cr.execute(
+                """
+                INSERT INTO product_attribute_value (attribute_id, name, active)
+                VALUES (%s, jsonb_build_object('en_US', %s), TRUE)
+            RETURNING id
+                """,
+                [attribute["attribute_id"], val],
             )
-        INSERT INTO product_template_attribute_value (product_attribute_value_id, attribute_line_id,product_tmpl_id, attribute_id)
-        SELECT prod_att_value.id,
-               prod_temp_att_line.id,
-               %(template_id)s,
-               %(att_id)s
-          FROM prod_att_value,
-               prod_temp_att_line
-      ORDER BY prod_att_value.id,
-               prod_temp_att_line.id
-     RETURNING id
-        """,
-        {"att_id": attribute_id, "template_id": template_id},
-    )
-    attribute_values = [id for (id,) in cr.fetchall()]
-    util.ensure_xmlid_match_record(
-        cr,
-        "product.sofa_fabric_attribute_line",
-        "product.template.attribute.line",
-        {"product_tmpl_id": template_id, "attribute_id": attribute_id},
-    )
-    first_variant_id = util.ref(cr, "product.consu_delivery_01")
-    cols = util.get_columns(
+            (v_id,) = cr.fetchone()
+            util.ensure_xmlid_match_record(
+                cr,
+                f"product.pav_{attribute['type']}_{val.lower()}",
+                "product.attribute.value",
+                {"id": v_id},
+            )
+
+    product_cols = util.get_columns(
         cr,
         "product_product",
         ignore=(
@@ -80,21 +66,137 @@ def migrate(cr, version):
             "combination_indices",
         ),
     )
-    for xmlid in ("product.consu_delivery_01_velvet", "product.consu_delivery_01_leather"):
+
+    def _create_att_line(cr, xmlid, template_id, attribute_id):
+        cr.execute(
+            """
+            INSERT INTO product_template_attribute_line (product_tmpl_id, attribute_id)
+            VALUES (%s, %s)
+            RETURNING id
+            """,
+            (template_id, attribute_id),
+        )
+        (new_id,) = cr.fetchone()
+        util.ensure_xmlid_match_record(
+            cr,
+            f"product.{xmlid}",
+            "product.template.attribute.line",
+            {"id": new_id},
+        )
+        return new_id
+
+    def _create_tmpl_att_val(cr, xmlid, template_id, att_line_id, attribute_id, pav):
+        cr.execute(
+            """
+            INSERT INTO product_template_attribute_value (product_attribute_value_id, attribute_line_id,product_tmpl_id, attribute_id)
+            Values (%s, %s, %s, %s)
+        RETURNING id
+            """,
+            [pav, att_line_id, template_id, attribute_id],
+        )
+        (new_id,) = cr.fetchone()
+        util.ensure_xmlid_match_record(
+            cr,
+            f"product.{xmlid}",
+            "product.template.attribute.value",
+            {"id": new_id},
+        )
+        return new_id
+
+    def _create_variants(cr, xmlid, first_variant_id, attributes):
+        indices = ",".join([str(att) for att in attributes])
         cr.execute(
             util.format_query(
                 cr,
                 """
-                   INSERT INTO product_product({cols}, combination_indices)
-                   SELECT {p_cols}, %s
-                     FROM product_product p
+                INSERT INTO product_product({cols}, combination_indices)
+                SELECT {p_cols}, %s
+                    FROM product_product p
                     WHERE p.id = %s
                 RETURNING id
                 """,
-                cols=cols,
-                p_cols=cols.using(alias="p"),
+                cols=product_cols,
+                p_cols=product_cols.using(alias="p"),
             ),
-            [attribute_values[1 if "velvet" in xmlid else 2], first_variant_id],
+            [indices, first_variant_id],
         )
         (new_id,) = cr.fetchone()
-        util.ensure_xmlid_match_record(cr, xmlid, "product.product", {"id": new_id})
+        util.ensure_xmlid_match_record(cr, f"product.{xmlid}", "product.product", {"id": new_id})
+
+    # create product variants for product_product_8
+    template_8_id = util.ref(cr, "product.product_template_8")
+    first_variant_id = util.ref(cr, "product.product_product_8")
+    product_8_fabric_line = _create_att_line(cr, "product_8_fabric_attribute_line", template_8_id, fabric_attribute_id)
+    product_8_glass_pav = _create_tmpl_att_val(
+        cr,
+        "pav_large_desk_glass",
+        template_8_id,
+        product_8_fabric_line,
+        fabric_attribute_id,
+        util.ref(cr, "product.pav_fabric_glass"),
+    )
+    product_8_metal_pav = _create_tmpl_att_val(
+        cr,
+        "pav_large_desk_metal",
+        template_8_id,
+        product_8_fabric_line,
+        fabric_attribute_id,
+        util.ref(cr, "product.pav_fabric_metal"),
+    )
+    _create_variants(cr, "product_product_8_glass", first_variant_id, [product_8_glass_pav])
+    _create_variants(cr, "product_product_8_metal", first_variant_id, [product_8_metal_pav])
+
+    # create product variants for consu_delivery_01
+    template_sofa_id = util.ref(cr, "product.sofa_product_template")
+    first_variant_id = util.ref(cr, "product.consu_delivery_01")
+    sofa_fabric_attribute_line = _create_att_line(
+        cr, "sofa_fabric_attribute_line", template_sofa_id, fabric_attribute_id
+    )
+    sofa_velvet_pav = _create_tmpl_att_val(
+        cr,
+        "pav_sofa_velvet",
+        template_sofa_id,
+        sofa_fabric_attribute_line,
+        fabric_attribute_id,
+        util.ref(cr, "product.pav_fabric_velvet"),
+    )
+    sofa_leather_pav = _create_tmpl_att_val(
+        cr,
+        "pav_sofa_leather",
+        template_sofa_id,
+        sofa_fabric_attribute_line,
+        fabric_attribute_id,
+        util.ref(cr, "product.pav_fabric_leather"),
+    )
+    _create_variants(cr, "consu_delivery_01_velvet", first_variant_id, [sofa_velvet_pav])
+    _create_variants(cr, "consu_delivery_01_leather", first_variant_id, [sofa_leather_pav])
+
+    # create product variants for product_product_4
+    template_4_id = util.ref(cr, "product.product_product_4_product_template")
+    first_variant_id = util.ref(cr, "product.product_product_4")
+    attribute_line_id = util.ref(cr, "product.product_4_attribute_1_product_template_attribute_line")
+    attribute_value_id = util.ref(cr, "product.pav_legs_custom")
+    p4_white = util.ref(cr, "product.product_4_attribute_2_value_1")
+    p4_black = util.ref(cr, "product.product_4_attribute_2_value_2")
+    p4_leg_custom = _create_tmpl_att_val(
+        cr, "product_4_attribute_1_value_3", template_4_id, attribute_line_id, leg_attribute_id, attribute_value_id
+    )
+    _create_variants(cr, "product_product_4e", first_variant_id, [p4_white, p4_leg_custom])
+    _create_variants(cr, "product_product_4f", first_variant_id, [p4_black, p4_leg_custom])
+
+    # create variants for product_template_acoustic_bloc_screens
+    template_screen_id = util.ref(cr, "product.product_template_acoustic_bloc_screens")
+    first_variant_id = util.ref(cr, "product.product_product_25")
+    color_attribute_id = util.ref(cr, "product.pa_color")
+    att_black_id = util.ref(cr, "product.pav_color_black")
+    cr.execute(
+        """
+        SELECT id FROM product_template_attribute_line WHERE product_tmpl_id = %s AND attribute_id = %s
+        """,
+        [template_screen_id, color_attribute_id],
+    )
+    (ptal_id,) = cr.fetchone()
+    acoustic_ptav_black = _create_tmpl_att_val(
+        cr, "acoustic_ptav_black", template_screen_id, ptal_id, color_attribute_id, att_black_id
+    )
+    _create_variants(cr, "product_product_acoustic_bloc_screens_black", first_variant_id, [acoustic_ptav_black])
