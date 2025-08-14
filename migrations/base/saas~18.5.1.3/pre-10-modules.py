@@ -12,3 +12,6 @@ def migrate(cr, version):
     util.remove_module(cr, "test_ai")
     util.merge_module(cr, "l10n_it_edi_withholding", "l10n_it_edi")
     util.rename_module(cr, "account_auto_transfer", "account_transfer")
+
+    util.merge_module(cr, "pos_epson_printer", "point_of_sale")
+    util.merge_module(cr, "pos_self_order_epson_printer", "pos_self_order")
