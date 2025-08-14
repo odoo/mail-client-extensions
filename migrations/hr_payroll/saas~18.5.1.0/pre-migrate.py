@@ -4,6 +4,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_record(cr, "hr_payroll.menu_report_payroll")
     util.remove_field(cr, "hr.salary.rule", "appears_on_payroll_report")
+    util.remove_field(cr, "res.config.settings", "module_hr_payroll_account")
     util.remove_model(cr, "hr.payroll.report")
     util.remove_field(cr, "hr.payslip", "has_refund_slip")
 
