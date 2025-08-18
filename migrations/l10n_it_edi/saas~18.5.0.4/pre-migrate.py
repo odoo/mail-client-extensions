@@ -19,3 +19,8 @@ def migrate(cr, version):
     util.remove_view(cr, "l10n_it_edi.account_invoice_it_FatturaPA_export_withholding")
     util.remove_view(cr, "l10n_it_edi.account_view_tax_form_l10n_it_edi_extended")
     util.remove_view(cr, "l10n_it_edi.view_invoice_tree_l10n_it_edi_extended")
+
+    util.remove_field(cr, "account.move", "l10n_it_amount_vat_signed")
+    util.remove_field(cr, "account.move", "l10n_it_amount_pension_fund_signed")
+    util.remove_field(cr, "account.move", "l10n_it_amount_withholding_signed")
+    util.remove_field(cr, "account.move", "l10n_it_amount_before_withholding_signed")

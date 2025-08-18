@@ -32,3 +32,5 @@ def migrate(cr, version):
 
     util.merge_module(cr, "pos_epson_printer", "point_of_sale")
     util.merge_module(cr, "pos_self_order_epson_printer", "pos_self_order")
+
+    util.merge_module(cr, "l10n_it_edi_withholding_reports", "l10n_it_reports")
