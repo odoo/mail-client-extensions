@@ -14,3 +14,29 @@ def migrate(cr, version):
            AND COALESCE(so.subscription_management, '') NOT IN ('renew', 'upsell')
     """
     util.parallel_execute(cr, util.explode_query_range(cr, query, table="sale_order", alias="so"))
+
+    util.create_column(cr, "sale_order", "first_contract_date", "date")
+    util.explode_execute(
+        cr,
+        """
+        WITH info AS (
+            SELECT o.id,
+                   CASE o.subscription_management
+                       WHEN 'renew' THEN oo.start_date
+                       WHEN 'upsell' THEN oo.start_date
+                       ELSE o.start_date
+                   END AS start_date
+              FROM sale_order o
+         LEFT JOIN sale_order oo
+                ON o.origin_order_id = oo.id
+             WHERE o.is_subscription
+               AND {parallel_filter}
+        )
+        UPDATE sale_order o
+           SET first_contract_date = info.start_date
+          FROM info
+         WHERE o.id = info.id
+        """,
+        table="sale_order",
+        alias="o",
+    )
