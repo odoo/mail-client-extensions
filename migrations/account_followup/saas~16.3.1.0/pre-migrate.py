@@ -7,3 +7,5 @@ def migrate(cr, version):
     util.remove_view(cr, "account_followup.followup_search_template")
     util.remove_view(cr, "account_followup.cell_template_followup_report")
     util.remove_view(cr, "account_followup.followup_filter_info_template")
+
+    util.create_column(cr, "res_partner", "followup_reminder_type", "varchar", default="automatic")
