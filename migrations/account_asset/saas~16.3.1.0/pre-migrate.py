@@ -2,6 +2,12 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    if not util.table_exists(cr, "account_asset"):
+        # `account_asset` may be auto installed, due to new `sale_subcription` deps
+        # see account_asset/16.0.1.0/pre-migrate.py
+        util.create_column(cr, "account_move", "depreciation_value", "numeric", default=0)
+        return  # nosemrep: no-early-return
+
     util.remove_view(cr, "account_asset.assets_search_template_extra_options")
     util.remove_view(cr, "account_asset.assets_search_template")
     util.remove_view(cr, "account_asset.main_template_assets")
