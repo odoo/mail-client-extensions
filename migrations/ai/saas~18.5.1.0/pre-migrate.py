@@ -13,6 +13,10 @@ def migrate(cr, version):
     util.remove_model(cr, "ai.tool")
     util.remove_field(cr, "discuss.channel", "ai_composer")
     util.remove_field(cr, "discuss.channel", "ai_context")
+    util.remove_field(cr, "ai.agent", "urls")
+    util.remove_field(cr, "ai.agent", "attachment_processing_percentage")
+    util.remove_field(cr, "ai.agent", "attachment_ids")
+    util.remove_field(cr, "ai.agent", "url_attachment_ids")
 
     util.create_column(cr, "ai_composer", "interface_key", "varchar")
     # interface key is a required field
@@ -28,14 +32,6 @@ def migrate(cr, version):
                 ELSE 'mail_composer'
             END
     """)
-
-    # Delete records without embedding_vector. No assigned vector means the embedding
-    # record hasn't been sent to the OpenAI API yet. These records can be deleted.
-    delete_query = """
-        DELETE FROM ai_embedding
-              WHERE embedding_vector IS NULL
-    """
-    util.explode_execute(cr, delete_query, table="ai_embedding")
 
     # Each ai.embedding record prior to https://github.com/odoo/enterprise/pull/84756
     # was created via the OpenAI embedding model "text-embedding-3-small".
