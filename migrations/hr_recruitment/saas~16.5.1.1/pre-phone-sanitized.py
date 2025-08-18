@@ -1,6 +1,7 @@
 import sys
 import uuid
 from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 
 from psycopg2.extras import execute_batch
 
@@ -35,7 +36,7 @@ def sanitize_fields(cr, san, phone_to_sanitize, phone_sanitized):
     )
     cr.execute(query)
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=util.get_max_workers(), mp_context=get_context("fork")) as executor:
         chunksize = 1024
         execute_batch(
             cr._obj,

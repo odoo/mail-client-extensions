@@ -1,6 +1,7 @@
 import sys
 import uuid
 from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 
 from psycopg2.extras import execute_batch
 
@@ -40,7 +41,7 @@ def sanitize_and_update(cr):
     name = f"_upgrade_{uuid.uuid4().hex}"
     san = sys.modules[name] = util.import_script("crm/saas~18.2.1.8/sanitize.py", name=name)
 
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=util.get_max_workers(), mp_context=get_context("fork")) as executor:
         chunksize = 1024
         execute_batch(
             cr._obj,

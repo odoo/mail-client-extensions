@@ -1,5 +1,6 @@
 import mimetypes
 from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 
 from psycopg2.extras import execute_batch
 
@@ -29,7 +30,8 @@ def migrate(cr, version):
 
     util.create_column(cr, "documents_document", "file_extension", "varchar")
 
-    with ProcessPoolExecutor() as executor, util.named_cursor(cr) as ncr:
+    executor = ProcessPoolExecutor(max_workers=util.get_max_workers(), mp_context=get_context("fork"))
+    with executor, util.named_cursor(cr) as ncr:
         ncr.execute(
             """
             SELECT document.id, attachment.name, attachment.mimetype

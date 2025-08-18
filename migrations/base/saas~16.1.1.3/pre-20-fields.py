@@ -1,6 +1,7 @@
 import logging
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
+from multiprocessing import get_context
 
 from odoo.sql_db import db_connect
 
@@ -49,7 +50,7 @@ def migrate(cr, version):
 
     # We cannot use Threads as `remove_field` call (directly and indirectly) `parallel_execute`,
     # which itself spawn threads, leading to the exhaustion of the ConnectionPool.
-    with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor:
+    with ProcessPoolExecutor(max_workers=util.get_max_workers(), mp_context=get_context("fork")) as executor:
         list(
             util.log_progress(
                 executor.map(util.make_pickleable_callback(rm_last_update), repeat(cr.dbname), models, chunksize=32),

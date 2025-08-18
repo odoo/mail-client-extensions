@@ -1,6 +1,7 @@
 import collections
 import re
 from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 
 from odoo.sql_db import db_connect
 
@@ -58,7 +59,10 @@ def migrate(cr, version):
         """
     )
     with ProcessPoolExecutor(
-        max_workers=util.get_max_workers(), initializer=util.make_pickleable_callback(init_worker), initargs=[cr.dbname]
+        max_workers=util.get_max_workers(),
+        mp_context=get_context("fork"),
+        initializer=util.make_pickleable_callback(init_worker),
+        initargs=[cr.dbname],
     ) as executor:
         while ids := cr.fetchmany(50000):
             # consume results to propagate workers' exceptions
