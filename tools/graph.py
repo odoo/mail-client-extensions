@@ -93,7 +93,7 @@ def main(args):
     modules = [module for module in args.modules if module in G]
     invalid = set(args.modules) - set(modules)
     if invalid:
-        print(f"Module {invalid} are invalid module for version {args.version.name}")  # noqa: T201
+        print(f"Invalid modules for version {args.version}: {', '.join(invalid)}")  # noqa: T201
         sys.exit(1)
     nodes = get_nodes(G, modules) if not args.dependants_only else []
     nodes.extend(get_nodes(G.reverse(), args.modules) if args.dependants or args.dependants_only else [])
