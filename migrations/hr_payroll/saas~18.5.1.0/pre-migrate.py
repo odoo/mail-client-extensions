@@ -115,3 +115,7 @@ def migrate(cr, version):
     )
 
     util.remove_record(cr, "hr_payroll.hr_work_entry_validated")
+    util.remove_view(cr, "hr_payroll.hr_payroll_structure_view_kanban")
+    util.remove_view(cr, "hr_payroll.hr_salary_rule_view_kanban")
+    util.remove_act_window_view_mode(cr, "hr.payroll.structure", "kanban")
+    util.remove_act_window_view_mode(cr, "hr.salary.rule", "kanban")
