@@ -41,3 +41,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, "stock.request.count", "accounting_date")
     util.remove_view(cr, "stock_account.stock_inventory_request_count_form_view_inherit_stock_account")
+
+    util.change_field_selection_values(cr, "product.category", "property_valuation", {"manual_periodic": "periodic"})
