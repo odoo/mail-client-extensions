@@ -113,3 +113,5 @@ def migrate(cr, version):
         table="hr_payslip",
         alias="target",
     )
+
+    util.remove_record(cr, "hr_payroll.hr_work_entry_validated")
