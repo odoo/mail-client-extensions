@@ -8,9 +8,8 @@ def migrate(cr, version):
         UPDATE ir_ui_view
            SET inherit_id = NULL,
                mode = 'primary'
-         WHERE id = %s
-        """,
-        [util.ref(cr, "website_sale.product_terms_and_conditions")],
+         WHERE key = 'website_sale.product_terms_and_conditions'
+        """
     )
 
     util.remove_field(cr, "res.config.settings", "group_delivery_invoice_address")
