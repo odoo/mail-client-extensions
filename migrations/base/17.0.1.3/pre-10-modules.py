@@ -13,4 +13,5 @@ def migrate(cr, version):
     util.force_upgrade_of_fresh_module(cr, "l10n_rs_edi")
     util.force_upgrade_of_fresh_module(cr, "l10n_br_avatax_services")
     util.force_upgrade_of_fresh_module(cr, "base_address_extended")
+    util.force_upgrade_of_fresh_module(cr, "l10n_latam_base")
     util.force_upgrade_of_fresh_module(cr, "website_documents")
