@@ -21,6 +21,7 @@ def migrate(cr, version):
 
     util.make_field_non_stored(cr, "sign.item.type", "default_width", selectable=False)
     util.make_field_non_stored(cr, "sign.item.type", "default_height", selectable=False)
+    util.rename_field(cr, "sign.send.request", "message", "body")
 
     util.delete_unused(cr, "sign.sign_item_role_user", keep_xmlids=False)
 
