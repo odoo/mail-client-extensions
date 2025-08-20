@@ -36,4 +36,5 @@ def migrate(cr, version):
     util.merge_module(cr, "pos_self_order_epson_printer", "pos_self_order")
 
     util.merge_module(cr, "l10n_it_edi_withholding_reports", "l10n_it_reports")
+    util.merge_module(cr, "l10n_in_reports_gstr_document_summary", "l10n_in_reports")
     util.remove_module(cr, "ai_calendar")

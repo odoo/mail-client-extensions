@@ -18,3 +18,5 @@ def migrate(cr, version):
 
     util.remove_records(cr, "account.report.line", report_line_records)
     util.remove_records(cr, "account.report.expression", report_expression_records)
+
+    util.remove_view(cr, "l10n_in_reports.l10n_in_gst_return_period_form_view_document_summary")
