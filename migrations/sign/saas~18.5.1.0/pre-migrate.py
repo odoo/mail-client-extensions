@@ -4,6 +4,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.remove_column(cr, "sign_send_request", "signers_count")
     util.create_column(cr, "sign_item_type", "field_size", "varchar", default="regular_text")
+    util.create_column(cr, "sign_template", "signature_request_validity", "int", default=60)
 
     cr.execute(
         """
