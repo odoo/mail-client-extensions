@@ -9,6 +9,9 @@ from odoo.addons.base.maintenance.migrations.util.pg import _normalize_pg_type
 _logger = logging.getLogger("odoo.upgrade")
 MIN_VERSION = "17.0"
 
+CI = util.on_CI()
+util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"] = set()
+
 
 def migrate(cr, version):
     # NOTE: Always defined, so modules than extend this set won't have to verify the version
@@ -35,6 +38,9 @@ def migrate(cr, version):
 
         if not defined_type:
             # not stored column; ignore.
+            pass
+        elif CI and no_orm_table_change and (model._name, self.name) in util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"]:
+            # ignored on CI
             pass
         elif existing_type:
             if existing_type != defined_type:
