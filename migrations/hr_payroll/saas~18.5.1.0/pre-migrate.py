@@ -5,3 +5,110 @@ def migrate(cr, version):
     util.remove_record(cr, "hr_payroll.menu_report_payroll")
     util.remove_field(cr, "hr.salary.rule", "appears_on_payroll_report")
     util.remove_model(cr, "hr.payroll.report")
+    util.remove_field(cr, "hr.payslip", "has_refund_slip")
+
+    util.create_column(cr, "hr_payslip", "done_date", "timestamp without time zone")
+    util.create_column(cr, "hr_payslip", "is_refunded", "bool", default=False)
+    util.create_column(cr, "hr_payslip", "is_refund_payslip", "bool", default=False)
+    util.create_column(cr, "hr_payslip", "origin_payslip_id", "int4")
+    util.create_column(cr, "hr_payslip", "has_wrong_data", "bool", default=False)
+    util.create_column(cr, "hr_payslip", "is_wrong_version", "bool", default=False)
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE hr_payslip payslip
+           SET done_date = COALESCE(paid_date, write_date)
+         WHERE state IN ('done', 'paid')
+        """,
+        table="hr_payslip",
+        alias="payslip",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE hr_payslip origin
+           SET is_refunded = TRUE
+          FROM hr_payslip refund
+         WHERE refund.employee_id = origin.employee_id
+           AND refund.date_from = origin.date_from
+           AND refund.date_to = origin.date_to
+           AND refund.version_id = origin.version_id
+           AND refund.struct_id = origin.struct_id
+           AND refund.credit_note
+           AND refund.state != 'cancel'
+           AND origin.credit_note IS NOT TRUE
+           AND origin.state IN ('done', 'paid')
+        """,
+        table="hr_payslip",
+        alias="origin",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE hr_payslip refund
+           SET origin_payslip_id = origin.id,
+               is_refund_payslip = TRUE
+          FROM hr_payslip origin
+         WHERE origin.employee_id = refund.employee_id
+           AND origin.date_from = refund.date_from
+           AND origin.date_to = refund.date_to
+           AND origin.version_id = refund.version_id
+           AND origin.struct_id = refund.struct_id
+           AND refund.credit_note
+           AND refund.state != 'cancel'
+           AND origin.credit_note IS NOT TRUE
+           AND origin.state IN ('done', 'paid')
+        """,
+        table="hr_payslip",
+        alias="refund",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE hr_payslip target
+           SET has_wrong_data = TRUE
+          FROM hr_version version
+         WHERE target.version_id = version.id
+           AND version.last_modified_date > target.done_date
+           AND target.state IN ('done', 'paid')
+        """,
+        table="hr_payslip",
+        alias="target",
+    )
+
+    util.explode_execute(
+        cr,
+        """
+        WITH correct_versions AS (
+              SELECT ps.id AS payslip_id,
+                     COALESCE(version_on_date.id, fallback_version.id) AS correct_version_id
+                FROM hr_payslip ps
+        JOIN LATERAL (
+                SELECT v.id
+                  FROM hr_version v
+                 WHERE v.employee_id = ps.employee_id
+                   AND v.date_version <= ps.date_from
+                 ORDER BY v.date_version DESC
+                 LIMIT 1
+            ) AS version_on_date ON TRUE
+   LEFT JOIN LATERAL (
+                SELECT v.id
+                  FROM hr_version v
+                 WHERE v.employee_id = ps.employee_id
+                 ORDER BY v.date_version ASC
+                 LIMIT 1
+            ) AS fallback_version ON version_on_date.id IS NULL
+        )
+        UPDATE hr_payslip target
+           SET is_wrong_version = TRUE
+          FROM correct_versions cv
+         WHERE target.id = cv.payslip_id
+           AND target.version_id IS DISTINCT FROM cv.correct_version_id
+        """,
+        table="hr_payslip",
+        alias="target",
+    )
