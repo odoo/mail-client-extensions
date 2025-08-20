@@ -855,30 +855,35 @@ product_product_id)
     # sale.subscription with the subscription_id field on the sale_order_line.
     # Thanks to the above FK upgrade, the sol.subscription_id is now updated to the new sale_order id value (parent subscription)
     # It is therefore correct to retrieve the sol parent subscription id by using the subscription_id value
+    cr.execute(
+        """
+               SELECT sol_sub.id,
+                      sol_sub.pricing_id,
+                      sol_sub.product_id,
+                      sol_sub.product_uom,
+                      sol_sub.price_unit,
+                      sol_sub.order_id,
+                      CASE so.subscription_management
+                         WHEN 'upsell' THEN CURRENT_DATE::timestamp
+                         ELSE so.next_invoice_date
+                      END as start_date
+        INTO UNLOGGED _upgrade_tmp_sol2
+                 FROM sale_order_line sol_sub
+                 JOIN sale_order_line sol ON sol.subscription_id=sol_sub.order_id
+                 JOIN sale_order so ON so.id=sol.order_id
+                WHERE so.subscription_management IN ('upsell', 'renew')
+                  AND so.state='draft';
+         CREATE INDEX _upgrade_tmp_sol2_idx
+                   ON _upgrade_tmp_sol2 (product_id, product_uom, price_unit, order_id)
+        """
+    )
     util.explode_execute(
         cr,
         """
-        WITH sol2 AS (
-            SELECT sol_sub.id,
-                   sol_sub.pricing_id,
-                   sol_sub.product_id,
-                   sol_sub.product_uom,
-                   sol_sub.price_unit,
-                   sol_sub.order_id,
-                   CASE so.subscription_management
-                      WHEN 'upsell' THEN CURRENT_DATE::timestamp
-                      ELSE so.next_invoice_date
-                   END as start_date
-              FROM sale_order_line sol_sub
-              JOIN sale_order_line sol ON sol.subscription_id=sol_sub.order_id
-              JOIN sale_order so ON so.id=sol.order_id
-             WHERE so.subscription_management IN ('upsell', 'renew')
-               AND so.state='draft'
-        )
         UPDATE sale_order_line sol_update
            SET parent_line_id=sol2.id,
                pricing_id=COALESCE(sol2.pricing_id, sol_update.pricing_id)
-          FROM sol2
+          FROM _upgrade_tmp_sol2 sol2
          WHERE sol2.product_id=sol_update.product_id
            AND sol2.product_uom=sol_update.product_uom
            AND sol2.price_unit=sol_update.price_unit
@@ -888,6 +893,7 @@ product_product_id)
         table="sale_order_line",
         alias="sol_update",
     )
+    cr.execute("DROP TABLE _upgrade_tmp_sol2")
 
     # Set stage_id for draft quotations that have recurring products, ie quotations that
     # are yet to become subscriptions (once confirmed post-upgrade).
