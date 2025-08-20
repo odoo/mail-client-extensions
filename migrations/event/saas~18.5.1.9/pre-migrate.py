@@ -44,3 +44,5 @@ def migrate(cr, version):
     util.rename_field(cr, "event.question", "event_type_id", "event_type_ids")
 
     util.create_column(cr, "event_question", "is_reusable", "boolean", default=True)
+
+    util.rename_xmlid(cr, "event.act_event_slot_from_event", "event.event_slot_action_from_event")
