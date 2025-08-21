@@ -29,3 +29,6 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.force_upgrade_of_fresh_module(cr, "account_online_synchronization")
+
+    if util.module_installed(cr, "pos_sale_stock_renting") and not util.module_installed(cr, "pos_sale"):
+        util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].add(("sale.order", "amount_unpaid"))
