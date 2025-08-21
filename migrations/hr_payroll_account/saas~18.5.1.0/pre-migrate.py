@@ -31,3 +31,5 @@ def migrate(cr, version):
 
     util.remove_field(cr, "hr.version", "analytic_account_id")
     util.remove_field(cr, "hr.salary.rule", "analytic_account_id")
+
+    util.remove_menus(cr, [util.ref(cr, "hr_payroll_account.menu_hr_employee_bank_account")])

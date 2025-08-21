@@ -13,6 +13,8 @@ def migrate(cr, version):
             util.ref(cr, "hr.hr_menu_hr_task"),
             util.ref(cr, "hr.hr_menu_hr_my_activities"),
             util.ref(cr, "hr.hr_menu_hr_all_activities"),
+            util.ref(cr, "hr.menu_hr_employee_user"),
+            util.ref(cr, "hr.menu_hr_employee_contract_templates"),
         ],
     )
     util.remove_record(cr, "hr.action_hr_employee_my_activities")
