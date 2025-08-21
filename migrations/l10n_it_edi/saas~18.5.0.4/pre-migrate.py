@@ -24,3 +24,5 @@ def migrate(cr, version):
     util.remove_field(cr, "account.move", "l10n_it_amount_pension_fund_signed")
     util.remove_field(cr, "account.move", "l10n_it_amount_withholding_signed")
     util.remove_field(cr, "account.move", "l10n_it_amount_before_withholding_signed")
+
+    util.remove_field(cr, "res.config.settings", "company_parent_id")
