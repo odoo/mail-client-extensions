@@ -12,7 +12,7 @@ MODULES_TO_UNINSTALL = util.split_osenv("ODOO_UPG_UNINSTALL_MODULES")
 
 
 def migrate(cr, version):
-    standard_modules = modules.get_modules()
+    standard_modules = modules.get_modules() + (["test_new_api"] if util.version_between("saas~18.4", "19.0") else [])
     test_modules = [
         m
         for m in standard_modules
