@@ -10,3 +10,5 @@ def migrate(cr, version):
     util.remove_record(cr, "l10n_ch_hr_payroll.action_is_report")
 
     util.remove_field(cr, "hr.payslip", "l10n_ch_validation_errors")
+    util.remove_field(cr, "res.users", "l10n_ch_tax_scale")
+    util.remove_field(cr, "res.users", "l10n_ch_municipality")
