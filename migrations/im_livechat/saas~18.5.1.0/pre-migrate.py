@@ -33,3 +33,4 @@ def migrate(cr, version):
                    ON h.id = rel.im_livechat_channel_member_history_id
           """
         util.explode_execute(cr, populate_expertise_rel_query, "im_livechat_channel_member_history", alias="h")
+    util.convert_field_to_html(cr, "chatbot.script.step", "message")
