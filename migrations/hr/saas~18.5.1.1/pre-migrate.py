@@ -16,3 +16,5 @@ def migrate(cr, version):
         ],
     )
     util.remove_record(cr, "hr.action_hr_employee_my_activities")
+
+    util.rename_xmlid(cr, "hr.contract_type_statutaire", "hr.contract_type_statutory", noupdate=True)
