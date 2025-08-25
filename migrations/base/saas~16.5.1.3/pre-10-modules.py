@@ -48,3 +48,8 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_lu_reports_annual_vat_2023", "l10n_lu_reports")
 
     util.force_install_module(cr, "base_import_module")
+
+    if util.module_installed(cr, "l10n_in_hr_payroll"):
+        # l10n_in_hr_payroll now depends on hr_payroll_holidays that depends (multi-level)
+        # on calendar module, the latter adds a new column to res.partner
+        util.create_column(cr, "res_partner", "calendar_last_notif_ack", "timestamp", default="now")
