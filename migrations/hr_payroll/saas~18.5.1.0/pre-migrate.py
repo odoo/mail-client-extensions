@@ -151,3 +151,18 @@ def migrate(cr, version):
 
     util.remove_field(cr, "hr.salary.rule", "preview_currency_position")
     util.remove_field(cr, "hr.salary.rule", "preview_currency_symbol")
+
+    # Salary rule range condition removal and migration
+    cr.execute("""
+        UPDATE hr_salary_rule
+        SET condition_select = 'python',
+            condition_python = 'result = ' ||
+                COALESCE(condition_range_min::text, '0.0') || ' <= ' ||
+                COALESCE(condition_range, '0.0') || ' <= ' ||
+                COALESCE(condition_range_max::text, '0.0')
+        WHERE condition_select = 'range'
+    """)
+
+    util.remove_field(cr, "hr.salary.rule", "condition_range_max")
+    util.remove_field(cr, "hr.salary.rule", "condition_range_min")
+    util.remove_field(cr, "hr.salary.rule", "condition_range")
