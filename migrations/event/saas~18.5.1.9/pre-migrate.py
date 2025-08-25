@@ -42,3 +42,5 @@ def migrate(cr, version):
     )
     util.remove_column(cr, "event_question", "event_type_id")
     util.rename_field(cr, "event.question", "event_type_id", "event_type_ids")
+
+    util.create_column(cr, "event_question", "is_reusable", "boolean", default=True)
