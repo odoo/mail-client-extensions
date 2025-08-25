@@ -85,18 +85,7 @@ def migrate(cr, version):
              GROUP BY move.move_id
         )
         SELECT move.move_id,
-               CASE
-                   WHEN move.prev_move_date IS NULL THEN
-                       CASE
-                           WHEN periodicity = 'yearly'     THEN move.date - INTERVAL '1 year'
-                           WHEN periodicity = 'semester'   THEN move.date - INTERVAL '6 months'
-                           WHEN periodicity = '4_months'   THEN move.date - INTERVAL '4 months'
-                           WHEN periodicity = 'trimester'  THEN move.date - INTERVAL '3 months'
-                           WHEN periodicity = '2_months'   THEN move.date - INTERVAL '2 months'
-                           ELSE move.date - INTERVAL '1 month'
-                       END
-                   ELSE move.prev_move_date + INTERVAL '1 day'
-               END AS date_from,
+               move.prev_move_date::timestamp + '1 day' AS date_from,
                move.date AS date_to,
                move.company_id,
                move.return_type_id,
@@ -127,7 +116,7 @@ def migrate(cr, version):
     query_res = cr.fetchall()
     return_create_vals = []
     move_ids = []
-    for res in query_res:
+    for idx, res in enumerate(query_res):
         (
             move_id,
             date_from,
@@ -148,6 +137,26 @@ def migrate(cr, version):
             2: "2_months",
             1: "monthly",
         }
+        if not date_from:
+            # Meaning it is the first ever closing move, we should infer the period
+            # We first check the next move if there is one otherwise, we take the return type periodicity
+            return_type = env["account.return.type"].browse(return_type_id)
+            company = env["res.company"].browse(company_id)
+            if len(query_res) > idx + 1:
+                next_move_res = query_res[idx + 1]
+                next_date_from = next_move_res[1]
+                next_date_to = next_move_res[2]
+                next_delta = relativedelta(next_date_to, next_date_from + relativedelta(days=-1))
+                months_periodicity = next_delta.years * 12 + next_delta.months
+                date_from, date_to = return_type._get_period_boundaries(
+                    company,
+                    date_to,
+                    override_period_months=months_periodicity,
+                    override_start_date=datetime.date(1, 1, 1),  # only month and day are actually used: Jan 1st
+                )
+            else:
+                date_from, date_to = return_type._get_period_boundaries(company, date_to)
+
         delta = relativedelta(date_to, date_from + relativedelta(days=-1))
         months_periodicity = delta.years * 12 + delta.months
         periodicity = periodicities_mapping.get(months_periodicity, "other")
