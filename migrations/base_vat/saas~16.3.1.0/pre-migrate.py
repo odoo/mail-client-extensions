@@ -90,6 +90,7 @@ def migrate(cr, version):
                LEFT JOIN vies_fiscal_position fp ON fp.id = move.fiscal_position_id
                    WHERE move.partner_id = partner_to_check.partner_id
                      AND move.state = 'posted'
+                     AND move.invoice_date IS NOT NULL
                 ORDER BY move.invoice_date DESC
                    LIMIT 1
                ) recent_move ON TRUE
