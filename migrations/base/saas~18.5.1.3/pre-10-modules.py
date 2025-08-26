@@ -44,6 +44,7 @@ def migrate(cr, version):
         util.force_install_module(cr, "ai_app")
 
     util.remove_module(cr, "documents_hr_recruitment")
+    util.merge_module(cr, "l10n_dk_rsu", "l10n_dk_reports")
 
     if util.has_enterprise():
         if not util.modules_installed(cr, "l10n_mx_hr_payroll_account"):
