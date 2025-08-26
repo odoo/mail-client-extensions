@@ -119,3 +119,24 @@ def migrate(cr, version):
     util.remove_view(cr, "hr_payroll.hr_salary_rule_view_kanban")
     util.remove_act_window_view_mode(cr, "hr.payroll.structure", "kanban")
     util.remove_act_window_view_mode(cr, "hr.salary.rule", "kanban")
+
+    xmlids = [
+        "hr_payroll.default_assignment_of_salary_rule",
+        "hr_payroll.default_attachment_of_salary_rule",
+        "hr_payroll.default_basic_salary_rule",
+        "hr_payroll.default_child_support",
+        "hr_payroll.default_deduction_salary_rule",
+        "hr_payroll.default_gross_salary_rule",
+        "hr_payroll.default_net_salary",
+        "hr_payroll.default_reimbursement_salary_rule",
+        "hr_payroll.hr_salary_rule_13th_month_salary",
+        "hr_payroll.hr_salary_rule_ca_gravie",
+        "hr_payroll.hr_salary_rule_convanceallowance1",
+        "hr_payroll.hr_salary_rule_houserentallowance1",
+        "hr_payroll.hr_salary_rule_meal_voucher",
+        "hr_payroll.hr_salary_rule_professionaltax1",
+        "hr_payroll.hr_salary_rule_providentfund1",
+        "hr_payroll.hr_salary_rule_sum_alw_category",
+    ]
+    for xmlid in xmlids:
+        util.force_noupdate(cr, xmlid, noupdate=False)
