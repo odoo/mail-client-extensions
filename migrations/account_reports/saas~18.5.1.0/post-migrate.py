@@ -32,4 +32,3 @@ def migrate(cr, version):
          WHERE account_return.type_id = ir_model_data.res_id
            AND ir_model_data.model = 'account.return.type';
         """)
-        util.make_field_non_stored(cr, "account.return", "state")
