@@ -1,5 +1,7 @@
 from odoo.upgrade import util
 
+account = util.import_script("account/saas~18.5.1.4/pre-remove-tax-tag-invert.py")
+
 
 def migrate(cr, version):
     util.remove_view(cr, "hr_payroll_account.hr_payslip_run_view_form")
@@ -33,3 +35,6 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.salary.rule", "analytic_account_id")
 
     util.remove_menus(cr, [util.ref(cr, "hr_payroll_account.menu_hr_employee_bank_account")])
+
+    account.update_m2m_tag_rel(cr, "hr_salary_rule_debit_tag_rel")
+    account.update_m2m_tag_rel(cr, "hr_salary_rule_credit_tag_rel")

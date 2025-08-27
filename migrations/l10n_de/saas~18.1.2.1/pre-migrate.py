@@ -1,4 +1,10 @@
+from odoo.upgrade import util
+
+
 def migrate(cr, version):
+    if util.version_gte("saas~18.5"):
+        # tag_negate is removed
+        return
     cr.execute(
         """
         ALTER TABLE account_account_tag
