@@ -28,3 +28,8 @@ def migrate(cr, version):
         "l10n_in_hr_payroll.res_users_view_form_profile_in_inherit",
         "l10n_in_hr_payroll.res_users_view_form_preferences_in_inherit",
     )
+
+    util.remove_field(cr, "res.config.settings", "l10n_in_dearness_allowance")
+    util.remove_field(cr, "res.config.settings", "l10n_in_is_statutory_compliance")
+    util.remove_field(cr, "res.company", "l10n_in_dearness_allowance")
+    util.remove_field(cr, "res.company", "l10n_in_is_statutory_compliance")
