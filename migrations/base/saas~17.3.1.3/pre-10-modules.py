@@ -29,3 +29,16 @@ def migrate(cr, version):
     if util.module_installed(cr, "account_budget"):
         # purchase is a new dependency of account_budget
         util.create_column(cr, "res_partner", "purchase_warn", "varchar", default="no-message")
+
+        if not util.module_installed(cr, "account_accountant"):
+            # account_accountant is also a new mult-level dependency of account_budget. This triggers the auto-install
+            # of account_reports, account_asset, and account_followup. In real world DBs we do not expect account_budget
+            # being installed without account_accountant. Ignored columns below, in comments the script computing them.
+            util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].update(
+                {
+                    ("account.move.line", "exclude_bank_lines"),  # account_reports/saas~17.5.1.0/pre-migrate.py
+                    ("account.move", "asset_move_type"),  # account_asset/saas~17.4.1.0/pre-migrate.py
+                    ("account.move", "depreciation_value"),  # account_asset/16.0.1.0/pre-migrate.py
+                }
+            )
+            util.create_column(cr, "res_partner", "followup_reminder_type", "varchar", default="automatic")
