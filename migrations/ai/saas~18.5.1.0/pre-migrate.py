@@ -20,12 +20,12 @@ def migrate(cr, version):
         UPDATE ai_composer composer
            SET interface_key =
             CASE composer.name
-                WHEN 'Mail/Note Composer' THEN 'composer_ai_button'
+                WHEN 'Mail/Note Composer' THEN 'mail_composer'
                 WHEN 'Record HTML Fields' THEN 'html_field_record'
                 WHEN 'Text Selector' THEN 'html_field_text_select'
                 WHEN 'Chatter Helper' THEN 'chatter_ai_button'
                 WHEN 'Mail Template Prompt Evaluator' THEN 'html_prompt_shortcut'
-                ELSE 'composer_ai_button'
+                ELSE 'mail_composer'
             END
     """)
 
