@@ -52,3 +52,32 @@ def migrate(cr, version):
            SET name = 'Topic #' || id
          WHERE name IS NULL
     """)
+
+    eb = util.expand_braces
+    # ai/views/ai_menus.xml
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_menu_root"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_menu"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_agent_menu_action"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_topic_menu_action"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_config_menu"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_general_settings_menu"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.menu_ai_composer"))
+    # ai/views/res_config_settings_views.xml
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_settings_action"))
+    # ai/views/ai_agent_views.xml
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_agent_view_kanban"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_agent_view_tree"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_agent_view_form"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_agent_view_search"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_agent_action"))
+    # ai/views/ai_topic_views.xml
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_topic_view_search"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_topic_view_form"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_topic_view_list"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_topic_view_kanban"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_topic_action"))
+    # ai/views/ai_composer_views.xml
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_composer_form"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_composer_tree"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_composer_kanban"))
+    util.rename_xmlid(cr, *eb("ai{,_app}.ai_composer_action"))
