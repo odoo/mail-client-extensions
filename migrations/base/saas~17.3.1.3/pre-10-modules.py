@@ -25,3 +25,7 @@ def migrate(cr, version):
     # It is later removed in the pre-* phase of module 'account'.
     util.remove_field(cr, "account.move", "l10n_dk_currency_rate_at_transaction", drop_column=False)
     util.remove_module(cr, "l10n_dk_bookkeeping")
+
+    if util.module_installed(cr, "account_budget"):
+        # purchase is a new dependency of account_budget
+        util.create_column(cr, "res_partner", "purchase_warn", "varchar", default="no-message")
