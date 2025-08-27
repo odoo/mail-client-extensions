@@ -40,3 +40,15 @@ def migrate(cr, version):
     # Each ai.embedding record prior to https://github.com/odoo/enterprise/pull/84756
     # was created via the OpenAI embedding model "text-embedding-3-small".
     util.create_column(cr, "ai_embedding", "embedding_model", "varchar", default="text-embedding-3-small")
+
+    # name of ai_topic and ai_composer are now required
+    cr.execute("""
+        UPDATE ai_composer
+           SET name = 'Composer #' || id
+         WHERE name IS NULL
+    """)
+    cr.execute("""
+        UPDATE ai_topic
+           SET name = 'Topic #' || id
+         WHERE name IS NULL
+    """)
