@@ -68,3 +68,7 @@ def migrate(cr, version):
         # l10n_in_hr_payroll now depends on hr_payroll_holidays that depends (multi-level)
         # on calendar module, the latter adds a new column to res.partner
         util.create_column(cr, "res_partner", "calendar_last_notif_ack", "timestamp", default="now")
+
+    if util.module_installed(cr, "l10n_uy") and not util.module_installed(cr, "base_vat"):
+        # l10n_uy now depends on l10n_latam_base that depends on base_vat
+        util.force_upgrade_of_fresh_module(cr, "base_vat")
