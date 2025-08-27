@@ -7,6 +7,7 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_hr_payroll_account")
     util.remove_model(cr, "hr.payroll.report")
     util.remove_field(cr, "hr.payslip", "has_refund_slip")
+    util.remove_field(cr, "hr.rule.parameter", "current_value")
 
     util.create_column(cr, "hr_payslip", "done_date", "timestamp without time zone")
     util.create_column(cr, "hr_payslip", "is_refunded", "bool", default=False)
