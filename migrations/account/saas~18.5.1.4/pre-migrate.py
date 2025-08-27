@@ -22,3 +22,25 @@ def migrate(cr, version):
         alias="l",
     )
     util.remove_field(cr, "res.config.settings", "module_l10n_eu_oss")
+
+    cr.execute(
+        """
+        UPDATE res_company
+           SET account_storno = true
+          FROM res_country
+         WHERE res_country.id = res_company.account_fiscal_country_id
+           AND res_country.code IN ('BA', 'CN', 'CZ', 'HR', 'PL', 'RO', 'RS', 'RU', 'SI', 'SK', 'UA')
+        """,
+    )
+
+    util.create_column(cr, "account_move_line", "is_storno", "boolean")
+    query = """
+        UPDATE account_move_line AS aml
+           SET is_storno = true
+          FROM account_move AS am
+         WHERE aml.move_id = am.id
+           AND am.is_storno
+        """
+    util.explode_execute(cr, query, table="account_move_line", alias="aml")
+
+    util.make_field_non_stored(cr, "account.move", "is_storno", selectable=False)
