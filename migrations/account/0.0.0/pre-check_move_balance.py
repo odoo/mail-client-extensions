@@ -3,19 +3,18 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
     if util.version_gte("saas~11.5"):
         cr.execute(
             """
               SELECT line.move_id,
-                     ROUND(SUM(line.debit - line.credit), currency.decimal_places)
+                     CONCAT(move.name, ', with a balance of ', ROUND(SUM(line.debit - line.credit), currency.decimal_places))
                 FROM account_move_line line
                 JOIN account_move move ON move.id = line.move_id
                 JOIN account_journal journal ON journal.id = move.journal_id
                 JOIN res_company company ON company.id = journal.company_id
                 JOIN res_currency currency ON currency.id = company.currency_id
                WHERE move.state not in ('draft', 'cancel')
-            GROUP BY line.move_id, currency.decimal_places
+            GROUP BY line.move_id, move.name, currency.decimal_places
               HAVING ROUND(SUM(line.debit - line.credit), currency.decimal_places) != 0.0
             """
         )
@@ -26,22 +25,30 @@ def migrate(cr, version):
 
         cr.execute(
             """
-              SELECT line.move_id, ROUND(SUM(line.debit - line.credit), %s)
+              SELECT line.move_id,
+                     CONCAT(move.name, ', with a balance of ', ROUND(SUM(line.debit - line.credit), %s))
                 FROM account_move_line line
                 JOIN account_move move
                   ON (line.move_id = move.id)
                WHERE move.state not in ('draft', 'cancel')
-            GROUP BY line.move_id
+            GROUP BY line.move_id, move.name
               HAVING ROUND(SUM(line.debit - line.credit), %s) != 0.0
             """,
             [precision, precision],
         )
 
-    if cr.rowcount:
-        if cr.rowcount > 100:
-            msg = "A lot of moves are not balanced. You should have a look to that."
-        else:
-            moves = ["(id: %s, balance: %s)" % (id, balance) for id, balance in cr.fetchall()]
-            msg = "The following moves are not balanced: [%s]" % ", ".join(moves)
+    count = cr.rowcount
+    if count:
+        extra = " (first 20 out of {})".format(count) if count > 20 else ""
+        li = "".join(
+            "<li>{}</li>".format(util.get_anchor_link_to_record("account.move", mid, label))
+            for mid, label in cr.fetchmany(20)
+        )
+        msg = """
+        <details>
+          <summary>You have unbalanced account moves{}.</summary>
+          <ul>{}</ul>
+        </details>
+        """.format(extra, li)
 
         util.add_to_migration_reports(msg, "Unbalanced Moves")
