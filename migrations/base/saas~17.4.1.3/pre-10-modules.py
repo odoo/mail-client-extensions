@@ -16,3 +16,6 @@ def migrate(cr, version):
 
     if util.has_enterprise():
         util.merge_module(cr, "l10n_ch_hr_payroll_elm", "l10n_ch_hr_payroll")
+
+    if util.module_installed(cr, "l10n_br") and not util.module_installed(cr, "base_address_extended"):
+        util.force_upgrade_of_fresh_module(cr, "base_address_extended")
