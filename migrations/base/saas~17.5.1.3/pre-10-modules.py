@@ -263,3 +263,6 @@ def migrate(cr, version):
     )
     if cr.rowcount:
         util.rename_module(cr, "sale_commission", "sale_commission_oca")
+
+    if util.module_installed(cr, "l10n_us_hr_payroll") and not util.module_installed(cr, "base_address_extended"):
+        util.force_upgrade_of_fresh_module(cr, "base_address_extended")
