@@ -70,37 +70,35 @@ def migrate(cr, version):
 
     # Return check model was introduced in saas~18.3
     # The m2m on res_users has been added in saas~18.4
-    if not util.table_exists(cr, "account_return_check_res_users_rel"):
-        return
-
-    util.create_column(cr, "account_return_check", "approver_id", "int4")
-    util.create_column(cr, "account_return_check", "supervisor_id", "int4")
-    cr.execute(
-        """
-            WITH check_admin_candidates AS (
-                SELECT return_check.id as return_check_id,
-                       MIN(checks_users.res_users_id) FILTER (WHERE admin.id IS NOT NULL) AS admin_user,
-                       MIN(checks_users.res_users_id) AS any_user
-                  FROM account_return_check return_check
-                  JOIN account_return_check_res_users_rel checks_users
-                    ON return_check.id = checks_users.account_return_check_id
-                  JOIN res_groups_users_rel r
-                    ON r.uid = checks_users.res_users_id
-             LEFT JOIN ir_model_data admin
-                    ON admin.res_id = r.gid
-                   AND admin.model = 'res.groups'
-                   AND admin.module = 'account'
-                   AND admin.name = 'group_account_manager'
-                 WHERE return_check.bypassed = TRUE
-              GROUP BY return_check.id
-            )
-            UPDATE account_return_check return_check
-               SET approver_id = COALESCE(candidates.admin_user, candidates.any_user),
-                   supervisor_id = candidates.admin_user
-              FROM check_admin_candidates candidates
-             WHERE candidates.return_check_id = return_check.id
-        """
-    )
+    if util.table_exists(cr, "account_return_check_res_users_rel"):
+        util.create_column(cr, "account_return_check", "approver_id", "int4")
+        util.create_column(cr, "account_return_check", "supervisor_id", "int4")
+        cr.execute(
+            """
+                WITH check_admin_candidates AS (
+                    SELECT return_check.id as return_check_id,
+                           MIN(checks_users.res_users_id) FILTER (WHERE admin.id IS NOT NULL) AS admin_user,
+                           MIN(checks_users.res_users_id) AS any_user
+                      FROM account_return_check return_check
+                      JOIN account_return_check_res_users_rel checks_users
+                        ON return_check.id = checks_users.account_return_check_id
+                      JOIN res_groups_users_rel r
+                        ON r.uid = checks_users.res_users_id
+                 LEFT JOIN ir_model_data admin
+                        ON admin.res_id = r.gid
+                       AND admin.model = 'res.groups'
+                       AND admin.module = 'account'
+                       AND admin.name = 'group_account_manager'
+                     WHERE return_check.bypassed = TRUE
+                  GROUP BY return_check.id
+                )
+                UPDATE account_return_check return_check
+                   SET approver_id = COALESCE(candidates.admin_user, candidates.any_user),
+                       supervisor_id = candidates.admin_user
+                  FROM check_admin_candidates candidates
+                 WHERE candidates.return_check_id = return_check.id
+            """
+        )
     util.remove_field(cr, "account.return.check", "approver_ids")
 
     util.rename_field(cr, "account.return", "amount_to_pay", "total_amount_to_pay")
