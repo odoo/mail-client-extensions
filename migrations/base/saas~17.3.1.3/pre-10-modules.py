@@ -3,6 +3,8 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.merge_module(cr, "sale_product_configurator", "sale")
+    if util.module_installed(cr, "pos_sale_product_configurator") and not util.module_installed(cr, "pos_sale"):
+        util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].add(("sale.order", "amount_unpaid"))
     util.merge_module(cr, "pos_sale_product_configurator", "pos_sale")
     util.merge_module(cr, "website_sale_product_configurator", "website_sale")
 
