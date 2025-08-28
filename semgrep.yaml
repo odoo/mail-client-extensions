@@ -57,3 +57,22 @@ rules:
             - pattern: |
                 "...".format(...)
             - pattern: f"..."
+
+  - id: no-early-return
+    languages: [python]
+    message: Don't use early returns in the `migrate` function
+    severity: ERROR
+    options:
+        implicit_return: false
+    patterns:
+        - pattern: return ...
+        - pattern-inside: |
+            def migrate(...):
+                ...
+
+        - pattern-not-inside: |
+            def migrate(...):
+                ...
+                def $_(...):
+                    ...
+                ...
