@@ -148,3 +148,6 @@ def migrate(cr, version):
     util.remove_view(cr, "hr_payroll.hr_payroll_master_report_view_form")
 
     util.remove_menus(cr, [util.ref(cr, "hr_payroll.hr_menu_salary_attachments")])
+
+    util.remove_field(cr, "hr.salary.rule", "preview_currency_position")
+    util.remove_field(cr, "hr.salary.rule", "preview_currency_symbol")
