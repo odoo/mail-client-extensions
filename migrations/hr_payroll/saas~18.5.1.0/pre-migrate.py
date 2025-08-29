@@ -141,3 +141,8 @@ def migrate(cr, version):
     ]
     for xmlid in xmlids:
         util.force_noupdate(cr, xmlid, noupdate=False)
+
+    util.remove_model(cr, "hr.payroll.master.report")
+
+    util.remove_view(cr, "hr_payroll.hr_payroll_master_report_view_list")
+    util.remove_view(cr, "hr_payroll.hr_payroll_master_report_view_form")
