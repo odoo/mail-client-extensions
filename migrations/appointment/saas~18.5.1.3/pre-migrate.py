@@ -135,3 +135,14 @@ def migrate(cr, version):
     util.remove_field(cr, "appointment.type", "assign_method")
     util.remove_field(cr, "appointment.type", "appointment_manual_confirmation")
     util.remove_field(cr, "appointment.type", "avatars_display")
+
+    util.explode_execute(
+        cr,
+        """
+        UPDATE appointment_slot
+           SET end_datetime = start_datetime
+         WHERE NULLIF(end_datetime, start_datetime) IS NOT NULL
+           AND slot_type = 'unique' AND allday
+        """,
+        table="appointment_slot",
+    )
