@@ -3,6 +3,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_hr_contract")
+    util.remove_field(cr, "res.config.settings", "hr_employee_self_edit")
     util.remove_field(cr, "res.users", "department_id")
     util.remove_field(cr, "res.users", "address_id")
     util.remove_field(cr, "res.users", "employee_parent_id")
@@ -32,6 +33,7 @@ def migrate(cr, version):
     util.remove_field(cr, "res.users", "last_activity")
     util.remove_field(cr, "res.users", "last_activity_time")
     util.remove_field(cr, "res.users", "employee_type")
+    util.remove_field(cr, "res.users", "can_edit")
 
     util.create_column(cr, "hr_job", "user_id", "int4")
     util.move_field_to_module(cr, "hr.job", "user_id", "hr_recruitment", "hr")
