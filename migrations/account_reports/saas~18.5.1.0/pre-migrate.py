@@ -102,3 +102,4 @@ def migrate(cr, version):
     util.remove_field(cr, "account.return.check", "approver_ids")
 
     util.rename_field(cr, "account.return", "amount_to_pay", "total_amount_to_pay")
+    util.remove_field(cr, "account.return.type", "report_country_id")
