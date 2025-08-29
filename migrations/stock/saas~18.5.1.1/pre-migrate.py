@@ -138,3 +138,25 @@ def migrate(cr, version):
     util.remove_field(cr, "stock.move", "scrapped")
     util.update_field_usage(cr, "stock.move.line", "is_scrap", "scrap_id")
     util.remove_field(cr, "stock.move.line", "is_scrap")
+    util.remove_view(cr, "stock.procurement_group_form_view")
+    util.remove_field(cr, "stock.rule", "group_propagation_option")
+    util.remove_field(cr, "stock.rule", "group_id")
+    util.remove_field(cr, "stock.rule", "propagate_warehouse_id")
+    util.remove_field(cr, "stock.picking", "group_id")
+    util.remove_field(cr, "stock.warehouse.orderpoint", "group_id")
+
+    util.remove_field(cr, "procurement.group", "partner_id")
+    util.remove_field(cr, "procurement.group", "move_type")
+    util.rename_model(cr, "procurement.group", "stock.reference")
+    util.rename_field(cr, "stock.reference", "stock_move_ids", "move_ids")
+    util.convert_m2o_field_to_m2m(
+        cr,
+        "stock.move",
+        "group_id",
+        new_name="reference_ids",
+        m2m_table="stock_reference_move_rel",
+        col1="move_id",
+        col2="reference_id",
+    )
+
+    util.remove_record(cr, "stock.sequence_proc_group")

@@ -23,3 +23,49 @@ def migrate(cr, version):
     cr.execute("DELETE FROM ir_config_parameter WHERE key='mrp.use_manufacturing_lead'")
     util.create_column(cr, "mrp_bom", "enable_batch_size", "boolean", default=False)
     util.create_column(cr, "mrp_bom", "batch_size", "numeric", default=1.0)
+
+    util.rename_field(cr, "stock.reference", "mrp_production_ids", "production_ids")
+    # convert the old procurement group into the new production group then replace procurement group by the reference
+    cr.execute(
+        """
+        CREATE TABLE mrp_production_group (
+                        id SERIAL PRIMARY KEY,
+                        name varchar NOT NULL,
+                        _upg_orig_production_id int
+                    );
+        """
+    )
+    util.create_m2m(
+        cr,
+        "mrp_production_group_rel",
+        "mrp_production_group",
+        "mrp_production_group",
+        "parent_group_id",
+        "child_group_id",
+    )
+    util.create_column(cr, "mrp_production", "production_group_id", "int")
+    query_create_group = """
+        WITH inserted AS (
+            INSERT INTO mrp_production_group (name, _upg_orig_production_id)
+                 SELECT name, id
+                   FROM mrp_production
+                  WHERE procurement_group_id IS NOT NULL
+                    AND {parallel_filter}
+              RETURNING id group_id, _upg_orig_production_id prod_id
+        ) UPDATE mrp_production p
+             SET production_group_id = inserted.group_id
+            FROM inserted
+           WHERE inserted.prod_id = p.id
+    """
+    util.explode_execute(cr, query_create_group, table="mrp_production")
+    util.remove_column(cr, "mrp_production_group", "_upg_orig_production_id")
+
+    util.convert_m2o_field_to_m2m(
+        cr,
+        "mrp.production",
+        "procurement_group_id",
+        new_name="reference_ids",
+        m2m_table="stock_reference_production_rel",
+        col1="production_id",
+        col2="reference_id",
+    )
