@@ -24,7 +24,7 @@ def migrate(cr, version):
     custom_fin_reports = cr.fetchall()
 
     if not custom_fin_reports:
-        return
+        return  # nosemgrep: no-early-return
 
     if not (ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS or util.on_CI()):
         util.add_to_migration_reports(
@@ -45,7 +45,7 @@ def migrate(cr, version):
             category="Financial Reports",
             format="html",
         )
-        return
+        return  # nosemgrep: no-early-return
 
     fin_report_ids = tuple(res[0] for res in custom_fin_reports)
 

@@ -6,8 +6,11 @@ _logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
-    if not util.table_exists(cr, "l10n_in_gst_return_period"):
-        return
+    if util.table_exists(cr, "l10n_in_gst_return_period"):
+        _deduplicate_GST_return_periods(cr)
+
+
+def _deduplicate_GST_return_periods(cr):
     cr.execute(
         """
         WITH duplicates AS (

@@ -3,7 +3,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     if not util.table_exists(cr, "im_livechat_channel_member_history"):
-        return
+        return  # nosemgrep: no-early-return
     demo_history_guest = (
         [
             (

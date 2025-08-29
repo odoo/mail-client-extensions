@@ -13,7 +13,7 @@ def migrate(cr, version):
     if not (ODOO_MIG_16_MIGRATE_CUSTOM_FINANCIAL_REPORTS or util.on_CI()) or not util.column_exists(
         cr, "account_report_line", "v15_fin_line_id"
     ):
-        return
+        return  # nosemgrep: no-early-return
 
     _logger = logging.getLogger(__name__)
 

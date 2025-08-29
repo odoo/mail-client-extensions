@@ -10,7 +10,7 @@ def migrate(cr, version):
         cr.execute("SELECT 1 FROM documents_document WHERE active IS NOT TRUE FETCH FIRST ROW ONLY")
         if not cr.rowcount:
             # no inactive document, nothing to do
-            return
+            return  # nosemgrep: no-early-return
 
         facet_xmlid = "documents.documents_internal_status"
         facet_id = util.ref(cr, facet_xmlid)

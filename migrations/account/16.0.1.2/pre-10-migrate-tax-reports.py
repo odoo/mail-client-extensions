@@ -22,9 +22,8 @@ def migrate(cr, version):
     custom_tax_reports = cr.fetchall()
 
     if not custom_tax_reports:
-        return
-
-    if not (ODOO_MIG_16_MIGRATE_CUSTOM_TAX_REPORTS or util.on_CI()):
+        pass
+    elif not (ODOO_MIG_16_MIGRATE_CUSTOM_TAX_REPORTS or util.on_CI()):
         util.add_to_migration_reports(
             """
                 <details>
@@ -42,6 +41,5 @@ def migrate(cr, version):
             category="Tax Reports",
             format="html",
         )
-        return
-
-    util.ENVIRON["upgrade_custom_tax_report_ids_16"] = tuple(res[0] for res in custom_tax_reports)
+    else:
+        util.ENVIRON["upgrade_custom_tax_report_ids_16"] = tuple(res[0] for res in custom_tax_reports)

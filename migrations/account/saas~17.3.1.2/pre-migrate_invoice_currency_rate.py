@@ -190,8 +190,11 @@ def migrate(cr, version):
     )
     cr.execute(remaining_currencies_query)
     remaining_currencies = cr.fetchall()
-    if not remaining_currencies:
-        return
+    if remaining_currencies:
+        _upgrade_remaining_currencies(cr, remaining_currencies, move_invoice_rate_date_expression)
+
+
+def _upgrade_remaining_currencies(cr, remaining_currencies, move_invoice_rate_date_expression):
     # Upgrade the remaining invoices
 
     # To be consistent with `_get_rates` from model `res.currency`:

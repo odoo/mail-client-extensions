@@ -2,11 +2,9 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if util.version_gte("saas~17.2"):
-        # handled by the saas~17.2 script
-        return
-    update_rules = util.import_script("base/14.0.1.3/end-update-multi-company-rules.py").update_rules
-    update_rules(cr, util.splitlines(TO_UPDATE))
+    if not util.version_gte("saas~17.2"):  # also handled by the saas~17.2 script
+        update_rules = util.import_script("base/14.0.1.3/end-update-multi-company-rules.py").update_rules
+        update_rules(cr, util.splitlines(TO_UPDATE))
 
 
 TO_UPDATE = """

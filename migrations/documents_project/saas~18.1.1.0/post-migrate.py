@@ -55,11 +55,6 @@ def migrate(cr, version):
         alias="d",
     )
 
-    if not cr.rowcount:
-        util.remove_column(cr, "documents_document", "_upg_181_outside_project_folder_tag_name")
-        util.remove_column(cr, "documents_document", "_upg_181_opf_project_folder_id")
-        return
-
     cr.execute(
         """
         INSERT INTO documents_tag (name, color, sequence)

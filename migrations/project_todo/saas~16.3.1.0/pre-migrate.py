@@ -156,13 +156,10 @@ def migrate(cr, version):
     )
     cr.execute(query, [main_company])
 
-    # Stop migration if no notes need to be converted
-    if not cr.rowcount:
-        return
-
-    util.add_to_migration_reports(
-        "All the notes of this database (records of model note.note) have been converted to tasks (project.task) that can be seen in both apps Project and To-do. Deleting those apps will result in the loss of these data."
-    )
+    if cr.rowcount:
+        util.add_to_migration_reports(
+            "All the notes of this database (records of model note.note) have been converted to tasks (project.task) that can be seen in both apps Project and To-do. Deleting those apps will result in the loss of these data."
+        )
 
     # ---------------- 5. Populate relations tables --------------------
 
@@ -283,25 +280,25 @@ def migrate(cr, version):
     if note_id_mapping:
         util.replace_record_references_batch(cr, note_id_mapping, "note.note", "project.task")
 
-    # ------------- 7. Add new tag to converted notes ------------------
+        # ------------- 7. Add new tag to converted notes ------------------
 
-    cr.execute(
-        """
-        INSERT INTO project_tags (name, color)
-             VALUES ('{"en_US": "Converted Note"}', 1)
-          RETURNING id
-        """
-    )
-    converted_note_tag_id = cr.fetchone()[0]
-    cr.execute(
-        """
-        INSERT INTO project_tags_project_task_rel (project_tags_id, project_task_id)
-             SELECT %s, task.id
-               FROM project_task AS task
-              WHERE task._upg_note_id IS NOT NULL
-        """,
-        [converted_note_tag_id],
-    )
+        cr.execute(
+            """
+            INSERT INTO project_tags (name, color)
+                 VALUES ('{"en_US": "Converted Note"}', 1)
+              RETURNING id
+            """
+        )
+        converted_note_tag_id = cr.fetchone()[0]
+        cr.execute(
+            """
+            INSERT INTO project_tags_project_task_rel (project_tags_id, project_task_id)
+                 SELECT %s, task.id
+                   FROM project_task AS task
+                  WHERE task._upg_note_id IS NOT NULL
+            """,
+            [converted_note_tag_id],
+        )
 
     # ------------- 8. Move Studio fields and manual fields ------------------
     for src_model, dst_model, map_col in [

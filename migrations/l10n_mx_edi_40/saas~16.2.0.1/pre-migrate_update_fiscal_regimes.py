@@ -4,7 +4,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     if util.parse_version(version) >= util.parse_version("saas~16.2"):
         # may be called by `l10n_mx_edi/saas~16.3`, but should only be run for pre-16.2 databases
-        return
+        return  # nosemgrep: no-early-return
     # in case the script is called by 'l10n_mx_edi/saas~16.3' and l10n_mx_edi_40 was not previously installed
     if util.create_column(cr, "res_partner", "l10n_mx_edi_fiscal_regime", "varchar"):
         populate_column_query = """

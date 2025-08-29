@@ -8,7 +8,7 @@ def migrate(cr, version):
         #
         # [^1]: https://github.com/odoo/odoo/commit/55a487ff2be8b1d976d07ea50f2332a82cb73f9c
         # [^2]: https://github.com/odoo/upgrade/blob/ac0b7445cbafa1e3c149aee40ce12fdddff91535/migrations/account/saas~16.2.1.2/pre-migrate.py#L62
-        return
+        return  # nosemgrep: no-early-return
 
     fr = util.ref(cr, "base.fr")
 

@@ -5,7 +5,7 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     if not util.table_exists(cr, "membership_membership_line"):
-        return
+        return  # nosemgrep: no-early-return
 
     util.remove_view(cr, "partnership.membership_members_tree")
     util.remove_view(cr, "partnership.membership_product_search_form_view")

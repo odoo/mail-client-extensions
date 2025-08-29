@@ -159,9 +159,6 @@ def convert_html_fields(cr):
 
 
 def migrate(cr, version):
-    if not util.module_installed(cr, "web"):
-        return
-
     convert_views(cr)
 
     if util.str2bool(os.getenv("UPG_BS5_CONVERT_HTML_FIELDS", "1")):

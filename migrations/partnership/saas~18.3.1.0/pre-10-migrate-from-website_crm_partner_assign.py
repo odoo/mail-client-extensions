@@ -2,9 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if not util.module_installed(cr, "website_crm_partner_assign"):
-        return
-
     for record in [
         "view_partner_grade_tree",
         "res_partner_grade_view_search",

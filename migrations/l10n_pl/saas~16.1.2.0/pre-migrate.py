@@ -2,10 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    # data file was changed after release, only apply this migration script to the dbs created before such change
-    if not util.ref(cr, "l10n_pl.account_tax_report_line_towary_art_129_formula"):
-        return
-
     util.update_record_from_xml(cr, "l10n_pl.account_tax_report_line_uslugi_kraj_0_tag")
 
     xmlids_to_remove = [

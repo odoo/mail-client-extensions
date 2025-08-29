@@ -2,6 +2,10 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    _call_for_tender(cr)
+
+
+def _call_for_tender(cr):
     env = util.env(cr)
     tender_id = util.ref(cr, "purchase_requisition.type_multi")
     if not tender_id:

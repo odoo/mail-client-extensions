@@ -10,7 +10,7 @@ def recompute_field_on_install(cr):
 def migrate(cr, version):
     if version == "saas~16.2":
         recompute_field_on_install(cr)
-        return
+        return  # nosemgrep: no-early-return
 
     models_to_move = (
         "choose.delivery.package",

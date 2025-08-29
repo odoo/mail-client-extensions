@@ -28,26 +28,25 @@ def migrate(cr, version):
                     elem.set("options", str(options))
                     updated_views.append((vid, vname, elem.get("name")))
 
-    if not updated_views:
-        return
-    util.add_to_migration_reports(
-        category="Views",
-        format="html",
-        message="""
-        <summary>
-            HTML fields edited inline should now use the widget `html_mail` or any extension (maybe a custom one).
-            All fields in views using style-inline as an `option` have been set to use the `html_mail` widget instead.
-            Below is a list of updated fields on each view.
-        <details>
-            <ul>{}</ul>
-        </details>
-        </summay>
-        """.format(
-            "\n".join(
-                "<li>Field {!r} updated in view {}</li>".format(
-                    fname, util.get_anchor_link_to_record("ir.ui.view", vid, vname)
+    if updated_views:
+        util.add_to_migration_reports(
+            category="Views",
+            format="html",
+            message="""
+            <summary>
+                HTML fields edited inline should now use the widget `html_mail` or any extension (maybe a custom one).
+                All fields in views using style-inline as an `option` have been set to use the `html_mail` widget instead.
+                Below is a list of updated fields on each view.
+            <details>
+                <ul>{}</ul>
+            </details>
+            </summay>
+            """.format(
+                "\n".join(
+                    "<li>Field {!r} updated in view {}</li>".format(
+                        fname, util.get_anchor_link_to_record("ir.ui.view", vid, vname)
+                    )
+                    for vid, vname, fname in updated_views
                 )
-                for vid, vname, fname in updated_views
-            )
-        ),
-    )
+            ),
+        )

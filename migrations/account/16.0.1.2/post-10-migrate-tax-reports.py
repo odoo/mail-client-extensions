@@ -5,7 +5,7 @@ def migrate(cr, version):
     tax_report_ids = util.ENVIRON.get("upgrade_custom_tax_report_ids_16")
 
     if not tax_report_ids:
-        return
+        return  # nosemgrep: no-early-return
 
     # Multiple tax report lines with same code on same report are not supported in Odoo 16
     # Actually Odoo 16 reports must have unique codes across all reports

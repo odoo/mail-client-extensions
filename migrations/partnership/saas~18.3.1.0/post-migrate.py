@@ -4,7 +4,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     if not util.column_exists(cr, "res_partner", "_upg_membership_product_id"):
         # partnership could be freshly installed, we need this only if membership was installed
-        return
+        return  # nosemgrep: no-early-return
 
     # update the membership product and assign a new grade
     query = """
