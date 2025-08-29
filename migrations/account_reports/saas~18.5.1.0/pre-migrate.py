@@ -82,6 +82,28 @@ def migrate(cr, version):
              WHERE account_return_check.id = check_has_approvers.id
         """)
 
+        util.make_field_non_stored(cr, "account.return.check", "records_name", selectable=False)
+        util.convert_field_to_translatable(cr, "account.return", "name")
+        util.convert_field_to_translatable(cr, "account.return.check", "name")
+        util.convert_field_to_translatable(cr, "account.return.check", "message")
+        util.create_column(cr, "account_return_check", "records_model", "integer")
+        cr.execute(
+            """
+                WITH check_candidates AS (
+                    SELECT return_check.id as return_check_id,
+                           model.id as model_id
+                      FROM account_return_check return_check
+                      JOIN ir_model model
+                        ON model.model = return_check.action->>'res_model'
+                     WHERE return_check.action IS NOT NULL
+                )
+                UPDATE account_return_check return_check
+                   SET records_model = check_candidates.model_id
+                  FROM check_candidates check_candidates
+                 WHERE check_candidates.return_check_id = return_check.id
+            """
+        )
+
     util.remove_field(cr, "account.return", "is_tax_return")
     if util.table_exists(cr, "account_return_type"):
         util.create_column(cr, "account_return_type", "states_workflow", "varchar")
