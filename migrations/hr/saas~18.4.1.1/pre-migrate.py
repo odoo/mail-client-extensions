@@ -293,6 +293,7 @@ def migrate(cr, version):
     eb = util.expand_braces
     util.rename_xmlid(cr, *eb("hr.contract_type_{part_time,intern}"))
     util.remove_record(cr, "hr.ir_cron_data_check_work_permit_validity")
+    util.remove_record(cr, "hr.ir_cron_data_contract_update_state")
 
     util.remove_view(cr, "hr.resource_calendar_view_form")
     util.remove_view(cr, "hr.view_resource_calendar_search_inherit_contract")
