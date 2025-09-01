@@ -23,9 +23,15 @@ def migrate(cr, version):
         {"invoice_sent": "invoice_validated", "invoice_sending": "invoice_sent"},
     )
 
-    # 'l10n_ro_edi.document' model was in module 'l10n_ro_efactura' that is
-    # merged with 'l10n_ro_edi' in saas~17.5, 'l10n_ro_efactura' may be uninstalled
-    if util.table_exists(cr, "l10n_ro_edi_document"):
+    if util.module_installed(cr, "l10n_ro_efactura_synchronize"):
+        # `l10n_ro_edi_index` already exists thanks to `l10n_ro_efactura_synchronize`
+        util.move_field_to_module(
+            cr, "account.move", "l10n_ro_edi_index", "l10n_ro_efactura_synchronize", "l10n_ro_edi"
+        )
+
+    elif util.table_exists(cr, "l10n_ro_edi_document"):
+        # 'l10n_ro_edi.document' model was in module 'l10n_ro_efactura' that is
+        # merged with 'l10n_ro_edi' in saas~17.4, 'l10n_ro_efactura' may be uninstalled
         # set account_move.l10n_ro_edi_index to the first found related document with key_loading information
         util.create_column(cr, "account_move", "l10n_ro_edi_index", "varchar")
         cr.execute("""
