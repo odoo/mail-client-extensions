@@ -28,6 +28,8 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_id_efaktur_coretax", "l10n_id_efaktur")  # nofml
     util.rename_module(cr, "l10n_id_efaktur", "l10n_id_efaktur_coretax")
 
+    util.merge_module(cr, "l10n_pl_taxable_supply_date", "l10n_pl")
+
     util.remove_module(cr, "test_ai")
     util.merge_module(cr, "l10n_it_edi_withholding", "l10n_it_edi")
     util.rename_module(cr, "account_auto_transfer", "account_transfer")

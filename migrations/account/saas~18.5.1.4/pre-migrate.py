@@ -6,6 +6,9 @@ def migrate(cr, version):
     util.remove_field(cr, model="res.company", fieldname="account_sale_receipt_tax_id")
     util.remove_field(cr, model="res.company", fieldname="account_purchase_receipt_tax_id")
     util.remove_field(cr, "account.tax", "name_searchable")
+    util.move_field_to_module(cr, "account.move", "taxable_supply_date", "l10n_cz", "account")
+    util.move_field_to_module(cr, "account.move", "taxable_supply_date", "l10n_sk", "account")
+    util.move_field_to_module(cr, "account.move", "taxable_supply_date", "l10n_pl", "account")
 
     util.create_column(cr, "account_move_line", "no_followup", "bool")
     util.explode_execute(
