@@ -1,5 +1,7 @@
 from odoo import models
+
 from odoo.addons.account_ponto.models import ponto as _ignore  # noqa
+
 from odoo.addons.base.maintenance.migrations import util
 
 

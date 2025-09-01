@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models
+
 from odoo.addons.web_studio.models import ir_ui_view  # noqa
 
 

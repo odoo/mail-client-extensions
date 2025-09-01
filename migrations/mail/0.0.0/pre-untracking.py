@@ -3,6 +3,7 @@ Historically tracking could get copied onto related fields even when that made
 no sense (it rarely did). Remove tracking attribute if that's an option.
 """
 
+
 def migrate(cr, version):
     cr.execute("""
         SELECT 1

@@ -2,7 +2,7 @@
 from odoo import models
 
 try:
-    import odoo.addons.fleet.models.fleet_vehicle as _ignored  # noqa
+    import odoo.addons.fleet.models.fleet_vehicle as _ignored
 except Exception:
     import odoo.addons.fleet.models.fleet as _ignored  # noqa
 

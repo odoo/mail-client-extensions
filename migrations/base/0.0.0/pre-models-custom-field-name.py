@@ -29,12 +29,16 @@ def migrate(cr, version):
     for model, name in cr.fetchall():
         new_name = name.strip(" _").replace(" ", "_")
         if not new_name.startswith("x_"):
-            new_name = "x_%s" % (new_name)
+            new_name = "x_" + new_name
         util.rename_field(cr, model, name, new_name)
         renamed.append((name, new_name))
         _logger.info("ir_model_fields manual fields name: '%s' renamed field '%s' to '%s'", model, name, new_name)
 
     if renamed:
+        li = "\n".join(
+            "<li>{} &#8594; {}</li>".format(util.html_escape(name), util.html_escape(new_name))
+            for name, new_name in renamed
+        )
         util.add_to_migration_reports(
             """
                 <details>
@@ -42,15 +46,9 @@ def migrate(cr, version):
                     Custom field names must start with <kbd>x_</kbd> and may not
                     include spaces. The following fields were renamed:
                 </summary>
-                <ul>%s</ul>
+                <ul>{}</ul>
                 </details>
-            """
-            % (
-                "\n".join(
-                    "<li>%s &#8594; %s</li>" % (util.html_escape(name), util.html_escape(new_name))
-                    for name, new_name in renamed
-                )
-            ),
+            """.format(li),
             "Custom Field Names",
             format="html",
         )

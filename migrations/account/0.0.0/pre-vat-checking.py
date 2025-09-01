@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models
+
 from odoo.addons.base_vat.models import res_partner  # noqa
 
 

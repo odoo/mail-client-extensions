@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 def migrate(cr, version):
     cr.execute("""
         UPDATE res_partner_bank SET sequence = s.seq

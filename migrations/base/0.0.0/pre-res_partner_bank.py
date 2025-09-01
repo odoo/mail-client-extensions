@@ -44,6 +44,6 @@ def migrate(cr, version):
                SET color = NULL
              WHERE p.id IN %s
             """,
-            [tuple(_id for _id, in cr.fetchall())],
+            [tuple(_id for (_id,) in cr.fetchall())],
         )
     cr.execute("DROP FUNCTION _upg_not_null_partner()")

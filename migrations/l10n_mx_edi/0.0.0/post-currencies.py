@@ -3,8 +3,9 @@ from contextlib import closing
 
 from lxml import etree
 
-from odoo.addons.base.maintenance.migrations import util
 from odoo.tools import file_open
+
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):

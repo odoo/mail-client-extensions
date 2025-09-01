@@ -86,6 +86,12 @@ def migrate(cr, version):
             )
             tax_tags = cr.fetchall()
             if tax_tags:
+                li = "\n".join(
+                    "<li>The tag {} has been added to the tax {}</li>".format(
+                        util.html_escape(tag), util.html_escape(tax)
+                    )
+                    for tax, tag in tax_tags
+                )
                 util.add_to_migration_reports(
                     """
                         <details>
@@ -96,16 +102,9 @@ def migrate(cr, version):
                             you must ensure the name, description and type of use of your taxes
                             match the ones of the tax templates.
                         </summary>
-                        <ul>%s</ul>
+                        <ul>{}</ul>
                         </details>
-                    """
-                    % (
-                        "\n".join(
-                            "<li>The tag %s has been added to the tax %s</li>"
-                            % (util.html_escape(tag), util.html_escape(tax))
-                            for tax, tag in tax_tags
-                        ),
-                    ),
+                    """.format(li),
                     "Accounting",
                     format="html",
                 )

@@ -10,5 +10,5 @@ def migrate(cr, version):
     if cr.rowcount:
         Move = util.env(cr)["account.move"].with_context(mail_notrack=True)
         util.recompute_fields(
-            cr, Move, ["commercial_partner_id"], ids=[id_ for id_, in cr.fetchall()], strategy="commit"
+            cr, Move, ["commercial_partner_id"], ids=[id_ for (id_,) in cr.fetchall()], strategy="commit"
         )

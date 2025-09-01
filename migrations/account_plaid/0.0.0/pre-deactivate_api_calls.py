@@ -1,5 +1,7 @@
-from odoo import models, api
+from odoo import api, models
+
 from odoo.addons.account_plaid.models import plaid as _ignore  # noqa
+
 from odoo.addons.base.maintenance.migrations import util
 
 

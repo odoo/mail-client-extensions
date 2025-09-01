@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from odoo.addons.base.maintenance.migrations import util
 import psycopg2
+
+from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):

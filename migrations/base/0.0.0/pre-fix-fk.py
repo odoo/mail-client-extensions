@@ -22,14 +22,18 @@ if util.version_gte("11.0"):
             return False
         allowed_cascade = util.ENVIRON["__fix_fk_allowed_cascade"]
         if ondelete in ("set null", "restrict") and util.column_nullable(cr, tablename1, columnname1):
-            query = (
+            query = util.format_query(
+                cr,
                 """
-                    UPDATE "%(tablename1)s" t
-                       SET "%(columnname1)s" = NULL
-                     WHERE "%(columnname1)s" IS NOT NULL
-                       AND NOT EXISTS (SELECT "%(columnname2)s" FROM "%(tablename2)s" WHERE id=t."%(columnname1)s")
-                """
-                % locals()
+                    UPDATE {t1} t
+                       SET {c1} = NULL
+                     WHERE {c1} IS NOT NULL
+                       AND NOT EXISTS (SELECT {c2} FROM {t2} WHERE id=t.{c1})
+                """,
+                t1=tablename1,
+                c1=columnname1,
+                t2=tablename2,
+                c2=columnname2,
             )
             rowcount = util.parallel_execute(cr, util.explode_query_range(cr, query, table=tablename1, alias="t"))
             if rowcount:
@@ -47,15 +51,20 @@ if util.version_gte("11.0"):
             # NOTE: deletes cannot be executed in parallel due to recusrive ON DELETE CASCADE constraints that can
             #       delete rows in another chunk, leading to concurrency errors.
             #       See discussion on https://github.com/odoo/upgrade/pull/3300
-            cr.execute(
+            query = util.format_query(
+                cr,
                 """
                     DELETE
-                      FROM "%(tablename1)s" t
-                     WHERE "%(columnname1)s" IS NOT NULL
-                       AND NOT EXISTS (SELECT "%(columnname2)s" FROM "%(tablename2)s" WHERE id=t."%(columnname1)s")
-                """
-                % locals()
+                      FROM {t1} t
+                     WHERE {c1} IS NOT NULL
+                       AND NOT EXISTS (SELECT {c2} FROM {t2} WHERE id=t.{c1})
+                """,
+                t1=tablename1,
+                c1=columnname1,
+                t2=tablename2,
+                c2=columnname2,
             )
+            cr.execute(query)
             if cr.rowcount:
                 _logger.warning(
                     "%s records of the table `%s` have been deleted "

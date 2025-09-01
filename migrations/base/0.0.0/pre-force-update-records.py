@@ -3,7 +3,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    util.force_noupdate(cr, "base.group_system", False)
+    util.force_noupdate(cr, "base.group_system", noupdate=False)
 
     if util.version_gte("saas~12.4") and not util.version_gte("saas~14.2"):
         # `website` module adds a new field `website_form_key` on `ir.model` model.

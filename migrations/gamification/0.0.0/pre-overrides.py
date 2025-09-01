@@ -1,9 +1,9 @@
 from odoo import models
 
 try:
-    import odoo.addons.gamification.models.challenge as _ignore  # noqa
+    import odoo.addons.gamification.models.challenge as _ignore
 except ImportError:
-    import odoo.addons.gamification.models.gamification_challenge as _ignore  # noqa
+    import odoo.addons.gamification.models.gamification_challenge as _ignore
 
 try:
     import odoo.addons.gamification.models.res_users as _ignore  # noqa

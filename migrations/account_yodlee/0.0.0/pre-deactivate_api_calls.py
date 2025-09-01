@@ -1,5 +1,7 @@
-from odoo import models, api
+from odoo import api, models
+
 from odoo.addons.account_yodlee.models import yodlee as _ignore  # noqa
+
 from odoo.addons.base.maintenance.migrations import util
 
 

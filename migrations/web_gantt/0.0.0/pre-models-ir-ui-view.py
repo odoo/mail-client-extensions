@@ -1,4 +1,5 @@
 from odoo import models
+
 from odoo.addons.base.maintenance.migrations import util
 
 if util.version_gte("saas~13.3"):
@@ -17,5 +18,5 @@ class IrUiView(models.Model):
 
         def _validate_tag_gantt(self, *args, **kwargs):
             if self.env.context.get("_upgrade_custom_modules"):
-                return
+                return None
             return super()._validate_tag_gantt(*args, **kwargs)

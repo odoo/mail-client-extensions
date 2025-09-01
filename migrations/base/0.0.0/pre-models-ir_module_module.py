@@ -9,7 +9,7 @@ except ImportError:
     # version 10
     from odoo.addons.base.module import module as _ignore  # noqa
 
-try:  # noqa: SIM105
+try:
     from odoo.modules import get_modules
 except ImportError:
     pass

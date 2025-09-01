@@ -2,7 +2,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-
     if util.version_gte("saas~17.5"):
         return
 

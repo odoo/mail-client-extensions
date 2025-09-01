@@ -1,4 +1,5 @@
 from odoo import models
+
 from odoo.addons.mail.models import mail_alias  # noqa
 
 

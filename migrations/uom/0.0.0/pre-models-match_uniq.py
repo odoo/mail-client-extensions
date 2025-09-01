@@ -2,8 +2,9 @@
 import logging
 
 from odoo import models
-from odoo.addons.uom.models import uom_uom  # noqa
 from odoo.exceptions import ValidationError
+
+from odoo.addons.uom.models import uom_uom  # noqa
 
 _logger = logging.getLogger("odoo.addons.base.maintenance.migration.uom.000." + __name__)
 
@@ -20,7 +21,7 @@ class UoM(models.Model):
     _name = "uom.uom"
     _inherit = ["uom.uom"]
     _module = "uom"
-    # _match_uniq = True    # Not an SQL unique constraint
+    # _match_uniq = True    # noqa: ERA001 ; Not an SQL unique constraint
 
     def create(self, values):
         try:

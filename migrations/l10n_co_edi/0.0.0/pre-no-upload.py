@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models
+
 from odoo.addons.l10n_co_edi.models import account_invoice as _ignore  # noqa
 
 from odoo.addons.base.maintenance.migrations import util
