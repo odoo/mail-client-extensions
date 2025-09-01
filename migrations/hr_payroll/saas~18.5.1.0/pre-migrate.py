@@ -15,6 +15,7 @@ def migrate(cr, version):
     util.create_column(cr, "hr_payslip", "origin_payslip_id", "int4")
     util.create_column(cr, "hr_payslip", "has_wrong_data", "bool", default=False)
     util.create_column(cr, "hr_payslip", "is_wrong_version", "bool", default=False)
+    util.create_column(cr, "hr_salary_attachment", "duration_type", "varchar", default="one")
 
     util.explode_execute(
         cr,
@@ -195,3 +196,16 @@ def migrate(cr, version):
     util.create_column(cr, "hr_payslip", "warning_count", "integer")
     util.create_column(cr, "hr_payslip", "issues", "jsonb")
     util.create_column(cr, "hr_payslip", "state_display", "varchar")
+
+    cr.execute(r"""
+        UPDATE hr_salary_attachment
+           SET duration_type = 'unlimited'
+         WHERE no_end_date = TRUE
+        """)
+    util.remove_field(cr, "hr.salary.attachment", "no_end_date")
+
+    state_mapping = {
+        "cancel": "close",
+    }
+
+    util.change_field_selection_values(cr, "hr.salary.attachment", "state", state_mapping)
