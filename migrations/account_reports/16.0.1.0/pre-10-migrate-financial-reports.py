@@ -55,6 +55,19 @@ def migrate(cr, version):
     # migrate custom financial reports from account_financial_html_report to account_report
     cr.execute(
         """
+        WITH translations AS (
+            SELECT it.res_id,
+                   jsonb_object_agg(it.lang, it.value) AS name_translations
+              FROM ir_translation it
+              JOIN account_financial_html_report afhr
+                ON it.res_id = afhr.id
+               AND it.name = 'account.financial.html.report,name'
+               AND it.type = 'model'
+              JOIN res_lang rl
+                ON rl.code = it.lang
+             WHERE rl.active
+             GROUP BY it.res_id
+        )
         INSERT INTO account_report (
             create_uid, write_uid, create_date, write_date, name,
             filter_unfold_all, filter_analytic, filter_period_comparison, filter_journals, filter_multi_company,
@@ -62,12 +75,15 @@ def migrate(cr, version):
             country_id, availability_condition,
             only_tax_exigible, v15_fin_report_id
         )
-        SELECT create_uid, write_uid, create_date, NOW(), JSONB_BUILD_OBJECT('en_US', name),
+        SELECT create_uid, write_uid, create_date, NOW(),
+               COALESCE(it.name_translations, '{}'::jsonb) || jsonb_build_object('en_US', afhr.name),
                unfold_all_filter, analytic, comparison, show_journal_filter, 'selector',
                date_range, CASE WHEN date_range THEN 'this_year' ELSE 'today' END,
                country_id, CASE WHEN country_id IS NOT NULL THEN 'country' ELSE 'always' END,
                tax_report, id
-          FROM account_financial_html_report
+          FROM account_financial_html_report afhr
+     LEFT JOIN translations it
+            ON it.res_id = afhr.id
          WHERE id IN %s
      RETURNING id, name->>'en_US'
         """,
@@ -150,7 +166,20 @@ def migrate(cr, version):
     # migrate custom reports' lines from account_financial_html_report_line to account_report_line
     cr.execute(
         r"""
-        WITH mapping AS (
+        WITH translations AS (
+            SELECT it.res_id,
+                   jsonb_object_agg(it.lang, it.value) AS name_translations
+              FROM ir_translation it
+              JOIN account_financial_html_report_line afhrl
+                ON afhrl.id = it.res_id
+               AND it.name = 'account.financial.html.report.line,name'
+               AND it.type = 'model'
+              JOIN res_lang rl
+                ON rl.code = it.lang
+             WHERE rl.active
+             GROUP BY it.res_id
+        ),
+        mapping AS (
             SELECT ar.id AS report_id,
                    afhrl.id AS line_id
               FROM account_report ar
@@ -169,7 +198,7 @@ def migrate(cr, version):
             v15_figure_type
         )
         SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(),
-               m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
+               m.report_id, COALESCE(it.name_translations, '{}'::jsonb) || jsonb_build_object('en_US', afhrl.name),
                1, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
                CASE
                     WHEN afhrl.formulas ~ %s THEN afhrl.groupby
@@ -187,6 +216,8 @@ def migrate(cr, version):
           FROM mapping m
           JOIN account_financial_html_report_line afhrl
             ON afhrl.id = m.line_id
+    LEFT JOIN translations it
+            ON it.res_id = afhrl.id
         """,
         [f"^{DOMAIN_EXPR_REGEX}$"],
     )
@@ -195,7 +226,20 @@ def migrate(cr, version):
     while cr.rowcount:
         cr.execute(
             r"""
-            WITH mapping AS (
+            WITH translations AS (
+                SELECT it.res_id,
+                       jsonb_object_agg(it.lang, it.value) AS name_translations
+                  FROM ir_translation it
+                  JOIN account_financial_html_report_line afhrl
+                    ON afhrl.id = it.res_id
+                   AND it.name = 'account.financial.html.report.line,name'
+                   AND it.type = 'model'
+                  JOIN res_lang rl
+                    ON rl.code = it.lang
+                 WHERE rl.active
+                 GROUP BY it.res_id
+            ),
+            mapping AS (
                 SELECT arl.report_id,
                        arl.id AS parent_id,
                        arl.hierarchy_level AS parent_hierarchy_level,
@@ -216,7 +260,7 @@ def migrate(cr, version):
                 v15_figure_type
             )
             SELECT afhrl.create_uid, afhrl.write_uid, afhrl.create_date, NOW(),
-                   m.report_id, JSONB_BUILD_OBJECT('en_US', afhrl.name),
+                   m.report_id, COALESCE(it.name_translations, '{}'::jsonb) || jsonb_build_object('en_US', afhrl.name),
                    m.parent_id, m.parent_hierarchy_level + 2, afhrl.sequence, afhrl.action_id, afhrl.code, afhrl.print_on_new_page, afhrl.hide_if_zero,
                    CASE
                         WHEN afhrl.formulas ~ %s THEN afhrl.groupby
@@ -234,6 +278,8 @@ def migrate(cr, version):
               FROM mapping m
               JOIN account_financial_html_report_line afhrl
                 ON afhrl.id = m.line_id
+         LEFT JOIN translations it
+                ON it.res_id = afhrl.id
             """,
             [f"^{DOMAIN_EXPR_REGEX}$"],
         )
