@@ -50,6 +50,7 @@ def migrate(cr, version):
             [alias_id],
         )
 
+    util.remove_field(cr, "documents.document", "is_company_root_folder")
     util.remove_model(cr, "documents.access.invite")
 
 
