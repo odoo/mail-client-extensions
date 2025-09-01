@@ -9,6 +9,9 @@ def migrate(cr, version):
     if util.version_between("17.0", "19.0"):
         _verify_payslip_company(cr)
 
+    if util.version_gte("16.0"):
+        _force_noupdate_structs(cr)
+
 
 def _verify_payslip_company(cr):
     cr.execute(
@@ -69,3 +72,18 @@ def _verify_payslip_company(cr):
             </details>
         """.format(payslip_links)
     util.add_to_migration_reports(message=message, category="Payroll", format="html")
+
+
+def _force_noupdate_structs(cr):
+    for struct_id in ["hr_payroll.structure_002", "hr_payroll.structure_worker_001"]:
+        cr.execute(
+            """
+            SELECT 1
+              FROM hr_payroll_structure
+             WHERE country_id IS NOT NULL
+               AND id = %s
+            """,
+            [util.ref(cr, struct_id)],
+        )
+        if cr.rowcount:
+            util.force_noupdate(cr, struct_id)
