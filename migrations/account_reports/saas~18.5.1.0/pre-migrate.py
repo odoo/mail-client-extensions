@@ -55,51 +55,41 @@ def migrate(cr, version):
             """
         )
 
+        mapping = {"success": "reviewed", "failure": "anomaly", "manual": "todo"}
+        util.change_field_selection_values(cr, "account.return.check", "result", mapping)
+
+        util.create_column(cr, "account_return_check", "refresh_result", "bool")
+        util.create_m2m(cr, util.AUTO, "account_return_check", "res_users")
+
+        # If the check has been bypassed or approvers were added, we consider that a manual action has been done
+        # so refresh_result = False and result = 'reviewed'.
+        cr.execute("""
+            WITH check_has_approvers AS (
+                   SELECT account_return_check.id AS id,
+                          BOOL_AND(check_approvers.account_return_check_id IS NOT NULL) AS has_approvers
+                     FROM account_return_check
+                LEFT JOIN account_return_check_res_users_rel check_approvers
+                       ON account_return_check.id = check_approvers.account_return_check_id
+                 GROUP BY account_return_check.id
+            )
+            UPDATE account_return_check
+               SET refresh_result = (bypassed OR check_has_approvers.has_approvers) IS NOT TRUE,
+                   result = CASE
+                                WHEN bypassed OR check_has_approvers.has_approvers THEN 'reviewed'
+                                ELSE result
+                            END
+              FROM check_has_approvers
+             WHERE account_return_check.id = check_has_approvers.id
+        """)
+
     util.remove_field(cr, "account.return.check", "notes")
     util.remove_field(cr, "account.return.creation.wizard", "show_warning_existing_return")
     _setup_return_type_company_dependent_field(cr, "deadline_periodicity")
     _setup_return_type_company_dependent_field(cr, "deadline_start_date")
 
-    # Removes approver_ids and dispatch values in new fields approver_id and supervisor_id
-
-    # | Scenario                | `approver_id` outcome | `supervisor_id` outcome |
-    # | ----------------------- | --------------------- | ----------------------- |
-    # | Admin(s) exist          | Set to admin          | Set to admin            |
-    # | Only non-admins exist   | Set to any approver   | Remains NULL            |
-    # | No approver_ids at all  | Not updated           | Not updated             |
-
-    # Return check model was introduced in saas~18.3
-    # The m2m on res_users has been added in saas~18.4
-    if util.table_exists(cr, "account_return_check_res_users_rel"):
-        util.create_column(cr, "account_return_check", "approver_id", "int4")
-        util.create_column(cr, "account_return_check", "supervisor_id", "int4")
-        cr.execute(
-            """
-                WITH check_admin_candidates AS (
-                    SELECT return_check.id as return_check_id,
-                           MIN(checks_users.res_users_id) FILTER (WHERE admin.id IS NOT NULL) AS admin_user,
-                           MIN(checks_users.res_users_id) AS any_user
-                      FROM account_return_check return_check
-                      JOIN account_return_check_res_users_rel checks_users
-                        ON return_check.id = checks_users.account_return_check_id
-                      JOIN res_groups_users_rel r
-                        ON r.uid = checks_users.res_users_id
-                 LEFT JOIN ir_model_data admin
-                        ON admin.res_id = r.gid
-                       AND admin.model = 'res.groups'
-                       AND admin.module = 'account'
-                       AND admin.name = 'group_account_manager'
-                     WHERE return_check.bypassed = TRUE
-                  GROUP BY return_check.id
-                )
-                UPDATE account_return_check return_check
-                   SET approver_id = COALESCE(candidates.admin_user, candidates.any_user),
-                       supervisor_id = candidates.admin_user
-                  FROM check_admin_candidates candidates
-                 WHERE candidates.return_check_id = return_check.id
-            """
-        )
-    util.remove_field(cr, "account.return.check", "approver_ids")
-
     util.rename_field(cr, "account.return", "amount_to_pay", "total_amount_to_pay")
     util.remove_field(cr, "account.return.type", "report_country_id")
+
+    util.remove_field(cr, "account.return.check", "bypassed")
+    util.remove_field(cr, "account.return.check", "show_supervise")
+    util.remove_field(cr, "account.return.check", "show_invalidate")
