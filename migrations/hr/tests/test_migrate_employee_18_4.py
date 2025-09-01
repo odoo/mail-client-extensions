@@ -2,6 +2,7 @@ from datetime import date
 
 from dateutil.relativedelta import relativedelta
 
+from odoo.addons.base.maintenance.migrations import util
 from odoo.addons.base.maintenance.migrations.testing import UpgradeCase, change_version
 
 
@@ -126,7 +127,10 @@ class TestMigrateEmployee(UpgradeCase):
         self.assertEqual(employee.name, "Employee")
         self.assertEqual(employee.color, 1)
         self.assertEqual(employee.birthday, date(1990, 12, 5))
-        self.assertEqual(employee.bank_account_id.id, bank_id)
+        if util.version_gte("saas~18.5"):
+            self.assertIn(bank_id, employee.bank_account_ids.ids)
+        else:
+            self.assertEqual(employee.bank_account_id.id, bank_id)
         self.assertEqual(employee.permit_no, "5555")
         self.assertEqual(employee.visa_no, "6666")
         self.assertEqual(employee.visa_expire, date.today() + relativedelta(years=1))
