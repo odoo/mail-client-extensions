@@ -13,6 +13,7 @@ from . import (
     test_17_3_invoice_currency_rate,
     test_17_5_account_companies,
     test_17_5_lock_dates,
+    test_18_5_fiscal_positions_sequence,
     test_account,
     test_account_account_tag_unique,
     test_account_custom_report_lines,
