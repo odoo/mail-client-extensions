@@ -14,3 +14,9 @@ def migrate(cr, version):
     if util.module_installed(cr, "l10n_bg"):
         # The new module l10n_bg_ledger is auto-installed from l10n_bg
         util.force_upgrade_of_fresh_module(cr, "l10n_bg_ledger")
+
+    if util.module_installed(cr, "l10n_uk_bacs") and not util.module_installed(cr, "l10n_uk"):
+        # situation that doesn't expect to be found outside CI.
+        # `l10n_uk` will be installed after odoo/enterprise@147dafa3dcf4eff92b0379e14e589313a36d467e
+        # which will install `base_vat`.
+        util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].add(("res.partner", "vies_valid"))
