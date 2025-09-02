@@ -69,3 +69,18 @@ def migrate(cr, version):
         util.move_field_to_module(cr, "res.config.settings", "module_project_forecast", "project", "planning")
     else:
         util.remove_field(cr, "res.config.settings", "module_project_forecast")
+
+        cr.execute(
+            """
+            UPDATE project_project
+               SET task_properties_definition = (
+                    SELECT jsonb_agg(
+                      CASE WHEN def ? 'view_in_kanban'
+                           THEN def - 'view_in_kanban' || jsonb_build_object('view_in_cards', def->'view_in_kanban')
+                           ELSE def
+                       END
+               )      FROM jsonb_array_elements(task_properties_definition) AS elem(def)
+            )
+             WHERE jsonb_path_exists(task_properties_definition, '$[*]."view_in_kanban"')
+            """
+        )
