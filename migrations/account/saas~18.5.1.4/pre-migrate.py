@@ -20,3 +20,4 @@ def migrate(cr, version):
         table="account_move_line",
         alias="l",
     )
+    util.remove_field(cr, "res.config.settings", "module_l10n_eu_oss")
