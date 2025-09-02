@@ -10,12 +10,14 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.table_exists(cr, "account_tax_report_conversion_map"):
+    if util.table_exists(cr, "account_tax_report_conversion_map"):
         # This temporary table is used to pass the report lines to convert.
         # It is created when trying to append elements to it. So, there is nothing
         # to do if it does not exist.
-        return
+        _convert_tax_reports(cr)
 
+
+def _convert_tax_reports(cr):
     env = util.env(cr)
 
     cr.execute("""

@@ -3,8 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_gte("saas~11.4"):
-        return
+    if util.version_gte("saas~11.4"):
+        _password_crypt(cr)
+
+
+def _password_crypt(cr):
     if not util.version_gte("saas~12.1") and util.module_installed(cr, "auth_crypt"):
         cr.execute("UPDATE res_users SET password_crypt=password WHERE password_crypt IS NULL AND password IS NOT NULL")
         util.remove_column(cr, "res_users", "password")

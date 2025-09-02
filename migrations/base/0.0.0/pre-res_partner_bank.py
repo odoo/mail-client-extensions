@@ -6,8 +6,11 @@ def migrate(cr, version):
     # but it was never enforced in a migration script
     # At the moment of writing the next major version is 16.0
     # This should then cover all DBs in the wild with this issue
-    if not util.version_between("saas~11.3", "16.0"):
-        return
+    if util.version_between("saas~11.3", "16.0"):
+        _no_bank_without_partner(cr)
+
+
+def _no_bank_without_partner(cr):
     cr.execute(
         """
         CREATE FUNCTION _upg_not_null_partner() RETURNS TABLE(id int)

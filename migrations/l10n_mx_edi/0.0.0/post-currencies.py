@@ -9,11 +9,12 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_gte("saas~11.3"):
-        return
+    if util.version_gte("saas~11.3"):
+        _force_decimal_places(cr)
 
+
+def _force_decimal_places(cr):
     # currencies being in `noupdate`, force loading of `l10n_mx_edi_decimal_places` data
-
     places = []
     with closing(file_open("addons/l10n_mx_edi/data/res_currency_data.xml")) as fp:
         tree = etree.parse(fp)

@@ -3,8 +3,11 @@ from odoo.addons.base.maintenance.migrations.util.hr_payroll import remove_salar
 
 
 def migrate(cr, version):
-    if not util.version_between("16.0", "17.0"):
-        return
+    if util.version_between("16.0", "17.0"):
+        _fix_oversights(cr)
+
+
+def _fix_oversights(cr):
     eb = util.expand_braces
 
     # l10n_ke_hr_payroll/data/hr_salary_rule_data.xml

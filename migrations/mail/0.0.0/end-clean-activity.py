@@ -2,9 +2,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.table_exists(cr, "mail_activity"):
-        # as it's introduced in 11.0 after https://github.com/odoo/odoo/pull/14361
-        return
+    if util.table_exists(cr, "mail_activity"):
+        _clean_activities(cr)
+
+
+def _clean_activities(cr):
     env = util.env(cr)
     cr.execute("SELECT res_model FROM mail_activity GROUP BY res_model")
     for (model,) in cr.fetchall():

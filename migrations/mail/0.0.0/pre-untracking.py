@@ -11,15 +11,13 @@ def migrate(cr, version):
          WHERE table_name = 'ir_model_fields'
            AND column_name = 'tracking'
     """)
-    if not cr.rowcount:
-        return
-
-    cr.execute("""
-        UPDATE ir_model_fields f
-           SET tracking = NULL
-          FROM ir_model m
-         WHERE m.id = f.model_id
-           AND f.tracking IS NOT NULL
-           AND (   NOT coalesce(f.store, false)
-                OR NOT coalesce(m.is_mail_thread, false))
-    """)
+    if cr.rowcount:
+        cr.execute("""
+            UPDATE ir_model_fields f
+               SET tracking = NULL
+              FROM ir_model m
+             WHERE m.id = f.model_id
+               AND f.tracking IS NOT NULL
+               AND (   NOT coalesce(f.store, false)
+                    OR NOT coalesce(m.is_mail_thread, false))
+        """)

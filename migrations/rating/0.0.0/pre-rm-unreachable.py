@@ -4,7 +4,7 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     if "rating" not in util.split_osenv("UPG_CLEAN_UNREACHABLES"):
-        return
+        return  # nosemgrep: no-early-return
 
     # NOTE: `rating_rating` table is a special case for mutliple reasons:
     #   - As there is 2 res_model/res_id combinations, they cannot be run in

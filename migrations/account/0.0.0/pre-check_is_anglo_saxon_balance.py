@@ -6,9 +6,11 @@ def migrate(cr, version):
     # this script aims to detect and correct the database that would have been
     # a silent victim of the cogs lines post mig issue (from 12 to 13)
 
-    if not util.module_installed(cr, "purchase_stock") or not util.version_between("14.0", "saas~15.1"):
-        return
+    if util.module_installed(cr, "purchase_stock") and util.version_between("14.0", "saas~15.1"):
+        _recompute_is_anglo_saxon_flag_for_all_aml(cr)
 
+
+def _recompute_is_anglo_saxon_flag_for_all_aml(cr):
     cr.execute(
         """
         SELECT 1
@@ -23,10 +25,7 @@ def migrate(cr, version):
         return
 
     move_type = "move_type" if util.column_exists(cr, "account_move", "move_type") else "type"
-    recompute_is_anglo_saxon_flag_for_all_aml(cr, move_type)
 
-
-def recompute_is_anglo_saxon_flag_for_all_aml(cr, move_type):
     # the query works in several step:
     # 1. get the accounts relative to stock and price diff
     # 2. get income and expense accounts set on product and product category

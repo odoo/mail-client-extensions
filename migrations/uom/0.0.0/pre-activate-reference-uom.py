@@ -3,8 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if util.version_gte("saas~18.1"):
-        return
+    if not util.version_gte("saas~18.1"):
+        _activate_reference_uom(cr)
+
+
+def _activate_reference_uom(cr):
     uom_table, category_table = (
         ("uom_uom", "uom_category") if util.table_exists(cr, "uom_uom") else ("product_uom", "product_uom_categ")
     )

@@ -6,11 +6,9 @@ def migrate(cr, version):
     """
     some timezones doesn't exists in all pytz versions
     """
-    if not util.column_exists(cr, "resource_resource", "tz"):
-        return
-
-    tz_convert = [
-        ["US/Pacific-New", "US/Pacific"],
-    ]
-    for old, new in tz_convert:
-        cr.execute("UPDATE resource_resource SET tz=%s WHERE tz=%s", [new, old])
+    if util.column_exists(cr, "resource_resource", "tz"):
+        tz_convert = [
+            ["US/Pacific-New", "US/Pacific"],
+        ]
+        for old, new in tz_convert:
+            cr.execute("UPDATE resource_resource SET tz=%s WHERE tz=%s", [new, old])

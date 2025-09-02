@@ -15,8 +15,11 @@ def ts(e):
 def migrate(cr, version):
     # Companion script to TestFixViews in base/tests/test_fix_views.py
     # Here we simulate standard views that change during the upgrade
-    if not DATA_TABLE or not util.table_exists(cr, DATA_TABLE):
-        return
+    if DATA_TABLE and util.table_exists(cr, DATA_TABLE):
+        _fix_test_data(cr)
+
+
+def _fix_test_data(cr):
     query = util.format_query(
         cr, "SELECT 1 FROM {} WHERE key='base.tests.test_fix_views.TestFixViews' LIMIT 1", DATA_TABLE
     )

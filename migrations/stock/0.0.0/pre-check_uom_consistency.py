@@ -315,16 +315,15 @@ def fix_inconsistencies_from_previous_migrations(cr):
 
 
 def migrate(cr, version):
-    if not util.version_between("saas~12.3", "18.0"):
-        return
-    if not util.version_gte("saas~15.2"):
-        fix_inconsistencies_from_previous_migrations(cr)
+    if util.version_between("saas~12.3", "18.0"):
+        if not util.version_gte("saas~15.2"):
+            fix_inconsistencies_from_previous_migrations(cr)
 
-    additional_conditions = util.SQLStr("true" if update_uom_for_archived_product else "pp.active = true")
+        additional_conditions = util.SQLStr("true" if update_uom_for_archived_product else "pp.active = true")
 
-    if fix_inconsistencies_method == "MOST_USED":
-        fix_with_most_used_method(cr, additional_conditions)
-    elif fix_inconsistencies_method == "FROM_PRODUCT":
-        fix_with_from_product_method(cr, additional_conditions)
-    else:
-        log_faulty_objects(cr, additional_conditions)
+        if fix_inconsistencies_method == "MOST_USED":
+            fix_with_most_used_method(cr, additional_conditions)
+        elif fix_inconsistencies_method == "FROM_PRODUCT":
+            fix_with_from_product_method(cr, additional_conditions)
+        else:
+            log_faulty_objects(cr, additional_conditions)

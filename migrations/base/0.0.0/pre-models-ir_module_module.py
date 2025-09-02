@@ -21,9 +21,8 @@ _logger = logging.getLogger("odoo.upgrade.base.ir_module_module")
 
 
 def migrate(cr, version):
-    if not util.version_gte("15.0"):
-        return
-    break_recursive_loops(cr, "ir.module.category", "parent_id")
+    if util.version_gte("15.0"):
+        break_recursive_loops(cr, "ir.module.category", "parent_id")
 
 
 class Module(models.Model):

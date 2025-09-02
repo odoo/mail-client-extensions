@@ -32,7 +32,7 @@ def migrate(cr, version):
 
     if UPG_AUTO_INDEXING & IDX_AUTO == 0:
         _logger.info("Skip auto-indexing")
-        return
+        return  # nosemgrep: no-early-return
 
     create_index_queries = []
     util.ENVIRON["__created_fk_idx"] = []

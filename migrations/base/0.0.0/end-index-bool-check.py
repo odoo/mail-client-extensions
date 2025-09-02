@@ -6,10 +6,12 @@ _logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
-    """Warn about using an index with a WHERE on boolean values."""
-    if not util.version_gte("saas~18.1"):
-        return
+    if util.version_gte("saas~18.1"):
+        _check_indexes(cr)
 
+
+def _check_indexes(cr):
+    """Warn about using an index with a WHERE on boolean values."""
     cr.execute(r"""
       SELECT i.indexname, i.tablename, i.indexdef
         FROM pg_indexes i

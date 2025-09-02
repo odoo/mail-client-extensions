@@ -54,9 +54,11 @@ def create_line(cr, xmlid, vals):
 
 
 def migrate(cr, version):
-    if not util.version_gte("17.0") or not util.table_exists(cr, "upgrade_test_data"):
-        return
+    if util.version_gte("17.0") and util.table_exists(cr, "upgrade_test_data"):
+        _fix_test_data(cr)
 
+
+def _fix_test_data(cr):
     cr.execute(
         "SELECT value FROM upgrade_test_data WHERE key = 'account.tests.test_account_custom_report_lines.TestResequencedCustomLines'"
     )

@@ -3,9 +3,6 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_gte("saas~11.4"):
-        return
-
     if util.column_exists(cr, "res_users", "_upg_password_to_crypt"):
         util.remove_column(cr, "res_users", "password")
         cr.execute("ALTER TABLE res_users RENAME COLUMN _upg_password_to_crypt TO password")

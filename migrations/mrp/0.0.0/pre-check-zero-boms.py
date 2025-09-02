@@ -10,9 +10,11 @@ UPDATE_BOMS = util.str2bool(os.environ.get("ODOO_MIG_UPDATE_ZERO_QUANTITY_BOMS",
 
 
 def migrate(cr, version):
-    if not util.version_gte("13.0"):
-        return
+    if util.version_gte("13.0"):
+        _check_zero_boms(cr)
 
+
+def _check_zero_boms(cr):
     cr.execute(
         """
         SELECT b.id,

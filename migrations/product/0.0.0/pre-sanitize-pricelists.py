@@ -4,7 +4,8 @@ from odoo.addons.base.maintenance.migrations import util
 
 def migrate(cr, version):
     if util.version_gte("saas~17.5"):
-        return
+        # FIXME
+        return  # nosemgrep: no-early-return
         # upgrading to version >= saas-17.5 with jsonb company dependent
         # in the following SQL
         # we will clean

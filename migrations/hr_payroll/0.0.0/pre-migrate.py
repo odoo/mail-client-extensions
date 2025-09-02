@@ -6,8 +6,11 @@ ODOO_UPG_UPDATE_COMPANY_ID_ON_PAYSLIPS = util.str2bool(os.getenv("ODOO_UPG_UPDAT
 
 
 def migrate(cr, version):
-    if not util.version_between("17.0", "19.0"):
-        return
+    if util.version_between("17.0", "19.0"):
+        _verify_payslip_company(cr)
+
+
+def _verify_payslip_company(cr):
     cr.execute(
         """
         SELECT slip.id,

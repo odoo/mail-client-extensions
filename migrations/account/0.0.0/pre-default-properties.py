@@ -3,9 +3,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if util.version_gte("saas~17.5"):
-        return
+    if not util.version_gte("saas~17.5"):
+        _ensure_default_properties(cr)
 
+
+def _ensure_default_properties(cr):
     if not util.version_gte("saas~16.1"):  # this branch is for upgrades with target <=16.0
         join = "JOIN account_account_type t ON (t.id = a.user_type_id)"
         condition = "t.type IN ('payable', 'receivable')"

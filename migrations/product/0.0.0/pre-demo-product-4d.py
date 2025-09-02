@@ -3,6 +3,10 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
+    _fix_product_4d(cr)
+
+
+def _fix_product_4d(cr):
     # NOTE: See the commit message for an explaination about the reason this script exists.
     if not (util.on_CI() and util.version_gte("13.0")):
         return

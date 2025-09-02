@@ -9,8 +9,11 @@ _logger = logging.getLogger("odoo.upgrade.website.tests." + __name__)
 
 def migrate(cr, version):
     # COW appeared after saas-11.4, arch_updated appeared after saas-12.2.
-    if not util.version_gte("saas~12.3"):
-        return
+    if util.version_gte("saas~12.3"):
+        _reset_cowed_views(cr, version)
+
+
+def _reset_cowed_views(cr, version):
     views_to_reset = set()
     # Share with post-cowed-layout.
     util.ENVIRON["website_cowed_views_to_reset"] = views_to_reset

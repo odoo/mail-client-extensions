@@ -2,9 +2,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_gte("saas~16.2"):
-        return
+    if util.version_gte("saas~16.2"):
+        _clean_inactive_taxes(cr)
 
+
+def _clean_inactive_taxes(cr):
     # Rename and remove xmlid from inactive taxes that fail repartition line validations
     # those will be recreated with the correct values if the xmlid is standard.
     # The validation checks that there is the same number of invoice repartition lines

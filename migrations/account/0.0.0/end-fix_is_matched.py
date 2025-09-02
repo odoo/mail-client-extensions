@@ -2,9 +2,11 @@ from odoo.addons.base.maintenance.migrations import util
 
 
 def migrate(cr, version):
-    if not util.version_between("14.0", "saas~16.3"):
-        return
+    if util.version_between("14.0", "saas~16.3"):
+        _fix_is_matched(cr)
 
+
+def _fix_is_matched(cr):
     env = util.env(cr)
 
     extra_join, extra_where = "", ""

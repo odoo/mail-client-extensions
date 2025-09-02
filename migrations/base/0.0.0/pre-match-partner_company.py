@@ -27,30 +27,29 @@ def migrate(cr, version):
 
     total = cr.rowcount
     rows = cr.fetchmany(20)
-    if not rows:
-        return
-    util.add_to_migration_reports(
-        category="Partners",
-        format="html",
-        message="""
-        <details>
-            <summary>
-                A total of {} partners were assigned to different companies than their
-                commercial partner. To avoid issues during the upgrade the following
-                parters were updated to match the company of their commercial partner.
-                (Showing only the first {})
-            </summary>
-            <ul>{}</ul>
-        </details>
-        """.format(
-            total,
-            len(rows),
-            "\n".join(
-                "<li> Partner {} now belongs to company {}</li>".format(
-                    util.get_anchor_link_to_record("res.partner", p_id, p_name),
-                    util.get_anchor_link_to_record("res.partner", c_id, c_name),
-                )
-                for p_id, p_name, c_id, c_name in rows
+    if rows:
+        util.add_to_migration_reports(
+            category="Partners",
+            format="html",
+            message="""
+            <details>
+                <summary>
+                    A total of {} partners were assigned to different companies than their
+                    commercial partner. To avoid issues during the upgrade the following
+                    parters were updated to match the company of their commercial partner.
+                    (Showing only the first {})
+                </summary>
+                <ul>{}</ul>
+            </details>
+            """.format(
+                total,
+                len(rows),
+                "\n".join(
+                    "<li> Partner {} now belongs to company {}</li>".format(
+                        util.get_anchor_link_to_record("res.partner", p_id, p_name),
+                        util.get_anchor_link_to_record("res.partner", c_id, c_name),
+                    )
+                    for p_id, p_name, c_id, c_name in rows
+                ),
             ),
-        ),
-    )
+        )
