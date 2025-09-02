@@ -1,11 +1,80 @@
 from odoo.upgrade import util
+from odoo.upgrade.util.misc import _cached
 
 
-def migrate(cr, version):
-    cr.execute("SELECT 1 FROM ir_module_module WHERE name = 'product' AND demo IS TRUE")
-    if not cr.rowcount:
-        return
+@_cached
+def _get_product_columns(cr):
+    return util.get_columns(
+        cr,
+        "product_product",
+        ignore=(
+            "id",
+            "combination_indices",
+        ),
+    )
 
+
+def _create_att_line(cr, xmlid, template_id, attribute_id):
+    cr.execute(
+        """
+        INSERT INTO product_template_attribute_line (product_tmpl_id, attribute_id)
+        VALUES (%s, %s)
+        RETURNING id
+        """,
+        (template_id, attribute_id),
+    )
+    (new_id,) = cr.fetchone()
+    util.ensure_xmlid_match_record(
+        cr,
+        f"product.{xmlid}",
+        "product.template.attribute.line",
+        {"id": new_id},
+    )
+    return new_id
+
+
+def _create_tmpl_att_val(cr, xmlid, template_id, att_line_id, attribute_id, pav):
+    cr.execute(
+        """
+        INSERT INTO product_template_attribute_value (product_attribute_value_id, attribute_line_id,product_tmpl_id, attribute_id)
+        Values (%s, %s, %s, %s)
+    RETURNING id
+        """,
+        [pav, att_line_id, template_id, attribute_id],
+    )
+    (new_id,) = cr.fetchone()
+    util.ensure_xmlid_match_record(
+        cr,
+        f"product.{xmlid}",
+        "product.template.attribute.value",
+        {"id": new_id},
+    )
+    return new_id
+
+
+def _create_variants(cr, xmlid, first_variant_id, attributes):
+    indices = ",".join([str(att) for att in attributes])
+    product_cols = _get_product_columns(cr)
+    cr.execute(
+        util.format_query(
+            cr,
+            """
+            INSERT INTO product_product({cols}, combination_indices)
+            SELECT {p_cols}, %s
+                FROM product_product p
+                WHERE p.id = %s
+            RETURNING id
+            """,
+            cols=product_cols,
+            p_cols=product_cols.using(alias="p"),
+        ),
+        [indices, first_variant_id],
+    )
+    (new_id,) = cr.fetchone()
+    util.ensure_xmlid_match_record(cr, f"product.{xmlid}", "product.product", {"id": new_id})
+
+
+def migrate_demo(cr):
     dup_xmlid = """
     INSERT INTO ir_model_data(module, name, model, res_id, noupdate)
          SELECT module, %s, model, res_id, true
@@ -57,71 +126,6 @@ def migrate(cr, version):
                 "product.attribute.value",
                 {"id": v_id},
             )
-
-    product_cols = util.get_columns(
-        cr,
-        "product_product",
-        ignore=(
-            "id",
-            "combination_indices",
-        ),
-    )
-
-    def _create_att_line(cr, xmlid, template_id, attribute_id):
-        cr.execute(
-            """
-            INSERT INTO product_template_attribute_line (product_tmpl_id, attribute_id)
-            VALUES (%s, %s)
-            RETURNING id
-            """,
-            (template_id, attribute_id),
-        )
-        (new_id,) = cr.fetchone()
-        util.ensure_xmlid_match_record(
-            cr,
-            f"product.{xmlid}",
-            "product.template.attribute.line",
-            {"id": new_id},
-        )
-        return new_id
-
-    def _create_tmpl_att_val(cr, xmlid, template_id, att_line_id, attribute_id, pav):
-        cr.execute(
-            """
-            INSERT INTO product_template_attribute_value (product_attribute_value_id, attribute_line_id,product_tmpl_id, attribute_id)
-            Values (%s, %s, %s, %s)
-        RETURNING id
-            """,
-            [pav, att_line_id, template_id, attribute_id],
-        )
-        (new_id,) = cr.fetchone()
-        util.ensure_xmlid_match_record(
-            cr,
-            f"product.{xmlid}",
-            "product.template.attribute.value",
-            {"id": new_id},
-        )
-        return new_id
-
-    def _create_variants(cr, xmlid, first_variant_id, attributes):
-        indices = ",".join([str(att) for att in attributes])
-        cr.execute(
-            util.format_query(
-                cr,
-                """
-                INSERT INTO product_product({cols}, combination_indices)
-                SELECT {p_cols}, %s
-                    FROM product_product p
-                    WHERE p.id = %s
-                RETURNING id
-                """,
-                cols=product_cols,
-                p_cols=product_cols.using(alias="p"),
-            ),
-            [indices, first_variant_id],
-        )
-        (new_id,) = cr.fetchone()
-        util.ensure_xmlid_match_record(cr, f"product.{xmlid}", "product.product", {"id": new_id})
 
     # create product variants for product_product_8
     template_8_id = util.ref(cr, "product.product_template_8")
@@ -184,19 +188,8 @@ def migrate(cr, version):
     _create_variants(cr, "product_product_4e", first_variant_id, [p4_white, p4_leg_custom])
     _create_variants(cr, "product_product_4f", first_variant_id, [p4_black, p4_leg_custom])
 
-    # create variants for product_template_acoustic_bloc_screens
-    template_screen_id = util.ref(cr, "product.product_template_acoustic_bloc_screens")
-    first_variant_id = util.ref(cr, "product.product_product_25")
-    color_attribute_id = util.ref(cr, "product.pa_color")
-    att_black_id = util.ref(cr, "product.pav_color_black")
-    cr.execute(
-        """
-        SELECT id FROM product_template_attribute_line WHERE product_tmpl_id = %s AND attribute_id = %s
-        """,
-        [template_screen_id, color_attribute_id],
-    )
-    (ptal_id,) = cr.fetchone()
-    acoustic_ptav_black = _create_tmpl_att_val(
-        cr, "acoustic_ptav_black", template_screen_id, ptal_id, color_attribute_id, att_black_id
-    )
-    _create_variants(cr, "product_product_acoustic_bloc_screens_black", first_variant_id, [acoustic_ptav_black])
+
+def migrate(cr, version):
+    cr.execute("SELECT 1 FROM ir_module_module WHERE name = 'product' AND demo IS TRUE")
+    if cr.rowcount:
+        migrate_demo(cr)
