@@ -121,7 +121,7 @@ def migrate(cr, version):
         util.format_query(cr, query, util.SQLStr(return_periodicity_select)),
         [
             util.ref(cr, "account_reports.mail_activity_type_tax_report_to_pay"),
-            env.user.lang,
+            (env.user.lang or "en_US"),
         ],
     )
 
