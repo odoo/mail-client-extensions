@@ -36,3 +36,20 @@ def migrate(cr, version):
         )
     util.merge_model(cr, "l10n_id_efaktur.document", "l10n_id_efaktur_coretax.document")
     util.remove_field(cr, "account.move", "l10n_id_efaktur_document")
+
+    if util.ENVIRON.get("need_l10n_id_product_code_computation"):
+        product_code_service = util.ref(cr, "l10n_id_efaktur_coretax.product_code_000000_service")
+        product_code_goods = util.ref(cr, "l10n_id_efaktur_coretax.product_code_000000_goods")
+        if product_code_service and product_code_goods:
+            query = """
+            UPDATE product_template template
+               SET l10n_id_product_code = CASE WHEN type = 'service' THEN %(product_code_service)s ELSE %(product_code_goods)s END
+            """
+            util.explode_execute(
+                cr,
+                cr.mogrify(
+                    query, {"product_code_service": product_code_service, "product_code_goods": product_code_goods}
+                ).decode(),
+                table="product_template",
+                alias="template",
+            )

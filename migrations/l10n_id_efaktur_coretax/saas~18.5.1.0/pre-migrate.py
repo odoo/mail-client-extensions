@@ -20,3 +20,13 @@ def migrate(cr, version):
 
     # res.config.settings
     util.remove_view(cr, "l10n_id_efaktur_coretax.res_config_settings_view_form")
+
+    # Create the column now to avoid the computation, and we will set the values in post if necessary.
+    if not util.column_exists(cr, "product_template", "l10n_id_product_code"):
+        # We only need to compute this in post if the column is new.
+        util.ENVIRON["need_l10n_id_product_code_computation"] = True
+        util.create_column(cr, "product_template", "l10n_id_product_code", "int4")
+    util.create_column(cr, "account_move", "l10n_id_coretax_add_info_07", "varchar")
+    util.create_column(cr, "account_move", "l10n_id_coretax_facility_info_07", "varchar")
+    util.create_column(cr, "account_move", "l10n_id_coretax_add_info_08", "varchar")
+    util.create_column(cr, "account_move", "l10n_id_coretax_facility_info_08", "varchar")
