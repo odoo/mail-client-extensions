@@ -44,3 +44,24 @@ def migrate(cr, version):
         util.force_install_module(cr, "ai_app")
 
     util.remove_module(cr, "documents_hr_recruitment")
+
+    if util.has_enterprise():
+        if not util.modules_installed(cr, "l10n_mx_hr_payroll_account"):
+            util.add_to_migration_reports(
+                """
+                The module <i>Employees - Mexico</i> is now part of the <i>Mexico - Payroll with Accounting</i> module.
+                You may re-install Mexico's payroll modules to use the new features.
+                """,
+                "Mexico Employees",
+                format="html",
+            )
+            util.uninstall_module(cr, "l10n_mx_hr")
+        util.rename_module(cr, "l10n_mx_hr", "l10n_mx_hr_payroll_account_edi")
+    else:
+        if util.modules_installed(cr, "l10n_mx_hr"):
+            util.add_to_migration_reports(
+                "The module <i>Employees - Mexico</i> is no longer available in Odoo Community.",
+                "Mexico Employees",
+                format="html",
+            )
+        util.remove_module(cr, "l10n_mx_hr")
