@@ -432,14 +432,11 @@ def migrate(cr, version):
             size=math.ceil(cr.rowcount / chunk_size),
             log_hundred_percent=True,
         )
+        callback = util.make_pickleable_callback(_create_workorder_cb)
+        callback.dbname = cr.dbname
         with ProcessPoolExecutor(max_workers=util.get_max_workers()) as executor:
             for chunk in chunks:
-                collections.deque(
-                    executor.map(
-                        util.make_pickleable_callback(_create_workorder_cb), util.chunks(chunk, task_size, fmt=tuple)
-                    ),
-                    maxlen=0,
-                )
+                collections.deque(executor.map(callback, util.chunks(chunk, task_size, fmt=tuple)), maxlen=0)
         cr.commit()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
