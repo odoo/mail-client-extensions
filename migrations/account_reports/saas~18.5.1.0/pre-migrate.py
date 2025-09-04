@@ -82,6 +82,10 @@ def migrate(cr, version):
              WHERE account_return_check.id = check_has_approvers.id
         """)
 
+    util.remove_field(cr, "account.return", "is_tax_return")
+    if util.table_exists(cr, "account_return_type"):
+        util.create_column(cr, "account_return_type", "states_workflow", "varchar")
+
     util.remove_field(cr, "account.return.check", "notes")
     util.remove_field(cr, "account.return.creation.wizard", "show_warning_existing_return")
     _setup_return_type_company_dependent_field(cr, "deadline_periodicity")

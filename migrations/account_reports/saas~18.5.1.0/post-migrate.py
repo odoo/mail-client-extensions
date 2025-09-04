@@ -32,3 +32,29 @@ def migrate(cr, version):
          WHERE account_return.type_id = ir_model_data.res_id
            AND ir_model_data.model = 'account.return.type';
         """)
+
+    cr.execute(
+        """
+        UPDATE account_return_type t
+           SET states_workflow = (
+                CASE WHEN t.category = 'audit' THEN 'generic_state_review'
+                     WHEN %(tax_report_id)s IN (t.report_id, r.root_report_id) THEN 'generic_state_tax_report'
+                     WHEN %(ec_sales_list_report_id)s IN (t.report_id, r.root_report_id) THEN 'generic_state_review_submit'
+                     ELSE 'generic_state_review'
+                END)
+          FROM account_report r
+         WHERE t.states_workflow IS NULL
+           AND r.id = t.report_id
+    """,
+        {
+            "tax_report_id": util.ref(cr, "account.generic_tax_report"),
+            "ec_sales_list_report_id": util.ref(cr, "account_reports.generic_ec_sales_report"),
+        },
+    )
+
+    cr.execute("""
+        UPDATE account_return_type t
+           SET states_workflow = 'generic_state_review'
+         WHERE t.states_workflow IS NULL
+           AND t.report_id IS NULL
+    """)
