@@ -175,3 +175,5 @@ def migrate(cr, version):
     util.remove_field(cr, "l10n_be.hr.payroll.schedule.change.wizard", "absence_work_entry_type_id")
 
     migrate_part_time_calendars(cr)
+
+    util.remove_record(cr, "hr_employee.action_index_employee_contracts")

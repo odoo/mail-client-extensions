@@ -218,3 +218,6 @@ def migrate(cr, version):
     util.remove_field(cr, "hr.work.entry", "is_credit_time")
     util.remove_field(cr, "hr.version", "time_credit", drop_column=False)
     util.remove_field(cr, "hr.version", "time_credit_type_id", drop_column=False)
+
+    util.remove_field(cr, "hr.payroll.index", "display_warning")
+    util.remove_record(cr, "hr_payroll_index.action_index_contracts")
