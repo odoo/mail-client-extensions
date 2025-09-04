@@ -84,16 +84,16 @@ def migrate(cr, version):
         [[id for xmlid in no_agg_formula_xmlids if (id := util.ref(cr, xmlid))]],
     )
 
-    line_id = util.ref(cr, "l10n_ae.tax_report_line_adjustment_import_uae_tax")
-    if line_id:
+    exp_id = util.ref(cr, "l10n_ae.tax_report_line_adjustment_import_uae_tax")
+    if exp_id:
         cr.execute(
             """
             UPDATE account_report_expression
                SET subformula = NULL
-             WHERE report_line_id = %s
+             WHERE id = %s
                AND subformula IS NOT NULL
             """,
-            [line_id],
+            [exp_id],
         )
 
     # Archive the Sales RCM taxes as they are all redundant (reverse charge implies the inception is on a vendor bill ~ purchase tax)
