@@ -29,3 +29,5 @@ def migrate(cr, version):
         "documents_project.ir_actions_server_create_project_deprecate_tag_add_deprecated",
         "documents_project.ir_actions_server_create_project_deprecate_remove_activities",
     )
+    util.remove_field(cr, "project.project", "documents_tag_ids")
+    util.remove_field(cr, "project.project", "use_documents")
