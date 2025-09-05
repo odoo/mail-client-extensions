@@ -3,6 +3,8 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     util.remove_field(cr, "im_livechat.channel", "buffer_time")
+    util.remove_field(cr, "im_livechat.channel", "image_128")
+    util.remove_field(cr, "im_livechat.channel", "input_placeholder")
     util.remove_field(cr, "discuss.channel", "anonymous_name")
     util.create_m2m(
         cr,
