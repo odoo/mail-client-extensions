@@ -7,3 +7,4 @@ def migrate(cr, version):
     util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_request_from_employee", util.update_record_from_xml)
     util.if_unchanged(cr, "hr_appraisal.hr_appraisal_note_comp_rule", util.update_record_from_xml)
     util.if_unchanged(cr, "hr_appraisal.mail_template_appraisal_reminder", util.update_record_from_xml)
+    util.if_unchanged(cr, "hr_appraisal.hr_appraisal_goal_own_delete", util.update_record_from_xml)

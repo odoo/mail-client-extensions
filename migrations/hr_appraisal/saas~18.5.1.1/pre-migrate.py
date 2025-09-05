@@ -33,3 +33,4 @@ def migrate(cr, version):
     util.explode_execute(cr, query, table="hr_appraisal", alias="a")
 
     util.remove_view(cr, "hr_appraisal.res_users_view_form")
+    util.remove_record(cr, "hr_appraisal.hr_appraisal_goal_own")
