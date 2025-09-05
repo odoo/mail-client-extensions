@@ -1,1 +1,1 @@
-from . import test_migrate_overtime_hours_16_5, test_migrate_overtime_validation_17_5
+from . import test_migrate_overtime_hours_16_5, test_migrate_overtime_rule_18_5, test_migrate_overtime_validation_17_5

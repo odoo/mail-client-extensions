@@ -7,3 +7,6 @@ def migrate(cr, version):
 
     util.remove_view(cr, "hr_holidays_attendance.res_users_view_form")
     util.remove_view(cr, "hr_holidays_attendance.hr_leave_allocation_overtime_view_form")
+
+    util.remove_field(cr, "hr.leave", "overtime_id")
+    util.remove_field(cr, "hr.leave.allocation", "overtime_id")
