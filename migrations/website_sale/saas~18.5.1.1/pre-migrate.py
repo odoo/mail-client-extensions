@@ -3,8 +3,14 @@ from odoo.upgrade import util
 
 def migrate(cr, version):
     env = util.env(cr)
+    eb = util.expand_braces
     util.create_column(cr, "website", "shop_opt_products_design_classes", "varchar")
     util.create_column(cr, "website", "product_page_image_ratio", "varchar")
+
+    util.rename_xmlid(cr, *eb("website_sale.delivery_address_{row,list}"))
+    util.rename_xmlid(cr, *eb("website_sale.billing_address_{row,list}"))
+    util.rename_xmlid(cr, *eb("website_sale.address_{row,list}"))
+    util.rename_xmlid(cr, *eb("website_sale.address_{kanban,card}"))
 
     views_mapping = {
         "thumb_2_3": ["thumb_2_3"],
