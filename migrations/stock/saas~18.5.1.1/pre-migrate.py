@@ -132,3 +132,9 @@ def migrate(cr, version):
 
     util.remove_field(cr, "stock.request.count", "set_count")
     util.remove_view(cr, "stock.duplicated_sn_warning")
+    util.remove_field(cr, "stock.location", "comment", drop_column=False)
+    util.remove_field(cr, "stock.location", "scrap_location")
+    util.update_field_usage(cr, "stock.move", "scrapped", "scrap_id")
+    util.remove_field(cr, "stock.move", "scrapped")
+    util.update_field_usage(cr, "stock.move.line", "is_scrap", "scrap_id")
+    util.remove_field(cr, "stock.move.line", "is_scrap")
