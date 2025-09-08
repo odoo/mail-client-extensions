@@ -97,3 +97,5 @@ def migrate(cr, version):
             level = util.NEARLYWARN if util.on_CI() else logging.WARNING
             util._logger.log(level, "Uninstalling account_base_import to avoid auto-install of many accounting modules")
             util.uninstall_module(cr, "account_base_import")
+
+    util.remove_module(cr, "web_editor")
