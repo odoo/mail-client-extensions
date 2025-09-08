@@ -1,3 +1,5 @@
+import logging
+
 from odoo.upgrade import util
 
 
@@ -75,3 +77,23 @@ def migrate(cr, version):
         util.rename_module(cr, "account_disallowed_expenses_fleet", "account_fiscal_categories_fleet")
         util.rename_module(cr, "l10n_be_disallowed_expenses", "l10n_be_fiscal_categories")
         util.rename_module(cr, "l10n_be_account_disallowed_expenses_fleet", "l10n_be_fiscal_categories_fleet")
+
+    # account_base_import now depends on account_asset, this will install too many
+    # account modules and subsequently trigger the auto-install of many more
+    if util.module_installed(cr, "account_base_import") and not util.module_installed(cr, "account_asset"):
+        cr.execute(
+            """
+            SELECT 1
+              FROM ir_module_module_dependency d
+              JOIN ir_module_module m
+                ON d.module_id = m.id
+             WHERE d.name = 'account_base_import'
+               AND m.state IN %s
+             LIMIT 1
+            """,
+            [util.INSTALLED_MODULE_STATES],
+        )
+        if not cr.rowcount:
+            level = util.NEARLYWARN if util.on_CI() else logging.WARNING
+            util._logger.log(level, "Uninstalling account_base_import to avoid auto-install of many accounting modules")
+            util.uninstall_module(cr, "account_base_import")
