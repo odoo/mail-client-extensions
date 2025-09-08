@@ -29,7 +29,7 @@ if util.version_gte("saas~16.4"):
                 if not xmlid:
                     continue
                 if "xmlid:{}".format(xmlid) in to_ignore:
-                    _logger.log(util.NEARLY_WARN, "menu unlink %s explicitly ignored", xmlid)
+                    _logger.log(util.NEARLYWARN, "menu unlink %s explicitly ignored", xmlid)
                 else:
                     _logger.critical('It looks like you forgot to call `util.remove_record(cr, "%s")`', xmlid)
 
