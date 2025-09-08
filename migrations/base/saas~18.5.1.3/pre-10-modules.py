@@ -44,6 +44,7 @@ def migrate(cr, version):
 
     if util.modules_installed(cr, "ai"):
         util.force_install_module(cr, "ai_app")
+        util.modules_auto_discovery(cr, force_installs=["ai_app"])
 
     util.remove_module(cr, "documents_hr_recruitment")
     util.merge_module(cr, "l10n_dk_rsu", "l10n_dk_reports")
