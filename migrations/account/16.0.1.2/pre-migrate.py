@@ -21,10 +21,17 @@ def migrate(cr, version):
                    move_type = CASE
                         WHEN he.payment_mode = 'own_account' THEN 'in_invoice'
                         ELSE move.move_type
+                   END,
+                   -- set partner_id for vendor bills
+                   partner_id = CASE
+                         WHEN he.payment_mode = 'own_account' THEN emp.address_home_id
+                         ELSE move.partner_id
                    END
               FROM hr_expense_sheet hes
               JOIN hr_expense he
                 ON he.sheet_id = hes.id
+              JOIN hr_employee emp
+                ON emp.id = hes.employee_id
              WHERE move.id = hes.account_move_id
                AND move.move_type = 'entry'
                AND (move.invoice_date IS NULL OR he.payment_mode = 'own_account')
