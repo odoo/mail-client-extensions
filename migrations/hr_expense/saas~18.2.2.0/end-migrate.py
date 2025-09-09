@@ -63,10 +63,8 @@ def migrate(cr, version):
 
     util.recompute_fields(cr, util.env(cr)["hr.expense"].with_context(mail_notrack=True), ["state"], ids=expense_ids)
 
-    cr.execute("SELECT id FROM hr_employee WHERE expense_manager_id IS NULL")
-    util.recompute_fields(
-        cr, "hr.employee", ["expense_manager_id"], ids=tuple(employee_id for (employee_id,) in cr.fetchall())
-    )
+    query = "SELECT id FROM hr_employee WHERE expense_manager_id IS NULL"
+    util.recompute_fields(cr, "hr.employee", ["expense_manager_id"], query=query)
 
     util.remove_field(cr, "hr.expense", "sheet_id")
     util.if_unchanged(cr, "hr_expense.mail_act_expense_approval", util.update_record_from_xml)
