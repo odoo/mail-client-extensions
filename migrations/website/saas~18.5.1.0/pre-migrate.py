@@ -42,3 +42,5 @@ def migrate(cr, version):
     util.remove_view(cr, "website.snippet_options_background_options")
 
     util.remove_field(cr, "res.config.settings", "module_marketing_automation")
+
+    util.remove_model(cr, "web_editor.assets")
