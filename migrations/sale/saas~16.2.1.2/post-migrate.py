@@ -65,6 +65,5 @@ def migrate(cr, version):
     _logger.info("Update orders with all posted invoices in the same currency")
     util.explode_execute(cr, query, table="sale_order", alias="o")
 
-    cr.execute("SELECT id FROM sale_order WHERE amount_to_invoice IS NULL")
-    _logger.info("Update remaining %s orders", cr.rowcount)
-    util.recompute_fields(cr, "sale.order", ["amount_to_invoice"], ids=[o for (o,) in cr.fetchall()])
+    query = "SELECT id FROM sale_order WHERE amount_to_invoice IS NULL"
+    util.recompute_fields(cr, "sale.order", ["amount_to_invoice"], query=query)
