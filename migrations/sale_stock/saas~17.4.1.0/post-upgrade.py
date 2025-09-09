@@ -11,7 +11,5 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, table="sale_order_line", alias="l")
 
-    cr.execute("SELECT id FROM sale_order_line WHERE route_id IS NOT NULL")
-    ids = [lid for (lid,) in cr.fetchall()]
-    if ids:
-        util.recompute_fields(cr, "sale.order.line", ["warehouse_id"], ids=ids)
+    query = "SELECT id FROM sale_order_line WHERE route_id IS NOT NULL"
+    util.recompute_fields(cr, "sale.order.line", ["warehouse_id"], query=query)
