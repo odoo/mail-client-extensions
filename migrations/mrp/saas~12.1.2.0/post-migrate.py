@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -16,21 +15,19 @@ def migrate(cr, version):
             OR state in ('done', 'cancel')
     """)
 
-    cr.execute("""
+    query = """
         SELECT id
           FROM mrp_production
          WHERE state='progress'
-    """)
-    prod_ids = [r[0] for r in cr.fetchall()]
-    util.recompute_fields(cr, "mrp.production", ["state"], ids=prod_ids)
+    """
+    util.recompute_fields(cr, "mrp.production", ["state"], query=query)
 
-    cr.execute("""
+    query = """
         SELECT id
           FROM mrp_production
          WHERE reservation_state='partially_available'
-    """)
-    prod_ids = [r[0] for r in cr.fetchall()]
-    util.recompute_fields(cr, "mrp.production", ["reservation_state"], ids=prod_ids)
+    """
+    util.recompute_fields(cr, "mrp.production", ["reservation_state"], query=query)
 
     cr.execute("""
         UPDATE mrp_workorder w
