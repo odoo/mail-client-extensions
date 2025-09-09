@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -29,6 +28,5 @@ def migrate(cr, version):
     """)
     # lines with uom different than the one on the product template but in a compatible
     # category: let the orm recompute
-    cr.execute("SELECT id FROM purchase_order_line WHERE product_uom_qty IS NULL")
-    ids = [l[0] for l in cr.fetchall()]
-    util.recompute_fields(cr, "purchase.order.line", ["product_uom_qty"], ids=ids)
+    query = "SELECT id FROM purchase_order_line WHERE product_uom_qty IS NULL"
+    util.recompute_fields(cr, "purchase.order.line", ["product_uom_qty"], query=query)
