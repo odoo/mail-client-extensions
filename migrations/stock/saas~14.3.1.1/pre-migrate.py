@@ -81,8 +81,8 @@ def migrate(cr, version):
 
     cr.execute(
         """
-    CREATE TEMPORARY VIEW temp_ongoing_inventory_line AS (
         SELECT
+            ROW_NUMBER() OVER () AS id,
             i.date,
             il.company_id,
             il.location_id,
@@ -93,6 +93,7 @@ def migrate(cr, version):
             il.product_qty,
             stock_quant.id as quant_id,
             i.accounting_date
+        INTO UNLOGGED TABLE temp_ongoing_inventory_line
         FROM stock_inventory as i
         JOIN stock_inventory_line as il ON i.id = il.inventory_id
         LEFT JOIN stock_quant ON stock_quant.product_id = il.product_id
@@ -101,12 +102,16 @@ def migrate(cr, version):
                                 AND stock_quant.lot_id IS NOT DISTINCT FROM il.prod_lot_id
                                 AND stock_quant.package_id IS NOT DISTINCT FROM il.package_id
                                 AND stock_quant.owner_id IS NOT DISTINCT FROM il.partner_id
-        WHERE i.state = 'confirm'
-    )
+        WHERE i.state = 'confirm';
+        CREATE INDEX temp_ongoing_inventory_line_quant_id_idx
+                  ON temp_ongoing_inventory_line (quant_id);
+        CREATE INDEX temp_ongoing_inventory_line_id_idx
+                  ON temp_ongoing_inventory_line (id);
     """
     )
 
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         UPDATE stock_quant q
            SET inventory_quantity = l.product_qty,
@@ -115,10 +120,14 @@ def migrate(cr, version):
                accounting_date = l.accounting_date
           FROM temp_ongoing_inventory_line as l
          WHERE q.id = l.quant_id
-    """
+           AND {parallel_filter}
+        """,
+        table="stock_quant",
+        alias="q",
     )
 
-    cr.execute(
+    util.explode_execute(
+        cr,
         """
         INSERT INTO stock_quant(product_id, location_id, lot_id, package_id, owner_id, company_id,
                                 quantity, reserved_quantity, inventory_quantity, inventory_diff_quantity,
@@ -129,8 +138,11 @@ def migrate(cr, version):
                     date, date, accounting_date
                FROM temp_ongoing_inventory_line
               WHERE quant_id IS NULL
-    """
+                AND {parallel_filter}
+        """,
+        table="temp_ongoing_inventory_line",
     )
+    cr.execute("DROP TABLE temp_ongoing_inventory_line")
 
     # we need to fix UoM inconsistencies before creating the stock moves
     cr.execute(
