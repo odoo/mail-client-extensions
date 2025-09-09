@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 import logging
-from odoo.addons.base.maintenance.migrations import util
 
+from odoo.addons.base.maintenance.migrations import util
 
 _logger = logging.getLogger(__name__)
 
@@ -9,17 +8,17 @@ _logger = logging.getLogger(__name__)
 def migrate(cr, version):
     # ORM Way
     _table_name = "account_move_line" if util.version_gte("saas~12.4") else "account_invoice_line"
-    cr.execute(
+    query = util.format_query(
+        cr,
         """
         SELECT id
-          FROM %s
+          FROM {}
          WHERE subscription_end_date IS NOT NULL
            AND subscription_start_date IS NOT NULL
-    """
-        % _table_name
+        """,
+        _table_name,
     )
-    ids = [id[0] for id in cr.fetchall()]
-    util.recompute_fields(cr, util.model_of_table(cr, _table_name), ["subscription_mrr"], ids=ids)
+    util.recompute_fields(cr, util.model_of_table(cr, _table_name), ["subscription_mrr"], query=query)
 
     # #SQL Way
     # Tried to use the PostgreSQL "age" function
