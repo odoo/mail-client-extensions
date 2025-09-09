@@ -16,7 +16,11 @@ def migrate(cr, version):
           JOIN stock_picking_type spt
             ON spt.company_id = loc.company_id
          WHERE loc.is_a_dock = True
-           AND spt.dispatch_management = True;
+           AND spt.dispatch_management = True
+           AND (    spt.warehouse_id IS NULL
+                 OR loc.warehouse_id IS NULL
+                 OR spt.warehouse_id = loc.warehouse_id
+               )
         """
     )
 
