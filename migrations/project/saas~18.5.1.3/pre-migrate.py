@@ -1,4 +1,5 @@
 from odoo.upgrade import util
+from odoo.upgrade.util.inconsistencies import break_recursive_loops
 
 
 def migrate(cr, version):
@@ -153,3 +154,42 @@ def migrate(cr, version):
     util.remove_field(cr, "project.project", "rating_active")
     util.remove_field(cr, "project.project", "rating_status")
     util.remove_field(cr, "project.project", "rating_status_period")
+    util.remove_menus(
+        cr,
+        [
+            util.ref(cr, "project.project_menu_config_project_templates"),
+            util.ref(cr, "project.project_menu_config_task_templates"),
+        ],
+    )
+    for record in [
+        "project.project_task_templates_action",
+        "project.project_task_templates_action_list",
+        "project.project_task_templates_action_kanban",
+        "project.project_templates_action",
+        "project.project_templates_action_list",
+        "project.project_templates_action_kanban",
+        "project.project_templates_action_form",
+    ]:
+        util.remove_record(cr, record)
+    break_recursive_loops(cr, "project.task", "parent_id")
+    util.create_column(cr, "project_task", "has_template_ancestor", "boolean")
+    if util.column_exists(cr, "project_task", "is_template"):
+        cr.execute(
+            """
+            WITH RECURSIVE tmpl_anc AS (
+                SELECT t.id
+                  FROM project_task t
+                 WHERE t.is_template
+
+                 UNION
+
+                SELECT t.id
+                  FROM project_task t
+                  JOIN tmpl_anc p
+                    ON t.parent_id = p.id
+            ) UPDATE project_task t
+                 SET has_template_ancestor = True
+                FROM tmpl_anc
+               WHERE t.id = tmpl_anc.id
+            """
+        )
