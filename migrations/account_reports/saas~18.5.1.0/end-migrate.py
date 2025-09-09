@@ -9,7 +9,7 @@ def migrate(cr, version):
          CROSS JOIN res_company c
               WHERE t.deadline_days_delay IS NULL
                 AND t.default_deadline_days_delay IS NOT NULL
-                AND COALESCE(t.country_id, c.fiscal_country_id) IS NOT DISTINCT FROM c.fiscal_country_id
+                AND COALESCE(t.country_id, c.account_fiscal_country_id) IS NOT DISTINCT FROM c.account_fiscal_country_id
            GROUP BY t.id
         )
         UPDATE account_return_type t

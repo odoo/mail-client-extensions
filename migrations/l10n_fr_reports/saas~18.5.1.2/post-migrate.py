@@ -51,8 +51,9 @@ def migrate(cr, version):
         """
     cr.execute(query)
     ids = dict(cr.fetchall())
-    util.replace_record_references_batch(cr, ids, "account.report.async.export")
-    cr.execute("DELETE FROM account_report_async_export WHERE id IN %s", [tuple(ids.keys())])
+    if ids:
+        util.replace_record_references_batch(cr, ids, "account.report.async.export")
+        cr.execute("DELETE FROM account_report_async_export WHERE id IN %s", [tuple(ids.keys())])
 
     util.remove_column(cr, "account_report_async_document", "_upg_export_id")
 
