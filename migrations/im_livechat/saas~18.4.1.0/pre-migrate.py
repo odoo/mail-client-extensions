@@ -48,6 +48,7 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, "discuss_channel")
     util.create_column(cr, "discuss_channel", "livechat_outcome", "varchar")
+    util.create_column(cr, "discuss_channel", "livechat_status", "varchar")
     util.create_column(cr, "discuss_channel", "livechat_agent_requesting_help_history", "int4")
     util.create_column(cr, "discuss_channel", "livechat_agent_providing_help_history", "int4")
     util.create_column(cr, "discuss_channel", "rating_last_text", "varchar")
@@ -69,6 +70,14 @@ def migrate(cr, version):
          WHERE c.id = l.id
     """
     util.explode_execute(cr, query, table="discuss_channel", alias="c")
+    query = """
+      UPDATE discuss_channel c
+         SET livechat_status = 'in_progress'
+       WHERE c.channel_type = 'livechat'
+         AND c.livechat_end_dt IS NULL
+         AND {parallel_filter}
+    """
+    util.explode_execute(cr, query, "discuss_channel", alias="c")
     if util.column_exists(cr, "discuss_channel", "livechat_failure"):
         query = """
           UPDATE discuss_channel
