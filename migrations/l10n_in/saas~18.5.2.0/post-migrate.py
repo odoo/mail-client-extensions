@@ -1053,8 +1053,7 @@ def migrate(cr, version):
         cr,
         """
         INSERT INTO l10n_in_pan_entity (name, type, tds_deduction)
-        SELECT DISTINCT
-               UPPER(l10n_in_pan) AS name,
+        SELECT UPPER(l10n_in_pan) AS name,
                LOWER(SUBSTRING(l10n_in_pan FROM 4 FOR 1)) AS type,
                'normal' AS tds_deduction
           FROM res_partner as rp
@@ -1062,6 +1061,8 @@ def migrate(cr, version):
            AND LOWER(SUBSTRING(rp.l10n_in_pan FROM 4 FOR 1)) IN (
               'a', 'b', 'c', 'f', 'g', 'h', 'j', 'l', 'p', 't', 'k'
            )
+           AND {parallel_filter}
+            ON CONFLICT DO NOTHING
         """,
         table="res_partner",
         alias="rp",
