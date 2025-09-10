@@ -99,3 +99,7 @@ def migrate(cr, version):
             util.uninstall_module(cr, "account_base_import")
 
     util.remove_module(cr, "web_editor")
+
+    util.merge_module(cr, "l10n_it_xml_export", "l10n_it_reports")
+    # since there is no real dependency between l10n_it_xml_export and l10n_it_reports
+    util.force_upgrade_of_fresh_module(cr, "l10n_it_reports")
