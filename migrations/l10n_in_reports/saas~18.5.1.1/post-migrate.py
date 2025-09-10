@@ -307,7 +307,7 @@ def migrate(cr, version):
            SET res_model = 'account.return',
                res_model_id = %s,
                res_id = ar.id,
-               res_name = CAST(ar.name AS VARCHAR)
+               res_name = ar.name->>'en_US'
           FROM account_return ar
          WHERE a.res_model = 'l10n_in.gst.return.period'
            AND a.res_id = ar.v19_l10n_in_return_period_id
