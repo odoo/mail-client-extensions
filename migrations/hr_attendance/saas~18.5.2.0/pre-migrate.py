@@ -22,7 +22,14 @@ def migrate(cr, version):
     util.rename_xmlid(cr, *eb("hr_attendance.view_attendance_overtime_{tree,list}"))
 
     util.create_column(cr, "hr_attendance", "date", "date")
-    util.create_column(cr, "hr_attendance_overtime", "status", "varchar")
+    util.explode_execute(
+        cr,
+        """
+        UPDATE hr_attendance
+           SET "date" = date(check_in)
+        """,
+        table="hr_attendance",
+    )
 
     cr.execute("""
         CREATE TABLE hr_attendance_overtime_line (
@@ -43,15 +50,7 @@ def migrate(cr, version):
         CREATE INDEX hr_attendance_overtime_line_employee_idx ON hr_attendance_overtime_line (employee_id);
         CREATE INDEX hr_attendance_overtime_line_date_idx ON hr_attendance_overtime_line (date);
     """)
-    util.create_column(cr, "hr_attendance", "date", "date")
-    util.explode_execute(
-        cr,
-        """
-        UPDATE hr_attendance
-           SET "date" = date(check_in)
-        """,
-        table="hr_attendance",
-    )
+
     cr.execute("""
         INSERT INTO hr_attendance_overtime_line (
             employee_id,
