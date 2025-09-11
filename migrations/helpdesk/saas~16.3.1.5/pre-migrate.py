@@ -47,7 +47,9 @@ def migrate(cr, version):
     # team linked is the search in the tracking values of stage_id in helpdesk ticket to find a
     # ticket whom was in that stage.
     tracking_fname = "field_id" if util.column_exists(cr, "mail_tracking_value", "field_id") else "field"
-    query = f"""
+    query = util.format_query(
+        cr,
+        """
         WITH stage_without_team AS (
                SELECT s.id
                  FROM helpdesk_stage s
@@ -80,7 +82,9 @@ def migrate(cr, version):
                  OR s.id = t.new_stage_id
            GROUP BY s.id,
                     t.team_id
-    """
+        """,
+        tracking_fname=tracking_fname,
+    )
     cr.execute(query)
 
     # IF heldesk stage has no helpdesk teams, then remove that stage reference

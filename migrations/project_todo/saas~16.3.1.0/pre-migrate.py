@@ -76,7 +76,9 @@ def migrate(cr, version):
         for stage in default_stages
     ]
 
-    query = """
+    query = util.format_query(
+        cr,
+        """
       WITH users AS (
           SELECT id
             FROM res_users
@@ -89,7 +91,9 @@ def migrate(cr, version):
       )
       INSERT INTO project_task_type (name, sequence, user_id, fold, active)
       {}
-    """.format(" UNION ".join(queries))
+        """,
+        util.SQLStr(" UNION ".join(queries)),
+    )
     cr.execute(query)
 
     # ----------- 4. Converting note.note -> project.task --------------
