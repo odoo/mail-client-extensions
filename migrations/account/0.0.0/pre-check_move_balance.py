@@ -51,4 +51,4 @@ def migrate(cr, version):
         </details>
         """.format(extra, li)
 
-        util.add_to_migration_reports(msg, "Unbalanced Moves")
+        util.add_to_migration_reports(msg, "Unbalanced Moves", format="html")
