@@ -61,6 +61,9 @@ def migrate(cr, version):
         util.force_migration_of_fresh_module(cr, "account_followup")
         util.force_migration_of_fresh_module(cr, "account_asset")
 
+    if util.module_installed(cr, "account_accountant") and not util.module_installed(cr, "account_followup"):
+        util.force_migration_of_fresh_module(cr, "account_followup")
+
     if util.module_installed(cr, "iap_extract") and not util.module_installed(cr, "iap"):
         util.uninstall_module(cr, "iap_extract")
 
