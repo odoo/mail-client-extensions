@@ -4,14 +4,16 @@ from odoo.upgrade import util
 def migrate(cr, version):
     cr.execute("""
         CREATE UNLOGGED TABLE _upg_l10n_in_ewaybill_so_data_temp(
-            move_id integer PRIMARY KEY,
-            warehouse_address_id integer
+            move_id integer,
+            warehouse_address_id integer,
+            PRIMARY KEY(move_id, warehouse_address_id)
         )
     """)
     cr.execute("""
         CREATE UNLOGGED TABLE _upg_l10n_in_ewaybill_po_data_temp(
-            move_id integer PRIMARY KEY,
-            warehouse_address_id integer
+            move_id integer,
+            warehouse_address_id integer,
+            PRIMARY KEY(move_id, warehouse_address_id)
         )
     """)
     if util.module_installed(cr, "l10n_in_sale_stock"):
