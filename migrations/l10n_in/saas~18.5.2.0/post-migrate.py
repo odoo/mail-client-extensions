@@ -1049,8 +1049,11 @@ def migrate(cr, version):
         util.iter_browse(env["account.move.line"], line_ids)._set_l10n_in_gstr_section()
 
     # Insert PAN entities
-    util.explode_execute(
-        cr,
+    # If you are looking at this for performance issues see this thread
+    # https://github.com/odoo/upgrade/pull/8424/files#r2336704934
+    # TLDR: run in parallel may require sorting, it needs to be tested if
+    # it is actually faster.
+    cr.execute(
         """
         INSERT INTO l10n_in_pan_entity (name, type, tds_deduction)
         SELECT UPPER(l10n_in_pan) AS name,
@@ -1060,12 +1063,9 @@ def migrate(cr, version):
          WHERE LENGTH(rp.l10n_in_pan) = 10
            AND LOWER(SUBSTRING(rp.l10n_in_pan FROM 4 FOR 1)) IN (
               'a', 'b', 'c', 'f', 'g', 'h', 'j', 'l', 'p', 't', 'k'
-           )
-           AND {parallel_filter}
+               )
             ON CONFLICT DO NOTHING
         """,
-        table="res_partner",
-        alias="rp",
     )
 
     # Update partner records with the matching pan entity
