@@ -157,7 +157,7 @@ def migrate(cr, version):
     util.remove_field(cr, "account.account.tag", "tax_negate")
 
     cr.execute(
-      """
+        """
         SELECT minus_tag.id AS minus_tag_id,
                plus_tag.id AS plus_tag_id
           INTO UNLOGGED TABLE _upg_tag_pairs
@@ -199,10 +199,7 @@ def migrate(cr, version):
            AND repartition.document_type = faulty_data.document_type
       GROUP BY aml.company_id, aml.date, aml.account_id, tag.id
         """,
-        [
-            (rf"^\d+_{re.escape(xmlid)}$", document_type, tag)
-            for xmlid, document_type, tag in TAGS_TO_INVERT
-        ],
+        [(rf"^\d+_{re.escape(xmlid)}$", document_type, tag) for xmlid, document_type, tag in TAGS_TO_INVERT],
     )
     # query for base lines
     cr.execute_values(
@@ -236,10 +233,7 @@ def migrate(cr, version):
            AND repartition.document_type = faulty_data.document_type
       GROUP BY aml.company_id, aml.date, aml.account_id, tag.id
         """,
-        [
-            (rf"^\d+_{re.escape(xmlid)}$", document_type, tag)
-            for xmlid, document_type, tag in TAGS_TO_INVERT
-        ],
+        [(rf"^\d+_{re.escape(xmlid)}$", document_type, tag) for xmlid, document_type, tag in TAGS_TO_INVERT],
     )
 
     # The report was correct but the tag was set with the wrong sign on a line with the wrong balance sign: -1 * -1 = 1

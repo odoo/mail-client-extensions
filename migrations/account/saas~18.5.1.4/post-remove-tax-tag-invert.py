@@ -38,20 +38,28 @@ def migrate(cr, version):
                         "date": date,
                         "journal_id": company_id2journal[company_id].id,
                         "line_ids": [
-                            (0, 0, {
-                                "balance": -2 * balance,
-                                "account_id": account_id,
-                                "tax_tag_ids": [(6, 0, [tag_id])],
-                            })
+                            (
+                                0,
+                                0,
+                                {
+                                    "balance": -2 * balance,
+                                    "account_id": account_id,
+                                    "tax_tag_ids": [(6, 0, [tag_id])],
+                                },
+                            )
                             for (*_, tag_id, balance) in line_vals
-                        ] + [
-                            (0, 0, {
-                                "balance": 2 * sum(balance for (*_, balance) in line_vals),
-                                "account_id": account_id,
-                            }),
+                        ]
+                        + [
+                            (
+                                0,
+                                0,
+                                {
+                                    "balance": 2 * sum(balance for (*_, balance) in line_vals),
+                                    "account_id": account_id,
+                                },
+                            ),
                         ],
                     }
-
                 )
         util.iter_browse(env["account.move"], []).create(create_vals).action_post()
         journals.active = False

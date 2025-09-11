@@ -137,7 +137,7 @@ def migrate(cr, version):
 
     def is_blocked_adapter(leaf, _o, _n):
         # here we will consider is_blocked as the inverse of is_closed
-        _, op, right = leaf
+        _, _op, right = leaf
         new_op = "!=" if bool(right) else "="
         return [("is_closed", new_op, right)]
 

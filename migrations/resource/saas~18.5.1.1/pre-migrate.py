@@ -14,6 +14,6 @@ def migrate(cr, version):
     """
     util.explode_execute(cr, query, table="resource_calendar_attendance")
 
-    util.remove_field(cr, 'resource.calendar.attendance', 'date_from')
-    util.remove_field(cr, 'resource.calendar.attendance', 'date_to')
-    util.remove_field(cr, 'resource.calendar.attendance', 'resource_id')
+    util.remove_field(cr, "resource.calendar.attendance", "date_from")
+    util.remove_field(cr, "resource.calendar.attendance", "date_to")
+    util.remove_field(cr, "resource.calendar.attendance", "resource_id")

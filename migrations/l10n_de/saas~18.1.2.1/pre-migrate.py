@@ -2,9 +2,11 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    if util.version_gte("saas~18.5"):
-        # tag_negate is removed
-        return
+    if not util.version_gte("saas~18.5"):  # tag_negate is removed in 19.0
+        _negate_taxes(cr)
+
+
+def _negate_taxes(cr):
     cr.execute(
         """
         ALTER TABLE account_account_tag

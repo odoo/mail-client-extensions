@@ -10,7 +10,7 @@ def migrate(cr, version):
     }
 
     def is_off_balance_adapter(leaf, is_or, negated):
-        left, operator, right = leaf
+        _left, operator, right = leaf
         if (operator, right) in op_map:
             operator = op_map[(operator, right)]
             right = "off_balance"

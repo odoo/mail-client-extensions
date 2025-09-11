@@ -2,7 +2,6 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-
     # Remove obsolete report lines to avoid duplicates/conflicts when updating XML
     older_records = [
         "l10n_at.tax_report_line_l10n_at_tva_line_4_14_base",
