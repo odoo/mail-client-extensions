@@ -52,7 +52,7 @@ def migrate(cr, version):
     util.merge_module(cr, "l10n_dk_rsu", "l10n_dk_reports")
 
     if util.has_enterprise():
-        if not util.modules_installed(cr, "l10n_mx_hr_payroll_account"):
+        if util.module_installed(cr, "l10n_mx_hr") and not util.modules_installed(cr, "l10n_mx_hr_payroll_account"):
             util.add_to_migration_reports(
                 """
                 The module <i>Employees - Mexico</i> is now part of the <i>Mexico - Payroll with Accounting</i> module.
