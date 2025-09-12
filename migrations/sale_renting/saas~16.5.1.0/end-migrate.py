@@ -6,8 +6,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     # Recompute the stored computed fields that might have changed of the modified and newly created
     # sale orders.
-    cr.execute(
-        """
+    query = """
         SELECT id
           FROM sale_order
          WHERE _upg_rental_parent_so_id IS NOT NULL
@@ -17,8 +16,6 @@ def migrate(cr, version):
          WHERE _upg_rental_parent_so_id IS NOT NULL
       GROUP BY _upg_rental_parent_so_id
         """
-    )
-    ids = [r[0] for r in cr.fetchall()]
     fields_to_recompute = [
         # sale
         "amount_untaxed",
@@ -34,7 +31,7 @@ def migrate(cr, version):
         fields_to_recompute += ["effective_date"]
     if util.module_installed(cr, "sale_margin"):
         fields_to_recompute += ["margin", "margin_percent"]
-    util.recompute_fields(cr, "sale.order", fields=fields_to_recompute, ids=ids)
+    util.recompute_fields(cr, "sale.order", fields=fields_to_recompute, query=query)
 
     # add a message on new SO with a link to the original
     cr.execute(

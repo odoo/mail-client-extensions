@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -27,8 +26,7 @@ def migrate(cr, version):
     """)
 
     # Then let ORM compute remaining records
-    cr.execute(
-        """
+    query = """
         SELECT m.id
           FROM mrp_production m
           LEFT JOIN product_product p on m.product_id=p.id
@@ -36,9 +34,7 @@ def migrate(cr, version):
          WHERE NOT pt.uom_id=m.product_uom_id
            AND m.product_uom_qty IS NULL
     """
-    )
-    ids = [x[0] for x in cr.fetchall()]
-    util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids)
+    util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], query=query)
 
     cr.execute(
         """

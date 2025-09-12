@@ -11,9 +11,6 @@ def migrate(cr, version):
                     AND aef.code = 'fattura_pa'
               RETURNING aed.move_id
         """
-    cr.execute(query)
-    res = cr.fetchall()
-    if res:
-        util.recompute_fields(cr, "account.move", ["edi_state"], ids=[re[0] for re in res], strategy="commit")
+    util.recompute_fields(cr, "account.move", ["edi_state"], query=query, strategy="commit")
 
     util.remove_record(cr, "l10n_it_edi.edi_fatturaPA")

@@ -38,6 +38,5 @@ def migrate(cr, version):
         """,
             [action_id],
         )
-    cr.execute("SELECT id FROM sale_order WHERE is_subscription = 't' OR subscription_state = '7_upsell'")
-    ids = [id[0] for id in cr.fetchall()]
-    util.recompute_fields(cr, "sale.order", ["recurring_monthly"], ids=ids)
+    query = "SELECT id FROM sale_order WHERE is_subscription = 't' OR subscription_state = '7_upsell'"
+    util.recompute_fields(cr, "sale.order", ["recurring_monthly"], query=query)

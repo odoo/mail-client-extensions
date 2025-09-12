@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from odoo.upgrade import util
 
 
@@ -23,7 +21,7 @@ def migrate(cr, version):
     ]
     for table in tables_to_clean:
         for m2m in util.get_m2m_tables(cr, table):
-            cr.execute("DROP TABLE %s CASCADE" % (m2m,))
+            cr.execute(util.format_query(cr, "DROP TABLE {} CASCADE", m2m))
     tables_to_drop = [
         "coupon_program",
         "coupon_rule",
@@ -36,10 +34,9 @@ def migrate(cr, version):
         "pos_loyalty_reward_product_product_rel",
     ]
     for table in tables_to_drop:
-        cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (table,))
-    cr.execute("SELECT id FROM loyalty_reward WHERE description IS NULL")
-    ids = [row[0] for row in cr.fetchall()]
-    util.recompute_fields(cr, "loyalty.reward", ["description"], ids=ids)
+        cr.execute(util.format_query(cr, "DROP TABLE IF EXISTS {} CASCADE", table))
+    query = "SELECT id FROM loyalty_reward WHERE description IS NULL"
+    util.recompute_fields(cr, "loyalty.reward", ["description"], query=query)
     cr.execute("SELECT id FROM loyalty_reward WHERE discount_line_product_id IS NULL")
     env = util.env(cr)
     reward_ids = [row[0] for row in cr.fetchall()]

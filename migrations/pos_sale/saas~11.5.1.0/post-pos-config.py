@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -12,8 +11,7 @@ def migrate(cr, version):
           AND pos_order.pricelist_id=p.id
           AND p.currency_id = c.currency_id
     """)
-    cr.execute("""
+    query = """
         SELECT id FROM pos_order WHERE currency_rate IS NULL
-    """)
-    recompute_ids = [o[0] for o in cr.fetchall()]
-    util.recompute_fields(cr, "pos.order", ["currency_rate"], ids=recompute_ids)
+    """
+    util.recompute_fields(cr, "pos.order", ["currency_rate"], query=query)

@@ -2299,16 +2299,13 @@ def migrate_invoice_lines(cr):
 
 
 def update_invoice_partner_display_name(cr):
-    cr.execute(
-        """
+    query = """
         SELECT am.id
           FROM account_move am
           JOIN res_partner p ON am.partner_id = p.id
            AND p.parent_id IS NOT NULL
         """
-    )
-    invoice_ids = [id[0] for id in cr.fetchall()]
-    util.recompute_fields(cr, "account.move", ["invoice_partner_display_name"], ids=invoice_ids)
+    util.recompute_fields(cr, "account.move", ["invoice_partner_display_name"], query=query)
 
 
 def update_account_move_line_name(cr):

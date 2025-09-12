@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 SZ = 1024
@@ -16,9 +15,8 @@ def migrate(cr, version):
            AND c.currency_id = p.currency_id
     """
     )
-    cr.execute("SELECT id FROM sale_order WHERE currency_rate IS NULL AND company_id IS NOT NULL")
-    so_ids = [r[0] for r in cr.fetchall()]
-    util.recompute_fields(cr, "sale.order", ["currency_rate"], ids=so_ids, chunk_size=SZ)
+    query = "SELECT id FROM sale_order WHERE currency_rate IS NULL AND company_id IS NOT NULL"
+    util.recompute_fields(cr, "sale.order", ["currency_rate"], query=query, chunk_size=SZ)
 
     # some database does not contain company id value on sale order as not required field
     cr.execute("UPDATE sale_order SET currency_rate = 1 WHERE currency_rate IS NULL")
@@ -91,8 +89,7 @@ def migrate(cr, version):
         ),
     )
     # collect the sale order lines not updated above
-    cr.execute(
-        """
+    query = """
         SELECT sl.id
           FROM sale_order_line_invoice_rel r
           JOIN account_invoice_line il
@@ -105,9 +102,7 @@ def migrate(cr, version):
            AND sl.untaxed_amount_invoiced IS NULL
          GROUP BY sl.id
         """
-    )
-    line_ids = [r[0] for r in cr.fetchall()]
-    util.recompute_fields(cr, "sale.order.line", ["untaxed_amount_invoiced"], ids=line_ids, chunk_size=SZ)
+    util.recompute_fields(cr, "sale.order.line", ["untaxed_amount_invoiced"], query=query, chunk_size=SZ)
 
     cr.execute(
         """

@@ -2,16 +2,13 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    cr.execute(
-        """
+    query = """
         SELECT id
           FROM hr_expense
          WHERE total_amount_company is NULL
            AND unit_amount = 0.00
         """
-    )
-    ids = [x[0] for x in cr.fetchall()]
-    util.recompute_fields(cr, "hr.expense", ["total_amount_company"], ids=ids)
+    util.recompute_fields(cr, "hr.expense", ["total_amount_company"], query=query)
 
     query = """
         UPDATE hr_expense he

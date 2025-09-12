@@ -264,7 +264,7 @@ def migrate(cr, version):
             column_production_pre=", ".join(column_production_pre),
         )
     )
-    ids_mo = [mo_id for mo_id, in cr.fetchall()]
+    ids_mo = [mo_id for (mo_id,) in cr.fetchall()]
 
     # (4.) Create stock move for the backorder mo and update these on MO source
     _logger.info("Create stock move for the backorder MO + update stock move of the MO source")
@@ -387,7 +387,7 @@ def migrate(cr, version):
             """,
             {"ids": tuple(ids_mo)},
         )
-        ids_move = [move_id for move_id, in cr.fetchall()]
+        ids_move = [move_id for (move_id,) in cr.fetchall()]
 
         inconsistencies.verify_uoms(cr, "mrp.production", uom_field="product_uom_id", ids=ids_mo)
         util.recompute_fields(cr, "mrp.production", ["product_uom_qty"], ids=ids_mo)
@@ -440,24 +440,12 @@ def migrate(cr, version):
         cr.commit()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
-    ncr = util.named_cursor(cr)
-    ncr.execute("SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL")
-    chunk = ncr.fetchmany(100000)  # avoid getting millions of ids
-    while chunk:
-        util.recompute_fields(
-            cr,
-            "stock.move",
-            ["unit_factor", "reference"],
-            ids=[r for r, in chunk],
-            strategy="commit",
-        )
-        chunk = ncr.fetchmany(100000)
-    ncr.close()
+    query = "SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL"
+    util.recompute_fields(cr, "stock.move", ["unit_factor", "reference"], query=query, strategy="commit")
 
     # Recompute store fields of mrp.production where the compute method changed
-    cr.execute("SELECT id FROM mrp_production WHERE state != 'cancel' AND id <= %s", [max_id])
-    recompute_state_ids = [id for id, in cr.fetchall()]
-    util.recompute_fields(cr, "mrp.production", ["state"], ids=recompute_state_ids, strategy="commit")
+    query = cr.mogrify("SELECT id FROM mrp_production WHERE state != 'cancel' AND id <= %s", [max_id]).decode()
+    util.recompute_fields(cr, "mrp.production", ["state"], query=query, strategy="commit")
     util.recompute_fields(cr, "mrp.production", ["production_location_id"], strategy="commit")
 
     # New field consumption of workorder is the same than his MO
