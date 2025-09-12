@@ -31,3 +31,13 @@ def migrate(cr, version):
         drop_table=False,
         ignore_m2m=("ir_attachment_l10n_in_gst_return_period_rel", "irn_attachment_portal_json"),
     )
+
+    if util.table_exists(cr, "l10n_in_gstr_document_summary_line"):
+        cr.execute(
+            """
+            ALTER TABLE l10n_in_gstr_document_summary_line
+        DROP CONSTRAINT l10n_in_gstr_document_summary_line_return_period_id_fkey;
+            ALTER TABLE l10n_in_gstr_document_summary_line
+                 RENAME return_period_id TO _upg_return_period_id
+            """
+        )

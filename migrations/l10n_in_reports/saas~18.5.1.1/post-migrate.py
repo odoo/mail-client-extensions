@@ -260,16 +260,18 @@ def migrate(cr, version):
         alias="am",
     )
 
-    cr.execute(
-        """
-        UPDATE l10n_in_gstr_document_summary_line dsl
-           SET return_period_id = ar.id
-          FROM account_return ar
-         WHERE dsl.return_period_id = ar.v19_l10n_in_return_period_id
-           AND ar.type_id = %s
-        """,
-        (gstr1_return_type,),
-    )
+    if util.column_exists(cr, "l10n_in_gstr_document_summary_line", "_upg_return_period_id"):
+        cr.execute(
+            """
+            UPDATE l10n_in_gstr_document_summary_line dsl
+               SET return_period_id = ar.id
+              FROM account_return ar
+             WHERE dsl._upg_return_period_id = ar.v19_l10n_in_return_period_id
+               AND ar.type_id = %s
+            """,
+            (gstr1_return_type,),
+        )
+        util.remove_column(cr, "l10n_in_gstr_document_summary_line", "_upg_return_period_id")
 
     # migrate attachments to gstr1 returns
     cr.execute(
