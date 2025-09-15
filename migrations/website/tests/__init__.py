@@ -1,5 +1,3 @@
-# flake8:noqa: F401
-
 from . import (
     test_15_2_mega_menu,
     test_15_5_mobile,
@@ -12,6 +10,7 @@ from . import (
     test_17_3_remove_website_internal_user,
     test_17_5_unique_website_controller_page,
     test_17_5_website_controller_page_m2o_record,
+    test_18_0_submenus,
     test_assets_management,
     test_cowed_layout,
     test_website_model,
