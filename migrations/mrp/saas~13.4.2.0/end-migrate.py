@@ -440,8 +440,19 @@ def migrate(cr, version):
         cr.commit()
 
     # Recompute fields of stock_move where the compute method changed (only for then linked to a MO)
-    query = "SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL"
-    util.recompute_fields(cr, "stock.move", ["unit_factor", "reference"], query=query, strategy="commit")
+    ncr = util.named_cursor(cr)
+    ncr.execute("SELECT id FROM stock_move WHERE raw_material_production_id IS NOT NULL OR production_id IS NOT NULL")
+    chunk = ncr.fetchmany(100000)  # avoid getting millions of ids
+    while chunk:
+        util.recompute_fields(
+            cr,
+            "stock.move",
+            ["unit_factor", "reference"],
+            ids=[r for (r,) in chunk],
+            strategy="commit",
+        )
+        chunk = ncr.fetchmany(100000)
+    ncr.close()
 
     # Recompute store fields of mrp.production where the compute method changed
     query = cr.mogrify("SELECT id FROM mrp_production WHERE state != 'cancel' AND id <= %s", [max_id]).decode()
