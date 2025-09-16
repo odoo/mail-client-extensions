@@ -2,6 +2,24 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    cr.execute(
+        """
+        UPDATE hr_version v
+           SET active = True
+          FROM hr_version_sign_request_rel rel
+          JOIN sign_request s
+            ON s.id = rel.sign_request_id
+          JOIN hr_contract_salary_offer_sign_request_rel off_rel
+            ON off_rel.sign_request_id = s.id
+          JOIN hr_contract_salary_offer o
+            ON o.id = off_rel.hr_contract_salary_offer_id
+         WHERE NOT v.active
+           AND v.id = rel.hr_version_id
+           AND s.nb_closed = 1
+           AND o.state = 'half_signed'
+        """
+    )
+
     util.rename_field(cr, "hr.job", "default_contract_id", "contract_template_id")
     util.rename_field(cr, "hr.contract.salary.offer", "employee_contract_id", "employee_version_id")
     util.rename_field(cr, "hr.version", "origin_contract_id", "origin_version_id")
