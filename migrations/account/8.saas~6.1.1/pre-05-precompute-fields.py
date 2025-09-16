@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from openerp.addons.base.maintenance.migrations import util
 
+
 def migrate(cr, version):
-    util.create_column(cr, 'account_analytic_line', 'partner_id', 'int4')
+    util.create_column(cr, "account_analytic_line", "partner_id", "int4")
     util.explode_execute(
         cr,
         """
@@ -17,7 +18,7 @@ def migrate(cr, version):
 
     # speed up computing price_subtotal_signed + avoid writing on all invoice lines,
     # triggering lots of useless and dangerous re-computations!
-    util.create_column(cr, 'account_invoice_line', 'price_subtotal_signed', 'numeric')
+    util.create_column(cr, "account_invoice_line", "price_subtotal_signed", "numeric")
     cr.execute("""
         WITH currency_rate (currency_id, rate, date_start, date_end) AS (
             SELECT r.currency_id, r.rate, r.name AS date_start,
