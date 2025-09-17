@@ -8,6 +8,7 @@ from odoo.addons.base.maintenance.migrations.util.pg import _normalize_pg_type
 
 _logger = logging.getLogger("odoo.upgrade")
 MIN_VERSION = "17.0"
+MAX_VERSION = "18.0"
 
 CI = util.on_CI()
 util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"] = set()
@@ -21,7 +22,7 @@ def migrate(cr, version):
         "ir.attachment",
     }
 
-    if not util.version_gte(MIN_VERSION):
+    if not util.version_between(MIN_VERSION, MAX_VERSION):
         return  # nosemgrep: no-early-return
 
     orig_update_db = Field.update_db
