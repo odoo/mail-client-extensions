@@ -1,4 +1,5 @@
 import logging
+import os
 from textwrap import dedent
 
 from odoo.fields import Field
@@ -12,6 +13,12 @@ MAX_VERSION = "18.0"
 
 CI = util.on_CI()
 util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"] = set()
+
+IGNORED_MODULES = {
+    exc[7:].partition(":")[0]
+    for exc in os.getenv("suppress_upgrade_warnings", "").split(",")  # noqa: SIM112
+    if exc.startswith("module:")
+}
 
 
 def migrate(cr, version):
@@ -37,6 +44,11 @@ def migrate(cr, version):
             existing_type = "varchar({})".format(col["character_maximum_length"])
         defined_type = _normalize_pg_type(self.column_type[1].lower()) if self.column_type else None
 
+        CRITICAL = logging.CRITICAL
+        WARNING = logging.WARNING
+        if CI and self._module in IGNORED_MODULES:
+            CRITICAL = WARNING = util.NEARLYWARN
+
         if not defined_type:
             # not stored column; ignore.
             pass
@@ -61,7 +73,8 @@ def migrate(cr, version):
                 """).format(func)
 
                 if no_orm_table_change:
-                    _logger.critical(
+                    _logger.log(
+                        CRITICAL,
                         "Don't let the ORM change the column type of `%s.%s`.\n%s",
                         model._table,
                         self.name,
@@ -71,7 +84,8 @@ def migrate(cr, version):
                     cr.execute(util.format_query(cr, "SELECT count(*) FROM {}", model._table))
                     count = cr.fetchone()[0]
                     if count > util.BIG_TABLE_THRESHOLD:
-                        _logger.warning(
+                        _logger.log(
+                            WARNING,
                             "The column `%s.%s` changed type. As there are %s rows, consider writing an upgrade script.\n%s",
                             model._table,
                             self.name,
@@ -91,7 +105,8 @@ def migrate(cr, version):
                 """).format(model._table, self.name, defined_type, model._name)
 
                 if no_orm_table_change:
-                    _logger.critical(
+                    _logger.log(
+                        CRITICAL,
                         "New computed-stored field %s/%s should be computed using an upgrade script.\n%s",
                         model._name,
                         self.name,
@@ -101,7 +116,8 @@ def migrate(cr, version):
                     cr.execute(util.format_query(cr, "SELECT count(*) FROM {}", model._table))
                     count = cr.fetchone()[0]
                     if count > util.BIG_TABLE_THRESHOLD:
-                        _logger.warning(
+                        _logger.log(
+                            WARNING,
                             "New computed-stored field %s/%s computed on %s records. Please consider writing an upgrade script.\n%s",
                             model._name,
                             self.name,
@@ -129,7 +145,8 @@ def migrate(cr, version):
                 """).format(model._table, self.name, defined_type, def_arg, fill_sql)
 
                 if no_orm_table_change:
-                    _logger.critical(
+                    _logger.log(
+                        CRITICAL,
                         "New stored field %s/%s with default value should be handled by an upgrade script.\n%s",
                         model._name,
                         self.name,
@@ -139,7 +156,8 @@ def migrate(cr, version):
                     cr.execute(util.format_query(cr, "SELECT count(*) FROM {}", model._table))
                     count = cr.fetchone()[0]
                     if count > util.BIG_TABLE_THRESHOLD:
-                        _logger.warning(
+                        _logger.log(
+                            WARNING,
                             "New stored field %s/%s with default value on %s records. Please consider writing an upgrade script.\n%s",
                             model._name,
                             self.name,
