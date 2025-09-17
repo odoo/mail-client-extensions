@@ -68,3 +68,15 @@ def migrate(cr, version):
         util.force_upgrade_of_fresh_module(cr, "l10n_fr_hr_holidays")
 
     util.force_upgrade_of_fresh_module(cr, "l10n_es_edi_facturae")
+
+    if util.module_installed(cr, "spreadsheet") and not util.module_installed(cr, "mail"):
+        util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].update(
+            {
+                # `spreadsheet` now depends on `portal`, which installs `mail`
+                ("res.partner", "email_normalized"),
+                ("res.users", "notification_type"),
+                ("res.partner", "message_bounce"),
+                # Due to autoinstalls `sms` gets installed as well.
+                ("res.partner", "phone_sanitized"),
+            }
+        )
