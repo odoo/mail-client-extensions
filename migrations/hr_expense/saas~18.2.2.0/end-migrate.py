@@ -66,7 +66,6 @@ def migrate(cr, version):
     query = "SELECT id FROM hr_employee WHERE expense_manager_id IS NULL"
     util.recompute_fields(cr, "hr.employee", ["expense_manager_id"], query=query)
 
-    util.remove_field(cr, "hr.expense", "sheet_id")
     util.if_unchanged(cr, "hr_expense.mail_act_expense_approval", util.update_record_from_xml)
     util.if_unchanged(cr, "hr_expense.mt_expense_approved", util.update_record_from_xml)
     util.if_unchanged(cr, "hr_expense.mt_expense_refused", util.update_record_from_xml)
