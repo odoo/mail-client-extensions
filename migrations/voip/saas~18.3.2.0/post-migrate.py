@@ -1,13 +1,22 @@
 import os
 
+from odoo.modules.db import has_unaccent
+
 from odoo.upgrade import util
 
 
 def migrate(cr, version):
-    strategy = os.getenv("ODOO_UPG_183_T9", "sql")
+    unnacent = has_unaccent(cr)
+    strategy = os.getenv("ODOO_UPG_183_T9", "sql" if unnacent else "orm").lower()
     if strategy not in ("orm", "sql", "no"):
         raise util.UpgradeError(
             f"Invalid value for the `ODOO_UPG_183_T9` environment variable: {strategy!r}. Expected 'orm', 'sql' or 'no'"
+        )
+    if strategy == "sql" and not unnacent:
+        strategy = "orm"
+        util._logger.warning(
+            "Missing `unaccent` PG extension, cannot use the 'sql' strategy to compute `res.partner/t9_name`. "
+            "Continuing with the 'orm' strategy."
         )
     if strategy == "orm":
         util.recompute_fields(cr, "res.partner", ["t9_name"])
