@@ -44,3 +44,19 @@ def migrate(cr, version):
     util.remove_field(cr, "res.config.settings", "module_marketing_automation")
 
     util.remove_model(cr, "web_editor.assets")
+
+    queries = []
+    for inh in util.for_each_inherit(cr, "website.seo.metadata"):
+        table = util.table_of_model(cr, inh.model)
+        query = util.format_query(
+            cr,
+            """
+            UPDATE {}
+               SET website_meta_og_img = regexp_replace(website_meta_og_img, '^https?://[^/]+', '')
+             WHERE website_meta_og_img LIKE 'http%'
+            """,
+            table,
+        )
+        queries.extend(util.explode_query_range(cr, query, table=table))
+    if queries:
+        util.parallel_execute(cr, queries)
