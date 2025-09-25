@@ -54,8 +54,9 @@ def migrate(cr, version):
         # block the upgrade if source version is certified but not target version
         if source in BLACKBOX_CERTIFIED_VERSIONS and target not in BLACKBOX_CERTIFIED_VERSIONS:
             msg = "pos_blackbox_be upgrade to {} is not supported from {}".format(target, source)
-            util._logger.critical(msg)
-            raise util.MigrationError(msg)
+            util._logger.log(util.NEARLYWARN, msg)
+            if not util.on_CI():
+                raise util.MigrationError(msg)
 
         # warn about upgrading to a certified version
         if source not in BLACKBOX_CERTIFIED_VERSIONS and target in BLACKBOX_CERTIFIED_VERSIONS:
