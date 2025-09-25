@@ -9,8 +9,6 @@ def migrate(cr, version):
     fields_to_compute = ["tax_ids"]
     if util.module_installed(cr, "sale_margin"):
         fields_to_compute.append("purchase_price")
-    if util.module_installed(cr, "sale_subscription"):
-        fields_to_compute.append("recurring_invoice")
     if util.module_installed(cr, "sale_management_renting"):
         fields_to_compute.append("is_rental")
 
