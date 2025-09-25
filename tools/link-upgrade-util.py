@@ -60,8 +60,7 @@ def main():
 
     if not mig_dir.exists():
         sys.exit(
-            f"ERROR: upgrade source '{mig_dir}' doesn't exist. "
-            f"Please provide the location of your source repositories."
+            f"ERROR: upgrade source '{mig_dir}' doesn't exist. Please provide the location of your source repositories."
         )
 
     if not args.remove and (mig_dir / "util" / "__init__.py").exists():
@@ -69,7 +68,7 @@ def main():
 
     gitignore = []
     for f in src_dir.rglob("*"):
-        if not f.is_file() or f.parent.name == "__pycache__":
+        if not f.is_file() or f.parent.name == "__pycache__" or f.suffix in (".pyc", "pyo"):
             continue
         r = f.relative_to(src_dir)
         td = mig_dir / r.parent
