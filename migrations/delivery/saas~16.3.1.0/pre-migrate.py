@@ -2,6 +2,12 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    # delivery could be freshly installed
+    if util.table_exists(cr, "delivery_price_rule"):
+        _migrate_delivery_price_rule(cr)
+
+
+def _migrate_delivery_price_rule(cr):
     cr.execute(
         """
         WITH updated AS (
