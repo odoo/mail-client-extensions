@@ -16,3 +16,20 @@ def migrate(cr, version):
             },
             ignore_duplicates=True,
         )
+
+    cr.execute(
+        """
+        UPDATE account_reconcile_model_line arml
+           SET account_id = rc.transfer_account_id
+          FROM account_reconcile_model arm
+          JOIN res_company rc
+            ON arm.company_id = rc.id
+          JOIN ir_model_data imd
+            ON imd.res_id = arm.id
+           AND imd.model = 'account.reconcile.model'
+         WHERE imd.name = rc.id || '_internal_transfer_reco'
+           AND arm.id = arml.model_id
+           AND arml.account_id IS NULL
+           AND rc.transfer_account_id IS NOT NULL
+        """
+    )
