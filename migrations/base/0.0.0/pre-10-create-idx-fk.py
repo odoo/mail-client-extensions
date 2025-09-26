@@ -26,6 +26,7 @@ UPG_AUTO_INDEXING = int(os.getenv("UPG_AUTO_INDEXING", _DEFAULT_INDEXING))
 
 def migrate(cr, version):
     if UPG_AUTO_INDEXING & IDX_ANALYZE:
+        cr.commit()
         _logger.info("Analyzing DB...")
         cr.execute("ANALYZE")  # update statistics
         _logger.info("Analyze done.")
