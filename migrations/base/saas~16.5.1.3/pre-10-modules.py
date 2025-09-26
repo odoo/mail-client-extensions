@@ -2,6 +2,21 @@ from odoo.upgrade import util
 
 
 def migrate(cr, version):
+    if util.module_installed(cr, "l10n_ke_hr_payroll") and not util.module_installed(cr, "account"):
+        # l10n_ke_hr_payroll now depends on l10n_ke that depends on account
+        # installing account makes a lot of noise for new computed fields
+        # we don not expect real-world DBs to use Kenyan payroll without account
+        util.create_column(cr, "res_partner", "invoice_warn", "varchar", default="no-message")
+        util.create_column(cr, "res_partner", "supplier_rank", "int4", default=0)
+        util.create_column(cr, "res_partner", "customer_rank", "int4", default=0)
+        # account_edi_ubl_cii is auto-installed from account
+        util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].update(
+            {
+                ("res.partner", "ubl_cii_format"),
+                ("res.partner", "peppol_endpoint"),
+                ("res.partner", "peppol_eas"),
+            }
+        )
     util.merge_module(cr, "l10n_ke_hr_payroll_bik", "l10n_ke_hr_payroll")
     util.remove_module(cr, "l10n_ae_pos")
     util.remove_module(cr, "purchase_enterprise")
@@ -48,3 +63,12 @@ def migrate(cr, version):
         util.merge_module(cr, "l10n_lu_reports_annual_vat_2023", "l10n_lu_reports")
 
     util.force_install_module(cr, "base_import_module")
+
+    if util.module_installed(cr, "l10n_in_hr_payroll"):
+        # l10n_in_hr_payroll now depends on hr_payroll_holidays that depends (multi-level)
+        # on calendar module, the latter adds a new column to res.partner
+        util.create_column(cr, "res_partner", "calendar_last_notif_ack", "timestamp", default="now")
+
+    if util.module_installed(cr, "l10n_uy") and not util.module_installed(cr, "base_vat"):
+        # l10n_uy now depends on l10n_latam_base that depends on base_vat
+        util.force_upgrade_of_fresh_module(cr, "base_vat")

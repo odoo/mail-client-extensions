@@ -4,7 +4,7 @@ from odoo.upgrade import util
 def migrate(cr, version):
     util.create_column(cr, "account_move_send", "l10n_it_edi_checkbox_send", "boolean")
     util.create_column(cr, "account_move", "l10n_it_edi_state", "varchar")
-    util.create_column(cr, "account_move", "l10n_it_edi_header", "varchar")
+    util.create_column(cr, "account_move", "l10n_it_edi_header", "text")
 
     util.rename_field(cr, "res.config.settings", "l10n_it_edi_sdicoop_register", "l10n_it_edi_register")
     util.rename_field(cr, "res.config.settings", "l10n_it_edi_sdicoop_demo_mode", "l10n_it_edi_demo_mode")

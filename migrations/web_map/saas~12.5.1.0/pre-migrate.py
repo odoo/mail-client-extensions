@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from odoo.addons.base.maintenance.migrations import util
 
 
@@ -12,6 +11,7 @@ def migrate(cr, version):
               FROM res_partner p
          LEFT JOIN res_country c ON c.id = p.country_id
              WHERE {parallel_filter}
+               AND p.contact_address_complete IS NULL
         )
         UPDATE res_partner p
            SET contact_address_complete = CONCAT(

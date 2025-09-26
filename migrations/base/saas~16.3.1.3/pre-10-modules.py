@@ -58,9 +58,31 @@ def migrate(cr, version):
 
     if util.module_installed(cr, "sale_subscription"):
         util.force_migration_of_fresh_module(cr, "account_accountant")
+        util.force_migration_of_fresh_module(cr, "account_followup")
+        util.force_migration_of_fresh_module(cr, "account_asset")
+
+    if util.module_installed(cr, "account_accountant") and not util.module_installed(cr, "account_followup"):
+        util.force_migration_of_fresh_module(cr, "account_followup")
 
     if util.module_installed(cr, "iap_extract") and not util.module_installed(cr, "iap"):
         util.uninstall_module(cr, "iap_extract")
 
     if util.modules_installed(cr, "hr_holidays", "l10n_fr"):
         util.force_upgrade_of_fresh_module(cr, "l10n_fr_hr_holidays")
+
+    util.force_upgrade_of_fresh_module(cr, "l10n_es_edi_facturae")
+
+    if util.module_installed(cr, "spreadsheet") and not util.module_installed(cr, "mail"):
+        util.ENVIRON["CI_IGNORE_NO_ORM_TABLE_CHANGE"].update(
+            {
+                # `spreadsheet` now depends on `portal`, which installs `mail`
+                ("res.partner", "email_normalized"),
+                ("res.users", "notification_type"),
+                ("res.partner", "message_bounce"),
+                # Due to autoinstalls `sms` gets installed as well.
+                ("res.partner", "phone_sanitized"),
+            }
+        )
+
+    if util.module_installed(cr, "l10n_dz"):
+        util.force_upgrade_of_fresh_module(cr, "base_vat")

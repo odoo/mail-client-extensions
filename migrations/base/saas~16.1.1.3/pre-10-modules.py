@@ -25,6 +25,8 @@ def migrate(cr, version):
     if util.module_installed(cr, "account_invoice_extract"):
         util.force_upgrade_of_fresh_module(cr, "iap_extract")
 
-    # sale is a new dependency of spreadsheet_dashboard_hr_expense
+    # sales_team is a new dependency of spreadsheet_dashboard_hr_expense
     if util.module_installed(cr, "spreadsheet_dashboard_hr_expense"):
         util.create_column(cr, "account_move", "team_id", "int4")
+        util.create_column(cr, "res_users", "sale_team_id", "int4")
+        util.create_column(cr, "res_partner", "sale_warn", "varchar", default="no-message")
