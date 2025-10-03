@@ -32,7 +32,7 @@ function onNextLogin(event) {
             CardService.newOpenLink()
                 .setUrl(State.odooLoginUrl)
                 .setOpenAs(CardService.OpenAs.OVERLAY)
-                .setOnClose(CardService.OnClose.RELOAD_ADD_ON),
+                .setOnClose(CardService.OnClose.RELOAD),
         )
         .build();
 }
