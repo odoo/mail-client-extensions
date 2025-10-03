@@ -70,7 +70,7 @@ function odooAuthCallback(callbackRequest: any) {
 
     userProperties.setProperty("ODOO_ACCESS_TOKEN", accessToken);
 
-    return HtmlService.createHtmlOutput("Success ! <script>top.window.close()</script>");
+    return HtmlService.createHtmlOutput("Success !");
 }
 
 /**
