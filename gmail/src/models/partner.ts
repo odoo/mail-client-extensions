@@ -130,7 +130,6 @@ export class Partner {
      *
      * Return
      *      - The Partner related to the given email address
-     *      - The list of Odoo companies in which the current user belongs
      *      - True if the current user can create partner in his Odoo database
      *      - True if the current user can create projects in his Odoo database
      *      - The error message if something bad happened
