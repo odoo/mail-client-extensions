@@ -1,6 +1,7 @@
 import { UI_ICONS } from "./icons";
 import { State } from "../models/state";
 import { escapeHtml } from "../utils/html";
+import { truncate } from "../utils/format";
 
 /**
  * Remove all cards and push the new one
@@ -26,7 +27,7 @@ export function pushCard(card: Card) {
 /**
  * Build a widget "Key / Value / Icon"
  *
- * If the icon if not a valid URL, take the icon from:
+ * If the icon is not a valid URL, take the icon from:
  * https://github.com/webdog/octicons-png
  */
 export function createKeyValueWidget(
@@ -40,7 +41,7 @@ export function createKeyValueWidget(
     iconLabel: string = null,
     iconCropStyle: GoogleAppsScript.Card_Service.ImageCropType = CardService.ImageCropType.SQUARE,
 ) {
-    const widget = CardService.newDecoratedText().setText(content).setWrapText(true);
+    const widget = CardService.newDecoratedText().setText(content);
     if (label && label.length) {
         widget.setTopLabel(escapeHtml(label));
     }
@@ -62,7 +63,9 @@ export function createKeyValueWidget(
 
     if (icon && icon.length) {
         const isIconUrl =
-            icon.indexOf("http://") === 0 || icon.indexOf("https://") === 0 || icon.indexOf("data:image/") === 0;
+            icon.indexOf("http://") === 0 ||
+            icon.indexOf("https://") === 0 ||
+            icon.indexOf("data:image/") === 0;
         if (!isIconUrl) {
             throw new Error("Invalid icon URL");
         }
@@ -82,10 +85,12 @@ export function createKeyValueWidget(
 
 function _handleActionCall(event) {
     const functionName = event.parameters.functionName;
-    const state = State.fromJson(event.parameters.state);
     const parameters = JSON.parse(event.parameters.parameters);
-    const inputs = event.formInputs;
-    return eval(functionName)(state, parameters, inputs);
+    if (event.parameters.state?.length) {
+        const state = State.fromJson(event.parameters.state);
+        return eval(functionName)(state, parameters, event.formInput);
+    }
+    return eval(functionName)(parameters, event.formInput);
 }
 
 /**
@@ -95,12 +100,12 @@ function _handleActionCall(event) {
  * must be strings. Therefor we serialized the state and other arguments to clean the code
  * and to be able to access to it in the event handlers.
  */
-export function actionCall(state: State, functionName: string, parameters: any = {}) {
+export function actionCall(state: State | null, functionName: string, parameters: any = {}) {
     return CardService.newAction()
         .setFunctionName(_handleActionCall.name)
         .setParameters({
             functionName: functionName,
-            state: state.toJson(),
+            state: state ? state.toJson() : "",
             parameters: JSON.stringify(parameters),
         });
 }
@@ -112,5 +117,7 @@ export function notify(message: string) {
 }
 
 export function openUrl(url: string) {
-    return CardService.newActionResponseBuilder().setOpenLink(CardService.newOpenLink().setUrl(url)).build();
+    return CardService.newActionResponseBuilder()
+        .setOpenLink(CardService.newOpenLink().setUrl(url))
+        .build();
 }
