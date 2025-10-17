@@ -11,9 +11,12 @@ import { getAccessToken } from "./odoo_auth";
  * Add error message at the end of the email, fix some CSS issues,...
  */
 function _formatEmailBody(email: Email, error: ErrorMessage): string {
-    let body = email.body;
-
-    body = `<span>${_t("From:")} ${escapeHtml(email.contactEmail)}</span><br/><br/>${body}`;
+    let body = `<span>${_t("From:")} ${escapeHtml(email.emailFrom)} <br/>${_t(
+        "Received on %s",
+        email.date,
+    )}</span><br/>`;
+    body += `<span>${_t("Subject:")} ${escapeHtml(email.subject)}</span><br/>`;
+    body += `<br/>${email.body}`;
 
     if (error.code === "attachments_size_exceeded") {
         body += `<br/><i>${_t(
@@ -40,7 +43,8 @@ export function logEmail(recordId: number, recordModel: string, email: Email): E
     const odooAccessToken = getAccessToken();
     const [attachments, error] = email.getAttachments();
     const body = _formatEmailBody(email, error);
-    const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.LOG_EMAIL;
+    const url =
+        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.LOG_EMAIL;
 
     const response = postJsonRpc(
         url,
