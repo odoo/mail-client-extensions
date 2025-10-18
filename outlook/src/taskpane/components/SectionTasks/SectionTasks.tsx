@@ -20,6 +20,7 @@ type SectionTasksState = {
     isCollapsed: boolean;
     isProjectCalloutOpen: boolean;
     createCallback?: (any?) => {};
+    originalTasks: Task[];
 };
 
 class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState> {
@@ -30,6 +31,7 @@ class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState>
             tasks: this.props.partner.tasks,
             isCollapsed: isCollapsed,
             isProjectCalloutOpen: false,
+            originalTasks: this.props.partner.tasks,
         };
     }
 
@@ -43,6 +45,14 @@ class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState>
     private onProjectSelected = (project: Project) => {
         this.setState({ isProjectCalloutOpen: false });
         this.state.createCallback({ project_id: project.id });
+    };
+
+    private updateTasks = (searchResults: Task[]) => {
+        if (searchResults == null) {
+            this.setState({ tasks: this.state.originalTasks });
+        } else {
+            this.setState({ tasks: searchResults });
+        }
     };
 
     render() {
@@ -65,6 +75,8 @@ class SectionTasks extends React.Component<SectionTasksProps, SectionTasksState>
                     msgLogEmail="Log Email Into Task"
                     getRecordDescription={(task) => task.projectName}
                     onClickCreate={this.toggleProjectCallout}
+                    searchType="task"
+                    updateRecords={this.updateTasks}
                 />
                 {this.state.isProjectCalloutOpen && (
                     <Callout
