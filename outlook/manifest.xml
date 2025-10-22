@@ -98,6 +98,7 @@
       <Hosts>
         <Host xsi:type="MailHost">
           <DesktopFormFactor>
+            <SupportsSharedFolders>true</SupportsSharedFolders>
             <FunctionFile resid="Commands.Url"/>
             <ExtensionPoint xsi:type="MessageReadCommandSurface">
               <OfficeTab id="TabDefault">
