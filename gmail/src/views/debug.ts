@@ -9,20 +9,30 @@ export function buildDebugView() {
     const odooAccessToken = getAccessToken();
 
     card.setHeader(
-        CardService.newCardHeader().setTitle(_t("Debug Zone")).setSubtitle(_t("Debug zone for development purpose.")),
+        CardService.newCardHeader()
+            .setTitle(_t("Debug Zone"))
+            .setSubtitle(_t("Debug zone for development purpose.")),
     );
 
-    card.addSection(CardService.newCardSection().addWidget(createKeyValueWidget(_t("Odoo Server URL"), odooServerUrl)));
+    card.addSection(
+        CardService.newCardSection().addWidget(
+            createKeyValueWidget(_t("Odoo Server URL"), odooServerUrl),
+        ),
+    );
 
     card.addSection(
-        CardService.newCardSection().addWidget(createKeyValueWidget(_t("Odoo Access Token"), odooAccessToken)),
+        CardService.newCardSection().addWidget(
+            createKeyValueWidget(_t("Odoo Access Token"), odooAccessToken),
+        ),
     );
 
     card.addSection(
         CardService.newCardSection().addWidget(
             CardService.newTextButton()
                 .setText(_t("Clear Translations Cache"))
-                .setOnClickAction(CardService.newAction().setFunctionName(clearTranslationCache.name)),
+                .setOnClickAction(
+                    CardService.newAction().setFunctionName(clearTranslationCache.name),
+                ),
         ),
     );
 
