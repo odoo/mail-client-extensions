@@ -113,6 +113,7 @@ const PartnerView: React.FC<PartnerViewProps> = (props: PartnerViewProps) => {
             <span
                 className={styles.info}
                 key={`companyName-${partner.companyName}`}
+                title={partner.companyName}
             >
                 <BuildingRegular /> {partner.companyName}
             </span>
@@ -120,14 +121,22 @@ const PartnerView: React.FC<PartnerViewProps> = (props: PartnerViewProps) => {
     }
     if (partner.email) {
         description.push(
-            <span className={styles.info} key={`email-${partner.email}`}>
+            <span
+                className={styles.info}
+                key={`email-${partner.email}`}
+                title={partner.email}
+            >
                 <MailRegular /> {partner.email}
             </span>
         )
     }
     if (partner.phone) {
         description.push(
-            <span className={styles.info} key={`phone-${partner.phone}`}>
+            <span
+                className={styles.info}
+                key={`phone-${partner.phone}`}
+                title={partner.phone}
+            >
                 <PhoneRegular /> {partner.phone}
             </span>
         )

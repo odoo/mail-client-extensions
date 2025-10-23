@@ -57,11 +57,18 @@ const Login: React.FC<LoginProps> = (props: LoginProps) => {
             url = 'https://' + url
         }
         setUrl(url)
+
+        if (url.endsWith('/odoo')) {
+            url = url.slice(0, -5)
+        } else if (url.endsWith('/odoo/web')) {
+            url = url.slice(0, -9)
+        }
         localStorage.setItem('odoo_url', url)
     }
 
     const onClickLogin = async () => {
         setLoading(true)
+        const url = localStorage.getItem('odoo_url')
         const ok = await isOdooDatabaseReachable(url)
         setLoading(false)
         if (!ok) {
@@ -83,6 +90,12 @@ const Login: React.FC<LoginProps> = (props: LoginProps) => {
 
         localStorage.setItem('odoo_access_token', accessToken)
         props.onLogin()
+    }
+
+    const onKeyUp = (event) => {
+        if (event.key === 'Enter') {
+            onClickLogin()
+        }
     }
 
     const onClickSignup = () => {
@@ -108,6 +121,7 @@ const Login: React.FC<LoginProps> = (props: LoginProps) => {
                 value={url}
                 placeholder="Connect to..."
                 onChange={onInputChange}
+                onKeyUp={onKeyUp}
             />
             <Button
                 className={styles.button}

@@ -95,8 +95,20 @@ const RecordCard: React.FC<RecordCardProps> = (props: RecordCardProps) => {
             >
                 {!!icon && <img className={styles.icon} src={icon} />}
                 <div className={styles.recordInfo}>
-                    <span className={styles.info}>{name}</span>
-                    <div className={styles.description}>{description}</div>
+                    <span
+                        className={styles.info}
+                        title={typeof name === 'string' ? name : ''}
+                    >
+                        {name}
+                    </span>
+                    <div
+                        className={styles.description}
+                        title={
+                            typeof description === 'string' ? description : ''
+                        }
+                    >
+                        {description}
+                    </div>
                 </div>
             </div>
             {logEmail && (
