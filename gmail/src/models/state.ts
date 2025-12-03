@@ -162,13 +162,15 @@ export class State {
      */
     static getLoggingState(messageId: string) {
         const cache = CacheService.getUserCache();
-        const loggingStateStr = cache.get("ODOO_LOGGING_STATE_" + getOdooServerUrl() + "_" + messageId);
+        const loggingStateStr = cache.get(
+            "ODOO_LOGGING_STATE_" + getOdooServerUrl() + "_" + messageId,
+        );
 
         const defaultValues: Record<string, number[]> = {
-            partners: [],
-            leads: [],
-            tickets: [],
-            tasks: [],
+            "res.partner": [],
+            "crm.lead": [],
+            "helpdesk.ticket": [],
+            "project.task": [],
         };
 
         if (!loggingStateStr || !loggingStateStr.length) {

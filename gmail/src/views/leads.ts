@@ -11,18 +11,20 @@ import { State } from "../models/state";
 function onLogEmailOnLead(state: State, parameters: any) {
     const leadId = parameters.leadId;
 
-    if (State.checkLoggingState(state.email.messageId, "leads", leadId)) {
-        state.error = logEmail(leadId, "crm.lead", state.email);
-        if (!state.error.code) {
-            State.setLoggingState(state.email.messageId, "leads", leadId);
+    if (State.checkLoggingState(state.email.messageId, "crm.lead", leadId)) {
+        const error = logEmail(leadId, "crm.lead", state.email);
+        if (error.code) {
+            return notify(error.message);
         }
+
+        State.setLoggingState(state.email.messageId, "crm.lead", leadId);
         return updateCard(buildView(state));
     }
-    return notify(_t("Email already logged on the lead"));
+    return notify(_t("Email already logged on the opportunity"));
 }
 
 function onEmailAlreradyLoggedOnLead(state: State) {
-    return notify(_t("Email already logged on the lead"));
+    return notify(_t("Email already logged on the opportunity"));
 }
 
 function onCreateLead(state: State) {

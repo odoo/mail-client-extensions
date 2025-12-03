@@ -28,11 +28,13 @@ function onCreateTicket(state: State) {
 function onLogEmailOnTicket(state: State, parameters: any) {
     const ticketId = parameters.ticketId;
 
-    if (State.checkLoggingState(state.email.messageId, "tickets", ticketId)) {
-        state.error = logEmail(ticketId, "helpdesk.ticket", state.email);
-        if (!state.error.code) {
-            State.setLoggingState(state.email.messageId, "tickets", ticketId);
+    if (State.checkLoggingState(state.email.messageId, "helpdesk.ticket", ticketId)) {
+        const error = logEmail(ticketId, "helpdesk.ticket", state.email);
+        if (error.code) {
+            return notify(error.message);
         }
+
+        State.setLoggingState(state.email.messageId, "helpdesk.ticket", ticketId);
         return updateCard(buildView(state));
     }
     return notify(_t("Email already logged on the ticket"));
