@@ -34,6 +34,7 @@
     "https://*.odoo.com/web/login",
     "https://*.odoo.com/mail_plugin/auth",
     "https://*.odoo.com/mail_plugin/auth/access_token",
+    "https://*.odoo.com/mail_plugin/auth/check_version",
     "https://odoo.com/mail_plugin/get_translations",
     "https://odoo.com/mail_plugin/partner/get",
     "https://odoo.com/mail_plugin/log_mail_content",
@@ -49,6 +50,7 @@
     "https://odoo.com/web/login",
     "https://odoo.com/mail_plugin/auth",
     "https://odoo.com/mail_plugin/auth/access_token",
+    "https://odoo.com/mail_plugin/auth/check_version",
     "https://iap-services.odoo.com/iap/mail_extension/enrich"
   ]
 }

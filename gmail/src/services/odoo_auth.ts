@@ -132,33 +132,27 @@ export const resetAccessToken = () => {
 };
 
 /**
- * Make an HTTP request to "/mail_plugin/auth/access_token" (cors="*") on the Odoo
- * database to verify that the server is reachable and that the mail plugin module is
- * installed.
+ * Make an HTTP request to the Odoo database to verify that the server
+ * is reachable and that the mail plugin module is installed.
  *
- * Returns True if the Odoo database is reachable and if the "mail_plugin" module
- * is installed, false otherwise.
+ * Returns the version of the addin that is supported if it's reachable, null otherwise.
  */
-export const isOdooDatabaseReachable = (odooUrl: string): boolean => {
+export const getSupportedAddinVersion = (odooUrl: string): number | null => {
     if (!odooUrl || !odooUrl.length) {
-        return false;
+        return null;
     }
 
-    const response = postJsonRpc(
-        odooUrl + ODOO_AUTH_URLS.CODE_VALIDATION,
-        { auth_code: null },
-        {},
-        { returnRawResponse: true },
-    );
+    const response = postJsonRpc(odooUrl + ODOO_AUTH_URLS.CHECK_VERSION, {}, {}, { returnRawResponse: true });
     if (!response) {
-        return false;
+        return null;
     }
 
     const responseCode = response.getResponseCode();
 
     if (responseCode > 299 || responseCode < 200) {
-        return false;
+        return null;
     }
 
-    return true;
+    const textResponse = response.getContentText("UTF-8");
+    return parseInt(JSON.parse(textResponse).result);
 };
