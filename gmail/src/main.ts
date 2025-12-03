@@ -3,6 +3,7 @@ import { Email } from "./models/email";
 import { State } from "./models/state";
 import { Partner } from "./models/partner";
 import { _t } from "./services/translation";
+import { buildLoginMainView } from "./views/login";
 
 /**
  * Entry point of the application, executed when an email is open.
@@ -17,26 +18,36 @@ function onGmailMessageOpen(event) {
     GmailApp.setCurrentMessageAccessToken(event.messageMetadata.accessToken);
     const currentEmail = new Email(event.gmail.messageId, event.gmail.accessToken);
 
-    const [partner, odooUserCompanies, canCreatePartner, canCreateProject, error] = Partner.enrichPartner(
-        currentEmail.contactEmail,
-        currentEmail.contactName
-    );
+    let state = null;
+    if (currentEmail.contacts.length > 1) {
+        // More than one contact, we will need to choose the right one
+        const [searchedPartners, error] = Partner.searchPartner(
+            currentEmail.contacts.map((c) => c.email),
+        );
+        if (error.code) {
+            return buildLoginMainView();
+        }
+        const existingPartnersEmails = searchedPartners.map((p) => p.email);
 
-    if (!partner) {
-        // Should at least use the FROM headers to generate the partner
-        throw new Error(_t("Error during enrichment"));
+        for (const contact of currentEmail.contacts) {
+            if (existingPartnersEmails.includes(contact.email)) {
+                continue;
+            }
+            searchedPartners.push(Partner.fromJson({ name: contact.name, email: contact.email }));
+        }
+
+        state = new State(null, false, currentEmail, searchedPartners, null, false);
+    } else {
+        const [partner, canCreatePartner, canCreateProject, error] = Partner.getPartner(
+            currentEmail.contacts[0].name,
+            currentEmail.contacts[0].email,
+        );
+        if (error.code) {
+            return buildLoginMainView();
+        }
+
+        state = new State(partner, canCreatePartner, currentEmail, null, null, canCreateProject);
     }
-
-    const state = new State(
-        partner,
-        canCreatePartner,
-        currentEmail,
-        odooUserCompanies,
-        null,
-        null,
-        canCreateProject,
-        error
-    );
 
     return [buildView(state)];
 }

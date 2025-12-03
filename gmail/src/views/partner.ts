@@ -1,113 +1,62 @@
-import { buildView } from "./index";
 import { buildLeadsView } from "./leads";
 import { buildTasksView } from "./tasks";
 import { buildTicketsView } from "./tickets";
 import { buildPartnerActionView } from "./partner_actions";
-import { updateCard } from "./helpers";
-import { UI_ICONS } from "./icons";
-import { createKeyValueWidget, actionCall, notify } from "./helpers";
-import { URLS } from "../const";
+import { actionCall, createKeyValueWidget, notify, updateCard } from "./helpers";
 import { getOdooServerUrl } from "src/services/app_properties";
 import { State } from "../models/state";
-import { Partner } from "../models/partner";
-import { ErrorMessage } from "../models/error_message";
-import { logEmail } from "../services/log_email";
 import { _t } from "../services/translation";
-import { buildLoginMainView } from "./login";
+import { buildCardActionsView } from "./card_actions";
+import { Partner } from "src/models/partner";
+import { buildView } from "./index";
 
-function onLogEmail(state: State) {
-    const partnerId = state.partner.id;
+export function onReloadPartner(state: State) {
+    const values = Partner.getPartner(state.partner.name, state.partner.email, state.partner.id);
 
-    if (!partnerId) {
-        throw new Error(_t("This contact does not exist in the Odoo database."));
+    [state.partner, state.canCreatePartner, state.canCreateProject] = values;
+
+    if (values[3].code) {
+        return notify(values[3].message);
     }
 
-    if (State.checkLoggingState(state.email.messageId, "partners", partnerId)) {
-        state.error = logEmail(partnerId, "res.partner", state.email);
-        if (!state.error.code) {
-            State.setLoggingState(state.email.messageId, "partners", partnerId);
-        }
-        return updateCard(buildView(state));
-    }
-    return notify(_t("Email already logged on the contact"));
-}
-
-function onSavePartner(state: State) {
-    const partnerValues = {
-        name: state.partner.name,
-        email: state.partner.email,
-        company: state.partner.company && state.partner.company.id,
-    };
-
-    const partnerId = Partner.savePartner(partnerValues);
-    if (partnerId) {
-        state.partner.id = partnerId;
-        state.searchedPartners = null;
-        state.error = new ErrorMessage();
-        return updateCard(buildView(state));
-    } else {
-        return notify(_t("Can not save the contact"));
-    }
-}
-
-export function onEmailAlreadyLogged(state: State) {
-    return notify(_t("Email already logged on the contact"));
+    return updateCard(buildView(state));
 }
 
 export function buildPartnerView(state: State, card: Card) {
+    card.addCardAction(
+        CardService.newCardAction()
+            .setText(_t("Refresh"))
+            .setOnClickAction(actionCall(state, onReloadPartner.name)),
+    );
+
+    buildCardActionsView(card);
+
     const partner = state.partner;
     const odooServerUrl = getOdooServerUrl();
-    const canContactOdooDatabase = state.error.canContactOdooDatabase && State.isLogged;
 
-    const loggingState = State.getLoggingState(state.email.messageId);
-    const isEmailLogged = partner.id && loggingState["partners"].indexOf(partner.id) >= 0;
+    const partnerSection = CardService.newCardSection().setHeader(
+        "<b>" + _t("Contact Details") + "</b>",
+    );
 
-    const partnerSection = CardService.newCardSection().setHeader("<b>" + _t("Contact") + "</b>");
-
-    let partnerButton = null;
-    if (canContactOdooDatabase && !partner.id) {
-        partnerButton = state.canCreatePartner
-            ? CardService.newImageButton()
-                  .setAltText(_t("Save in Odoo"))
-                  .setIconUrl(UI_ICONS.save_in_odoo)
-                  .setOnClickAction(actionCall(state, onSavePartner.name))
-            : null;
-    } else if (canContactOdooDatabase && !isEmailLogged) {
-        partnerButton = partner.isWriteable
-            ? CardService.newImageButton()
-                  .setAltText(_t("Log email"))
-                  .setIconUrl(UI_ICONS.email_in_odoo)
-                  .setOnClickAction(actionCall(state, onLogEmail.name))
-            : null;
-    } else if (canContactOdooDatabase && isEmailLogged) {
-        partnerButton = CardService.newImageButton()
-            .setAltText(_t("Email already logged on the contact"))
-            .setIconUrl(UI_ICONS.email_logged)
-            .setOnClickAction(actionCall(state, onEmailAlreadyLogged.name));
-    } else if (!State.isLogged) {
-        // button "Log the email" but it redirects to the login page
-        partnerButton = CardService.newImageButton()
-            .setAltText(_t("Log email"))
-            .setIconUrl(UI_ICONS.email_in_odoo)
-            .setOnClickAction(actionCall(state, buildLoginMainView.name));
-    }
-
-    const partnerContent = [partner.email, partner.phone]
+    let partnerContent = [
+        partner.parentName && `🏢 ${partner.parentName}`,
+        partner.email && `✉️ ${partner.email}`,
+        partner.phone && `📞 ${partner.phone}`,
+    ]
         .filter((x) => x)
-        .map((x) => `<font color="#777777">${x}</font>`);
-    const cids = state.odooCompaniesParameter;
+        .map((x) => `<font color="#777777">${x}</font>`)
+        .join("<br>");
+    if (!partner.id) {
+        partnerContent = _t("New Person");
+    }
 
     const partnerCard = createKeyValueWidget(
         null,
-        partner.name + "<br>" + partnerContent.join("<br>"),
-        partner.image || (partner.isCompany ? UI_ICONS.no_company : UI_ICONS.person),
+        partner.name || partner.email || "",
+        partner.getImage(),
+        partnerContent.length ? partnerContent : null,
         null,
-        partnerButton,
-        partner.id
-            ? odooServerUrl + `/web#id=${partner.id}&model=res.partner&view_type=form${cids}`
-            : canContactOdooDatabase
-            ? null
-            : actionCall(state, buildLoginMainView.name),
+        null,
         false,
         partner.email,
         CardService.ImageCropType.CIRCLE,
@@ -119,7 +68,7 @@ export function buildPartnerView(state: State, card: Card) {
 
     card.addSection(partnerSection);
 
-    if (canContactOdooDatabase) {
+    if (State.isLogged) {
         buildLeadsView(state, card);
         buildTicketsView(state, card);
         buildTasksView(state, card);
