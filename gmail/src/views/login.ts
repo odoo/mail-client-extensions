@@ -2,28 +2,38 @@ import { formatUrl, repeat } from "../utils/format";
 import { notify, createKeyValueWidget } from "./helpers";
 import { State } from "../models/state";
 import { IMAGES_LOGIN } from "./icons";
-import { isOdooDatabaseReachable } from "../services/odoo_auth";
+import { getSupportedAddinVersion } from "../services/odoo_auth";
 import { _t, clearTranslationCache } from "../services/translation";
 import { setOdooServerUrl } from "src/services/app_properties";
 
 function onNextLogin(event) {
-    const validatedUrl = formatUrl(event.formInput.odooServerUrl);
-
-    if (!validatedUrl) {
-        return notify("Invalid URL");
+    let domain = null;
+    try {
+        domain = new URL(formatUrl(event.formInputs.odooServerUrl)).origin;
+    } catch {}
+    if (!domain) {
+        return notify(`Invalid URL ${event.formInputs.odooServerUrl}`);
     }
 
-    if (!/^https:\/\/([^\/?]*\.)?odoo\.com(\/|$)/.test(validatedUrl)) {
-        return notify("The URL must be a subdomain of odoo.com");
+    if (!/^https:\/\/([^\/?]*\.)?odoo\.com(\/|$)/.test(domain)) {
+        return notify(
+            "The URL must be a subdomain of odoo.com, see the <a href='https://www.odoo.com/documentation/master/applications/general/integrations/mail_plugins/gmail.html'>documentation</a>",
+        );
     }
 
     clearTranslationCache();
 
-    setOdooServerUrl(validatedUrl);
+    setOdooServerUrl(domain);
 
-    if (!isOdooDatabaseReachable(validatedUrl)) {
+    const version = getSupportedAddinVersion(domain);
+
+    if (!version) {
+        return notify("Could not connect to your database.");
+    }
+
+    if (version !== 2) {
         return notify(
-            "Could not connect to your database. Make sure the module is installed in Odoo (Settings > General Settings > Integrations > Mail Plugins)",
+            "This addin version required Odoo 19.2 or a newer version, please install an older addin version.",
         );
     }
 

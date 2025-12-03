@@ -23,6 +23,7 @@ export const ODOO_AUTH_URLS: Record<string, string> = {
     LOGIN: "/web/login",
     AUTH_CODE: "/mail_plugin/auth",
     CODE_VALIDATION: "/mail_plugin/auth/access_token",
+    CHECK_VERSION: "/mail_plugin/auth/check_version",
     SCOPE: "outlook",
     FRIENDLY_NAME: "Gmail",
 };
