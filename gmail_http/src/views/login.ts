@@ -86,14 +86,14 @@ export async function getLoginMainView(user: User) {
             new TextInput(
                 "odooServerUrl",
                 "Connect to...",
-                new ActionCall(undefined, onNextLogin, {}),
+                new ActionCall(undefined, onNextLogin),
                 "e.g. company.odoo.com",
                 user.odooUrl,
             ),
             new Image(
                 "data:image/svg+xml;base64," + loginButton,
                 "Login",
-                new ActionCall(undefined, onNextLogin, {}),
+                new ActionCall(undefined, onNextLogin),
             ),
             new Image(
                 "data:image/svg+xml;base64," + signupButton,

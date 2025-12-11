@@ -8,8 +8,6 @@ import { onOpenDebugView } from "./debug";
 async function onLogout(state: State, _t: Function, user: User): Promise<EventResponse> {
     user.odooUrl = undefined;
     user.odooToken = undefined;
-    user.translations = undefined;
-    user.translationsExpireAt = undefined;
     await user.save();
     return new PushToRoot(await getLoginMainView(user));
 }

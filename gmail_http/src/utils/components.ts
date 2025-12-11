@@ -202,9 +202,7 @@ export class ButtonsList extends Component {
 
     build() {
         return {
-            buttonList: {
-                buttons: this.buttons.map((b) => b.build().buttonList.buttons[0]),
-            },
+            buttonList: { buttons: this.buttons.map((b) => b.build().buttonList.buttons[0]) },
         };
     }
 }

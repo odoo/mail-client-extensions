@@ -82,15 +82,7 @@ export class UpdateCard extends EventResponse {
     }
 
     build() {
-        return {
-            action: {
-                navigations: [
-                    {
-                        updateCard: this.card.build(),
-                    },
-                ],
-            },
-        };
+        return { action: { navigations: [{ updateCard: this.card.build() }] } };
     }
 }
 
@@ -102,11 +94,7 @@ export class Redirect extends EventResponse {
     }
 
     build() {
-        return {
-            action: {
-                link: this.openLink.build()["openLink"],
-            },
-        };
+        return { action: { link: this.openLink.build()["openLink"] } };
     }
 }
 

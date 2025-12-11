@@ -16,6 +16,12 @@ export class Translate {
     }
 
     static async getTranslations(user: User): Promise<Function> {
+        if (!user.odooUrl) {
+            // The user is not logged yet
+            const translator = new Translate({});
+            return translator._t.bind(translator);
+        }
+
         if (!user.translationsExpireAt || new Date() > user.translationsExpireAt) {
             user.translations = await postJsonRpc(
                 user.odooUrl + URLS.GET_TRANSLATIONS,

@@ -92,7 +92,6 @@ async function onSelectProject(
     state.partner.tasks.push(task);
     state.partner.taskCount += 1;
 
-    // Todo: test that the go back button work well
     return new PopOneCardAndUpdate(getPartnerView(state, _t, user));
 }
 registerEventHandler(onSelectProject);
