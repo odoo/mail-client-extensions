@@ -19,6 +19,7 @@ const api = {
     loginPage: '/web/login', // Should be the usual Odoo login page.
     authCodePage: '/mail_plugin/auth', // The page where to allow or deny access. You get an auth code.
     getAccessToken: '/mail_plugin/auth/access_token', // The address where to post to exchange an auth code for an access token.
+    getOdooVersion: '/mail_plugin/auth/check_version',
     addInBaseURL: 'https://' + __DOMAIN__,
     outlookScope: 'outlook',
     outlookFriendlyName: 'Outlook',
