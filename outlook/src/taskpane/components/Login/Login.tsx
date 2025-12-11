@@ -19,6 +19,7 @@ enum AuthenticationRequestError {
     DatabaseNotReachable,
     PermissionRefused,
     AuthenticationCodeExpired,
+    InvalidOdooVersion,
 }
 
 type LoginState = {
@@ -78,10 +79,20 @@ class Login extends React.Component<{}, LoginState> {
         api.baseURL = sanitizedURL;
         localStorage.setItem('baseURL', sanitizedURL);
 
-        if (!(await this._isOdooDatabaseReachable())) {
+        const version = await this._getSupportedAddinVersion()
+
+        if (!version) {
             this.setState({
                 isCheckingUrl: false,
                 authenticationRequestError: AuthenticationRequestError.DatabaseNotReachable,
+            });
+            return;
+        }
+
+        if (version !== 1) {
+            this.setState({
+                isCheckingUrl: false,
+                authenticationRequestError: AuthenticationRequestError.InvalidOdooVersion,
             });
             return;
         }
@@ -111,16 +122,13 @@ class Login extends React.Component<{}, LoginState> {
     };
 
     /**
-     * Check if the database URL is correct and if the mail plugin is installed
-     * by requesting the endpoint "/mail_plugin/auth/access_token" (with cors="*" !).
-     *
-     * If the URL is not reachable (invalid URL or the Odoo module is not installed)
-     * return false.
+     * Make an HTTP request to the Odoo database to verify that the server
+     * is reachable and that the mail plugin module is installed.
      */
-    _isOdooDatabaseReachable = async () => {
+    _getSupportedAddinVersion = async () => {
         const request = sendHttpRequest(
             HttpVerb.POST,
-            api.baseURL + api.getAccessToken,
+            api.baseURL + api.getOdooVersion,
             ContentType.Json,
             null,
             {},
@@ -128,10 +136,10 @@ class Login extends React.Component<{}, LoginState> {
         );
 
         try {
-            await request.promise;
-            return true;
+            const response = (await request.promise)
+            return JSON.parse(response).result;
         } catch {
-            return false;
+            return null;
         }
     };
 
@@ -289,6 +297,8 @@ class Login extends React.Component<{}, LoginState> {
             [AuthenticationRequestError.PermissionRefused]: 'Permission to access your database needs to be granted. ',
             [AuthenticationRequestError.AuthenticationCodeExpired]:
                 'Your authentication code is invalid or has expired. ',
+            [AuthenticationRequestError.InvalidOdooVersion]:
+                'This addin version required Odoo 19.1 or an older version, please install a newer addin version.',
         };
 
         const errorStr = ERROR_MESSAGES[this.state.authenticationRequestError];
