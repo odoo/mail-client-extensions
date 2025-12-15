@@ -1,45 +1,133 @@
+import { OAuth2Client } from "google-auth-library";
+import { google } from "googleapis";
+import { simpleParser } from "mailparser";
 import { ErrorMessage } from "../models/error_message";
+import pool from "../utils/db";
+import { User } from "./user";
+
+const gmail = google.gmail({ version: "v1" });
 
 /**
  * Represent the current email open in the Gmail application.
  */
 export class Email {
+    userOAuthToken: string;
     accessToken: string;
     messageId: string;
     subject: string;
-    body: string;
-    timestamp: number;
 
     emailFrom: string;
+    emailTo: string;
+    emailCC: string;
     contacts: EmailContact[];
 
-    // When asking for the attachments, a long moment after opening
-    // the addon, then the token to get the Gmail Message expired
-    // so we cache the result and ask it when loading the app
-    _attachmentsParsed: [string[][], ErrorMessage];
+    // Store on which record the current email has been logged
+    // >>> {"res.partner": [1, 2, 3]}
+    loggingState: Record<string, number[]>;
 
-    constructor(messageId: string = null, accessToken: string = null) {
-        if (messageId) {
-            const userEmail = Session.getEffectiveUser().getEmail().toLowerCase();
+    constructor(
+        userOAuthToken: string,
+        accessToken: string,
+        messageId: string,
+        subject: string,
+        emailFrom: string,
+        emailTo: string,
+        emailCC: string,
+        contacts: EmailContact[],
+        loggingState: Record<string, number[]>,
+    ) {
+        this.userOAuthToken = userOAuthToken;
+        this.accessToken = accessToken;
+        this.messageId = messageId;
+        this.subject = subject;
+        this.emailFrom = emailFrom;
+        this.emailTo = emailTo;
+        this.emailCC = emailCC;
+        this.contacts = contacts;
+        this.loggingState = loggingState;
+    }
 
-            this.accessToken = accessToken;
+    /**
+     * Use the token we receive from Google to get the information about the opened email.
+     *
+     * Only get the headers of the email to not slow down the application
+     * (if we don't log the email, we only need the contacts that are in
+     * the email, we can delay the fetching of the email body and
+     * the attachments).
+     */
+    static async getEmailHeadersFromGoogleToken(event: any): Promise<Record<string, string>> {
+        const messageId = event.gmail.messageId;
+        const auth = new OAuth2Client();
+        auth.setCredentials({ access_token: event.authorizationEventObject.userOAuthToken });
+        // @ts-ignore
+        const gmailResponse = await gmail.users.messages.get({
+            id: messageId,
+            userId: "me",
+            format: "metadata",
+            auth,
+            headers: { "X-Goog-Gmail-Access-Token": event.gmail.accessToken },
+        });
+        // @ts-ignore
+        const rawHeaders = gmailResponse.data.payload.headers;
+        return Object.fromEntries(rawHeaders.map((h) => [h.name.toLowerCase(), h.value]));
+    }
 
-            this.messageId = messageId;
-            const message = GmailApp.getMessageById(this.messageId);
-            this.subject = message.getSubject();
-            this.body = message.getBody();
-            this.timestamp = message.getDate().getTime();
-            this.emailFrom = message.getFrom();
+    /**
+     * Once we got the headers and the user from the Gmail API,
+     * we can build the `Email` object.
+     */
+    static async getEmailFromHeaders(
+        event: any,
+        headers: Record<string, string>,
+        user: User,
+    ): Promise<Email> {
+        const userEmail = user.email.toLowerCase();
+        const contacts = [
+            ...this._emailSplitTuple(headers["to"] || "", userEmail),
+            ...this._emailSplitTuple(headers["from"] || "", userEmail),
+            ...this._emailSplitTuple(headers["cc"] || "", userEmail),
+            ...this._emailSplitTuple(headers["bcc"] || "", userEmail),
+        ];
 
-            this._attachmentsParsed = this.getAttachments();
+        return new Email(
+            event.authorizationEventObject.userOAuthToken,
+            event.gmail.accessToken,
+            event.gmail.messageId,
+            headers["subject"] || "",
+            headers["from"] || "",
+            headers["to"] || "",
+            headers["cc"] || "",
+            contacts,
+            await this._getLoggingState(user, event.gmail.messageId),
+        );
+    }
 
-            this.contacts = [
-                ...this._emailSplitTuple(message.getTo(), userEmail),
-                ...this._emailSplitTuple(this.emailFrom, userEmail),
-                ...this._emailSplitTuple(message.getCc(), userEmail),
-                ...this._emailSplitTuple(message.getBcc(), userEmail),
-            ];
-        }
+    /**
+     * Fetch the information in the email that require the full EML.
+     */
+    async getBodyAndAttachments(): Promise<[string, number, [string[][], ErrorMessage]]> {
+        const auth = new OAuth2Client();
+        auth.setCredentials({ access_token: this.userOAuthToken });
+
+        // @ts-ignore
+        const gmailResponse = await gmail.users.messages.get({
+            id: this.messageId,
+            userId: "me",
+            format: "raw",
+            auth,
+            headers: { "X-Goog-Gmail-Access-Token": this.accessToken },
+        });
+
+        // @ts-ignore
+        const messageEmlB64 = gmailResponse.data.raw;
+        const messageEml = atob(messageEmlB64.replaceAll("-", "+").replaceAll("_", "/"));
+
+        const mail = await simpleParser(messageEml);
+        return [
+            mail.html || mail.text || "",
+            mail.date.getTime(),
+            this._getAttachments(mail.attachments),
+        ];
     }
 
     /**
@@ -70,7 +158,7 @@ export class Email {
      *      ["bob@example.com", "bob@example.com"]
      * ]
      */
-    _emailSplitTuple(fullEmail: string, userEmail: string): EmailContact[] {
+    private static _emailSplitTuple(fullEmail: string, userEmail: string): EmailContact[] {
         const contacts = [];
         const re = /(.*?)<(.*?)>/;
         for (const part of fullEmail.split(",")) {
@@ -95,19 +183,17 @@ export class Email {
      * Unserialize the email object (reverse JSON.stringify).
      */
     static fromJson(values: any): Email {
-        const email = new Email();
-        email.accessToken = values.accessToken;
-        email.messageId = values.messageId;
-        email.subject = values.subject;
-        email.body = values.body;
-        email.timestamp = values.timestamp;
-        email.emailFrom = values.emailFrom;
-        email.contacts = values.contacts.map((c) => EmailContact.fromJson(c));
-        email._attachmentsParsed = [
-            values._attachmentsParsed[0],
-            ErrorMessage.fromJson(values._attachmentsParsed[1]),
-        ];
-        return email;
+        return new Email(
+            values.userOAuthToken,
+            values.accessToken,
+            values.messageId,
+            values.subject,
+            values.emailFrom,
+            values.emailTo,
+            values.emailCC,
+            values.contacts.map((c) => EmailContact.fromJson(c)),
+            values.loggingState,
+        );
     }
 
     /**
@@ -121,13 +207,7 @@ export class Email {
      *     - If no attachment, return an empty array and an empty error message.
      *     - Otherwise, the list of attachments base 64 encoded and an empty error message
      */
-    getAttachments(): [string[][], ErrorMessage] {
-        if (this._attachmentsParsed) {
-            return this._attachmentsParsed;
-        }
-        GmailApp.setCurrentMessageAccessToken(this.accessToken);
-        const message = GmailApp.getMessageById(this.messageId);
-        const gmailAttachments = message.getAttachments();
+    private _getAttachments(gmailAttachments): [string[][], ErrorMessage] {
         const attachments: string[][] = [];
 
         // The size limit of the POST request are 50 MB
@@ -137,19 +217,80 @@ export class Email {
         let totalAttachmentsSize = 0;
 
         for (const gmailAttachment of gmailAttachments) {
-            const bytesSize = gmailAttachment.getSize();
+            if (gmailAttachment.contentDisposition === "inline") {
+                // Outlook inline images
+                continue;
+            }
+            const bytesSize = gmailAttachment.content.length;
             totalAttachmentsSize += bytesSize;
             if (totalAttachmentsSize > MAXIMUM_ATTACHMENTS_SIZE) {
                 return [null, new ErrorMessage("attachments_size_exceeded")];
             }
-
-            const name = gmailAttachment.getName();
-            const content = Utilities.base64Encode(gmailAttachment.getBytes());
+            const name = gmailAttachment.filename;
+            const content = gmailAttachment.content.toString("base64");
 
             attachments.push([name, content]);
         }
 
         return [attachments, new ErrorMessage(null)];
+    }
+
+    /**
+     * Save the fact that we logged the email on the record, in the cache.
+     *
+     * Returns:
+     *     True if the record was not yet marked as "logged"
+     *     False if we already logged the email on the record
+     */
+    async setLoggingState(user: User, resModel: string, resId: number) {
+        console.log(`Logging email for user ${user.email}`)
+        this.loggingState[resModel].push(resId);
+        await pool.query(
+            `
+            INSERT INTO email_logs (user_id, message_id, res_id, res_model)
+                 VALUES ($1, $2, $3, $4)
+            `,
+            [user.id, this.messageId, resId, resModel],
+        );
+    }
+
+    /**
+     * Check if the email has not been logged on the record.
+     *
+     * Returns:
+     *     True if the record was not yet marked as "logged"
+     *     False if we already logged the email on the record
+     */
+    checkLoggingState(resModel: string, resId: number): boolean {
+        return this.loggingState[resModel].includes(resId);
+    }
+
+    /**
+     * Get the logging state for the current email
+     * (that way, we do only one query for all the records we will see),
+     */
+    private static async _getLoggingState(
+        user: User,
+        messageId: string,
+    ): Promise<Record<string, number[]>> {
+        const result = await pool.query(
+            `
+                SELECT res_model, res_id
+                  FROM email_logs
+                 WHERE user_id = $1 AND message_id = $2
+            `,
+            [user.id, messageId],
+        );
+        const ret: Record<string, number[]> = {
+            "res.partner": [],
+            "crm.lead": [],
+            "helpdesk.ticket": [],
+            "project.task": [],
+        };
+        for (const row of result.rows) {
+            ret[row.res_model].push(row.res_id);
+        }
+        return ret;
     }
 }
 

@@ -1,53 +1,106 @@
-import { buildView } from "../views/index";
-import { buildCreateTaskView } from "../views/create_task";
-import { pushCard, updateCard } from "./helpers";
-import { UI_ICONS } from "./icons";
-import { createKeyValueWidget, actionCall, notify } from "./helpers";
-import { getOdooServerUrl } from "src/services/app_properties";
+import { Project } from "../models/project";
 import { State } from "../models/state";
+import { User } from "../models/user";
 import { logEmail } from "../services/log_email";
-import { _t } from "../services/translation";
-import { getOdooRecordURL } from "src/services/odoo_redirection";
-import { buildSearchRecordView } from "../views/search_records";
+import { getOdooRecordURL } from "../services/odoo_redirection";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    OpenLink,
+    PushCard,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import {
+    Button,
+    Card,
+    CardSection,
+    DecoratedText,
+    IconButton,
+    LinkButton,
+} from "../utils/components";
+import { getCreateTaskView } from "./create_task";
+import { UI_ICONS } from "./icons";
+import { getPartnerView } from "./partner";
+import { getSearchRecordView } from "./search_records";
 
-function onCreateTask(state: State) {
-    return pushCard(buildCreateTaskView(state));
+async function onCreateTask(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    let noProject = false;
+    if (!state.searchedProjects) {
+        // Initiate the search
+        const [searchedProjects, error] = await Project.searchProject(user, "");
+        if (error.code) {
+            return new Notify(error.toString(_t));
+        }
+
+        state.searchedProjects = searchedProjects;
+        noProject = !state.searchedProjects.length;
+    }
+    return new PushCard(getCreateTaskView(state, _t, user, "", noProject));
 }
+registerEventHandler(onCreateTask);
 
-function onSearchClick(state: State) {
-    return buildSearchRecordView(
-        state,
-        "project.task",
-        _t("Tasks"),
-        _t("Log the email on the task"),
-        _t("Email already logged on the task"),
-        "projectName",
-        "",
-        true,
-        state.partner.tasks,
+function onSearchTasksClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new PushCard(
+        getSearchRecordView(
+            state,
+            _t,
+            "project.task",
+            _t("Tasks"),
+            _t("Log the email on the task"),
+            _t("Email already logged on the task"),
+            "projectName",
+            "",
+            true,
+            state.partner.tasks,
+        ),
     );
 }
+registerEventHandler(onSearchTasksClick);
 
-function onLogEmailOnTask(state: State, parameters: any) {
-    const taskId = parameters.taskId;
+async function onLogEmailOnTask(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const taskId = args.taskId;
 
-    if (State.checkLoggingState(state.email.messageId, "project.task", taskId)) {
-        const error = logEmail(taskId, "project.task", state.email);
-        if (error.code) {
-            return notify(error.message);
-        }
-        State.setLoggingState(state.email.messageId, "project.task", taskId);
-        return updateCard(buildView(state));
+    const error = await logEmail(_t, user, taskId, "project.task", state.email);
+    if (error.code) {
+        return new Notify(error.toString(_t));
     }
-    return notify(_t("Email already logged on the task"));
+    state.email.setLoggingState(user, "project.task", taskId);
+    return new UpdateCard(getPartnerView(state, _t, user));
 }
+registerEventHandler(onLogEmailOnTask);
 
-function onEmailAlreradyLoggedOnTask() {
-    return notify(_t("Email already logged on the task"));
+function onEmailAlreadyLoggedOnTask(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new Notify(_t("Email already logged on the task"));
 }
+registerEventHandler(onEmailAlreadyLoggedOnTask);
 
-export function buildTasksView(state: State, card: Card) {
-    const odooServerUrl = getOdooServerUrl();
+export function buildTasksView(state: State, _t: Function, user: User, card: Card) {
     const partner = state.partner;
     if (!partner.tasks) {
         return;
@@ -55,63 +108,62 @@ export function buildTasksView(state: State, card: Card) {
 
     const tasks = [...partner.tasks].splice(0, 5);
 
-    const loggingState = State.getLoggingState(state.email.messageId);
-    const tasksSection = CardService.newCardSection();
+    const tasksSection = new CardSection();
 
-    const searchButton = CardService.newImageButton()
-        .setAltText(_t("Search Tasks"))
-        .setIconUrl(UI_ICONS.search)
-        .setOnClickAction(actionCall(state, onSearchClick.name));
+    const searchButton = new IconButton(
+        new ActionCall(state, onSearchTasksClick),
+        UI_ICONS.search,
+        _t("Search Tasks"),
+    );
 
     const title = partner.taskCount ? _t("Tasks (%s)", partner.taskCount) : _t("Tasks");
-    const widget = CardService.newDecoratedText().setText("<b>" + title + "</b>");
-    widget.setButton(searchButton);
+    const widget = new DecoratedText(
+        "",
+        "<b>" + title + "</b>",
+        undefined,
+        undefined,
+        searchButton,
+    );
     tasksSection.addWidget(widget);
 
-    const createButton = CardService.newTextButton()
-        .setText(_t("New"))
-        .setOnClickAction(actionCall(state, onCreateTask.name));
+    const createButton = new Button(_t("New"), new ActionCall(state, onCreateTask));
     tasksSection.addWidget(createButton);
 
     for (let task of tasks) {
         let taskButton = null;
-        if (loggingState["project.task"].indexOf(task.id) >= 0) {
-            taskButton = CardService.newImageButton()
-                .setAltText(_t("Email already logged on the task"))
-                .setIconUrl(UI_ICONS.email_logged)
-                .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnTask.name));
+        if (state.email.checkLoggingState("project.task", task.id)) {
+            taskButton = new IconButton(
+                new ActionCall(state, onEmailAlreadyLoggedOnTask),
+                UI_ICONS.email_logged,
+                _t("Email already logged on the task"),
+            );
         } else {
-            taskButton = CardService.newImageButton()
-                .setAltText(_t("Log the email on the task"))
-                .setIconUrl(UI_ICONS.email_in_odoo)
-                .setOnClickAction(
-                    actionCall(state, onLogEmailOnTask.name, {
-                        taskId: task.id,
-                    }),
-                );
+            taskButton = new IconButton(
+                new ActionCall(state, onLogEmailOnTask, {
+                    taskId: task.id,
+                }),
+                UI_ICONS.email_in_odoo,
+                _t("Log the email on the task"),
+            );
         }
 
         tasksSection.addWidget(
-            createKeyValueWidget(
-                null,
+            new DecoratedText(
+                "",
                 task.name,
-                null,
+                undefined,
                 task.projectName,
                 taskButton,
-                getOdooRecordURL("project.task", task.id),
+                new OpenLink(getOdooRecordURL(user, "project.task", task.id)),
             ),
         );
     }
 
     if (tasks.length < partner.taskCount) {
         tasksSection.addWidget(
-            CardService.newTextButton()
-                .setText(_t("Show all"))
-                .setTextButtonStyle(CardService.TextButtonStyle["BORDERLESS"])
-                .setOnClickAction(actionCall(state, onSearchClick.name)),
+            new LinkButton(_t("Show all"), new ActionCall(state, onSearchTasksClick)),
         );
     }
 
     card.addSection(tasksSection);
-    return card;
 }

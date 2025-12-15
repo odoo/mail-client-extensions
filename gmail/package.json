@@ -1,11 +1,35 @@
 {
-  "devDependencies": {
-    "@rollup/plugin-node-resolve": "^15.0.2",
-    "@rollup/plugin-typescript": "^11.1.1",
-    "@types/google-apps-script": "^2.0.4",
-    "prettier": "^2.2.1",
-    "rollup": "^3.22.0",
-    "tslib": "^2.5.3"
+  "name": "gmail_http",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"tsx watch src/index.ts\" \"npm run typecheck\"",
+    "typecheck": "tsc --noEmit --watch",
+    "build": "rm -rf dist && tsc",
+    "start": "node dist/index.js",
+    "prettier": "prettier --write 'src/**/*.ts'"
   },
-  "type": "module"
+  "author": "",
+  "license": "",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-async-handler": "^1.2.0",
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^167.0.0",
+    "mailparser": "^3.9.0",
+    "node-cron": "^4.2.1",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.7.4",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
 }

@@ -1,5 +1,5 @@
-import { getOdooServerUrl } from "./app_properties";
+import { User } from "../models/user";
 
-export function getOdooRecordURL(model, record_id) {
-    return getOdooServerUrl() + `/mail_plugin/redirect_to_record/${model}/?record_id=${record_id}`;
+export function getOdooRecordURL(user: User, model: string, record_id: number) {
+    return user.odooUrl + `/mail_plugin/redirect_to_record/${model}/?record_id=${record_id}`;
 }

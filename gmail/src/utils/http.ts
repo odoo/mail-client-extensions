@@ -1,9 +1,7 @@
-import { State } from "../models/state";
-
 /**
  * Make a JSON RPC call with the following parameters.
  */
-export function postJsonRpc(url: string, data = {}, headers = {}, options: any = {}) {
+export async function postJsonRpc(url: string, data = {}, headers = {}) {
     for (const key in data) {
         // don't send null values
         if (data[key] === undefined || data[key] === null) {
@@ -19,36 +17,27 @@ export function postJsonRpc(url: string, data = {}, headers = {}, options: any =
         params: data,
     };
 
-    const httpOptions = {
-        method: "post" as GoogleAppsScript.URL_Fetch.HttpMethod,
-        contentType: "application/json",
-        payload: JSON.stringify(data),
-        headers: headers,
-    };
-
     try {
-        const response = UrlFetchApp.fetch(url, httpOptions);
-
-        if (options.returnRawResponse) {
-            return response;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                ...headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
         }
 
-        const responseCode = response.getResponseCode();
-
-        if (responseCode > 299 || responseCode < 200) {
-            return;
-        }
-
-        const textResponse = response.getContentText("UTF-8");
-        const dictResponse = JSON.parse(textResponse);
-
+        const dictResponse = await response.json();
         if (!dictResponse.result) {
             return;
         }
 
         return dictResponse.result;
     } catch (e) {
-        Logger.log(`HTTP Error: ${e}`);
+        console.error(`HTTP Error: ${e}`);
         return;
     }
 }

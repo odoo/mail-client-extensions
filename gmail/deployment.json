@@ -1,0 +1,26 @@
+{
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/gmail.addons.execute",
+    "https://www.googleapis.com/auth/gmail.addons.current.message.readonly"
+  ],
+  "addOns": {
+    "common": {
+      "name": "Odoo",
+      "logoUrl": "https://raw.githubusercontent.com/odoo/mail-client-extensions/master/outlook/assets/odoo.png"
+    },
+    "gmail": {
+      "primaryColor": "#875A7B",
+      "secondaryColor": "#00A09D",
+          "contextualTriggers": [
+            {
+              "unconditional": {},
+              "onTriggerFunction": "https://<domain>/on_open_email"
+            }
+          ]
+     },
+    "httpOptions": {
+      "granularOauthPermissionSupport": "OPT_IN"
+    }
+  }
+}

@@ -1,54 +1,90 @@
-import { logEmail } from "../services/log_email";
-import { _t } from "../services/translation";
-import { Partner } from "../models/partner";
 import { ErrorMessage } from "../models/error_message";
-import { actionCall, pushCard, updateCard, notify } from "./helpers";
-import { buildView } from "./index";
+import { Partner } from "../models/partner";
 import { State } from "../models/state";
-import { UI_ICONS } from "./icons";
-import { onEmailAlreadyLoggedContact } from "./partner_actions";
+import { User } from "../models/user";
+import { logEmail } from "../services/log_email";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    PushCard,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import {
+    Button,
+    Card,
+    CardSection,
+    DecoratedText,
+    IconButton,
+    Image,
+    TextInput,
+    TextParagraph,
+} from "../utils/components";
 import { buildCardActionsView } from "./card_actions";
+import { UI_ICONS } from "./icons";
+import { getPartnerView } from "./partner";
+import { onEmailAlreadyLoggedContact } from "./partner_actions";
 
-function onSearchPartnerClick(state: State, parameters: any, inputs: any) {
-    const query = inputs.search_partner_query || "";
+async function onSearchPartnerClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const query = formInputs.search_partner_query || "";
     const [partners, error] =
-        query && query.length ? Partner.searchPartner(query) : [[], new ErrorMessage()];
+        query && query.length ? await Partner.searchPartner(user, query) : [[], new ErrorMessage()];
     if (error.code) {
-        return notify(error.message);
+        return new Notify(error.toString(_t));
     }
 
     state.searchedPartners = partners;
 
-    const card = buildSearchPartnerView(state, query);
-    return parameters.fixCard ? pushCard(card) : updateCard(card);
+    const card = await getSearchPartnerView(state, _t, user, query);
+    return args.fixCard ? new PushCard(card) : new UpdateCard(card);
 }
-function onLogEmailPartner(state: State, parameters: any) {
-    const partnerId = parameters.partnerId;
+registerEventHandler(onSearchPartnerClick);
+
+async function onLogEmailPartner(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const partnerId = args.partnerId;
 
     if (!partnerId) {
         throw new Error(_t("This contact does not exist in the Odoo database."));
     }
 
-    if (State.checkLoggingState(state.email.messageId, "res.partner", partnerId)) {
-        const error = logEmail(partnerId, "res.partner", state.email);
-        if (error.code) {
-            return notify(error.message);
-        }
-        State.setLoggingState(state.email.messageId, "res.partner", partnerId);
-        return updateCard(buildSearchPartnerView(state, parameters.query));
+    const error = await logEmail(_t, user, partnerId, "res.partner", state.email);
+    if (error.code) {
+        return new Notify(error.toString(_t));
     }
-    return notify(_t("Email already logged on the contact"));
+    await state.email.setLoggingState(user, "res.partner", partnerId);
+    return new UpdateCard(await getSearchPartnerView(state, _t, user, args.query));
 }
+registerEventHandler(onLogEmailPartner);
 
-function onOpenPartner(state: State, parameters: any) {
-    const partner = Partner.fromJson(parameters.partner);
-    const [newPartner, canCreatePartner, canCreateProject, error] = Partner.getPartner(
+async function onOpenPartner(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const partner = Partner.fromJson(args.partner);
+    const [newPartner, canCreatePartner, canCreateProject, error] = await Partner.getPartner(
+        user,
         partner.name,
         partner.email,
         partner.id,
     );
     if (error.code) {
-        return notify(error.message);
+        return new Notify(error.toString(_t));
     }
     const newState = new State(
         newPartner,
@@ -58,21 +94,24 @@ function onOpenPartner(state: State, parameters: any) {
         null,
         canCreateProject,
     );
-    return pushCard(buildView(newState));
+    return new PushCard(getPartnerView(newState, _t, user));
 }
+registerEventHandler(onOpenPartner);
 
-export function buildSearchPartnerView(
+export async function getSearchPartnerView(
     state: State,
+    _t: Function,
+    user: User,
     query: string,
     initialSearch: boolean = false,
     header: string = "",
     noLogIcon: boolean = false,
     fixCard: boolean = false,
-) {
-    const loggingState = State.getLoggingState(state.email.messageId);
+): Promise<Card> {
+    const searchSection = new CardSection();
+    const card = new Card([searchSection]);
 
-    const card = CardService.newCardBuilder();
-    buildCardActionsView(card);
+    buildCardActionsView(card, _t);
 
     let partners = state.searchedPartners || [];
     let searchValue = query;
@@ -82,75 +121,69 @@ export function buildSearchPartnerView(
         searchValue = "";
     }
 
-    const searchSection = CardService.newCardSection();
-
     searchSection.addWidget(
-        CardService.newTextInput()
-            .setFieldName("search_partner_query")
-            .setTitle(_t("Search contact"))
-            .setValue(searchValue)
-            .setOnChangeAction(actionCall(state, onSearchPartnerClick.name, { fixCard })),
+        new TextInput(
+            "search_partner_query",
+            _t("Search contact"),
+            new ActionCall(state, onSearchPartnerClick, { fixCard }),
+            "",
+            searchValue,
+        ),
     );
 
     searchSection.addWidget(
-        CardService.newTextButton()
-            .setText(_t("Search"))
-            .setOnClickAction(actionCall(state, onSearchPartnerClick.name, { fixCard })),
+        new Button(_t("Search"), new ActionCall(state, onSearchPartnerClick, { fixCard })),
     );
 
     if (header?.length) {
-        searchSection.addWidget(CardService.newTextParagraph().setText(`<b>${header}</b>`));
+        searchSection.addWidget(new TextParagraph(`<b>${header}</b>`));
     }
 
     for (let partner of partners) {
-        const partnerCard = CardService.newDecoratedText()
-            .setText(partner.name)
-            .setWrapText(true)
-            .setOnClickAction(actionCall(state, onOpenPartner.name, { partner: partner }))
-            .setStartIcon(
-                CardService.newIconImage()
-                    .setIconUrl(partner.getImage())
-                    .setImageCropType(CardService.ImageCropType.CIRCLE),
-            );
-
-        if (partner.isWritable && !noLogIcon) {
-            partnerCard.setButton(
-                loggingState["res.partner"].indexOf(partner.id) < 0
-                    ? CardService.newImageButton()
-                          .setAltText(_t("Log email"))
-                          .setIconUrl(UI_ICONS.email_in_odoo)
-                          .setOnClickAction(
-                              actionCall(state, onLogEmailPartner.name, {
-                                  partnerId: partner.id,
-                                  query: query,
-                              }),
-                          )
-                    : CardService.newImageButton()
-                          .setAltText(_t("Email already logged on the contact"))
-                          .setIconUrl(UI_ICONS.email_logged)
-                          .setOnClickAction(actionCall(state, onEmailAlreadyLoggedContact.name)),
-            );
-        }
+        let button;
+        let bottomLabel;
 
         if (partner.email) {
-            partnerCard.setBottomLabel(partner.id ? partner.email : _t("New Person"));
+            bottomLabel = partner.id ? partner.email : _t("New Person");
         }
+
+        if (partner.isWritable && !noLogIcon) {
+            button = !state.email.checkLoggingState("res.partner", partner.id)
+                ? new IconButton(
+                      new ActionCall(state, onLogEmailPartner, {
+                          partnerId: partner.id,
+                          query: query,
+                      }),
+                      UI_ICONS.email_in_odoo,
+                      _t("Log email"),
+                  )
+                : new IconButton(
+                      new ActionCall(state, onEmailAlreadyLoggedContact),
+                      UI_ICONS.email_logged,
+                      _t("Email already logged on the contact"),
+                  );
+        }
+        const partnerCard = new DecoratedText(
+            undefined,
+            partner.name,
+            partner.getImage(),
+            bottomLabel,
+            button,
+            new ActionCall(state, onOpenPartner, { partner }),
+            true,
+        );
 
         searchSection.addWidget(partnerCard);
     }
 
     if ((!partners || !partners.length) && !initialSearch) {
-        const noRecord = Utilities.base64Encode(
-            Utilities.newBlob(Utilities.base64Decode(UI_ICONS.no_record))
-                .getDataAsString()
+        const noRecord = btoa(
+            atob(UI_ICONS.no_record)
                 .replace("No record found.", _t("No record found."))
                 .replace("Try using different keywords.", _t("Try using different keywords.")),
         );
-        searchSection.addWidget(
-            CardService.newImage().setImageUrl("data:image/svg+xml;base64," + noRecord),
-        );
+        searchSection.addWidget(new Image("data:image/svg+xml;base64," + noRecord));
     }
 
-    card.addSection(searchSection);
-    return card.build();
+    return card;
 }

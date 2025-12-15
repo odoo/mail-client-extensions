@@ -1,12 +1,11 @@
+import { URLS } from "../consts";
+import { ErrorMessage } from "../models/error_message";
+import { postJsonRpc } from "../utils/http";
+import { UI_ICONS } from "../views/icons";
 import { Lead } from "./lead";
 import { Task } from "./task";
 import { Ticket } from "./ticket";
-import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
-import { ErrorMessage } from "../models/error_message";
-import { getAccessToken } from "src/services/odoo_auth";
-import { getOdooServerUrl } from "src/services/app_properties";
-import { UI_ICONS } from "../views/icons";
+import { User } from "./user";
 
 /**
  * Represent the current partner and all the information about him.
@@ -102,19 +101,14 @@ export class Partner {
     /**
      * Create a "res.partner" with the given values in the Odoo database.
      */
-    static savePartner(partner: Partner): Partner | null {
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-            URLS.PARTNER_CREATE;
-        const odooAccessToken = getAccessToken();
-
+    static async savePartner(user: User, partner: Partner): Promise<Partner | null> {
         const partnerValues = {
             name: partner.name,
             email: partner.email,
         };
 
-        const response = postJsonRpc(url, partnerValues, {
-            Authorization: "Bearer " + odooAccessToken,
+        const response = await postJsonRpc(user.odooUrl + URLS.PARTNER_CREATE, partnerValues, {
+            Authorization: "Bearer " + user.odooToken,
         });
 
         if (!response?.id) {
@@ -135,27 +129,22 @@ export class Partner {
      *      - True if the current user can create projects in his Odoo database
      *      - The error message if something bad happened
      */
-    static getPartner(
+    static async getPartner(
+        user: User,
         name: string,
         email: string,
         partnerId: number = null,
-    ): [Partner, boolean, boolean, ErrorMessage] {
-        const odooServerUrl = getOdooServerUrl();
-        const odooAccessToken = getAccessToken();
-
-        if (!odooServerUrl || !odooAccessToken) {
+    ): Promise<[Partner, boolean, boolean, ErrorMessage]> {
+        if (!user.odooUrl || !user.odooToken) {
             const error = new ErrorMessage("http_error_odoo");
             const partner = Partner.fromJson({ name, email });
             return [partner, false, false, error];
         }
 
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.GET_PARTNER;
-
-        const response = postJsonRpc(
-            url,
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.GET_PARTNER,
             { email: email, partner_id: partnerId },
-            { Authorization: "Bearer " + odooAccessToken },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
         if (response && response.error) {
@@ -207,16 +196,14 @@ export class Partner {
     /**
      * Perform a search on the Odoo database and return the list of matched partners.
      */
-    static searchPartner(query: string | string[]): [Partner[], ErrorMessage] {
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-            URLS.SEARCH_PARTNER;
-        const odooAccessToken = getAccessToken();
-
-        const response = postJsonRpc(
-            url,
+    static async searchPartner(
+        user: User,
+        query: string | string[],
+    ): Promise<[Partner[], ErrorMessage]> {
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.SEARCH_PARTNER,
             { query },
-            { Authorization: "Bearer " + odooAccessToken },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
         if (!response?.length) {

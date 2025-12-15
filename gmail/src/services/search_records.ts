@@ -1,21 +1,21 @@
-import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
+import { URLS } from "../consts";
 import { ErrorMessage } from "../models/error_message";
-import { _t } from "../services/translation";
-import { getAccessToken } from "./odoo_auth";
+import { User } from "../models/user";
+import { postJsonRpc } from "../utils/http";
 
 /**
  * Search records of the given model.
  */
-export function searchRecords(recordModel: string, query: string): [any[], number, ErrorMessage] {
-    const odooAccessToken = getAccessToken();
-    const url =
-        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-        URLS.SEARCH_RECORDS +
-        "/" +
-        recordModel;
-
-    const response = postJsonRpc(url, { query }, { Authorization: "Bearer " + odooAccessToken });
+export async function searchRecords(
+    user: User,
+    recordModel: string,
+    query: string,
+): Promise<[any[], number, ErrorMessage]> {
+    const response = await postJsonRpc(
+        user.odooUrl + URLS.SEARCH_RECORDS + "/" + recordModel,
+        { query },
+        { Authorization: "Bearer " + user.odooToken },
+    );
 
     if (!response?.length) {
         return [[], 0, new ErrorMessage("unknown", response.error)];

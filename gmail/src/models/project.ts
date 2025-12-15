@@ -1,7 +1,7 @@
-import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
+import { URLS } from "../consts";
 import { ErrorMessage } from "../models/error_message";
-import { getAccessToken } from "src/services/odoo_auth";
+import { postJsonRpc } from "../utils/http";
+import { User } from "./user";
 
 /**
  * Represent a "project.project" record.
@@ -42,16 +42,11 @@ export class Project {
     /**
      * Make a RPC call to the Odoo database to search a project.
      */
-    static searchProject(query: string): [Project[], ErrorMessage] {
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-            URLS.SEARCH_PROJECT;
-        const odooAccessToken = getAccessToken();
-
-        const response = postJsonRpc(
-            url,
+    static async searchProject(user: User, query: string): Promise<[Project[], ErrorMessage]> {
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.SEARCH_PROJECT,
             { query },
-            { Authorization: "Bearer " + odooAccessToken },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
         if (!response?.length) {
@@ -68,16 +63,11 @@ export class Project {
      * Make a RPC call to the Odoo database to create a project
      * and return the newly created record.
      */
-    static createProject(name: string): Project {
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-            URLS.CREATE_PROJECT;
-        const odooAccessToken = getAccessToken();
-
-        const response = postJsonRpc(
-            url,
+    static async createProject(user: User, name: string): Promise<Project> {
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.CREATE_PROJECT,
             { name: name },
-            { Authorization: "Bearer " + odooAccessToken },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
         const projectId = response ? response.id || null : null;

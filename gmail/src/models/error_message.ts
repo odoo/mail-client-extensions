@@ -1,5 +1,3 @@
-import { _t } from "../services/translation";
-
 /**
  * Represent an error and translate its code to a message.
  */
@@ -19,27 +17,15 @@ const _ERROR_CODE_MESSAGES: Record<string, string> = {
  */
 export class ErrorMessage {
     code: string;
-    message: string;
-    information: string;
+    private message: string;
 
     constructor(code: string = null, information: any = null) {
-        if (code) {
-            this.setError(code, information);
-        }
+        this.code = code;
+        this.message = information || _ERROR_CODE_MESSAGES[code] || _ERROR_CODE_MESSAGES["unknown"];
     }
 
-    /**
-     * Set the code error and find the appropriate message to display.
-     */
-    setError(code: string, information: any = null) {
-        if (code === "no_data") {
-            code = "missing_data";
-            information = null;
-        }
-
-        this.code = code;
-        this.information = information;
-        this.message = information || _t(_ERROR_CODE_MESSAGES[this.code]);
+    toString(_t: Function): string {
+        return _t(this.message);
     }
 
     /**
@@ -47,9 +33,7 @@ export class ErrorMessage {
      */
     static fromJson(values: any) {
         const error = new ErrorMessage();
-        error.code = values.code;
         error.message = values.message;
-        error.information = values.information;
         return error;
     }
 }

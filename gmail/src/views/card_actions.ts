@@ -1,29 +1,19 @@
-import { onBuildDebugView } from "./debug";
 import { State } from "../models/state";
-import { resetAccessToken } from "../services/odoo_auth";
-import { _t, clearTranslationCache } from "../services/translation";
-import { actionCall } from "./helpers";
-import { pushToRoot } from "./helpers";
-import { buildLoginMainView } from "../views/login";
+import { User } from "../models/user";
+import { ActionCall, EventResponse, PushToRoot, registerEventHandler } from "../utils/actions";
+import { Card } from "../utils/components";
+import { getLoginMainView } from "../views/login";
+import { onOpenDebugView } from "./debug";
 
-function onLogout() {
-    resetAccessToken();
-    clearTranslationCache();
-    return pushToRoot(buildLoginMainView());
+async function onLogout(state: State, _t: Function, user: User): Promise<EventResponse> {
+    user.odooUrl = undefined;
+    user.odooToken = undefined;
+    await user.save();
+    return new PushToRoot(await getLoginMainView(user));
 }
+registerEventHandler(onLogout);
 
-export function buildCardActionsView(card: Card) {
-    if (State.isLogged) {
-        card.addCardAction(
-            CardService.newCardAction()
-                .setText(_t("Log out"))
-                .setOnClickAction(actionCall(undefined, onLogout.name)),
-        );
-    }
-
-    card.addCardAction(
-        CardService.newCardAction()
-            .setText(_t("Debug"))
-            .setOnClickAction(actionCall(undefined, onBuildDebugView.name)),
-    );
+export function buildCardActionsView(card: Card, _t: Function) {
+    card.addAction(_t("Log out"), new ActionCall(undefined, onLogout));
+    card.addAction(_t("Debug"), new ActionCall(undefined, onOpenDebugView));
 }

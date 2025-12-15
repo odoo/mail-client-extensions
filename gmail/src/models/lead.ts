@@ -1,9 +1,8 @@
+import { URLS } from "../consts";
 import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
-import { getAccessToken } from "src/services/odoo_auth";
-import { _t } from "../services/translation";
-import { Partner } from "./partner";
 import { Email } from "./email";
+import { Partner } from "./partner";
+import { User } from "./user";
 
 /**
  * Represent a "crm.lead" record.
@@ -17,22 +16,24 @@ export class Lead {
      * Make a RPC call to the Odoo database to create a lead
      * and return the ID of the newly created record.
      */
-    static createLead(partner: Partner, email: Email): [Lead, Partner] | null {
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.CREATE_LEAD;
-        const accessToken = getAccessToken();
-        const [attachments, _] = email.getAttachments();
-        const response = postJsonRpc(
-            url,
+    static async createLead(
+        user: User,
+        partner: Partner,
+        email: Email,
+    ): Promise<[Lead, Partner] | null> {
+        const [body, _, attachmentsParsed] = await email.getBodyAndAttachments();
+
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.CREATE_LEAD,
             {
-                email_body: email.body,
+                email_body: body,
                 email_subject: email.subject,
                 partner_id: partner.id,
                 partner_email: partner.email,
                 partner_name: partner.name,
-                attachments,
+                attachments: attachmentsParsed[0],
             },
-            { Authorization: "Bearer " + accessToken },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
         if (!response?.id) {

@@ -1,8 +1,8 @@
+import { URLS } from "../consts";
 import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
-import { getAccessToken } from "src/services/odoo_auth";
-import { Partner } from "./partner";
 import { Email } from "./email";
+import { Partner } from "./partner";
+import { User } from "./user";
 
 /**
  * Represent a "helpdesk.ticket" record.
@@ -16,24 +16,23 @@ export class Ticket {
      * Make a RPC call to the Odoo database to create a ticket
      * and return the ID of the newly created record.
      */
-    static createTicket(partner: Partner, email: Email): [Ticket, Partner] | null {
-        const url =
-            PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-            URLS.CREATE_TICKET;
-        const odooAccessToken = getAccessToken();
-        const [attachments, _] = email.getAttachments();
-
-        const response = postJsonRpc(
-            url,
+    static async createTicket(
+        user: User,
+        partner: Partner,
+        email: Email,
+    ): Promise<[Ticket, Partner] | null> {
+        const [body, _, attachmentsParsed] = await email.getBodyAndAttachments();
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.CREATE_TICKET,
             {
-                email_body: email.body,
+                email_body: body,
                 email_subject: email.subject,
                 partner_email: partner.email,
                 partner_id: partner.id,
                 partner_name: partner.name,
-                attachments,
+                attachments: attachmentsParsed[0],
             },
-            { Authorization: "Bearer " + odooAccessToken },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
         if (!response?.id) {
