@@ -6,6 +6,11 @@ import CollapseSection from '../CollapseSection/CollapseSection';
 import ListItem from '../ListItem/ListItem';
 import api from '../../api';
 import AppContext from '../AppContext';
+import { OdooTheme } from '../../../utils/Themes';
+import { Spinner, SpinnerSize } from 'office-ui-fabric-react';
+import HelpdeskTicket from '../../../classes/HelpdeskTicket';
+import Lead from '../../../classes/Lead';
+import Task from '../../../classes/Task';
 
 type SectionAbstractProps = {
     className?: string;
@@ -34,11 +39,14 @@ type SectionAbstractProps = {
     msgNoRecord: string;
     msgLogEmail: string;
     getRecordDescription: (any) => string;
+    searchType: 'lead' | 'task' | 'ticket';
+    updateRecords: (records: Lead[] | Task[] | HelpdeskTicket[]) => void;
 };
 
 type SectionAbstractState = {
     records: any[];
     isCollapsed: boolean;
+    isLoading: boolean;
 };
 
 /**
@@ -49,7 +57,7 @@ class Section extends React.Component<SectionAbstractProps, SectionAbstractState
     constructor(props, context) {
         super(props, context);
         const isCollapsed = !props.records || !props.records.length;
-        this.state = { records: this.props.records, isCollapsed: isCollapsed };
+        this.state = { records: this.props.records, isCollapsed: isCollapsed, isLoading: false };
     }
 
     private onClickCreate = () => {
@@ -102,6 +110,10 @@ class Section extends React.Component<SectionAbstractProps, SectionAbstractState
         });
     };
 
+    private setIsLoading = (isLoading: boolean) => {
+        this.setState({ isLoading });
+    };
+
     private getSection = () => {
         if (!this.props.partner.isAddedToDatabase()) {
             return (
@@ -109,23 +121,31 @@ class Section extends React.Component<SectionAbstractProps, SectionAbstractState
                     {_t(this.props.canCreatePartner ? this.props.msgNoPartner : this.props.msgNoPartnerNoAccess)}
                 </div>
             );
-        } else if (this.state.records.length > 0) {
-            return (
-                <div className="section-content">
-                    {this.state.records.map((record) => (
-                        <ListItem
-                            model={this.props.model}
-                            res_id={record.id}
-                            key={record.id}
-                            title={record.name}
-                            description={this.props.getRecordDescription(record)}
-                            logTitle={_t(this.props.msgLogEmail)}
-                        />
-                    ))}
-                </div>
-            );
+        } else {
+            if (this.state.isLoading) {
+                return (
+                    <div className="section-card search-spinner">
+                        <Spinner theme={OdooTheme} size={SpinnerSize.large} style={{ margin: 'auto' }} />
+                    </div>
+                );
+            } else if (this.props.records.length > 0) {
+                return (
+                    <div className="section-content">
+                        {this.props.records.map((record) => (
+                            <ListItem
+                                model={this.props.model}
+                                res_id={record.id}
+                                key={record.id}
+                                title={record.name}
+                                description={this.props.getRecordDescription(record)}
+                                logTitle={_t(this.props.msgLogEmail)}
+                            />
+                        ))}
+                    </div>
+                );
+            }
+            return <div className="list-text">{_t(this.props.msgNoRecord)}</div>;
         }
-        return <div className="list-text">{_t(this.props.msgNoRecord)}</div>;
     };
 
     render() {
@@ -140,7 +160,11 @@ class Section extends React.Component<SectionAbstractProps, SectionAbstractState
                 isCollapsed={this.state.isCollapsed}
                 title={title}
                 hasAddButton={this.props.partner.isAddedToDatabase()}
-                onAddButtonClick={this.onClickCreate}>
+                onAddButtonClick={this.onClickCreate}
+                partner={this.props.partner}
+                searchType={this.props.searchType}
+                setIsLoading={this.setIsLoading}
+                updateRecords={this.props.updateRecords}>
                 {this.getSection()}
             </CollapseSection>
         );
