@@ -43,9 +43,7 @@ export class State {
     /**
      * Unserialize the state object (reverse JSON.stringify).
      */
-    static fromJson(json: string): State {
-        const values = JSON.parse(json);
-
+    static fromJson(values: any): State {
         const partnerValues = values.partner || {};
         const canCreatePartner = values.canCreatePartner;
         const emailValues = values.email || {};

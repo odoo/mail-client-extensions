@@ -1,6 +1,7 @@
 import express from "express";
 import asyncHandler from "express-async-handler";
 import { google } from "googleapis";
+import jwt from "jsonwebtoken";
 import cron from "node-cron";
 import { Email } from "./models/email";
 import { Partner } from "./models/partner";
@@ -18,6 +19,12 @@ const gmail = google.gmail({ version: "v1" });
 
 const app = express();
 app.use(express.json());
+
+// Load the application secret from `.env`
+require("dotenv").config({ quiet: true });
+if (!process.env.APP_SECRET?.length) {
+    throw new Error("Application secret not configured");
+}
 
 /**
  * Once a day, clean the old email log table.
@@ -124,9 +131,13 @@ app.post(
             ]),
         );
         const parameters = req.body.commonEventObject.parameters;
-        const functionName = parameters.functionName;
-        const state = parameters.state && State.fromJson(parameters.state);
-        const args = JSON.parse(parameters.arguments || "{}");
+        const decoded = jwt.verify(parameters.token, process.env.APP_SECRET, {
+            algorithms: ["HS256"],
+        });
+
+        const functionName = decoded.functionName;
+        const state = decoded.state && State.fromJson(decoded.state);
+        const args = decoded.arguments || {};
 
         if (state?.email) {
             // Update the Gmail tokens

@@ -3,6 +3,7 @@
  *
  * https://developers.google.com/workspace/add-ons/guides/alternate-runtimes
  */
+import jwt from "jsonwebtoken";
 import { HOST } from "../consts";
 import { State } from "../models/state";
 import { User } from "../models/user";
@@ -116,21 +117,23 @@ export class ActionCall {
     }
 
     build() {
+        const payload = {
+            state: this.state,
+            arguments: this.parameters,
+            functionName: this.funct.name,
+        };
+        const token = jwt.sign(payload, process.env.APP_SECRET, {
+            algorithm: "HS256",
+            expiresIn: "48h",
+        });
+
         return {
             action: {
                 function: HOST + "/execute_action",
                 parameters: [
                     {
-                        key: "functionName",
-                        value: this.funct.name,
-                    },
-                    {
-                        key: "state",
-                        value: this.state && JSON.stringify(this.state),
-                    },
-                    {
-                        key: "arguments",
-                        value: JSON.stringify(this.parameters),
+                        key: "token",
+                        value: token,
                     },
                 ],
             },
