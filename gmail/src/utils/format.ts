@@ -12,3 +12,12 @@ export function formatUrl(url: string): string {
     // Remove trailing "/"
     return url.replace(/\/+$/, "");
 }
+
+export function htmlEscape(content: string): string {
+    return content
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}

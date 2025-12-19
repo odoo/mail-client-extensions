@@ -1,3 +1,4 @@
+import { HOST } from "../consts";
 import { ActionCall, OpenLink } from "./actions";
 
 /**
@@ -107,6 +108,10 @@ export class Button extends Component {
         borderless: boolean = false,
     ) {
         super();
+        if (icon?.length && icon.startsWith("/")) {
+            // Relative URL
+            icon = `${HOST}${icon}`;
+        }
         this.text = text;
         this.onClick = onClick;
         this.disabled = disabled;
@@ -235,6 +240,11 @@ export class DecoratedText extends Component {
         iconCropStyle: ImageCropType = ImageCropType.CIRCLE,
     ) {
         super();
+        if (icon?.length && icon.startsWith("/")) {
+            // Relative URL
+            icon = `${HOST}${icon}`;
+        }
+
         this.label = label;
         this.content = content;
         this.bottomLabel = bottomLabel;
@@ -282,6 +292,10 @@ export class Image extends Component {
 
     constructor(url: string, altText?: string, onClick?: ActionCall | OpenLink) {
         super();
+        if (url.startsWith("/")) {
+            // Relative URL
+            url = `${HOST}${url}`;
+        }
         this.url = url;
         this.altText = altText;
         this.onClick = onClick;

@@ -21,7 +21,6 @@ import {
     Image,
     TextInput,
 } from "../utils/components";
-import { UI_ICONS } from "./icons";
 
 async function onSearchRecordClick(
     state: State,
@@ -169,14 +168,14 @@ export function getSearchRecordView(
                       recordId: record.id,
                       query,
                   }),
-                  UI_ICONS.email_in_odoo,
+                  "/assets/email_in_odoo.png",
                   emailLogMessage,
               )
             : new IconButton(
                   new ActionCall(state, onEmailAlreadyLoggedOnRecord, {
                       emailAlreadyLoggedMessage,
                   }),
-                  UI_ICONS.email_logged,
+                  "/assets/email_logged.png",
                   emailAlreadyLoggedMessage,
               );
 
@@ -194,12 +193,9 @@ export function getSearchRecordView(
     }
 
     if ((!records || !records.length) && !initialSearch) {
-        const noRecord = btoa(
-            atob(UI_ICONS.no_record)
-                .replace("No record found.", _t("No record found."))
-                .replace("Try using different keywords.", _t("Try using different keywords.")),
-        );
-        searchSection.addWidget(new Image("data:image/svg+xml;base64," + noRecord));
+        const title = encodeURIComponent(_t("No record found."));
+        const subTitle = encodeURIComponent(_t("Try using different keywords."));
+        searchSection.addWidget(new Image(`/render_search_no_result/${title}/${subTitle}`));
     }
 
     return card;

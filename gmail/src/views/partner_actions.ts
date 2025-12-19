@@ -13,7 +13,6 @@ import {
     UpdateCard,
 } from "../utils/actions";
 import { Button, ButtonsList, IconButton } from "../utils/components";
-import { UI_ICONS } from "./icons";
 import { getPartnerView } from "./partner";
 import { getSearchPartnerView } from "./search_partner";
 
@@ -80,7 +79,7 @@ export function getPartnerActionButtons(state: State, _t: Function, user: User):
         actionButtonSet.addButton(
             new IconButton(
                 new ActionCall(state, onLogEmail),
-                UI_ICONS.email_in_odoo,
+                "/assets/email_in_odoo.png",
                 _t("Log email"),
             ),
         );
@@ -89,7 +88,7 @@ export function getPartnerActionButtons(state: State, _t: Function, user: User):
         actionButtonSet.addButton(
             new IconButton(
                 new ActionCall(state, onEmailAlreadyLoggedContact),
-                UI_ICONS.email_logged,
+                "/assets/email_logged.png",
                 _t("Email already logged on the contact"),
             ),
         );
@@ -98,7 +97,7 @@ export function getPartnerActionButtons(state: State, _t: Function, user: User):
     actionButtonSet.addButton(
         new IconButton(
             new ActionCall(state, onSearchPartner),
-            UI_ICONS.search,
+            "/assets/search.png",
             _t("Search contact"),
         ),
     );

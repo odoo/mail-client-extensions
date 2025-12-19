@@ -1,7 +1,6 @@
 import { URLS } from "../consts";
 import { ErrorMessage } from "../models/error_message";
 import { postJsonRpc } from "../utils/http";
-import { UI_ICONS } from "../views/icons";
 import { Lead } from "./lead";
 import { Task } from "./task";
 import { Ticket } from "./ticket";
@@ -35,7 +34,7 @@ export class Partner {
      */
     getImage() {
         if (!this.id || this.id < 0 || !this.image) {
-            return UI_ICONS.person;
+            return "/assets/person.png";
         }
         return this.image;
     }

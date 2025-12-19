@@ -158,10 +158,10 @@ export class Email {
      *      ["bob@example.com", "bob@example.com"]
      * ]
      */
-    private static _emailSplitTuple(fullEmail: string, userEmail: string): EmailContact[] {
+    private static _emailSplitTuple(formattedEmail: string, userEmail: string): EmailContact[] {
         const contacts = [];
         const re = /(.*?)<(.*?)>/;
-        for (const part of fullEmail.split(",")) {
+        for (const part of formattedEmail.split(",")) {
             if (part.toLowerCase().indexOf(userEmail) >= 0 || !part.trim()?.length) {
                 // Skip the user's email
                 continue;
@@ -297,15 +297,15 @@ export class Email {
 export class EmailContact {
     name: string;
     email: string;
-    fullEmail: string;
+    formattedEmail: string;
 
-    constructor(name: string, email: string, fullEmail: string) {
+    constructor(name: string, email: string, formattedEmail: string) {
         this.name = name;
         this.email = email;
-        this.fullEmail = fullEmail;
+        this.formattedEmail = formattedEmail;
     }
 
     static fromJson(values: any): EmailContact {
-        return new EmailContact(values.name, values.email, values.fullEmail);
+        return new EmailContact(values.name, values.email, values.formattedEmail);
     }
 }

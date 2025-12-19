@@ -20,7 +20,6 @@ import {
     TextInput,
     TextParagraph,
 } from "../utils/components";
-import { UI_ICONS } from "./icons";
 import { getPartnerView } from "./partner";
 
 async function onSearchProjectClick(
@@ -158,7 +157,7 @@ export function getCreateTaskView(
     } else {
         const noProjectSection = new CardSection();
 
-        noProjectSection.addWidget(new Image(UI_ICONS.empty_folder));
+        noProjectSection.addWidget(new Image("/assets/empty_folder.svg.png"));
 
         noProjectSection.addWidget(new TextParagraph("<b>" + _t("No project") + "</b>"));
 

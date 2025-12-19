@@ -21,7 +21,6 @@ import {
     LinkButton,
 } from "../utils/components";
 import { getCreateTaskView } from "./create_task";
-import { UI_ICONS } from "./icons";
 import { getPartnerView } from "./partner";
 import { getSearchRecordView } from "./search_records";
 
@@ -112,7 +111,7 @@ export function buildTasksView(state: State, _t: Function, user: User, card: Car
 
     const searchButton = new IconButton(
         new ActionCall(state, onSearchTasksClick),
-        UI_ICONS.search,
+        "/assets/search.png",
         _t("Search Tasks"),
     );
 
@@ -134,7 +133,7 @@ export function buildTasksView(state: State, _t: Function, user: User, card: Car
         if (state.email.checkLoggingState("project.task", task.id)) {
             taskButton = new IconButton(
                 new ActionCall(state, onEmailAlreadyLoggedOnTask),
-                UI_ICONS.email_logged,
+                "/assets/email_logged.png",
                 _t("Email already logged on the task"),
             );
         } else {
@@ -142,7 +141,7 @@ export function buildTasksView(state: State, _t: Function, user: User, card: Car
                 new ActionCall(state, onLogEmailOnTask, {
                     taskId: task.id,
                 }),
-                UI_ICONS.email_in_odoo,
+                "/assets/email_in_odoo.png",
                 _t("Log the email on the task"),
             );
         }

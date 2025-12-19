@@ -20,7 +20,6 @@ import {
     IconButton,
     LinkButton,
 } from "../utils/components";
-import { UI_ICONS } from "./icons";
 import { getPartnerView } from "./partner";
 import { getSearchRecordView } from "./search_records";
 
@@ -112,7 +111,7 @@ export function buildTicketsView(state: State, _t: Function, user: User, card: C
 
     const searchButton = new IconButton(
         new ActionCall(state, onSearchTicketsClick),
-        UI_ICONS.search,
+        "/assets/search.png",
         _t("Search Tickets"),
     );
 
@@ -134,7 +133,7 @@ export function buildTicketsView(state: State, _t: Function, user: User, card: C
         if (state.email.checkLoggingState("helpdesk.ticket", ticket.id)) {
             ticketButton = new IconButton(
                 new ActionCall(state, onEmailAlreadyLoggedOnTicket),
-                UI_ICONS.email_logged,
+                "/assets/email_logged.png",
                 _t("Email already logged on the ticket"),
             );
         } else {
@@ -142,7 +141,7 @@ export function buildTicketsView(state: State, _t: Function, user: User, card: C
                 new ActionCall(state, onLogEmailOnTicket, {
                     ticketId: ticket.id,
                 }),
-                UI_ICONS.email_in_odoo,
+                "/assets/email_in_odoo.png",
                 _t("Log the email on the ticket"),
             );
         }

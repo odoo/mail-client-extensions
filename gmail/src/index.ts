@@ -1,8 +1,10 @@
 import express from "express";
 import asyncHandler from "express-async-handler";
+import fs from "fs/promises";
 import { google } from "googleapis";
 import jwt from "jsonwebtoken";
 import cron from "node-cron";
+import path from "path";
 import { Email } from "./models/email";
 import { Partner } from "./models/partner";
 import { State } from "./models/state";
@@ -11,6 +13,8 @@ import { odooAuthCallback } from "./services/odoo_auth";
 import { Translate } from "./services/translation";
 import { getEventHandler } from "./utils/actions";
 import pool from "./utils/db";
+import { htmlEscape } from "./utils/format";
+import { svgToPngResponse } from "./utils/svg";
 import { getLoginMainView } from "./views/login";
 import { getPartnerView } from "./views/partner";
 import { getSearchPartnerView } from "./views/search_partner";
@@ -154,6 +158,90 @@ app.get(
     "/auth_callback",
     asyncHandler(async (req, res) => {
         res.send(await odooAuthCallback(req));
+    }),
+);
+
+/**
+ * Serve the SVG files as PNG, because Google won't fetch SVG.
+ */
+app.use("/assets", async (req, res, next) => {
+    if (!req.path.endsWith(".svg.png")) {
+        return next();
+    }
+
+    const filename = req.path.slice(1, -4);
+
+    // Prevent directory traversal
+    if (!/^[a-z0-9_-]+\.svg$/.test(filename)) {
+        res.sendStatus(404);
+        return;
+    }
+    const base = path.join(__dirname, "assets");
+    const fullPath = path.resolve(path.join(base, filename));
+    if (!fullPath.startsWith(`${base}/`)) {
+        res.sendStatus(404);
+        return;
+    }
+
+    try {
+        svgToPngResponse(await fs.readFile(fullPath), res);
+    } catch (err) {
+        res.sendStatus(404);
+    }
+});
+
+/**
+ * For some views, we want button that takes the full width of the card,
+ * this is not possible with standard button widget, and so we use SVG
+ * file with a link.
+ */
+app.use("/render_button/:backgroundColor/:textColor/:label", async (req, res, next) => {
+    const { backgroundColor, textColor, label } = req.params;
+    if (!/^[0-9a-z]{6}$/.test(backgroundColor) || !/^[0-9a-z]{6}$/.test(textColor)) {
+        console.error("Invalid color code", req.params)
+        res.sendStatus(404);
+        return;
+    }
+
+    const svg = await fs.readFile(path.join(__dirname, "assets/button.svg"));
+    const svgText = svg
+        .toString()
+        .replace("__TEXT__", htmlEscape(label))
+        .replace("__STROKE__", `#${backgroundColor}`)
+        .replace("__FILL__", `#${backgroundColor}`)
+        .replace("__COLOR__", `#${textColor}`);
+    try {
+        svgToPngResponse(Buffer.from(svgText), res);
+    } catch (err) {
+        console.error("Failed to generate the button", err)
+        res.sendStatus(404);
+    }
+});
+
+/**
+ * Render the "No result" SVG, with the translated text in it.
+ */
+app.use("/render_search_no_result/:title/:subtitle", async (req, res, next) => {
+    const { title, subtitle } = req.params;
+
+    const svg = await fs.readFile(path.join(__dirname, "assets/search_no_result.svg"));
+    const svgText = svg
+        .toString()
+        .replace("No record found.", htmlEscape(title))
+        .replace("Try using different keywords.", htmlEscape(subtitle));
+    try {
+        svgToPngResponse(Buffer.from(svgText), res);
+    } catch (err) {
+        res.sendStatus(404);
+    }
+});
+
+app.use(
+    "/assets",
+    express.static(path.join(__dirname, "assets"), {
+        fallthrough: false,
+        immutable: true,
+        maxAge: "1y",
     }),
 );
 

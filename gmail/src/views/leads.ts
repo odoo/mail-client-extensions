@@ -20,7 +20,6 @@ import {
     IconButton,
     LinkButton,
 } from "../utils/components";
-import { UI_ICONS } from "./icons";
 import { getPartnerView } from "./partner";
 import { getSearchRecordView } from "./search_records";
 
@@ -111,7 +110,7 @@ export function buildLeadsView(state: State, _t: Function, user: User, card: Car
 
     const searchButton = new IconButton(
         new ActionCall(state, onSearchLeadsClick),
-        UI_ICONS.search,
+        "/assets/search.png",
         _t("Search Opportunities"),
     );
 
@@ -136,7 +135,7 @@ export function buildLeadsView(state: State, _t: Function, user: User, card: Car
         if (state.email.checkLoggingState("crm.lead", lead.id)) {
             leadButton = new IconButton(
                 new ActionCall(state, onEmailAlreradyLoggedOnLead),
-                UI_ICONS.email_logged,
+                "/assets/email_logged.png",
                 _t("Email already logged on the opportunity"),
             );
         } else {
@@ -144,7 +143,7 @@ export function buildLeadsView(state: State, _t: Function, user: User, card: Car
                 new ActionCall(state, onLogEmailOnLead, {
                     leadId: lead.id,
                 }),
-                UI_ICONS.email_in_odoo,
+                "/assets/email_in_odoo.png",
                 _t("Log the email on the opportunity"),
             );
         }

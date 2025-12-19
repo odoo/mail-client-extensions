@@ -22,7 +22,6 @@ import {
     TextParagraph,
 } from "../utils/components";
 import { buildCardActionsView } from "./card_actions";
-import { UI_ICONS } from "./icons";
 import { getPartnerView } from "./partner";
 import { onEmailAlreadyLoggedContact } from "./partner_actions";
 
@@ -154,12 +153,12 @@ export async function getSearchPartnerView(
                           partnerId: partner.id,
                           query: query,
                       }),
-                      UI_ICONS.email_in_odoo,
+                      "/assets/email_in_odoo.png",
                       _t("Log email"),
                   )
                 : new IconButton(
                       new ActionCall(state, onEmailAlreadyLoggedContact),
-                      UI_ICONS.email_logged,
+                      "/assets/email_logged.png",
                       _t("Email already logged on the contact"),
                   );
         }
@@ -177,12 +176,9 @@ export async function getSearchPartnerView(
     }
 
     if ((!partners || !partners.length) && !initialSearch) {
-        const noRecord = btoa(
-            atob(UI_ICONS.no_record)
-                .replace("No record found.", _t("No record found."))
-                .replace("Try using different keywords.", _t("Try using different keywords.")),
-        );
-        searchSection.addWidget(new Image("data:image/svg+xml;base64," + noRecord));
+        const title = encodeURIComponent(_t("No record found."));
+        const subTitle = encodeURIComponent(_t("Try using different keywords."));
+        searchSection.addWidget(new Image(`/render_search_no_result/${title}/${subTitle}`));
     }
 
     return card;
