@@ -1,158 +1,193 @@
-import { buildView } from "../views/index";
-import { updateCard, pushCard, pushToRoot } from "./helpers";
-import { UI_ICONS } from "./icons";
-import { createKeyValueWidget, actionCall, notify } from "./helpers";
-import { URLS } from "../const";
-import { getOdooServerUrl } from "src/services/app_properties";
-import { ErrorMessage } from "../models/error_message";
 import { Project } from "../models/project";
 import { State } from "../models/state";
 import { Task } from "../models/task";
-import { logEmail } from "../services/log_email";
-import { _t } from "../services/translation";
+import { User } from "../models/user";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    PopOneCardAndUpdate,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import {
+    Button,
+    ButtonsList,
+    Card,
+    CardSection,
+    DecoratedText,
+    Image,
+    TextInput,
+    TextParagraph,
+} from "../utils/components";
+import { getPartnerView } from "./partner";
 
-function onSearchProjectClick(state: State, parameters: any, inputs: any) {
-    const inputQuery = inputs.search_project_query;
-    const query = (inputQuery && inputQuery.length && inputQuery[0]) || "";
-    const [projects, error] = Project.searchProject(query);
+async function onSearchProjectClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const query = formInputs.search_project_query || "";
+    const [projects, error] = await Project.searchProject(user, query);
+    if (error.code) {
+        return new Notify(error.toString(_t));
+    }
 
-    state.error = error;
     state.searchedProjects = projects;
-
-    const createTaskView = buildCreateTaskView(state, query, true);
-
-    // If go back, show again the "Create Project" section, but do not show all old searches
-    return parameters.hideCreateProjectSection ? updateCard(createTaskView) : pushCard(createTaskView);
+    return new UpdateCard(getCreateTaskView(state, _t, user, query));
 }
+registerEventHandler(onSearchProjectClick);
 
-function onCreateProjectClick(state: State, parameters: any, inputs: any) {
-    const inputQuery = inputs.new_project_name;
-    const projectName = (inputQuery && inputQuery.length && inputQuery[0]) || "";
+function onCreateProjectViewClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new UpdateCard(getCreateProjectView(state, _t));
+}
+registerEventHandler(onCreateProjectViewClick);
 
-    if (!projectName || !projectName.length) {
-        return notify(_t("The project name is required"));
+async function onCreateProjectClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const projectName = formInputs.new_project_name || "";
+    if (!projectName.length) {
+        return new Notify(_t("The project name is required"));
     }
 
-    const project = Project.createProject(projectName);
+    const project = await Project.createProject(user, projectName);
     if (!project) {
-        return notify(_t("Could not create the project"));
+        return new Notify(_t("Could not create the project"));
     }
 
-    return onSelectProject(state, { project: project });
+    return onSelectProject(state, _t, user, { project: project }, {});
 }
+registerEventHandler(onCreateProjectClick);
 
-function onSelectProject(state: State, parameters: any) {
-    const project = Project.fromJson(parameters.project);
-    const task = Task.createTask(state.partner.id, project.id, state.email.body, state.email.subject);
+async function onSelectProject(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const project = Project.fromJson(args.project);
+    const result = await Task.createTask(user, state.partner, project.id, state.email);
 
-    if (!task) {
-        return notify(_t("Could not create the task"));
+    if (!result) {
+        return new Notify(_t("Could not create the task"));
     }
 
-    task.projectName = project.name;
+    const [task, partner] = result;
+    state.partner = partner;
     state.partner.tasks.push(task);
+    state.partner.taskCount += 1;
 
-    const taskUrl =
-        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-        `/web#id=${task.id}&action=project_mail_plugin.project_task_action_form_edit&model=project.task&view_type=form`;
-
-    // Open the URL to the Odoo task and update the card
-    return CardService.newActionResponseBuilder()
-        .setOpenLink(CardService.newOpenLink().setUrl(taskUrl))
-        .setNavigation(pushToRoot(buildView(state)))
-        .build();
+    return new PopOneCardAndUpdate(getPartnerView(state, _t, user));
 }
+registerEventHandler(onSelectProject);
 
-export function buildCreateTaskView(state: State, query: string = "", hideCreateProjectSection: boolean = false) {
-    let noProject = false;
-    if (!state.searchedProjects) {
-        // Initiate the search
-        [state.searchedProjects, state.error] = Project.searchProject("");
-        noProject = !state.searchedProjects.length;
-    }
-
-    const odooServerUrl = getOdooServerUrl();
-    const partner = state.partner;
-    const tasks = partner.tasks;
+export function getCreateTaskView(
+    state: State,
+    _t: Function,
+    user: User,
+    query: string = "",
+    noProject: boolean = false,
+): Card {
     const projects = state.searchedProjects;
 
-    const card = CardService.newCardBuilder();
+    const card = new Card();
 
     if (!noProject) {
-        const projectSection = CardService.newCardSection().setHeader(
-            "<b>" + _t("Create a Task in an existing Project") + "</b>",
-        );
+        const projectSection = new CardSection();
+        projectSection.setHeader("<b>" + _t("Create a Task in an existing Project") + "</b>");
 
         projectSection.addWidget(
-            CardService.newTextInput()
-                .setFieldName("search_project_query")
-                .setTitle(_t("Search a Project"))
-                .setValue(query || "")
-                .setOnChangeAction(
-                    actionCall(state, onSearchProjectClick.name, {
-                        hideCreateProjectSection: hideCreateProjectSection,
-                    }),
-                ),
+            new TextInput(
+                "search_project_query",
+                _t("Search a Project"),
+                new ActionCall(state, onSearchProjectClick),
+                "",
+                query || "",
+            ),
         );
 
-        projectSection.addWidget(
-            CardService.newTextButton()
-                .setText(_t("Search"))
-                .setOnClickAction(
-                    actionCall(state, onSearchProjectClick.name, {
-                        hideCreateProjectSection: hideCreateProjectSection,
-                    }),
-                ),
+        const actionButtonSet = new ButtonsList();
+        actionButtonSet.addButton(
+            new Button(_t("Search"), new ActionCall(state, onSearchProjectClick)),
         );
+        if (state.canCreateProject) {
+            actionButtonSet.addButton(
+                new Button(
+                    _t("Create Project"),
+                    new ActionCall(state, onCreateProjectViewClick),
+                    "#875a7b",
+                ),
+            );
+        }
+        projectSection.addWidget(actionButtonSet);
 
         if (!projects.length) {
-            projectSection.addWidget(CardService.newTextParagraph().setText(_t("No project found.")));
+            projectSection.addWidget(new TextParagraph(_t("No project found.")));
         }
         for (let project of projects) {
-            const projectCard = createKeyValueWidget(
-                null,
+            const bottomLabel = [project.companyName, project.partnerName, project.stageName];
+            const projectCard = new DecoratedText(
+                undefined,
                 project.name,
-                null,
-                project.partnerName,
-                null,
-                actionCall(state, onSelectProject.name, { project: project }),
+                undefined,
+                bottomLabel.filter((l) => l).join(" - "),
+                undefined,
+                new ActionCall(state, onSelectProject, { project: project }),
             );
 
             projectSection.addWidget(projectCard);
         }
         card.addSection(projectSection);
-    }
+    } else if (state.canCreateProject) {
+        return getCreateProjectView(state, _t);
+    } else {
+        const noProjectSection = new CardSection();
 
-    if (!hideCreateProjectSection && state.canCreateProject) {
-        const createProjectSection = CardService.newCardSection().setHeader(
-            "<b>" + _t("Create a Task in a new Project") + "</b>",
-        );
+        noProjectSection.addWidget(new Image("/assets/empty_folder.svg.png"));
 
-        createProjectSection.addWidget(
-            CardService.newTextInput().setFieldName("new_project_name").setTitle(_t("Project Name")).setValue(""),
-        );
-
-        createProjectSection.addWidget(
-            CardService.newTextButton()
-                .setText(_t("Create Project & Task"))
-                .setOnClickAction(actionCall(state, onCreateProjectClick.name)),
-        );
-        card.addSection(createProjectSection);
-    } else if (noProject) {
-        const noProjectSection = CardService.newCardSection();
-
-        noProjectSection.addWidget(CardService.newImage().setImageUrl(UI_ICONS.empty_folder));
-
-        noProjectSection.addWidget(CardService.newTextParagraph().setText("<b>" + _t("No project") + "</b>"));
+        noProjectSection.addWidget(new TextParagraph("<b>" + _t("No project") + "</b>"));
 
         noProjectSection.addWidget(
-            CardService.newTextParagraph().setText(
-                _t("There are no project in your database. Please ask your project manager to create one."),
+            new TextParagraph(
+                _t(
+                    "There are no project in your database. Please ask your project manager to create one.",
+                ),
             ),
         );
 
         card.addSection(noProjectSection);
     }
 
-    return card.build();
+    return card;
+}
+
+/**
+ * Card used to create a new project (and to create the task in that project).
+ */
+export function getCreateProjectView(state: State, _t: Function): Card {
+    const createProjectSection = new CardSection();
+    const card = new Card([createProjectSection]);
+
+    createProjectSection.setHeader("<b>" + _t("Create a Task in a new Project") + "</b>");
+
+    createProjectSection.addWidget(new TextInput("new_project_name", _t("Project Name")));
+
+    createProjectSection.addWidget(
+        new Button(_t("Create Project & Task"), new ActionCall(state, onCreateProjectClick)),
+    );
+    return card;
 }

@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
-    "outDir": "./build",
-    "baseUrl": ".",
-    "strictNullChecks": false,
-    "noImplicitThis": true,
-    "noEmitOnError": true,
-    "target": "ES5",
-    "lib": ["dom", "es6", "scripthost", "es2017"]
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": false,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "noEmitOnError": false,
+    "outDir": "dist"
   },
-  "include": ["src/*", "src/**/*"]
+  "include": ["src"]
 }

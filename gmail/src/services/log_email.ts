@@ -1,20 +1,14 @@
-import { postJsonRpc } from "../utils/http";
-import { escapeHtml } from "../utils/html";
-import { URLS } from "../const";
+import { URLS } from "../consts";
 import { Email } from "../models/email";
 import { ErrorMessage } from "../models/error_message";
-import { _t } from "../services/translation";
-import { getAccessToken } from "./odoo_auth";
+import { User } from "../models/user";
+import { postJsonRpc } from "../utils/http";
 
 /**
  * Format the email body before sending it to Odoo.
  * Add error message at the end of the email, fix some CSS issues,...
  */
-function _formatEmailBody(email: Email, error: ErrorMessage): string {
-    let body = email.body;
-
-    body = `<span>${_t("From:")} ${escapeHtml(email.contactEmail)}</span><br/><br/>${body}`;
-
+function _formatEmailBody(_t: Function, body: string, error: ErrorMessage): string {
     if (error.code === "attachments_size_exceeded") {
         body += `<br/><i>${_t(
             "Attachments could not be logged in Odoo because their total size exceeded the allowed maximum.",
@@ -27,29 +21,41 @@ function _formatEmailBody(email: Email, error: ErrorMessage): string {
         /class=\"gmail_chip gmail_drive_chip" style=\"/g,
         'class="gmail_chip gmail_drive_chip" style=" min-height: 32px;',
     );
-
-    body += `<br/><br/>${_t("Logged from")}<b> ${_t("Gmail Inbox")}</b>`;
-
     return body;
 }
 
 /**
  * Log the given email body in the chatter of the given record.
  */
-export function logEmail(recordId: number, recordModel: string, email: Email): ErrorMessage {
-    const odooAccessToken = getAccessToken();
-    const [attachments, error] = email.getAttachments();
-    const body = _formatEmailBody(email, error);
-    const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.LOG_EMAIL;
+export async function logEmail(
+    _t: Function,
+    user: User,
+    recordId: number,
+    recordModel: string,
+    email: Email,
+): Promise<ErrorMessage> {
+    const [rawBody, timestamp, [attachments, error]] = await email.getBodyAndAttachments();
+    const body = _formatEmailBody(_t, rawBody, error);
 
-    const response = postJsonRpc(
-        url,
-        { message: body, res_id: recordId, model: recordModel, attachments: attachments },
-        { Authorization: "Bearer " + odooAccessToken },
+    const response = await postJsonRpc(
+        user.odooUrl + URLS.LOG_EMAIL,
+        {
+            body,
+            res_id: recordId,
+            model: recordModel,
+            attachments: attachments,
+            email_from: email.emailFrom,
+            email_to: email.emailTo,
+            email_cc: email.emailCC,
+            subject: email.subject,
+            timestamp: timestamp,
+            application_name: _t("Odoo for Gmail"),
+        },
+        { Authorization: "Bearer " + user.odooToken },
     );
 
     if (!response) {
-        error.setError("unknown");
+        return new ErrorMessage("unknown");
     }
 
     return error;

@@ -1,91 +1,168 @@
-import { buildView } from "../views/index";
-import { buildCreateTaskView } from "../views/create_task";
-import { updateCard } from "./helpers";
-import { UI_ICONS } from "./icons";
-import { createKeyValueWidget, actionCall, notify } from "./helpers";
-import { URLS } from "../const";
-import { getOdooServerUrl } from "src/services/app_properties";
+import { Project } from "../models/project";
 import { State } from "../models/state";
+import { User } from "../models/user";
 import { logEmail } from "../services/log_email";
-import { _t } from "../services/translation";
-import { truncate } from "../utils/format";
+import { getOdooRecordURL } from "../services/odoo_redirection";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    OpenLink,
+    PushCard,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import {
+    Button,
+    Card,
+    CardSection,
+    DecoratedText,
+    IconButton,
+    LinkButton,
+} from "../utils/components";
+import { getCreateTaskView } from "./create_task";
+import { getPartnerView } from "./partner";
+import { getSearchRecordView } from "./search_records";
 
-function onCreateTask(state: State) {
-    return buildCreateTaskView(state);
-}
-
-function onLogEmailOnTask(state: State, parameters: any) {
-    const taskId = parameters.taskId;
-
-    if (State.checkLoggingState(state.email.messageId, "tasks", taskId)) {
-        logEmail(taskId, "project.task", state.email);
-        if (!state.error.code) {
-            State.setLoggingState(state.email.messageId, "tasks", taskId);
+async function onCreateTask(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    let noProject = false;
+    if (!state.searchedProjects) {
+        // Initiate the search
+        const [searchedProjects, error] = await Project.searchProject(user, "");
+        if (error.code) {
+            return new Notify(error.toString(_t));
         }
-        return updateCard(buildView(state));
+
+        state.searchedProjects = searchedProjects;
+        noProject = !state.searchedProjects.length;
     }
-    return notify(_t("Email already logged on the task"));
+    return new PushCard(getCreateTaskView(state, _t, user, "", noProject));
 }
+registerEventHandler(onCreateTask);
 
-function onEmailAlreradyLoggedOnTask() {
-    return notify(_t("Email already logged on the task"));
+function onSearchTasksClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new PushCard(
+        getSearchRecordView(
+            state,
+            _t,
+            "project.task",
+            _t("Tasks"),
+            _t("Log the email on the task"),
+            _t("Email already logged on the task"),
+            "projectName",
+            "",
+            true,
+            state.partner.tasks,
+        ),
+    );
 }
+registerEventHandler(onSearchTasksClick);
 
-export function buildTasksView(state: State, card: Card) {
-    const odooServerUrl = getOdooServerUrl();
+async function onLogEmailOnTask(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const taskId = args.taskId;
+
+    const error = await logEmail(_t, user, taskId, "project.task", state.email);
+    if (error.code) {
+        return new Notify(error.toString(_t));
+    }
+    state.email.setLoggingState(user, "project.task", taskId);
+    return new UpdateCard(getPartnerView(state, _t, user));
+}
+registerEventHandler(onLogEmailOnTask);
+
+function onEmailAlreadyLoggedOnTask(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new Notify(_t("Email already logged on the task"));
+}
+registerEventHandler(onEmailAlreadyLoggedOnTask);
+
+export function buildTasksView(state: State, _t: Function, user: User, card: Card) {
     const partner = state.partner;
-    const tasks = partner.tasks;
-
-    if (!tasks) {
+    if (!partner.tasks) {
         return;
     }
 
-    const loggingState = State.getLoggingState(state.email.messageId);
-    const tasksSection = CardService.newCardSection().setHeader("<b>" + _t("Tasks (%s)", tasks.length) + "</b>");
-    const cids = state.odooCompaniesParameter;
+    const tasks = [...partner.tasks].splice(0, 5);
 
-    if (state.partner.id) {
-        tasksSection.addWidget(
-            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, onCreateTask.name)),
-        );
+    const tasksSection = new CardSection();
 
-        for (let task of tasks) {
-            let taskButton = null;
-            if (loggingState["tasks"].indexOf(task.id) >= 0) {
-                taskButton = CardService.newImageButton()
-                    .setAltText(_t("Email already logged on the task"))
-                    .setIconUrl(UI_ICONS.email_logged)
-                    .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnTask.name));
-            } else {
-                taskButton = CardService.newImageButton()
-                    .setAltText(_t("Log the email on the task"))
-                    .setIconUrl(UI_ICONS.email_in_odoo)
-                    .setOnClickAction(
-                        actionCall(state, onLogEmailOnTask.name, {
-                            taskId: task.id,
-                        }),
-                    );
-            }
+    const searchButton = new IconButton(
+        new ActionCall(state, onSearchTasksClick),
+        "/assets/search.png",
+        _t("Search Tasks"),
+    );
 
-            tasksSection.addWidget(
-                createKeyValueWidget(
-                    task.projectName,
-                    truncate(task.name, 35),
-                    null,
-                    null,
-                    taskButton,
-                    odooServerUrl + `/web#id=${task.id}&model=project.task&view_type=form${cids}`,
-                ),
+    const title = partner.taskCount ? _t("Tasks (%s)", partner.taskCount) : _t("Tasks");
+    const widget = new DecoratedText(
+        "",
+        "<b>" + title + "</b>",
+        undefined,
+        undefined,
+        searchButton,
+    );
+    tasksSection.addWidget(widget);
+
+    const createButton = new Button(_t("New"), new ActionCall(state, onCreateTask));
+    tasksSection.addWidget(createButton);
+
+    for (let task of tasks) {
+        let taskButton = null;
+        if (state.email.checkLoggingState("project.task", task.id)) {
+            taskButton = new IconButton(
+                new ActionCall(state, onEmailAlreadyLoggedOnTask),
+                "/assets/email_logged.png",
+                _t("Email already logged on the task"),
+            );
+        } else {
+            taskButton = new IconButton(
+                new ActionCall(state, onLogEmailOnTask, {
+                    taskId: task.id,
+                }),
+                "/assets/email_in_odoo.png",
+                _t("Log the email on the task"),
             );
         }
-    } else if (state.canCreatePartner) {
-        tasksSection.addWidget(CardService.newTextParagraph().setText(_t("Save the contact to create new tasks.")));
-    } else {
+
         tasksSection.addWidget(
-            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Task.")),
+            new DecoratedText(
+                "",
+                task.name,
+                undefined,
+                task.projectName,
+                taskButton,
+                new OpenLink(getOdooRecordURL(user, "project.task", task.id)),
+            ),
+        );
+    }
+
+    if (tasks.length < partner.taskCount) {
+        tasksSection.addWidget(
+            new LinkButton(_t("Show all"), new ActionCall(state, onSearchTasksClick)),
         );
     }
 
     card.addSection(tasksSection);
-    return card;
 }

@@ -1,69 +1,106 @@
-import { buildView } from "../views/index";
-import { buildSearchPartnerView } from "./search_partner";
-import { UI_ICONS } from "./icons";
-import { State } from "../models/state";
 import { Partner } from "../models/partner";
-import { actionCall } from "./helpers";
-import { updateCard } from "./helpers";
-import { _t } from "../services/translation";
-import { buildLoginMainView } from "./login";
+import { State } from "../models/state";
+import { User } from "../models/user";
+import { logEmail } from "../services/log_email";
+import { getOdooRecordURL } from "../services/odoo_redirection";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    OpenLink,
+    PushCard,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import { Button, ButtonsList, IconButton } from "../utils/components";
+import { getPartnerView } from "./partner";
+import { getSearchPartnerView } from "./search_partner";
 
-function onSearchPartner(state: State) {
-    if (!state.searchedPartners) {
-        const [partners, error] = Partner.searchPartner(state.partner.email);
-        state.searchedPartners = partners;
+async function onLogEmail(state: State, _t: Function, user: User): Promise<EventResponse> {
+    const partnerId = state.partner.id;
+
+    if (!partnerId) {
+        throw new Error(_t("This contact does not exist in the Odoo database."));
     }
 
-    return buildSearchPartnerView(state, state.partner.email, true);
-}
-
-function onReloadPartner(state: State) {
-    [
-        state.partner,
-        state.odooUserCompanies,
-        state.canCreatePartner,
-        state.canCreateProject,
-        state.error,
-    ] = Partner.getPartner(state.partner.email, state.partner.name, state.partner.id);
-
-    return updateCard(buildView(state));
-}
-
-export function buildPartnerActionView(state: State, partnerSection: CardSection) {
-    const isLogged = State.isLogged;
-    const canContactOdooDatabase = state.error.canContactOdooDatabase && isLogged;
-
-    if (canContactOdooDatabase) {
-        const actionButtonSet = CardService.newButtonSet();
-
-        if (state.partner.id) {
-            actionButtonSet.addButton(
-                CardService.newImageButton()
-                    .setAltText(_t("Refresh"))
-                    .setIconUrl(UI_ICONS.reload)
-                    .setOnClickAction(actionCall(state, onReloadPartner.name)),
-            );
-        }
-
-        actionButtonSet.addButton(
-            CardService.newImageButton()
-                .setAltText(_t("Search contact"))
-                .setIconUrl(UI_ICONS.search)
-                .setOnClickAction(actionCall(state, onSearchPartner.name)),
-        );
-
-        partnerSection.addWidget(actionButtonSet);
-    } else if (!isLogged) {
-        // add button but it redirects to the login page
-        const actionButtonSet = CardService.newButtonSet();
-
-        actionButtonSet.addButton(
-            CardService.newImageButton()
-                .setAltText(_t("Search contact"))
-                .setIconUrl(UI_ICONS.search)
-                .setOnClickAction(actionCall(state, buildLoginMainView.name)),
-        );
-
-        partnerSection.addWidget(actionButtonSet);
+    const error = await logEmail(_t, user, partnerId, "res.partner", state.email);
+    if (error.code) {
+        return new Notify(error.toString(_t));
     }
+    state.email.setLoggingState(user, "res.partner", partnerId);
+    return new UpdateCard(getPartnerView(state, _t, user));
+}
+registerEventHandler(onLogEmail);
+
+async function onSavePartner(state: State, _t: Function, user: User): Promise<EventResponse> {
+    const partner = await Partner.savePartner(user, state.partner);
+    if (partner) {
+        state.partner = partner;
+        state.partner.isWritable = true;
+        state.searchedPartners = null;
+        return new UpdateCard(getPartnerView(state, _t, user));
+    }
+    return new Notify(_t("Can not save the contact"));
+}
+registerEventHandler(onSavePartner);
+
+export function onEmailAlreadyLoggedContact(state: State, _t: Function, user: User): EventResponse {
+    return new Notify(_t("Email already logged on the contact"));
+}
+registerEventHandler(onEmailAlreadyLoggedContact);
+
+async function onSearchPartner(state: State, _t: Function, user: User): Promise<EventResponse> {
+    state.searchedPartners = [];
+    return new PushCard(await getSearchPartnerView(state, _t, user, state.partner.email, true));
+}
+registerEventHandler(onSearchPartner);
+
+export function getPartnerActionButtons(state: State, _t: Function, user: User): ButtonsList {
+    const actionButtonSet = new ButtonsList();
+
+    const isEmailLogged =
+        state.partner.id && state.email.checkLoggingState("res.partner", state.partner.id);
+
+    if (!state.partner.id && state.canCreatePartner) {
+        actionButtonSet.addButton(
+            new Button(_t("Add to Odoo"), new ActionCall(state, onSavePartner), "#875a7b"),
+        );
+    }
+    if (state.partner.id) {
+        actionButtonSet.addButton(
+            new Button(
+                _t("View in Odoo"),
+                new OpenLink(getOdooRecordURL(user, "res.partner", state.partner.id)),
+                "#875a7b",
+            ),
+        );
+    }
+    if (state.partner.id && !isEmailLogged && state.partner.isWritable) {
+        actionButtonSet.addButton(
+            new IconButton(
+                new ActionCall(state, onLogEmail),
+                "/assets/email_in_odoo.png",
+                _t("Log email"),
+            ),
+        );
+    }
+    if (state.partner.id && isEmailLogged) {
+        actionButtonSet.addButton(
+            new IconButton(
+                new ActionCall(state, onEmailAlreadyLoggedContact),
+                "/assets/email_logged.png",
+                _t("Email already logged on the contact"),
+            ),
+        );
+    }
+
+    actionButtonSet.addButton(
+        new IconButton(
+            new ActionCall(state, onSearchPartner),
+            "/assets/search.png",
+            _t("Search contact"),
+        ),
+    );
+
+    return actionButtonSet;
 }

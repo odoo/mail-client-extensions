@@ -1,6 +1,8 @@
+import { URLS } from "../consts";
 import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
-import { getAccessToken } from "src/services/odoo_auth";
+import { Email } from "./email";
+import { Partner } from "./partner";
+import { User } from "./user";
 
 /**
  * Represent a "helpdesk.ticket" record.
@@ -8,22 +10,40 @@ import { getAccessToken } from "src/services/odoo_auth";
 export class Ticket {
     id: number;
     name: string;
+    stageName: string;
 
     /**
      * Make a RPC call to the Odoo database to create a ticket
      * and return the ID of the newly created record.
      */
-    static createTicket(partnerId: number, emailBody: string, emailSubject: string): number {
-        const url = PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") + URLS.CREATE_TICKET;
-        const odooAccessToken = getAccessToken();
-
-        const response = postJsonRpc(
-            url,
-            { email_body: emailBody, email_subject: emailSubject, partner_id: partnerId },
-            { Authorization: "Bearer " + odooAccessToken },
+    static async createTicket(
+        user: User,
+        partner: Partner,
+        email: Email,
+    ): Promise<[Ticket, Partner] | null> {
+        const [body, _, attachmentsParsed] = await email.getBodyAndAttachments();
+        const response = await postJsonRpc(
+            user.odooUrl + URLS.CREATE_TICKET,
+            {
+                email_body: body,
+                email_subject: email.subject,
+                partner_email: partner.email,
+                partner_id: partner.id,
+                partner_name: partner.name,
+                attachments: attachmentsParsed[0],
+            },
+            { Authorization: "Bearer " + user.odooToken },
         );
 
-        return response ? response.ticket_id || null : null;
+        if (!response?.id) {
+            return null;
+        }
+        if (!partner.id) {
+            partner.id = response.partner_id;
+            partner.image = response.partner_image;
+            partner.isWritable = true;
+        }
+        return [Ticket.fromOdooResponse(response), partner];
     }
 
     /**
@@ -33,6 +53,7 @@ export class Ticket {
         const ticket = new Ticket();
         ticket.id = values.id;
         ticket.name = values.name;
+        ticket.stageName = values.stageName;
         return ticket;
     }
 
@@ -41,8 +62,9 @@ export class Ticket {
      */
     static fromOdooResponse(values: any): Ticket {
         const ticket = new Ticket();
-        ticket.id = values.ticket_id;
+        ticket.id = values.id;
         ticket.name = values.name;
+        ticket.stageName = values.stage_name;
         return ticket;
     }
 }

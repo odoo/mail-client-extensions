@@ -1,104 +1,168 @@
-import { buildView } from "../views/index";
-import { updateCard } from "./helpers";
-import { UI_ICONS } from "./icons";
-import { createKeyValueWidget, actionCall, notify, openUrl } from "./helpers";
-import { URLS } from "../const";
-import { getOdooServerUrl } from "src/services/app_properties";
 import { State } from "../models/state";
 import { Ticket } from "../models/ticket";
+import { User } from "../models/user";
 import { logEmail } from "../services/log_email";
-import { _t } from "../services/translation";
+import { getOdooRecordURL } from "../services/odoo_redirection";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    OpenLink,
+    PushCard,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import {
+    Button,
+    Card,
+    CardSection,
+    DecoratedText,
+    IconButton,
+    LinkButton,
+} from "../utils/components";
+import { getPartnerView } from "./partner";
+import { getSearchRecordView } from "./search_records";
 
-function onCreateTicket(state: State) {
-    const ticketId = Ticket.createTicket(state.partner.id, state.email.body, state.email.subject);
+async function onCreateTicket(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const result = await Ticket.createTicket(user, state.partner, state.email);
 
-    if (!ticketId) {
-        return notify(_t("Could not create the ticket"));
+    if (!result) {
+        return new Notify(_t("Could not create the ticket"));
     }
 
-    const cids = state.odooCompaniesParameter;
-
-    const ticketUrl =
-        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-        `/web#id=${ticketId}&action=helpdesk_mail_plugin.helpdesk_ticket_action_form_edit&model=helpdesk.ticket&view_type=form${cids}`;
-
-    return openUrl(ticketUrl);
+    const [ticket, partner] = result;
+    state.partner = partner;
+    state.partner.tickets.push(ticket);
+    state.partner.ticketCount += 1;
+    return new UpdateCard(getPartnerView(state, _t, user));
 }
+registerEventHandler(onCreateTicket);
 
-function onLogEmailOnTicket(state: State, parameters: any) {
-    const ticketId = parameters.ticketId;
+function onSearchTicketsClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new PushCard(
+        getSearchRecordView(
+            state,
+            _t,
+            "helpdesk.ticket",
+            _t("Tickets"),
+            _t("Log the email on the ticket"),
+            _t("Email already logged on the ticket"),
+            "",
+            "",
+            true,
+            state.partner.tickets,
+        ),
+    );
+}
+registerEventHandler(onSearchTicketsClick);
 
-    if (State.checkLoggingState(state.email.messageId, "tickets", ticketId)) {
-        state.error = logEmail(ticketId, "helpdesk.ticket", state.email);
-        if (!state.error.code) {
-            State.setLoggingState(state.email.messageId, "tickets", ticketId);
-        }
-        return updateCard(buildView(state));
+async function onLogEmailOnTicket(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const ticketId = args.ticketId;
+    const error = await logEmail(_t, user, ticketId, "helpdesk.ticket", state.email);
+    if (error.code) {
+        return new Notify(error.toString(_t));
     }
-    return notify(_t("Email already logged on the ticket"));
-}
 
-function onEmailAlreradyLoggedOnTicket() {
-    return notify(_t("Email already logged on the ticket"));
+    state.email.setLoggingState(user, "helpdesk.ticket", ticketId);
+    return new UpdateCard(getPartnerView(state, _t, user));
 }
+registerEventHandler(onLogEmailOnTicket);
 
-export function buildTicketsView(state: State, card: Card) {
-    const odooServerUrl = getOdooServerUrl();
+function onEmailAlreadyLoggedOnTicket(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new Notify(_t("Email already logged on the ticket"));
+}
+registerEventHandler(onEmailAlreadyLoggedOnTicket);
+
+export function buildTicketsView(state: State, _t: Function, user: User, card: Card) {
     const partner = state.partner;
-    const tickets = partner.tickets;
-
-    if (!tickets) {
+    if (!partner.tickets) {
+        // Helpdesk not installed
+        // (otherwise we would have an empty array)
         return;
     }
 
-    const loggingState = State.getLoggingState(state.email.messageId);
+    const tickets = [...partner.tickets].splice(0, 5);
 
-    const ticketsSection = CardService.newCardSection().setHeader("<b>" + _t("Tickets (%s)", tickets.length) + "</b>");
+    const ticketsSection = new CardSection();
 
-    if (state.partner.id) {
-        ticketsSection.addWidget(
-            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, onCreateTicket.name)),
-        );
+    const searchButton = new IconButton(
+        new ActionCall(state, onSearchTicketsClick),
+        "/assets/search.png",
+        _t("Search Tickets"),
+    );
 
-        const cids = state.odooCompaniesParameter;
+    const title = partner.ticketCount ? _t("Tickets (%s)", partner.ticketCount) : _t("Tickets");
+    const widget = new DecoratedText(
+        "",
+        "<b>" + title + "</b>",
+        undefined,
+        undefined,
+        searchButton,
+    );
+    ticketsSection.addWidget(widget);
 
-        for (let ticket of tickets) {
-            let ticketButton = null;
-            if (loggingState["tickets"].indexOf(ticket.id) >= 0) {
-                ticketButton = CardService.newImageButton()
-                    .setAltText(_t("Email already logged on the ticket"))
-                    .setIconUrl(UI_ICONS.email_logged)
-                    .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnTicket.name));
-            } else {
-                ticketButton = CardService.newImageButton()
-                    .setAltText(_t("Log the email on the ticket"))
-                    .setIconUrl(UI_ICONS.email_in_odoo)
-                    .setOnClickAction(
-                        actionCall(state, "onLogEmailOnTicket", {
-                            ticketId: ticket.id,
-                        }),
-                    );
-            }
+    const createButton = new Button(_t("New"), new ActionCall(state, onCreateTicket));
+    ticketsSection.addWidget(createButton);
 
-            ticketsSection.addWidget(
-                createKeyValueWidget(
-                    null,
-                    ticket.name,
-                    null,
-                    null,
-                    ticketButton,
-                    odooServerUrl + `/web#id=${ticket.id}&model=helpdesk.ticket&view_type=form${cids}`,
-                ),
+    for (let ticket of tickets) {
+        let ticketButton = null;
+        if (state.email.checkLoggingState("helpdesk.ticket", ticket.id)) {
+            ticketButton = new IconButton(
+                new ActionCall(state, onEmailAlreadyLoggedOnTicket),
+                "/assets/email_logged.png",
+                _t("Email already logged on the ticket"),
+            );
+        } else {
+            ticketButton = new IconButton(
+                new ActionCall(state, onLogEmailOnTicket, {
+                    ticketId: ticket.id,
+                }),
+                "/assets/email_in_odoo.png",
+                _t("Log the email on the ticket"),
             );
         }
-    } else if (state.canCreatePartner) {
-        ticketsSection.addWidget(CardService.newTextParagraph().setText(_t("Save the contact to create new tickets.")));
-    } else {
+
         ticketsSection.addWidget(
-            CardService.newTextParagraph().setText(_t("The Contact needs to exist to create Ticket.")),
+            new DecoratedText(
+                "",
+                ticket.name,
+                undefined,
+                ticket.stageName,
+                ticketButton,
+                new OpenLink(getOdooRecordURL(user, "helpdesk.ticket", ticket.id)),
+            ),
+        );
+    }
+
+    if (tickets.length < partner.ticketCount) {
+        ticketsSection.addWidget(
+            new LinkButton(_t("Show all"), new ActionCall(state, onSearchTicketsClick)),
         );
     }
 
     card.addSection(ticketsSection);
-    return card;
 }

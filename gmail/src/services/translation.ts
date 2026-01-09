@@ -1,10 +1,9 @@
+import { URLS } from "../consts";
+import { User } from "../models/user";
 import { postJsonRpc } from "../utils/http";
-import { URLS } from "../const";
-import { getAccessToken } from "./odoo_auth";
-import { getOdooServerUrl } from "./app_properties";
 
 /**
- * Object which fetchs the translations on the Odoo database, puts them in cache.
+ * Object which fetch the translations on the Odoo database, puts them in cache.
  *
  * Done in a class and not in a simple function so we read only once the cache for all
  * translations.
@@ -12,32 +11,31 @@ import { getOdooServerUrl } from "./app_properties";
 export class Translate {
     translations: Record<string, string>;
 
-    constructor() {
-        const cache = CacheService.getUserCache();
-        const cacheKey = "ODOO_TRANSLATIONS";
+    constructor(translations?: Record<string, string>) {
+        this.translations = translations || {};
+    }
 
-        const translationsStr = cache.get(cacheKey);
-
-        const odooServerUrl = getOdooServerUrl();
-        const odooAccessToken = getAccessToken();
-        if (translationsStr) {
-            this.translations = JSON.parse(translationsStr);
-        } else if (odooServerUrl && odooAccessToken) {
-            Logger.log("Download translations...");
-
-            this.translations = postJsonRpc(
-                odooServerUrl + URLS.GET_TRANSLATIONS,
-                {},
-                { Authorization: "Bearer " + odooAccessToken },
-            );
-
-            if (this.translations) {
-                // Put in the cacher for 6 hours (maximum cache life time)
-                cache.put(cacheKey, JSON.stringify(this.translations), 21600);
-            }
+    static async getTranslations(user: User): Promise<Function> {
+        if (!user.odooUrl) {
+            // The user is not logged yet
+            const translator = new Translate({});
+            return translator._t.bind(translator);
         }
 
-        this.translations = this.translations || {};
+        if (!user.translationsExpireAt || new Date() > user.translationsExpireAt) {
+            user.translations = await postJsonRpc(
+                user.odooUrl + URLS.GET_TRANSLATIONS,
+                {},
+                { Authorization: "Bearer " + user.odooToken },
+            );
+            // Store the translation for 6 hours
+            const EXPIRATION_DURATION_MS = 6 * 60 * 60 * 1000;
+            user.translationsExpireAt = new Date(Date.now() + EXPIRATION_DURATION_MS);
+            await user.save();
+            console.log("Translation fetched");
+        }
+        const translator = new Translate(user.translations);
+        return translator._t.bind(translator);
     }
 
     /**
@@ -47,11 +45,11 @@ export class Translate {
      * (e.g.: "Hello %(name)s") or simple string format (e.g.: "Hello %s").
      */
     _t(text: string, parameters: any = undefined): string {
-        let translated = this.translations[text];
+        let translated = this.translations.hasOwnProperty(text) ? this.translations[text] : null;
 
         if (!translated) {
             if (this.translations && Object.keys(this.translations).length) {
-                Logger.log("Translation missing for: " + text);
+                console.log("Translation missing for: " + text);
             }
             translated = text;
         }
@@ -69,21 +67,10 @@ export class Translate {
                     .join("|"),
                 "gi",
             );
-            return translated.replace(re, (key) => parameters[key.substring(2, key.length - 2)] || "");
+            return translated.replace(
+                re,
+                (key) => parameters[key.substring(2, key.length - 2)] || "",
+            );
         }
     }
-}
-
-const translate = new Translate();
-
-// Can be used as a function without reading each time the cache
-export function _t(text: string, parameters: any = undefined): string {
-    return translate._t(text, parameters);
-}
-
-export function clearTranslationCache() {
-    const cache = CacheService.getUserCache();
-    const cacheKey = "ODOO_TRANSLATIONS";
-    cache.remove(cacheKey);
-    translate.translations = {};
 }

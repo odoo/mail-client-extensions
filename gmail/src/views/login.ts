@@ -1,102 +1,84 @@
-import { formatUrl, repeat } from "../utils/format";
-import { notify, createKeyValueWidget } from "./helpers";
 import { State } from "../models/state";
-import { IMAGES_LOGIN } from "./icons";
-import { isOdooDatabaseReachable } from "../services/odoo_auth";
-import { _t, clearTranslationCache } from "../services/translation";
-import { setOdooServerUrl } from "src/services/app_properties";
+import { User } from "../models/user";
+import { getOdooAuthUrl, getSupportedAddinVersion } from "../services/odoo_auth";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    OpenLink,
+    OpenLinkOpenAs,
+    Redirect,
+    registerEventHandler,
+} from "../utils/actions";
+import { Card, CardSection, Image, TextInput } from "../utils/components";
+import { formatUrl } from "../utils/format";
 
-function onNextLogin(event) {
-    const validatedUrl = formatUrl(event.formInput.odooServerUrl);
-
-    if (!validatedUrl) {
-        return notify("Invalid URL");
+/**
+ * Initiate the authentication process, and redirect to the Odoo database.
+ */
+async function onNextLogin(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    let domain = null;
+    try {
+        domain = new URL(formatUrl(formInputs.odooServerUrl)).origin;
+    } catch {}
+    if (!domain) {
+        return new Notify(`Invalid URL ${formInputs.odooServerUrl}`);
     }
 
-    if (!/^https:\/\/([^\/?]*\.)?odoo\.com(\/|$)/.test(validatedUrl)) {
-        return notify("The URL must be a subdomain of odoo.com");
+    user.odooUrl = domain
+    await user.save();
+
+    const version = await getSupportedAddinVersion(domain);
+    if (!version) {
+        return new Notify("Could not connect to your database.");
     }
 
-    clearTranslationCache();
-
-    setOdooServerUrl(validatedUrl);
-
-    if (!isOdooDatabaseReachable(validatedUrl)) {
-        return notify(
-            "Could not connect to your database. Make sure the module is installed in Odoo (Settings > General Settings > Integrations > Mail Plugins)",
+    if (version !== 2) {
+        return new Notify(
+            "This addin version required Odoo 19.2 or a newer version, please install an older addin version.",
         );
     }
-
-    return CardService.newActionResponseBuilder()
-        .setOpenLink(
-            CardService.newOpenLink()
-                .setUrl(State.odooLoginUrl)
-                .setOpenAs(CardService.OpenAs.OVERLAY)
-                .setOnClose(CardService.OnClose.RELOAD),
-        )
-        .build();
+    const odooLoginUrl = await getOdooAuthUrl(user);
+    return new Redirect(new OpenLink(odooLoginUrl, OpenLinkOpenAs.OVERLAY, true));
 }
+registerEventHandler(onNextLogin);
 
-export function buildLoginMainView() {
-    const card = CardService.newCardBuilder();
-
-    // Trick to make large centered button
-    const invisibleChar = "⠀";
-
-    const faqUrl = "https://www.odoo.com/documentation/master/applications/productivity/mail_plugins.html";
-
-    card.addSection(
-        CardService.newCardSection()
-            .addWidget(
-                CardService.newImage().setAltText("Connect to your Odoo database").setImageUrl(IMAGES_LOGIN.main_image),
-            )
-            .addWidget(
-                CardService.newTextInput()
-                    .setFieldName("odooServerUrl")
-                    .setTitle("Database URL")
-                    .setHint("e.g. company.odoo.com")
-                    .setValue(PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") || ""),
-            )
-            .addWidget(
-                CardService.newTextButton()
-                    .setText(repeat(invisibleChar, 12) + "Login" + repeat(invisibleChar, 12))
-                    .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-                    .setBackgroundColor("#00A09D")
-                    .setOnClickAction(CardService.newAction().setFunctionName(onNextLogin.name)),
-            )
-            .addWidget(CardService.newTextParagraph().setText(repeat(invisibleChar, 13) + "<b>OR</b>"))
-            .addWidget(
-                CardService.newTextButton()
-                    .setText(repeat(invisibleChar, 11) + " Sign Up" + repeat(invisibleChar, 11))
-                    .setOpenLink(
-                        CardService.newOpenLink().setUrl(
-                            "https://www.odoo.com/trial?selected_app=mail_plugin:crm:helpdesk:project",
-                        ),
-                    ),
-            )
-            .addWidget(
-                createKeyValueWidget(null, "Create leads from emails sent to your email address.", IMAGES_LOGIN.email),
-            )
-            .addWidget(
-                createKeyValueWidget(
-                    null,
-                    "Create tickets from emails sent to your email address.",
-                    IMAGES_LOGIN.ticket,
-                ),
-            )
-            .addWidget(createKeyValueWidget(null, "Centralize Prospects' emails into CRM.", IMAGES_LOGIN.crm))
-            .addWidget(
-                createKeyValueWidget(
-                    null,
-                    "Generate Tasks from emails sent to your email address in any Odoo project.",
-                    IMAGES_LOGIN.project,
-                ),
-            )
-            .addWidget(createKeyValueWidget(null, "Search and store insights on your contacts.", IMAGES_LOGIN.search))
-            .addWidget(
-                CardService.newTextParagraph().setText(repeat(invisibleChar, 13) + `<a href="${faqUrl}">FAQ</a>`),
+export async function getLoginMainView(user: User) {
+    return new Card([
+        new CardSection([
+            new Image("/assets/login_header.svg.png", "Connect to your Odoo database"),
+            new TextInput(
+                "odooServerUrl",
+                "Connect to...",
+                new ActionCall(undefined, onNextLogin),
+                "e.g. company.odoo.com",
+                user.odooUrl,
             ),
-    );
-
-    return card.build();
+            new Image(
+                "/render_button/875a7b/ffffff/Login",
+                "Login",
+                new ActionCall(undefined, onNextLogin),
+            ),
+            new Image(
+                "/render_button/e7e9ed/1e1e1e/Sign%20Up",
+                "Sign Up",
+                new OpenLink(
+                    "https://www.odoo.com/trial?selected_app=mail_plugin:crm:helpdesk:project",
+                ),
+            ),
+            new Image(
+                "/render_button/ffffff/2f9e44/FAQ",
+                "FAQ",
+                new OpenLink(
+                    "https://www.odoo.com/documentation/master/applications/productivity/mail_plugins.html",
+                ),
+            ),
+        ]),
+    ]);
 }

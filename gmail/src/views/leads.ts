@@ -1,122 +1,170 @@
-import { buildView } from "../views/index";
-import { pushCard, updateCard, createKeyValueWidget, actionCall, notify, openUrl } from "./helpers";
-import { URLS } from "../const";
-import { getOdooServerUrl } from "src/services/app_properties";
-import { UI_ICONS } from "./icons";
-import { logEmail } from "../services/log_email";
-import { _t } from "../services/translation";
 import { Lead } from "../models/lead";
 import { State } from "../models/state";
+import { User } from "../models/user";
+import { logEmail } from "../services/log_email";
+import { getOdooRecordURL } from "../services/odoo_redirection";
+import {
+    ActionCall,
+    EventResponse,
+    Notify,
+    OpenLink,
+    PushCard,
+    registerEventHandler,
+    UpdateCard,
+} from "../utils/actions";
+import {
+    Button,
+    Card,
+    CardSection,
+    DecoratedText,
+    IconButton,
+    LinkButton,
+} from "../utils/components";
+import { getPartnerView } from "./partner";
+import { getSearchRecordView } from "./search_records";
 
-function onLogEmailOnLead(state: State, parameters: any) {
-    const leadId = parameters.leadId;
+async function onLogEmailOnLead(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const leadId = args.leadId;
 
-    if (State.checkLoggingState(state.email.messageId, "leads", leadId)) {
-        state.error = logEmail(leadId, "crm.lead", state.email);
-        if (!state.error.code) {
-            State.setLoggingState(state.email.messageId, "leads", leadId);
-        }
-        return updateCard(buildView(state));
+    const error = await logEmail(_t, user, leadId, "crm.lead", state.email);
+    if (error.code) {
+        return new Notify(error.toString(_t));
     }
-    return notify(_t("Email already logged on the lead"));
+
+    await state.email.setLoggingState(user, "crm.lead", leadId);
+    return new UpdateCard(getPartnerView(state, _t, user));
 }
+registerEventHandler(onLogEmailOnLead);
 
-function onEmailAlreradyLoggedOnLead(state: State) {
-    return notify(_t("Email already logged on the lead"));
+function onEmailAlreradyLoggedOnLead(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new Notify(_t("Email already logged on the opportunity"));
 }
+registerEventHandler(onEmailAlreradyLoggedOnLead);
 
-function onCreateLead(state: State) {
-    const leadId = Lead.createLead(state.partner.id, state.email.body, state.email.subject);
-
-    if (!leadId) {
-        return notify(_t("Could not create the lead"));
+async function onCreateLead(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): Promise<EventResponse> {
+    const result = await Lead.createLead(user, state.partner, state.email);
+    if (!result) {
+        return new Notify(_t("Could not create the opportunity"));
     }
-    const cids = state.odooCompaniesParameter;
-    const leadUrl =
-        PropertiesService.getUserProperties().getProperty("ODOO_SERVER_URL") +
-        `/web#id=${leadId}&action=crm_mail_plugin.crm_lead_action_form_edit&model=crm.lead&view_type=form${cids}`;
-
-    return openUrl(leadUrl);
+    const [lead, partner] = result;
+    state.partner = partner;
+    state.partner.leads.push(lead);
+    state.partner.leadCount += 1;
+    return new UpdateCard(getPartnerView(state, _t, user));
 }
+registerEventHandler(onCreateLead);
 
-export function buildLeadsView(state: State, card: Card) {
-    const odooServerUrl = getOdooServerUrl();
+function onSearchLeadsClick(
+    state: State,
+    _t: Function,
+    user: User,
+    args: Record<string, any>,
+    formInputs: Record<string, any>,
+): EventResponse {
+    return new PushCard(
+        getSearchRecordView(
+            state,
+            _t,
+            "crm.lead",
+            _t("Opportunities"),
+            _t("Log the email on the opportunity"),
+            _t("Email already logged on the opportunity"),
+            "revenuesDescription",
+            "",
+            true,
+            state.partner.leads,
+        ),
+    );
+}
+registerEventHandler(onSearchLeadsClick);
+
+export function buildLeadsView(state: State, _t: Function, user: User, card: Card) {
     const partner = state.partner;
-    const leads = partner.leads;
-
-    if (!leads) {
+    if (!partner.leads) {
         // CRM module is not installed
         // otherwise leads should be at least an empty array
         return;
     }
 
-    const loggingState = State.getLoggingState(state.email.messageId);
+    const leads = [...partner.leads].splice(0, 5);
 
-    const leadsSection = CardService.newCardSection().setHeader(
-        "<b>" + _t("Opportunities (%s)", leads.length) + "</b>",
+    const leadsSection = new CardSection();
+
+    const searchButton = new IconButton(
+        new ActionCall(state, onSearchLeadsClick),
+        "/assets/search.png",
+        _t("Search Opportunities"),
     );
-    const cids = state.odooCompaniesParameter;
 
-    if (state.partner.id) {
-        leadsSection.addWidget(
-            CardService.newTextButton().setText(_t("Create")).setOnClickAction(actionCall(state, onCreateLead.name)),
-        );
+    const title = partner.leadCount
+        ? _t("Opportunities (%s)", partner.leadCount)
+        : _t("Opportunities");
+    const widget = new DecoratedText(
+        "",
+        "<b>" + title + "</b>",
+        undefined,
+        undefined,
+        searchButton,
+    );
 
-        for (let lead of leads) {
-            let leadRevenuesDescription;
-            if (lead.recurringRevenue) {
-                leadRevenuesDescription = _t(
-                    "%(expected_revenue)s + %(recurring_revenue)s %(recurring_plan)s at %(probability)s%",
-                    {
-                        expected_revenue: lead.expectedRevenue,
-                        probability: lead.probability,
-                        recurring_revenue: lead.recurringRevenue,
-                        recurring_plan: lead.recurringPlan,
-                    },
-                );
-            } else {
-                leadRevenuesDescription = _t("%(expected_revenue)s at %(probability)s%", {
-                    expected_revenue: lead.expectedRevenue,
-                    probability: lead.probability,
-                });
-            }
+    leadsSection.addWidget(widget);
 
-            let leadButton = null;
-            if (loggingState["leads"].indexOf(lead.id) >= 0) {
-                leadButton = CardService.newImageButton()
-                    .setAltText(_t("Email already logged on the lead"))
-                    .setIconUrl(UI_ICONS.email_logged)
-                    .setOnClickAction(actionCall(state, onEmailAlreradyLoggedOnLead.name));
-            } else {
-                leadButton = CardService.newImageButton()
-                    .setAltText(_t("Log the email on the lead"))
-                    .setIconUrl(UI_ICONS.email_in_odoo)
-                    .setOnClickAction(
-                        actionCall(state, onLogEmailOnLead.name, {
-                            leadId: lead.id,
-                        }),
-                    );
-            }
+    const createButton = new Button(_t("New"), new ActionCall(state, onCreateLead));
+    leadsSection.addWidget(createButton);
 
-            leadsSection.addWidget(
-                createKeyValueWidget(
-                    null,
-                    lead.name,
-                    null,
-                    leadRevenuesDescription,
-                    leadButton,
-                    odooServerUrl + `/web#id=${lead.id}&model=crm.lead&view_type=form${cids}`,
-                ),
+    for (let lead of leads) {
+        let leadButton = null;
+        if (state.email.checkLoggingState("crm.lead", lead.id)) {
+            leadButton = new IconButton(
+                new ActionCall(state, onEmailAlreradyLoggedOnLead),
+                "/assets/email_logged.png",
+                _t("Email already logged on the opportunity"),
+            );
+        } else {
+            leadButton = new IconButton(
+                new ActionCall(state, onLogEmailOnLead, {
+                    leadId: lead.id,
+                }),
+                "/assets/email_in_odoo.png",
+                _t("Log the email on the opportunity"),
             );
         }
-    } else if (state.canCreatePartner) {
-        leadsSection.addWidget(CardService.newTextParagraph().setText(_t("Save Contact to create new Opportunities.")));
-    } else {
+
         leadsSection.addWidget(
-            CardService.newTextParagraph().setText(_t("You can only create opportunities for existing customers.")),
+            new DecoratedText(
+                "",
+                lead.name,
+                undefined,
+                lead.revenuesDescription,
+                leadButton,
+                new OpenLink(getOdooRecordURL(user, "crm.lead", lead.id)),
+            ),
+        );
+    }
+
+    if (leads.length < partner.leadCount) {
+        leadsSection.addWidget(
+            new LinkButton(_t("Show all"), new ActionCall(state, onSearchLeadsClick)),
         );
     }
 
     card.addSection(leadsSection);
-    return card;
 }
