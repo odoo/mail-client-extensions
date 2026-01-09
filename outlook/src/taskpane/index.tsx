@@ -1,49 +1,58 @@
-import 'office-ui-fabric-react/dist/css/fabric.min.css';
-import App from './components/App';
-import { AppContainer } from 'react-hot-loader';
-import { initializeIcons } from 'office-ui-fabric-react/lib/Icons';
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { Authenticator } from '@microsoft/office-js-helpers';
+import { FluentProvider, createLightTheme } from '@fluentui/react-components'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './components/App'
+import { ErrorProvider } from './components/Error'
 
-initializeIcons();
+/* global document, Office, module, require, HTMLElement */
 
-let isOfficeInitialized = false;
+const rootElement: HTMLElement | null = document.getElementById('container')
+const root = rootElement ? createRoot(rootElement) : undefined
 
-const title = 'Odoo for Outlook';
+// https://aka.ms/themedesigner-v9
+export const odooTheme = createLightTheme({
+    10: '#000000',
+    20: '#181216',
+    30: '#281D25',
+    40: '#392835',
+    50: '#4C3445',
+    60: '#5F3F56',
+    70: '#724C68',
+    80: '#825B78',
+    90: '#926B87',
+    100: '#A17C97',
+    110: '#B08DA6',
+    120: '#BF9FB5',
+    130: '#CDB1C5',
+    140: '#DAC4D4',
+    150: '#E7D7E2',
+    160: '#F4EBF1',
+})
 
-const render = (Component) => {
-    ReactDOM.render(
-        <AppContainer>
-            <Component
-                title={title}
-                isOfficeInitialized={isOfficeInitialized}
-                itemChangedRegister={itemChangedRegister}
-            />
-        </AppContainer>,
-        document.getElementById('container'),
-    );
-};
-
-let itemChangedHandler: (type: Office.EventType) => void;
-const itemChangedRegister = (f: (type: Office.EventType) => void) => {
-    itemChangedHandler = f;
-};
+function render() {
+    root?.render(
+        <FluentProvider theme={odooTheme}>
+            <ErrorProvider>
+                <App />
+            </ErrorProvider>
+        </FluentProvider>
+    )
+}
 
 /* Render application after Office initializes */
-Office.initialize = () => {
-    if (Authenticator.isAuthDialog()) return;
-    isOfficeInitialized = true;
-    Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, itemChangedHandler);
-    render(App);
-};
-
-/* Initial render showing a progress bar */
-render(App);
+Office.onReady(() => {
+    Office.context.mailbox.addHandlerAsync(
+        /* On desktop, when we open a new email while keeping the addin open. */
+        Office.EventType.ItemChanged,
+        () => {
+            window.dispatchEvent(new CustomEvent('newEmailOpened'))
+        }
+    )
+    render()
+})
 
 if ((module as any).hot) {
-    (module as any).hot.accept('./components/App', () => {
-        const NextApp = require('./components/App').default;
-        render(NextApp);
-    });
+    ;(module as any).hot.accept('./components/App', () => {
+        render()
+    })
 }

@@ -1,111 +1,117 @@
-const devCerts = require("office-addin-dev-certs");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const CopyWebpackPlugin = require("copy-webpack-plugin");
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
-const HtmlWebpackPlugin = require("html-webpack-plugin");
-const webpack = require('webpack');
+/* eslint-disable no-undef */
 
-module.exports = async (env, options)  => {
+const devCerts = require("office-addin-dev-certs");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const webpack = require("webpack");
+
+const urlDev = "https://localhost:3000/";
+const urlProd = "https://std-odoo.github.io/"; // TODO: change
+
+async function getHttpsOptions() {
+  const httpsOptions = await devCerts.getHttpsServerOptions();
+  return { ca: httpsOptions.ca, key: httpsOptions.key, cert: httpsOptions.cert };
+}
+
+module.exports = async (env, options) => {
   const dev = options.mode === "development";
-  let domain = "localhost:3000";
-  if (env && env.DOMAIN) {
-    domain = env.DOMAIN;
-  }
-  const config = {
+  return{
     devtool: "source-map",
     entry: {
-      vendor: [
-        'react',
-        'react-dom',
-        'core-js',
-        'office-ui-fabric-react'
-    ],
-    taskpane: [
-        'react-hot-loader/patch',
-        './src/taskpane/index.tsx',
-    ],
+      polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
+      react: ["react", "react-dom"],
+      taskpane: {
+        import: ["./src/taskpane/index.tsx", "./src/taskpane/taskpane.html"],
+        dependOn: "react",
+      },
+      loginSuccess: {
+        import: ["./src/login/login_success.ts", "./src/login/login_success.html"],
+        dependOn: "react",
+      },
+    },
+    output: {
+      clean: true,
     },
     resolve: {
-      extensions: [".ts", ".tsx", ".html", ".js"]
+      extensions: [".ts", ".tsx", ".html", ".js"],
     },
     module: {
       rules: [
         {
-          test: /\.tsx?$/,
-          use: [
-              'react-hot-loader/webpack',
-              'ts-loader'
-          ],
-          exclude: /node_modules/
-        },
-        {
-          test: /\.css$/,
-          use: ['style-loader', 'css-loader']
-        },
-        {
-          test: /\.(png|jpe?g|gif|svg|woff|woff2|ttf|eot|ico)$/,
+          test: /\.ts$/,
+          exclude: /node_modules/,
           use: {
-              loader: 'file-loader',
-              query: {
-                  name: 'assets/[name].[ext]'
-                }
-              }  
-            }   
-          ]
-    },    
-    plugins: [
-      new CleanWebpackPlugin(),
-      new CopyWebpackPlugin(
+            loader: "babel-loader",
+          },
+        },
         {
-          patterns: [
-            {
-              to: "taskpane.css",
-              from: "./src/taskpane/taskpane.css"
-            },
-            {
-              from: './assets',
-              to: 'assets',
-              globOptions: {
-                ignore: ['*.scss'],
-              }
-            },
-            {
-              to: "manifest.xml",
-              from: "./manifest.xml",
-              transform(content) {
-                return content
-                  .toString()
-                  .replace(/localhost:3000/g, domain);
-              },
-            },
-          ]
-        }
-      ),
-      new webpack.DefinePlugin({
-        __DOMAIN__: JSON.stringify(domain)
-      }),
-      new ExtractTextPlugin('[name].[hash].css'),
+          test: /\.tsx?$/,
+          exclude: /node_modules/,
+          use: ["ts-loader"],
+        },
+        {
+          test: /\.html$/,
+          exclude: /node_modules/,
+          use: "html-loader",
+        },
+        {
+          test: /\.(png|jpg|jpeg|ttf|woff|woff2|gif|ico)$/,
+          type: "asset/resource",
+          generator: {
+            filename: "assets/[name][ext][query]",
+          },
+        },
+      ],
+    },
+    plugins: [
       new HtmlWebpackPlugin({
         filename: "taskpane.html",
-          template: './src/taskpane/taskpane.html',
-          chunks: ['taskpane', 'vendor', 'polyfills']
+        template: "./src/taskpane/taskpane.html",
+        chunks: ["polyfill", "taskpane", "react"],
       }),
       new HtmlWebpackPlugin({
-        filename: "dialog.html",
-        template: "./src/taskpane/components/Login/dialog.html"
+        filename: "login_redirect.html",
+        template: "./src/login/login_redirect.html"
+      }),
+      new HtmlWebpackPlugin({
+        filename: "login_success.html",
+        template: "./src/login/login_success.html",
+        chunks: ["polyfill", "loginSuccess", "react"],
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: "assets/*",
+            to: "assets/[name][ext][query]",
+          },
+          {
+            from: "manifest*.xml",
+            to: "[name]" + "[ext]",
+            transform(content) {
+              if (dev) {
+                return content;
+              } else {
+                return content.toString().replace(new RegExp(urlDev, "g"), urlProd);
+              }
+            },
+          },
+        ],
       }),
       new webpack.ProvidePlugin({
-        Promise: ["es6-promise", "Promise"]
-      })
+        Promise: ["es6-promise", "Promise"],
+      }),
     ],
     devServer: {
+      hot: true,
       headers: {
-        "Access-Control-Allow-Origin": "*"
-      },      
-      https: (options.https !== undefined) ? options.https : await devCerts.getHttpsServerOptions(),
-      port: process.env.npm_package_config_dev_server_port || 3000
-    }
+        "Access-Control-Allow-Origin": "*",
+      },
+      allowedHosts: "all",
+      server: {
+        type: "https",
+        options: env.WEBPACK_BUILD || options.https !== undefined ? options.https : await getHttpsOptions(),
+      },
+      port: process.env.npm_package_config_dev_server_port || 3000,
+    },
   };
-
-  return config;
 };

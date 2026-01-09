@@ -1,291 +1,365 @@
-import * as React from 'react';
-import Login from './Login/Login';
-import Main from './Main/Main';
-import AppContext from './AppContext';
-import EnrichmentInfo, { EnrichmentInfoType } from '../../classes/EnrichmentInfo';
-import { IIconProps, Link, MessageBar, MessageBarType } from 'office-ui-fabric-react';
-import Progress from './GrayOverlay';
-import { _t } from '../../utils/Translator';
+import {
+    Button,
+    makeStyles,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
+} from '@fluentui/react-components'
+import {
+    ArrowClockwiseRegular,
+    ArrowLeftRegular,
+    MoreVerticalRegular,
+    SignOutRegular,
+} from '@fluentui/react-icons'
+import React, { useContext } from 'react'
+import { _t, fetchTranslations } from '../../helpers/translate'
+import { Email } from '../../models/email'
+import { Partner } from '../../models/partner'
+import ErrorContext from './Error'
+import GlobalLoading, {
+    hideGlobalLoading,
+    showGlobalLoading,
+} from './GlobalLoading'
+import Loading from './Loading'
+import Login from './Login'
+import PartnerView from './PartnerView'
+import SearchRecords from './SearchRecords'
 
-enum Page {
-    Login,
-    Main,
-}
+interface AppProps {}
 
-export interface AppProps {
-    title: string;
-    isOfficeInitialized: boolean;
-    itemChangedRegister: any;
-}
+const useStyles = makeStyles({
+    root: {
+        minHeight: '100vh',
+        padding: '0 10px',
+    },
+    header: {
+        display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    goBack: {
+        marginTop: '5px',
+    },
+    subTitle: {
+        marginBottom: '5px',
+        marginTop: '5px',
+        marginLeft: '10px',
+    },
+    spinner: {
+        padding: '4px',
+    },
+    kebab: {
+        minWidth: '0',
+    },
+    kebabButton: {
+        '& div': {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            '& > span': {
+                marginRight: '5px',
+            },
+        },
+    },
+})
 
-export interface AppState {
-    mainKey: number;
-    pageDisplayed: Page;
-    EnrichmentInfo: EnrichmentInfo;
-    showPartnerCreatedMessage: boolean;
-    showEnrichmentInfoMessage: boolean;
-    canCreatePartner: boolean;
-    userCompanies: number[];
-    loginErrorMessage: string;
-    navigation: {
-        goToLogin: () => void;
-        goToMain: () => void;
-    };
-    connect: (token) => void;
-    disconnect: () => void;
-    getConnectionToken: () => void;
-    getUserCompaniesString: () => string;
-    isConnected: () => Boolean;
-    cancelRequests: () => void;
-    addRequestCanceller: (canceller: () => void) => void;
-    setCanCreatePartner: (canCreatePartner: boolean) => void;
-    setUserCompanies: (userCompanies: number[]) => void;
-    showTopBarMessage: (enrichmentInfo?: EnrichmentInfo) => void;
-    showHttpErrorMessage: (error) => void;
-}
+const App: React.FC<AppProps> = (_props: AppProps) => {
+    const styles = useStyles()
+    const showError = useContext(ErrorContext)?.showError
 
-export default class App extends React.Component<AppProps, AppState> {
-    requestCancellers: (() => void)[] = [];
+    const [loading, setLoading] = React.useState(
+        !!localStorage.getItem('odoo_access_token')
+    )
+    const [logged, setLogged] = React.useState(false)
 
-    constructor(props, context) {
-        super(props, context);
+    // pages used to go back
+    const [currentPage, setCurrentPage] =
+        React.useState<React.JSX.Element | null>(null)
+    const [pagesPartner, setPagesPartner] =
+        React.useState<[React.JSX.Element, Partner][]>()
 
-        props.itemChangedRegister(this.onItemChanged);
+    let email = new Email()
 
-        this.state = {
-            mainKey: 0,
-            EnrichmentInfo: new EnrichmentInfo(),
-            showPartnerCreatedMessage: false,
-            showEnrichmentInfoMessage: false,
-            canCreatePartner: true,
-            userCompanies: [],
-            pageDisplayed: Page.Main,
-            loginErrorMessage: '',
-            navigation: {
-                goToLogin: this.goToLogin,
-                goToMain: this.goToMain,
-            },
-            connect: (token) => {
-                localStorage.setItem('odooConnectionToken', token);
-            },
-            disconnect: () => {
-                localStorage.removeItem('odooConnectionToken');
-                localStorage.removeItem('translations');
-                localStorage.removeItem('translationsTimestamp');
-            },
-            getConnectionToken: () => {
-                return 'Bearer ' + localStorage.getItem('odooConnectionToken');
-            },
-            getUserCompaniesString: () => {
-                if (this.state.userCompanies.length == 0) {
-                    return '';
-                } else {
-                    return `&cids=${this.state.userCompanies.sort().join(',')}`;
-                }
-            },
-            isConnected: () => {
-                return !!localStorage.getItem('odooConnectionToken');
-            },
-            cancelRequests: () => {
-                const cancellers = [...this.requestCancellers];
-                this.requestCancellers = [];
-                for (const canceller of cancellers) {
-                    canceller(); // Cancel the request.
-                }
-            },
-            addRequestCanceller: (canceller: () => void) => {
-                this.requestCancellers.push(canceller);
-            },
-
-            setCanCreatePartner: (canCreatePartner: boolean) => {
-                this.setState({ canCreatePartner: canCreatePartner });
-            },
-
-            setUserCompanies: (companies: number[]) => {
-                this.setState({ userCompanies: companies });
-            },
-
-            showTopBarMessage: (enrichmentInfo) => {
-                if (enrichmentInfo)
-                    this.setState({
-                        EnrichmentInfo: enrichmentInfo,
-                        showEnrichmentInfoMessage: true,
-                    });
-                else
-                    this.setState({
-                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
-                        showEnrichmentInfoMessage: true,
-                    });
-            },
-
-            showHttpErrorMessage: (error?) => {
-                if (error && error.message == '0') {
-                    this.setState({
-                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.ConnectionError),
-                        showEnrichmentInfoMessage: true,
-                    });
-                } else {
-                    this.setState({
-                        EnrichmentInfo: new EnrichmentInfo(EnrichmentInfoType.Other),
-                        showEnrichmentInfoMessage: true,
-                    });
-                }
-            },
-        };
+    const pushPage = (page: React.JSX.Element, partner: Partner = null) => {
+        setPagesPartner((prevPages) => [...prevPages, [page, partner]])
+        setCurrentPage(page)
     }
 
-    private getMessageBars = () => {
-        const { type, info } = this.state.EnrichmentInfo;
-        const message = this.state.EnrichmentInfo.getTypicalMessage();
-        const warningIcon: IIconProps = {
-            iconName: 'Error',
-            style: { fontSize: '20px' },
-        };
-        let bars = [];
-        if (this.state.showPartnerCreatedMessage) {
-            bars.push(
-                <MessageBar messageBarType={MessageBarType.success} onDismiss={this.hidePartnerCreatedMessage}>
-                    {_t('Contact created')}
-                </MessageBar>,
-            );
+    /**
+     * Search partners in the database.
+     */
+    const searchPartners = async (query: string): Promise<Partner[]> => {
+        const [searchedPartners, error] = await Partner.searchPartner(query)
+        if (error.code) {
+            showError(error.message)
+            return []
         }
-        if (this.state.showEnrichmentInfoMessage) {
-            switch (type) {
-                case EnrichmentInfoType.CompanyCreated:
-                    bars.push(
-                        <MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>
-                            {_t('Company created')}
-                        </MessageBar>,
-                    );
-                    break;
-                case EnrichmentInfoType.CompanyUpdated:
-                    bars.push(
-                        <MessageBar messageBarType={MessageBarType.success} onDismiss={this.hideEnrichmentInfoMessage}>
-                            {_t('Company updated')}
-                        </MessageBar>,
-                    );
-                    break;
-                case EnrichmentInfoType.NoData:
-                case EnrichmentInfoType.NotConnected_NoData:
-                    bars.push(
-                        <MessageBar messageBarType={MessageBarType.warning} onDismiss={this.hideEnrichmentInfoMessage}>
-                            {message}
-                        </MessageBar>,
-                    );
-                    break;
-                case EnrichmentInfoType.InsufficientCredit:
-                    bars.push(
-                        <MessageBar
-                            messageBarType={MessageBarType.error}
-                            messageBarIconProps={warningIcon}
-                            onDismiss={this.hideEnrichmentInfoMessage}>
-                            {message}
-                            <br />
-                            <Link href={info} target="_blank">
-                                {_t('Buy More')}
-                            </Link>
-                        </MessageBar>,
-                    );
-                    break;
-                case EnrichmentInfoType.ConnectionError:
-                    bars.push(
-                        <>
-                            <MessageBar
-                                messageBarType={MessageBarType.error}
-                                messageBarIconProps={warningIcon}
-                                onDismiss={this.hideEnrichmentInfoMessage}>
-                                {message}
-                                <div
-                                    className="link-like-button"
-                                    onClick={() => {
-                                        this.goToLogin();
-                                    }}>
-                                    {_t('Login')}
-                                </div>
-                            </MessageBar>
-                        </>,
-                    );
-                    break;
-                case EnrichmentInfoType.EnrichContactWithNoEmail:
-                case EnrichmentInfoType.NotConnected_InsufficientCredit:
-                case EnrichmentInfoType.NotConnected_InternalError:
-                case EnrichmentInfoType.Other:
-                case EnrichmentInfoType.OdooCustomError:
-                case EnrichmentInfoType.CouldNotGetTranslations:
-                    bars.push(
-                        <MessageBar
-                            messageBarType={MessageBarType.error}
-                            messageBarIconProps={warningIcon}
-                            onDismiss={this.hideEnrichmentInfoMessage}>
-                            {message}
-                        </MessageBar>,
-                    );
-                    break;
+        return searchedPartners
+    }
+
+    /**
+     * Open the view to search a contact.
+     */
+    const onSearchPartners = () => {
+        pushPage(
+            <SearchRecords<Partner>
+                onClick={setPartner}
+                search={searchPartners}
+                model="res.partner"
+                searchPlaceholder={_t('Search contact')}
+                iconAttribute="image"
+                records={[]}
+                nameAttribute="name"
+                descriptionAttribute="description"
+                email={email}
+            />
+        )
+    }
+
+    const logout = () => {
+        setLoading(false)
+        setLogged(false)
+        localStorage.removeItem('odoo_access_token')
+        setPagesPartner([])
+        setCurrentPage(<Login onLogin={loadEmailContacts} />)
+    }
+
+    /**
+     * Open the given partner and fetch the leads, tasks, tickets, etc.
+     */
+    const setPartner = async (partner: Partner) => {
+        // set the info we know as soon as possible
+        pushPage(
+            <PartnerView
+                key={`partner-${partner.key}`}
+                partner={partner}
+                email={email}
+                onSearch={onSearchPartners}
+                pushPage={pushPage}
+                goBack={goBack}
+                updatePartner={updatePartner}
+            />,
+            partner
+        )
+
+        // fetch the leads, tickets, tasks, etc
+        showGlobalLoading()
+        const [newPartner, error] = await Partner.getPartner(
+            partner.name,
+            partner.email,
+            partner.id
+        )
+        hideGlobalLoading()
+        if (error.code) {
+            showError(error.message)
+        }
+        updatePartner(newPartner)
+    }
+
+    /**
+     * Assuming that the current card is the partner view, update it.
+     */
+    const updatePartner = (partner: Partner) => {
+        const newCard = (
+            <PartnerView
+                key={`partner-${partner.key}`}
+                partner={partner}
+                email={email}
+                onSearch={onSearchPartners}
+                pushPage={pushPage}
+                goBack={goBack}
+                updatePartner={updatePartner}
+            />
+        )
+
+        setPagesPartner((prevPages) => [
+            ...prevPages.slice(0, -1),
+            [newCard, partner],
+        ])
+        setCurrentPage(newCard)
+    }
+
+    const bottom = (
+        <h4 className={styles.subTitle}>{_t('In this conversation')}</h4>
+    )
+
+    /**
+     * Show the contacts in the current email.
+     */
+    const setEmailContacts = (partners: Partner[]) => {
+        const searchRecords = (
+            <SearchRecords
+                onClick={setPartner}
+                search={searchPartners}
+                model="res.partner"
+                bottom={bottom}
+                searchPlaceholder={_t('Search contact')}
+                iconAttribute="image"
+                records={partners}
+                nameAttribute="name"
+                descriptionAttribute="description"
+                email={email}
+            />
+        )
+        setPagesPartner([[searchRecords, null]])
+        setCurrentPage(searchRecords)
+    }
+
+    /**
+     * Fetch the information about the contact in the email.
+     * (to know if they exist in the database...)
+     */
+    const loadEmailContacts = async (autoOpen = true) => {
+        const token = localStorage.getItem('odoo_access_token')
+        if (!token?.length) {
+            logout()
+            return
+        }
+
+        const [searchedPartners, error] = await Partner.searchPartner(
+            email.contacts.map((c) => c.email)
+        )
+        if (error.code) {
+            logout()
+            return
+        }
+
+        const existingPartnersEmails = searchedPartners.map((p) => p.email)
+        for (const contact of email.contacts) {
+            if (existingPartnersEmails.includes(contact.email)) {
+                continue
             }
-        }
-        return bars;
-    };
-
-    private goToLogin = () => {
-        this.setState({
-            pageDisplayed: Page.Login,
-        });
-    };
-
-    private goToMain = () => {
-        this.setState({
-            pageDisplayed: Page.Main,
-        });
-    };
-
-    private onItemChanged = () => {
-        // When we open a new email on Outlook Desktop,
-        // we want to reload the component (so we refetch the new partner)
-        this.setState({
-            mainKey: this.state.mainKey + 1,
-            showPartnerCreatedMessage: false,
-            showEnrichmentInfoMessage: false,
-        });
-    };
-
-    private hideEnrichmentInfoMessage = () => {
-        this.setState({
-            showEnrichmentInfoMessage: false,
-        });
-    };
-
-    private hidePartnerCreatedMessage = () => {
-        this.setState({
-            showPartnerCreatedMessage: false,
-        });
-    };
-
-    render() {
-        const { isOfficeInitialized } = this.props;
-
-        if (!isOfficeInitialized) {
-            return <Progress />;
+            searchedPartners.push(
+                Partner.fromOdooResponse({
+                    name: contact.name,
+                    email: contact.email,
+                })
+            )
         }
 
-        switch (this.state.pageDisplayed) {
-            case Page.Login:
-                return (
-                    <AppContext.Provider value={this.state}>
-                        <Login />
-                    </AppContext.Provider>
-                );
-            case Page.Main:
-            default:
-                return (
-                    <AppContext.Provider value={this.state}>
-                        <div className="app-main">
-                            <div>{this.getMessageBars()}</div>
-                            <div style={{ flex: 1 }}>
-                                <Main key={this.state.mainKey} canCreatePartner={this.state.canCreatePartner} />
-                            </div>
-                        </div>
-                    </AppContext.Provider>
-                );
+        fetchTranslations()
+        setEmailContacts(searchedPartners)
+        if (searchedPartners.length === 1 && autoOpen) {
+            setPartner(searchedPartners[0])
         }
+
+        setLogged(true)
+        setLoading(false)
     }
+
+    const goBack = (backCount: number = 1) => {
+        setPagesPartner((prevPages) => {
+            if (prevPages.length === 2) {
+                // the contact could have been created, reload the view
+                setTimeout(() => loadEmailContacts(false))
+                return []
+            }
+            const [page, _partner] = prevPages[prevPages.length - 1 - backCount]
+            setCurrentPage(page)
+            return prevPages.slice(0, prevPages.length - backCount)
+        })
+    }
+
+    const onRefresh = async () => {
+        const partner = pagesPartner[pagesPartner.length - 1][1]
+        const [newPartner, error] = await Partner.getPartner(
+            partner.name,
+            partner.email,
+            partner.id
+        )
+
+        if (error.code) {
+            showError(error.message)
+            return
+        }
+        updatePartner(newPartner)
+    }
+
+    // set the logged state if needed, without blocking the rendering
+    React.useEffect(() => {
+        loadEmailContacts()
+    }, [])
+
+    /**
+     * When the task pane is pinned on the desktop app, and that we open a new email.
+     */
+    function newEmailOpened() {
+        email = new Email()
+        loadEmailContacts()
+    }
+
+    React.useEffect(() => {
+        window.addEventListener('newEmailOpened', newEmailOpened)
+        return () => {
+            window.removeEventListener('newEmailOpened', newEmailOpened)
+        }
+    }, [])
+
+    return (
+        <div className={styles.root}>
+            {logged && (
+                <div className={styles.header}>
+                    <Button
+                        disabled={pagesPartner.length <= 1}
+                        className={styles.goBack}
+                        icon={<ArrowLeftRegular />}
+                        title={_t('Go back')}
+                        size="small"
+                        shape="circular"
+                        appearance="subtle"
+                        onClick={() => goBack()}
+                    />
+
+                    <GlobalLoading />
+
+                    <Menu>
+                        <MenuTrigger disableButtonEnhancement>
+                            <MenuButton
+                                appearance="subtle"
+                                icon={<MoreVerticalRegular />}
+                                size="medium"
+                            />
+                        </MenuTrigger>
+
+                        <MenuPopover className={styles.kebab}>
+                            <MenuList>
+                                <MenuItem
+                                    className={styles.kebabButton}
+                                    onClick={onRefresh}
+                                    disabled={
+                                        !pagesPartner.length ||
+                                        !pagesPartner[
+                                            pagesPartner.length - 1
+                                        ][1]
+                                    }
+                                >
+                                    <div>
+                                        <span>{_t('Refresh')}</span>
+                                        <ArrowClockwiseRegular />
+                                    </div>
+                                </MenuItem>
+                                <MenuItem
+                                    className={styles.kebabButton}
+                                    onClick={() => logout()}
+                                >
+                                    <div>
+                                        <span>{_t('Log out')}</span>
+                                        <SignOutRegular />
+                                    </div>
+                                </MenuItem>
+                            </MenuList>
+                        </MenuPopover>
+                    </Menu>
+                </div>
+            )}
+            {loading ? <Loading /> : currentPage}
+        </div>
+    )
 }
+
+export default App

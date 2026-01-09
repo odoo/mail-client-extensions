@@ -1,32 +1,38 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
-    "jsx": "react",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "removeComments": false,
-    "outDir": "dist",
     "allowUnusedLabels": false,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react",
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
     "noImplicitReturns": true,
     "noUnusedParameters": true,
-    "noUnusedLocals": true,
-    "downlevelIteration": true,
+    "outDir": "dist",
+    "removeComments": false,
+    "sourceMap": true,
+    "target": "es6",
     "lib": [
-      "es7",
-      "dom",
-      "es2020"
+      "es6",
+      "dom"
     ],
     "pretty": true,
     "typeRoots": [
       "node_modules/@types"
-    ]
+    ],
   },
   "exclude": [
     "node_modules"
   ],
   "compileOnSave": false,
-  "buildOnSave": false
+  "buildOnSave": false,
+  "ts-node": { 
+    "compilerOptions": {
+      "module": "commonjs"
+    },
+    "files": true 
+  }
 }

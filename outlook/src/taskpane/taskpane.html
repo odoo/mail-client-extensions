@@ -1,37 +1,53 @@
-<!-- Copyright (c) Microsoft Corporation. All rights reserved. Licensed under the MIT license. -->
-<!-- See LICENSE in the project root for license information -->
-
 <!doctype html>
 <html lang="en" data-framework="typescript">
 
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Contoso Task Pane Add-in</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Odoo Add-in</title>
 
-    <script>
-        var pushStateRef = history.pushState;
-        var replaceStateRef = history.replaceState;
-      </script>
     <!-- Office JavaScript API -->
-    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
-    <script>
-        history.pushState = pushStateRef;
-        history.replaceState = replaceStateRef;
-        delete pushStateRef;
-        delete replaceStateRef;
-    </script>
-
-    <!-- For more information on Office UI Fabric, visit https://developer.microsoft.com/fabric. -->
-    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/9.6.1/css/fabric.min.css"/>
-
-    <!-- Template styles -->
-    <link href="taskpane.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
 
-<body class="ms-font-m ms-Fabric">
+<body style="width: 100%; height: 100%; margin: 0; padding: 0;">
     <div id="container"></div>
+
+    <!-- 
+        Fluent UI React v. 9 uses modern JavaScript syntax that is not supported in
+        Trident (Internet Explorer) or EdgeHTML (Edge Legacy), so this add-in won't
+        work in Office versions that use these webviews. The script below makes the 
+        following div display when an unsupported webview is in use, and hides the 
+        React container div. 
+    -->
+    <div id="tridentmessage" style="display: none; padding: 10;">
+        This add-in will not run in your version of Office. Please upgrade either to perpetual Office 2021 (or later) 
+        or to a Microsoft 365 account.
+    </div>
+    <script>
+        if ((navigator.userAgent.indexOf("Trident") !== -1) || (navigator.userAgent.indexOf("Edge") !== -1)) {
+            var tridentMessage = document.getElementById("tridentmessage");
+            var normalContainer = document.getElementById("container");
+            tridentMessage.style.display = "block";
+            normalContainer.style.display = "none";
+        } 
+    </script>
+    <style>
+        #container {
+            background-color: "#f5f5f5";
+            overflow-x: hidden;
+            margin: auto;
+        }
+        @font-face {
+            /* Font for manuscript style */
+          font-family: 'Caveat';
+          font-style: normal;
+          src: url('assets/caveat.ttf') format('woff2');
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        @keyframes spin { 100% { transform:rotate(360deg); } }
+    </style>
 </body>
 
 </html>
