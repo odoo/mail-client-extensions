@@ -24,12 +24,14 @@ function onNextLogin(event) {
     const version = getSupportedAddinVersion(validatedUrl);
 
     if (!version) {
-        return notify("Could not connect to your database.");
+        return notify(
+            "Could not connect to your database. Make sure the module is installed in Odoo (Settings > General Settings > Integrations > Mail Plugins)",
+        );
     }
 
     if (version !== 1) {
         return notify(
-            "This addin version required Odoo 19.1 or an older version, please install a newer addin version.",
+            "Oops, this addin is no longer compatible with your version of Odoo. Please install a newer version.",
         );
     }
 
