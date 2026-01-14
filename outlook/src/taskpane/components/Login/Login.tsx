@@ -298,7 +298,7 @@ class Login extends React.Component<{}, LoginState> {
             [AuthenticationRequestError.AuthenticationCodeExpired]:
                 'Your authentication code is invalid or has expired. ',
             [AuthenticationRequestError.InvalidOdooVersion]:
-                'This addin version required Odoo 19.1 or an older version, please install a newer addin version.',
+                'Oops, this addin is no longer compatible with your version of Odoo. Please install a newer version. ',
         };
 
         const errorStr = ERROR_MESSAGES[this.state.authenticationRequestError];
