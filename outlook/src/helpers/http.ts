@@ -139,7 +139,8 @@ export async function getSupportedAddinVersion(
  * code if the user accepted the permission.
  */
 export async function openOdooLoginDialog(baseURL: string): Promise<string> {
-    const addInBaseURL = document.location.origin
+    const href = window.location.href
+    const addInBaseURL = href.substring(0, href.lastIndexOf('/'))
     const options = {
         height: 65,
         width: 30,
