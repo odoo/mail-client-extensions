@@ -78,7 +78,9 @@ const Login: React.FC<{
         const version = await getSupportedAddinVersion(url)
         setLoading(false)
         if (!version) {
-            showError('Could not connect to your database.')
+            showError(
+                'Could not connect to your database. Make sure the module is installed in Odoo (Settings > General Settings > Integrations > Mail Plugins)'
+            )
             return
         }
 

@@ -31,12 +31,14 @@ async function onNextLogin(
         return new Notify(`Invalid URL ${formInputs.odooServerUrl}`);
     }
 
-    user.odooUrl = domain
+    user.odooUrl = domain;
     await user.save();
 
     const version = await getSupportedAddinVersion(domain);
     if (!version) {
-        return new Notify("Could not connect to your database.");
+        return new Notify(
+            "Could not connect to your database. Make sure the module is installed in Odoo (Settings > General Settings > Integrations > Mail Plugins)",
+        );
     }
 
     if (version !== 2) {
