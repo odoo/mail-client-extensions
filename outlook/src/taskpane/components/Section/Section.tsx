@@ -6,6 +6,7 @@ import CollapseSection from '../CollapseSection/CollapseSection';
 import ListItem from '../ListItem/ListItem';
 import api from '../../api';
 import AppContext from '../AppContext';
+import PostalMime from 'postal-mime';
 
 type SectionAbstractProps = {
     className?: string;
@@ -63,8 +64,37 @@ class Section extends React.Component<SectionAbstractProps, SectionAbstractState
     private createRecordRequest = (additionnalValues?) => {
         Office.context.mailbox.item.body.getAsync(Office.CoercionType.Html, async (result) => {
             // Remove the history and only log the most recent message.
-            const message = result.value.split('<div id="x_appendonsend"></div>')[0];
+            let message = result.value.split('<div id="x_appendonsend"></div>')[0];
             const subject = Office.context.mailbox.item.subject;
+
+            // add inline images
+            const emailB64: string = await new Promise((resolve) => {
+                Office.context.mailbox.item.getAsFileAsync((result) => {
+                    resolve(result.value)
+                })
+            })
+            const parser = new PostalMime();
+            const email = await parser.parse(atob(emailB64));
+            const toBase64 = (buffer: ArrayBuffer) => {
+                let binary = ''
+                const bytes = new Uint8Array(buffer)
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binary += String.fromCharCode(bytes[i])
+                }
+                return btoa(binary)
+            }
+
+            for (const attachment of email.attachments) {
+                if (!attachment.contentId || attachment.disposition !== 'inline') {
+                    continue
+                }
+                const contentId = attachment.contentId
+                    .replace('<', '')
+                    .replace('>', '')
+                const content = attachment.content as ArrayBuffer
+                const base64Data = `data:${attachment.mimeType};base64,${toBase64(content)}`
+                message = message.replace(`cid:${contentId}`, base64Data)
+            }
 
             const requestJson = Object.assign(
                 {
