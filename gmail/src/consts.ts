@@ -9,6 +9,7 @@ export const PSQL_PASS = process.env.PSQL_PASS || "root";
 export const PSQL_DB = process.env.PSQL_DB || "odoo_gmail_addin";
 export const PSQL_HOST = process.env.PSQL_HOST || "localhost";
 export const PSQL_PORT = Number(process.env.PSQL_PORT || 5432);
+export const PSQL_SSL = process.env.PSQL_SSL === "true";
 
 export const URLS: Record<string, string> = {
     GET_TRANSLATIONS: "/mail_plugin/get_translations",

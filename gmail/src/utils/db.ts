@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { PSQL_DB, PSQL_HOST, PSQL_PASS, PSQL_PORT, PSQL_USER } from "../consts";
+import { PSQL_DB, PSQL_HOST, PSQL_PASS, PSQL_PORT, PSQL_SSL, PSQL_USER } from "../consts";
 
 const pool = new Pool({
     user: PSQL_USER,
@@ -7,6 +7,7 @@ const pool = new Pool({
     database: PSQL_DB,
     host: PSQL_HOST,
     port: PSQL_PORT,
+    ssl: PSQL_SSL ? { rejectUnauthorized: false } : false,
 });
 
 pool.on("error", (err, client) => {
