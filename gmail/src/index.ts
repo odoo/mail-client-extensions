@@ -12,6 +12,7 @@ import { User } from "./models/user";
 import { odooAuthCallback } from "./services/odoo_auth";
 import { Translate } from "./services/translation";
 import { getEventHandler } from "./utils/actions";
+import { Card, CardSection, TextParagraph } from "./utils/components";
 import pool from "./utils/db";
 import { htmlEscape } from "./utils/format";
 import { svgToPngResponse } from "./utils/svg";
@@ -75,8 +76,12 @@ app.post(
         }
 
         const email = await Email.getEmailFromHeaders(req.body, headers, user);
-
-        if (email.contacts.length > 1) {
+        if (!email.contacts.length) {
+            const _t = await Translate.getTranslations(user);
+            const card = new Card([new CardSection([new TextParagraph(_t("No contact found."))])]);
+            res.json(card.build());
+            return;
+        } else if (email.contacts.length > 1) {
             // More than one contact, we will need to choose the right one
             const [_t, [searchedPartners, error]] = await Promise.all([
                 Translate.getTranslations(user),

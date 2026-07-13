@@ -81,14 +81,27 @@ export class Email {
         headers: Record<string, string>,
         user: User,
     ): Promise<Email> {
-        const userEmail = user.email.toLowerCase();
-        const contacts = [
-            ...this._emailSplitTuple(headers["to"] || "", userEmail),
-            ...this._emailSplitTuple(headers["from"] || "", userEmail),
-            ...this._emailSplitTuple(headers["cc"] || "", userEmail),
-            ...this._emailSplitTuple(headers["bcc"] || "", userEmail),
+        const headersContacts = [
+            ...this._emailSplitTuple(headers["to"] || ""),
+            ...this._emailSplitTuple(headers["from"] || ""),
+            ...this._emailSplitTuple(headers["cc"] || ""),
+            ...this._emailSplitTuple(headers["bcc"] || ""),
         ];
 
+        const seenEmails = []; // remove duplicated
+        let contacts = [];
+        for (const contact of headersContacts) {
+            if (!seenEmails.includes(contact.email.toLowerCase())) {
+                seenEmails.push(contact.email.toLowerCase());
+                contacts.push(contact);
+            }
+        }
+
+        // except for "self sent email", remove the current user
+        if (contacts.length > 1) {
+            const userEmail = user.email.toLowerCase();
+            contacts = contacts.filter((c) => c.email.toLowerCase() !== userEmail);
+        }
         return new Email(
             event.authorizationEventObject.userOAuthToken,
             event.gmail.accessToken,
@@ -158,22 +171,17 @@ export class Email {
      *      ["bob@example.com", "bob@example.com"]
      * ]
      */
-    private static _emailSplitTuple(formattedEmail: string, userEmail: string): EmailContact[] {
+    private static _emailSplitTuple(formattedEmail: string): EmailContact[] {
         const contacts = [];
         const re = /(.*?)<(.*?)>/;
         for (const part of formattedEmail.split(",")) {
-            if (part.toLowerCase().indexOf(userEmail) >= 0 || !part.trim()?.length) {
-                // Skip the user's email
+            if (!part.trim()?.length) {
                 continue;
             }
 
             const result = part.match(re);
-            if (!result) {
-                contacts.push(new EmailContact(part.trim(), part.trim(), part.trim()));
-                continue;
-            }
-            const email = result[2].trim();
-            let name = result[1].replace(/\"/g, "").trim() || email;
+            const email = result ? result[2].trim() : part.trim();
+            const name = result ? result[1].replace(/\"/g, "").trim() || email : part.trim();
             contacts.push(new EmailContact(name, email, part.trim()));
         }
         return contacts;
