@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "npm run gen-secret && concurrently \"tsx watch src/index.ts\" \"npm run typecheck\"",
+    "dev": "concurrently \"tsx watch src/index.ts\" \"npm run typecheck\"",
     "typecheck": "tsc --noEmit --watch",
-    "build": "rm -rf dist && tsc && npm run gen-secret && mv .env dist/.env",
+    "build": "rm -rf dist && tsc",
     "start": "cd dist && node index.js",
     "prettier": "prettier --write 'src/**/*.ts'",
-    "gen-secret": "echo APP_SECRET=$(node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\") > .env"
+    "test": "node --import=tsx --test tests/*.test.ts"
   },
   "author": "",
   "license": "",

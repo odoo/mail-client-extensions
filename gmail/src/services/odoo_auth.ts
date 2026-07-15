@@ -1,5 +1,6 @@
 import { HOST, ODOO_AUTH_URLS } from "../consts";
 import { User } from "../models/user";
+import { decryptAesGcm, encryptAesGcm, getApplicationKey } from "../utils/encrypt";
 import { encodeQueryData, postJsonRpc } from "../utils/http";
 import { ERROR_PAGE, RAINBOW } from "./pages";
 
@@ -14,15 +15,23 @@ import { ERROR_PAGE, RAINBOW } from "./pages";
  * 5. The auth code is exchanged for an access token with a RPC call
  */
 export async function odooAuthCallback(callbackRequest: any) {
-    const { success, auth_code: authCode, state } = callbackRequest.query;
+    const { success, auth_code: authCode, state: encStateHex } = callbackRequest.query;
     if (success !== "1") {
         return ERROR_PAGE.replace("__ERROR_MESSAGE__", "Odoo did not return successfully.");
     }
-    const { email, loginToken } = JSON.parse(state);
+    const appKey = await getApplicationKey();
+
     let response = null;
     let user = null;
     try {
-        user = await User.getUserFromLoginToken(email, loginToken);
+        const encState = Buffer.from(encStateHex, "hex");
+        const {
+            email,
+            loginToken,
+            encryptionKey: encryptionKeyHex,
+        } = JSON.parse(decryptAesGcm(encState, appKey));
+        const encryptionKey = Buffer.from(encryptionKeyHex, "hex");
+        user = await User.getUserFromLoginToken(email, encryptionKey, loginToken);
 
         console.log("Get access token from auth code...");
         response = await postJsonRpc(user.odooUrl + ODOO_AUTH_URLS.CODE_VALIDATION, {
@@ -31,7 +40,8 @@ export async function odooAuthCallback(callbackRequest: any) {
         if (!response || !response.access_token || !response.access_token.length) {
             throw new Error("Odoo exchange failed");
         }
-    } catch {
+    } catch (e) {
+        console.error(`Error during authentication process: ${e}`);
         return ERROR_PAGE.replace(
             "__ERROR_MESSAGE__",
             "The token exchange failed. Maybe your token has expired or your database can not be reached by the Google server." +
@@ -55,17 +65,21 @@ export async function getOdooAuthUrl(user: User): Promise<string> {
         throw new Error("Can not retrieve the Odoo database URL.");
     }
 
-    const loginToken = await user.generateLoginToken();
-
-    const redirectToAddon = `${HOST}/auth_callback`;
+    const state = {
+        loginToken: await user.generateLoginToken(),
+        email: user.email,
+        encryptionKey: user.encryptionKey.toString("hex"),
+    };
+    const appKey = await getApplicationKey();
+    const encState = encryptAesGcm(JSON.stringify(state), appKey);
 
     return (
         odooUrl +
         ODOO_AUTH_URLS.AUTH_CODE +
         encodeQueryData({
-            redirect: redirectToAddon,
+            redirect: `${HOST}/auth_callback`,
             friendlyname: "Gmail",
-            state: JSON.stringify({ loginToken, email: user.email }),
+            state: encState.toString("hex"),
             scope: ODOO_AUTH_URLS.SCOPE,
         })
     );
