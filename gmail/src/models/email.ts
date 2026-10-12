@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import { simpleParser } from "mailparser";
 import { ErrorMessage } from "../models/error_message";
 import pool from "../utils/db";
+import { decryptAesGcm, encryptAesGcm, hmacSha256 } from "../utils/encrypt";
 import { User } from "./user";
 
 const gmail = google.gmail({ version: "v1" });
@@ -253,12 +254,19 @@ export class Email {
     async setLoggingState(user: User, resModel: string, resId: number) {
         console.log(`Logging email for user ${user.email}`);
         this.loggingState[resModel].push(resId);
+
+        const enc = (pt) => encryptAesGcm(pt, user.encryptionKey);
         await pool.query(
             `
-            INSERT INTO email_logs (user_id, message_id, res_id, res_model)
+            INSERT INTO enc_email_logs (user_id, message_id_hash, enc_res_id, enc_res_model)
                  VALUES ($1, $2, $3, $4)
             `,
-            [user.id, this.messageId, resId, resModel],
+            [
+                user.id,
+                hmacSha256(user.encryptionKey, `Email log ${this.messageId}`),
+                enc(resId.toString()),
+                enc(resModel),
+            ],
         );
     }
 
@@ -281,14 +289,17 @@ export class Email {
         user: User,
         messageId: string,
     ): Promise<Record<string, number[]>> {
+        const dec = (ct) => decryptAesGcm(ct, user.encryptionKey);
+
         const result = await pool.query(
             `
-                SELECT res_model, res_id
-                  FROM email_logs
-                 WHERE user_id = $1 AND message_id = $2
+                SELECT enc_res_model, enc_res_id
+                  FROM enc_email_logs
+                 WHERE user_id = $1 AND message_id_hash = $2
             `,
-            [user.id, messageId],
+            [user.id, hmacSha256(user.encryptionKey, `Email log ${messageId}`)],
         );
+
         const ret: Record<string, number[]> = {
             "res.partner": [],
             "crm.lead": [],
@@ -296,7 +307,7 @@ export class Email {
             "project.task": [],
         };
         for (const row of result.rows) {
-            ret[row.res_model].push(row.res_id);
+            ret[dec(row.enc_res_model)].push(parseInt(dec(row.enc_res_id)));
         }
         return ret;
     }

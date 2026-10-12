@@ -32,14 +32,23 @@ if (!process.env.APP_SECRET?.length) {
 }
 
 /**
- * Once a day, clean the old email log table.
+ * Once a day, clean the old email log table / expired login token.
  */
 cron.schedule("0 0 * * *", async () => {
     console.log("Clean the email logging table...");
     await pool.query(
         `
-    DELETE FROM email_logs
+    DELETE FROM enc_email_logs
           WHERE create_date < NOW() - INTERVAL '1 month'
+        `,
+    );
+
+    await pool.query(
+        `
+        UPDATE enc_users_settings
+           SET enc_login_token = NULL,
+               login_token_expire_at = NULL
+         WHERE login_token_expire_at < NOW()
         `,
     );
 });
@@ -143,10 +152,6 @@ app.post(
 app.post(
     "/execute_action",
     asyncHandler(async (req, res) => {
-        const user = await User.getUserFromGoogleToken(req.body);
-
-        const _t = await Translate.getTranslations(user);
-
         const rawFormInputs = req.body.commonEventObject.formInputs || {};
         const formInputs = Object.fromEntries(
             Object.entries(rawFormInputs).map(([key, value]) => [
@@ -168,6 +173,9 @@ app.post(
             state.email.userOAuthToken = req.body.authorizationEventObject.userOAuthToken;
             state.email.accessToken = req.body.gmail.accessToken;
         }
+
+        const user = await User.getUserFromGoogleToken(req.body);
+        const _t = await Translate.getTranslations(user);
 
         const result = await getEventHandler(functionName)(state, _t, user, args, formInputs);
         res.json(result.build());
@@ -271,8 +279,8 @@ app.use(
 app.use("/db_check", async (req, res, next) => {
     try {
         // check that the table exists
-        await pool.query("SELECT id FROM users_settings LIMIT 1");
-        await pool.query("SELECT id FROM email_logs LIMIT 1");
+        await pool.query("SELECT id FROM enc_users_settings LIMIT 1");
+        await pool.query("SELECT id FROM enc_email_logs LIMIT 1");
         res.json("ok");
     } catch (e) {
         console.error(e);

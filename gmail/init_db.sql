@@ -8,23 +8,32 @@
 -- createdb odoo_gmail_addin
 -- psql -f init_db.sql odoo_gmail_addin
 
-CREATE TABLE IF NOT EXISTS users_settings (
+CREATE TABLE IF NOT EXISTS enc_users_settings (
     id SERIAL PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    odoo_url TEXT,
-    odoo_token TEXT,
-    login_token TEXT,
-    login_token_expire_at TIMESTAMP WITH TIME ZONE,
-    translations JSON,
-    translations_expire_at TIMESTAMP WITH TIME ZONE
+
+    -- hash(derived key), used to retrieve the user's settings
+    key_hash bytea NOT NULL UNIQUE,
+    CONSTRAINT users_settings_key_hash_length_check CHECK (octet_length(key_hash) = 32),
+
+    enc_odoo_url bytea,
+    enc_odoo_token bytea,
+    enc_translations bytea,
+    enc_translations_expire_at bytea,
+
+    -- temporary value used during the Odoo authentication process
+    enc_login_token bytea,
+    login_token_expire_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TABLE IF NOT EXISTS email_logs (
+CREATE TABLE IF NOT EXISTS enc_email_logs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
-    message_id TEXT NOT NULL,
-    res_id INTEGER NOT NULL,
-    res_model TEXT NOT NULL,
+    message_id_hash  bytea NOT NULL,
+    enc_res_id  bytea NOT NULL,
+    enc_res_model  bytea NOT NULL,
+    -- not encrypted to clean in the CRON
     create_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    FOREIGN KEY (user_id) REFERENCES users_settings(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES enc_users_settings(id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS enc_email_logs_user_id_idx ON enc_email_logs(user_id);

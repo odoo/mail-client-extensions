@@ -26,7 +26,6 @@ export function onOpenDebugView(state: State, _t: Function, user: User): EventRe
         new TextParagraph(_t("Debug zone for development purpose.")),
         new DecoratedText(_t("Odoo Server URL"), user.odooUrl),
         new DecoratedText(_t("Odoo Access Token"), user.odooToken),
-        new DecoratedText(_t("Odoo Access Token"), user.odooToken),
         new Button(_t("Clear Translations Cache"), new ActionCall(state, onClearTranslationCache)),
     ]);
     const card = new Card([section]);
