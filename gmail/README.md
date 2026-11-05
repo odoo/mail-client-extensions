@@ -6,11 +6,12 @@ and also to link your Gmail contacts to your Odoo partners, to create leads from
 
 # Development
 ## Requirements
-First you need npm,
-> apt-get install -y npm
+Develop inside docker to have a stable environment (fixed node version, etc).
+> docker build . -t "odoo-v1-mail-plugin"
+> docker run -it --rm -v "$(pwd):/gmail" odoo-v1-mail-plugin:latest
 
 Install the dependencies
-> npm install
+> npm ci
 
 ## Prettier
 You should auto-format the code using the prettier configuration,

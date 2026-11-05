@@ -6,7 +6,8 @@
     "noImplicitThis": true,
     "noEmitOnError": true,
     "target": "ES5",
-    "lib": ["dom", "es6", "scripthost", "es2017"]
+    "lib": ["dom", "es6", "scripthost", "es2017"],
+    "types": ["google-apps-script"]
   },
   "include": ["src/*", "src/**/*"]
 }
